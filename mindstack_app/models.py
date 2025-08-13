@@ -1,6 +1,7 @@
 # File: web/mindstack_app/models.py
-# Mục đích: Định nghĩa cấu trúc database (phiên bản v10) dưới dạng các lớp Python,
-#           đã thêm các trường theo dõi tiến độ học tập hiện tại của người dùng.
+# Mục đích: Định nghĩa cấu trúc database (phiên bản v11) dưới dạng các lớp Python,
+#           đã thêm các trường theo dõi tiến độ học tập hiện tại của người dùng
+#           và các trường liên quan đến AI cho LearningContainer và LearningItem.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -23,6 +24,7 @@ class LearningContainer(db.Model):
     is_public = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    ai_settings = db.Column(JSON, nullable=True) # TRƯỜNG MỚI: Lưu cài đặt AI cho bộ thẻ/quiz/course
 
 class LearningGroup(db.Model):
     __tablename__ = 'learning_groups'
@@ -39,6 +41,7 @@ class LearningItem(db.Model):
     item_type = db.Column(db.String(50), nullable=False) # 'LESSON', 'FLASHCARD', 'QUIZ_MCQ', 'QUIZ_COMPOUND'
     content = db.Column(JSON, nullable=False)
     order_in_container = db.Column(db.Integer, default=0)
+    ai_explanation = db.Column(db.Text, nullable=True) # TRƯỜNG MỚI: Nội dung giải thích do AI tạo ra
 
 # ==============================================================================
 # II. NGƯỜI DÙNG & TƯƠNG TÁC (USER & INTERACTION)

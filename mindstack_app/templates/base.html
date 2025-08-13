@@ -86,6 +86,11 @@
                                 href="{{ url_for('user_profile.view_profile') }}">
                                 <i class="fas fa-user mr-2 w-4"></i> Profile
                             </a>
+                            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
+                                {% if request.endpoint.startswith('my_content.') %}bg-blue-100 text-blue-600{% endif %}" 
+                                href="{{ url_for('my_content.my_content_dashboard') }}">
+                                <i class="fas fa-boxes mr-2 w-4"></i> Quản lý học liệu
+                            </a>
                             {% if current_user.user_role == 'admin' %}
                             <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
                                 {% if request.endpoint.startswith('admin.') %}bg-blue-100 text-blue-600{% endif %}" 

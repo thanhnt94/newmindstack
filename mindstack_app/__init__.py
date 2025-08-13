@@ -1,5 +1,5 @@
 # File: web/mindstack_app/__init__.py
-# Version: 3.7 - Đã kiểm tra lại đăng ký Blueprint để khắc phục BuildError
+# Version: 3.10 - Đã đăng ký Blueprint quizzes
 from flask import Flask, g
 from .config import Config
 from .db_instance import db
@@ -40,18 +40,23 @@ def create_app(config_class=Config):
     from .modules.auth.routes import auth_bp
     from .modules.main.routes import main_bp
     from .modules.admin import admin_bp 
-    # Import Blueprint user_management_bp từ module con admin.user_management
     from .modules.admin.user_management import user_management_bp 
-    # Import Blueprint user_profile_bp từ module user_profile (ngang hàng với admin)
     from .modules.user_profile import user_profile_bp 
+    from .modules.my_content import my_content_bp 
+    from .modules.my_content.flashcards import flashcards_bp 
+    # DÒNG MỚI: Import Blueprint quizzes_bp từ module con my_content.quizzes
+    from .modules.my_content.quizzes import quizzes_bp 
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
-    # Đăng ký user_management_bp dưới tiền tố /admin/users
     app.register_blueprint(user_management_bp, url_prefix='/admin/users') 
-    # Đăng ký user_profile_bp dưới tiền tố /profile
     app.register_blueprint(user_profile_bp, url_prefix='/profile') 
+    app.register_blueprint(my_content_bp, url_prefix='/my-content') 
+    app.register_blueprint(flashcards_bp, url_prefix='/my-content/flashcards') 
+    # DÒNG MỚI: Đăng ký Blueprint quizzes_bp
+    # Nó sẽ có tiền tố URL là /my-content/quizzes
+    app.register_blueprint(quizzes_bp, url_prefix='/my-content/quizzes') 
 
     with app.app_context():
         db.create_all()

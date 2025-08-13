@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Nội dung của tôi{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-semibold text-gray-800 mb-6">Quản lý Nội dung của tôi</h1>
+    <p class="text-gray-600">Tại đây bạn có thể tạo và quản lý các bộ Flashcard, Quiz và Khóa học của mình.</p>
+    
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Card quản lý Flashcard -->
+        <a href="{{ url_for('flashcards.list_flashcard_sets') }}" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
+            <i class="fas fa-clone text-blue-500 text-5xl mb-4"></i>
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">Quản lý Flashcard</h2>
+            <p class="text-gray-600">Tạo, sửa và xem các bộ thẻ Flashcard của bạn.</p>
+        </a>
+
+        <!-- Card quản lý Quiz - CẬP NHẬT LIÊN KẾT -->
+        <a href="{{ url_for('quizzes.list_quiz_sets') }}" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
+            <i class="fas fa-question-circle text-purple-500 text-5xl mb-4"></i>
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">Quản lý Trắc nghiệm</h2>
+            <p class="text-gray-600">Tạo, sửa và xem các bộ câu hỏi trắc nghiệm của bạn.</p>
+        </a>
+
+        <!-- Card quản lý Course -->
+        <a href="#" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
+            <i class="fas fa-book text-green-500 text-5xl mb-4"></i>
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">Quản lý Khoá học</h2>
+            <p class="text-gray-600">Tạo, sửa và xem các khóa học của bạn.</p>
+        </a>
+    </div>
+</div>
+{% endblock %}
