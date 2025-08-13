@@ -41,19 +41,28 @@
             <ul class="flex-grow flex justify-center items-center space-x-2 md:space-x-6">
                 {% if current_user.is_authenticated %}
                 <li>
-                    <a class="flex items-center p-2 rounded-md bg-blue-100 text-blue-600 font-medium md:px-4 md:py-2 text-sm md:text-base" aria-current="page" href="#">
+                    {# Flashcard - Giả định là trang chính/dashboard #}
+                    <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
+                        {% if request.endpoint == 'main.dashboard' %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
+                        aria-current="page" href="{{ url_for('main.dashboard') }}">
                         <i class="fas fa-clone mr-1 md:mr-2"></i>
                         <span>Flashcard</span>
                     </a>
                 </li>
                 <li>
-                    <a class="flex items-center p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-800 font-medium md:px-4 md:py-2 text-sm md:text-base" href="#">
+                    {# Trắc nghiệm - Giả định endpoint là 'quiz.index' #}
+                    <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
+                        {% if request.endpoint == 'quiz.index' %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
+                        href="#">
                         <i class="fas fa-question-circle mr-1 md:mr-2"></i>
                         <span>Trắc nghiệm</span>
                     </a>
                 </li>
                 <li>
-                    <a class="flex items-center p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-800 font-medium md:px-4 md:py-2 text-sm md:text-base" href="#">
+                    {# Khoá học - Giả định endpoint là 'course.index' #}
+                    <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
+                        {% if request.endpoint == 'course.index' %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
+                        href="#">
                         <i class="fas fa-book mr-1 md:mr-2"></i>
                         <span>Khoá học</span>
                     </a>
@@ -72,11 +81,15 @@
                     <!-- Dropdown menu -->
                     <div class="absolute right-0 w-48 origin-top-right transform scale-95 opacity-0 invisible group-hover:visible group-hover:opacity-100 group-hover:scale-100 transition duration-200 ease-out z-50">
                         <div class="bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
-                            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#">
+                            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
+                                {% if request.endpoint == 'user_profile.view_profile' or request.endpoint == 'user_profile.edit_profile' %}bg-blue-100 text-blue-600{% endif %}" 
+                                href="{{ url_for('user_profile.view_profile') }}">
                                 <i class="fas fa-user mr-2 w-4"></i> Profile
                             </a>
                             {% if current_user.user_role == 'admin' %}
-                            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('admin.admin_dashboard') }}">
+                            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
+                                {% if request.endpoint.startswith('admin.') %}bg-blue-100 text-blue-600{% endif %}" 
+                                href="{{ url_for('admin.admin_dashboard') }}">
                                 <i class="fas fa-user-shield mr-2 w-4"></i> Admin
                             </a>
                             {% endif %}

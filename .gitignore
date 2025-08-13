@@ -1,0 +1,68 @@
+# ======================================================================
+#                      Tệp .gitignore cho dự án Python
+# ======================================================================
+# Tệp này chỉ định các tệp và thư mục mà Git nên bỏ qua.
+# Điều này giúp kho mã nguồn của bạn luôn sạch sẽ, không chứa các tệp tạm,
+# thư viện ảo, hoặc các sản phẩm build không cần thiết.
+
+# --- Môi trường ảo ---
+# Bỏ qua các thư mục môi trường ảo phổ biến.
+# Điều này rất quan trọng để không đẩy toàn bộ thư viện lên GitHub.
+/venv/
+/env/
+/.venv/
+/.env/
+/virtualenv/
+/venv.bak/
+/env.bak/
+database/
+media/
+# /media/flashcard
+# media/flashcard/audio/
+# /media/flashcard/images/
+
+# --- Thư mục cache của Python ---
+# Bỏ qua các thư mục chứa file bytecode đã được biên dịch.
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Các sản phẩm của PyInstaller ---
+# Bỏ qua các thư mục và tệp được tạo ra khi build file .exe.
+/build/
+/dist/
+/tool/
+*.spec
+
+# --- Thư mục build tạm tùy chỉnh ---
+# Bỏ qua thư mục build tạm mà chúng ta đã cấu hình trong file build_exe.py
+# Lưu ý: Git chỉ có thể bỏ qua các tệp trong kho lưu trữ của nó.
+# Nếu D:/build_temp nằm ngoài thư mục dự án, Git sẽ không thể thấy nó.
+# Quy tắc này hữu ích nếu bạn quyết định đặt thư mục build tạm bên trong dự án.
+/build_temp/
+D:/build_temp/
+
+# --- Các tệp của IDE và trình soạn thảo ---
+# Bỏ qua các thư mục cấu hình của các IDE phổ biến.
+.vscode/
+.idea/
+.project
+.pydevproject
+.settings/
+
+# --- Các tệp hệ điều hành và tệp tạm ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Các tệp Log ---
+# Bỏ qua tất cả các file có đuôi .log
+*.log
+logs/
+
+# --- Các tệp cấu hình chứa thông tin nhạy cảm ---
+# Nếu bạn có các tệp chứa API key, mật khẩu, hãy thêm chúng vào đây.
+# Ví dụ:
+# config.ini
+# .secrets
+

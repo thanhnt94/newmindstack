@@ -1,5 +1,6 @@
-# Tệp: web/mindstack_app/models.py
-# Mục đích: Định nghĩa cấu trúc database (phiên bản v9) dưới dạng các lớp Python.
+# File: web/mindstack_app/models.py
+# Mục đích: Định nghĩa cấu trúc database (phiên bản v10) dưới dạng các lớp Python,
+#           đã thêm các trường theo dõi tiến độ học tập hiện tại của người dùng.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -51,6 +52,13 @@ class User(UserMixin, db.Model):
     user_role = db.Column(db.String(50), default='user', nullable=False) # 'user', 'admin'
     total_score = db.Column(db.Integer, default=0)
     last_seen = db.Column(db.DateTime(timezone=True))
+
+    # CÁC TRƯỜNG MỚI ĐỂ LƯU TIẾN ĐỘ HỌC HIỆN TẠI
+    current_flashcard_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
+    current_quiz_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
+    current_course_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
+    current_flashcard_mode = db.Column(db.String(50), nullable=True)
+    current_quiz_mode = db.Column(db.String(50), nullable=True)
     
     def get_id(self):
         return str(self.user_id)
