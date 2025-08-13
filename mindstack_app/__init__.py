@@ -1,5 +1,5 @@
 # File: web/mindstack_app/__init__.py
-# Version: 3.10 - Đã đăng ký Blueprint quizzes
+# Version: 3.11 - Đã đăng ký Blueprint courses
 from flask import Flask, g
 from .config import Config
 from .db_instance import db
@@ -44,8 +44,9 @@ def create_app(config_class=Config):
     from .modules.user_profile import user_profile_bp 
     from .modules.my_content import my_content_bp 
     from .modules.my_content.flashcards import flashcards_bp 
-    # DÒNG MỚI: Import Blueprint quizzes_bp từ module con my_content.quizzes
     from .modules.my_content.quizzes import quizzes_bp 
+    # DÒNG MỚI: Import Blueprint courses_bp từ module con my_content.courses
+    from .modules.my_content.courses import courses_bp 
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -54,9 +55,10 @@ def create_app(config_class=Config):
     app.register_blueprint(user_profile_bp, url_prefix='/profile') 
     app.register_blueprint(my_content_bp, url_prefix='/my-content') 
     app.register_blueprint(flashcards_bp, url_prefix='/my-content/flashcards') 
-    # DÒNG MỚI: Đăng ký Blueprint quizzes_bp
-    # Nó sẽ có tiền tố URL là /my-content/quizzes
     app.register_blueprint(quizzes_bp, url_prefix='/my-content/quizzes') 
+    # DÒNG MỚI: Đăng ký Blueprint courses_bp
+    # Nó sẽ có tiền tố URL là /my-content/courses
+    app.register_blueprint(courses_bp, url_prefix='/my-content/courses') 
 
     with app.app_context():
         db.create_all()
