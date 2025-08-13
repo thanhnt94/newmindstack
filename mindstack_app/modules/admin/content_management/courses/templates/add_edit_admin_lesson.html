@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="flex justify-center">
+    <div class="w-full md:w-2/3 lg:w-1/2">
+        <div class="bg-white shadow-lg p-8 border border-gray-200 rounded-xl">
+            <h2 class="text-2xl font-bold text-center mb-6 flex items-center justify-center">
+                <i class="fas fa-plus-circle text-blue-500 mr-3"></i> {{ title }}
+            </h2>
+            <p class="text-center text-gray-600 mb-6">Điền thông tin dưới đây để {{ "tạo bài học mới" if title == "Thêm Bài học mới (Admin)" else "sửa bài học" }}.</p>
+
+            <form action="" method="post" class="space-y-6">
+                {{ form.csrf_token }}
+                
+                <div>
+                    {{ form.title.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.title(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Tiêu đề bài học") }}
+                    {% if form.title.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.title.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    {{ form.bbcode_content.label(class="block text-sm font-medium text-gray-700") }}
+                    {# Đây là textarea sẽ được biến thành BBCode editor #}
+                    {{ form.bbcode_content(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows="10", placeholder="Nội dung bài học (sử dụng BBCode)") }}
+                    {% if form.bbcode_content.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.bbcode_content.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Tùy chọn Media</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            {{ form.lesson_audio_url.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.lesson_audio_url(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL file âm thanh bài học") }}
+                            {% if form.lesson_audio_url.errors %}
+                                <div class="text-red-500 text-xs mt-1">
+                                    {% for error in form.lesson_audio_url.errors %}<p>{{ error }}</p>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {{ form.lesson_image_url.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.lesson_image_url(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh bài học") }}
+                            {% if form.lesson_image_url.errors %}
+                                <div class="text-red-500 text-xs mt-1">
+                                    {% for error in form.lesson_image_url.errors %}<p>{{ error }}</p>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {# Trường ai_explanation chỉ để hiển thị, không cho sửa trực tiếp #}
+                {% if form.ai_explanation.data %}
+                <div class="border-t border-gray-200 pt-6">
+                    {{ form.ai_explanation.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.ai_explanation(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 focus:outline-none", rows="5") }}
+                </div>
+                {% endif %}
+
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" onclick="window.history.back()" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-400 transition duration-300 flex items-center">
+                        <i class="fas fa-times mr-2"></i> Hủy
+                    </button>
+                    {{ form.submit(class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# Script để tích hợp BBCode Editor #}
+<script src="https://cdn.jsdelivr.net/npm/bbcode-editor@latest/dist/bbcode-editor.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bbcode-editor@latest/dist/bbcode-editor.min.css">
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Khởi tạo BBCode Editor trên textarea của form.bbcode_content
+        const bbcodeTextarea = document.getElementById('bbcode_content'); // ID của textarea
+        if (bbcodeTextarea) {
+            new BBCodeEditor(bbcodeTextarea, {
+                // Các tùy chọn của editor, bạn có thể tùy chỉnh thêm
+                // Ví dụ: chỉ hiển thị các nút cần thiết
+                buttons: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['link', 'youtube', 'img', 'audio'], // Thêm audio và img
+                    ['list', 'orderedlist'],
+                    ['quote', 'code'],
+                    ['undo', 'redo']
+                ]
+            });
+        }
+    });
+</script>
+{% endblock %}
