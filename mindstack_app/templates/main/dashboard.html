@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="flex flex-wrap -mx-4 gap-4">
+    <div class="w-full md:w-1/2 px-4">
+        <div class="bg-white h-full rounded-xl shadow-md border border-gray-200">
+            <div class="px-6 py-4 flex items-center bg-gray-50 border-b border-gray-200 rounded-t-xl">
+                <i class="fas fa-clone mr-2 text-blue-500"></i>
+                <h3 class="font-semibold text-lg">Bước 1: Chọn một bộ thẻ</h3>
+            </div>
+            <div class="p-6">
+                <div class="flex mb-4">
+                    <input type="text" class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tìm kiếm bộ thẻ...">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300"><i class="fas fa-search"></i></button>
+                </div>
+
+                <div class="flex justify-between mb-4 space-x-2">
+                    <button class="flex-1 flex items-center justify-center px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition duration-300">
+                        <i class="fas fa-book-open mr-2"></i> Đang học
+                    </button>
+                    <button class="flex-1 flex items-center justify-center px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-300">
+                        <i class="fas fa-rocket mr-2"></i> Khám phá
+                    </button>
+                </div>
+
+                <h6 class="text-gray-500 mt-6">∞ Học tất cả các bộ</h6>
+                <div class="mt-4 border-t border-gray-200 divide-y divide-gray-200">
+                    <a href="#" class="block px-4 py-3 bg-gray-50 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
+                        <div>
+                            <p class="mb-0 font-bold">Tủ vựng TOEIC</p>
+                            <small class="text-gray-500">tạo bởi thanhnt</small>
+                        </div>
+                        <span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">701 / 1257</span>
+                    </a>
+                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
+                        <div>
+                            <p class="mb-0 font-bold">Động từ theo sau bởi V-ing và To-V</p>
+                            <small class="text-gray-500">tạo bởi thanhnt</small>
+                        </div>
+                        <span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">5 / 136</span>
+                    </a>
+                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
+                        <div>
+                            <p class="mb-0 font-bold">2136 Kanji</p>
+                            <small class="text-gray-500">tạo bởi thanhnt</small>
+                        </div>
+                        <span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">0 / 2215</span>
+                    </a>
+                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
+                        <div>
+                            <p class="mb-0 font-bold">Tủ vựng Mimi Kara Oboeru N1</p>
+                            <small class="text-gray-500">tạo bởi thanhnt</small>
+                        </div>
+                        <span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">0 / 1170</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="w-full md:w-1/2 px-4">
+        <div class="bg-white h-full rounded-xl shadow-md border border-gray-200">
+            <div class="px-6 py-4 flex items-center bg-gray-50 border-b border-gray-200 rounded-t-xl">
+                <i class="fas fa-cog mr-2 text-blue-500"></i>
+                <h3 class="font-semibold text-lg">Bước 2: Chọn chế độ học</h3>
+            </div>
+            <div class="p-6">
+                <div class="border-t border-gray-200 divide-y divide-gray-200">
+                    <a href="#" class="block px-4 py-3 bg-blue-50 text-blue-800 border-l-4 border-blue-500 flex justify-between items-center">
+                        Học tuần tự
+                        <i class="fas fa-check-circle text-green-500"></i>
+                    </a>
+                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
+                        Chỉ học mới
+                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">556</span>
+                    </a>
+                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
+                        Ôn tập tới hạn
+                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">602</span>
+                    </a>
+                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
+                        Ôn tập ngẫu nhiên
+                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">703</span>
+                    </a>
+                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
+                        Ôn tập từ khó
+                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">1223</span>
+                    </a>
+                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
+                        Auto Play
+                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">703</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

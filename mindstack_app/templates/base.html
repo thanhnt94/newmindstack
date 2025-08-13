@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Mindstack App{% endblock %}</title>
+
+    <!-- Nhúng Google Fonts cho font Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CSS tùy chỉnh để căn chỉnh logo và thiết lập font mặc định -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #333333;
+        }
+        .active-link {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <!-- Logo và tên ứng dụng đã được căn chỉnh và responsive -->
+            <a class="flex items-center space-x-2" href="{{ url_for('main.dashboard') }}">
+                <i class="fas fa-brain text-2xl md:text-3xl text-blue-400"></i>
+                <span class="hidden md:inline text-lg md:text-[20px] font-normal">Mindstack</span>
+            </a>
+            
+            <!-- Các mục điều hướng chính - Căn giữa và responsive -->
+            <ul class="flex-grow flex justify-center items-center space-x-2 md:space-x-6">
+                {% if current_user.is_authenticated %}
+                <li>
+                    <a class="flex items-center p-2 rounded-md bg-blue-100 text-blue-600 font-medium md:px-4 md:py-2 text-sm md:text-base" aria-current="page" href="#">
+                        <i class="fas fa-clone mr-1 md:mr-2"></i>
+                        <span>Flashcard</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="flex items-center p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-800 font-medium md:px-4 md:py-2 text-sm md:text-base" href="#">
+                        <i class="fas fa-question-circle mr-1 md:mr-2"></i>
+                        <span>Trắc nghiệm</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="flex items-center p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-800 font-medium md:px-4 md:py-2 text-sm md:text-base" href="#">
+                        <i class="fas fa-book mr-1 md:mr-2"></i>
+                        <span>Khoá học</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+
+            <!-- Menu người dùng - Responsive -->
+            <ul class="flex items-center space-x-4">
+                {% if current_user.is_authenticated %}
+                <li class="relative group">
+                    <a class="text-gray-600 font-medium hover:text-blue-500 flex items-center" href="#" id="user-menu-button">
+                        <span class="hidden md:inline mr-2">{{ current_user.username }}</span>
+                        <i class="fas fa-user-circle text-2xl md:text-xl"></i>
+                    </a>
+                    <!-- Dropdown menu -->
+                    <div class="absolute right-0 w-48 origin-top-right transform scale-95 opacity-0 invisible group-hover:visible group-hover:opacity-100 group-hover:scale-100 transition duration-200 ease-out z-50">
+                        <div class="bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
+                            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#">
+                                <i class="fas fa-user mr-2 w-4"></i> Profile
+                            </a>
+                            {% if current_user.user_role == 'admin' %}
+                            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('admin.admin_dashboard') }}">
+                                <i class="fas fa-user-shield mr-2 w-4"></i> Admin
+                            </a>
+                            {% endif %}
+                            <div class="h-px bg-gray-200 my-1"></div>
+                            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('auth.logout') }}">
+                                <i class="fas fa-sign-out-alt mr-2 w-4"></i> Đăng xuất
+                            </a>
+                        </div>
+                    </div>
+                </li>
+                {% else %}
+                <li>
+                    <a class="text-blue-600 hover:text-blue-800 font-medium" href="{{ url_for('auth.login') }}">Đăng nhập</a>
+                </li>
+                <li>
+                    <a class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300" href="{{ url_for('auth.register') }}">Đăng ký</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container mx-auto py-8 px-4 flex-grow relative">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="absolute top-4 right-4 z-50 flex flex-col space-y-2 max-w-sm">
+                {% for category, message in messages %}
+                <div class="flex items-center p-2 rounded-md shadow-lg bg-gray-800 text-white relative text-sm opacity-100 transition-opacity duration-500" data-dismissible>
+                    {% if category == 'success' %}
+                    <i class="fas fa-check-circle text-green-400 mr-2"></i>
+                    {% elif category == 'info' %}
+                    <i class="fas fa-info-circle text-blue-400 mr-2"></i>
+                    {% elif category == 'warning' %}
+                    <i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
+                    {% elif category == 'danger' %}
+                    <i class="fas fa-times-circle text-red-400 mr-2"></i>
+                    {% else %}
+                    <i class="fas fa-bell text-gray-400 mr-2"></i>
+                    {% endif %}
+                    <span class="block sm:inline">{{ message }}</span>
+                    <button class="ml-auto pl-2 text-gray-400 hover:text-white" onclick="this.parentNode.remove();">
+                        <span class="sr-only">Đóng</span>
+                        <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="bg-white text-center py-4 mt-auto shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-wrap items-center justify-center md:justify-between">
+                <div class="w-full md:w-1/2 text-center md:text-left mb-2 md:mb-0">
+                    <p class="text-gray-500">&copy; 2024 Mindstack App. All Rights Reserved.</p>
+                </div>
+                <div class="w-full md:w-1/2 text-center md:text-right">
+                    <a href="#" class="text-gray-500 hover:text-gray-700 mx-2"><i class="fab fa-facebook-square text-xl"></i></a>
+                    <a href="#" class="text-gray-500 hover:text-gray-700 mx-2"><i class="fab fa-twitter-square text-xl"></i></a>
+                    <a href="#" class="text-gray-500 hover:text-gray-700 mx-2"><i class="fab fa-linkedin text-xl"></i></a>
+                    <a href="#" class="text-gray-500 hover:text-gray-700 mx-2"><i class="fab fa-github-square text-xl"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const notifications = document.querySelectorAll('[data-dismissible]');
+            notifications.forEach(notification => {
+                setTimeout(() => {
+                    notification.classList.add('opacity-0');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 500);
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>

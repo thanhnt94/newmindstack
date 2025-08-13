@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="flex justify-center">
+    <div class="w-full md:w-2/3 lg:w-1/2">
+        <div class="bg-white shadow-lg p-8 border border-gray-200 rounded-xl">
+            <h2 class="text-2xl font-bold text-center mb-6">{{ title }}</h2>
+            <form action="" method="post" class="space-y-6">
+                {{ form.csrf_token }}
+                
+                <div>
+                    {{ form.username.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.username(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Tên đăng nhập") }}
+                    {% if form.username.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.username.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.password(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Mật khẩu (để trống nếu không muốn đổi)") }}
+                    {% if form.password.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.password.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    {{ form.password2.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.password2(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Nhập lại mật khẩu (để trống nếu không muốn đổi)") }}
+                    {% if form.password2.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.password2.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                {# Ẩn trường user_role khi người dùng tự sửa profile #}
+                {# form.user_role không được render ở đây #}
+
+                <div>
+                    {{ form.submit(class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500") }}
+                </div>
+            </form>
+            <div class="text-center mt-6">
+                <a href="{{ url_for('user_profile.view_profile') }}" class="font-medium text-gray-600 hover:text-gray-500">Quay lại Profile</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

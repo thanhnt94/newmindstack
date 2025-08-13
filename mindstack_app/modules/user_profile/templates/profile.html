@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Profile của tôi{% endblock %}
+
+{% block content %}
+<div class="flex justify-center">
+    <div class="w-full md:w-2/3 lg:w-1/2">
+        <div class="bg-white shadow-lg p-8 border border-gray-200 rounded-xl">
+            <h2 class="text-2xl font-bold text-center mb-6">Profile của tôi</h2>
+            
+            <div class="space-y-4 text-gray-700">
+                <div class="flex items-center">
+                    <i class="fas fa-user text-blue-500 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Tên đăng nhập:</p>
+                        <p>{{ user.username }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <i class="fas fa-id-badge text-blue-500 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Vai trò:</p>
+                        <p>{{ user.user_role }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <i class="fas fa-calendar-alt text-blue-500 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Lần cuối hoạt động:</p>
+                        <p>{{ user.last_seen if user.last_seen else 'Chưa có' }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <i class="fas fa-star text-blue-500 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Tổng điểm:</p>
+                        <p>{{ user.total_score if user.total_score is not none else '0' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center">
+                <a href="{{ url_for('user_profile.edit_profile') }}" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300 inline-flex items-center">
+                    <i class="fas fa-edit mr-2"></i> Chỉnh sửa Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
