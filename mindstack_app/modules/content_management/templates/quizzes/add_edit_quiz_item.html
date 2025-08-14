@@ -1,0 +1,164 @@
+<!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/add_edit_quiz_item.html -->
+<!-- Phiên bản: 3.0 -->
+<!-- Mục đích: Hiển thị form để thêm mới hoặc chỉnh sửa một Câu hỏi. -->
+<!--           Đã cập nhật url_for. -->
+<!--           Đã khôi phục cấu trúc form, style, các trường media, passage và AI explanation từ code gốc. -->
+<!--           Thiết kế responsive. -->
+
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="flex justify-center">
+    <div class="w-full md:w-2/3 lg:w-1/2">
+        <div class="bg-white shadow-lg p-8 border border-gray-200 rounded-xl">
+            <h2 class="text-2xl font-bold text-center mb-6 flex items-center justify-center">
+                <i class="fas fa-plus-circle text-blue-500 mr-3"></i> {{ title }}
+            </h2>
+            <p class="text-center text-gray-600 mb-6">Điền thông tin dưới đây để {{ "tạo câu hỏi mới" if title == "Thêm Câu hỏi Quiz mới" else "sửa câu hỏi" }}.</p>
+
+            <form action="" method="post" class="space-y-6">
+                {{ form.csrf_token }}
+                
+                <div>
+                    {{ form.question.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.question(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows="3", placeholder="Nội dung câu hỏi") }}
+                    {% if form.question.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.question.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    {{ form.pre_question_text.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.pre_question_text(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows="2", placeholder="Văn bản/giới thiệu trước câu hỏi (nếu có)") }}
+                    {% if form.pre_question_text.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.pre_question_text.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        {{ form.option_a.label(class="block text-sm font-medium text-gray-700") }}
+                        {{ form.option_a(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Lựa chọn A") }}
+                        {% if form.option_a.errors %}
+                            <div class="text-red-500 text-xs mt-1">
+                                {% for error in form.option_a.errors %}<p>{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {{ form.option_b.label(class="block text-sm font-medium text-gray-700") }}
+                        {{ form.option_b(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Lựa chọn B") }}
+                        {% if form.option_b.errors %}
+                            <div class="text-red-500 text-xs mt-1">
+                                {% for error in form.option_b.errors %}<p>{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {{ form.option_c.label(class="block text-sm font-medium text-gray-700") }}
+                        {{ form.option_c(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Lựa chọn C (tùy chọn)") }}
+                        {% if form.option_c.errors %}
+                            <div class="text-red-500 text-xs mt-1">
+                                {% for error in form.option_c.errors %}<p>{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {{ form.option_d.label(class="block text-sm font-medium text-gray-700") }}
+                        {{ form.option_d(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Lựa chọn D (tùy chọn)") }}
+                        {% if form.option_d.errors %}
+                            <div class="text-red-500 text-xs mt-1">
+                                {% for error in form.option_d.errors %}<p>{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    {{ form.correct_answer_text.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.correct_answer_text(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500") }}
+                    {% if form.correct_answer_text.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.correct_answer_text.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Thông tin bổ sung</h3>
+                    <div>
+                        {{ form.guidance.label(class="block text-sm font-medium text-gray-700") }}
+                        {{ form.guidance(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows="3", placeholder="Gợi ý hoặc giải thích chi tiết cho câu hỏi") }}
+                        {% if form.guidance.errors %}
+                            <div class="text-red-500 text-xs mt-1">
+                                {% for error in form.guidance.errors %}<p>{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            {{ form.question_image_file.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.question_image_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh câu hỏi") }}
+                            {% if form.question_image_file.errors %}
+                                <div class="text-red-500 text-xs mt-1">
+                                    {% for error in form.question_image_file.errors %}<p>{{ error }}</p>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {{ form.question_audio_file.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.question_audio_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL file âm thanh câu hỏi") }}
+                            {% if form.question_audio_file.errors %}
+                                <div class="text-red-500 text-xs mt-1">
+                                    {% for error in form.question_audio_file.errors %}<p>{{ error }}</p>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        {{ form.passage_text.label(class="block text-sm font-medium text-gray-700") }}
+                        {{ form.passage_text(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows="3", placeholder="Đoạn văn bản liên quan đến câu hỏi (nếu có)") }}
+                        {% if form.passage_text.errors %}
+                            <div class="text-red-500 text-xs mt-1">
+                                {% for error in form.passage_text.errors %}<p>{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4">
+                        {{ form.passage_order.label(class="block text-sm font-medium text-gray-700") }}
+                        {{ form.passage_order(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Thứ tự đoạn văn (ví dụ: 1, 2)") }}
+                        {% if form.passage_order.errors %}
+                            <div class="text-red-500 text-xs mt-1">
+                                {% for error in form.passage_order.errors %}<p>{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {# Trường ai_explanation chỉ để hiển thị, không cho sửa trực tiếp #}
+                {% if form.ai_explanation.data %}
+                <div class="border-t border-gray-200 pt-6">
+                    {{ form.ai_explanation.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.ai_explanation(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 focus:outline-none", rows="5") }}
+                </div>
+                {% endif %}
+
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" onclick="window.history.back()" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-400 transition duration-300 flex items-center">
+                        <i class="fas fa-times mr-2"></i> Hủy
+                    </button>
+                    {{ form.submit(class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

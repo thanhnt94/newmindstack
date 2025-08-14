@@ -1,3 +1,8 @@
+<!-- File: newmindstack/mindstack_app/templates/base.html -->
+<!-- Phiên bản: 1.1 -->
+<!-- Mục đích: Cung cấp cấu trúc HTML cơ bản và các phần tử điều hướng cho ứng dụng Mindstack. -->
+<!--           Đã cập nhật liên kết đến bảng điều khiển quản lý nội dung mới. -->
+
 <!doctype html>
 <html lang="vi">
 <head>
@@ -86,14 +91,15 @@
                                 href="{{ url_for('user_profile.view_profile') }}">
                                 <i class="fas fa-user mr-2 w-4"></i> Profile
                             </a>
+                            <!-- DÒNG ĐƯỢC CHỈNH SỬA: Đã cập nhật liên kết Quản lý học liệu -->
                             <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
-                                {% if request.endpoint.startswith('my_content.') %}bg-blue-100 text-blue-600{% endif %}" 
-                                href="{{ url_for('my_content.my_content_dashboard') }}">
+                                {% if request.endpoint.startswith('content_management.') %}bg-blue-100 text-blue-600{% endif %}" 
+                                href="{{ url_for('content_management.content_dashboard') }}">
                                 <i class="fas fa-boxes mr-2 w-4"></i> Quản lý học liệu
                             </a>
                             {% if current_user.user_role == 'admin' %}
                             <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
-                                {% if request.endpoint.startswith('admin.') %}bg-blue-100 text-blue-600{% endif %}" 
+                                {% if request.endpoint.startswith('admin.') and not request.endpoint.startswith('admin.content_management.') %}bg-blue-100 text-blue-600{% endif %}" 
                                 href="{{ url_for('admin.admin_dashboard') }}">
                                 <i class="fas fa-user-shield mr-2 w-4"></i> Admin
                             </a>

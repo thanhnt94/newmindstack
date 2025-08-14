@@ -1,0 +1,77 @@
+<!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/_quiz_sets_list.html -->
+<!-- Phiên bản: 3.0 -->
+<!-- Mục đích: Hiển thị danh sách các bộ câu hỏi dưới dạng card grid. -->
+<!--           Đây là một template partial, chỉ chứa nội dung chính mà không có HTML bao bọc đầy đủ, -->
+<!--           được sử dụng cho các yêu cầu AJAX từ content_dashboard. -->
+<!--           Đã cập nhật tất cả các url_for theo cấu trúc Blueprint lồng nhau. -->
+<!--           Đã khôi phục phong cách card grid và các icon từ code gốc. -->
+<!--           Thiết kế responsive với Tailwind CSS. -->
+
+<div class="bg-white rounded-lg shadow p-4 sm:p-6 w-full">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Danh sách Bộ câu hỏi</h2>
+        <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
+            <i class="fas fa-plus-circle mr-2"></i> Thêm Bộ câu hỏi mới
+        </a>
+    </div>
+
+    {% if quiz_sets %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for set in quiz_sets %}
+        <div class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+            <div class="p-5">
+                <h2 class="text-xl font-semibold text-gray-800 mb-2">{{ set.title }}</h2>
+                <p class="text-gray-600 text-sm mb-3">{{ set.description if set.description else 'Không có mô tả.' }}</p>
+                
+                <div class="flex items-center text-gray-500 text-xs mb-3">
+                    <i class="fas fa-tags mr-1"></i>
+                    <span>{{ set.tags if set.tags else 'Không có thẻ' }}</span>
+                </div>
+                
+                <div class="flex items-center text-gray-500 text-xs mb-4">
+                    <i class="fas fa-eye mr-1"></i>
+                    <span>Trạng thái: {% if set.is_public %}Công khai{% else %}Riêng tư{% endif %}</span>
+                </div>
+
+                <div class="flex justify-between items-center mt-4">
+                    <a href="{{ url_for('content_management.content_management_quizzes.list_quiz_items', set_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        <i class="fas fa-eye mr-1"></i> Xem câu hỏi ({{ set.items|length }})
+                    </a>
+                    <div class="flex space-x-2">
+                        {# Nút Sửa chỉ hiển thị nếu có quyền #}
+                        {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id or (set.contributors and current_user.user_id in set.contributors|map(attribute='user_id')|list and 'editor' in set.contributors|selectattr('user_id', 'equalto', current_user.user_id)|map(attribute='permission_level')|list) %}
+                        <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}" class="text-green-600 hover:text-green-800 text-sm">
+                            <i class="fas fa-edit"></i> Sửa
+                        </a>
+                        {% endif %}
+                        
+                        {# Nút Quản lý người đóng góp chỉ hiển thị nếu là creator hoặc admin #}
+                        {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
+                        <a href="{{ url_for('content_management.manage_contributors', container_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-users"></i> Quyền
+                        </a>
+                        {% endif %}
+
+                        {# Nút Xóa chỉ hiển thị nếu là creator hoặc admin #}
+                        {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
+                        <form action="{{ url_for('content_management.content_management_quizzes.delete_quiz_set', set_id=set.container_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ câu hỏi này và tất cả các câu hỏi của nó?');" class="inline">
+                            <button type="submit" class="text-red-600 hover:text-red-800 text-sm">
+                                <i class="fas fa-trash-alt"></i> Xóa
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white p-6 rounded-lg shadow-md text-center text-gray-600 w-full">
+        <p class="mb-4">Bạn chưa có bộ câu hỏi nào. Hãy tạo một bộ mới để bắt đầu!</p>
+        <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 inline-flex items-center">
+            <i class="fas fa-plus-circle mr-2"></i> Tạo Bộ câu hỏi đầu tiên
+        </a>
+    </div>
+    {% endif %}
+</div>
