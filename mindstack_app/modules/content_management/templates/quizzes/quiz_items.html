@@ -1,54 +1,34 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/quiz_items.html -->
-<!-- Phiên bản: 3.1 (Đã sửa nút Sửa câu hỏi để mở modal) -->
-<!-- Mục đích: Hiển thị danh sách các câu hỏi trong một bộ câu hỏi cụ thể. -->
-<!--           Cung cấp các nút để thêm, chỉnh sửa hoặc xóa câu hỏi dựa trên quyền của người dùng. -->
-<!--           Đã cập nhật url_for. -->
-<!--           Đã khôi phục phong cách card grid, các trường tìm kiếm/lọc/phân trang và hiển thị nội dung chi tiết câu hỏi từ code gốc. -->
-<!--           ĐÃ SỬA: Nút "Sửa" cho từng câu hỏi để mở modal popup. -->
-<!--           Thiết kế responsive với Tailwind CSS. -->
+<!-- Phiên bản: 4.2 -->
+<!-- ĐÃ SỬA: Truyền set_id vào các macro để khắc phục BuildError. -->
 
 {% extends "base.html" %}
+{% from 'includes/_search_form.html' import render_search_form %}
+{% from 'includes/_pagination.html' import render_pagination %}
 
 {% block title %}Câu hỏi trong bộ: {{ quiz_set.title }}{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-semibold text-gray-800 mb-6 flex items-center">
-        <a href="{{ url_for('content_management.content_management_quizzes.list_quiz_sets') }}" class="text-blue-500 hover:text-blue-700 mr-3">
-            <i class="fas fa-arrow-left"></i>
-        </a>
-        Câu hỏi trong bộ: {{ quiz_set.title }}
-        <span class="text-gray-500 text-base ml-3"> (Tổng: {{ quiz_items|length }})</span>
-    </h1>
-    
-    <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
-        <div class="flex items-center space-x-2 flex-wrap gap-2">
-            <select class="block w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <option>Tất cả</option>
-                {# Thêm các tùy chọn lọc khác sau #}
-            </select>
-            <input type="text" placeholder="Nhập từ khóa tìm kiếm..." class="block w-64 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
-                <i class="fas fa-search mr-1"></i> Tìm kiếm
-            </button>
-        </div>
+    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <h1 class="text-3xl font-semibold text-gray-800 flex items-center">
+            <a href="{{ url_for('content_management.content_dashboard', tab='quizzes') }}" class="text-blue-500 hover:text-blue-700 mr-3" title="Quay lại danh sách bộ câu hỏi">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            Câu hỏi trong bộ: {{ quiz_set.title }}
+            <span class="text-gray-500 text-base ml-3"> (Tổng: {{ pagination.total }})</span>
+        </h1>
+        
         {% if can_edit %}
-        {# Nút Thêm câu hỏi mới cũng có thể mở modal nếu muốn #}
         <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
             <i class="fas fa-plus-circle mr-2"></i> Thêm câu hỏi mới
         </a>
         {% endif %}
     </div>
 
-    {# Pagination - Placeholder #}
-    <div class="flex justify-center items-center space-x-2 mb-6">
-        <button class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">&laquo;</button>
-        <button class="px-3 py-1 rounded-md border border-blue-500 bg-blue-500 text-white">1</button>
-        <button class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">2</button>
-        <button class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">3</button>
-        <span class="px-3 py-1 text-gray-700">...</span>
-        <button class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">148</button>
-        <button class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">&raquo;</button>
+    <!-- Form tìm kiếm -->
+    <div class="mb-6">
+        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm câu hỏi...", set_id=quiz_set.container_id) }}
     </div>
 
     {% if quiz_items %}
@@ -60,7 +40,7 @@
                 <h3 class="font-semibold text-gray-800 mb-2">Câu hỏi</h3>
                 <p class="text-gray-700 text-sm mb-3">{{ item.content.question }}</p>
                 
-                <h3 class="font-semibold text-gray-800 mb-2">Đáp án đúng: {{ item.content.correct_answer }}</h3> {# SỬA: correct_answer_text thành correct_answer #}
+                <h3 class="font-semibold text-gray-800 mb-2">Đáp án đúng: {{ item.content.correct_answer }}</h3>
                 <ul class="text-gray-700 text-sm mb-3 list-disc pl-5">
                     <li>A: {{ item.content.options.A }}</li>
                     <li>B: {{ item.content.options.B }}</li>
@@ -68,8 +48,7 @@
                     {% if item.content.options.D %}<li>D: {{ item.content.options.D }}</li>{% endif %}
                 </ul>
 
-                {# Hiển thị các thông tin khác nếu có #}
-                {% if item.content.explanation %} {# SỬA: guidance thành explanation #}
+                {% if item.content.explanation %}
                 <div class="flex items-center text-gray-600 text-xs mb-1">
                     <i class="fas fa-info-circle mr-1"></i> Gợi ý/Giải thích
                 </div>
@@ -94,7 +73,6 @@
             </div>
             <div class="p-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-2">
                 {% if can_edit %}
-                {# SỬA: Chuyển nút Sửa thành button để mở modal #}
                 <button type="button" data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}" class="open-modal-btn bg-blue-100 text-blue-600 px-3 py-1 rounded-md hover:bg-blue-200 transition duration-300 flex items-center text-sm">
                     <i class="fas fa-edit mr-1"></i> Sửa
                 </button>
@@ -108,11 +86,16 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- Phân trang -->
+    <div class="mt-8">
+        {{ render_pagination(pagination=pagination, search_query=search_query, set_id=quiz_set.container_id) }}
+    </div>
+
     {% else %}
     <div class="bg-white p-6 rounded-lg shadow-md text-center text-gray-600">
-        <p class="mb-4">Bộ Quiz này chưa có câu hỏi nào. Hãy thêm câu hỏi mới để bắt đầu!</p>
+        <p class="mb-4">Bộ Quiz này chưa có câu hỏi nào hoặc không tìm thấy kết quả phù hợp.</p>
         {% if can_edit %}
-        {# Nút Thêm câu hỏi đầu tiên cũng có thể mở modal nếu muốn #}
         <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 inline-flex items-center">
             <i class="fas fa-plus-circle mr-2"></i> Thêm Câu hỏi đầu tiên
         </a>

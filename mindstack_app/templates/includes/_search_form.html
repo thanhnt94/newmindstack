@@ -1,10 +1,8 @@
 {# File: Mindstack/web/mindstack_app/templates/includes/_search_form.html #}
-{# Mục đích: Macro Jinja2 chung để hiển thị form tìm kiếm. #}
-{# Sử dụng: {% from 'includes/_search_form.html' import render_search_form %} #}
-{#          {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm...") }} #}
+{# Phiên bản 2.0: Đã thêm set_id để tương thích với các trang chi tiết #}
 
-{% macro render_search_form(search_query=None, placeholder="Tìm kiếm...") %}
-<form method="GET" action="{{ url_for(request.endpoint) }}" class="flex items-center space-x-2">
+{% macro render_search_form(search_query=None, placeholder="Tìm kiếm...", set_id=None) %}
+<form method="GET" action="{{ url_for(request.endpoint, set_id=set_id) }}" class="flex items-center space-x-2">
     <input type="text" name="q" value="{{ search_query if search_query else '' }}" 
            placeholder="{{ placeholder }}" 
            class="block w-64 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
