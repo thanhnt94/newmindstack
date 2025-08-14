@@ -1,8 +1,7 @@
 # File: web/mindstack_app/models.py
-# Mục đích: Định nghĩa cấu trúc database (phiên bản v11) dưới dạng các lớp Python,
-#           đã thêm các trường theo dõi tiến độ học tập hiện tại của người dùng
-#           và các trường liên quan đến AI cho LearningContainer và LearningItem.
-#           Bổ sung bảng ContainerContributor để quản lý quyền chỉnh sửa LearningContainer.
+# Phiên bản: 12.1
+# ĐÃ SỬA: Khắc phục lỗi AmbiguousForeignKeysError bằng cách chỉ định `foreign_keys`
+#         cho mối quan hệ LearningContainer.creator.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -25,9 +24,11 @@ class LearningContainer(db.Model):
     is_public = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
-    ai_settings = db.Column(JSON, nullable=True) # TRƯỜNG MỚI: Lưu cài đặt AI cho bộ thẻ/quiz/course
+    ai_settings = db.Column(JSON, nullable=True)
 
-    # Mối quan hệ với ContainerContributor để truy cập những người đóng góp
+    # Mối quan hệ với User để dễ dàng truy cập thông tin người tạo
+    # SỬA: Thêm foreign_keys=[creator_user_id] để chỉ định rõ ràng cột khóa ngoại
+    creator = db.relationship('User', backref='created_containers', foreign_keys=[creator_user_id], lazy=True)
     contributors = db.relationship('ContainerContributor', backref='container', lazy=True, cascade="all, delete-orphan")
 
 
@@ -36,7 +37,7 @@ class LearningGroup(db.Model):
     group_id = db.Column(db.Integer, primary_key=True)
     container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=False)
     group_type = db.Column(db.String(50), nullable=False) # 'PASSAGE', 'AUDIO'
-    content = db.Column(JSON, nullable=False) # Chứa đoạn văn hoặc link audio
+    content = db.Column(JSON, nullable=False)
 
 class LearningItem(db.Model):
     __tablename__ = 'learning_items'
@@ -46,7 +47,7 @@ class LearningItem(db.Model):
     item_type = db.Column(db.String(50), nullable=False) # 'LESSON', 'FLASHCARD', 'QUIZ_MCQ', 'QUIZ_COMPOUND'
     content = db.Column(JSON, nullable=False)
     order_in_container = db.Column(db.Integer, default=0)
-    ai_explanation = db.Column(db.Text, nullable=True) # TRƯỜNG MỚI: Nội dung giải thích do AI tạo ra
+    ai_explanation = db.Column(db.Text, nullable=True)
 
 # ==============================================================================
 # II. NGƯỜI DÙNG & TƯƠNG TÁC (USER & INTERACTION)
@@ -56,37 +57,27 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     user_role = db.Column(db.String(50), default='user', nullable=False) # 'user', 'admin'
     total_score = db.Column(db.Integer, default=0)
     last_seen = db.Column(db.DateTime(timezone=True))
 
-    # CÁC TRƯỜNG MỚI ĐỂ LƯU TIẾN ĐỘ HỌC HIỆN TẠI
     current_flashcard_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
     current_quiz_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
     current_course_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
     current_flashcard_mode = db.Column(db.String(50), nullable=True)
     current_quiz_mode = db.Column(db.String(50), nullable=True)
     
-    # Mối quan hệ với ContainerContributor để truy cập các container mà người dùng đóng góp
     contributed_containers = db.relationship('ContainerContributor', backref='user', lazy=True)
 
     def get_id(self):
-        """
-        Trả về ID người dùng dưới dạng chuỗi.
-        """
         return str(self.user_id)
 
     def set_password(self, password):
-        """
-        Hash mật khẩu và lưu vào trường password_hash.
-        """
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """
-        Kiểm tra mật khẩu được cung cấp với mật khẩu đã hash.
-        """
         return check_password_hash(self.password_hash, password)
 
 class UserProgress(db.Model):
@@ -141,8 +132,6 @@ class ContainerContributor(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     permission_level = db.Column(db.String(50), nullable=False) # ví dụ: 'editor', 'viewer', 'admin'
     granted_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
-
-    # Đảm bảo một người dùng chỉ có một cấp độ quyền duy nhất cho mỗi container
     __table_args__ = (db.UniqueConstraint('container_id', 'user_id', name='_container_user_uc'),)
 
 # ==============================================================================

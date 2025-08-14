@@ -1,15 +1,27 @@
 # File: newmindstack/mindstack_app/modules/content_management/forms.py
-# Phiên bản: 3.1 (Đã sửa lại trường excel_file để tương thích với input HTML)
-# Mục đích: Định nghĩa các form Flask-WTF cho việc tạo và chỉnh sửa
-#           LearningContainer (khóa học, bộ thẻ, bộ câu hỏi) và LearningItem (bài học, thẻ, câu hỏi).
-#           Các form này được sử dụng chung cho cả người dùng thông thường và admin.
-#           Đã hợp nhất các trường từ forms.py gốc của Courses, Flashcards, Quizzes.
-#           Đã bổ sung lại trường excel_file cho FlashcardSetForm và QuizSetForm.
+# Phiên bản: 3.2
+# ĐÃ THÊM: ContributorForm để quản lý việc thêm người đóng góp.
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, BooleanField, SubmitField, URLField, FileField, SelectField
-from wtforms.validators import DataRequired, Length, Optional, ValidationError
-from flask_wtf.file import FileAllowed # Để xác thực loại file
+from wtforms.validators import DataRequired, Length, Optional, ValidationError, Email
+from flask_wtf.file import FileAllowed
+
+# ==============================================================================
+# Form MỚI cho QUẢN LÝ QUYỀN (CONTRIBUTORS)
+# ==============================================================================
+
+class ContributorForm(FlaskForm):
+    """
+    Form để thêm một người đóng góp mới bằng email.
+    """
+    email = StringField('Email của người dùng', 
+                        validators=[DataRequired(message="Vui lòng nhập email."), 
+                                    Email(message="Địa chỉ email không hợp lệ.")])
+    permission_level = SelectField('Cấp độ quyền', 
+                                   choices=[('editor', 'Editor (Chỉnh sửa)')], # Hiện tại chỉ có 1 cấp độ
+                                   validators=[DataRequired()])
+    submit = SubmitField('Thêm quyền')
 
 # ==============================================================================
 # Forms cho KHÓA HỌC (COURSES)
@@ -23,18 +35,9 @@ class CourseForm(FlaskForm):
     description = TextAreaField('Mô tả', validators=[Optional()])
     tags = StringField('Thẻ (cách nhau bởi dấu phẩy)', validators=[Optional(), Length(max=255)])
     is_public = BooleanField('Công khai (người khác có thể tìm thấy và học)')
-    
-    # AI Prompt Tùy chỉnh cho khoá học (từ code gốc của bạn)
     ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho khoá học)', 
                               description='Nhập prompt tùy chỉnh để AI tạo nội dung. Nếu để trống, hệ thống sẽ sử dụng prompt mặc định.',
                               validators=[Optional()])
-    
-    # Có thể thêm upload file Excel cho Course sau nếu cần (từ code gốc của bạn, đang comment)
-    # excel_file = FileField('Tải từ file Excel (.xlsx)', validators=[
-    #     FileAllowed(['xlsx'], 'Chỉ cho phép file Excel (.xlsx)!'),
-    #     Optional()
-    # ], description='Nếu bạn tải file lên, các thông tin bạn điền ở trên sẽ bị bỏ qua.')
-    
     submit = SubmitField('Lưu khoá học')
 
 class LessonForm(FlaskForm):
@@ -42,16 +45,10 @@ class LessonForm(FlaskForm):
     Form để tạo hoặc sửa một Bài học (LearningItem).
     """
     title = StringField('Tiêu đề bài học', validators=[DataRequired(message="Tiêu đề bài học không được để trống.")])
-    # Nội dung bài học sẽ được lưu dưới dạng BBCode (từ code gốc của bạn)
     bbcode_content = TextAreaField('Nội dung bài học (BBCode)', validators=[DataRequired(message="Nội dung bài học không được để trống.")])
-    
-    # Các trường tùy chọn cho audio và hình ảnh (nếu bài học có media riêng) (từ code gốc của bạn)
     lesson_audio_url = URLField('URL file âm thanh bài học', validators=[Optional()])
     lesson_image_url = URLField('URL hình ảnh bài học', validators=[Optional()])
-    
-    # Nội dung giải thích do AI (chỉ để hiển thị) (từ code gốc của bạn)
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
-
     submit = SubmitField('Lưu bài học')
 
 # ==============================================================================
@@ -66,18 +63,13 @@ class FlashcardSetForm(FlaskForm):
     description = TextAreaField('Mô tả', validators=[Optional()])
     tags = StringField('Thẻ (cách nhau bởi dấu phẩy)', validators=[Optional(), Length(max=255)])
     is_public = BooleanField('Công khai (người khác có thể tìm thấy và học)')
-    
-    # TRƯỜNG MỚI: AI Prompt Tùy chỉnh cho bộ thẻ (từ code gốc của bạn)
     ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho bộ thẻ)', 
                               description='Nhập prompt tùy chỉnh để AI tạo thẻ. Nếu để trống, hệ thống sẽ sử dụng prompt mặc định.',
                               validators=[Optional()])
-    
-    # TRƯỜNG MỚI: Upload file Excel (từ code gốc của bạn)
     excel_file = FileField('Tải từ file Excel (.xlsx)', validators=[
         FileAllowed(['xlsx'], 'Chỉ cho phép file Excel (.xlsx)!'),
         Optional()
     ], description='Nếu bạn tải file lên, các thông tin bạn điền ở trên (ngoại trừ Tiêu đề, Mô tả, Tags, Trạng thái) sẽ bị bỏ qua.')
-    
     submit = SubmitField('Lưu bộ thẻ')
 
 class FlashcardItemForm(FlaskForm):
@@ -86,20 +78,13 @@ class FlashcardItemForm(FlaskForm):
     """
     front = TextAreaField('Mặt trước (câu hỏi/từ)', validators=[DataRequired(message="Mặt trước không được để trống.")])
     back = TextAreaField('Mặt sau (câu trả lời/định nghĩa)', validators=[DataRequired(message="Mặt sau không được để trống.")])
-    
-    # Các trường tùy chọn cho audio và hình ảnh (từ code gốc của bạn)
     front_audio_content = TextAreaField('Văn bản tạo âm thanh mặt trước (TTS)', validators=[Optional()])
     front_audio_url = URLField('URL file âm thanh mặt trước', validators=[Optional()])
-    
     back_audio_content = TextAreaField('Văn bản tạo âm thanh mặt sau (TTS)', validators=[Optional()])
     back_audio_url = URLField('URL file âm thanh mặt sau', validators=[Optional()])
-    
     front_img = URLField('URL hình ảnh mặt trước', validators=[Optional()])
     back_img = URLField('URL hình ảnh mặt sau', validators=[Optional()])
-
-    # Nội dung giải thích do AI (chỉ để hiển thị) (từ code gốc của bạn)
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
-
     submit = SubmitField('Lưu thẻ')
 
 # ==============================================================================
@@ -114,18 +99,13 @@ class QuizSetForm(FlaskForm):
     description = TextAreaField('Mô tả', validators=[Optional()])
     tags = StringField('Thẻ (cách nhau bởi dấu phẩy)', validators=[Optional(), Length(max=255)])
     is_public = BooleanField('Công khai (người khác có thể tìm thấy và làm)')
-    
-    # AI Prompt Tùy chỉnh cho bộ Quiz (từ code gốc của bạn)
     ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho bộ Quiz)', 
                               description='Nhập prompt tùy chỉnh để AI tạo câu hỏi. Nếu để trống, hệ thống sẽ sử dụng prompt mặc định.',
                               validators=[Optional()])
-    
-    # Upload file Excel (từ code gốc của bạn)
     excel_file = FileField('Tải từ file Excel (.xlsx)', validators=[
         FileAllowed(['xlsx'], 'Chỉ cho phép file Excel (.xlsx)!'),
         Optional()
     ], description='Nếu bạn tải file lên, các thông tin bạn điền ở trên (ngoại trừ Tiêu đề, Mô tả, Tags, Trạng thái) sẽ bị bỏ qua.')
-    
     submit = SubmitField('Lưu bộ Quiz')
 
 class QuizItemForm(FlaskForm):
@@ -133,39 +113,26 @@ class QuizItemForm(FlaskForm):
     Form để tạo hoặc sửa một câu hỏi Quiz (LearningItem).
     """
     question = TextAreaField('Câu hỏi', validators=[DataRequired(message="Câu hỏi không được để trống.")])
-    pre_question_text = TextAreaField('Văn bản trước câu hỏi', validators=[Optional()]) # Từ code gốc của bạn
-    
+    pre_question_text = TextAreaField('Văn bản trước câu hỏi', validators=[Optional()])
     option_a = StringField('Lựa chọn A', validators=[DataRequired(message="Lựa chọn A không được để trống.")])
     option_b = StringField('Lựa chọn B', validators=[DataRequired(message="Lựa chọn B không được để trống.")])
     option_c = StringField('Lựa chọn C', validators=[Optional()])
     option_d = StringField('Lựa chọn D', validators=[Optional()])
-    
     correct_answer_text = SelectField('Đáp án đúng', choices=[
         ('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')
     ], validators=[DataRequired(message="Vui lòng chọn đáp án đúng.")])
-    
-    guidance = TextAreaField('Giải thích/Gợi ý', validators=[Optional()]) # Từ code gốc của bạn
-    
-    question_image_file = URLField('URL hình ảnh câu hỏi', validators=[Optional()]) # Từ code gốc của bạn
-    question_audio_file = URLField('URL file âm thanh câu hỏi', validators=[Optional()]) # Từ code gốc của bạn
-    
-    passage_text = TextAreaField('Đoạn văn liên quan', validators=[Optional()]) # Từ code gốc của bạn
-    passage_order = StringField('Thứ tự đoạn văn (ví dụ: 1, 2)', validators=[Optional()]) # Từ code gốc của bạn
-    
-    # Nội dung giải thích do AI (chỉ để hiển thị) (từ code gốc của bạn)
+    guidance = TextAreaField('Giải thích/Gợi ý', validators=[Optional()])
+    question_image_file = URLField('URL hình ảnh câu hỏi', validators=[Optional()])
+    question_audio_file = URLField('URL file âm thanh câu hỏi', validators=[Optional()])
+    passage_text = TextAreaField('Đoạn văn liên quan', validators=[Optional()])
+    passage_order = StringField('Thứ tự đoạn văn (ví dụ: 1, 2)', validators=[Optional()])
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
-
     submit = SubmitField('Lưu câu hỏi')
 
     def validate(self, extra_validators=None):
-        """
-        Kiểm tra tùy chỉnh để đảm bảo đáp án đúng không trỏ đến lựa chọn trống.
-        """
         initial_validation = super().validate(extra_validators)
         if not initial_validation:
             return False
-
-        # Đảm bảo đáp án đúng không trỏ đến lựa chọn trống (từ code gốc của bạn)
         correct_opt = self.correct_answer_text.data
         if correct_opt == 'C' and not self.option_c.data:
             self.correct_answer_text.errors.append('Đáp án đúng C không thể được chọn nếu Lựa chọn C trống.')
@@ -173,5 +140,4 @@ class QuizItemForm(FlaskForm):
         if correct_opt == 'D' and not self.option_d.data:
             self.correct_answer_text.errors.append('Đáp án đúng D không thể được chọn nếu Lựa chọn D trống.')
             return False
-        
         return True
