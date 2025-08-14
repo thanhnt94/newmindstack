@@ -1,16 +1,6 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/content_dashboard.html -->
-<!-- Phiên bản: 2.20 -->
-<!-- Mục đích: Hiển thị bảng điều khiển tổng quan cho việc quản lý nội dung với giao diện tab động (AJAX). -->
-<!--           Cung cấp các tab để chuyển đổi giữa Khóa học, Bộ thẻ và Bộ câu hỏi. -->
-<!--           Đã khắc phục lỗi highlight cho tab active bằng cách sử dụng sessionStorage. -->
-<!--           Đã loại bỏ các import CSS trùng lặp và chuyển áp dụng kiểu active trực tiếp bằng JS. -->
-<!--           Đã sửa lỗi JavaScript không thể phân tích cú pháp url_for. -->
-<!--           Đã đảm bảo hiệu ứng active cho tab hiển thị bằng cách thêm/bớt class Tailwind trực tiếp. -->
-<!--           Đã loại bỏ khối hiển thị flash messages trùng lặp. -->
-<!--           ĐÃ SỬA: Cải thiện cấu trúc và logic JavaScript cho modal popup để hiển thị đúng kích thước. -->
-<!--           ĐÃ SỬA: Lắng nghe sự kiện click trên các nút data-modal-url để mở modal. -->
-<!--           ĐÃ SỬA: Thêm tham số is_modal vào URL khi mở iframe để backend nhận diện. -->
-<!--           Thiết kế responsive với Tailwind CSS. -->
+<!-- Phiên bản: 3.0 -->
+<!-- ĐÃ SỬA: Loại bỏ hoàn toàn code HTML và JavaScript của modal để sử dụng phiên bản toàn cục từ base.html. -->
 
 {% extends "base.html" %}
 
@@ -18,80 +8,14 @@
 
 {% block head %}
     {{ super() }}
-    {# Loại bỏ các import CSS trùng lặp và style tùy chỉnh cho .tab-button.active #}
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            overflow: auto; /* Đảm bảo scrollbar hiển thị khi cần */
         }
-        /* Ensure tab content fills available width */
         #tab-content {
             width: 100%;
-            display: flex; /* @apply flex */
-            align-items: flex-start; /* @apply items-start */
-        }
-        /* Modal styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
             display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        .modal-overlay.open {
-            opacity: 1;
-            visibility: visible;
-        }
-        .modal-content {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            max-width: 90%; /* Responsive width */
-            max-height: 90%; /* Responsive height */
-            overflow: hidden; /* Hide iframe scrollbars, iframe handles its own */
-            position: relative;
-            transform: translateY(-20px);
-            transition: transform 0.3s ease;
-            display: flex; /* Use flex to manage iframe size */
-            flex-direction: column; /* Stack children vertically */
-            /* ĐÃ SỬA: Thêm min-width và min-height để đảm bảo kích thước tối thiểu */
-            min-width: 320px; /* Ví dụ: kích thước tối thiểu cho mobile */
-            min-height: 400px; /* Ví dụ: kích thước tối thiểu */
-        }
-        .modal-overlay.open .modal-content {
-            transform: translateY(0);
-        }
-        .modal-iframe {
-            flex-grow: 1; /* Allow iframe to fill available space */
-            width: 100%;
-            height: 100%; /* Set height to 100% of its flex container */
-            border: none;
-            display: block; /* ĐÃ SỬA: Đảm bảo iframe là block element */
-        }
-        /* Close button styling */
-        .modal-close-button {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            font-size: 2rem; /* Larger icon */
-            cursor: pointer;
-            color: #4b5563; /* gray-600 */
-            z-index: 1001; /* Ensure it's above iframe */
-            padding: 5px;
-            line-height: 1;
-        }
-        .modal-close-button:hover {
-            color: #1f2937; /* gray-900 */
+            align-items: flex-start;
         }
     </style>
 {% endblock %}
@@ -101,8 +25,6 @@
     <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center">
         Bảng Điều Khiển Quản Lý Nội Dung
     </h1>
-
-    {# Loại bỏ khối hiển thị flash messages trùng lặp, vì base.html đã xử lý #}
 
     <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
         <!-- Tab Navigation -->
@@ -133,105 +55,63 @@
         </a>
     </div>
 </div>
+{% endblock %}
 
-{# Cấu trúc Modal #}
-<div id="modalOverlay" class="modal-overlay">
-    <div class="modal-content w-full h-full md:w-2/3 lg:w-1/2"> {# Responsive width/height for modal #}
-        <button id="modalCloseButton" class="modal-close-button">
-            &times;
-        </button>
-        <iframe id="modalIframe" class="modal-iframe"></iframe>
-    </div>
-</div>
-
+{% block scripts %}
 <script>
-    // Khai báo các URL mà Flask đã xử lý trước khi JavaScript chạy
-    const coursesListUrl = "{{ url_for('content_management.content_management_courses.list_courses') }}";
-    const flashcardSetsListUrl = "{{ url_for('content_management.content_management_flashcards.list_flashcard_sets') }}";
-    const quizSetsListUrl = "{{ url_for('content_management.content_management_quizzes.list_quiz_sets') }}";
-
     document.addEventListener('DOMContentLoaded', function() {
+        // Khai báo các URL
+        const coursesListUrl = "{{ url_for('content_management.content_management_courses.list_courses') }}";
+        const flashcardSetsListUrl = "{{ url_for('content_management.content_management_flashcards.list_flashcard_sets') }}";
+        const quizSetsListUrl = "{{ url_for('content_management.content_management_quizzes.list_quiz_sets') }}";
+        
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContent = document.getElementById('tab-content');
-        const validTabs = ['courses', 'flashcards', 'quizzes']; // Danh sách các tab hợp lệ
-        const SESSION_STORAGE_KEY = 'activeContentTab'; // Khóa để lưu trữ trong sessionStorage
+        const validTabs = ['courses', 'flashcards', 'quizzes'];
+        const SESSION_STORAGE_KEY = 'activeContentTab';
 
-        // Các lớp Tailwind CSS để thêm/bớt cho tab active
-        const activeClasses = [
-            'border-b-4', 'border-blue-500', 'text-blue-600', 'font-bold', 'bg-blue-100', 'shadow-sm'
-        ];
-        // Các lớp Tailwind CSS mặc định cho tab inactive (hover và transition)
-        const defaultClasses = [
-            'text-gray-700', 'hover:text-blue-600', 'focus:outline-none', 'transition', 'duration-150', 'ease-in-out'
-        ];
-
-        // Các phần tử Modal
-        const modalOverlay = document.getElementById('modalOverlay');
-        const modalIframe = document.getElementById('modalIframe');
-        const modalCloseButton = document.getElementById('modalCloseButton');
+        const activeClasses = ['border-b-4', 'border-blue-500', 'text-blue-600', 'font-bold', 'bg-blue-100', 'shadow-sm'];
+        const defaultClasses = ['text-gray-700', 'hover:text-blue-600', 'focus:outline-none', 'transition', 'duration-150', 'ease-in-out'];
 
         /**
-         * Tải nội dung cho tab được chọn bằng AJAX.
-         * @param {string} tabName - Tên của tab (e.g., 'courses', 'flashcards', 'quizzes').
+         * Hàm tải nội dung tab (không thay đổi, chỉ giữ lại phần liên quan đến tab)
          */
-        window.loadTabContent = async function(tabName) { // Biến thành global function
-            // Cải thiện thông báo tải
-            tabContent.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-blue-500">
-                    <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p class="mt-3 text-lg">Đang tải nội dung ${tabName}...</p>
-                </div>
-            `;
-
-            // Loại bỏ tất cả các lớp active và thêm lại lớp default cho tất cả các nút tab
+        async function loadTabContent(tabName) {
+            tabContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500"><svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="mt-3 text-lg">Đang tải nội dung ${tabName}...</p></div>`;
+            
             tabButtons.forEach(button => {
-                button.classList.remove(...activeClasses); // Loại bỏ lớp active
-                button.classList.add(...defaultClasses); // Thêm lại lớp default
+                button.classList.remove(...activeClasses);
+                button.classList.add(...defaultClasses);
             });
             
-            // Thêm lớp 'active' (các lớp Tailwind cụ thể) vào nút tab hiện tại
             const currentTabButton = document.getElementById('tab-' + tabName);
             if (currentTabButton) {
-                currentTabButton.classList.add(...activeClasses); // Thêm các lớp active
-                currentTabButton.classList.remove(...defaultClasses); // Loại bỏ các lớp default để tránh xung đột
-                // LƯU TRẠNG THÁI TAB VÀO sessionStorage
+                currentTabButton.classList.add(...activeClasses);
+                currentTabButton.classList.remove(...defaultClasses);
                 sessionStorage.setItem(SESSION_STORAGE_KEY, tabName);
             }
 
             let url;
-            // Sử dụng các biến JavaScript đã được định nghĩa sẵn
-            if (tabName === 'courses') {
-                url = coursesListUrl;
-            } else if (tabName === 'flashcards') {
-                url = flashcardSetsListUrl;
-            } else if (tabName === 'quizzes') {
-                url = quizSetsListUrl;
-            } else {
+            if (tabName === 'courses') url = coursesListUrl;
+            else if (tabName === 'flashcards') url = flashcardSetsListUrl;
+            else if (tabName === 'quizzes') url = quizSetsListUrl;
+            else {
                 tabContent.innerHTML = '<p class="text-red-500">Lỗi: Tab không hợp lệ.</p>';
                 return;
             }
 
             try {
-                const response = await fetch(url, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest' // Đánh dấu đây là yêu cầu AJAX
-                    }
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText.substring(0, 100)}...`);
-                }
-                const html = await response.text();
-                tabContent.innerHTML = html;
+                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                tabContent.innerHTML = await response.text();
             } catch (error) {
                 console.error('Lỗi khi tải nội dung tab:', error);
-                tabContent.innerHTML = `<p class="text-red-500 text-center">Không thể tải nội dung. Vui lòng thử lại. Lỗi: ${error.message}</p>`;
+                tabContent.innerHTML = `<p class="text-red-500 text-center">Không thể tải nội dung. Vui lòng thử lại.</p>`;
             }
         }
+        
+        // Ghi đè hàm loadTabContent toàn cục để iframe có thể gọi đúng hàm AJAX
+        window.loadTabContent = loadTabContent;
 
         // Gắn sự kiện click cho các nút tab
         tabButtons.forEach(button => {
@@ -240,169 +120,26 @@
             });
         });
 
-        // XÁC ĐỊNH TAB SẼ ĐƯỢC TẢI KHI TRANG ĐƯỢC TẢI LẦN ĐẦU (Ưu tiên sessionStorage)
-        let initialTab = sessionStorage.getItem(SESSION_STORAGE_KEY); // Lấy tab đã lưu từ sessionStorage
-
-        // Nếu không có tab đã lưu hoặc tab đã lưu không hợp lệ, kiểm tra URL parameter (nếu có)
-        if (!initialTab || !validTabs.includes(initialTab)) {
-            const urlParams = new URLSearchParams(window.location.search);
-            initialTab = urlParams.get('tab');
-        }
-
-        // Nếu vẫn không có tab hợp lệ, mặc định là 'courses'
+        // Xác định và tải tab ban đầu
+        let initialTab = sessionStorage.getItem(SESSION_STORAGE_KEY) || new URLSearchParams(window.location.search).get('tab');
         if (!initialTab || !validTabs.includes(initialTab)) {
             initialTab = 'courses';
         }
-        
         loadTabContent(initialTab);
 
-        // --- Chức năng Modal ---
-
-        /**
-         * Mở modal và tải nội dung từ URL vào iframe.
-         * @param {string} url - URL của trang form (add/edit set).
-         */
-        window.openModal = function(url) { // Biến thành global function
-            // ĐÃ SỬA: Thêm tham số is_modal vào URL khi mở iframe
-            const urlWithParam = url.includes('?') ? `${url}&is_modal=true` : `${url}?is_modal=true`;
-            modalIframe.src = urlWithParam;
-            modalOverlay.classList.add('open');
-            document.body.style.overflow = 'hidden'; // Ngăn cuộn trang chính
-        };
-
-        /**
-         * Đóng modal.
-         */
-        window.closeModal = function() { // Biến thành global function
-            modalOverlay.classList.remove('open');
-            modalIframe.src = ''; // Xóa nội dung iframe
-            document.body.style.overflow = ''; // Cho phép cuộn trang chính
-        };
-
-        // Gắn sự kiện đóng modal
-        modalCloseButton.addEventListener('click', closeModal);
-        modalOverlay.addEventListener('click', function(event) {
-            if (event.target === modalOverlay) { // Chỉ đóng khi click vào overlay, không phải nội dung modal
-                closeModal();
-            }
-        });
-
-        /**
-         * Hiển thị flash message thủ công.
-         * @param {string} message - Nội dung thông báo.
-         * @param {string} category - Loại thông báo (success, danger, info, warning).
-         */
-        window.showFlashMessage = function(message, category) { // Biến thành global function
-            const flashContainer = document.querySelector('main.container.mx-auto'); // Container cho flash messages
-            if (!flashContainer) return;
-
-            // Xóa thông báo cũ nếu có
-            const existingMessages = flashContainer.querySelectorAll('[data-dismissible]');
-            existingMessages.forEach(msg => msg.remove());
-
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('flex', 'items-center', 'p-2', 'rounded-md', 'shadow-lg', 'text-white', 'relative', 'text-sm', 'opacity-100', 'transition-opacity', 'duration-500');
-            messageDiv.setAttribute('data-dismissible', '');
-
-            let iconClass = '';
-            let bgColorClass = '';
-
-            switch (category) {
-                case 'success':
-                    iconClass = 'fas fa-check-circle text-green-400';
-                    bgColorClass = 'bg-green-500';
-                    break;
-                case 'danger':
-                    iconClass = 'fas fa-times-circle text-red-400';
-                    bgColorClass = 'bg-red-500';
-                    break;
-                case 'info':
-                    iconClass = 'fas fa-info-circle text-blue-400';
-                    bgColorClass = 'bg-blue-500';
-                    break;
-                case 'warning':
-                    iconClass = 'fas fa-exclamation-triangle text-yellow-400';
-                    bgColorClass = 'bg-yellow-500';
-                    break;
-                default:
-                    iconClass = 'fas fa-bell text-gray-400';
-                    bgColorClass = 'bg-gray-500';
-            }
-
-            messageDiv.classList.add(bgColorClass);
-            messageDiv.innerHTML = `
-                <i class="${iconClass} mr-2"></i>
-                <span class="block sm:inline">${message}</span>
-                <button class="ml-auto pl-2 text-gray-400 hover:text-white" onclick="this.parentNode.remove();">
-                    <span class="sr-only">Đóng</span>
-                    <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
-                    </svg>
-                </button>
-            `;
-
-            // Thêm vào vị trí phù hợp, ví dụ ngay đầu main content
-            flashContainer.insertBefore(messageDiv, flashContainer.firstChild);
-
-            // Tự động biến mất sau 5 giây (giống như flash message mặc định)
-            setTimeout(() => {
-                messageDiv.classList.add('opacity-0');
-                setTimeout(() => {
-                    messageDiv.remove();
-                }, 500);
-            }, 5000);
-        };
-
-        // Lắng nghe sự kiện click trên toàn bộ tài liệu để bắt các nút open-modal-btn
-        document.addEventListener('click', function(event) {
-            const target = event.target.closest('.open-modal-btn'); // Tìm nút gần nhất có class open-modal-btn
-            if (target && target.dataset.modalUrl) {
-                event.preventDefault(); // Ngăn chặn hành vi mặc định của nút (ví dụ: chuyển hướng nếu là <a>)
-                openModal(target.dataset.modalUrl);
-            }
-        });
-
-        // ===================================================================
-        // === BẮT ĐẦU ĐOẠN CODE XỬ LÝ CHUNG CHO PHÂN TRANG VÀ TÌM KIẾM ===
-        // ===================================================================
-
-        /**
-         * Hàm chung để tải nội dung bằng AJAX, dùng cho cả phân trang và tìm kiếm.
-         * @param {string} url - URL để fetch dữ liệu.
-         */
+        // Xử lý AJAX cho phân trang và tìm kiếm
         async function fetchAndUpdateContent(url) {
-            // Hiển thị trạng thái đang tải
-            tabContent.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-blue-500">
-                    <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p class="mt-3 text-lg">Đang tải...</p>
-                </div>
-            `;
-
-            // Tải nội dung mới bằng AJAX
+            tabContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500"><svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="mt-3 text-lg">Đang tải...</p></div>`;
             try {
-                const response = await fetch(url, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText.substring(0, 100)}...`);
-                }
-                const html = await response.text();
-                tabContent.innerHTML = html;
+                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                tabContent.innerHTML = await response.text();
             } catch (error) {
                 console.error('Lỗi khi tải nội dung:', error);
-                tabContent.innerHTML = `<p class="text-red-500 text-center">Không thể tải nội dung. Vui lòng thử lại. Lỗi: ${error.message}</p>`;
+                tabContent.innerHTML = `<p class="text-red-500 text-center">Không thể tải nội dung. Vui lòng thử lại.</p>`;
             }
         }
 
-        // Lắng nghe sự kiện click cho các link phân trang
         tabContent.addEventListener('click', function(event) {
             const link = event.target.closest('a');
             if (link && link.href && link.href.includes('page=')) {
@@ -411,26 +148,17 @@
             }
         });
 
-        // Lắng nghe sự kiện submit cho form tìm kiếm
         tabContent.addEventListener('submit', function(event) {
-            // Chỉ xử lý form có thẻ input tên là "q" (dựa trên _search_form.html)
             const form = event.target.closest('form');
             if (form && form.querySelector('input[name="q"]')) {
                 event.preventDefault();
-
                 const formData = new FormData(form);
-                const searchQuery = formData.get('q'); // Lấy đúng tên input là "q"
-                
-                // Lấy URL từ action của form, đây là URL chính xác để tìm kiếm
+                const searchQuery = formData.get('q');
                 const url = new URL(form.action);
-                url.searchParams.set('q', searchQuery); // Đặt tham số tìm kiếm là "q"
-
+                url.searchParams.set('q', searchQuery);
                 fetchAndUpdateContent(url.href);
             }
         });
-        // ===================================================================
-        // === KẾT THÚC ĐOẠN CODE XỬ LÝ CHUNG ===
-        // ===================================================================
     });
 </script>
 {% endblock %}

@@ -1,13 +1,6 @@
 <!-- File: newmindstack/mindstack_app/templates/base.html -->
-<!-- Phiên bản: 1.17 (Đã thống nhất class 'open' cho modal và dọn dẹp debug code) -->
-<!-- Mục đích: Cung cấp cấu trúc HTML cơ bản và các phần tử điều hướng cho ứng dụng Mindstack. -->
-<!--           Đã cập nhật liên kết đến bảng điều khiển quản lý nội dung mới. -->
-<!--           ĐÃ SỬA: Thay thế cấu trúc modal bằng cấu trúc modal sẵn có của người dùng, tích hợp JS/CSS mới. -->
-<!--           ĐÃ SỬA: Logic lắng nghe sự kiện click cho nút mở modal bằng Event Delegation. -->
-<!--           ĐÃ SỬA: Cách xây dựng URL cho iframe để tương thích tốt hơn. -->
-<!--           ĐÃ SỬA: Gỡ bỏ logic inline và khôi phục hàm openModal/closeModal riêng biệt (sử dụng class 'open'). -->
-<!--           ĐÃ SỬA: Buộc đặt lại opacity và visibility trong closeModal để đảm bảo tắt modal. -->
-<!--           ĐÃ SỬA: Dọn dẹp tất cả CSS debug (bỏ viền đỏ, nền xanh nhạt) và console logs. -->
+<!-- Phiên bản: 1.18 -->
+<!-- ĐÃ SỬA: Thêm logic lắng nghe sự kiện click trên overlay để đóng modal. -->
 
 <!doctype html>
 <html lang="vi">
@@ -27,7 +20,7 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CSS tùy chỉnh để căn chỉnh logo và thiết lập font mặc định -->
+    <!-- CSS tùy chỉnh -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -37,84 +30,80 @@
             border-bottom: 3px solid #3b82f6;
             color: #3b82f6;
         }
-        /* CSS cho modal (Điều chỉnh để phù hợp với cấu trúc modal cũ của người dùng) */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5); /* Nền mờ */
+            background-color: rgba(0, 0, 0, 0.5);
             display: flex;
-            align-items: center; /* Căn giữa dọc */
-            justify-content: center; /* Căn giữa ngang */
-            z-index: 1000; /* Đảm bảo modal nằm trên cùng */
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease; 
         }
-        /* Khi modal được kích hoạt, thêm class 'open' để hiển thị */
-        .modal-overlay.open { /* SỬA: Sử dụng class 'open' */
+        .modal-overlay.open {
             opacity: 1;
-            visibility: visible !important; /* Buộc hiển thị để tránh xung đột */
+            visibility: visible !important;
         }
-        .modal-content { /* Tên class modal-container được đổi thành modal-content theo cấu trúc cũ */
-            background-color: #ffffff; /* Nền trắng */
-            border-radius: 0.75rem; /* rounded-lg */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
-            overflow: hidden; /* Quan trọng để nội dung iframe không tràn ra ngoài */
-            /* Tailwind classes w-full h-full md:w-2/3 lg:w-1/2 sẽ được áp dụng trực tiếp trong HTML */
-            max-height: 90vh; /* Giới hạn chiều cao để không vượt quá viewport */
-            min-height: 300px; /* Chiều cao tối thiểu để đảm bảo hiển thị */
-            display: flex; /* Dùng flex để iframe có thể fill full height */
+        .modal-content {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            max-height: 90vh;
+            min-height: 300px;
+            display: flex;
             flex-direction: column;
-            position: relative; /* Để nút đóng có thể được định vị tuyệt đối */
+            position: relative;
             transform: scale(0.95);
             transition: transform 0.3s ease; 
-            border: none; /* Bỏ viền debug */
-            visibility: hidden; /* Mặc định là hidden khi overlay chưa hiện */
+            border: none;
+            visibility: hidden;
         }
-        /* Buộc visibility: visible cho modal-content khi overlay có class open */
-        .modal-overlay.open .modal-content { /* SỬA: Sử dụng class 'open' */
+        .modal-overlay.open .modal-content {
             transform: scale(1);
             visibility: visible !important; 
         }
         .modal-iframe {
             width: 100%;
             height: 100%;
-            border: none; /* Bỏ border mặc định của iframe */
+            border: none;
         }
-        .modal-close-button { /* CSS cho nút đóng modal cũ */
+        .modal-close-button {
             position: absolute;
             top: 1rem;
             right: 1rem;
-            font-size: 2rem; /* Kích thước icon */
-            line-height: 1; /* Căn chỉnh */
-            color: #6b7280; /* text-gray-500 */
+            font-size: 2rem;
+            line-height: 1;
+            color: #6b7280;
             background: none;
             border: none;
             cursor: pointer;
-            z-index: 20; /* Đảm bảo nút nằm trên iframe */
+            z-index: 20;
         }
         .modal-close-button:hover {
-            color: #4b5563; /* text-gray-700 */
+            color: #4b5563;
         }
     </style>
+    {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
     <header class="bg-white shadow-md">
         <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <!-- Logo và tên ứng dụng đã được căn chỉnh và responsive -->
+            <!-- Logo -->
             <a class="flex items-center space-x-2" href="{{ url_for('main.dashboard') }}">
                 <i class="fas fa-brain text-2xl md:text-3xl text-blue-400"></i>
                 <span class="hidden md:inline text-lg md:text-[20px] font-normal">Mindstack</span>
             </a>
             
-            <!-- Các mục điều hướng chính - Căn giữa và responsive -->
+            <!-- Nav links -->
             <ul class="flex-grow flex justify-center items-center space-x-2 md:space-x-6">
                 {% if current_user.is_authenticated %}
                 <li>
-                    {# Flashcard - Giả định là trang chính/dashboard #}
                     <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
                         {% if request.endpoint == 'main.dashboard' %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
                         aria-current="page" href="{{ url_for('main.dashboard') }}">
@@ -123,7 +112,6 @@
                     </a>
                 </li>
                 <li>
-                    {# Trắc nghiệm - Giả định endpoint là 'quiz.index' #}
                     <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
                         {% if request.endpoint == 'quiz.index' %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
                         href="#">
@@ -132,7 +120,6 @@
                     </a>
                 </li>
                 <li>
-                    {# Khoá học - Giả định endpoint là 'course.index' #}
                     <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
                         {% if request.endpoint == 'content_management_courses.list_courses' %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
                         href="{{ url_for('content_management.content_management_courses.list_courses') }}">
@@ -143,7 +130,7 @@
                 {% endif %}
             </ul>
 
-            <!-- Menu người dùng - Responsive -->
+            <!-- User menu -->
             <ul class="flex items-center space-x-4">
                 {% if current_user.is_authenticated %}
                 <li class="relative group">
@@ -151,7 +138,6 @@
                         <span class="hidden md:inline mr-2">{{ current_user.username }}</span>
                         <i class="fas fa-user-circle text-2xl md:text-xl"></i>
                     </a>
-                    <!-- Dropdown menu -->
                     <div class="absolute right-0 w-48 origin-top-right transform scale-95 opacity-0 invisible group-hover:visible group-hover:opacity-100 group-hover:scale-100 transition duration-200 ease-out z-50">
                         <div class="bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
                             <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
@@ -159,7 +145,6 @@
                                 href="{{ url_for('user_profile.view_profile') }}">
                                 <i class="fas fa-user mr-2 w-4"></i> Profile
                             </a>
-                            <!-- DÒNG ĐƯỢC CHỈNH SỬA: Đã cập nhật liên kết Quản lý học liệu -->
                             <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
                                 {% if request.endpoint.startswith('content_management.') %}bg-blue-100 text-blue-600{% endif %}" 
                                 href="{{ url_for('content_management.content_dashboard') }}">
@@ -192,23 +177,17 @@
     </header>
 
     <main class="container mx-auto py-8 px-4 flex-grow relative">
-        {# Vùng hiển thị Flash Messages #}
+        {# Flash Messages #}
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div id="flash-messages-container" class="absolute top-4 right-4 z-50 flex flex-col space-y-2 max-w-sm">
                 {% for category, message in messages %}
                 <div class="flex items-center p-2 rounded-md shadow-lg bg-gray-800 text-white relative text-sm opacity-100 transition-opacity duration-500" data-dismissible>
-                    {% if category == 'success' %}
-                    <i class="fas fa-check-circle text-green-400 mr-2"></i>
-                    {% elif category == 'info' %}
-                    <i class="fas fa-info-circle text-blue-400 mr-2"></i>
-                    {% elif category == 'danger' %}
-                    <i class="fas fa-times-circle text-red-400 mr-2"></i>
-                    {% elif category == 'warning' %}
-                    <i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
-                    {% else %}
-                    <i class="fas fa-bell text-gray-400 mr-2"></i>
-                    {% endif %}
+                    {% if category == 'success' %}<i class="fas fa-check-circle text-green-400 mr-2"></i>
+                    {% elif category == 'info' %}<i class="fas fa-info-circle text-blue-400 mr-2"></i>
+                    {% elif category == 'danger' %}<i class="fas fa-times-circle text-red-400 mr-2"></i>
+                    {% elif category == 'warning' %}<i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
+                    {% else %}<i class="fas fa-bell text-gray-400 mr-2"></i>{% endif %}
                     <span class="block sm:inline">{{ message }}</span>
                     <button class="ml-auto pl-2 text-gray-400 hover:text-white" onclick="this.parentNode.remove();">
                         <span class="sr-only">Đóng</span>
@@ -222,30 +201,19 @@
         {% endif %}
         {% endwith %}
 
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
     <footer class="bg-white text-center py-4 mt-auto shadow-sm">
         <div class="container mx-auto px-4">
-            <div class="flex flex-wrap items-center justify-center md:justify-between">
-                <div class="w-full md:w-1/2 text-center md:text-left mb-2 md:mb-0">
-                    <p class="text-gray-500">&copy; 2024 Mindstack App. All Rights Reserved.</p>
-                </div>
-                <div class="w-full md:w-1/2 text-center md:text-right">
-                    <a href="#" class="text-gray-500 hover:text-gray-700 mx-2"><i class="fab fa-facebook-square text-xl"></i></a>
-                    <a href="#" class="text-gray-500 hover:text-gray-700 mx-2"><i class="fab fa-twitter-square text-xl"></i></a>
-                    <a href="#" class="text-gray-500 hover:text-gray-700 mx-2"><i class="fab fa-linkedin text-xl"></i></a>
-                    <a href="#" class="text-500 hover:text-gray-700 mx-2"><i class="fab fa-github-square text-xl"></i></a>
-                </div>
-            </div>
+            <p class="text-gray-500">&copy; 2024 Mindstack App. All Rights Reserved.</p>
         </div>
     </footer>
     
-    <!-- Cấu trúc Modal (Đã điều chỉnh để sử dụng ID/class cũ của người dùng) -->
+    <!-- Cấu trúc Modal Toàn cục -->
     <div id="modalOverlay" class="modal-overlay"> 
         <div class="modal-content w-full h-full md:w-2/3 lg:w-1/2"> 
-            <button id="modalCloseButton" class="modal-close-button" onclick="closeModal(event)"> 
+            <button id="modalCloseButton" class="modal-close-button"> 
                 &times; 
             </button>
             <iframe id="modalIframe" class="modal-iframe"></iframe> 
@@ -253,152 +221,80 @@
     </div>
 
     <script>
-        // Định nghĩa các hàm openModal, closeModal, showFlashMessage, loadTabContent ở phạm vi toàn cục
-        // để đảm bảo chúng có thể được truy cập từ bất kỳ đâu (bao gồm cả iframe con).
-
-        /**
-         * @description Mở modal và tải nội dung từ URL vào iframe.
-         * @param {string} url - URL của nội dung cần tải vào iframe.
-         */
+        // Các hàm toàn cục để iframe con có thể gọi
         window.openModal = function(url) { 
             const modalOverlay = document.getElementById('modalOverlay'); 
             const modalIframe = document.getElementById('modalIframe'); 
-
             if (modalOverlay && modalIframe) {
-                let finalUrl = url;
-                if (url.indexOf('?') === -1) {
-                    finalUrl += '?is_modal=true';
-                } else {
-                    finalUrl += '&is_modal=true';
-                }
-                
+                let finalUrl = url.includes('?') ? `${url}&is_modal=true` : `${url}?is_modal=true`;
                 modalIframe.src = finalUrl; 
-                modalOverlay.classList.add('open'); // SỬA: Thêm class 'open'
+                modalOverlay.classList.add('open');
                 document.body.style.overflow = 'hidden'; 
-            } else {
-                console.error('openModal: KHÔNG tìm thấy modalOverlay hoặc modalIframe.');
             }
         }; 
 
-        /**
-         * @description Đóng modal.
-         * @param {Event} event - Đối tượng sự kiện (tùy chọn).
-         */
-        window.closeModal = function(event) { 
-            if (event) { 
-                event.stopPropagation();
-            }
+        window.closeModal = function() { 
             const modalOverlay = document.getElementById('modalOverlay'); 
             const modalIframe = document.getElementById('modalIframe'); 
             if (modalOverlay && modalIframe) {
-                modalOverlay.classList.remove('open'); // SỬA: Gỡ bỏ class 'open'
-                
-                // Buộc đặt lại opacity và visibility
-                modalOverlay.style.opacity = '0';
-                modalOverlay.style.visibility = 'hidden';
-
+                modalOverlay.classList.remove('open');
                 modalIframe.src = ''; 
                 document.body.style.overflow = ''; 
             }
         }; 
 
-        /**
-         * @description Hiển thị một thông báo flash message.
-         * Hàm này được thiết kế để có thể gọi từ iframe con.
-         * @param {string} message - Nội dung thông báo.
-         * @param {string} category - Loại thông báo ('success', 'danger', 'info', 'warning').
-         */
         window.showFlashMessage = function(message, category) { 
             const container = document.getElementById('flash-messages-container');
-            if (!container) {
-                console.error('showFlashMessage: Không tìm thấy container cho flash messages.');
-                return;
-            }
-
+            if (!container) return;
             const alertDiv = document.createElement('div');
-            alertDiv.classList.add('flex', 'items-center', 'p-2', 'rounded-md', 'shadow-lg', 'text-white', 'relative', 'text-sm', 'opacity-0', 'transition-opacity', 'duration-500');
-            alertDiv.setAttribute('data-dismissible', '');
-
-            let iconClass = 'fas fa-bell';
-            let bgColorClass = 'bg-gray-800';
-
-            switch (category) {
-                case 'success':
-                    iconClass = 'fas fa-check-circle';
-                    bgColorClass = 'bg-green-500';
-                    break;
-                case 'danger':
-                    iconClass = 'fas fa-times-circle';
-                    bgColorClass = 'bg-red-500';
-                    break;
-                case 'info':
-                    iconClass = 'fas fa-info-circle';
-                    bgColorClass = 'bg-blue-500';
-                    break;
-                case 'warning':
-                    iconClass = 'fas fa-exclamation-triangle';
-                    bgColorClass = 'bg-yellow-500';
-                    break;
-                default:
-                    bgColorClass = 'bg-gray-500'; 
-            }
-
-            alertDiv.classList.add(bgColorClass);
-            alertDiv.innerHTML = `
-                <i class="${iconClass} mr-2"></i>
-                <span class="block sm:inline">${message}</span>
-                <button class="ml-auto pl-2 text-gray-400 hover:text-white" onclick="this.parentNode.remove();">
-                    <span class="sr-only">Đóng</span>
-                    <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
-                    </svg>
-                </button>
-            `;
+            alertDiv.className = `flex items-center p-2 rounded-md shadow-lg text-white relative text-sm opacity-0 transition-opacity duration-500 bg-${category === 'success' ? 'green' : category === 'danger' ? 'red' : category === 'info' ? 'blue' : 'gray'}-500`;
+            alertDiv.innerHTML = `<i class="fas fa-info-circle mr-2"></i><span>${message}</span><button class="ml-auto pl-2" onclick="this.parentNode.remove()">&times;</button>`;
             container.appendChild(alertDiv);
-
-            setTimeout(() => {
-                alertDiv.classList.remove('opacity-0');
-            }, 10); 
-
+            setTimeout(() => alertDiv.classList.remove('opacity-0'), 10); 
             setTimeout(() => {
                 alertDiv.classList.add('opacity-0');
-                setTimeout(() => {
-                    alertDiv.remove();
-                }, 500);
+                setTimeout(() => alertDiv.remove(), 500);
             }, 5000);
         }; 
 
-        /**
-         * @description Tải lại nội dung của một tab cụ thể (hoặc toàn bộ trang nếu không xác định).
-         * Hàm này được thiết kế để có thể gọi từ iframe con.
-         * @param {string} tabName - Tên của tab cần tải lại (ví dụ: 'courses', 'flashcards', 'quizzes').
-         * Hiện tại chỉ hỗ trợ tải lại trang hoàn toàn.
-         */
         window.loadTabContent = function(tabName) { 
             window.location.reload(); 
         }; 
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Hàm xử lý tự động đóng flash messages
-            const notifications = document.querySelectorAll('[data-dismissible]');
-            notifications.forEach(notification => {
+            // Tự động đóng flash messages
+            document.querySelectorAll('[data-dismissible]').forEach(notification => {
                 setTimeout(() => {
                     notification.classList.add('opacity-0');
-                    setTimeout(() => {
-                        notification.remove();
-                    }, 500);
+                    setTimeout(() => notification.remove(), 500);
                 }, 5000);
             });
 
-            // Lắng nghe sự kiện click trên toàn bộ tài liệu để bắt các nút open-modal-btn
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalCloseButton = document.getElementById('modalCloseButton');
+
+            // Lắng nghe sự kiện click để mở modal
             document.addEventListener('click', function(event) {
                 const target = event.target.closest('.open-modal-btn'); 
                 if (target && target.dataset.modalUrl) {
                     event.preventDefault(); 
-                    window.openModal(target.dataset.modalUrl); // GỌI HÀM openModal
+                    window.openModal(target.dataset.modalUrl);
                 }
             });
+
+            // Lắng nghe sự kiện click để đóng modal
+            if (modalCloseButton) {
+                modalCloseButton.addEventListener('click', window.closeModal);
+            }
+            if (modalOverlay) {
+                modalOverlay.addEventListener('click', function(event) {
+                    if (event.target === modalOverlay) {
+                        window.closeModal();
+                    }
+                });
+            }
         });
     </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>
