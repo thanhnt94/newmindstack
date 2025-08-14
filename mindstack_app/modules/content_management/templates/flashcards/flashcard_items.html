@@ -1,9 +1,10 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/flashcards/flashcard_items.html -->
-<!-- Phiên bản: 3.0 -->
+<!-- Phiên bản: 3.1 (Đã sửa nút Sửa thẻ để mở modal) -->
 <!-- Mục đích: Hiển thị danh sách các thẻ ghi nhớ trong một bộ thẻ cụ thể. -->
 <!--           Cung cấp các nút để thêm, chỉnh sửa hoặc xóa thẻ dựa trên quyền của người dùng. -->
 <!--           Đã cập nhật url_for. -->
 <!--           Đã khôi phục phong cách card grid, hiệu ứng lật thẻ, và hiển thị các trường media/AI từ code gốc. -->
+<!--           ĐÃ SỬA: Nút "Sửa" cho từng thẻ để mở modal popup. -->
 <!--           Thiết kế responsive với Tailwind CSS. -->
 
 {% extends "base.html" %}
@@ -32,6 +33,7 @@
             </button>
         </div>
         {% if can_edit %}
+        {# Nút Thêm thẻ mới cũng có thể mở modal nếu muốn #}
         <a href="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
             <i class="fas fa-plus-circle mr-2"></i> Thêm thẻ mới
         </a>
@@ -87,9 +89,10 @@
             </div>
             <div class="p-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-2">
                 {% if can_edit %}
-                <a href="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}" class="bg-blue-100 text-blue-600 px-3 py-1 rounded-md hover:bg-blue-200 transition duration-300 flex items-center text-sm">
+                {# SỬA: Chuyển nút Sửa thành button để mở modal #}
+                <button type="button" data-modal-url="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}" class="open-modal-btn bg-blue-100 text-blue-600 px-3 py-1 rounded-md hover:bg-blue-200 transition duration-300 flex items-center text-sm">
                     <i class="fas fa-edit mr-1"></i> Sửa
-                </a>
+                </button>
                 <form action="{{ url_for('content_management.content_management_flashcards.delete_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa thẻ này?');" class="inline">
                     <button type="submit" class="bg-red-100 text-red-600 px-3 py-1 rounded-md hover:bg-red-200 transition duration-300 flex items-center text-sm">
                         <i class="fas fa-trash-alt mr-1"></i> Xóa
@@ -104,6 +107,7 @@
     <div class="bg-white p-6 rounded-lg shadow-md text-center text-gray-600">
         <p class="mb-4">Bộ thẻ này chưa có thẻ nào. Hãy thêm thẻ mới để bắt đầu!</p>
         {% if can_edit %}
+        {# Nút Thêm thẻ đầu tiên cũng có thể mở modal nếu muốn #}
         <a href="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 inline-flex items-center">
             <i class="fas fa-plus-circle mr-2"></i> Thêm Thẻ đầu tiên
         </a>

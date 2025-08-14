@@ -1,0 +1,211 @@
+<!-- File: newmindstack/mindstack_app/modules/content_management/templates/flashcards/_add_edit_flashcard_item_bare.html -->
+<!-- Phiên bản: 1.1 (Đã thêm JS cho AJAX submit và giao tiếp với parent modal) -->
+<!-- Mục đích: Chứa nội dung form thêm/sửa một thẻ ghi nhớ, được thiết kế để nhúng vào iframe của modal. -->
+<!--           Hoàn toàn tự chứa CSS/JS để định dạng đúng trong iframe. -->
+
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+    <!-- Nhúng Google Fonts cho font Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CSS tùy chỉnh để căn chỉnh logo và thiết lập font mặc định -->
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            color: #333333;
+            background-color: transparent;
+        }
+        .full-height-container {
+            min-height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="full-height-container p-4">
+    <div class="w-full">
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+            <h2 class="text-2xl font-bold text-center mb-6 flex items-center justify-center">
+                <i class="fas fa-plus-circle text-blue-500 mr-3"></i> {{ title }}
+            </h2>
+            <p class="text-center text-gray-600 mb-6">Điền thông tin dưới đây để tạo một thẻ ghi nhớ mới.</p>
+
+            <form id="flashcardItemForm" action="" method="post" class="space-y-6">
+                {{ form.csrf_token }}
+                
+                <div>
+                    {{ form.front.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.front(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Mặt trước (câu hỏi/từ)", rows="3") }}
+                </div>
+                
+                <div>
+                    {{ form.back.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.back(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Mặt sau (câu trả lời/định nghĩa)", rows="3") }}
+                </div>
+
+                {# Các trường tùy chọn cho audio và hình ảnh #}
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Tuỳ chọn Media và AI</h3>
+                    <div class="space-y-4">
+                        <div>
+                            {{ form.front_audio_content.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.front_audio_content(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Văn bản để tạo âm thanh mặt trước (TTS)", rows="2") }}
+                        </div>
+                        <div>
+                            {{ form.front_audio_url.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.front_audio_url(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL file âm thanh mặt trước") }}
+                        </div>
+                        <div>
+                            {{ form.back_audio_content.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.back_audio_content(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Văn bản để tạo âm thanh mặt sau (TTS)", rows="2") }}
+                        </div>
+                        <div>
+                            {{ form.back_audio_url.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.back_audio_url(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL file âm thanh mặt sau") }}
+                        </div>
+                        <div>
+                            {{ form.front_img.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.front_img(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh mặt trước") }}
+                        </div>
+                        <div>
+                            {{ form.back_img.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.back_img(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh mặt sau") }}
+                        </div>
+                        <div>
+                            {{ form.ai_explanation.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.ai_explanation(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50", rows="3", readonly=True) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" onclick="window.parent.closeModal()" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-400 transition duration-300 flex items-center">
+                        <i class="fas fa-times mr-2"></i> Hủy
+                    </button>
+                    {{ form.submit(class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('flashcardItemForm');
+        if (form) {
+            // Đặt action của form dựa trên URL hiện tại (để xử lý cả add và edit)
+            // Lấy URL từ window.location.href của iframe
+            const currentUrl = new URL(window.location.href);
+            // Xóa tham số is_modal để action URL chỉ là endpoint gốc
+            currentUrl.searchParams.delete('is_modal'); 
+            form.action = currentUrl.toString();
+
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault(); // Ngăn chặn gửi form mặc định
+
+                // Xóa các thông báo lỗi cũ
+                document.querySelectorAll('.error-message').forEach(el => el.remove());
+                document.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
+
+                const formData = new FormData(form);
+                const actionUrl = form.action;
+
+                try {
+                    const response = await fetch(actionUrl, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest' // Đánh dấu đây là yêu cầu AJAX
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) { // HTTP status 200-299
+                        if (result.success) {
+                            // Thông báo thành công qua parent window (base.html)
+                            if (window.parent && window.parent.showFlashMessage) {
+                                window.parent.showFlashMessage(result.message, 'success');
+                            }
+                            // Đóng modal
+                            if (window.parent && window.parent.closeModal) {
+                                window.parent.closeModal();
+                            }
+                            // Tải lại nội dung tab flashcards (hoặc trang flashcard_items nếu đang ở đó)
+                            if (window.parent && window.parent.loadTabContent) {
+                                // Nếu đang ở trang list_flashcard_items, tải lại trang đó
+                                if (window.parent.location.href.includes('/flashcards/') && window.parent.location.href.includes('/items')) {
+                                    window.parent.location.reload(); 
+                                } else {
+                                    // Ngược lại, tải lại tab flashcards trên dashboard
+                                    window.parent.loadTabContent('flashcards');
+                                }
+                            }
+                        } else {
+                            // Xử lý lỗi nghiệp vụ từ backend
+                            if (window.parent && window.parent.showFlashMessage) {
+                                window.parent.showFlashMessage(result.message || 'Có lỗi xảy ra.', 'danger');
+                            }
+                        }
+                    } else { // HTTP status 4xx, 5xx
+                        if (result.errors) {
+                            // Hiển thị lỗi xác thực ngay trên form
+                            for (const fieldName in result.errors) {
+                                const fieldErrors = result.errors[fieldName];
+                                const fieldElement = form.querySelector(`[name="${fieldName}"]`);
+                                if (fieldElement) {
+                                    fieldElement.classList.add('border-red-500');
+                                    const errorDiv = document.createElement('div');
+                                    errorDiv.classList.add('text-red-500', 'text-xs', 'mt-1', 'error-message');
+                                    fieldErrors.forEach(error => {
+                                        const p = document.createElement('p');
+                                        p.textContent = error;
+                                        errorDiv.appendChild(p);
+                                    });
+                                    fieldElement.parentNode.insertBefore(errorDiv, fieldElement.nextSibling);
+                                }
+                            }
+                        } else {
+                            // Hiển thị lỗi chung
+                            if (window.parent && window.parent.showFlashMessage) {
+                                window.parent.showFlashMessage(result.message || 'Đã xảy ra lỗi không mong muốn.', 'danger');
+                            }
+                            if (window.parent && window.parent.closeModal) {
+                                window.parent.closeModal();
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Lỗi gửi form AJAX:', error);
+                    if (window.parent && window.parent.showFlashMessage) {
+                        window.parent.showFlashMessage('Không thể kết nối đến máy chủ. Vui lòng thử lại.', 'danger');
+                    }
+                    if (window.parent && window.parent.closeModal) {
+                        window.parent.closeModal();
+                    }
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>

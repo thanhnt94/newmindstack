@@ -1,8 +1,9 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/flashcards/_flashcard_sets_list.html -->
-<!-- Phiên bản: 3.5 -->
+<!-- Phiên bản: 3.6 (Đã sửa lỗi đếm thẻ) -->
 <!-- Mục đích: Hiển thị danh sách các bộ thẻ ghi nhớ dưới dạng card grid. -->
 <!--           Đã khắc phục lỗi căn chỉnh dọc của các nút Sửa, Quyền, Xóa. -->
 <!--           ĐÃ SỬA: Chuyển nút "Thêm Bộ thẻ mới" và "Sửa" để mở modal bằng data-attribute và JS. -->
+<!--           ĐÃ SỬA: Hiển thị số lượng thẻ chính xác. -->
 <!--           Thiết kế responsive với Tailwind CSS. -->
 
 <div class="bg-white rounded-lg shadow p-4 sm:p-6 w-full">
@@ -34,7 +35,7 @@
 
                 <div class="flex justify-between items-center mt-4">
                     <a href="{{ url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        <i class="fas fa-eye mr-1"></i> Xem thẻ ({{ set.items|length }})
+                        <i class="fas fa-eye mr-1"></i> Xem thẻ ({{ set.item_count }}) {# SỬA: Hiển thị item_count #}
                     </a>
                     <div class="flex space-x-2">
                         {# Nút Sửa chỉ hiển thị nếu có quyền #}

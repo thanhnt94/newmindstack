@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/quizzes/routes.py
-# Phiên bản: 3.11 (Đã sửa lỗi Pylance: "question_image_file" và "question_audio_file" not defined)
+# Phiên bản: 3.12 (Đã sửa lỗi đếm câu hỏi và hỗ trợ modal cho edit item)
 # Mục đích: Xử lý các route liên quan đến quản lý bộ câu hỏi (LearningContainer loại 'QUIZ_SET')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa bộ câu hỏi và các câu hỏi (LearningItem loại 'QUIZ_MCQ')
 #           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
@@ -13,8 +13,10 @@
 #           ĐÃ THÊM: Log chi tiết để debug quá trình upload file Excel.
 #           ĐÃ SỬA: Logic kiểm tra nội dung bắt buộc của câu hỏi để cho phép câu hỏi chỉ có media.
 #           ĐÃ SỬA: Khởi tạo biến question_image_file và question_audio_file để tránh lỗi UndefinedVariable.
+#           ĐÃ SỬA: Đếm số lượng câu hỏi chính xác và truyền vào template.
+#           ĐÃ SỬA: Route edit_quiz_item hỗ trợ mở trong modal.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app # Import current_app để dùng logger
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from ..forms import QuizSetForm, QuizItemForm
@@ -51,6 +53,13 @@ def list_quiz_sets():
             LearningContainer.container_type == 'QUIZ_SET'
         )
         quiz_sets = created_sets_query.union(contributed_sets_query).all()
+
+    # SỬA: Đếm số lượng item cho mỗi bộ câu hỏi
+    for set_item in quiz_sets:
+        set_item.item_count = db.session.query(LearningItem).filter_by(
+            container_id=set_item.container_id,
+            item_type='QUIZ_MCQ'
+        ).count()
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('_quiz_sets_list.html', quiz_sets=quiz_sets)

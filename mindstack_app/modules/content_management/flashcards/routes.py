@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 3.6 (Đã cải tiến logic xử lý upload Excel cho FlashcardSet với cột đầy đủ)
+# Phiên bản: 3.7 (Đã sửa lỗi đếm thẻ và hỗ trợ modal cho edit item)
 # Mục đích: Xử lý các route liên quan đến quản lý bộ thẻ ghi nhớ (LearningContainer loại 'FLASHCARD_SET')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa bộ thẻ và các thẻ ghi nhớ (LearningItem loại 'FLASHCARD')
 #           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
@@ -9,6 +9,8 @@
 #           ĐÃ SỬA: Điều chỉnh để trả về JSON cho các yêu cầu AJAX khi thêm/sửa/xóa bộ.
 #           ĐÃ SỬA: Render template bare form cho yêu cầu GET từ modal, full form cho non-modal GET.
 #           ĐÃ CẢI TIẾN: Logic xử lý upload file Excel, đọc các cột đầy đủ và tạo FlashcardItem từ đó.
+#           ĐÃ SỬA: Đếm số lượng thẻ chính xác và truyền vào template.
+#           ĐÃ SỬA: Route edit_flashcard_item hỗ trợ mở trong modal.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_login import login_required, current_user
@@ -47,6 +49,13 @@ def list_flashcard_sets():
             LearningContainer.container_type == 'FLASHCARD_SET'
         )
         flashcard_sets = created_sets_query.union(contributed_sets_query).all()
+
+    # SỬA: Đếm số lượng item cho mỗi bộ thẻ
+    for set_item in flashcard_sets:
+        set_item.item_count = db.session.query(LearningItem).filter_by(
+            container_id=set_item.container_id,
+            item_type='FLASHCARD'
+        ).count()
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('_flashcard_sets_list.html', flashcard_sets=flashcard_sets)
@@ -145,6 +154,7 @@ def add_flashcard_set():
             else:
                 flash(flash_message, flash_category)
                 return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+            
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
@@ -284,6 +294,7 @@ def delete_flashcard_set(set_id):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Bạn không có quyền xóa bộ thẻ này.'}), 403
         else:
+            flash('Bạn không có quyền xóa bộ thẻ này.', 'danger')
             abort(403)
 
     db.session.delete(flashcard_set)
@@ -438,7 +449,7 @@ def edit_flashcard_item(set_id, item_id):
         return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Chỉnh sửa Thẻ ghi nhớ')
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Chỉnh sửa Thẻ ghi nhớ')
 
-@flashcards_bp.route('/flashcards/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
+@flashcards_bp.route('/flashcards/delete/<int:item_id>', methods=['POST'])
 @login_required
 def delete_flashcard_item(set_id, item_id):
     """
