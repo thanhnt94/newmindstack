@@ -1,11 +1,12 @@
 # File: newmindstack/mindstack_app/modules/content_management/quizzes/routes.py
-# Phiên bản: 3.0
+# Phiên bản: 3.1
 # Mục đích: Xử lý các route liên quan đến quản lý bộ câu hỏi (LearningContainer loại 'QUIZ_SET')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa bộ câu hỏi và các câu hỏi (LearningItem loại 'QUIZ_MCQ')
 #           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
 #           Bổ sung logic để phục vụ nội dung riêng cho yêu cầu AJAX từ dashboard tổng quan.
 #           Đã sửa lỗi BuildError bằng cách cập nhật tên endpoint trong url_for.
 #           Đã khắc phục ModuleNotFoundError bằng cách sửa đường dẫn import models.
+#           ĐÃ SỬA: Chuyển hướng sau khi thêm/sửa/xóa về content_dashboard và chọn tab đúng.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
@@ -15,7 +16,7 @@ from ....models import db, LearningContainer, LearningItem, ContainerContributor
 
 # Định nghĩa Blueprint cho quản lý bộ câu hỏi
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
-                       template_folder='../templates/quizzes')
+                        template_folder='../templates/quizzes')
 
 @quizzes_bp.route('/quizzes')
 @login_required
@@ -79,8 +80,8 @@ def add_quiz_set():
         db.session.add(new_set)
         db.session.commit()
         flash('Bộ câu hỏi mới đã được tạo thành công!', 'success')
-        # DÒNG ĐƯỢC CHỈNH SỬA
-        return redirect(url_for('content_management.content_management_quizzes.list_quiz_sets'))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
+        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
     return render_template('add_edit_quiz_set.html', form=form, title='Thêm Bộ câu hỏi')
 
 @quizzes_bp.route('/quizzes/edit/<int:set_id>', methods=['GET', 'POST'])
@@ -106,8 +107,8 @@ def edit_quiz_set(set_id):
         quiz_set.is_public = form.is_public.data
         db.session.commit()
         flash('Bộ câu hỏi đã được cập nhật thành công!', 'success')
-        # DÒNG ĐƯỢC CHỈNH SỬA
-        return redirect(url_for('content_management.content_management_quizzes.list_quiz_sets'))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
+        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
     return render_template('add_edit_quiz_set.html', form=form, title='Chỉnh sửa Bộ câu hỏi')
 
 @quizzes_bp.route('/quizzes/delete/<int:set_id>', methods=['POST'])
@@ -126,8 +127,8 @@ def delete_quiz_set(set_id):
     db.session.delete(quiz_set)
     db.session.commit()
     flash('Bộ câu hỏi đã được xóa thành công!', 'success')
-    # DÒNG ĐƯỢC CHỈNH SỬA
-    return redirect(url_for('content_management.content_management_quizzes.list_quiz_sets'))
+    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
+    return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items')
 @login_required
@@ -202,8 +203,8 @@ def add_quiz_item(set_id):
         db.session.add(new_item)
         db.session.commit()
         flash('Câu hỏi mới đã được thêm thành công!', 'success')
-        # DÒNG ĐƯỢC CHỈNH SỬA
-        return redirect(url_for('content_management.content_management_quizzes.list_quiz_items', set_id=set_id))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
+        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
     return render_template('add_edit_quiz_item.html', form=form, quiz_set=quiz_set, title='Thêm Câu hỏi')
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
@@ -247,8 +248,8 @@ def edit_quiz_item(set_id, item_id):
         }
         db.session.commit()
         flash('Câu hỏi đã được cập nhật thành công!', 'success')
-        # DÒNG ĐƯỢC CHỈNH SỬA
-        return redirect(url_for('content_management.content_management_quizzes.list_quiz_items', set_id=set_id))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
+        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
     return render_template('add_edit_quiz_item.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
@@ -270,6 +271,5 @@ def delete_quiz_item(set_id, item_id):
     db.session.delete(quiz_item)
     db.session.commit()
     flash('Câu hỏi đã được xóa thành công!', 'success')
-    # DÒNG ĐƯỢC CHỈNH SỬA
-    return redirect(url_for('content_management.content_management_quizzes.list_quiz_items', set_id=set_id))
-
+    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
+    return redirect(url_for('content_management.content_dashboard', tab='quizzes'))

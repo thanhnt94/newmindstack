@@ -1,10 +1,11 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 3.0
+# Phiên bản: 3.1
 # Mục đích: Xử lý các route liên quan đến quản lý bộ thẻ ghi nhớ (LearningContainer loại 'FLASHCARD_SET')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa bộ thẻ và các thẻ ghi nhớ (LearningItem loại 'FLASHCARD')
 #           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
 #           Bổ sung logic để phục vụ nội dung riêng cho yêu cầu AJAX từ dashboard tổng quan.
 #           Đã sửa lỗi BuildError bằng cách cập nhật tên endpoint trong url_for.
+#           ĐÃ SỬA: Chuyển hướng sau khi thêm/sửa/xóa về content_dashboard và chọn tab đúng.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
@@ -14,7 +15,7 @@ from ....models import db, LearningContainer, LearningItem, ContainerContributor
 
 # Định nghĩa Blueprint cho quản lý thẻ ghi nhớ
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
-                          template_folder='../templates/flashcards')
+                            template_folder='../templates/flashcards')
 
 @flashcards_bp.route('/flashcards')
 @login_required
@@ -78,8 +79,8 @@ def add_flashcard_set():
         db.session.add(new_set)
         db.session.commit()
         flash('Bộ thẻ ghi nhớ mới đã được tạo thành công!', 'success')
-        # DÒNG ĐƯỢC CHỈNH SỬA
-        return redirect(url_for('content_management.content_management_flashcards.list_flashcard_sets'))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
+        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     return render_template('add_edit_flashcard_set.html', form=form, title='Thêm Bộ thẻ ghi nhớ')
 
 @flashcards_bp.route('/flashcards/edit/<int:set_id>', methods=['GET', 'POST'])
@@ -105,8 +106,8 @@ def edit_flashcard_set(set_id):
         flashcard_set.is_public = form.is_public.data
         db.session.commit()
         flash('Bộ thẻ ghi nhớ đã được cập nhật thành công!', 'success')
-        # DÒNG ĐƯỢC CHỈNH SỬA
-        return redirect(url_for('content_management.content_management_flashcards.list_flashcard_sets'))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
+        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     return render_template('add_edit_flashcard_set.html', form=form, title='Chỉnh sửa Bộ thẻ ghi nhớ')
 
 @flashcards_bp.route('/flashcards/delete/<int:set_id>', methods=['POST'])
@@ -125,8 +126,8 @@ def delete_flashcard_set(set_id):
     db.session.delete(flashcard_set)
     db.session.commit()
     flash('Bộ thẻ ghi nhớ đã được xóa thành công!', 'success')
-    # DÒNG ĐƯỢC CHỈNH SỬA
-    return redirect(url_for('content_management.content_management_flashcards.list_flashcard_sets'))
+    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
+    return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items')
 @login_required
@@ -191,8 +192,8 @@ def add_flashcard_item(set_id):
         db.session.add(new_item)
         db.session.commit()
         flash('Thẻ ghi nhớ mới đã được thêm thành công!', 'success')
-        # DÒNG ĐƯỢC CHỈNH SỬA
-        return redirect(url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=set_id))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
+        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, title='Thêm Thẻ ghi nhớ')
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
@@ -218,8 +219,8 @@ def edit_flashcard_item(set_id, item_id):
         flashcard_item.content = {'front': form.front_content.data, 'back': form.back_content.data}
         db.session.commit()
         flash('Thẻ ghi nhớ đã được cập nhật thành công!', 'success')
-        # DÒNG ĐƯỢC CHỈNH SỬA
-        return redirect(url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=set_id))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
+        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Chỉnh sửa Thẻ ghi nhớ')
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
@@ -241,6 +242,5 @@ def delete_flashcard_item(set_id, item_id):
     db.session.delete(flashcard_item)
     db.session.commit()
     flash('Thẻ ghi nhớ đã được xóa thành công!', 'success')
-    # DÒNG ĐƯỢC CHỈNH SỬA
-    return redirect(url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=set_id))
-
+    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
+    return redirect(url_for('content_management.content_dashboard', tab='flashcards'))

@@ -1,8 +1,7 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/_quiz_sets_list.html -->
-<!-- Phiên bản: 3.0 -->
+<!-- Phiên bản: 3.2 -->
 <!-- Mục đích: Hiển thị danh sách các bộ câu hỏi dưới dạng card grid. -->
-<!--           Đây là một template partial, chỉ chứa nội dung chính mà không có HTML bao bọc đầy đủ, -->
-<!--           được sử dụng cho các yêu cầu AJAX từ content_dashboard. -->
+<!--           Đã khắc phục lỗi căn chỉnh dọc của các nút Sửa, Quyền, Xóa. -->
 <!--           Đã cập nhật tất cả các url_for theo cấu trúc Blueprint lồng nhau. -->
 <!--           Đã khôi phục phong cách card grid và các icon từ code gốc. -->
 <!--           Thiết kế responsive với Tailwind CSS. -->
@@ -40,23 +39,23 @@
                     <div class="flex space-x-2">
                         {# Nút Sửa chỉ hiển thị nếu có quyền #}
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id or (set.contributors and current_user.user_id in set.contributors|map(attribute='user_id')|list and 'editor' in set.contributors|selectattr('user_id', 'equalto', current_user.user_id)|map(attribute='permission_level')|list) %}
-                        <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}" class="text-green-600 hover:text-green-800 text-sm">
-                            <i class="fas fa-edit"></i> Sửa
+                        <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}" class="text-green-600 hover:text-green-800 text-sm flex items-center"> {# ĐÃ SỬA: Thêm flex items-center #}
+                            <i class="fas fa-edit mr-1"></i> Sửa
                         </a>
                         {% endif %}
                         
                         {# Nút Quản lý người đóng góp chỉ hiển thị nếu là creator hoặc admin #}
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
-                        <a href="{{ url_for('content_management.manage_contributors', container_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
-                            <i class="fas fa-users"></i> Quyền
+                        <a href="{{ url_for('content_management.manage_contributors', container_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm flex items-center"> {# ĐÃ SỬA: Thêm flex items-center #}
+                            <i class="fas fa-users mr-1"></i> Quyền
                         </a>
                         {% endif %}
 
                         {# Nút Xóa chỉ hiển thị nếu là creator hoặc admin #}
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
                         <form action="{{ url_for('content_management.content_management_quizzes.delete_quiz_set', set_id=set.container_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ câu hỏi này và tất cả các câu hỏi của nó?');" class="inline">
-                            <button type="submit" class="text-red-600 hover:text-red-800 text-sm">
-                                <i class="fas fa-trash-alt"></i> Xóa
+                            <button type="submit" class="text-red-600 hover:text-red-800 text-sm flex items-center"> {# ĐÃ SỬA: Thêm flex items-center #}
+                                <i class="fas fa-trash-alt mr-1"></i> Xóa
                             </button>
                         </form>
                         {% endif %}

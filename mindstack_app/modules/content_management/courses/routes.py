@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/courses/routes.py
-# Phiên bản: 6.0
+# Phiên bản: 6.1
 # Mục đích: Xử lý các route liên quan đến quản lý khóa học (LearningContainer loại 'COURSE')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa khóa học và các bài học (LearningItem loại 'LESSON')
 #           Đã tích hợp logic phân quyền mới (creator, admin, contributor).
@@ -7,6 +7,7 @@
 #           Đã cập nhật tất cả các url_for theo cấu trúc Blueprint lồng nhau.
 #           Đã giữ nguyên logic xử lý AI settings và BBCode content từ code gốc.
 #           Đã kiểm tra lại để khắc phục lỗi HTTP 500.
+#           ĐÃ SỬA: Chuyển hướng sau khi thêm/sửa/xóa về content_dashboard và chọn tab đúng.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
@@ -20,7 +21,7 @@ from ..forms import CourseForm, LessonForm # Import form từ thư mục cha (co
 
 # Định nghĩa Blueprint cho quản lý khóa học
 courses_bp = Blueprint('content_management_courses', __name__,
-                       template_folder='../templates/courses')
+                        template_folder='../templates/courses')
 
 # Middleware để đảm bảo người dùng đã đăng nhập cho toàn bộ Blueprint courses
 @courses_bp.before_request
@@ -100,8 +101,8 @@ def add_course():
         db.session.add(new_course)
         db.session.commit()
         flash('Khóa học đã được thêm thành công!', 'success')
-        # Cập nhật url_for
-        return redirect(url_for('content_management.content_management_courses.list_courses'))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
+        return redirect(url_for('content_management.content_dashboard', tab='courses'))
             
     return render_template('add_edit_course_set.html', form=form, title='Thêm Khóa học mới')
 
@@ -140,8 +141,8 @@ def edit_course(set_id):
 
         db.session.commit()
         flash('Thông tin khóa học đã được cập nhật!', 'success')
-        # Cập nhật url_for
-        return redirect(url_for('content_management.content_management_courses.list_courses'))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
+        return redirect(url_for('content_management.content_dashboard', tab='courses'))
 
     return render_template('add_edit_course_set.html', form=form, title='Sửa Khóa học', course=course)
 
@@ -165,8 +166,8 @@ def delete_course(set_id):
     db.session.delete(course)
     db.session.commit()
     flash('Khóa học đã được xóa thành công!', 'success')
-    # Cập nhật url_for
-    return redirect(url_for('content_management.content_management_courses.list_courses'))
+    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
+    return redirect(url_for('content_management.content_dashboard', tab='courses'))
 
 # --- ROUTES QUẢN LÝ BÀI HỌC (LearningItem) TRONG KHÓA HỌC ---
 
@@ -237,8 +238,8 @@ def add_lesson(set_id):
         db.session.add(new_item)
         db.session.commit()
         flash('Bài học đã được thêm thành công!', 'success')
-        # Cập nhật url_for
-        return redirect(url_for('content_management.content_management_courses.list_lessons', set_id=set_id))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
+        return redirect(url_for('content_management.content_dashboard', tab='courses'))
     
     return render_template('add_edit_lesson.html', form=form, title='Thêm Bài học mới', course=course)
 
@@ -284,8 +285,8 @@ def edit_lesson(set_id, item_id):
 
         db.session.commit()
         flash('Bài học đã được cập nhật thành công!', 'success')
-        # Cập nhật url_for
-        return redirect(url_for('content_management.content_management_courses.list_lessons', set_id=set_id))
+        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
+        return redirect(url_for('content_management.content_dashboard', tab='courses'))
 
     return render_template('add_edit_lesson.html', form=form, title='Sửa Bài học', course=course, lesson=lesson)
 
@@ -309,6 +310,5 @@ def delete_lesson(set_id, item_id):
     db.session.delete(lesson)
     db.session.commit()
     flash('Bài học đã được xóa thành công!', 'success')
-    # Cập nhật url_for
-    return redirect(url_for('content_management.content_management_courses.list_lessons', set_id=set_id))
-
+    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
+    return redirect(url_for('content_management.content_dashboard', tab='courses'))

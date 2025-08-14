@@ -1,8 +1,12 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/content_dashboard.html -->
-<!-- Phiên bản: 2.8 -->
+<!-- Phiên bản: 2.16 -->
 <!-- Mục đích: Hiển thị bảng điều khiển tổng quan cho việc quản lý nội dung với giao diện tab động (AJAX). -->
 <!--           Cung cấp các tab để chuyển đổi giữa Khóa học, Bộ thẻ và Bộ câu hỏi. -->
-<!--           Đã khắc phục lỗi highlight cho tab active một cách tối thiểu. -->
+<!--           Đã khắc phục lỗi highlight cho tab active bằng cách sử dụng sessionStorage. -->
+<!--           Đã loại bỏ các import CSS trùng lặp và chuyển áp dụng kiểu active trực tiếp bằng JS. -->
+<!--           Đã sửa lỗi JavaScript không thể phân tích cú pháp url_for. -->
+<!--           Đã đảm bảo hiệu ứng active cho tab hiển thị bằng cách thêm/bớt class Tailwind trực tiếp. -->
+<!--           ĐÃ SỬA: Loại bỏ khối hiển thị flash messages trùng lặp. -->
 <!--           Thiết kế responsive với Tailwind CSS. -->
 
 {% extends "base.html" %}
@@ -11,23 +15,16 @@
 
 {% block head %}
     {{ super() }}
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {# Loại bỏ các import CSS trùng lặp và style tùy chỉnh cho .tab-button.active #}
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Custom styles for active tab */
-        .tab-button.active {
-            /* DÒNG ĐƯỢC CHỈNH SỬA: Thêm màu nền và !important để đảm bảo highlight */
-            @apply border-b-4 border-blue-500 text-blue-600 font-bold bg-blue-50 !important; 
-        }
         /* Ensure tab content fills available width */
         #tab-content {
             width: 100%;
-            @apply flex items-start;
+            display: flex; /* @apply flex */
+            align-items: flex-start; /* @apply items-start */
         }
     </style>
 {% endblock %}
@@ -38,6 +35,8 @@
         Bảng Điều Khiển Quản Lý Nội Dung
     </h1>
 
+    {# ĐÃ SỬA: Loại bỏ khối hiển thị flash messages trùng lặp, vì base.html đã xử lý #}
+    {#
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="mb-6">
@@ -54,11 +53,12 @@
             </div>
         {% endif %}
     {% endwith %}
+    #}
 
     <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
         <!-- Tab Navigation -->
         <div class="flex border-b border-gray-200 mb-6 flex-wrap justify-center sm:justify-start">
-            <button id="tab-courses" class="tab-button py-3 px-4 sm:px-6 text-lg sm:text-xl text-gray-700 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out active" data-target="courses">
+            <button id="tab-courses" class="tab-button py-3 px-4 sm:px-6 text-lg sm:text-xl text-gray-700 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out" data-target="courses">
                 <i class="fas fa-book mr-2"></i> Khóa học
             </button>
             <button id="tab-flashcards" class="tab-button py-3 px-4 sm:px-6 text-lg sm:text-xl text-gray-700 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out" data-target="flashcards">
@@ -86,9 +86,26 @@
 </div>
 
 <script>
+    // Khai báo các URL mà Flask đã xử lý trước khi JavaScript chạy
+    const coursesListUrl = "{{ url_for('content_management.content_management_courses.list_courses') }}";
+    const flashcardSetsListUrl = "{{ url_for('content_management.content_management_flashcards.list_flashcard_sets') }}";
+    const quizSetsListUrl = "{{ url_for('content_management.content_management_quizzes.list_quiz_sets') }}";
+
     document.addEventListener('DOMContentLoaded', function() {
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContent = document.getElementById('tab-content');
+        const validTabs = ['courses', 'flashcards', 'quizzes']; // Danh sách các tab hợp lệ
+        const SESSION_STORAGE_KEY = 'activeContentTab'; // Khóa để lưu trữ trong sessionStorage
+
+        // Các lớp Tailwind CSS để thêm/bớt cho tab active
+        const activeClasses = [
+            'border-b-4', 'border-blue-500', 'text-blue-600', 'font-bold', 'bg-blue-100', 'shadow-sm'
+        ];
+        // Các lớp Tailwind CSS mặc định cho tab inactive (hover và transition)
+        const defaultClasses = [
+            'text-gray-700', 'hover:text-blue-600', 'focus:outline-none', 'transition', 'duration-150', 'ease-in-out'
+        ];
+
 
         /**
          * Tải nội dung cho tab được chọn bằng AJAX.
@@ -106,18 +123,29 @@
                 </div>
             `;
 
-            // Loại bỏ lớp 'active' khỏi tất cả các nút tab
-            tabButtons.forEach(button => button.classList.remove('active'));
-            // Thêm lớp 'active' vào nút tab hiện tại
-            document.getElementById('tab-' + tabName).classList.add('active');
+            // Loại bỏ tất cả các lớp active và thêm lại lớp default cho tất cả các nút tab
+            tabButtons.forEach(button => {
+                button.classList.remove(...activeClasses); // Loại bỏ lớp active
+                button.classList.add(...defaultClasses); // Thêm lại lớp default
+            });
+            
+            // Thêm lớp 'active' (các lớp Tailwind cụ thể) vào nút tab hiện tại
+            const currentTabButton = document.getElementById('tab-' + tabName);
+            if (currentTabButton) {
+                currentTabButton.classList.add(...activeClasses); // Thêm các lớp active
+                currentTabButton.classList.remove(...defaultClasses); // Loại bỏ các lớp default để tránh xung đột
+                // LƯU TRẠNG THÁI TAB VÀO sessionStorage
+                sessionStorage.setItem(SESSION_STORAGE_KEY, tabName);
+            }
 
             let url;
+            // Sử dụng các biến JavaScript đã được định nghĩa sẵn
             if (tabName === 'courses') {
-                url = "{{ url_for('content_management.content_management_courses.list_courses') }}";
+                url = coursesListUrl;
             } else if (tabName === 'flashcards') {
-                url = "{{ url_for('content_management.content_management_flashcards.list_flashcard_sets') }}";
+                url = flashcardSetsListUrl;
             } else if (tabName === 'quizzes') {
-                url = "{{ url_for('content_management.content_management_quizzes.list_quiz_sets') }}";
+                url = quizSetsListUrl;
             } else {
                 tabContent.innerHTML = '<p class="text-red-500">Lỗi: Tab không hợp lệ.</p>';
                 return;
@@ -149,8 +177,21 @@
             });
         });
 
-        // Tải nội dung mặc định khi trang được tải (ví dụ: tab khóa học)
-        loadTabContent('courses');
+        // XÁC ĐỊNH TAB SẼ ĐƯỢC TẢI KHI TRANG ĐƯỢC TẢI LẦN ĐẦU (Ưu tiên sessionStorage)
+        let initialTab = sessionStorage.getItem(SESSION_STORAGE_KEY); // Lấy tab đã lưu từ sessionStorage
+
+        // Nếu không có tab đã lưu hoặc tab đã lưu không hợp lệ, kiểm tra URL parameter (nếu có)
+        if (!initialTab || !validTabs.includes(initialTab)) {
+            const urlParams = new URLSearchParams(window.location.search);
+            initialTab = urlParams.get('tab');
+        }
+
+        // Nếu vẫn không có tab hợp lệ, mặc định là 'courses'
+        if (!initialTab || !validTabs.includes(initialTab)) {
+            initialTab = 'courses';
+        }
+        
+        loadTabContent(initialTab);
     });
 </script>
 {% endblock %}
