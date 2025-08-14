@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/quizzes/routes.py
-# Phiên bản: 3.1
+# Phiên bản: 3.5
 # Mục đích: Xử lý các route liên quan đến quản lý bộ câu hỏi (LearningContainer loại 'QUIZ_SET')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa bộ câu hỏi và các câu hỏi (LearningItem loại 'QUIZ_MCQ')
 #           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
@@ -7,12 +7,14 @@
 #           Đã sửa lỗi BuildError bằng cách cập nhật tên endpoint trong url_for.
 #           Đã khắc phục ModuleNotFoundError bằng cách sửa đường dẫn import models.
 #           ĐÃ SỬA: Chuyển hướng sau khi thêm/sửa/xóa về content_dashboard và chọn tab đúng.
+#           ĐÃ SỬA: Điều chỉnh để trả về JSON cho các yêu cầu AJAX khi thêm/sửa/xóa bộ.
+#           ĐÃ SỬA: Render template bare form cho yêu cầu GET từ modal, full form cho non-modal GET.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from ..forms import QuizSetForm, QuizItemForm # Import form từ thư mục cha (content_management)
-from ....models import db, LearningContainer, LearningItem, ContainerContributor, User # DÒNG ĐƯỢC CHỈNH SỬA: Đã thêm một dấu chấm
+from ....models import db, LearningContainer, LearningItem, ContainerContributor, User # Đã thêm một dấu chấm
 
 # Định nghĩa Blueprint cho quản lý bộ câu hỏi
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
@@ -79,10 +81,22 @@ def add_quiz_set():
         )
         db.session.add(new_set)
         db.session.commit()
-        flash('Bộ câu hỏi mới đã được tạo thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
-        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
-    return render_template('add_edit_quiz_set.html', form=form, title='Thêm Bộ câu hỏi')
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Bộ câu hỏi mới đã được tạo thành công!'})
+        else:
+            flash('Bộ câu hỏi mới đã được tạo thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_quiz_set_bare.html', form=form, title='Thêm Bộ câu hỏi mới')
+    return render_template('add_edit_quiz_set.html', form=form, title='Thêm Bộ câu hỏi mới')
 
 @quizzes_bp.route('/quizzes/edit/<int:set_id>', methods=['GET', 'POST'])
 @login_required
@@ -97,7 +111,12 @@ def edit_quiz_set(set_id):
     if current_user.user_role != 'admin' and \
        quiz_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Forbidden nếu không có quyền
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa bộ câu hỏi này.'}), 403
+        else:
+            abort(403) # Forbidden nếu không có quyền
 
     form = QuizSetForm(obj=quiz_set) # Điền dữ liệu hiện có vào form
     if form.validate_on_submit():
@@ -106,10 +125,22 @@ def edit_quiz_set(set_id):
         quiz_set.tags = form.tags.data
         quiz_set.is_public = form.is_public.data
         db.session.commit()
-        flash('Bộ câu hỏi đã được cập nhật thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
-        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
-    return render_template('add_edit_quiz_set.html', form=form, title='Chỉnh sửa Bộ câu hỏi')
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Bộ câu hỏi đã được cập nhật thành công!'})
+        else:
+            flash('Bộ câu hỏi đã được cập nhật thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_quiz_set_bare.html', form=form, title='Sửa Bộ câu hỏi', quiz_set=quiz_set)
+    return render_template('add_edit_quiz_set.html', form=form, title='Sửa Bộ câu hỏi', quiz_set=quiz_set)
 
 @quizzes_bp.route('/quizzes/delete/<int:set_id>', methods=['POST'])
 @login_required
@@ -122,13 +153,21 @@ def delete_quiz_set(set_id):
 
     # Kiểm tra quyền xóa
     if current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
-        abort(403) # Forbidden nếu không có quyền
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa bộ câu hỏi này.'}), 403
+        else:
+            abort(403) # Forbidden nếu không có quyền
 
     db.session.delete(quiz_set)
     db.session.commit()
-    flash('Bộ câu hỏi đã được xóa thành công!', 'success')
-    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
-    return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+    
+    # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': 'Bộ câu hỏi đã được xóa thành công!'})
+    else:
+        flash('Bộ câu hỏi đã được xóa thành công!', 'success')
+        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items')
 @login_required
@@ -173,7 +212,12 @@ def add_quiz_item(set_id):
     if current_user.user_role != 'admin' and \
        quiz_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Forbidden nếu không có quyền
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền thêm câu hỏi vào bộ này.'}), 403
+        else:
+            abort(403) # Forbidden nếu không có quyền
 
     form = QuizItemForm()
     if form.validate_on_submit():
@@ -202,9 +246,21 @@ def add_quiz_item(set_id):
         )
         db.session.add(new_item)
         db.session.commit()
-        flash('Câu hỏi mới đã được thêm thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
-        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Câu hỏi mới đã được thêm thành công!'})
+        else:
+            flash('Câu hỏi mới đã được thêm thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_quiz_item_bare.html', form=form, quiz_set=quiz_set, title='Thêm Câu hỏi')
     return render_template('add_edit_quiz_item.html', form=form, quiz_set=quiz_set, title='Thêm Câu hỏi')
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
@@ -215,15 +271,19 @@ def edit_quiz_item(set_id, item_id):
     Chỉ người tạo bộ câu hỏi hoặc người dùng được cấp quyền 'editor' mới có thể chỉnh sửa.
     """
     quiz_set = LearningContainer.query.get_or_404(set_id)
-    quiz_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id).first_or_404()
+    quiz_item = LearningItem.query.get_or_404(item_id)
 
     # Kiểm tra quyền chỉnh sửa
     if current_user.user_role != 'admin' and \
        quiz_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Forbidden nếu không có quyền
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa câu hỏi này.'}), 403
+        else:
+            abort(403) # Forbidden nếu không có quyền
 
-    # Khởi tạo form với dữ liệu hiện có từ trường 'content' dạng JSON
     form = QuizItemForm(
         question_text=quiz_item.content.get('question_text'),
         option_a=quiz_item.content.get('options', {}).get('A'),
@@ -247,9 +307,21 @@ def edit_quiz_item(set_id, item_id):
             'explanation': form.explanation.data
         }
         db.session.commit()
-        flash('Câu hỏi đã được cập nhật thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
-        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Câu hỏi đã được cập nhật thành công!'})
+        else:
+            flash('Câu hỏi đã được cập nhật thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_quiz_item_bare.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')
     return render_template('add_edit_quiz_item.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
@@ -260,16 +332,26 @@ def delete_quiz_item(set_id, item_id):
     Chỉ người tạo bộ câu hỏi hoặc người dùng được cấp quyền 'editor' mới có thể xóa.
     """
     quiz_set = LearningContainer.query.get_or_404(set_id)
-    quiz_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id).first_or_404()
+    quiz_item = LearningItem.query.get_or_404(item_id)
 
-    # Kiểm tra quyền chỉnh sửa
+    # Kiểm tra quyền xóa
     if current_user.user_role != 'admin' and \
        quiz_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Forbidden nếu không có quyền
-
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa câu hỏi này.'}), 403
+        else:
+            flash('Bạn không có quyền xóa câu hỏi này.', 'danger')
+            abort(403)
+    
     db.session.delete(quiz_item)
     db.session.commit()
-    flash('Câu hỏi đã được xóa thành công!', 'success')
-    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'quizzes'
-    return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+    
+    # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': 'Câu hỏi đã được xóa thành công!'})
+    else:
+        flash('Câu hỏi đã được xóa thành công!', 'success')
+        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))

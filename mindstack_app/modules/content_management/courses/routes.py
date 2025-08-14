@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/courses/routes.py
-# Phiên bản: 6.1
+# Phiên bản: 6.4
 # Mục đích: Xử lý các route liên quan đến quản lý khóa học (LearningContainer loại 'COURSE')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa khóa học và các bài học (LearningItem loại 'LESSON')
 #           Đã tích hợp logic phân quyền mới (creator, admin, contributor).
@@ -8,8 +8,10 @@
 #           Đã giữ nguyên logic xử lý AI settings và BBCode content từ code gốc.
 #           Đã kiểm tra lại để khắc phục lỗi HTTP 500.
 #           ĐÃ SỬA: Chuyển hướng sau khi thêm/sửa/xóa về content_dashboard và chọn tab đúng.
+#           ĐÃ SỬA: Điều chỉnh để trả về JSON cho các yêu cầu AJAX khi thêm/sửa/xóa bộ.
+#           ĐÃ SỬA: Render template bare form cho yêu cầu GET từ modal, full form cho non-modal GET.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_login import login_required, current_user
 import json # Để xử lý trường JSON content
 import bbcode # Cần cài đặt: pip install bbcode
@@ -100,10 +102,22 @@ def add_course():
         )
         db.session.add(new_course)
         db.session.commit()
-        flash('Khóa học đã được thêm thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
-        return redirect(url_for('content_management.content_dashboard', tab='courses'))
-            
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest': # Đây là khi form được gửi qua AJAX
+            return jsonify({'success': True, 'message': 'Khóa học đã được thêm thành công!'})
+        else:
+            flash('Khóa học đã được thêm thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='courses'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+    
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_course_set_bare.html', form=form, title='Thêm Khóa học mới')
+    # Nếu là GET request và không có is_modal=true (hoặc không phải AJAX), render full template
     return render_template('add_edit_course_set.html', form=form, title='Thêm Khóa học mới')
 
 @courses_bp.route('/sets/edit/<int:set_id>', methods=['GET', 'POST'])
@@ -118,8 +132,13 @@ def edit_course(set_id):
     if current_user.user_role != 'admin' and \
        course.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        flash('Bạn không có quyền chỉnh sửa khóa học này.', 'danger')
-        abort(403)
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa khóa học này.'}), 403
+        else:
+            flash('Bạn không có quyền chỉnh sửa khóa học này.', 'danger')
+            abort(403)
 
     form = CourseForm(obj=course)
     
@@ -128,7 +147,7 @@ def edit_course(set_id):
         form.ai_prompt.data = course.ai_settings['custom_prompt']
 
     if form.validate_on_submit():
-        # Xử lý AI settings từ form gốc
+        # Xử lý AI settings from original form
         ai_settings = {}
         if form.ai_prompt.data:
             ai_settings['custom_prompt'] = form.ai_prompt.data
@@ -140,10 +159,22 @@ def edit_course(set_id):
         course.ai_settings = ai_settings if ai_settings else None
 
         db.session.commit()
-        flash('Thông tin khóa học đã được cập nhật!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
-        return redirect(url_for('content_management.content_dashboard', tab='courses'))
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Thông tin khóa học đã được cập nhật!'})
+        else:
+            flash('Thông tin khóa học đã được cập nhật!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='courses'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
 
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_course_set_bare.html', form=form, title='Sửa Khóa học', course=course)
+    # Nếu là GET request và không có is_modal=true (hoặc không phải AJAX), render full template
     return render_template('add_edit_course_set.html', form=form, title='Sửa Khóa học', course=course)
 
 @courses_bp.route('/sets/delete/<int:set_id>', methods=['POST'])
@@ -158,16 +189,24 @@ def delete_course(set_id):
     # Hiện tại chỉ người tạo hoặc admin mới có quyền xóa hoàn toàn container.
     # Contributor có thể chỉ có quyền chỉnh sửa nội dung bên trong.
     if current_user.user_role != 'admin' and course.creator_user_id != current_user.user_id:
-        flash('Bạn không có quyền xóa khóa học này.', 'danger')
-        abort(403)
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa khóa học này.'}), 403
+        else:
+            flash('Bạn không có quyền xóa khóa học này.', 'danger')
+            abort(403)
     
     # Xóa tất cả các bài học con trước (từ code gốc)
     LearningItem.query.filter_by(container_id=set_id).delete()
     db.session.delete(course)
     db.session.commit()
-    flash('Khóa học đã được xóa thành công!', 'success')
-    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
-    return redirect(url_for('content_management.content_dashboard', tab='courses'))
+    
+    # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': 'Khóa học đã được xóa thành công!'})
+    else:
+        flash('Khóa học đã được xóa thành công!', 'success')
+        return redirect(url_for('content_management.content_dashboard', tab='courses'))
 
 # --- ROUTES QUẢN LÝ BÀI HỌC (LearningItem) TRONG KHÓA HỌC ---
 
@@ -214,8 +253,13 @@ def add_lesson(set_id):
     if current_user.user_role != 'admin' and \
        course.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        flash('Bạn không có quyền thêm bài học vào khóa học này.', 'danger')
-        abort(403)
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền thêm bài học vào khóa học này.'}), 403
+        else:
+            flash('Bạn không có quyền thêm bài học vào khóa học này.', 'danger')
+            abort(403)
 
     form = LessonForm()
     if form.validate_on_submit():
@@ -237,10 +281,21 @@ def add_lesson(set_id):
         )
         db.session.add(new_item)
         db.session.commit()
-        flash('Bài học đã được thêm thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
-        return redirect(url_for('content_management.content_dashboard', tab='courses'))
-    
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Bài học đã được thêm thành công!'})
+        else:
+            flash('Bài học đã được thêm thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='courses')) # Vẫn redirect về dashboard chính
+
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_lesson_bare.html', form=form, title='Thêm Bài học mới', course=course)
     return render_template('add_edit_lesson.html', form=form, title='Thêm Bài học mới', course=course)
 
 @courses_bp.route('/sets/<int:set_id>/lessons/edit/<int:item_id>', methods=['GET', 'POST'])
@@ -257,8 +312,13 @@ def edit_lesson(set_id, item_id):
        (current_user.user_role != 'admin' and \
         course.creator_user_id != current_user.user_id and \
         not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first()):
-        flash('Bạn không có quyền chỉnh sửa bài học này.', 'danger')
-        abort(403)
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa bài học này.'}), 403
+        else:
+            flash('Bạn không có quyền chỉnh sửa bài học này.', 'danger')
+            abort(403)
 
     form = LessonForm(obj=lesson)
     
@@ -284,10 +344,21 @@ def edit_lesson(set_id, item_id):
         # lesson.ai_explanation = form.ai_explanation.data # KHÔNG NÊN LÀM VẬY NẾU CHỈ ĐỂ HIỂN THỊ
 
         db.session.commit()
-        flash('Bài học đã được cập nhật thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
-        return redirect(url_for('content_management.content_dashboard', tab='courses'))
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Bài học đã được cập nhật thành công!'})
+        else:
+            flash('Bài học đã được cập nhật thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='courses')) # Vẫn redirect về dashboard chính
 
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_lesson_bare.html', form=form, title='Sửa Bài học', course=course, lesson=lesson)
     return render_template('add_edit_lesson.html', form=form, title='Sửa Bài học', course=course, lesson=lesson)
 
 @courses_bp.route('/sets/<int:set_id>/lessons/delete/<int:item_id>', methods=['POST'])
@@ -304,11 +375,20 @@ def delete_lesson(set_id, item_id):
        (current_user.user_role != 'admin' and \
         course.creator_user_id != current_user.user_id and \
         not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first()):
-        flash('Bạn không có quyền xóa bài học này.', 'danger')
-        abort(403)
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa bài học này.'}), 403
+        else:
+            flash('Bạn không có quyền xóa bài học này.', 'danger')
+            abort(403)
     
     db.session.delete(lesson)
     db.session.commit()
-    flash('Bài học đã được xóa thành công!', 'success')
-    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'courses'
-    return redirect(url_for('content_management.content_dashboard', tab='courses'))
+    
+    # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': 'Bài học đã được xóa thành công!'})
+    else:
+        flash('Bài học đã được xóa thành công!', 'success')
+        return redirect(url_for('content_management.content_dashboard', tab='courses')) # Vẫn redirect về dashboard chính

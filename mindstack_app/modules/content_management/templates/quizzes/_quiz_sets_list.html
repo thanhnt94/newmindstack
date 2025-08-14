@@ -1,17 +1,17 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/_quiz_sets_list.html -->
-<!-- Phiên bản: 3.2 -->
+<!-- Phiên bản: 3.5 -->
 <!-- Mục đích: Hiển thị danh sách các bộ câu hỏi dưới dạng card grid. -->
 <!--           Đã khắc phục lỗi căn chỉnh dọc của các nút Sửa, Quyền, Xóa. -->
-<!--           Đã cập nhật tất cả các url_for theo cấu trúc Blueprint lồng nhau. -->
-<!--           Đã khôi phục phong cách card grid và các icon từ code gốc. -->
+<!--           ĐÃ SỬA: Chuyển nút "Thêm Bộ câu hỏi mới" và "Sửa" để mở modal bằng data-attribute và JS. -->
 <!--           Thiết kế responsive với Tailwind CSS. -->
 
 <div class="bg-white rounded-lg shadow p-4 sm:p-6 w-full">
     <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Danh sách Bộ câu hỏi</h2>
-        <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
+        {# ĐÃ SỬA: Thay đổi onclick thành data-modal-url và thêm class open-modal-btn #}
+        <button type="button" data-modal-url="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}" class="open-modal-btn bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
             <i class="fas fa-plus-circle mr-2"></i> Thêm Bộ câu hỏi mới
-        </a>
+        </button>
     </div>
 
     {% if quiz_sets %}
@@ -39,14 +39,15 @@
                     <div class="flex space-x-2">
                         {# Nút Sửa chỉ hiển thị nếu có quyền #}
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id or (set.contributors and current_user.user_id in set.contributors|map(attribute='user_id')|list and 'editor' in set.contributors|selectattr('user_id', 'equalto', current_user.user_id)|map(attribute='permission_level')|list) %}
-                        <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}" class="text-green-600 hover:text-green-800 text-sm flex items-center"> {# ĐÃ SỬA: Thêm flex items-center #}
+                        {# ĐÃ SỬA: Thay đổi onclick thành data-modal-url và thêm class open-modal-btn #}
+                        <button type="button" data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}" class="open-modal-btn text-green-600 hover:text-green-800 text-sm flex items-center">
                             <i class="fas fa-edit mr-1"></i> Sửa
-                        </a>
+                        </button>
                         {% endif %}
                         
                         {# Nút Quản lý người đóng góp chỉ hiển thị nếu là creator hoặc admin #}
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
-                        <a href="{{ url_for('content_management.manage_contributors', container_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm flex items-center"> {# ĐÃ SỬA: Thêm flex items-center #}
+                        <a href="{{ url_for('content_management.manage_contributors', container_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm flex items-center">
                             <i class="fas fa-users mr-1"></i> Quyền
                         </a>
                         {% endif %}
@@ -54,7 +55,7 @@
                         {# Nút Xóa chỉ hiển thị nếu là creator hoặc admin #}
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
                         <form action="{{ url_for('content_management.content_management_quizzes.delete_quiz_set', set_id=set.container_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ câu hỏi này và tất cả các câu hỏi của nó?');" class="inline">
-                            <button type="submit" class="text-red-600 hover:text-red-800 text-sm flex items-center"> {# ĐÃ SỬA: Thêm flex items-center #}
+                            <button type="submit" class="text-red-600 hover:text-red-800 text-sm flex items-center">
                                 <i class="fas fa-trash-alt mr-1"></i> Xóa
                             </button>
                         </form>
@@ -68,9 +69,10 @@
     {% else %}
     <div class="bg-white p-6 rounded-lg shadow-md text-center text-gray-600 w-full">
         <p class="mb-4">Bạn chưa có bộ câu hỏi nào. Hãy tạo một bộ mới để bắt đầu!</p>
-        <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 inline-flex items-center">
+        {# ĐÃ SỬA: Thay đổi onclick thành data-modal-url và thêm class open-modal-btn #}
+        <button type="button" data-modal-url="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}" class="open-modal-btn bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 inline-flex items-center">
             <i class="fas fa-plus-circle mr-2"></i> Tạo Bộ câu hỏi đầu tiên
-        </a>
+        </button>
     </div>
     {% endif %}
 </div>

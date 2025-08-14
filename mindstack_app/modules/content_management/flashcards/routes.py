@@ -1,13 +1,15 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 3.1
+# Phiên bản: 3.4
 # Mục đích: Xử lý các route liên quan đến quản lý bộ thẻ ghi nhớ (LearningContainer loại 'FLASHCARD_SET')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa bộ thẻ và các thẻ ghi nhớ (LearningItem loại 'FLASHCARD')
 #           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
 #           Bổ sung logic để phục vụ nội dung riêng cho yêu cầu AJAX từ dashboard tổng quan.
 #           Đã sửa lỗi BuildError bằng cách cập nhật tên endpoint trong url_for.
 #           ĐÃ SỬA: Chuyển hướng sau khi thêm/sửa/xóa về content_dashboard và chọn tab đúng.
+#           ĐÃ SỬA: Điều chỉnh để trả về JSON cho các yêu cầu AJAX khi thêm/sửa/xóa bộ.
+#           ĐÃ SỬA: Render template bare form cho yêu cầu GET từ modal, full form cho non-modal GET.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from ..forms import FlashcardSetForm, FlashcardItemForm # Import form từ thư mục cha (content_management)
@@ -78,9 +80,21 @@ def add_flashcard_set():
         )
         db.session.add(new_set)
         db.session.commit()
-        flash('Bộ thẻ ghi nhớ mới đã được tạo thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
-        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Bộ thẻ ghi nhớ mới đã được tạo thành công!'})
+        else:
+            flash('Bộ thẻ ghi nhớ mới đã được tạo thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_flashcard_set_bare.html', form=form, title='Thêm Bộ thẻ ghi nhớ')
     return render_template('add_edit_flashcard_set.html', form=form, title='Thêm Bộ thẻ ghi nhớ')
 
 @flashcards_bp.route('/flashcards/edit/<int:set_id>', methods=['GET', 'POST'])
@@ -96,7 +110,12 @@ def edit_flashcard_set(set_id):
     if current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Forbidden nếu không có quyền
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa bộ thẻ này.'}), 403
+        else:
+            abort(403) # Forbidden nếu không có quyền
 
     form = FlashcardSetForm(obj=flashcard_set) # Điền dữ liệu hiện có vào form
     if form.validate_on_submit():
@@ -105,9 +124,21 @@ def edit_flashcard_set(set_id):
         flashcard_set.tags = form.tags.data
         flashcard_set.is_public = form.is_public.data
         db.session.commit()
-        flash('Bộ thẻ ghi nhớ đã được cập nhật thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
-        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Bộ thẻ ghi nhớ đã được cập nhật thành công!'})
+        else:
+            flash('Bộ thẻ ghi nhớ đã được cập nhật thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_flashcard_set_bare.html', form=form, title='Chỉnh sửa Bộ thẻ ghi nhớ')
     return render_template('add_edit_flashcard_set.html', form=form, title='Chỉnh sửa Bộ thẻ ghi nhớ')
 
 @flashcards_bp.route('/flashcards/delete/<int:set_id>', methods=['POST'])
@@ -121,13 +152,21 @@ def delete_flashcard_set(set_id):
 
     # Kiểm tra quyền xóa
     if current_user.user_role != 'admin' and flashcard_set.creator_user_id != current_user.user_id:
-        abort(403) # Forbidden nếu không có quyền
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa bộ thẻ này.'}), 403
+        else:
+            abort(403) # Forbidden nếu không có quyền
 
     db.session.delete(flashcard_set)
     db.session.commit()
-    flash('Bộ thẻ ghi nhớ đã được xóa thành công!', 'success')
-    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
-    return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+    
+    # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': 'Bộ thẻ ghi nhớ đã được xóa thành công!'})
+    else:
+        flash('Bộ thẻ ghi nhớ đã được xóa thành công!', 'success')
+        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items')
 @login_required
@@ -172,7 +211,12 @@ def add_flashcard_item(set_id):
     if current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Forbidden nếu không có quyền
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền thêm thẻ ghi nhớ vào bộ này.'}), 403
+        else:
+            abort(403) # Forbidden nếu không có quyền
 
     form = FlashcardItemForm()
     if form.validate_on_submit():
@@ -191,9 +235,21 @@ def add_flashcard_item(set_id):
         )
         db.session.add(new_item)
         db.session.commit()
-        flash('Thẻ ghi nhớ mới đã được thêm thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
-        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Thẻ ghi nhớ mới đã được thêm thành công!'})
+        else:
+            flash('Thẻ ghi nhớ mới đã được thêm thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, title='Thêm Thẻ ghi nhớ')
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, title='Thêm Thẻ ghi nhớ')
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
@@ -210,7 +266,12 @@ def edit_flashcard_item(set_id, item_id):
     if current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Forbidden nếu không có quyền
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa thẻ ghi nhớ này.'}), 403
+        else:
+            abort(403) # Forbidden nếu không có quyền
 
     # Khởi tạo form với dữ liệu hiện có từ trường 'content' dạng JSON
     form = FlashcardItemForm(front_content=flashcard_item.content.get('front'), back_content=flashcard_item.content.get('back'))
@@ -218,9 +279,21 @@ def edit_flashcard_item(set_id, item_id):
     if form.validate_on_submit():
         flashcard_item.content = {'front': form.front_content.data, 'back': form.back_content.data}
         db.session.commit()
-        flash('Thẻ ghi nhớ đã được cập nhật thành công!', 'success')
-        # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
-        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'Thẻ ghi nhớ đã được cập nhật thành công!'})
+        else:
+            flash('Thẻ ghi nhớ đã được cập nhật thành công!', 'success')
+            return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+    
+    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
+
+    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
+    if request.method == 'GET' and request.args.get('is_modal') == 'true':
+        return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Chỉnh sửa Thẻ ghi nhớ')
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Chỉnh sửa Thẻ ghi nhớ')
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
@@ -237,10 +310,19 @@ def delete_flashcard_item(set_id, item_id):
     if current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Forbidden nếu không có quyền
+        
+        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa thẻ ghi nhớ này.'}), 403
+        else:
+            abort(403) # Forbidden nếu không có quyền
 
     db.session.delete(flashcard_item)
     db.session.commit()
-    flash('Thẻ ghi nhớ đã được xóa thành công!', 'success')
-    # ĐÃ SỬA: Chuyển hướng về content_dashboard và chọn tab 'flashcards'
-    return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+    
+    # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': 'Thẻ ghi nhớ đã được xóa thành công!'})
+    else:
+        flash('Thẻ ghi nhớ đã được xóa thành công!', 'success')
+        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
