@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 3.7 (Đã sửa lỗi đếm thẻ và hỗ trợ modal cho edit item)
+# Phiên bản: 3.9 (Đã tích hợp tiện ích phân trang và tìm kiếm từ utils)
 # Mục đích: Xử lý các route liên quan đến quản lý bộ thẻ ghi nhớ (LearningContainer loại 'FLASHCARD_SET')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa bộ thẻ và các thẻ ghi nhớ (LearningItem loại 'FLASHCARD')
 #           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
@@ -11,6 +11,7 @@
 #           ĐÃ CẢI TIẾN: Logic xử lý upload file Excel, đọc các cột đầy đủ và tạo FlashcardItem từ đó.
 #           ĐÃ SỬA: Đếm số lượng thẻ chính xác và truyền vào template.
 #           ĐÃ SỬA: Route edit_flashcard_item hỗ trợ mở trong modal.
+#           ĐÃ TÍCH HỢP: Phân trang và tìm kiếm sử dụng các hàm từ utils.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_login import login_required, current_user
@@ -20,6 +21,8 @@ from ....models import db, LearningContainer, LearningItem, ContainerContributor
 import pandas as pd
 import tempfile
 import os
+from ....utils.pagination import get_pagination_data # THÊM: Import hàm phân trang
+from ....utils.search import apply_search_filter # THÊM: Import hàm tìm kiếm
 
 # Định nghĩa Blueprint cho quản lý thẻ ghi nhớ
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
@@ -29,28 +32,35 @@ flashcards_bp = Blueprint('content_management_flashcards', __name__,
 @login_required
 def list_flashcard_sets():
     """
-    Hiển thị danh sách các bộ thẻ ghi nhớ mà người dùng hiện tại có quyền truy cập.
+    Hiển thị danh sách các bộ thẻ ghi nhớ mà người dùng hiện tại có quyền truy cập,
+    có hỗ trợ phân trang và tìm kiếm.
     Admin có thể thấy tất cả các bộ thẻ.
     Người dùng thông thường chỉ thấy bộ thẻ do mình tạo hoặc được cấp quyền chỉnh sửa.
     Nếu yêu cầu là AJAX, chỉ trả về phần danh sách bộ thẻ.
     """
-    flashcard_sets = []
-    if current_user.user_role == 'admin':
-        flashcard_sets = LearningContainer.query.filter_by(container_type='FLASHCARD_SET').all()
-    else:
-        user_id = current_user.user_id
-        created_sets_query = LearningContainer.query.filter_by(
-            creator_user_id=user_id,
-            container_type='FLASHCARD_SET'
-        )
-        contributed_sets_query = LearningContainer.query.join(ContainerContributor).filter(
-            ContainerContributor.user_id == user_id,
-            ContainerContributor.permission_level == 'editor',
-            LearningContainer.container_type == 'FLASHCARD_SET'
-        )
-        flashcard_sets = created_sets_query.union(contributed_sets_query).all()
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '', type=str)
 
-    # SỬA: Đếm số lượng item cho mỗi bộ thẻ
+    base_query = LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
+
+    if current_user.user_role != 'admin':
+        user_id = current_user.user_id
+        created_sets_query = base_query.filter_by(creator_user_id=user_id)
+        contributed_sets_query = base_query.join(ContainerContributor).filter(
+            ContainerContributor.user_id == user_id,
+            ContainerContributor.permission_level == 'editor'
+        )
+        base_query = created_sets_query.union(contributed_sets_query)
+
+    # Áp dụng tìm kiếm
+    search_fields = [LearningContainer.title, LearningContainer.description, LearningContainer.tags]
+    base_query = apply_search_filter(base_query, search_query, search_fields)
+
+    # Phân trang
+    pagination = get_pagination_data(base_query.order_by(LearningContainer.created_at.desc()), page)
+    flashcard_sets = pagination.items
+
+    # Đếm số lượng item cho mỗi bộ thẻ
     for set_item in flashcard_sets:
         set_item.item_count = db.session.query(LearningItem).filter_by(
             container_id=set_item.container_id,
@@ -58,9 +68,9 @@ def list_flashcard_sets():
         ).count()
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('_flashcard_sets_list.html', flashcard_sets=flashcard_sets)
+        return render_template('_flashcard_sets_list.html', flashcard_sets=flashcard_sets, pagination=pagination, search_query=search_query)
     else:
-        return render_template('flashcard_sets.html', flashcard_sets=flashcard_sets)
+        return render_template('flashcard_sets.html', flashcard_sets=flashcard_sets, pagination=pagination, search_query=search_query)
 
 @flashcards_bp.route('/flashcards/add', methods=['GET', 'POST'])
 @login_required
@@ -107,10 +117,6 @@ def add_flashcard_set():
                 # Kiểm tra các cột bắt buộc
                 if not all(col in df.columns for col in required_cols):
                     raise ValueError(f"File Excel phải có các cột bắt buộc: {', '.join(required_cols)}.")
-
-                # Xóa các thẻ ghi nhớ cũ nếu có (trong trường hợp edit và upload file mới)
-                # LearningItem.query.filter_by(container_id=new_set.container_id, item_type='FLASHCARD').delete()
-                # db.session.flush() # Đảm bảo các thay đổi xóa được áp dụng trước khi thêm mới
 
                 # Thêm các thẻ ghi nhớ từ file Excel
                 for index, row in df.iterrows():
@@ -321,10 +327,22 @@ def list_flashcard_items(set_id):
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id).first():
         abort(403)
 
-    flashcard_items = LearningItem.query.filter_by(
+    # THÊM: Lấy các tham số phân trang và tìm kiếm cho item
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '', type=str)
+
+    base_query = LearningItem.query.filter_by(
         container_id=flashcard_set.container_id,
         item_type='FLASHCARD'
-    ).order_by(LearningItem.order_in_container).all()
+    )
+
+    # THÊM: Áp dụng tìm kiếm cho item
+    search_fields = [LearningItem.content['front'], LearningItem.content['back']] # Tìm kiếm trong JSON content
+    base_query = apply_search_filter(base_query, search_query, search_fields)
+
+    # THÊM: Phân trang cho item
+    pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container), page)
+    flashcard_items = pagination.items
 
     can_edit = False
     if current_user.user_role == 'admin' or \
@@ -332,7 +350,7 @@ def list_flashcard_items(set_id):
        ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         can_edit = True
 
-    return render_template('flashcard_items.html', flashcard_set=flashcard_set, flashcard_items=flashcard_items, can_edit=can_edit)
+    return render_template('flashcard_items.html', flashcard_set=flashcard_set, flashcard_items=flashcard_items, can_edit=can_edit, pagination=pagination, search_query=search_query)
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items/add', methods=['GET', 'POST'])
 @login_required
@@ -449,7 +467,7 @@ def edit_flashcard_item(set_id, item_id):
         return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Chỉnh sửa Thẻ ghi nhớ')
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Chỉnh sửa Thẻ ghi nhớ')
 
-@flashcards_bp.route('/flashcards/delete/<int:item_id>', methods=['POST'])
+@flashcards_bp.route('/flashcards/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
 @login_required
 def delete_flashcard_item(set_id, item_id):
     """

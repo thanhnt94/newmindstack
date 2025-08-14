@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/quizzes/routes.py
-# Phiên bản: 3.12 (Đã sửa lỗi đếm câu hỏi và hỗ trợ modal cho edit item)
+# Phiên bản: 3.14 (Đã tích hợp tiện ích phân trang và tìm kiếm từ utils)
 # Mục đích: Xử lý các route liên quan đến quản lý bộ câu hỏi (LearningContainer loại 'QUIZ_SET')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa bộ câu hỏi và các câu hỏi (LearningItem loại 'QUIZ_MCQ')
 #           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
@@ -15,6 +15,7 @@
 #           ĐÃ SỬA: Khởi tạo biến question_image_file và question_audio_file để tránh lỗi UndefinedVariable.
 #           ĐÃ SỬA: Đếm số lượng câu hỏi chính xác và truyền vào template.
 #           ĐÃ SỬA: Route edit_quiz_item hỗ trợ mở trong modal.
+#           ĐÃ TÍCH HỢP: Phân trang và tìm kiếm sử dụng các hàm từ utils.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
@@ -24,6 +25,8 @@ from ....models import db, LearningContainer, LearningItem, ContainerContributor
 import pandas as pd
 import tempfile
 import os
+from ....utils.pagination import get_pagination_data # THÊM: Import hàm phân trang
+from ....utils.search import apply_search_filter # THÊM: Import hàm tìm kiếm
 
 # Định nghĩa Blueprint cho quản lý bộ câu hỏi
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
@@ -33,28 +36,35 @@ quizzes_bp = Blueprint('content_management_quizzes', __name__,
 @login_required
 def list_quiz_sets():
     """
-    Hiển thị danh sách các bộ câu hỏi mà người dùng hiện tại có quyền truy cập.
+    Hiển thị danh sách các bộ câu hỏi mà người dùng hiện tại có quyền truy cập,
+    có hỗ trợ phân trang và tìm kiếm.
     Admin có thể thấy tất cả các bộ câu hỏi.
     Người dùng thông thường chỉ thấy bộ câu hỏi do mình tạo hoặc được cấp quyền chỉnh sửa.
     Nếu yêu cầu là AJAX, chỉ trả về phần danh sách bộ câu hỏi.
     """
-    quiz_sets = []
-    if current_user.user_role == 'admin':
-        quiz_sets = LearningContainer.query.filter_by(container_type='QUIZ_SET').all()
-    else:
-        user_id = current_user.user_id
-        created_sets_query = LearningContainer.query.filter_by(
-            creator_user_id=user_id,
-            container_type='QUIZ_SET'
-        )
-        contributed_sets_query = LearningContainer.query.join(ContainerContributor).filter(
-            ContainerContributor.user_id == user_id,
-            ContainerContributor.permission_level == 'editor',
-            LearningContainer.container_type == 'QUIZ_SET'
-        )
-        quiz_sets = created_sets_query.union(contributed_sets_query).all()
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '', type=str)
 
-    # SỬA: Đếm số lượng item cho mỗi bộ câu hỏi
+    base_query = LearningContainer.query.filter_by(container_type='QUIZ_SET')
+
+    if current_user.user_role != 'admin':
+        user_id = current_user.user_id
+        created_sets_query = base_query.filter_by(creator_user_id=user_id)
+        contributed_sets_query = base_query.join(ContainerContributor).filter(
+            ContainerContributor.user_id == user_id,
+            ContainerContributor.permission_level == 'editor'
+        )
+        base_query = created_sets_query.union(contributed_sets_query)
+
+    # Áp dụng tìm kiếm
+    search_fields = [LearningContainer.title, LearningContainer.description, LearningContainer.tags]
+    base_query = apply_search_filter(base_query, search_query, search_fields)
+
+    # Phân trang
+    pagination = get_pagination_data(base_query.order_by(LearningContainer.created_at.desc()), page)
+    quiz_sets = pagination.items
+
+    # Đếm số lượng item cho mỗi bộ câu hỏi
     for set_item in quiz_sets:
         set_item.item_count = db.session.query(LearningItem).filter_by(
             container_id=set_item.container_id,
@@ -62,9 +72,9 @@ def list_quiz_sets():
         ).count()
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('_quiz_sets_list.html', quiz_sets=quiz_sets)
+        return render_template('_quiz_sets_list.html', quiz_sets=quiz_sets, pagination=pagination, search_query=search_query)
     else:
-        return render_template('quiz_sets.html', quiz_sets=quiz_sets)
+        return render_template('quiz_sets.html', quiz_sets=quiz_sets, pagination=pagination, search_query=search_query)
 
 @quizzes_bp.route('/quizzes/add', methods=['GET', 'POST'])
 @login_required
@@ -394,10 +404,22 @@ def list_quiz_items(set_id):
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id).first():
         abort(403)
 
-    quiz_items = LearningItem.query.filter_by(
+    # THÊM: Lấy các tham số phân trang và tìm kiếm cho item
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '', type=str)
+
+    base_query = LearningItem.query.filter_by(
         container_id=quiz_set.container_id,
         item_type='QUIZ_MCQ'
-    ).order_by(LearningItem.order_in_container).all()
+    )
+
+    # THÊM: Áp dụng tìm kiếm cho item
+    search_fields = [LearningItem.content['question'], LearningItem.content['options']['A'], LearningItem.content['options']['B']] # Tìm kiếm trong JSON content
+    base_query = apply_search_filter(base_query, search_query, search_fields)
+
+    # THÊM: Phân trang cho item
+    pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container), page)
+    quiz_items = pagination.items
 
     can_edit = False
     if current_user.user_role == 'admin' or \
@@ -405,7 +427,7 @@ def list_quiz_items(set_id):
        ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         can_edit = True
 
-    return render_template('quiz_items.html', quiz_set=quiz_set, quiz_items=quiz_items, can_edit=can_edit)
+    return render_template('quiz_items.html', quiz_set=quiz_set, quiz_items=quiz_items, can_edit=can_edit, pagination=pagination, search_query=search_query)
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/add', methods=['GET', 'POST'])
 @login_required
@@ -487,6 +509,7 @@ def edit_quiz_item(set_id, item_id):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa câu hỏi này.'}), 403
         else:
+            flash('Bạn không có quyền chỉnh sửa câu hỏi này.', 'danger')
             abort(403)
 
     form = QuizItemForm(
