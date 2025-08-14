@@ -1,11 +1,13 @@
 <!-- File: newmindstack/mindstack_app/templates/base.html -->
-<!-- Phiên bản: 1.13 (Đã gán hàm openModal/closeModal vào window object) -->
+<!-- Phiên bản: 1.17 (Đã thống nhất class 'open' cho modal và dọn dẹp debug code) -->
 <!-- Mục đích: Cung cấp cấu trúc HTML cơ bản và các phần tử điều hướng cho ứng dụng Mindstack. -->
 <!--           Đã cập nhật liên kết đến bảng điều khiển quản lý nội dung mới. -->
 <!--           ĐÃ SỬA: Thay thế cấu trúc modal bằng cấu trúc modal sẵn có của người dùng, tích hợp JS/CSS mới. -->
 <!--           ĐÃ SỬA: Logic lắng nghe sự kiện click cho nút mở modal bằng Event Delegation. -->
 <!--           ĐÃ SỬA: Cách xây dựng URL cho iframe để tương thích tốt hơn. -->
-<!--           ĐÃ THÊM: Gán hàm openModal và closeModal trực tiếp vào window object để đảm bảo phạm vi. -->
+<!--           ĐÃ SỬA: Gỡ bỏ logic inline và khôi phục hàm openModal/closeModal riêng biệt (sử dụng class 'open'). -->
+<!--           ĐÃ SỬA: Buộc đặt lại opacity và visibility trong closeModal để đảm bảo tắt modal. -->
+<!--           ĐÃ SỬA: Dọn dẹp tất cả CSS debug (bỏ viền đỏ, nền xanh nhạt) và console logs. -->
 
 <!doctype html>
 <html lang="vi">
@@ -51,8 +53,8 @@
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease; 
         }
-        /* Khi modal được kích hoạt, thêm class 'show' để hiển thị */
-        .modal-overlay.show { /* Thay vì .open, chúng ta dùng .show */
+        /* Khi modal được kích hoạt, thêm class 'open' để hiển thị */
+        .modal-overlay.open { /* SỬA: Sử dụng class 'open' */
             opacity: 1;
             visibility: visible !important; /* Buộc hiển thị để tránh xung đột */
         }
@@ -69,11 +71,11 @@
             position: relative; /* Để nút đóng có thể được định vị tuyệt đối */
             transform: scale(0.95);
             transition: transform 0.3s ease; 
-            border: none; /* Bỏ viền đỏ debug */
+            border: none; /* Bỏ viền debug */
             visibility: hidden; /* Mặc định là hidden khi overlay chưa hiện */
         }
-        /* Buộc visibility: visible cho modal-content khi overlay có class show */
-        .modal-overlay.show .modal-content {
+        /* Buộc visibility: visible cho modal-content khi overlay có class open */
+        .modal-overlay.open .modal-content { /* SỬA: Sử dụng class 'open' */
             transform: scale(1);
             visibility: visible !important; 
         }
@@ -200,10 +202,10 @@
                     <i class="fas fa-check-circle text-green-400 mr-2"></i>
                     {% elif category == 'info' %}
                     <i class="fas fa-info-circle text-blue-400 mr-2"></i>
-                    {% elif category == 'warning' %}
-                    <i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
                     {% elif category == 'danger' %}
                     <i class="fas fa-times-circle text-red-400 mr-2"></i>
+                    {% elif category == 'warning' %}
+                    <i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
                     {% else %}
                     <i class="fas fa-bell text-gray-400 mr-2"></i>
                     {% endif %}
@@ -241,12 +243,12 @@
     </footer>
     
     <!-- Cấu trúc Modal (Đã điều chỉnh để sử dụng ID/class cũ của người dùng) -->
-    <div id="modalOverlay" class="modal-overlay"> <!-- ID đã thay đổi từ main-modal-overlay -->
-        <div class="modal-content w-full h-full md:w-2/3 lg:w-1/2"> <!-- Class đã thay đổi từ modal-container -->
-            <button id="modalCloseButton" class="modal-close-button" onclick="closeModal()"> <!-- ID đã thay đổi từ nút của tôi -->
-                &times; <!-- Sử dụng ký tự X thay vì icon Font Awesome để đồng bộ với nút bạn cung cấp -->
+    <div id="modalOverlay" class="modal-overlay"> 
+        <div class="modal-content w-full h-full md:w-2/3 lg:w-1/2"> 
+            <button id="modalCloseButton" class="modal-close-button" onclick="closeModal(event)"> 
+                &times; 
             </button>
-            <iframe id="modalIframe" class="modal-iframe"></iframe> <!-- ID đã thay đổi từ main-modal-iframe -->
+            <iframe id="modalIframe" class="modal-iframe"></iframe> 
         </div>
     </div>
 
@@ -258,15 +260,11 @@
          * @description Mở modal và tải nội dung từ URL vào iframe.
          * @param {string} url - URL của nội dung cần tải vào iframe.
          */
-        window.openModal = function(url) { // GÁN TRỰC TIẾP VÀO WINDOW
-            console.log('openModal: Hàm openModal được gọi với URL:', url);
+        window.openModal = function(url) { 
             const modalOverlay = document.getElementById('modalOverlay'); 
             const modalIframe = document.getElementById('modalIframe'); 
 
             if (modalOverlay && modalIframe) {
-                console.log('openModal: Đã tìm thấy modalOverlay và modalIframe.');
-                console.log('openModal: Class list TRƯỚC khi thêm "show":', modalOverlay.classList.value); 
-                
                 let finalUrl = url;
                 if (url.indexOf('?') === -1) {
                     finalUrl += '?is_modal=true';
@@ -275,37 +273,34 @@
                 }
                 
                 modalIframe.src = finalUrl; 
-                console.log('openModal: Đã đặt iframe src thành:', modalIframe.src);
-
-                modalOverlay.classList.add('show'); 
-                console.log('openModal: Đã thêm class "show" vào modal-overlay.');
-                console.log('openModal: Class list SAU khi thêm "show":', modalOverlay.classList.value); 
+                modalOverlay.classList.add('open'); // SỬA: Thêm class 'open'
                 document.body.style.overflow = 'hidden'; 
             } else {
                 console.error('openModal: KHÔNG tìm thấy modalOverlay hoặc modalIframe.');
-                if (!modalOverlay) console.error('modalOverlay is null.');
-                if (!modalIframe) console.error('modalIframe is null.');
             }
-        }; // KẾT THÚC HÀM VỚI DẤU CHẤM PHẨY
+        }; 
 
         /**
          * @description Đóng modal.
          * @param {Event} event - Đối tượng sự kiện (tùy chọn).
          */
-        window.closeModal = function(event) { // GÁN TRỰC TIẾP VÀO WINDOW
-            console.log('closeModal: Hàm closeModal được gọi.');
+        window.closeModal = function(event) { 
             if (event) { 
                 event.stopPropagation();
             }
             const modalOverlay = document.getElementById('modalOverlay'); 
             const modalIframe = document.getElementById('modalIframe'); 
             if (modalOverlay && modalIframe) {
-                modalOverlay.classList.remove('show'); 
+                modalOverlay.classList.remove('open'); // SỬA: Gỡ bỏ class 'open'
+                
+                // Buộc đặt lại opacity và visibility
+                modalOverlay.style.opacity = '0';
+                modalOverlay.style.visibility = 'hidden';
+
                 modalIframe.src = ''; 
                 document.body.style.overflow = ''; 
-                console.log('closeModal: Modal đã đóng và iframe src đã xóa.');
             }
-        }; // KẾT THÚC HÀM VỚI DẤU CHẤM PHẨY
+        }; 
 
         /**
          * @description Hiển thị một thông báo flash message.
@@ -313,8 +308,7 @@
          * @param {string} message - Nội dung thông báo.
          * @param {string} category - Loại thông báo ('success', 'danger', 'info', 'warning').
          */
-        window.showFlashMessage = function(message, category) { // GÁN TRỰC TIẾP VÀO WINDOW
-            console.log('showFlashMessage: Nhận thông báo từ iframe:', message, category);
+        window.showFlashMessage = function(message, category) { 
             const container = document.getElementById('flash-messages-container');
             if (!container) {
                 console.error('showFlashMessage: Không tìm thấy container cho flash messages.');
@@ -372,7 +366,7 @@
                     alertDiv.remove();
                 }, 500);
             }, 5000);
-        }; // KẾT THÚC HÀM VỚI DẤU CHẤM PHẨY
+        }; 
 
         /**
          * @description Tải lại nội dung của một tab cụ thể (hoặc toàn bộ trang nếu không xác định).
@@ -380,14 +374,11 @@
          * @param {string} tabName - Tên của tab cần tải lại (ví dụ: 'courses', 'flashcards', 'quizzes').
          * Hiện tại chỉ hỗ trợ tải lại trang hoàn toàn.
          */
-        window.loadTabContent = function(tabName) { // GÁN TRỰC TIẾP VÀO WINDOW
-            console.log('loadTabContent: Yêu cầu tải lại nội dung tab:', tabName);
+        window.loadTabContent = function(tabName) { 
             window.location.reload(); 
-        }; // KẾT THÚC HÀM VỚI DẤU CHẤM PHẨY
+        }; 
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOMContentLoaded: JavaScript trong base.html đã được tải.');
-
             // Hàm xử lý tự động đóng flash messages
             const notifications = document.querySelectorAll('[data-dismissible]');
             notifications.forEach(notification => {
@@ -399,38 +390,15 @@
                 }, 5000);
             });
 
-            // SỬA: Sử dụng Event Delegation để lắng nghe sự kiện click cho các nút mở modal
-            document.body.addEventListener('click', function(event) {
-                const clickedButton = event.target.closest('.open-modal-btn');
-                
-                if (clickedButton) {
-                    console.log('Click (Event Delegation): Nút .open-modal-btn đã được nhấp.', clickedButton);
-                    const url = clickedButton.getAttribute('data-modal-url');
-                    console.log('Click (Event Delegation): data-modal-url là:', url);
-                    
-                    console.log('Click (Event Delegation): Chuẩn bị gọi openModal().'); 
-                    console.log('Click (Event Delegation): typeof window.openModal là:', typeof window.openModal); // KIỂM TRA typeof TỪ WINDOW
-
-                    try { 
-                        if (url) {
-                            window.openModal(url); // GỌI HÀM TỪ WINDOW
-                        } else {
-                            console.error('Click (Event Delegation): Không tìm thấy data-modal-url cho nút này.', clickedButton);
-                        }
-                    } catch (error) {
-                        console.error('Click (Event Delegation): Lỗi khi gọi window.openModal:', error); // LOG LỖI TỪ WINDOW
-                    }
-                    console.log('Click (Event Delegation): Đã cố gắng gọi openModal().'); 
+            // Lắng nghe sự kiện click trên toàn bộ tài liệu để bắt các nút open-modal-btn
+            document.addEventListener('click', function(event) {
+                const target = event.target.closest('.open-modal-btn'); 
+                if (target && target.dataset.modalUrl) {
+                    event.preventDefault(); 
+                    window.openModal(target.dataset.modalUrl); // GỌI HÀM openModal
                 }
             });
         });
     </script>
 </body>
 </html>
-```
-
----
-
-Bạn vui lòng cập nhật file `base.html` của bạn với phiên bản này. Sau đó, hãy chạy lại ứng dụng, nhấp vào nút "Thêm Khóa học mới", và **chụp ảnh màn hình toàn bộ tab "Console" của Developer Tools** và gửi cho tôi.
-
-Tôi thực sự hy vọng lần này chúng ta sẽ thấy modal hiển thị! Cố gắng lên n

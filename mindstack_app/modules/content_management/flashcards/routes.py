@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 3.4
+# Phiên bản: 3.6 (Đã cải tiến logic xử lý upload Excel cho FlashcardSet với cột đầy đủ)
 # Mục đích: Xử lý các route liên quan đến quản lý bộ thẻ ghi nhớ (LearningContainer loại 'FLASHCARD_SET')
 #           Bao gồm tạo, xem, chỉnh sửa, xóa bộ thẻ và các thẻ ghi nhớ (LearningItem loại 'FLASHCARD')
 #           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
@@ -8,12 +8,16 @@
 #           ĐÃ SỬA: Chuyển hướng sau khi thêm/sửa/xóa về content_dashboard và chọn tab đúng.
 #           ĐÃ SỬA: Điều chỉnh để trả về JSON cho các yêu cầu AJAX khi thêm/sửa/xóa bộ.
 #           ĐÃ SỬA: Render template bare form cho yêu cầu GET từ modal, full form cho non-modal GET.
+#           ĐÃ CẢI TIẾN: Logic xử lý upload file Excel, đọc các cột đầy đủ và tạo FlashcardItem từ đó.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import or_
-from ..forms import FlashcardSetForm, FlashcardItemForm # Import form từ thư mục cha (content_management)
-from ....models import db, LearningContainer, LearningItem, ContainerContributor, User # Đã sửa đường dẫn import models
+from ..forms import FlashcardSetForm, FlashcardItemForm
+from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
+import pandas as pd
+import tempfile
+import os
 
 # Định nghĩa Blueprint cho quản lý thẻ ghi nhớ
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
@@ -30,34 +34,23 @@ def list_flashcard_sets():
     """
     flashcard_sets = []
     if current_user.user_role == 'admin':
-        # Admin thấy tất cả các bộ thẻ
         flashcard_sets = LearningContainer.query.filter_by(container_type='FLASHCARD_SET').all()
     else:
-        # Người dùng thường thấy bộ thẻ của mình tạo hoặc được cấp quyền
         user_id = current_user.user_id
-        
-        # Lấy các container_id mà người dùng hiện tại là người tạo
         created_sets_query = LearningContainer.query.filter_by(
             creator_user_id=user_id,
             container_type='FLASHCARD_SET'
         )
-
-        # Lấy các container_id mà người dùng hiện tại được cấp quyền chỉnh sửa
         contributed_sets_query = LearningContainer.query.join(ContainerContributor).filter(
             ContainerContributor.user_id == user_id,
             ContainerContributor.permission_level == 'editor',
             LearningContainer.container_type == 'FLASHCARD_SET'
         )
-        
-        # Kết hợp hai truy vấn để lấy danh sách các bộ thẻ duy nhất
         flashcard_sets = created_sets_query.union(contributed_sets_query).all()
 
-    # Kiểm tra nếu đây là yêu cầu AJAX
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        # Nếu là AJAX, chỉ render phần danh sách các bộ thẻ
         return render_template('_flashcard_sets_list.html', flashcard_sets=flashcard_sets)
     else:
-        # Nếu không phải AJAX, render toàn bộ trang như bình thường
         return render_template('flashcard_sets.html', flashcard_sets=flashcard_sets)
 
 @flashcards_bp.route('/flashcards/add', methods=['GET', 'POST'])
@@ -70,29 +63,103 @@ def add_flashcard_set():
     """
     form = FlashcardSetForm()
     if form.validate_on_submit():
-        new_set = LearningContainer(
-            creator_user_id=current_user.user_id,
-            container_type='FLASHCARD_SET',
-            title=form.title.data,
-            description=form.description.data,
-            tags=form.tags.data,
-            is_public=form.is_public.data
-        )
-        db.session.add(new_set)
-        db.session.commit()
+        flash_message = ''
+        flash_category = ''
+        temp_filepath = None
+
+        try:
+            # Tạo bộ thẻ mới
+            new_set = LearningContainer(
+                creator_user_id=current_user.user_id,
+                container_type='FLASHCARD_SET',
+                title=form.title.data,
+                description=form.description.data,
+                tags=form.tags.data,
+                is_public=form.is_public.data,
+                ai_settings={'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+            )
+            db.session.add(new_set)
+            db.session.flush() # Lấy new_set.container_id trước khi commit
+
+            # Xử lý file Excel nếu có
+            if form.excel_file.data and form.excel_file.data.filename != '':
+                excel_file = form.excel_file.data
+                
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                    excel_file.save(tmp_file.name)
+                    temp_filepath = tmp_file.name
+
+                df = pd.read_excel(temp_filepath)
+                
+                # Định nghĩa các cột cần thiết và tùy chọn
+                required_cols = ['front', 'back']
+                optional_cols = ['front_audio_content', 'back_audio_content', 'front_img', 'back_img']
+
+                # Kiểm tra các cột bắt buộc
+                if not all(col in df.columns for col in required_cols):
+                    raise ValueError(f"File Excel phải có các cột bắt buộc: {', '.join(required_cols)}.")
+
+                # Xóa các thẻ ghi nhớ cũ nếu có (trong trường hợp edit và upload file mới)
+                # LearningItem.query.filter_by(container_id=new_set.container_id, item_type='FLASHCARD').delete()
+                # db.session.flush() # Đảm bảo các thay đổi xóa được áp dụng trước khi thêm mới
+
+                # Thêm các thẻ ghi nhớ từ file Excel
+                for index, row in df.iterrows():
+                    front_content = str(row['front']) if pd.notna(row['front']) else ''
+                    back_content = str(row['back']) if pd.notna(row['back']) else ''
+
+                    if front_content and back_content:
+                        item_content = {
+                            'front': front_content,
+                            'back': back_content
+                        }
+                        # Thêm các cột tùy chọn nếu chúng tồn tại và có giá trị
+                        for col in optional_cols:
+                            if col in df.columns and pd.notna(row[col]):
+                                item_content[col] = str(row[col])
+
+                        new_item = LearningItem(
+                            container_id=new_set.container_id,
+                            item_type='FLASHCARD',
+                            content=item_content,
+                            order_in_container=index + 1
+                        )
+                        db.session.add(new_item)
+                
+                flash_message = 'Bộ thẻ ghi nhớ và các thẻ từ Excel đã được tạo thành công!'
+                flash_category = 'success'
+
+            else: # Không có file Excel được tải lên
+                flash_message = 'Bộ thẻ ghi nhớ mới đã được tạo thành công!'
+                flash_category = 'success'
+            
+            db.session.commit()
+
+        except Exception as e:
+            db.session.rollback()
+            flash_message = f'Lỗi khi xử lý file Excel hoặc tạo bộ thẻ: {str(e)}'
+            flash_category = 'danger'
+            # Nếu là AJAX, trả về lỗi
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': flash_message}), 400
+            else:
+                flash(flash_message, flash_category)
+                return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+        finally:
+            if temp_filepath and os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
         
-        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
+        # Trả về JSON nếu là AJAX POST, ngược lại redirect
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': 'Bộ thẻ ghi nhớ mới đã được tạo thành công!'})
+            return jsonify({'success': True, 'message': flash_message})
         else:
-            flash('Bộ thẻ ghi nhớ mới đã được tạo thành công!', 'success')
+            flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     
-    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
+    # Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
 
-    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_flashcard_set_bare.html', form=form, title='Thêm Bộ thẻ ghi nhớ')
     return render_template('add_edit_flashcard_set.html', form=form, title='Thêm Bộ thẻ ghi nhớ')
@@ -106,37 +173,100 @@ def edit_flashcard_set(set_id):
     """
     flashcard_set = LearningContainer.query.get_or_404(set_id)
 
-    # Kiểm tra quyền chỉnh sửa
     if current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         
-        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa bộ thẻ này.'}), 403
         else:
-            abort(403) # Forbidden nếu không có quyền
+            abort(403)
 
-    form = FlashcardSetForm(obj=flashcard_set) # Điền dữ liệu hiện có vào form
+    form = FlashcardSetForm(obj=flashcard_set)
     if form.validate_on_submit():
-        flashcard_set.title = form.title.data
-        flashcard_set.description = form.description.data
-        flashcard_set.tags = form.tags.data
-        flashcard_set.is_public = form.is_public.data
-        db.session.commit()
+        flash_message = ''
+        flash_category = ''
+        temp_filepath = None
+
+        try:
+            flashcard_set.title = form.title.data
+            flashcard_set.description = form.description.data
+            flashcard_set.tags = form.tags.data
+            flashcard_set.is_public = form.is_public.data
+            flashcard_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+
+            # Xử lý file Excel nếu có (khi chỉnh sửa, sẽ xóa cũ và thêm mới các item)
+            if form.excel_file.data and form.excel_file.data.filename != '':
+                excel_file = form.excel_file.data
+                
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                    excel_file.save(tmp_file.name)
+                    temp_filepath = tmp_file.name
+
+                df = pd.read_excel(temp_filepath)
+                
+                required_cols = ['front', 'back']
+                optional_cols = ['front_audio_content', 'back_audio_content', 'front_img', 'back_img']
+
+                if not all(col in df.columns for col in required_cols):
+                    raise ValueError(f"File Excel phải có các cột bắt buộc: {', '.join(required_cols)}.")
+
+                # Xóa tất cả các thẻ ghi nhớ cũ của bộ này trước khi thêm mới từ Excel
+                LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD').delete()
+                db.session.flush()
+
+                for index, row in df.iterrows():
+                    front_content = str(row['front']) if pd.notna(row['front']) else ''
+                    back_content = str(row['back']) if pd.notna(row['back']) else ''
+
+                    if front_content and back_content:
+                        item_content = {
+                            'front': front_content,
+                            'back': back_content
+                        }
+                        for col in optional_cols:
+                            if col in df.columns and pd.notna(row[col]):
+                                item_content[col] = str(row[col])
+
+                        new_item = LearningItem(
+                            container_id=set_id,
+                            item_type='FLASHCARD',
+                            content=item_content,
+                            order_in_container=index + 1
+                        )
+                        db.session.add(new_item)
+                
+                flash_message = 'Bộ thẻ ghi nhớ và các thẻ từ Excel đã được cập nhật thành công!'
+                flash_category = 'success'
+
+            else: # Không có file Excel được tải lên, chỉ cập nhật thông tin bộ thẻ
+                flash_message = 'Bộ thẻ ghi nhớ đã được cập nhật thành công!'
+                flash_category = 'success'
+
+            db.session.commit()
+
+        except Exception as e:
+            db.session.rollback()
+            flash_message = f'Lỗi khi xử lý file Excel hoặc cập nhật bộ thẻ: {str(e)}'
+            flash_category = 'danger'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': flash_message}), 400
+            else:
+                flash(flash_message, flash_category)
+                return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
+        finally:
+            if temp_filepath and os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
         
-        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': 'Bộ thẻ ghi nhớ đã được cập nhật thành công!'})
+            return jsonify({'success': True, 'message': flash_message})
         else:
-            flash('Bộ thẻ ghi nhớ đã được cập nhật thành công!', 'success')
+            flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     
-    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
 
-    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_flashcard_set_bare.html', form=form, title='Chỉnh sửa Bộ thẻ ghi nhớ')
     return render_template('add_edit_flashcard_set.html', form=form, title='Chỉnh sửa Bộ thẻ ghi nhớ')
@@ -150,18 +280,15 @@ def delete_flashcard_set(set_id):
     """
     flashcard_set = LearningContainer.query.get_or_404(set_id)
 
-    # Kiểm tra quyền xóa
     if current_user.user_role != 'admin' and flashcard_set.creator_user_id != current_user.user_id:
-        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Bạn không có quyền xóa bộ thẻ này.'}), 403
         else:
-            abort(403) # Forbidden nếu không có quyền
+            abort(403)
 
     db.session.delete(flashcard_set)
     db.session.commit()
     
-    # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True, 'message': 'Bộ thẻ ghi nhớ đã được xóa thành công!'})
     else:
@@ -177,19 +304,17 @@ def list_flashcard_items(set_id):
     """
     flashcard_set = LearningContainer.query.get_or_404(set_id)
 
-    # Kiểm tra quyền xem bộ thẻ: public, là người tạo, hoặc là contributor
     if not flashcard_set.is_public and \
        current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id).first():
-        abort(403) # Forbidden nếu không có quyền
+        abort(403)
 
     flashcard_items = LearningItem.query.filter_by(
         container_id=flashcard_set.container_id,
         item_type='FLASHCARD'
     ).order_by(LearningItem.order_in_container).all()
 
-    # Xác định quyền chỉnh sửa để truyền xuống template
     can_edit = False
     if current_user.user_role == 'admin' or \
        flashcard_set.creator_user_id == current_user.user_id or \
@@ -207,47 +332,51 @@ def add_flashcard_item(set_id):
     """
     flashcard_set = LearningContainer.query.get_or_404(set_id)
 
-    # Kiểm tra quyền chỉnh sửa
     if current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         
-        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Bạn không có quyền thêm thẻ ghi nhớ vào bộ này.'}), 403
         else:
-            abort(403) # Forbidden nếu không có quyền
+            abort(403)
 
     form = FlashcardItemForm()
     if form.validate_on_submit():
-        # Tìm số thứ tự lớn nhất hiện có và tăng lên 1
         max_order = db.session.query(db.func.max(LearningItem.order_in_container)).filter_by(
             container_id=set_id,
             item_type='FLASHCARD'
         ).scalar()
         new_order = (max_order or 0) + 1
 
+        # Cập nhật để lưu trữ tất cả các trường vào content
         new_item = LearningItem(
             container_id=set_id,
             item_type='FLASHCARD',
-            content={'front': form.front_content.data, 'back': form.back_content.data}, # Lưu nội dung dưới dạng JSON
+            content={
+                'front': form.front.data,
+                'back': form.back.data,
+                'front_audio_content': form.front_audio_content.data if form.front_audio_content.data else None,
+                'front_audio_url': form.front_audio_url.data if form.front_audio_url.data else None,
+                'back_audio_content': form.back_audio_content.data if form.back_audio_content.data else None,
+                'back_audio_url': form.back_audio_url.data if form.back_audio_url.data else None,
+                'front_img': form.front_img.data if form.front_img.data else None,
+                'back_img': form.back_img.data if form.back_img.data else None,
+            },
             order_in_container=new_order
         )
         db.session.add(new_item)
         db.session.commit()
         
-        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': True, 'message': 'Thẻ ghi nhớ mới đã được thêm thành công!'})
         else:
             flash('Thẻ ghi nhớ mới đã được thêm thành công!', 'success')
             return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     
-    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
 
-    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, title='Thêm Thẻ ghi nhớ')
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, title='Thêm Thẻ ghi nhớ')
@@ -262,36 +391,49 @@ def edit_flashcard_item(set_id, item_id):
     flashcard_set = LearningContainer.query.get_or_404(set_id)
     flashcard_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id).first_or_404()
 
-    # Kiểm tra quyền chỉnh sửa
     if current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         
-        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa thẻ ghi nhớ này.'}), 403
         else:
-            abort(403) # Forbidden nếu không có quyền
+            abort(403)
 
     # Khởi tạo form với dữ liệu hiện có từ trường 'content' dạng JSON
-    form = FlashcardItemForm(front_content=flashcard_item.content.get('front'), back_content=flashcard_item.content.get('back'))
+    form = FlashcardItemForm(
+        front=flashcard_item.content.get('front', ''),
+        back=flashcard_item.content.get('back', ''),
+        front_audio_content=flashcard_item.content.get('front_audio_content', ''),
+        front_audio_url=flashcard_item.content.get('front_audio_url', ''),
+        back_audio_content=flashcard_item.content.get('back_audio_content', ''),
+        back_audio_url=flashcard_item.content.get('back_audio_url', ''),
+        front_img=flashcard_item.content.get('front_img', ''),
+        back_img=flashcard_item.content.get('back_img', '')
+    )
     
     if form.validate_on_submit():
-        flashcard_item.content = {'front': form.front_content.data, 'back': form.back_content.data}
+        flashcard_item.content = {
+            'front': form.front.data,
+            'back': form.back.data,
+            'front_audio_content': form.front_audio_content.data if form.front_audio_content.data else None,
+            'front_audio_url': form.front_audio_url.data if form.front_audio_url.data else None,
+            'back_audio_content': form.back_audio_content.data if form.back_audio_content.data else None,
+            'back_audio_url': form.back_audio_url.data if form.back_audio_url.data else None,
+            'front_img': form.front_img.data if form.front_img.data else None,
+            'back_img': form.back_img.data if form.back_img.data else None,
+        }
         db.session.commit()
         
-        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': True, 'message': 'Thẻ ghi nhớ đã được cập nhật thành công!'})
         else:
             flash('Thẻ ghi nhớ đã được cập nhật thành công!', 'success')
             return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     
-    # ĐÃ SỬA: Trả về JSON chứa lỗi nếu là AJAX POST và form không hợp lệ
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
 
-    # ĐÃ SỬA: Nếu là GET request VÀ có tham số is_modal=true, render bare template
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Chỉnh sửa Thẻ ghi nhớ')
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Chỉnh sửa Thẻ ghi nhớ')
@@ -306,21 +448,18 @@ def delete_flashcard_item(set_id, item_id):
     flashcard_set = LearningContainer.query.get_or_404(set_id)
     flashcard_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id).first_or_404()
 
-    # Kiểm tra quyền chỉnh sửa
     if current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         
-        # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại flash và abort
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Bạn không có quyền xóa thẻ ghi nhớ này.'}), 403
         else:
-            abort(403) # Forbidden nếu không có quyền
+            abort(403)
 
     db.session.delete(flashcard_item)
     db.session.commit()
     
-    # ĐÃ SỬA: Trả về JSON nếu là AJAX POST, ngược lại redirect
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True, 'message': 'Thẻ ghi nhớ đã được xóa thành công!'})
     else:

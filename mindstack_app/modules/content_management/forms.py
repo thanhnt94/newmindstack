@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/forms.py
-# Phiên bản: 3.0
+# Phiên bản: 3.1 (Đã sửa lại trường excel_file để tương thích với input HTML)
 # Mục đích: Định nghĩa các form Flask-WTF cho việc tạo và chỉnh sửa
 #           LearningContainer (khóa học, bộ thẻ, bộ câu hỏi) và LearningItem (bài học, thẻ, câu hỏi).
 #           Các form này được sử dụng chung cho cả người dùng thông thường và admin.

@@ -176,4 +176,3 @@ class ApiKey(db.Model):
     is_exhausted = db.Column(db.Boolean, default=False)
     last_used_timestamp = db.Column(db.DateTime(timezone=True))
     notes = db.Column(db.Text)
-
