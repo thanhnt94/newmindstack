@@ -1,52 +1,56 @@
 # File: newmindstack/mindstack_app/modules/content_management/quizzes/routes.py
-# Phiên bản: 3.14 (Đã tích hợp tiện ích phân trang và tìm kiếm từ utils)
-# Mục đích: Xử lý các route liên quan đến quản lý bộ câu hỏi (LearningContainer loại 'QUIZ_SET')
-#           Bao gồm tạo, xem, chỉnh sửa, xóa bộ câu hỏi và các câu hỏi (LearningItem loại 'QUIZ_MCQ')
-#           Áp dụng logic phân quyền để kiểm tra người dùng có quyền truy cập/chỉnh sửa hay không.
-#           Bổ sung logic để phục vụ nội dung riêng cho yêu cầu AJAX từ dashboard tổng quan.
-#           Đã sửa lỗi BuildError bằng cách cập nhật tên endpoint trong url_for.
-#           Đã khắc phục ModuleNotFoundError bằng cách sửa đường dẫn import models.
-#           ĐÃ SỬA: Chuyển hướng sau khi thêm/sửa/xóa về content_dashboard và chọn tab đúng.
-#           ĐÃ SỬA: Điều chỉnh để trả về JSON cho các yêu cầu AJAX khi thêm/sửa/xóa bộ.
-#           ĐÃ SỬA: Render template bare form cho yêu cầu GET từ modal, full form cho non-modal GET.
-#           ĐÃ CẢI TIẾN: Logic xử lý upload file Excel, đọc các cột đầy đủ và tạo QuizItem từ đó.
-#           ĐÃ THÊM: Log chi tiết để debug quá trình upload file Excel.
-#           ĐÃ SỬA: Logic kiểm tra nội dung bắt buộc của câu hỏi để cho phép câu hỏi chỉ có media.
-#           ĐÃ SỬA: Khởi tạo biến question_image_file và question_audio_file để tránh lỗi UndefinedVariable.
-#           ĐÃ SỬA: Đếm số lượng câu hỏi chính xác và truyền vào template.
-#           ĐÃ SỬA: Route edit_quiz_item hỗ trợ mở trong modal.
-#           ĐÃ TÍCH HỢP: Phân trang và tìm kiếm sử dụng các hàm từ utils.
+# Phiên bản: 3.23
+# ĐÃ SỬA: Cập nhật logic import Excel để lưu content của LearningGroup
+#         với key là tên cột gốc từ file Excel (passage_text, question_audio_file...).
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import or_
+from sqlalchemy.orm.attributes import flag_modified
 from ..forms import QuizSetForm, QuizItemForm
-from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
+from ....models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User
 import pandas as pd
 import tempfile
 import os
-from ....utils.pagination import get_pagination_data # THÊM: Import hàm phân trang
-from ....utils.search import apply_search_filter # THÊM: Import hàm tìm kiếm
+from ....utils.pagination import get_pagination_data
+from ....utils.search import apply_search_filter
 
-# Định nghĩa Blueprint cho quản lý bộ câu hỏi
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
                         template_folder='../templates/quizzes')
+
+@quizzes_bp.route('/quizzes/process_excel_info', methods=['POST'])
+@login_required
+def process_excel_info():
+    if 'excel_file' not in request.files:
+        return jsonify({'success': False, 'message': 'Không tìm thấy file.'}), 400
+    file = request.files['excel_file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'Chưa chọn file nào.'}), 400
+    if file and file.filename.endswith('.xlsx'):
+        temp_filepath = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                file.save(tmp_file.name)
+                temp_filepath = tmp_file.name
+            df_info = pd.read_excel(temp_filepath, sheet_name='Info')
+            info_data = df_info.set_index('Key')['Value'].dropna().to_dict()
+            return jsonify({'success': True, 'data': info_data})
+        except ValueError:
+            return jsonify({'success': False, 'message': "Không tìm thấy sheet 'Info' trong file."})
+        except Exception as e:
+            current_app.logger.error(f"Lỗi khi xử lý sheet Info: {e}")
+            return jsonify({'success': False, 'message': f'Lỗi đọc file Excel: {e}'}), 500
+        finally:
+            if temp_filepath and os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
+    return jsonify({'success': False, 'message': 'File không hợp lệ. Vui lòng chọn file .xlsx'}), 400
 
 @quizzes_bp.route('/quizzes')
 @login_required
 def list_quiz_sets():
-    """
-    Hiển thị danh sách các bộ câu hỏi mà người dùng hiện tại có quyền truy cập,
-    có hỗ trợ phân trang và tìm kiếm.
-    Admin có thể thấy tất cả các bộ câu hỏi.
-    Người dùng thông thường chỉ thấy bộ câu hỏi do mình tạo hoặc được cấp quyền chỉnh sửa.
-    Nếu yêu cầu là AJAX, chỉ trả về phần danh sách bộ câu hỏi.
-    """
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
-
     base_query = LearningContainer.query.filter_by(container_type='QUIZ_SET')
-
     if current_user.user_role != 'admin':
         user_id = current_user.user_id
         created_sets_query = base_query.filter_by(creator_user_id=user_id)
@@ -55,22 +59,15 @@ def list_quiz_sets():
             ContainerContributor.permission_level == 'editor'
         )
         base_query = created_sets_query.union(contributed_sets_query)
-
-    # Áp dụng tìm kiếm
     search_fields = [LearningContainer.title, LearningContainer.description, LearningContainer.tags]
     base_query = apply_search_filter(base_query, search_query, search_fields)
-
-    # Phân trang
     pagination = get_pagination_data(base_query.order_by(LearningContainer.created_at.desc()), page)
     quiz_sets = pagination.items
-
-    # Đếm số lượng item cho mỗi bộ câu hỏi
     for set_item in quiz_sets:
         set_item.item_count = db.session.query(LearningItem).filter_by(
             container_id=set_item.container_id,
             item_type='QUIZ_MCQ'
         ).count()
-
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('_quiz_sets_list.html', quiz_sets=quiz_sets, pagination=pagination, search_query=search_query)
     else:
@@ -79,20 +76,12 @@ def list_quiz_sets():
 @quizzes_bp.route('/quizzes/add', methods=['GET', 'POST'])
 @login_required
 def add_quiz_set():
-    """
-    Thêm một bộ câu hỏi mới.
-    Chỉ người dùng đã đăng nhập mới có thể thêm bộ câu hỏi.
-    Người tạo bộ câu hỏi sẽ tự động là creator_user_id.
-    """
     form = QuizSetForm()
     if form.validate_on_submit():
-        current_app.logger.info("add_quiz_set: Form đã được gửi và xác thực thành công.")
         flash_message = ''
         flash_category = ''
         temp_filepath = None
-
         try:
-            # Tạo bộ câu hỏi mới
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
                 container_type='QUIZ_SET',
@@ -103,119 +92,117 @@ def add_quiz_set():
                 ai_settings={'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
             )
             db.session.add(new_set)
-            db.session.flush() # Lấy new_set.container_id trước khi commit
-            current_app.logger.info(f"add_quiz_set: Đã tạo LearningContainer mới với ID: {new_set.container_id}")
+            db.session.flush()
 
-            # Xử lý file Excel nếu có
             if form.excel_file.data and form.excel_file.data.filename != '':
-                current_app.logger.info(f"add_quiz_set: Phát hiện file Excel: {form.excel_file.data.filename}")
                 excel_file = form.excel_file.data
-                
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                     excel_file.save(tmp_file.name)
                     temp_filepath = tmp_file.name
-                current_app.logger.info(f"add_quiz_set: Đã lưu file tạm thời tại: {temp_filepath}")
-
-                # Đọc file Excel
-                df = pd.read_excel(temp_filepath)
-                current_app.logger.info(f"add_quiz_set: Đã đọc file Excel. Số hàng: {len(df)}. Cột: {df.columns.tolist()}")
                 
-                # Định nghĩa các cột cần thiết và tùy chọn từ cấu trúc Excel bạn cung cấp
-                required_basic_cols = ['option_a', 'option_b', 'correct_answer_text'] # Các cột luôn cần
+                df = pd.read_excel(temp_filepath, sheet_name='Data')
                 
-                # Kiểm tra các cột bắt buộc cơ bản
-                if not all(col in df.columns for col in required_basic_cols):
-                    missing_cols = [col for col in required_basic_cols if col not in df.columns]
-                    raise ValueError(f"File Excel phải có các cột bắt buộc: {', '.join(required_basic_cols)}. Thiếu: {', '.join(missing_cols)}")
-                current_app.logger.info("add_quiz_set: Các cột bắt buộc cơ bản đã được tìm thấy.")
-
-                # Thêm các câu hỏi từ file Excel
+                group_cache = {}
                 items_added_count = 0
+
                 for index, row in df.iterrows():
-                    # Khởi tạo các biến tùy chọn để tránh lỗi "not defined"
-                    question_text = ''
-                    question_image_file = ''
-                    question_audio_file = ''
+                    passage_order = str(row['passage_order']) if 'passage_order' in df.columns and pd.notna(row['passage_order']) else None
+                    group_db_id = None
 
-                    # Lấy các giá trị, đảm bảo là chuỗi và xử lý NaN
+                    if passage_order:
+                        passage_text = str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None
+                        audio_file = str(row['question_audio_file']) if 'question_audio_file' in df.columns and pd.notna(row['question_audio_file']) else None
+                        image_file = str(row['question_image_file']) if 'question_image_file' in df.columns and pd.notna(row['question_image_file']) else None
+                        
+                        group_key = None
+                        group_content = {}
+                        group_type = ''
+
+                        # SỬA LOGIC LƯU CONTENT CHO GROUP TẠI ĐÂY
+                        if passage_text:
+                            group_key = passage_text
+                            group_content['passage_text'] = passage_text
+                            group_type = 'PASSAGE'
+                        elif audio_file:
+                            group_key = audio_file
+                            group_content['question_audio_file'] = audio_file
+                            group_type = 'AUDIO'
+                        elif image_file:
+                            group_key = image_file
+                            group_content['question_image_file'] = image_file
+                            group_type = 'IMAGE'
+
+                        if group_key:
+                            if group_key not in group_cache:
+                                new_group = LearningGroup(
+                                    container_id=new_set.container_id,
+                                    group_type=group_type,
+                                    content=group_content
+                                )
+                                db.session.add(new_group)
+                                db.session.flush()
+                                group_cache[group_key] = new_group.group_id
+                                group_db_id = new_group.group_id
+                            else:
+                                group_db_id = group_cache[group_key]
+                    
+                    option_a = str(row['option_a']) if 'option_a' in df.columns and pd.notna(row['option_a']) else None
+                    option_b = str(row['option_b']) if 'option_b' in df.columns and pd.notna(row['option_b']) else None
+                    correct_answer = str(row['correct_answer_text']) if 'correct_answer_text' in df.columns and pd.notna(row['correct_answer_text']) else None
+
+                    if not (option_a and option_b and correct_answer):
+                        continue
+
                     question_text = str(row['question']) if 'question' in df.columns and pd.notna(row['question']) else ''
-                    option_a = str(row['option_a']) if pd.notna(row['option_a']) else ''
-                    option_b = str(row['option_b']) if pd.notna(row['option_b']) else ''
-                    correct_answer = str(row['correct_answer_text']) if pd.notna(row['correct_answer_text']) else ''
-                    question_image_file = str(row['question_image_file']) if 'question_image_file' in df.columns and pd.notna(row['question_image_file']) else ''
-                    question_audio_file = str(row['question_audio_file']) if 'question_audio_file' in df.columns and pd.notna(row['question_audio_file']) else ''
-
-                    # SỬA LOGIC: Câu hỏi hợp lệ nếu có văn bản HOẶC hình ảnh HOẶC âm thanh
-                    is_question_content_present = bool(question_text) or bool(question_image_file) or bool(question_audio_file)
-
-                    if is_question_content_present and option_a and option_b and correct_answer:
-                        item_content = {
-                            'question': question_text, # Có thể là chuỗi rỗng nếu câu hỏi là media
-                            'options': {
-                                'A': option_a,
-                                'B': option_b,
-                                'C': str(row['option_c']) if 'option_c' in df.columns and pd.notna(row['option_c']) else None,
-                                'D': str(row['option_d']) if 'option_d' in df.columns and pd.notna(row['option_d']) else None
-                            },
-                            'correct_answer': correct_answer,
-                            'pre_question_text': str(row['pre_question_text']) if 'pre_question_text' in df.columns and pd.notna(row['pre_question_text']) else None,
-                            'explanation': str(row['guidance']) if 'guidance' in df.columns and pd.notna(row['guidance']) else None,
-                            'question_image_file': question_image_file if question_image_file else None,
-                            'question_audio_file': question_audio_file if question_audio_file else None,
-                            'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None,
-                            'passage_order': str(row['passage_order']) if 'passage_order' in df.columns and pd.notna(row['passage_order']) else None,
-                        }
-
-                        new_item = LearningItem(
-                            container_id=new_set.container_id,
-                            item_type='QUIZ_MCQ',
-                            content=item_content,
-                            order_in_container=index + 1
-                        )
-                        db.session.add(new_item)
-                        items_added_count += 1
-                        current_app.logger.info(f"add_quiz_set: Đã thêm câu hỏi từ hàng {index + 1}: Question: '{question_text[:50]}', Image: '{question_image_file}', Audio: '{question_audio_file}'")
-                    else:
-                        current_app.logger.warning(f"add_quiz_set: Bỏ qua hàng {index + 1} do thiếu nội dung bắt buộc (Câu hỏi, Lựa chọn A, Lựa chọn B, hoặc Đáp án đúng).")
+                    
+                    item_content = {
+                        'question': question_text,
+                        'options': {
+                            'A': option_a, 'B': option_b,
+                            'C': str(row['option_c']) if 'option_c' in df.columns and pd.notna(row['option_c']) else None,
+                            'D': str(row['option_d']) if 'option_d' in df.columns and pd.notna(row['option_d']) else None
+                        },
+                        'correct_answer': correct_answer,
+                        'explanation': str(row['guidance']) if 'guidance' in df.columns and pd.notna(row['guidance']) else None,
+                        'pre_question_text': str(row['pre_question_text']) if 'pre_question_text' in df.columns and pd.notna(row['pre_question_text']) else None,
+                        'passage_order': passage_order,
+                        'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None
+                    }
+                    
+                    new_item = LearningItem(
+                        container_id=new_set.container_id,
+                        group_id=group_db_id,
+                        item_type='QUIZ_MCQ',
+                        content=item_content,
+                        order_in_container=int(passage_order) if passage_order else index + 1
+                    )
+                    db.session.add(new_item)
+                    items_added_count += 1
                 
                 flash_message = f'Bộ câu hỏi và {items_added_count} câu hỏi từ Excel đã được tạo thành công!'
                 flash_category = 'success'
-
-            else: # Không có file Excel được tải lên
-                current_app.logger.info("add_quiz_set: Không có file Excel được tải lên.")
+            else:
                 flash_message = 'Bộ câu hỏi mới đã được tạo thành công!'
                 flash_category = 'success'
             
             db.session.commit()
-            current_app.logger.info("add_quiz_set: Commit database thành công.")
-
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f"add_quiz_set: Lỗi trong quá trình xử lý file Excel hoặc tạo bộ câu hỏi: {str(e)}", exc_info=True)
-            flash_message = f'Lỗi khi xử lý file Excel hoặc tạo bộ câu hỏi: {str(e)}'
+            current_app.logger.error(f"LỖI XẢY RA: {e}", exc_info=True)
+            flash_message = f'Lỗi khi xử lý: {str(e)}'
             flash_category = 'danger'
-            # Nếu là AJAX, trả về lỗi
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'success': False, 'message': flash_message}), 400
-            else:
-                flash(flash_message, flash_category)
-                return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
-                current_app.logger.info(f"add_quiz_set: Đã xóa file tạm thời: {temp_filepath}")
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': flash_message})
+            return jsonify({'success': flash_category == 'success', 'message': flash_message})
         else:
             flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
     
-    if form.errors:
-        current_app.logger.warning(f"add_quiz_set: Form không hợp lệ. Lỗi: {form.errors}")
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
-
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_quiz_set_bare.html', form=form, title='Thêm Bộ câu hỏi mới')
     return render_template('add_edit_quiz_set.html', form=form, title='Thêm Bộ câu hỏi mới')
@@ -223,143 +210,19 @@ def add_quiz_set():
 @quizzes_bp.route('/quizzes/edit/<int:set_id>', methods=['GET', 'POST'])
 @login_required
 def edit_quiz_set(set_id):
-    """
-    Chỉnh sửa thông tin bộ câu hỏi.
-    Chỉ creator_user_id hoặc người dùng được cấp quyền 'editor' mới có thể chỉnh sửa.
-    """
     quiz_set = LearningContainer.query.get_or_404(set_id)
-
-    if current_user.user_role != 'admin' and \
-       quiz_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa bộ câu hỏi này.'}), 403
-        else:
-            abort(403)
-
+    if current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
+        abort(403)
     form = QuizSetForm(obj=quiz_set)
     if form.validate_on_submit():
-        current_app.logger.info(f"edit_quiz_set: Form đã được gửi và xác thực thành công cho set ID: {set_id}")
-        flash_message = ''
-        flash_category = ''
-        temp_filepath = None
-
-        try:
-            quiz_set.title = form.title.data
-            quiz_set.description = form.description.data
-            quiz_set.tags = form.tags.data
-            quiz_set.is_public = form.is_public.data
-            quiz_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
-
-            # Xử lý file Excel nếu có (chỉ khi chỉnh sửa, sẽ xóa cũ và thêm mới các item)
-            if form.excel_file.data and form.excel_file.data.filename != '':
-                current_app.logger.info(f"edit_quiz_set: Phát hiện file Excel: {form.excel_file.data.filename}")
-                excel_file = form.excel_file.data
-                
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
-                    excel_file.save(tmp_file.name)
-                    temp_filepath = tmp_file.name
-                current_app.logger.info(f"edit_quiz_set: Đã lưu file tạm thời tại: {temp_filepath}")
-
-                df = pd.read_excel(temp_filepath)
-                current_app.logger.info(f"edit_quiz_set: Đã đọc file Excel. Số hàng: {len(df)}. Cột: {df.columns.tolist()}")
-                
-                required_basic_cols = ['option_a', 'option_b', 'correct_answer_text']
-                
-                if not all(col in df.columns for col in required_basic_cols):
-                    missing_cols = [col for col in required_basic_cols if col not in df.columns]
-                    raise ValueError(f"File Excel phải có các cột bắt buộc: {', '.join(required_basic_cols)}. Thiếu: {', '.join(missing_cols)}")
-                current_app.logger.info("edit_quiz_set: Các cột bắt buộc cơ bản đã được tìm thấy.")
-
-                # Xóa tất cả các câu hỏi cũ của bộ này trước khi thêm mới từ Excel
-                LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ').delete()
-                db.session.flush()
-                current_app.logger.info(f"edit_quiz_set: Đã xóa tất cả câu hỏi cũ cho set ID: {set_id}")
-
-                items_added_count = 0
-                for index, row in df.iterrows():
-                    # Khởi tạo các biến tùy chọn để tránh lỗi "not defined"
-                    question_text = ''
-                    question_image_file = ''
-                    question_audio_file = ''
-
-                    question_text = str(row['question']) if 'question' in df.columns and pd.notna(row['question']) else ''
-                    option_a = str(row['option_a']) if pd.notna(row['option_a']) else ''
-                    option_b = str(row['option_b']) if pd.notna(row['option_b']) else ''
-                    correct_answer = str(row['correct_answer_text']) if pd.notna(row['correct_answer_text']) else ''
-                    question_image_file = str(row['question_image_file']) if 'question_image_file' in df.columns and pd.notna(row['question_image_file']) else ''
-                    question_audio_file = str(row['question_audio_file']) if 'question_audio_file' in df.columns and pd.notna(row['question_audio_file']) else ''
-
-
-                    is_question_content_present = bool(question_text) or bool(question_image_file) or bool(question_audio_file)
-
-                    if is_question_content_present and option_a and option_b and correct_answer:
-                        item_content = {
-                            'question': question_text,
-                            'options': {
-                                'A': option_a,
-                                'B': option_b,
-                                'C': str(row['option_c']) if 'option_c' in df.columns and pd.notna(row['option_c']) else None,
-                                'D': str(row['option_d']) if 'option_d' in df.columns and pd.notna(row['option_d']) else None
-                            },
-                            'correct_answer': correct_answer,
-                            'pre_question_text': str(row['pre_question_text']) if 'pre_question_text' in df.columns and pd.notna(row['pre_question_text']) else None,
-                            'explanation': str(row['guidance']) if 'guidance' in df.columns and pd.notna(row['guidance']) else None,
-                            'question_image_file': question_image_file if question_image_file else None,
-                            'question_audio_file': question_audio_file if question_audio_file else None,
-                            'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None,
-                            'passage_order': str(row['passage_order']) if 'passage_order' in df.columns and pd.notna(row['passage_order']) else None,
-                        }
-                        new_item = LearningItem(
-                            container_id=set_id,
-                            item_type='QUIZ_MCQ',
-                            content=item_content,
-                            order_in_container=index + 1
-                        )
-                        db.session.add(new_item)
-                        items_added_count += 1
-                        current_app.logger.info(f"edit_quiz_set: Đã thêm câu hỏi từ hàng {index + 1}: Question: '{question_text[:50]}', Image: '{question_image_file}', Audio: '{question_audio_file}'")
-                    else:
-                        current_app.logger.warning(f"edit_quiz_set: Bỏ qua hàng {index + 1} do thiếu nội dung bắt buộc (Câu hỏi, Lựa chọn A, Lựa chọn B, hoặc Đáp án đúng).")
-                
-                flash_message = f'Bộ câu hỏi và {items_added_count} câu hỏi từ Excel đã được cập nhật thành công!'
-                flash_category = 'success'
-
-            else: # Không có file Excel được tải lên, chỉ cập nhật thông tin bộ câu hỏi
-                current_app.logger.info("edit_quiz_set: Không có file Excel được tải lên, chỉ cập nhật thông tin bộ.")
-                flash_message = 'Bộ câu hỏi đã được cập nhật thành công!'
-                flash_category = 'success'
-
-            db.session.commit()
-            current_app.logger.info("edit_quiz_set: Commit database thành công.")
-
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"edit_quiz_set: Lỗi trong quá trình xử lý file Excel hoặc cập nhật bộ câu hỏi: {str(e)}", exc_info=True)
-            flash_message = f'Lỗi khi xử lý file Excel hoặc cập nhật bộ câu hỏi: {str(e)}'
-            flash_category = 'danger'
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'success': False, 'message': flash_message}), 400
-            else:
-                flash(flash_message, flash_category)
-                return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
-        finally:
-            if temp_filepath and os.path.exists(temp_filepath):
-                os.remove(temp_filepath)
-                current_app.logger.info(f"edit_quiz_set: Đã xóa file tạm thời: {temp_filepath}")
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': flash_message})
-        else:
-            flash(flash_message, flash_category)
-            return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
-    
-    if form.errors:
-        current_app.logger.warning(f"edit_quiz_set: Form không hợp lệ. Lỗi: {form.errors}")
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
-        return jsonify({'success': False, 'errors': form.errors}), 400
-
+        quiz_set.title = form.title.data
+        quiz_set.description = form.description.data
+        quiz_set.tags = form.tags.data
+        quiz_set.is_public = form.is_public.data
+        quiz_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+        db.session.commit()
+        flash('Bộ câu hỏi đã được cập nhật!', 'success')
+        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_quiz_set_bare.html', form=form, title='Sửa Bộ câu hỏi', quiz_set=quiz_set)
     return render_template('add_edit_quiz_set.html', form=form, title='Sửa Bộ câu hỏi', quiz_set=quiz_set)
@@ -367,127 +230,58 @@ def edit_quiz_set(set_id):
 @quizzes_bp.route('/quizzes/delete/<int:set_id>', methods=['POST'])
 @login_required
 def delete_quiz_set(set_id):
-    """
-    Xóa một bộ câu hỏi.
-    Chỉ creator_user_id hoặc admin mới có thể xóa bộ câu hỏi.
-    """
     quiz_set = LearningContainer.query.get_or_404(set_id)
-
     if current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa bộ câu hỏi này.'}), 403
-        else:
-            flash('Bạn không có quyền xóa bộ câu hỏi này.', 'danger')
-            abort(403)
-    
+        abort(403)
     db.session.delete(quiz_set)
     db.session.commit()
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': True, 'message': 'Bộ câu hỏi đã được xóa thành công!'})
-    else:
-        flash('Bộ câu hỏi đã được xóa thành công!', 'success')
-        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+    flash('Bộ câu hỏi đã được xóa thành công!', 'success')
+    return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items')
 @login_required
 def list_quiz_items(set_id):
-    """
-    Hiển thị danh sách các câu hỏi thuộc một bộ câu hỏi cụ thể.
-    Người dùng cần có quyền xem bộ câu hỏi đó.
-    """
     quiz_set = LearningContainer.query.get_or_404(set_id)
-
-    if not quiz_set.is_public and \
-       current_user.user_role != 'admin' and \
-       quiz_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id).first():
+    if not quiz_set.is_public and current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
         abort(403)
-
-    # THÊM: Lấy các tham số phân trang và tìm kiếm cho item
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
-
-    base_query = LearningItem.query.filter_by(
-        container_id=quiz_set.container_id,
-        item_type='QUIZ_MCQ'
-    )
-
-    # THÊM: Áp dụng tìm kiếm cho item
-    search_fields = [LearningItem.content['question'], LearningItem.content['options']['A'], LearningItem.content['options']['B']] # Tìm kiếm trong JSON content
+    base_query = LearningItem.query.filter_by(container_id=quiz_set.container_id, item_type='QUIZ_MCQ')
+    search_fields = [LearningItem.content['question']]
     base_query = apply_search_filter(base_query, search_query, search_fields)
-
-    # THÊM: Phân trang cho item
     pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container), page)
     quiz_items = pagination.items
-
-    can_edit = False
-    if current_user.user_role == 'admin' or \
-       quiz_set.creator_user_id == current_user.user_id or \
-       ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        can_edit = True
-
+    can_edit = (current_user.user_role == 'admin' or quiz_set.creator_user_id == current_user.user_id)
     return render_template('quiz_items.html', quiz_set=quiz_set, quiz_items=quiz_items, can_edit=can_edit, pagination=pagination, search_query=search_query)
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/add', methods=['GET', 'POST'])
 @login_required
 def add_quiz_item(set_id):
-    """
-    Thêm câu hỏi mới vào một bộ câu hỏi.
-    Chỉ người tạo bộ câu hỏi hoặc người dùng được cấp quyền 'editor' mới có thể thêm.
-    """
     quiz_set = LearningContainer.query.get_or_404(set_id)
-
-    if current_user.user_role != 'admin' and \
-       quiz_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': 'Bạn không có quyền thêm câu hỏi vào bộ này.'}), 403
-        else:
-            abort(403)
-
+    if current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
+        abort(403)
     form = QuizItemForm()
     if form.validate_on_submit():
-        max_order = db.session.query(db.func.max(LearningItem.order_in_container)).filter_by(
-            container_id=set_id,
-            item_type='QUIZ_MCQ'
-        ).scalar()
-        new_order = (max_order or 0) + 1
-
         new_item = LearningItem(
             container_id=set_id,
             item_type='QUIZ_MCQ',
             content={
                 'question': form.question.data,
                 'options': {
-                    'A': form.option_a.data,
-                    'B': form.option_b.data,
-                    'C': form.option_c.data if form.option_c.data else None,
-                    'D': form.option_d.data if form.option_d.data else None
+                    'A': form.option_a.data, 'B': form.option_b.data,
+                    'C': form.option_c.data, 'D': form.option_d.data
                 },
                 'correct_answer': form.correct_answer_text.data,
-                'pre_question_text': form.pre_question_text.data if form.pre_question_text.data else None,
-                'explanation': form.guidance.data if form.guidance.data else None,
-                'question_image_file': form.question_image_file.data if form.question_image_file.data else None,
-                'question_audio_file': form.question_audio_file.data if form.question_audio_file.data else None,
-                'passage_text': form.passage_text.data if form.passage_text.data else None,
-                'passage_order': form.passage_order.data if form.passage_order.data else None,
-            },
-            order_in_container=new_order
+                'explanation': form.guidance.data,
+                'pre_question_text': form.pre_question_text.data,
+                'passage_text': form.passage_text.data,
+                'passage_order': form.passage_order.data
+            }
         )
         db.session.add(new_item)
         db.session.commit()
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': 'Câu hỏi mới đã được thêm thành công!'})
-        else:
-            flash('Câu hỏi mới đã được thêm thành công!', 'success')
-            return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
-        return jsonify({'success': False, 'errors': form.errors}), 400
-
+        flash('Câu hỏi mới đã được thêm!', 'success')
+        return redirect(url_for('.list_quiz_items', set_id=set_id))
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_quiz_item_bare.html', form=form, quiz_set=quiz_set, title='Thêm Câu hỏi')
     return render_template('add_edit_quiz_item.html', form=form, quiz_set=quiz_set, title='Thêm Câu hỏi')
@@ -495,65 +289,42 @@ def add_quiz_item(set_id):
 @quizzes_bp.route('/quizzes/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
 def edit_quiz_item(set_id, item_id):
-    """
-    Chỉnh sửa một câu hỏi cụ thể trong bộ câu hỏi.
-    Chỉ người tạo bộ câu hỏi hoặc người dùng được cấp quyền 'editor' mới có thể chỉnh sửa.
-    """
-    quiz_set = LearningContainer.query.get_or_404(set_id)
     quiz_item = LearningItem.query.get_or_404(item_id)
-
-    if current_user.user_role != 'admin' and \
-       quiz_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa câu hỏi này.'}), 403
-        else:
-            flash('Bạn không có quyền chỉnh sửa câu hỏi này.', 'danger')
-            abort(403)
-
-    form = QuizItemForm(
-        question=quiz_item.content.get('question', ''),
-        pre_question_text=quiz_item.content.get('pre_question_text', ''),
-        option_a=quiz_item.content.get('options', {}).get('A', ''),
-        option_b=quiz_item.content.get('options', {}).get('B', ''),
-        option_c=quiz_item.content.get('options', {}).get('C', ''),
-        option_d=quiz_item.content.get('options', {}).get('D', ''),
-        correct_answer_text=quiz_item.content.get('correct_answer', ''),
-        guidance=quiz_item.content.get('explanation', ''),
-        question_image_file=quiz_item.content.get('question_image_file', ''),
-        question_audio_file=quiz_item.content.get('question_audio_file', ''),
-        passage_text=quiz_item.content.get('passage_text', ''),
-        passage_order=quiz_item.content.get('passage_order', '')
-    )
+    quiz_set = LearningContainer.query.get_or_404(set_id)
+    if current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
+        abort(403)
     
+    form = QuizItemForm()
+
+    if request.method == 'GET':
+        form.question.data = quiz_item.content.get('question')
+        form.option_a.data = quiz_item.content.get('options', {}).get('A')
+        form.option_b.data = quiz_item.content.get('options', {}).get('B')
+        form.option_c.data = quiz_item.content.get('options', {}).get('C')
+        form.option_d.data = quiz_item.content.get('options', {}).get('D')
+        form.correct_answer_text.data = quiz_item.content.get('correct_answer')
+        form.guidance.data = quiz_item.content.get('explanation')
+        form.pre_question_text.data = quiz_item.content.get('pre_question_text')
+        form.passage_text.data = quiz_item.content.get('passage_text')
+        form.passage_order.data = quiz_item.content.get('passage_order')
+
     if form.validate_on_submit():
-        quiz_item.content = {
-            'question': form.question.data,
-            'options': {
-                'A': form.option_a.data,
-                'B': form.option_b.data,
-                'C': form.option_c.data if form.option_c.data else None,
-                'D': form.option_d.data if form.option_d.data else None
-            },
-            'correct_answer': form.correct_answer_text.data,
-            'pre_question_text': form.pre_question_text.data if form.pre_question_text.data else None,
-            'explanation': form.guidance.data if form.guidance.data else None,
-            'question_image_file': form.question_image_file.data if form.question_image_file.data else None,
-            'question_audio_file': form.question_audio_file.data if form.question_audio_file.data else None,
-            'passage_text': form.passage_text.data if form.passage_text.data else None,
-            'passage_order': form.passage_order.data if form.passage_order.data else None,
-        }
-        db.session.commit()
+        quiz_item.content['question'] = form.question.data
+        quiz_item.content['options']['A'] = form.option_a.data
+        quiz_item.content['options']['B'] = form.option_b.data
+        quiz_item.content['options']['C'] = form.option_c.data
+        quiz_item.content['options']['D'] = form.option_d.data
+        quiz_item.content['correct_answer'] = form.correct_answer_text.data
+        quiz_item.content['explanation'] = form.guidance.data
+        quiz_item.content['pre_question_text'] = form.pre_question_text.data
+        quiz_item.content['passage_text'] = form.passage_text.data
+        quiz_item.content['passage_order'] = form.passage_order.data
         
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': 'Câu hỏi đã được cập nhật thành công!'})
-        else:
-            flash('Câu hỏi đã được cập nhật thành công!', 'success')
-            return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
-        return jsonify({'success': False, 'errors': form.errors}), 400
+        flag_modified(quiz_item, "content")
+        
+        db.session.commit()
+        flash('Câu hỏi đã được cập nhật!', 'success')
+        return redirect(url_for('.list_quiz_items', set_id=set_id))
 
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_quiz_item_bare.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')
@@ -562,28 +333,11 @@ def edit_quiz_item(set_id, item_id):
 @quizzes_bp.route('/quizzes/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
 @login_required
 def delete_quiz_item(set_id, item_id):
-    """
-    Xóa một câu hỏi cụ thể trong bộ câu hỏi.
-    Chỉ người tạo bộ câu hỏi hoặc người dùng được cấp quyền 'editor' mới có thể xóa.
-    """
-    quiz_set = LearningContainer.query.get_or_404(set_id)
     quiz_item = LearningItem.query.get_or_404(item_id)
-
-    if current_user.user_role != 'admin' and \
-       quiz_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa câu hỏi này.'}), 403
-        else:
-            flash('Bạn không có quyền xóa câu hỏi này.', 'danger')
-            abort(403)
-    
+    quiz_set = LearningContainer.query.get_or_404(set_id)
+    if current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
+        abort(403)
     db.session.delete(quiz_item)
     db.session.commit()
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': True, 'message': 'Câu hỏi đã được xóa thành công!'})
-    else:
-        flash('Câu hỏi đã được xóa thành công!', 'success')
-        return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
+    flash('Câu hỏi đã được xóa.', 'success')
+    return redirect(url_for('.list_quiz_items', set_id=set_id))
