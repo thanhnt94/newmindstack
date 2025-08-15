@@ -1,6 +1,7 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/content_dashboard.html -->
 <!-- Phiên bản: 3.0 -->
-<!-- ĐÃ SỬA: Loại bỏ hoàn toàn code HTML và JavaScript của modal để sử dụng phiên bản toàn cục từ base.html. -->
+<!-- ĐÃ SỬA: Xóa nút "Quay lại trang chủ". -->
+<!-- ĐÃ SỬA: Cải thiện layout, sử dụng bóng đổ và khoảng trắng để giao diện phẳng và hiện đại hơn. -->
 
 {% extends "base.html" %}
 
@@ -11,11 +12,10 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f9fafb; /* bg-gray-50 */
         }
         #tab-content {
             width: 100%;
-            display: flex;
-            align-items: flex-start;
         }
     </style>
 {% endblock %}
@@ -26,139 +26,130 @@
         Bảng Điều Khiển Quản Lý Nội Dung
     </h1>
 
-    <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
+    <div class="bg-white rounded-xl shadow-lg">
         <!-- Tab Navigation -->
-        <div class="flex border-b border-gray-200 mb-6 flex-wrap justify-center sm:justify-start">
-            <button id="tab-courses" class="tab-button py-3 px-4 sm:px-6 text-lg sm:text-xl text-gray-700 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out" data-target="courses">
-                <i class="fas fa-book mr-2"></i> Khóa học
-            </button>
-            <button id="tab-flashcards" class="tab-button py-3 px-4 sm:px-6 text-lg sm:text-xl text-gray-700 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out" data-target="flashcards">
-                <i class="fas fa-clone mr-2"></i> Thẻ ghi nhớ
-            </button>
-            <button id="tab-quizzes" class="tab-button py-3 px-4 sm:px-6 text-lg sm:text-xl text-gray-700 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out" data-target="quizzes">
-                <i class="fas fa-question-circle mr-2"></i> Bộ câu hỏi
-            </button>
+        <div class="px-4 sm:px-6 lg:px-8 border-b border-gray-200">
+            <div class="flex flex-wrap justify-center sm:justify-start -mb-px">
+                <button id="tab-courses" class="tab-button py-4 px-4 sm:px-6 text-lg font-medium text-gray-500 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out" data-target="courses">
+                    <i class="fas fa-book mr-2"></i> Khóa học
+                </button>
+                <button id="tab-flashcards" class="tab-button py-4 px-4 sm:px-6 text-lg font-medium text-gray-500 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out" data-target="flashcards">
+                    <i class="fas fa-clone mr-2"></i> Thẻ ghi nhớ
+                </button>
+                <button id="tab-quizzes" class="tab-button py-4 px-4 sm:px-6 text-lg font-medium text-gray-500 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out" data-target="quizzes">
+                    <i class="fas fa-question-circle mr-2"></i> Bộ câu hỏi
+                </button>
+            </div>
         </div>
 
         <!-- Content Area -->
-        <div id="tab-content" class="min-h-[300px] flex items-center justify-center text-gray-500">
+        <div id="tab-content" class="min-h-[400px] p-4 sm:p-6 lg:p-8">
             <!-- Content will be loaded here via AJAX -->
-            <p>Đang tải nội dung...</p>
+            <div class="flex items-center justify-center h-full text-gray-500">
+                <p>Đang tải nội dung...</p>
+            </div>
         </div>
     </div>
 
-    <!-- Nút quay lại trang chủ -->
-    <div class="flex justify-center mt-10">
-        <a href="{{ url_for('main.dashboard') }}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Quay lại trang chủ
-        </a>
-    </div>
+    <!-- NÚT QUAY LẠI TRANG CHỦ ĐÃ ĐƯỢC XÓA -->
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Khai báo các URL
-        const coursesListUrl = "{{ url_for('content_management.content_management_courses.list_courses') }}";
-        const flashcardSetsListUrl = "{{ url_for('content_management.content_management_flashcards.list_flashcard_sets') }}";
-        const quizSetsListUrl = "{{ url_for('content_management.content_management_quizzes.list_quiz_sets') }}";
-        
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContent = document.getElementById('tab-content');
-        const validTabs = ['courses', 'flashcards', 'quizzes'];
-        const SESSION_STORAGE_KEY = 'activeContentTab';
-
-        const activeClasses = ['border-b-4', 'border-blue-500', 'text-blue-600', 'font-bold', 'bg-blue-100', 'shadow-sm'];
-        const defaultClasses = ['text-gray-700', 'hover:text-blue-600', 'focus:outline-none', 'transition', 'duration-150', 'ease-in-out'];
-
-        /**
-         * Hàm tải nội dung tab (không thay đổi, chỉ giữ lại phần liên quan đến tab)
-         */
-        async function loadTabContent(tabName) {
-            tabContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500"><svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="mt-3 text-lg">Đang tải nội dung ${tabName}...</p></div>`;
+    {# Giữ nguyên script cũ #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const coursesListUrl = "{{ url_for('content_management.content_management_courses.list_courses') }}";
+            const flashcardSetsListUrl = "{{ url_for('content_management.content_management_flashcards.list_flashcard_sets') }}";
+            const quizSetsListUrl = "{{ url_for('content_management.content_management_quizzes.list_quiz_sets') }}";
             
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContent = document.getElementById('tab-content');
+            const validTabs = ['courses', 'flashcards', 'quizzes'];
+            const SESSION_STORAGE_KEY = 'activeContentTab';
+
+            const activeClasses = ['border-b-2', 'border-blue-500', 'text-blue-600'];
+            const defaultClasses = ['text-gray-500', 'hover:text-blue-600'];
+
+            async function loadTabContent(tabName) {
+                tabContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500"><svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="mt-3 text-lg">Đang tải nội dung ${tabName}...</p></div>`;
+                
+                tabButtons.forEach(button => {
+                    button.classList.remove(...activeClasses);
+                    button.classList.add(...defaultClasses);
+                });
+                
+                const currentTabButton = document.getElementById('tab-' + tabName);
+                if (currentTabButton) {
+                    currentTabButton.classList.add(...activeClasses);
+                    currentTabButton.classList.remove(...defaultClasses);
+                    sessionStorage.setItem(SESSION_STORAGE_KEY, tabName);
+                }
+
+                let url;
+                if (tabName === 'courses') url = coursesListUrl;
+                else if (tabName === 'flashcards') url = flashcardSetsListUrl;
+                else if (tabName === 'quizzes') url = quizSetsListUrl;
+                else {
+                    tabContent.innerHTML = '<p class="text-red-500">Lỗi: Tab không hợp lệ.</p>';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    tabContent.innerHTML = await response.text();
+                } catch (error) {
+                    console.error('Lỗi khi tải nội dung tab:', error);
+                    tabContent.innerHTML = `<p class="text-red-500 text-center">Không thể tải nội dung. Vui lòng thử lại.</p>`;
+                }
+            }
+            
+            window.loadTabContent = loadTabContent;
+
             tabButtons.forEach(button => {
-                button.classList.remove(...activeClasses);
-                button.classList.add(...defaultClasses);
+                button.addEventListener('click', function() {
+                    loadTabContent(this.dataset.target);
+                });
             });
-            
-            const currentTabButton = document.getElementById('tab-' + tabName);
-            if (currentTabButton) {
-                currentTabButton.classList.add(...activeClasses);
-                currentTabButton.classList.remove(...defaultClasses);
-                sessionStorage.setItem(SESSION_STORAGE_KEY, tabName);
+
+            let initialTab = sessionStorage.getItem(SESSION_STORAGE_KEY) || new URLSearchParams(window.location.search).get('tab');
+            if (!initialTab || !validTabs.includes(initialTab)) {
+                initialTab = 'courses';
+            }
+            loadTabContent(initialTab);
+
+            async function fetchAndUpdateContent(url) {
+                tabContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500"><svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="mt-3 text-lg">Đang tải...</p></div>`;
+                try {
+                    const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    tabContent.innerHTML = await response.text();
+                } catch (error) {
+                    console.error('Lỗi khi tải nội dung:', error);
+                    tabContent.innerHTML = `<p class="text-red-500 text-center">Không thể tải nội dung. Vui lòng thử lại.</p>`;
+                }
             }
 
-            let url;
-            if (tabName === 'courses') url = coursesListUrl;
-            else if (tabName === 'flashcards') url = flashcardSetsListUrl;
-            else if (tabName === 'quizzes') url = quizSetsListUrl;
-            else {
-                tabContent.innerHTML = '<p class="text-red-500">Lỗi: Tab không hợp lệ.</p>';
-                return;
-            }
+            tabContent.addEventListener('click', function(event) {
+                const link = event.target.closest('a');
+                if (link && link.href && link.href.includes('page=')) {
+                    event.preventDefault();
+                    fetchAndUpdateContent(link.href);
+                }
+            });
 
-            try {
-                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                tabContent.innerHTML = await response.text();
-            } catch (error) {
-                console.error('Lỗi khi tải nội dung tab:', error);
-                tabContent.innerHTML = `<p class="text-red-500 text-center">Không thể tải nội dung. Vui lòng thử lại.</p>`;
-            }
-        }
-        
-        // Ghi đè hàm loadTabContent toàn cục để iframe có thể gọi đúng hàm AJAX
-        window.loadTabContent = loadTabContent;
-
-        // Gắn sự kiện click cho các nút tab
-        tabButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                loadTabContent(this.dataset.target);
+            tabContent.addEventListener('submit', function(event) {
+                const form = event.target.closest('form');
+                if (form && form.querySelector('input[name="q"]')) {
+                    event.preventDefault();
+                    const formData = new FormData(form);
+                    const searchQuery = formData.get('q');
+                    const url = new URL(form.action);
+                    url.searchParams.set('q', searchQuery);
+                    fetchAndUpdateContent(url.href);
+                }
             });
         });
-
-        // Xác định và tải tab ban đầu
-        let initialTab = sessionStorage.getItem(SESSION_STORAGE_KEY) || new URLSearchParams(window.location.search).get('tab');
-        if (!initialTab || !validTabs.includes(initialTab)) {
-            initialTab = 'courses';
-        }
-        loadTabContent(initialTab);
-
-        // Xử lý AJAX cho phân trang và tìm kiếm
-        async function fetchAndUpdateContent(url) {
-            tabContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500"><svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="mt-3 text-lg">Đang tải...</p></div>`;
-            try {
-                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                tabContent.innerHTML = await response.text();
-            } catch (error) {
-                console.error('Lỗi khi tải nội dung:', error);
-                tabContent.innerHTML = `<p class="text-red-500 text-center">Không thể tải nội dung. Vui lòng thử lại.</p>`;
-            }
-        }
-
-        tabContent.addEventListener('click', function(event) {
-            const link = event.target.closest('a');
-            if (link && link.href && link.href.includes('page=')) {
-                event.preventDefault();
-                fetchAndUpdateContent(link.href);
-            }
-        });
-
-        tabContent.addEventListener('submit', function(event) {
-            const form = event.target.closest('form');
-            if (form && form.querySelector('input[name="q"]')) {
-                event.preventDefault();
-                const formData = new FormData(form);
-                const searchQuery = formData.get('q');
-                const url = new URL(form.action);
-                url.searchParams.set('q', searchQuery);
-                fetchAndUpdateContent(url.href);
-            }
-        });
-    });
-</script>
+    </script>
 {% endblock %}

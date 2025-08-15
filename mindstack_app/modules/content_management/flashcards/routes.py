@@ -1,8 +1,6 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 4.1
-# ĐÃ SỬA: Khôi phục đầy đủ code đã bị cắt.
-# ĐÃ THÊM: Route process_excel_info để đọc sheet 'Info' và trả về JSON.
-# ĐÃ CẬP NHẬT: Logic xử lý upload file để đọc sheet 'Data'.
+# Phiên bản: 4.2
+# ĐÃ SỬA: Cập nhật hàm list_flashcard_sets để hỗ trợ tìm kiếm theo trường cụ thể.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
@@ -19,35 +17,23 @@ from ....utils.search import apply_search_filter
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
                             template_folder='../templates/flashcards')
 
-# ==============================================================================
-# ROUTE MỚI: XỬ LÝ SHEET 'INFO' TỪ FILE EXCEL
-# ==============================================================================
 @flashcards_bp.route('/flashcards/process_excel_info', methods=['POST'])
 @login_required
 def process_excel_info():
-    """
-    Đọc sheet 'Info' từ file Excel được upload và trả về dữ liệu dưới dạng JSON
-    để tự động điền vào form ở frontend.
-    """
     if 'excel_file' not in request.files:
         return jsonify({'success': False, 'message': 'Không tìm thấy file.'}), 400
-
     file = request.files['excel_file']
     if file.filename == '':
         return jsonify({'success': False, 'message': 'Chưa chọn file nào.'}), 400
-
     if file and file.filename.endswith('.xlsx'):
         temp_filepath = None
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                 file.save(tmp_file.name)
                 temp_filepath = tmp_file.name
-
             df_info = pd.read_excel(temp_filepath, sheet_name='Info')
             info_data = df_info.set_index('Key')['Value'].dropna().to_dict()
-            
             return jsonify({'success': True, 'data': info_data})
-
         except ValueError:
             return jsonify({'success': False, 'message': "Không tìm thấy sheet 'Info' trong file."})
         except Exception as e:
@@ -56,20 +42,17 @@ def process_excel_info():
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
-    
     return jsonify({'success': False, 'message': 'File không hợp lệ. Vui lòng chọn file .xlsx'}), 400
-
-
-# ==============================================================================
-# CÁC ROUTE CŨ (ĐÃ CẬP NHẬT LOGIC UPLOAD)
-# ==============================================================================
 
 @flashcards_bp.route('/flashcards')
 @login_required
 def list_flashcard_sets():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
+    search_field = request.args.get('search_field', 'all', type=str)
+
     base_query = LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
+
     if current_user.user_role != 'admin':
         user_id = current_user.user_id
         created_sets_query = base_query.filter_by(creator_user_id=user_id)
@@ -78,19 +61,34 @@ def list_flashcard_sets():
             ContainerContributor.permission_level == 'editor'
         )
         base_query = created_sets_query.union(contributed_sets_query)
-    search_fields = [LearningContainer.title, LearningContainer.description, LearningContainer.tags]
-    base_query = apply_search_filter(base_query, search_query, search_fields)
+
+    search_field_map = {
+        'title': LearningContainer.title,
+        'description': LearningContainer.description,
+        'tags': LearningContainer.tags
+    }
+    base_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
+
     pagination = get_pagination_data(base_query.order_by(LearningContainer.created_at.desc()), page)
     flashcard_sets = pagination.items
+
     for set_item in flashcard_sets:
         set_item.item_count = db.session.query(LearningItem).filter_by(
             container_id=set_item.container_id,
             item_type='FLASHCARD'
         ).count()
+
+    template_vars = {
+        'flashcard_sets': flashcard_sets, 
+        'pagination': pagination, 
+        'search_query': search_query,
+        'search_field': search_field
+    }
+
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('_flashcard_sets_list.html', flashcard_sets=flashcard_sets, pagination=pagination, search_query=search_query)
+        return render_template('_flashcard_sets_list.html', **template_vars)
     else:
-        return render_template('flashcard_sets.html', flashcard_sets=flashcard_sets, pagination=pagination, search_query=search_query)
+        return render_template('flashcard_sets.html', **template_vars)
 
 @flashcards_bp.route('/flashcards/add', methods=['GET', 'POST'])
 @login_required
@@ -112,19 +110,15 @@ def add_flashcard_set():
             )
             db.session.add(new_set)
             db.session.flush()
-
             if form.excel_file.data and form.excel_file.data.filename != '':
                 excel_file = form.excel_file.data
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                     excel_file.save(tmp_file.name)
                     temp_filepath = tmp_file.name
-                
                 df = pd.read_excel(temp_filepath, sheet_name='Data')
-                
                 required_cols = ['front', 'back']
                 if not all(col in df.columns for col in required_cols):
                     raise ValueError(f"File Excel (sheet 'Data') phải có các cột bắt buộc: {', '.join(required_cols)}.")
-
                 items_added_count = 0
                 for index, row in df.iterrows():
                     front_content = str(row['front']) if pd.notna(row['front']) else ''
@@ -143,13 +137,11 @@ def add_flashcard_set():
                         )
                         db.session.add(new_item)
                         items_added_count += 1
-                
                 flash_message = f'Bộ thẻ và {items_added_count} thẻ từ Excel đã được tạo thành công!'
                 flash_category = 'success'
             else:
                 flash_message = 'Bộ thẻ mới đã được tạo thành công!'
                 flash_category = 'success'
-            
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -158,13 +150,11 @@ def add_flashcard_set():
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
-        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': flash_category == 'success', 'message': flash_message})
         else:
             flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
-    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
@@ -175,25 +165,21 @@ def add_flashcard_set():
 @login_required
 def edit_flashcard_set(set_id):
     flashcard_set = LearningContainer.query.get_or_404(set_id)
-
     if current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         abort(403)
-
     form = FlashcardSetForm(obj=flashcard_set)
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
         temp_filepath = None
-
         try:
             flashcard_set.title = form.title.data
             flashcard_set.description = form.description.data
             flashcard_set.tags = form.tags.data
             flashcard_set.is_public = form.is_public.data
             flashcard_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
-
             if form.excel_file.data and form.excel_file.data.filename != '':
                 excel_file = form.excel_file.data
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
@@ -234,13 +220,11 @@ def edit_flashcard_set(set_id):
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
-        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': flash_category == 'success', 'message': flash_message})
         else:
             flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
-    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
@@ -353,7 +337,12 @@ def edit_flashcard_item(set_id, item_id):
     if request.method == 'GET':
         form.front.data = flashcard_item.content.get('front')
         form.back.data = flashcard_item.content.get('back')
-        # ... điền các trường khác
+        form.front_audio_content.data = flashcard_item.content.get('front_audio_content')
+        form.front_audio_url.data = flashcard_item.content.get('front_audio_url')
+        form.back_audio_content.data = flashcard_item.content.get('back_audio_content')
+        form.back_audio_url.data = flashcard_item.content.get('back_audio_url')
+        form.front_img.data = flashcard_item.content.get('front_img')
+        form.back_img.data = flashcard_item.content.get('back_img')
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Sửa Thẻ')
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Sửa Thẻ')

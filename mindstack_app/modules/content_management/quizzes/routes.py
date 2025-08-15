@@ -1,7 +1,6 @@
 # File: newmindstack/mindstack_app/modules/content_management/quizzes/routes.py
-# Phiên bản: 3.23
-# ĐÃ SỬA: Cập nhật logic import Excel để lưu content của LearningGroup
-#         với key là tên cột gốc từ file Excel (passage_text, question_audio_file...).
+# Phiên bản: 3.24
+# ĐÃ SỬA: Cập nhật hàm list_quiz_sets để hỗ trợ tìm kiếm theo trường cụ thể.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
@@ -50,6 +49,8 @@ def process_excel_info():
 def list_quiz_sets():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
+    search_field = request.args.get('search_field', 'all', type=str)
+
     base_query = LearningContainer.query.filter_by(container_type='QUIZ_SET')
     if current_user.user_role != 'admin':
         user_id = current_user.user_id
@@ -59,8 +60,14 @@ def list_quiz_sets():
             ContainerContributor.permission_level == 'editor'
         )
         base_query = created_sets_query.union(contributed_sets_query)
-    search_fields = [LearningContainer.title, LearningContainer.description, LearningContainer.tags]
-    base_query = apply_search_filter(base_query, search_query, search_fields)
+        
+    search_field_map = {
+        'title': LearningContainer.title,
+        'description': LearningContainer.description,
+        'tags': LearningContainer.tags
+    }
+    base_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
+
     pagination = get_pagination_data(base_query.order_by(LearningContainer.created_at.desc()), page)
     quiz_sets = pagination.items
     for set_item in quiz_sets:
@@ -68,10 +75,18 @@ def list_quiz_sets():
             container_id=set_item.container_id,
             item_type='QUIZ_MCQ'
         ).count()
+
+    template_vars = {
+        'quiz_sets': quiz_sets, 
+        'pagination': pagination, 
+        'search_query': search_query,
+        'search_field': search_field
+    }
+
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('_quiz_sets_list.html', quiz_sets=quiz_sets, pagination=pagination, search_query=search_query)
+        return render_template('_quiz_sets_list.html', **template_vars)
     else:
-        return render_template('quiz_sets.html', quiz_sets=quiz_sets, pagination=pagination, search_query=search_query)
+        return render_template('quiz_sets.html', **template_vars)
 
 @quizzes_bp.route('/quizzes/add', methods=['GET', 'POST'])
 @login_required
@@ -93,32 +108,24 @@ def add_quiz_set():
             )
             db.session.add(new_set)
             db.session.flush()
-
             if form.excel_file.data and form.excel_file.data.filename != '':
                 excel_file = form.excel_file.data
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                     excel_file.save(tmp_file.name)
                     temp_filepath = tmp_file.name
-                
                 df = pd.read_excel(temp_filepath, sheet_name='Data')
-                
                 group_cache = {}
                 items_added_count = 0
-
                 for index, row in df.iterrows():
                     passage_order = str(row['passage_order']) if 'passage_order' in df.columns and pd.notna(row['passage_order']) else None
                     group_db_id = None
-
                     if passage_order:
                         passage_text = str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None
                         audio_file = str(row['question_audio_file']) if 'question_audio_file' in df.columns and pd.notna(row['question_audio_file']) else None
                         image_file = str(row['question_image_file']) if 'question_image_file' in df.columns and pd.notna(row['question_image_file']) else None
-                        
                         group_key = None
                         group_content = {}
                         group_type = ''
-
-                        # SỬA LOGIC LƯU CONTENT CHO GROUP TẠI ĐÂY
                         if passage_text:
                             group_key = passage_text
                             group_content['passage_text'] = passage_text
@@ -131,7 +138,6 @@ def add_quiz_set():
                             group_key = image_file
                             group_content['question_image_file'] = image_file
                             group_type = 'IMAGE'
-
                         if group_key:
                             if group_key not in group_cache:
                                 new_group = LearningGroup(
@@ -145,16 +151,12 @@ def add_quiz_set():
                                 group_db_id = new_group.group_id
                             else:
                                 group_db_id = group_cache[group_key]
-                    
                     option_a = str(row['option_a']) if 'option_a' in df.columns and pd.notna(row['option_a']) else None
                     option_b = str(row['option_b']) if 'option_b' in df.columns and pd.notna(row['option_b']) else None
                     correct_answer = str(row['correct_answer_text']) if 'correct_answer_text' in df.columns and pd.notna(row['correct_answer_text']) else None
-
                     if not (option_a and option_b and correct_answer):
                         continue
-
                     question_text = str(row['question']) if 'question' in df.columns and pd.notna(row['question']) else ''
-                    
                     item_content = {
                         'question': question_text,
                         'options': {
@@ -168,7 +170,6 @@ def add_quiz_set():
                         'passage_order': passage_order,
                         'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None
                     }
-                    
                     new_item = LearningItem(
                         container_id=new_set.container_id,
                         group_id=group_db_id,
@@ -178,13 +179,11 @@ def add_quiz_set():
                     )
                     db.session.add(new_item)
                     items_added_count += 1
-                
                 flash_message = f'Bộ câu hỏi và {items_added_count} câu hỏi từ Excel đã được tạo thành công!'
                 flash_category = 'success'
             else:
                 flash_message = 'Bộ câu hỏi mới đã được tạo thành công!'
                 flash_category = 'success'
-            
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -194,13 +193,11 @@ def add_quiz_set():
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
-        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': flash_category == 'success', 'message': flash_message})
         else:
             flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
-    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
@@ -293,9 +290,7 @@ def edit_quiz_item(set_id, item_id):
     quiz_set = LearningContainer.query.get_or_404(set_id)
     if current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
         abort(403)
-    
     form = QuizItemForm()
-
     if request.method == 'GET':
         form.question.data = quiz_item.content.get('question')
         form.option_a.data = quiz_item.content.get('options', {}).get('A')
@@ -307,7 +302,6 @@ def edit_quiz_item(set_id, item_id):
         form.pre_question_text.data = quiz_item.content.get('pre_question_text')
         form.passage_text.data = quiz_item.content.get('passage_text')
         form.passage_order.data = quiz_item.content.get('passage_order')
-
     if form.validate_on_submit():
         quiz_item.content['question'] = form.question.data
         quiz_item.content['options']['A'] = form.option_a.data
@@ -319,13 +313,10 @@ def edit_quiz_item(set_id, item_id):
         quiz_item.content['pre_question_text'] = form.pre_question_text.data
         quiz_item.content['passage_text'] = form.passage_text.data
         quiz_item.content['passage_order'] = form.passage_order.data
-        
         flag_modified(quiz_item, "content")
-        
         db.session.commit()
         flash('Câu hỏi đã được cập nhật!', 'success')
         return redirect(url_for('.list_quiz_items', set_id=set_id))
-
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_quiz_item_bare.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')
     return render_template('add_edit_quiz_item.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')

@@ -1,13 +1,29 @@
 {# File: Mindstack/web/mindstack_app/templates/includes/_search_form.html #}
-{# Phiên bản 2.0: Đã thêm set_id để tương thích với các trang chi tiết #}
+{# Phiên bản 3.1: Đã cập nhật để nhận một dictionary các tùy chọn tìm kiếm động. #}
 
-{% macro render_search_form(search_query=None, placeholder="Tìm kiếm...", set_id=None) %}
-<form method="GET" action="{{ url_for(request.endpoint, set_id=set_id) }}" class="flex items-center space-x-2">
+{% macro render_search_form(search_query=None, search_field='all', placeholder="Tìm kiếm...", set_id=None, search_options=None) %}
+<form method="GET" action="{{ url_for(request.endpoint, set_id=set_id) }}" class="flex items-stretch space-x-2">
+    
+    {# Ô chọn trường tìm kiếm (hiện được tạo động) #}
+    <select name="search_field" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">
+        {% if search_options %}
+            {% for value, display_text in search_options.items() %}
+                <option value="{{ value }}" {% if search_field == value %}selected{% endif %}>{{ display_text }}</option>
+            {% endfor %}
+        {% else %}
+            {# Fallback nếu không có search_options được cung cấp #}
+            <option value="all" {% if search_field == 'all' %}selected{% endif %}>Tất cả</option>
+        {% endif %}
+    </select>
+
+    {# Ô nhập liệu #}
     <input type="text" name="q" value="{{ search_query if search_query else '' }}" 
            placeholder="{{ placeholder }}" 
            class="block w-64 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+    
+    {# Nút tìm kiếm #}
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
-        <i class="fas fa-search"></i> Tìm kiếm
+        <i class="fas fa-search"></i>
     </button>
 </form>
 {% endmacro %}
