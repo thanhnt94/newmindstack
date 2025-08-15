@@ -1,6 +1,9 @@
 # File: mindstack_app/modules/learning/quiz_learning/session_manager.py
-# Phiên bản: 1.9
+# Phiên bản: 1.11
 # Mục đích: Quản lý trạng thái của phiên học Quiz hiện tại cho người dùng.
+# ĐÃ SỬA: Khắc phục lỗi "all_item_ids" is not defined trong start_new_quiz_session.
+# ĐÃ SỬA: Thêm phương thức __init__, from_dict, và to_dict để quản lý trạng thái phiên dưới dạng đối tượng.
+# ĐÃ SỬA: Điều chỉnh các phương thức static hiện có để hoạt động với instance của QuizSessionManager.
 # ĐÃ SỬA: Hỗ trợ làm bài theo nhóm câu hỏi.
 # ĐÃ SỬA: Phương thức get_current_question_data trả về một nhóm câu hỏi.
 # ĐÃ SỬA: Phương thức process_answer nhận và xử lý nhiều đáp án.
@@ -26,8 +29,64 @@ class QuizSessionManager:
     """
     SESSION_KEY = 'quiz_session'
 
-    @staticmethod
-    def start_new_quiz_session(set_id, mode, batch_size):
+    def __init__(self, user_id, set_id, mode, batch_size, all_item_ids, 
+                 current_batch_start_index, total_items_in_session, 
+                 correct_answers, incorrect_answers, start_time, common_pre_question_text_global):
+        """
+        Khởi tạo một phiên QuizSessionManager.
+        """
+        self.user_id = user_id
+        self.set_id = set_id
+        self.mode = mode
+        self.batch_size = batch_size
+        self.all_item_ids = all_item_ids
+        self.current_batch_start_index = current_batch_start_index
+        self.total_items_in_session = total_items_in_session
+        self.correct_answers = correct_answers
+        self.incorrect_answers = incorrect_answers
+        self.start_time = start_time
+        self.common_pre_question_text_global = common_pre_question_text_global
+        current_app.logger.debug(f"QuizSessionManager: Instance được khởi tạo/tải. User: {self.user_id}, Set: {self.set_id}, Mode: {self.mode}")
+
+    @classmethod
+    def from_dict(cls, session_dict):
+        """
+        Tạo một instance QuizSessionManager từ một dictionary (thường từ Flask session).
+        """
+        return cls(
+            user_id=session_dict['user_id'],
+            set_id=session_dict['set_id'],
+            mode=session_dict['mode'],
+            batch_size=session_dict['batch_size'],
+            all_item_ids=session_dict['all_item_ids'],
+            current_batch_start_index=session_dict['current_batch_start_index'],
+            total_items_in_session=session_dict['total_items_in_session'],
+            correct_answers=session_dict['correct_answers'],
+            incorrect_answers=session_dict['incorrect_answers'],
+            start_time=session_dict['start_time'],
+            common_pre_question_text_global=session_dict['common_pre_question_text_global']
+        )
+
+    def to_dict(self):
+        """
+        Chuyển đổi instance QuizSessionManager thành một dictionary để lưu vào Flask session.
+        """
+        return {
+            'user_id': self.user_id,
+            'set_id': self.set_id,
+            'mode': self.mode,
+            'batch_size': self.batch_size,
+            'all_item_ids': self.all_item_ids,
+            'current_batch_start_index': self.current_batch_start_index,
+            'total_items_in_session': self.total_items_in_session,
+            'correct_answers': self.correct_answers,
+            'incorrect_answers': self.incorrect_answers,
+            'start_time': self.start_time,
+            'common_pre_question_text_global': self.common_pre_question_text_global
+        }
+
+    @classmethod
+    def start_new_quiz_session(cls, set_id, mode, batch_size):
         """
         Khởi tạo một phiên học Quiz mới.
         Lấy danh sách câu hỏi dựa trên chế độ và số lượng yêu cầu.
@@ -61,7 +120,7 @@ class QuizSessionManager:
         current_app.logger.debug(f"SessionManager: Chế độ '{mode}' tìm thấy {len(all_items_for_session_objects)} câu hỏi tổng cộng.")
 
         if not all_items_for_session_objects:
-            QuizSessionManager.end_quiz_session()
+            cls.end_quiz_session() # Sử dụng cls.end_quiz_session
             print(">>> SESSION_MANAGER: Không có câu hỏi nào được tìm thấy cho phiên học mới. <<<")
             current_app.logger.warning("SessionManager: Không có câu hỏi nào được tìm thấy cho phiên học mới.")
             return False
@@ -76,47 +135,43 @@ class QuizSessionManager:
             common_pre_question_text_global = global_pre_texts[0]
             print(f">>> SESSION_MANAGER: Phát hiện common_pre_question_text_global: '{common_pre_question_text_global}' <<<")
 
-        session[QuizSessionManager.SESSION_KEY] = {
-            'set_id': set_id,
-            'mode': mode,
-            'batch_size': batch_size, # Lưu batch_size vào session (số câu hiển thị mỗi lần)
-            'all_item_ids': [item.item_id for item in all_items_for_session_objects], # Tất cả ID câu hỏi của phiên
-            'current_batch_start_index': 0, # Index bắt đầu của nhóm câu hỏi hiện tại
-            'total_items_in_session': len(all_items_for_session_objects), # Tổng số câu thực tế trong phiên
-            'correct_answers': 0,
-            'incorrect_answers': 0,
-            'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            'common_pre_question_text_global': common_pre_question_text_global # Lưu vào session
-        }
+        # Tạo instance của QuizSessionManager và lưu vào session
+        new_session_manager = cls(
+            user_id=user_id,
+            set_id=set_id,
+            mode=mode,
+            batch_size=batch_size,
+            all_item_ids=[item.item_id for item in all_items_for_session_objects],
+            current_batch_start_index=0,
+            total_items_in_session=len(all_items_for_session_objects),
+            correct_answers=0,
+            incorrect_answers=0,
+            start_time=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            common_pre_question_text_global=common_pre_question_text_global
+        )
+        session[cls.SESSION_KEY] = new_session_manager.to_dict() # Lưu dictionary của instance vào session
+        session.modified = True # Đảm bảo session được đánh dấu là đã thay đổi để lưu
+
+        # SỬA LỖI: Thay thế all_item_ids bằng all_items_for_session_objects
         print(f">>> SESSION_MANAGER: Phiên học mới đã được khởi tạo với {len(all_items_for_session_objects)} câu hỏi. Batch size: {batch_size} <<<")
         current_app.logger.debug(f"SessionManager: Phiên học mới đã được khởi tạo với {len(all_items_for_session_objects)} câu hỏi. Batch size: {batch_size}")
         return True
 
-    @staticmethod
-    def get_current_question_batch():
+    def get_next_batch(self, requested_batch_size):
         """
-        Lấy dữ liệu của nhóm câu hỏi hiện tại trong phiên, có xử lý nhóm câu hỏi phức hợp.
+        Lấy dữ liệu của nhóm câu hỏi tiếp theo trong phiên, có xử lý nhóm câu hỏi phức hợp.
         Sẽ lấy N câu hỏi đơn hoặc N nhóm câu hỏi (nếu câu đầu tiên là nhóm).
+
+        Args:
+            requested_batch_size (int): Kích thước nhóm câu hỏi yêu cầu.
 
         Returns:
             dict/None: Dữ liệu nhóm câu hỏi nếu có, None nếu phiên không hợp lệ hoặc hết câu.
         """
-        quiz_session = session.get(QuizSessionManager.SESSION_KEY)
-        if not quiz_session:
-            print(">>> SESSION_MANAGER: Không tìm thấy phiên học trong session khi lấy nhóm câu hỏi. <<<")
-            current_app.logger.debug("SessionManager: Không tìm thấy phiên học trong session.")
-            return None
+        print(f">>> SESSION_MANAGER: Lấy nhóm câu hỏi: current_batch_start_index={self.current_batch_start_index}, total_items_in_session={self.total_items_in_session}, requested_batch_size={requested_batch_size} <<<")
+        current_app.logger.debug(f"SessionManager: Lấy nhóm câu hỏi: current_batch_start_index={self.current_batch_start_index}, total_items_in_session={self.total_items_in_session}, requested_batch_size={requested_batch_size}")
 
-        current_batch_start_index = quiz_session.get('current_batch_start_index', 0)
-        all_item_ids = quiz_session.get('all_item_ids', [])
-        total_items_in_session = quiz_session.get('total_items_in_session', 0)
-        requested_batch_size = quiz_session.get('batch_size', 10) # Lấy batch_size từ session
-        common_pre_question_text_global = quiz_session.get('common_pre_question_text_global', None) # Lấy global pre-text
-        
-        print(f">>> SESSION_MANAGER: Lấy nhóm câu hỏi: current_batch_start_index={current_batch_start_index}, total_items_in_session={total_items_in_session}, requested_batch_size={requested_batch_size} <<<")
-        current_app.logger.debug(f"SessionManager: Lấy nhóm câu hỏi: current_batch_start_index={current_batch_start_index}, total_items_in_session={total_items_in_session}, requested_batch_size={requested_batch_size}")
-
-        if current_batch_start_index >= total_items_in_session:
+        if self.current_batch_start_index >= self.total_items_in_session:
             print(">>> SESSION_MANAGER: Hết nhóm câu hỏi trong phiên. <<<")
             current_app.logger.debug("SessionManager: Hết nhóm câu hỏi trong phiên.")
             return None # Hết câu hỏi
@@ -129,10 +184,10 @@ class QuizSessionManager:
         # Lặp để thu thập đủ số lượng "main entries" (câu hỏi đơn hoặc nhóm câu hỏi)
         # hoặc cho đến khi hết câu hỏi trong phiên
         current_collected_entries = 0
-        current_scan_index = current_batch_start_index
+        current_scan_index = self.current_batch_start_index
 
-        while current_collected_entries < requested_batch_size and current_scan_index < total_items_in_session:
-            item_id_to_check = all_item_ids[current_scan_index]
+        while current_collected_entries < requested_batch_size and current_scan_index < self.total_items_in_session:
+            item_id_to_check = self.all_item_ids[current_scan_index]
             item_to_check = LearningItem.query.get(item_id_to_check)
 
             if not item_to_check:
@@ -153,7 +208,7 @@ class QuizSessionManager:
                         items_in_group_query = LearningItem.query.filter(
                             LearningItem.group_id == group.group_id,
                             LearningItem.item_type == 'QUIZ_MCQ',
-                            LearningItem.item_id.in_(all_item_ids) # Đảm bảo chỉ lấy các item có trong phiên hiện tại
+                            LearningItem.item_id.in_(self.all_item_ids) # Đảm bảo chỉ lấy các item có trong phiên hiện tại
                         ).order_by(LearningItem.order_in_container).all()
 
                         for item in items_in_group_query:
@@ -184,7 +239,6 @@ class QuizSessionManager:
                     print(f">>> SESSION_MANAGER: Item {item_id_to_check} thuộc nhóm đã xử lý. Bỏ qua. <<<")
             else:
                 # Câu hỏi đơn lẻ
-                # SỬA LỖI: Đổi item_to_to_check thành item_to_check
                 items_data.append({
                     'item_id': item_to_check.item_id,
                     'content': item_to_check.content,
@@ -206,15 +260,13 @@ class QuizSessionManager:
 
         return {
             'items': items_data,
-            # 'group_content': group_content, # Không còn cần thiết ở đây, đã chuyển vào từng item
-            'common_pre_question_text_global': common_pre_question_text_global, # Văn bản pre-question chung toàn phiên
-            'start_index': current_batch_start_index,
-            'total_items_in_session': total_items_in_session,
+            'common_pre_question_text_global': self.common_pre_question_text_global, # Văn bản pre-question chung toàn phiên
+            'start_index': self.current_batch_start_index,
+            'total_items_in_session': self.total_items_in_session,
             'actual_batch_item_count': len(items_data) # Số lượng item thực tế trong batch này
         }
 
-    @staticmethod
-    def process_answer_batch(answers):
+    def process_answer_batch(self, answers):
         """
         Xử lý một danh sách các câu trả lời của người dùng cho một nhóm câu hỏi,
         cập nhật tiến độ và session.
@@ -227,11 +279,7 @@ class QuizSessionManager:
         """
         print(f">>> SESSION_MANAGER: Bắt đầu process_answer_batch với {len(answers)} đáp án. <<<")
         current_app.logger.debug(f"SessionManager: Bắt đầu process_answer_batch với {len(answers)} đáp án.")
-        quiz_session = session.get(QuizSessionManager.SESSION_KEY)
-        if not quiz_session:
-            print(">>> SESSION_MANAGER: LỖI - Phiên không hợp lệ khi xử lý nhóm đáp án. <<<")
-            return [{'error': 'Invalid session'}]
-
+        
         results = []
         actual_items_processed_in_batch = 0 # Số lượng item thực tế được xử lý trong batch này
 
@@ -250,10 +298,10 @@ class QuizSessionManager:
             explanation = item.content.get('explanation') or item.ai_explanation # Ưu tiên giải thích thủ công
 
             # Cập nhật UserProgress
-            progress = UserProgress.query.filter_by(user_id=current_user.user_id, item_id=item_id).first()
+            progress = UserProgress.query.filter_by(user_id=self.user_id, item_id=item_id).first() # Sử dụng self.user_id
             if not progress:
-                print(f">>> SESSION_MANAGER: Tạo UserProgress mới cho user {current_user.user_id}, item {item_id} <<<")
-                progress = UserProgress(user_id=current_user.user_id, item_id=item_id)
+                print(f">>> SESSION_MANAGER: Tạo UserProgress mới cho user {self.user_id}, item {item_id} <<<")
+                progress = UserProgress(user_id=self.user_id, item_id=item_id)
                 db.session.add(progress)
                 progress.first_seen_timestamp = func.now()
 
@@ -261,11 +309,13 @@ class QuizSessionManager:
                 progress.correct_streak = (progress.correct_streak or 0) + 1
                 progress.incorrect_streak = 0
                 progress.times_correct = (progress.times_correct or 0) + 1
+                self.correct_answers += 1 # Cập nhật thuộc tính của instance
                 print(f">>> SESSION_MANAGER: Câu trả lời đúng. Correct streak: {progress.correct_streak} <<<")
             else:
                 progress.correct_streak = 0
                 progress.incorrect_streak = (progress.incorrect_streak or 0) + 1
                 progress.times_incorrect = (progress.times_incorrect or 0) + 1
+                self.incorrect_answers += 1 # Cập nhật thuộc tính của instance
                 print(f">>> SESSION_MANAGER: Câu trả lời sai. Incorrect streak: {progress.incorrect_streak} <<<")
             
             if is_correct:
@@ -280,12 +330,6 @@ class QuizSessionManager:
             db.session.commit()
             print(f">>> SESSION_MANAGER: UserProgress cập nhật cho item {item_id}. Correct: {is_correct}, Memory Score: {progress.memory_score} <<<")
 
-            # Cập nhật session tổng
-            if is_correct:
-                quiz_session['correct_answers'] += 1
-            else:
-                quiz_session['incorrect_answers'] += 1
-            
             results.append({
                 'item_id': item_id,
                 'is_correct': is_correct,
@@ -295,30 +339,30 @@ class QuizSessionManager:
             actual_items_processed_in_batch += 1 # Đếm số item đã xử lý
 
         # Tăng current_batch_start_index sau khi xử lý toàn bộ nhóm
-        quiz_session['current_batch_start_index'] += actual_items_processed_in_batch # Tăng theo số lượng câu hỏi thực tế trong batch
+        self.current_batch_start_index += actual_items_processed_in_batch # Tăng theo số lượng câu hỏi thực tế trong batch
+        session[self.SESSION_KEY] = self.to_dict() # Lưu lại trạng thái cập nhật vào session
         session.modified = True 
-        print(f">>> SESSION_MANAGER: Nhóm đáp án đã xử lý. current_batch_start_index: {quiz_session['current_batch_start_index']} <<<")
+        print(f">>> SESSION_MANAGER: Nhóm đáp án đã xử lý. current_batch_start_index: {self.current_batch_start_index} <<<")
 
         return results
 
-    @staticmethod
-    def end_quiz_session():
+    @classmethod
+    def end_quiz_session(cls):
         """
         Kết thúc phiên học Quiz hiện tại và xóa dữ liệu khỏi session.
         """
-        if QuizSessionManager.SESSION_KEY in session:
-            session.pop(QuizSessionManager.SESSION_KEY, None)
+        if cls.SESSION_KEY in session:
+            session.pop(cls.SESSION_KEY, None)
             print(">>> SESSION_MANAGER: Phiên học đã kết thúc và xóa khỏi session. <<<")
             current_app.logger.debug("SessionManager: Phiên học đã kết thúc và xóa khỏi session.")
         return {'message': 'Phiên học đã kết thúc.'}
 
-    @staticmethod
-    def get_session_status():
+    @classmethod
+    def get_session_status(cls):
         """
         Lấy trạng thái hiện tại của phiên học.
         """
-        status = session.get(QuizSessionManager.SESSION_KEY)
+        status = session.get(cls.SESSION_KEY)
         print(f">>> SESSION_MANAGER: Lấy trạng thái session: {status} <<<")
         current_app.logger.debug(f"SessionManager: Lấy trạng thái session: {status}")
         return status
-

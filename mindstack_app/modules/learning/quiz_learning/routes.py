@@ -1,13 +1,20 @@
-# File: newmindstack/mindstack_app/modules/learning/quiz_learning/routes.py
-# Phiên bản: 1.44
+# File: mindstack_app/modules/learning/quiz_learning/routes.py
+# Phiên bản: 1.49
 # Mục đích: Định nghĩa các routes và logic cho module học Quiz.
+# ĐÃ SỬA: Khắc phục lỗi "session" is not defined bằng cách import 'session' từ Flask.
+# ĐÃ SỬA: Khắc phục AttributeError: type object 'QuizSessionManager' has no attribute 'get_session_manager'
+#         bằng cách sử dụng QuizSessionManager.from_dict(session['quiz_session']) để lấy session_manager.
+# ĐÃ SỬA: Thêm kiểm tra sự tồn tại của 'quiz_session' trong session trước khi truy cập.
 # ĐÃ SỬA: Hỗ trợ làm bài theo nhóm câu hỏi.
 # ĐÃ SỬA: Endpoint get_question đổi thành get_question_batch.
 # ĐÃ SỬA: Endpoint submit_answer đổi thành submit_answer_batch.
 # ĐÃ SỬA: Đổi tên tham số session_size thành batch_size trong các route bắt đầu phiên học.
 # ĐÃ SỬA: Truyền batch_size vào QuizSessionManager.start_new_quiz_session.
+# ĐÃ SỬA: Chuyển đổi đường dẫn file media (ảnh, audio) thành URL tuyệt đối
+#         khi trả về dữ liệu câu hỏi cho frontend trong hàm get_question_batch.
+# ĐÃ SỬA: Thêm log chi tiết để debug đường dẫn file media trong get_question_batch.
 
-from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash
+from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session # THAY ĐỔI: Thêm 'session'
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from ....models import db, LearningContainer, LearningItem, UserProgress, ContainerContributor
@@ -17,6 +24,7 @@ from sqlalchemy.sql import func
 import traceback
 from .algorithms import get_new_only_items, get_reviewed_items, get_hard_items
 from .session_manager import QuizSessionManager
+import os # Import os để xử lý đường dẫn
 
 quiz_learning_bp = Blueprint('quiz_learning', __name__,
                              template_folder='templates')
@@ -113,7 +121,7 @@ def quiz_session():
     """
     Hiển thị giao diện làm bài Quiz.
     """
-    if not QuizSessionManager.get_session_status():
+    if 'quiz_session' not in session: # Kiểm tra session
         flash('Không có phiên học Quiz nào đang hoạt động. Vui lòng chọn bộ Quiz để bắt đầu.', 'info')
         return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
     return render_template('quiz_session.html')
@@ -124,11 +132,88 @@ def get_question_batch():
     """
     Trả về dữ liệu nhóm câu hỏi tiếp theo trong phiên học hiện tại.
     """
-    batch_data = QuizSessionManager.get_current_question_batch()
-    if batch_data:
-        return jsonify(batch_data)
-    else:
-        return jsonify({'message': 'Phiên học đã kết thúc hoặc không có câu hỏi nào còn lại.'}), 404
+    current_app.logger.debug("--- Bắt đầu get_question_batch ---")
+    if 'quiz_session' not in session: # Kiểm tra session
+        current_app.logger.warning("Phiên học không hợp lệ hoặc đã kết thúc khi gọi get_question_batch.")
+        return jsonify({'message': 'Phiên học không hợp lệ hoặc đã kết thúc.'}), 404
+
+    session_manager = QuizSessionManager.from_dict(session['quiz_session']) # SỬA: Lấy manager từ session
+    batch_size = current_app.config.get('ITEMS_PER_PAGE', 10) # Lấy kích thước batch từ config
+
+    try:
+        question_batch = session_manager.get_next_batch(batch_size)
+        session['quiz_session'] = session_manager.to_dict() # Cập nhật session sau khi lấy batch
+        
+        # Chuyển đổi đường dẫn media thành URL tuyệt đối
+        processed_items = []
+        for item_data in question_batch['items']:
+            current_app.logger.debug(f"Đang xử lý item_id: {item_data.get('item_id')}")
+
+            # Xử lý media cho từng LearningItem (câu hỏi con)
+            if item_data['content'].get('question_image_file'):
+                original_path = item_data['content']['question_image_file']
+                # Đảm bảo đường dẫn không bắt đầu bằng '/' nếu không phải là đường dẫn tuyệt đối
+                # Flask static sẽ xử lý đường dẫn tương đối từ static_folder
+                if original_path.startswith('/'):
+                    # Nếu đường dẫn đã là tuyệt đối, loại bỏ '/' đầu tiên
+                    # và giả định nó nằm trong thư mục gốc của static_folder (uploads)
+                    joined_path = original_path[1:]
+                else:
+                    # Nếu là tên file đơn giản, nối với thư mục 'images'
+                    joined_path = os.path.join('images', original_path)
+                
+                full_url = url_for('static', filename=joined_path)
+                item_data['content']['question_image_file'] = full_url
+                current_app.logger.debug(f"  IMAGE (Item) - Gốc: '{original_path}', Nối: '{joined_path}', URL: '{full_url}'")
+            if item_data['content'].get('question_audio_file'):
+                original_path = item_data['content']['question_audio_file']
+                if original_path.startswith('/'):
+                    joined_path = original_path[1:]
+                else:
+                    joined_path = os.path.join('audio', original_path)
+                full_url = url_for('static', filename=joined_path)
+                item_data['content']['question_audio_file'] = full_url
+                current_app.logger.debug(f"  AUDIO (Item) - Gốc: '{original_path}', Nối: '{joined_path}', URL: '{full_url}'")
+            
+            # Xử lý media cho LearningGroup (nếu có)
+            if item_data.get('group_details'):
+                current_app.logger.debug(f"  Đang xử lý group_details cho item_id: {item_data.get('item_id')}")
+                if item_data['group_details'].get('question_image_file'):
+                    original_path = item_data['group_details']['question_image_file']
+                    if original_path.startswith('/'):
+                        joined_path = original_path[1:]
+                    else:
+                        joined_path = os.path.join('images', original_path)
+                    full_url = url_for('static', filename=joined_path)
+                    item_data['group_details']['question_image_file'] = full_url
+                    current_app.logger.debug(f"  IMAGE (Group) - Gốc: '{original_path}', Nối: '{joined_path}', URL: '{full_url}'")
+                if item_data['group_details'].get('question_audio_file'):
+                    original_path = item_data['group_details']['question_audio_file']
+                    if original_path.startswith('/'):
+                        joined_path = original_path[1:]
+                    else:
+                        joined_path = os.path.join('audio', original_path)
+                    full_url = url_for('static', filename=joined_path)
+                    item_data['group_details']['question_audio_file'] = full_url
+                    current_app.logger.debug(f"  AUDIO (Group) - Gốc: '{original_path}', Nối: '{joined_path}', URL: '{full_url}'")
+            
+            processed_items.append(item_data)
+        
+        question_batch['items'] = processed_items
+        current_app.logger.debug("--- Kết thúc get_question_batch (Thành công) ---")
+        return jsonify(question_batch)
+
+    except IndexError:
+        # Hết câu hỏi trong phiên
+        session_manager.end_session() # Đảm bảo phiên được kết thúc
+        # session.pop('quiz_session', None) # Đã được xử lý trong end_session()
+        current_app.logger.info(f"Phiên học Quiz cho người dùng {current_user.user_id} đã kết thúc do hết câu hỏi.")
+        current_app.logger.debug("--- Kết thúc get_question_batch (Hết câu hỏi) ---")
+        return jsonify({'message': 'Bạn đã hoàn thành tất cả các câu hỏi trong phiên học này!'}), 404
+    except Exception as e:
+        current_app.logger.error(f"LỖI NGHIÊM TRỌNG khi lấy nhóm câu hỏi: {e}", exc_info=True)
+        current_app.logger.debug("--- Kết thúc get_question_batch (LỖI) ---")
+        return jsonify({'message': f'Lỗi khi tải câu hỏi: {str(e)}'}), 500
 
 @quiz_learning_bp.route('/submit_answer_batch', methods=['POST'])
 @login_required
@@ -136,15 +221,30 @@ def submit_answer_batch():
     """
     Nhận một danh sách các câu trả lời của người dùng, xử lý và cập nhật tiến độ.
     """
+    current_app.logger.debug("--- Bắt đầu submit_answer_batch ---")
     data = request.get_json()
     answers = data.get('answers')
 
     if not answers or not isinstance(answers, list):
+        current_app.logger.warning("Dữ liệu đáp án không hợp lệ khi submit_answer_batch.")
         return jsonify({'error': 'Dữ liệu đáp án không hợp lệ.'}), 400
 
-    results = QuizSessionManager.process_answer_batch(answers)
+    if 'quiz_session' not in session: # Kiểm tra session
+        current_app.logger.warning("Không tìm thấy phiên học trong session khi submit_answer_batch.")
+        return jsonify({'message': 'Phiên học không hợp lệ hoặc đã kết thúc.'}), 400
+
+    session_manager = QuizSessionManager.from_dict(session['quiz_session']) # SỬA: Lấy manager từ session
+    if not session_manager:
+        current_app.logger.warning("Không tìm thấy SessionManager khi submit_answer_batch.")
+        return jsonify({'message': 'Phiên học không hợp lệ hoặc đã kết thúc.'}), 400
+
+    results = session_manager.process_answer_batch(answers)
     if 'error' in results:
+        current_app.logger.error(f"Lỗi trong quá trình process_answer_batch: {results.get('error')}")
         return jsonify(results), 400
+    
+    session['quiz_session'] = session_manager.to_dict() # Cập nhật session sau khi xử lý đáp án
+    current_app.logger.debug("--- Kết thúc submit_answer_batch (Thành công) ---")
     return jsonify(results)
 
 @quiz_learning_bp.route('/end_session', methods=['POST'])
@@ -153,7 +253,10 @@ def end_session():
     """
     Kết thúc phiên học Quiz hiện tại.
     """
+    current_app.logger.debug("--- Bắt đầu end_session ---")
     result = QuizSessionManager.end_quiz_session()
+    current_app.logger.info(f"Phiên học Quiz cho người dùng {current_user.user_id} đã kết thúc theo yêu cầu. Kết quả: {result.get('message')}")
+    current_app.logger.debug("--- Kết thúc end_session ---")
     return jsonify(result)
 
 @quiz_learning_bp.route('/get_quiz_sets_partial', methods=['GET'])
@@ -163,7 +266,7 @@ def get_quiz_sets_partial():
     Trả về partial HTML chứa danh sách các bộ Quiz, có hỗ trợ tìm kiếm và phân trang.
     """
     current_app.logger.debug(">>> Bắt đầu thực thi get_quiz_sets_partial <<<")
-    print(">>> PYTHON: Hàm get_quiz_sets_partial đã được gọi! <<<")
+    # print(">>> PYTHON: Hàm get_quiz_sets_partial đã được gọi! <<<") # Commented out for cleaner logs
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
     search_field = request.args.get('search_field', 'all', type=str)
@@ -270,4 +373,3 @@ def get_quiz_sets_partial():
         current_app.logger.error(f"LỖI NGHIÊM TRỌNG khi tải danh sách bộ Quiz qua AJAX: {e}", exc_info=True)
         current_app.logger.debug("<<< Kết thúc thực thi get_quiz_sets_partial (LỖI) >>>")
         return '<p class="text-red-500 text-center py-4">Đã xảy ra lỗi khi tải danh sách bộ câu hỏi. Vui lòng thử lại.</p>', 500
-

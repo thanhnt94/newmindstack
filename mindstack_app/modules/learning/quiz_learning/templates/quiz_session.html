@@ -1,14 +1,11 @@
 <!-- File: mindstack_app/modules/learning/quiz_learning/templates/quiz_session.html -->
-<!-- Phiên bản: 1.9 -->
+<!-- Phiên bản: 1.13 -->
 <!-- Mục đích: Giao diện chính để người dùng làm bài Quiz theo nhóm câu hỏi. -->
-<!-- ĐÃ SỬA: Hiển thị nhiều câu hỏi cùng lúc. -->
-<!-- ĐÃ SỬA: Logic gửi đáp án cho toàn bộ nhóm câu hỏi. -->
-<!-- ĐÃ SỬA: Hiển thị phản hồi cho từng câu hỏi sau khi gửi. -->
-<!-- ĐÃ SỬA: Thay thế @apply bằng các lớp Tailwind CSS đầy đủ để khắc phục lỗi "Unknown at rule @apply". -->
-<!-- ĐÃ SỬA: Logic hiển thị nội dung LearningGroup (đoạn văn, audio, hình ảnh) một lần cho nhóm câu hỏi phức hợp. -->
-<!-- ĐÃ SỬA: Logic hiển thị common_pre_question_text một lần cho nhóm. -->
-<!-- ĐÃ SỬA: Điều chỉnh điều kiện hiển thị media và pre_question_text của câu hỏi con để tránh trùng lặp. -->
-<!-- ĐÃ SỬA: Hiển thị group_content và common_pre_question_text_global đúng thứ tự và không lặp. -->
+<!-- ĐÃ SỬA: Thêm console.log để debug nội dung mediaHtml trước khi chèn vào DOM. -->
+<!-- ĐÃ SỬA: Đảm bảo các thuộc tính onerror được đặt đúng và hiển thị placeholder/thông báo lỗi. -->
+<!-- ĐÃ SỬA: Cho phép hiển thị question_image_file và question_audio_file của từng câu hỏi con, ngay cả khi chúng thuộc một LearningGroup (nếu group_details tồn tại). -->
+<!-- ĐÃ SỬA: Khắc phục vấn đề hiển thị ký tự xuống dòng (CHAR(10)) bằng cách chuyển đổi chúng thành thẻ <br> trong các trường văn bản. -->
+<!-- ĐÃ SỬA: Đảm bảo nội dung được hiển thị an toàn bằng cách escape HTML trước khi chèn vào DOM. -->
 
 {% extends "base.html" %}
 
@@ -157,6 +154,24 @@
         const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}"; // Route mới
         const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
 
+        /**
+         * Chuyển đổi các ký tự đặc biệt trong văn bản thành các thực thể HTML
+         * và chuyển đổi ký tự xuống dòng thành thẻ <br>.
+         * Điều này giúp hiển thị văn bản an toàn và đúng định dạng trong HTML.
+         * @param {string} text - Chuỗi văn bản cần xử lý.
+         * @returns {string} Chuỗi HTML đã được xử lý.
+         */
+        function formatTextForHtml(text) {
+            if (text === null || text === undefined) {
+                return '';
+            }
+            // Tạo một Textarea để HTML escape các ký tự đặc biệt
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = text;
+            // Chuyển đổi ký tự xuống dòng thành <br> sau khi đã escape
+            return tempDiv.innerHTML.replace(/\n/g, '<br>');
+        }
+
         // Hàm hiển thị nhóm câu hỏi
         function displayQuestionBatch(batchData) {
             console.log(">>> Frontend: Dữ liệu batchData nhận được:", batchData); // LOG MỚI
@@ -174,7 +189,7 @@
             if (batchData.common_pre_question_text_global) {
                 fullBatchContentHtml += `
                     <div class="bg-gray-100 p-3 rounded-md mb-4 border border-gray-200">
-                        <p class="text-sm text-gray-600"><strong>Thông tin chung:</strong> ${batchData.common_pre_question_text_global}</p>
+                        <p class="text-sm text-gray-600"><strong>Thông tin chung:</strong> ${formatTextForHtml(batchData.common_pre_question_text_global)}</p>
                     </div>
                 `;
             }
@@ -192,15 +207,17 @@
                             groupSpecificContentHtml += `
                                 <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
                                     <h3 class="text-lg font-semibold text-blue-800 mb-2">Đoạn văn liên quan:</h3>
-                                    <p class="text-gray-700">${group.passage_text}</p>
+                                    <p class="text-gray-700">${formatTextForHtml(group.passage_text)}</p>
                                 </div>
                             `;
                         }
                         if (group.question_image_file) {
-                            groupSpecificContentHtml += `<img src="${group.question_image_file}" alt="Hình ảnh nhóm" class="max-w-full h-auto rounded-md mb-4">`;
+                            console.log(`Đường dẫn ảnh nhóm (Group): ${group.question_image_file}`);
+                            groupSpecificContentHtml += `<img src="${formatTextForHtml(group.question_image_file)}" alt="Hình ảnh nhóm" class="max-w-full h-auto rounded-md mb-4" onerror="this.onerror=null;this.src='https://placehold.co/150x100?text=L%E1%BB%97i+t%E1%BA%A3i+%E1%BA%A3nh+nh%C3%B3m'; console.error('Lỗi tải ảnh nhóm: ${group.question_image_file}')">`;
                         }
                         if (group.question_audio_file) {
-                            groupSpecificContentHtml += `<audio controls src="${group.question_audio_file}" class="w-full mb-4"></audio>`;
+                            console.log(`Đường dẫn audio nhóm (Group): ${group.question_audio_file}`);
+                            groupSpecificContentHtml += `<audio controls src="${formatTextForHtml(group.question_audio_file)}" class="w-full mb-4" onerror="this.onerror=null;this.outerHTML='<p class=\'text-red-500\'>Lỗi tải âm thanh nhóm</p>'; console.error('Lỗi tải audio nhóm: ${group.question_audio_file}')"></audio>`;
                         }
                     }
                     lastDisplayedGroupId = questionData.group_id; // Cập nhật group_id đã hiển thị
@@ -209,17 +226,22 @@
                 // Chỉ hiển thị pre_question_text của câu hỏi con nếu KHÔNG CÓ common_pre_question_text_global
                 if (questionData.content.pre_question_text && !batchData.common_pre_question_text_global) {
                     preQuestionTextHtml += `
-                        <p class="text-sm text-gray-600 mb-2">${questionData.content.pre_question_text}</p>
+                        <p class="text-sm text-gray-600 mb-2">${formatTextForHtml(questionData.content.pre_question_text)}</p>
                     `;
                 }
 
-                // Media của từng câu hỏi con (chỉ hiển thị nếu KHÔNG CÓ group_details)
-                if (questionData.content.question_image_file && !questionData.group_details) { 
-                    mediaHtml += `<img src="${questionData.content.question_image_file}" alt="Hình ảnh câu hỏi" class="max-w-full h-auto rounded-md mb-4">`;
+                // Media của từng câu hỏi con
+                if (questionData.content.question_image_file) { 
+                    console.log(`Đường dẫn ảnh câu hỏi (Item) ${questionData.item_id}: ${questionData.content.question_image_file}`);
+                    mediaHtml += `<img src="${formatTextForHtml(questionData.content.question_image_file)}" alt="Hình ảnh câu hỏi" class="max-w-full h-auto rounded-md mb-4" onerror="this.onerror=null;this.src='https://placehold.co/150x100?text=L%E1%BB%97i+t%E1%BA%A3i+%E1%BA%A3nh+c%C3%A2u+h%E1%BB%8Fi'; console.error('Lỗi tải ảnh câu hỏi: ${questionData.content.question_image_file}')">`;
                 }
-                if (questionData.content.question_audio_file && !questionData.group_details) { 
-                    mediaHtml += `<audio controls src="${questionData.content.question_audio_file}" class="w-full mb-4"></audio>`;
+                if (questionData.content.question_audio_file) { 
+                    console.log(`Đường dẫn audio câu hỏi (Item) ${questionData.item_id}: ${questionData.content.question_audio_file}`);
+                    mediaHtml += `<audio controls src="${formatTextForHtml(questionData.content.question_audio_file)}" class="w-full mb-4" onerror="this.onerror=null;this.outerHTML='<p class=\'text-red-500\'>Lỗi tải âm thanh câu hỏi</p>'; console.error('Lỗi tải audio câu hỏi: ${questionData.content.question_audio_file}')"></audio>`;
                 }
+                
+                console.log(`Nội dung mediaHtml cho item ${questionData.item_id} trước khi chèn:`, mediaHtml);
+
 
                 let optionsHtml = '';
                 const options = questionData.content.options || {}; 
@@ -230,7 +252,7 @@
                         optionsHtml += `
                             <button class="option-button" data-question-id="${questionData.item_id}" data-option="${key}">
                                 <span class="font-bold mr-2">${key}:</span> 
-                                <span>${options[key]}</span>
+                                <span>${formatTextForHtml(options[key])}</span>
                             </button>
                         `;
                     }
@@ -241,7 +263,7 @@
                     <div class="question-card" data-item-id="${questionData.item_id}">
                         <p class="text-gray-500 text-sm mb-2">Câu ${batchData.start_index + index + 1} / ${batchData.total_items_in_session}</p>
                         ${preQuestionTextHtml}
-                        <h2 class="text-xl font-semibold text-gray-800 mb-4">${questionData.content.question}</h2>
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">${formatTextForHtml(questionData.content.question)}</h2>
                         ${mediaHtml}
                         <div class="options-container space-y-3">
                             ${optionsHtml}
@@ -275,7 +297,7 @@
             // Kiểm tra xem người dùng đã chọn đáp án cho tất cả các câu hỏi trong nhóm chưa
             const allAnswered = currentQuestionBatch.every(q => userAnswers.hasOwnProperty(q.item_id));
             if (!allAnswered) {
-                alert("Vui lòng trả lời tất cả các câu hỏi trong nhóm trước khi gửi.");
+                showCustomAlert("Vui lòng trả lời tất cả các câu hỏi trong nhóm trước khi gửi."); // Sử dụng modal alert tùy chỉnh
                 return;
             }
 
@@ -310,11 +332,11 @@
                         if (result.is_correct) {
                             feedbackHtml += `<div class="feedback-box feedback-correct">Đáp án chính xác!</div>`;
                         } else {
-                            feedbackHtml += `<div class="feedback-box feedback-incorrect">Sai rồi. Đáp án đúng là ${result.correct_answer}.</div>`;
+                            feedbackHtml += `<div class="feedback-box feedback-incorrect">Sai rồi. Đáp án đúng là ${formatTextForHtml(result.correct_answer)}.</div>`;
                         }
 
                         if (result.explanation) {
-                            feedbackHtml += `<div class="feedback-explanation"><strong>Giải thích:</strong> ${result.explanation}</div>`;
+                            feedbackHtml += `<div class="feedback-explanation"><strong>Giải thích:</strong> ${formatTextForHtml(result.explanation)}</div>`;
                         }
 
                         feedbackArea.innerHTML = feedbackHtml;
@@ -337,7 +359,7 @@
 
             } catch (error) {
                 console.error('Lỗi khi gửi đáp án nhóm:', error);
-                alert('Có lỗi xảy ra khi gửi đáp án. Vui lòng thử lại.');
+                showCustomAlert('Có lỗi xảy ra khi gửi đáp án. Vui lòng thử lại.'); // Sử dụng modal alert tùy chỉnh
                 isBatchSubmitted = false; // Cho phép thử lại
                 submitBatchBtn.disabled = false; // Kích hoạt lại nút Gửi đáp án
             }
@@ -363,7 +385,7 @@
                             <div class="text-center py-12 px-6 text-gray-600">
                                 <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
                                 <h3 class="text-xl font-semibold text-gray-700 mb-2">Hoàn thành phiên học!</h3>
-                                <p class="text-gray-500">${endMessage.message}</p>
+                                <p class="text-gray-500">${formatTextForHtml(endMessage.message)}</p>
                                 <button id="return-to-dashboard-btn" class="control-button bg-blue-600 text-white hover:bg-blue-700 mt-6">
                                     <i class="fas fa-home mr-2"></i> Quay lại Dashboard
                                 </button>
@@ -391,20 +413,24 @@
             }
         }
 
-        // Hàm kết thúc phiên học
+        /**
+         * Xử lý sự kiện click cho nút Kết thúc phiên học.
+         * Xác nhận với người dùng trước khi gửi yêu cầu kết thúc phiên.
+         */
         endSessionBtn.addEventListener('click', async function() {
-            if (confirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại? Tiến độ của các câu hỏi chưa gửi sẽ không được lưu.')) {
+            // Sử dụng một modal tùy chỉnh thay vì alert/confirm của trình duyệt
+            showCustomConfirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại? Tiến độ của các câu hỏi chưa gửi sẽ không được lưu.', async () => {
                 try {
                     const response = await fetch(endSessionUrl, { method: 'POST' });
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const result = await response.json();
-                    alert(result.message); // Có thể thay bằng modal đẹp hơn
+                    showCustomAlert(result.message); // Sử dụng modal alert tùy chỉnh
                     window.location.href = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
                 } catch (error) {
                     console.error('Lỗi khi kết thúc phiên:', error);
-                    alert('Có lỗi xảy ra khi kết thúc phiên. Vui lòng thử lại.');
+                    showCustomAlert('Có lỗi xảy ra khi kết thúc phiên. Vui lòng thử lại.');
                 }
-            }
+            });
         });
 
         // Gắn listener cho nút Gửi đáp án và Nhóm câu tiếp theo
@@ -416,5 +442,59 @@
             // Tải nhóm câu hỏi đầu tiên
             getNextQuestionBatch();
         });
+
+        // ==============================================================================
+        // HÀM HIỂN THỊ MODAL TÙY CHỈNH THAY THẾ alert() VÀ confirm()
+        // ==============================================================================
+
+        /**
+         * Hiển thị một modal thông báo tùy chỉnh.
+         * @param {string} message - Tin nhắn cần hiển thị.
+         */
+        function showCustomAlert(message) {
+            const modalHtml = `
+                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+                        <p class="text-lg font-semibold text-gray-800 mb-4">${formatTextForHtml(message)}</p>
+                        <button id="custom-alert-ok-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('custom-alert-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-alert-modal').remove();
+            });
+        }
+
+        /**
+         * Hiển thị một modal xác nhận tùy chỉnh.
+         * @param {string} message - Tin nhắn xác nhận.
+         * @param {Function} onConfirm - Hàm sẽ được gọi nếu người dùng xác nhận.
+         * @param {Function} [onCancel] - Hàm sẽ được gọi nếu người dùng hủy bỏ (tùy chọn).
+         */
+        function showCustomConfirm(message, onConfirm, onCancel = null) {
+            const modalHtml = `
+                <div id="custom-confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+                        <p class="text-lg font-semibold text-gray-800 mb-4">${formatTextForHtml(message)}</p>
+                        <div class="flex justify-center space-x-4">
+                            <button id="custom-confirm-ok-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Xác nhận</button>
+                            <button id="custom-confirm-cancel-btn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">Hủy bỏ</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            document.getElementById('custom-confirm-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-confirm-modal').remove();
+                if (onConfirm) onConfirm();
+            });
+
+            document.getElementById('custom-confirm-cancel-btn').addEventListener('click', () => {
+                document.getElementById('custom-confirm-modal').remove();
+                if (onCancel) onCancel();
+            });
+        }
     </script>
 {% endblock %}

@@ -1,16 +1,20 @@
 # File: web/mindstack_app/__init__.py
-# Version: 2.4
+# Version: 2.6
+# ĐÃ SỬA: Khắc phục AttributeError: 'Config' object has no attribute 'BASE_DIR'
+#         bằng cách import BASE_DIR trực tiếp từ module config.
+# ĐÃ SỬA: Cấu hình Flask để phục vụ các file tĩnh từ thư mục 'uploads'.
 # ĐÃ SỬA: Thêm email mặc định khi tạo tài khoản admin để khắc phục lỗi IntegrityError.
 # ĐÃ SỬA: Đăng ký Blueprint mới cho module learning mà không làm mất code gốc.
 # ĐÃ SỬA: Cấu hình logging cho ứng dụng Flask ngay trong hàm create_app để đảm bảo log debug hiển thị,
 #         và ngăn chặn việc propagate log để tránh trùng lặp hoặc bị ghi đè.
 
 from flask import Flask, g
-from .config import Config
+from .config import Config, BASE_DIR # THAY ĐỔI: Import BASE_DIR trực tiếp từ .config
 from .db_instance import db
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 import logging # Import module logging
+import os # Import module os để xử lý đường dẫn
 
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
@@ -39,6 +43,14 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate = Migrate(app, db)
     login_manager.init_app(app)
+
+    # CẤU HÌNH THƯ MỤC UPLOADS LÀM STATIC FOLDER
+    # Điều này cho phép Flask phục vụ các file từ thư mục UPLOAD_FOLDER
+    # thông qua URL bắt đầu bằng /uploads
+    app.static_folder = os.path.join(BASE_DIR, 'uploads') # THAY ĐỔI: Sử dụng BASE_DIR trực tiếp
+    app.static_url_path = '/uploads'
+    app.logger.info(f"Đã cấu hình thư mục tĩnh 'uploads' tại URL: {app.static_url_path}")
+
 
     from .models import User
     @login_manager.user_loader
@@ -87,4 +99,3 @@ def create_app(config_class=Config):
             app.logger.info("Đã tạo user admin mặc định.") # Thay print bằng logger
             
     return app
-

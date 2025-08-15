@@ -1,6 +1,12 @@
 # File: newmindstack/mindstack_app/modules/content_management/quizzes/routes.py
-# Phiên bản: 3.26
+# Phiên bản: 3.30
+# ĐÃ SỬA: Khắc phục UnboundLocalError: local variable 'file' referenced before assignment
+#         bằng cách đảm bảo biến 'excel_file' được gán giá trị bên trong khối if kiểm tra file.
+# ĐÃ SỬA: Khắc phục UnboundLocalError cho group_image_file và group_audio_file
+#         bằng cách khởi tạo chúng ở đầu mỗi vòng lặp.
 # ĐÃ SỬA: Cập nhật template_folder của Blueprint để phản ánh cấu trúc thư mục mới.
+# ĐÃ SỬA: Bổ sung logic đọc và lưu trữ question_image_file và question_audio_file
+#         vào content của LearningItem khi upload từ Excel.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
@@ -142,7 +148,7 @@ def add_quiz_set():
 
             # Xử lý file Excel nếu có
             if form.excel_file.data and form.excel_file.data.filename != '':
-                excel_file = form.excel_file.data
+                excel_file = form.excel_file.data # Đã di chuyển dòng này vào đây
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                     excel_file.save(tmp_file.name)
                     temp_filepath = tmp_file.name
@@ -150,47 +156,70 @@ def add_quiz_set():
                 group_cache = {}
                 items_added_count = 0
                 for index, row in df.iterrows():
+                    # Khởi tạo các biến media của nhóm và passage_text ở đầu mỗi vòng lặp
+                    # để tránh UnboundLocalError nếu các cột này không tồn tại hoặc rỗng
+                    group_passage_text = None
+                    group_audio_file = None
+                    group_image_file = None
+
+                    # Lấy thông tin passage_order để xác định nhóm
                     passage_order = str(row['passage_order']) if 'passage_order' in df.columns and pd.notna(row['passage_order']) else None
                     group_db_id = None
+                    group_content = {}
+                    group_type = ''
+
+                    # Xử lý thông tin LearningGroup (nếu có)
                     if passage_order:
-                        passage_text = str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None
-                        audio_file = str(row['question_audio_file']) if 'question_audio_file' in df.columns and pd.notna(row['question_audio_file']) else None
-                        image_file = str(row['question_image_file']) if 'question_image_file' in df.columns and pd.notna(row['question_image_file']) else None
-                        group_key = None
-                        group_content = {}
-                        group_type = ''
-                        if passage_text:
-                            group_key = passage_text
-                            group_content['passage_text'] = passage_text
+                        # Lấy các trường media cho LearningGroup
+                        group_passage_text = str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None
+                        group_audio_file = str(row['group_audio_file']) if 'group_audio_file' in df.columns and pd.notna(row['group_audio_file']) else None
+                        group_image_file = str(row['group_image_file']) if 'group_image_file' in df.columns and pd.notna(row['group_image_file']) else None
+                        
+                        group_key = None # Khóa để cache nhóm, có thể là passage_text hoặc tên file media nhóm
+                        
+                        if group_passage_text:
+                            group_key = group_passage_text
+                            group_content['passage_text'] = group_passage_text
                             group_type = 'PASSAGE'
-                        elif audio_file:
-                            group_key = audio_file
-                            group_content['question_audio_file'] = audio_file
+                        
+                        # Ưu tiên audio/image nếu có và là nhóm chính
+                        if group_audio_file:
+                            group_key = group_audio_file
+                            group_content['question_audio_file'] = group_audio_file
                             group_type = 'AUDIO'
-                        elif image_file:
-                            group_key = image_file
-                            group_content['question_image_file'] = image_file
+                        
+                        if group_image_file:
+                            group_key = group_image_file
+                            group_content['question_image_file'] = group_image_file
                             group_type = 'IMAGE'
-                        if group_key:
-                            if group_key not in group_cache:
-                                new_group = LearningGroup(
-                                    container_id=new_set.container_id,
-                                    group_type=group_type,
-                                    content=group_content
-                                )
-                                db.session.add(new_group)
-                                db.session.flush()
-                                group_cache[group_key] = new_group.group_id
-                                group_db_id = new_group.group_id
-                            else:
-                                group_db_id = group_cache[group_key]
+
+                        if group_key and group_key not in group_cache:
+                            new_group = LearningGroup(
+                                container_id=new_set.container_id,
+                                group_type=group_type,
+                                content=group_content
+                            )
+                            db.session.add(new_group)
+                            db.session.flush() # Lưu tạm thời để lấy group_id
+                            group_cache[group_key] = new_group.group_id
+                            group_db_id = new_group.group_id
+                        elif group_key: # Nếu nhóm đã có trong cache
+                            group_db_id = group_cache[group_key]
+
+                    # Đảm bảo có các trường cốt lõi cho câu hỏi
                     option_a = str(row['option_a']) if 'option_a' in df.columns and pd.notna(row['option_a']) else None
                     option_b = str(row['option_b']) if 'option_b' in df.columns and pd.notna(row['option_b']) else None
                     correct_answer = str(row['correct_answer_text']) if 'correct_answer_text' in df.columns and pd.notna(row['correct_answer_text']) else None
                     if not (option_a and option_b and correct_answer):
+                        current_app.logger.warning(f"Bỏ qua hàng {index + 2} trong Excel: Thiếu thông tin cốt lõi (option_a, option_b, correct_answer_text).")
                         continue # Bỏ qua hàng nếu thiếu thông tin cốt lõi
 
                     question_text = str(row['question']) if 'question' in df.columns and pd.notna(row['question']) else ''
+                    
+                    # Lấy các trường media riêng cho LearningItem (câu hỏi con)
+                    item_image_file = str(row['question_image_file']) if 'question_image_file' in df.columns and pd.notna(row['question_image_file']) else None
+                    item_audio_file = str(row['question_audio_file']) if 'question_audio_file' in df.columns and pd.notna(row['question_audio_file']) else None
+
                     item_content = {
                         'question': question_text,
                         'options': {
@@ -201,8 +230,16 @@ def add_quiz_set():
                         'correct_answer': correct_answer,
                         'explanation': str(row['guidance']) if 'guidance' in df.columns and pd.notna(row['guidance']) else None,
                         'pre_question_text': str(row['pre_question_text']) if 'pre_question_text' in df.columns and pd.notna(row['pre_question_text']) else None,
-                        'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None
+                        'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None,
+                        'passage_order': int(passage_order) if passage_order else None, # Đảm bảo lưu passage_order vào item content
+                        'question_image_file': item_image_file, # THÊM VÀO: Lưu tên file ảnh của câu hỏi con
+                        'question_audio_file': item_audio_file # THÊM VÀO: Lưu tên file audio của câu hỏi con
                     }
+
+                    # Debug log: Kiểm tra các giá trị media trước khi lưu
+                    current_app.logger.debug(f"Hàng {index + 2}: Item Image: '{item_image_file}', Item Audio: '{item_audio_file}'")
+                    current_app.logger.debug(f"Hàng {index + 2}: Group Image: '{group_image_file}', Group Audio: '{group_audio_file}'")
+
                     new_item = LearningItem(
                         container_id=new_set.container_id,
                         group_id=group_db_id,
@@ -214,13 +251,13 @@ def add_quiz_set():
                     items_added_count += 1
                 flash_message = f'Bộ câu hỏi và {items_added_count} câu hỏi từ Excel đã được tạo thành công!'
                 flash_category = 'success'
-            else:
+            else: # Nếu không có file excel được tải lên
                 flash_message = 'Bộ câu hỏi mới đã được tạo thành công!'
                 flash_category = 'success'
             db.session.commit() # Lưu các thay đổi vào DB
         except Exception as e:
             db.session.rollback() # Hoàn tác nếu có lỗi
-            current_app.logger.error(f"LỖI XẢY RA: {e}", exc_info=True)
+            current_app.logger.error(f"LỖI XẢY RA khi thêm bộ quiz hoặc xử lý Excel: {e}", exc_info=True)
             flash_message = f'Lỗi khi xử lý: {str(e)}'
             flash_category = 'danger'
         finally:
@@ -469,4 +506,3 @@ def delete_quiz_item(set_id, item_id):
     
     flash('Câu hỏi đã được xóa.', 'success')
     return redirect(url_for('.list_quiz_items', set_id=set_id))
-

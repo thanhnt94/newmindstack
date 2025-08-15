@@ -1,6 +1,8 @@
 # File: web/mindstack_app/config.py
+# Phiên bản: 1.1
 # Mục đích: Chứa các cấu hình cơ bản cho ứng dụng, đã được cập nhật
 # để tương thích với cấu trúc thư mục mới và thêm cấu hình phân trang.
+# ĐÃ SỬA: Thêm cấu hình cho thư mục lưu trữ file media (ảnh và audio).
 
 import os
 
@@ -26,9 +28,26 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Cấu hình phân trang
-    ITEMS_PER_PAGE = 12 # DÒNG MỚI: Số mục trên mỗi trang
+    ITEMS_PER_PAGE = 12 # Số mục trên mỗi trang
+
+    # Cấu hình thư mục lưu trữ file tải lên (media)
+    # Thư mục gốc cho tất cả các file tải lên
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+    # Thư mục con cho hình ảnh
+    UPLOAD_IMAGE_FOLDER = os.path.join(UPLOAD_FOLDER, 'images')
+    # Thư mục con cho audio
+    UPLOAD_AUDIO_FOLDER = os.path.join(UPLOAD_FOLDER, 'audio')
 
     # Đảm bảo thư mục database tồn tại khi ứng dụng khởi chạy
     db_dir = os.path.dirname(DATABASE_PATH)
     if not os.path.exists(db_dir):
         os.makedirs(db_dir)
+    
+    # Đảm bảo các thư mục upload tồn tại khi ứng dụng khởi chạy
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+    if not os.path.exists(UPLOAD_IMAGE_FOLDER):
+        os.makedirs(UPLOAD_IMAGE_FOLDER)
+    if not os.path.exists(UPLOAD_AUDIO_FOLDER):
+        os.makedirs(UPLOAD_AUDIO_FOLDER)
+
