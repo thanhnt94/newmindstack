@@ -1,6 +1,6 @@
 # File: newmindstack/mindstack_app/modules/content_management/routes.py
-# Phiên bản: 2.1
-# ĐÃ SỬA: Cập nhật hàm manage_contributors để sử dụng ContributorForm.
+# Phiên bản: 2.2
+# ĐÃ SỬA: Khắc phục lỗi 404 bằng cách loại bỏ url_prefix khi đăng ký các blueprint con.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
@@ -15,12 +15,13 @@ from .quizzes.routes import quizzes_bp
 
 # Định nghĩa Blueprint chính cho content_management
 content_management_bp = Blueprint('content_management', __name__,
-                                  template_folder='templates')
+                                  template_folder='templates') # Vẫn giữ template_folder này cho các template chung
 
 # Đăng ký các blueprint con
-content_management_bp.register_blueprint(courses_bp, url_prefix='/courses')
-content_management_bp.register_blueprint(flashcards_bp, url_prefix='/flashcards')
-content_management_bp.register_blueprint(quizzes_bp, url_prefix='/quizzes')
+# ĐÃ SỬA: Loại bỏ url_prefix vì các routes con đã tự định nghĩa đường dẫn đầy đủ
+content_management_bp.register_blueprint(courses_bp)
+content_management_bp.register_blueprint(flashcards_bp)
+content_management_bp.register_blueprint(quizzes_bp)
 
 @content_management_bp.route('/')
 @login_required
@@ -99,3 +100,4 @@ def manage_contributors(container_id):
     ).all()
     
     return render_template('manage_contributors.html', container=container, contributors=contributors, form=form)
+

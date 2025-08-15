@@ -1,26 +1,34 @@
-<!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/_quiz_sets_list.html -->
-<!-- Phiên bản: 4.0 -->
+<!-- File: newmindstack/mindstack_app/modules/content_management/courses/templates/_courses_list.html -->
+<!-- Phiên bản: 5.0 -->
 <!-- ĐÃ SỬA: Gộp 2 nút "Thêm mới" thành một. -->
 <!-- ĐÃ SỬA: Cải thiện giao diện phẳng hơn, bỏ border, dùng shadow nhẹ. -->
+<!-- ĐÃ THÊM: Truyền search_field và search_options (search_field_map) vào render_search_form để hỗ trợ lọc theo trường. -->
+<!-- ĐÃ SỬA: Khắc phục lỗi BuildError bằng cách đổi tên endpoint add_course thành add_course_set. -->
 
 {% from 'includes/_search_form.html' import render_search_form %}
 {% from 'includes/_pagination.html' import render_pagination %}
 
 <div class="w-full">
     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Danh sách Bộ câu hỏi</h2>
-        <button type="button" data-modal-url="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}" class="open-modal-btn bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 flex items-center shadow-md">
-            <i class="fas fa-plus-circle mr-2"></i> Thêm Bộ câu hỏi mới
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Danh sách Khóa học</h2>
+        <button type="button" data-modal-url="{{ url_for('content_management.content_management_courses.add_course_set') }}" class="open-modal-btn bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 flex items-center shadow-md">
+            <i class="fas fa-plus-circle mr-2"></i> Thêm Khóa học mới
         </button>
     </div>
 
     <div class="mb-6">
-        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...") }}
+        {# Truyền search_field_map (được đổi tên thành search_options để phù hợp với macro) và search_field vào macro tìm kiếm #}
+        {% set display_search_options = {
+            'title': 'Tiêu đề',
+            'description': 'Mô tả',
+            'tags': 'Thẻ'
+        } %}
+        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm khóa học...", search_field=search_field, search_options=display_search_options) }}
     </div>
 
-    {% if quiz_sets %}
+    {% if course_sets %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for set in quiz_sets %}
+        {% for set in course_sets %}
         <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
             <div class="p-5">
                 <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ set.title }}</h3>
@@ -32,12 +40,12 @@
                 </div>
 
                 <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
-                    <a href="{{ url_for('content_management.content_management_quizzes.list_quiz_items', set_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        Xem câu hỏi ({{ set.item_count }}) 
+                    <a href="{{ url_for('content_management.content_management_courses.list_lessons', set_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        Xem bài học ({{ set.item_count }}) 
                     </a>
                     <div class="flex space-x-3">
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id or (set.contributors and current_user.user_id in set.contributors|map(attribute='user_id')|list and 'editor' in set.contributors|selectattr('user_id', 'equalto', current_user.user_id)|map(attribute='permission_level')|list) %}
-                        <button type="button" data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}" class="open-modal-btn text-gray-500 hover:text-green-600 transition-colors duration-200" title="Sửa">
+                        <button type="button" data-modal-url="{{ url_for('content_management.content_management_courses.edit_course_set', set_id=set.container_id) }}" class="open-modal-btn text-gray-500 hover:text-green-600 transition-colors duration-200" title="Sửa">
                             <i class="fas fa-edit"></i>
                         </button>
                         {% endif %}
@@ -49,7 +57,7 @@
                         {% endif %}
 
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
-                        <form action="{{ url_for('content_management.content_management_quizzes.delete_quiz_set', set_id=set.container_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ câu hỏi này và tất cả các câu hỏi của nó?');" class="inline">
+                        <form action="{{ url_for('content_management.content_management_courses.delete_course_set', set_id=set.container_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ khóa học này và tất cả các bài học của nó?');" class="inline">
                             <button type="submit" class="text-gray-500 hover:text-red-600 transition-colors duration-200" title="Xóa">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
@@ -61,12 +69,12 @@
         </div>
         {% endfor %}
     </div>
-    {{ render_pagination(pagination=pagination, search_query=search_query) }}
+    {{ render_pagination(pagination=pagination, search_query=search_query, search_field=search_field) }}
     {% else %}
     <div class="text-center py-12 px-6">
-        <i class="fas fa-question-circle text-5xl text-gray-300 mb-4"></i>
-        <h3 class="text-xl font-semibold text-gray-700 mb-2">Chưa có bộ câu hỏi nào</h3>
-        <p class="text-gray-500">Hãy tạo một bộ câu hỏi mới để bắt đầu kiểm tra kiến thức.</p>
+        <i class="fas fa-book text-5xl text-gray-300 mb-4"></i>
+        <h3 class="text-xl font-semibold text-gray-700 mb-2">Chưa có khóa học nào</h3>
+        <p class="text-gray-500">Hãy tạo một khóa học mới để bắt đầu học tập và chia sẻ kiến thức.</p>
     </div>
     {% endif %}
 </div>

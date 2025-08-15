@@ -1,6 +1,7 @@
 <!-- File: newmindstack/mindstack_app/templates/base.html -->
-<!-- Phiên bản: 1.18 -->
+<!-- Phiên bản: 1.19 -->
 <!-- ĐÃ SỬA: Thêm logic lắng nghe sự kiện click trên overlay để đóng modal. -->
+<!-- ĐÃ SỬA: Khắc phục lỗi BuildError bằng cách đổi tên endpoint list_courses thành list_course_sets trong thanh điều hướng. -->
 
 <!doctype html>
 <html lang="vi">
@@ -121,8 +122,8 @@
                 </li>
                 <li>
                     <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
-                        {% if request.endpoint == 'content_management_courses.list_courses' %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
-                        href="{{ url_for('content_management.content_management_courses.list_courses') }}">
+                        {% if request.endpoint == 'content_management_courses.list_course_sets' %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
+                        href="{{ url_for('content_management.content_management_courses.list_course_sets') }}"> {# ĐÃ SỬA TÊN ENDPOINT TẠI ĐÂY #}
                         <i class="fas fa-book mr-1 md:mr-2"></i>
                         <span>Khoá học</span>
                     </a>

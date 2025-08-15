@@ -1,6 +1,7 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/quiz_items.html -->
-<!-- Phiên bản: 4.2 -->
+<!-- Phiên bản: 5.0 -->
 <!-- ĐÃ SỬA: Truyền set_id vào các macro để khắc phục BuildError. -->
+<!-- ĐÃ THÊM: Truyền search_field và search_options (search_field_map) vào render_search_form để hỗ trợ lọc theo trường. -->
 
 {% extends "base.html" %}
 {% from 'includes/_search_form.html' import render_search_form %}
@@ -28,7 +29,21 @@
 
     <!-- Form tìm kiếm -->
     <div class="mb-6">
-        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm câu hỏi...", set_id=quiz_set.container_id) }}
+        {# Truyền search_field_map (được đổi tên thành search_options để phù hợp với macro) và search_field vào macro tìm kiếm #}
+        {% set display_item_search_options = {
+            'question': 'Câu hỏi',
+            'option_a': 'Lựa chọn A',
+            'option_b': 'Lựa chọn B',
+            'option_c': 'Lựa chọn C',
+            'option_d': 'Lựa chọn D',
+            'correct_answer': 'Đáp án đúng',
+            'guidance': 'Giải thích/Gợi ý',
+            'pre_question_text': 'Văn bản trước câu hỏi',
+            'passage_text': 'Đoạn văn',
+            'question_image_file': 'Ảnh câu hỏi (URL)',
+            'question_audio_file': 'Audio câu hỏi (URL)'
+        } %}
+        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm câu hỏi...", set_id=quiz_set.container_id, search_field=search_field, search_options=display_item_search_options) }}
     </div>
 
     {% if quiz_items %}
@@ -89,7 +104,7 @@
 
     <!-- Phân trang -->
     <div class="mt-8">
-        {{ render_pagination(pagination=pagination, search_query=search_query, set_id=quiz_set.container_id) }}
+        {{ render_pagination(pagination=pagination, search_query=search_query, set_id=quiz_set.container_id, search_field=search_field) }}
     </div>
 
     {% else %}

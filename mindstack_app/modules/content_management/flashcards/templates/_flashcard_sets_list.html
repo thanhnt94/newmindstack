@@ -1,7 +1,8 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/flashcards/_flashcard_sets_list.html -->
-<!-- Phiên bản: 4.0 -->
+<!-- Phiên bản: 5.1 -->
 <!-- ĐÃ SỬA: Gộp 2 nút "Thêm mới" thành một. -->
 <!-- ĐÃ SỬA: Cải thiện giao diện phẳng hơn, bỏ border, dùng shadow nhẹ. -->
+<!-- ĐÃ THÊM: Truyền search_field và search_options (search_field_map) vào render_search_form. -->
 
 {% from 'includes/_search_form.html' import render_search_form %}
 {% from 'includes/_pagination.html' import render_pagination %}
@@ -15,7 +16,13 @@
     </div>
 
     <div class="mb-6">
-        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ thẻ...") }}
+        {# Truyền search_field_map (được đổi tên thành search_options để phù hợp với macro) và search_field vào macro tìm kiếm #}
+        {% set display_search_options = {
+            'title': 'Tiêu đề',
+            'description': 'Mô tả',
+            'tags': 'Thẻ'
+        } %}
+        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ thẻ...", search_field=search_field, search_options=display_search_options) }}
     </div>
 
     {% if flashcard_sets %}
@@ -61,7 +68,7 @@
         </div>
         {% endfor %}
     </div>
-    {{ render_pagination(pagination=pagination, search_query=search_query) }}
+    {{ render_pagination(pagination=pagination, search_query=search_query, search_field=search_field) }}
     {% else %}
     <div class="text-center py-12 px-6">
         <i class="fas fa-clone text-5xl text-gray-300 mb-4"></i>

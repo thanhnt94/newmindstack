@@ -1,7 +1,8 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/content_dashboard.html -->
-<!-- Phiên bản: 3.0 -->
+<!-- Phiên bản: 3.1 -->
 <!-- ĐÃ SỬA: Xóa nút "Quay lại trang chủ". -->
 <!-- ĐÃ SỬA: Cải thiện layout, sử dụng bóng đổ và khoảng trắng để giao diện phẳng và hiện đại hơn. -->
+<!-- ĐÃ SỬA: Khắc phục lỗi BuildError bằng cách đổi tên endpoint list_courses thành list_course_sets. -->
 
 {% extends "base.html" %}
 
@@ -59,7 +60,8 @@
     {# Giữ nguyên script cũ #}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const coursesListUrl = "{{ url_for('content_management.content_management_courses.list_courses') }}";
+            // ĐÃ SỬA: Đổi tên endpoint list_courses thành list_course_sets
+            const coursesListUrl = "{{ url_for('content_management.content_management_courses.list_course_sets') }}";
             const flashcardSetsListUrl = "{{ url_for('content_management.content_management_flashcards.list_flashcard_sets') }}";
             const quizSetsListUrl = "{{ url_for('content_management.content_management_quizzes.list_quiz_sets') }}";
             
