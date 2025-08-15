@@ -1,0 +1,420 @@
+<!-- File: mindstack_app/modules/learning/quiz_learning/templates/quiz_session.html -->
+<!-- Phiên bản: 1.9 -->
+<!-- Mục đích: Giao diện chính để người dùng làm bài Quiz theo nhóm câu hỏi. -->
+<!-- ĐÃ SỬA: Hiển thị nhiều câu hỏi cùng lúc. -->
+<!-- ĐÃ SỬA: Logic gửi đáp án cho toàn bộ nhóm câu hỏi. -->
+<!-- ĐÃ SỬA: Hiển thị phản hồi cho từng câu hỏi sau khi gửi. -->
+<!-- ĐÃ SỬA: Thay thế @apply bằng các lớp Tailwind CSS đầy đủ để khắc phục lỗi "Unknown at rule @apply". -->
+<!-- ĐÃ SỬA: Logic hiển thị nội dung LearningGroup (đoạn văn, audio, hình ảnh) một lần cho nhóm câu hỏi phức hợp. -->
+<!-- ĐÃ SỬA: Logic hiển thị common_pre_question_text một lần cho nhóm. -->
+<!-- ĐÃ SỬA: Điều chỉnh điều kiện hiển thị media và pre_question_text của câu hỏi con để tránh trùng lặp. -->
+<!-- ĐÃ SỬA: Hiển thị group_content và common_pre_question_text_global đúng thứ tự và không lặp. -->
+
+{% extends "base.html" %}
+
+{% block title %}Làm bài Quiz{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        .quiz-card {
+            min-height: 400px; /* Đảm bảo chiều cao tối thiểu cho thẻ câu hỏi */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .question-card {
+            background-color: #ffffff; /* bg-white */
+            padding: 1.5rem; /* p-6 */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            border-width: 1px; /* border */
+            border-color: #e5e7eb; /* border-gray-200 */
+            margin-bottom: 1.5rem; /* mb-6 */
+        }
+        .option-button {
+            display: flex; 
+            align-items: center; 
+            width: 100%; 
+            padding: 1rem; /* p-4 */
+            border-width: 1px; /* border */
+            border-color: #d1d5db; /* border-gray-300 */
+            border-radius: 0.5rem; /* rounded-lg */
+            text-align: left; 
+            color: #1f2937; /* text-gray-800 */
+            transition-property: all; /* transition-all */
+            transition-duration: 200ms; /* duration-200 */
+            background-color: #ffffff; /* bg-white */
+            cursor: pointer;
+        }
+        .option-button:hover {
+            background-color: #eff6ff; /* hover:bg-blue-50 */
+            border-color: #3b82f6; /* hover:border-blue-500 */
+        }
+        .option-button.selected {
+            background-color: #dbeafe; /* bg-blue-100 */
+            border-color: #2563eb; /* border-blue-600 */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* ring-2 ring-blue-500 */
+        }
+        .option-button.correct {
+            background-color: #dcfce7; /* bg-green-100 */
+            border-color: #16a34a; /* border-green-600 */
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5); /* ring-2 ring-green-500 */
+        }
+        .option-button.incorrect {
+            background-color: #fee2e2; /* bg-red-100 */
+            border-color: #dc2626; /* border-red-600 */
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5); /* ring-2 ring-red-500 */
+        }
+        .feedback-box {
+            padding: 1rem; /* p-4 */
+            margin-top: 1rem; /* mt-4 */
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+        .feedback-correct {
+            background-color: #22c55e; /* bg-green-500 */
+            color: white;
+        }
+        .feedback-incorrect {
+            background-color: #ef4444; /* bg-red-500 */
+            color: white;
+        }
+        .feedback-explanation {
+            background-color: #f3f4f6; /* bg-gray-100 */
+            color: #1f2937; /* text-gray-800 */
+            padding: 0.75rem; /* p-3 */
+            border-radius: 0.375rem; /* rounded-md */
+            margin-top: 0.5rem; /* mt-2 */
+        }
+        .control-button {
+            padding: 0.75rem 1.5rem; /* px-6 py-3 */
+            border-radius: 0.5rem; /* rounded-lg */
+            font-weight: 600; /* font-semibold */
+            transition-property: all; /* transition-colors */
+            transition-duration: 300ms; /* duration-300 */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* shadow-md */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .control-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center">
+        Làm bài Quiz
+        <span id="quiz-progress" class="text-gray-500 text-base ml-3"></span>
+    </h1>
+
+    <div class="bg-white rounded-xl shadow-lg p-6 quiz-card">
+        <div id="quiz-content" class="flex-grow">
+            <!-- Nội dung các câu hỏi trong nhóm sẽ được tải ở đây qua AJAX -->
+            <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
+                <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                <p>Đang tải câu hỏi...</p>
+            </div>
+        </div>
+
+        <div id="quiz-controls" class="mt-6 flex justify-between items-center">
+            <button id="end-session-btn" class="control-button bg-gray-300 text-gray-800 hover:bg-gray-400">
+                <i class="fas fa-times-circle mr-2"></i> Kết thúc phiên
+            </button>
+            <button id="submit-batch-btn" class="control-button bg-blue-600 text-white hover:bg-blue-700">
+                <i class="fas fa-paper-plane mr-2"></i> Gửi đáp án
+            </button>
+            <button id="next-batch-btn" class="control-button bg-green-600 text-white hover:bg-green-700" style="display: none;">
+                <i class="fas fa-arrow-right mr-2"></i> Nhóm câu tiếp theo
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        let currentQuestionBatch = []; // Lưu trữ nhóm câu hỏi hiện tại
+        let userAnswers = {}; // Lưu trữ đáp án của người dùng cho nhóm câu hỏi hiện tại
+        let isBatchSubmitted = false; // Trạng thái đã gửi đáp án nhóm chưa
+
+        const quizContentDiv = document.getElementById('quiz-content');
+        const quizProgressSpan = document.getElementById('quiz-progress');
+        const submitBatchBtn = document.getElementById('submit-batch-btn');
+        const nextBatchBtn = document.getElementById('next-batch-btn');
+        const endSessionBtn = document.getElementById('end-session-btn');
+
+        // URL cho các API quiz session
+        const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}"; // Route mới
+        const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}"; // Route mới
+        const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
+
+        // Hàm hiển thị nhóm câu hỏi
+        function displayQuestionBatch(batchData) {
+            console.log(">>> Frontend: Dữ liệu batchData nhận được:", batchData); // LOG MỚI
+            currentQuestionBatch = batchData.items;
+            userAnswers = {}; // Reset đáp án người dùng cho nhóm mới
+            isBatchSubmitted = false;
+            submitBatchBtn.style.display = 'block'; // Hiển thị nút Gửi đáp án
+            submitBatchBtn.disabled = false; // Kích hoạt nút Gửi đáp án
+            nextBatchBtn.style.display = 'none'; // Ẩn nút Nhóm câu tiếp theo
+
+            let fullBatchContentHtml = ''; // Để chứa toàn bộ nội dung của nhóm
+            let lastDisplayedGroupId = null; // Theo dõi group_id cuối cùng đã hiển thị passage/media
+            
+            // Hiển thị common_pre_question_text_global nếu có (từ session_manager)
+            if (batchData.common_pre_question_text_global) {
+                fullBatchContentHtml += `
+                    <div class="bg-gray-100 p-3 rounded-md mb-4 border border-gray-200">
+                        <p class="text-sm text-gray-600"><strong>Thông tin chung:</strong> ${batchData.common_pre_question_text_global}</p>
+                    </div>
+                `;
+            }
+
+            currentQuestionBatch.forEach((questionData, index) => {
+                let groupSpecificContentHtml = ''; // Nội dung riêng cho nhóm con (passage/media)
+                let preQuestionTextHtml = '';
+                let mediaHtml = '';
+
+                // Hiển thị nội dung LearningGroup (passage, media) nếu có và là nhóm mới
+                if (questionData.group_id && questionData.group_id !== lastDisplayedGroupId) {
+                    const group = questionData.group_details; // group_details được gắn vào item
+                    if (group) {
+                        if (group.passage_text) {
+                            groupSpecificContentHtml += `
+                                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                                    <h3 class="text-lg font-semibold text-blue-800 mb-2">Đoạn văn liên quan:</h3>
+                                    <p class="text-gray-700">${group.passage_text}</p>
+                                </div>
+                            `;
+                        }
+                        if (group.question_image_file) {
+                            groupSpecificContentHtml += `<img src="${group.question_image_file}" alt="Hình ảnh nhóm" class="max-w-full h-auto rounded-md mb-4">`;
+                        }
+                        if (group.question_audio_file) {
+                            groupSpecificContentHtml += `<audio controls src="${group.question_audio_file}" class="w-full mb-4"></audio>`;
+                        }
+                    }
+                    lastDisplayedGroupId = questionData.group_id; // Cập nhật group_id đã hiển thị
+                }
+
+                // Chỉ hiển thị pre_question_text của câu hỏi con nếu KHÔNG CÓ common_pre_question_text_global
+                if (questionData.content.pre_question_text && !batchData.common_pre_question_text_global) {
+                    preQuestionTextHtml += `
+                        <p class="text-sm text-gray-600 mb-2">${questionData.content.pre_question_text}</p>
+                    `;
+                }
+
+                // Media của từng câu hỏi con (chỉ hiển thị nếu KHÔNG CÓ group_details)
+                if (questionData.content.question_image_file && !questionData.group_details) { 
+                    mediaHtml += `<img src="${questionData.content.question_image_file}" alt="Hình ảnh câu hỏi" class="max-w-full h-auto rounded-md mb-4">`;
+                }
+                if (questionData.content.question_audio_file && !questionData.group_details) { 
+                    mediaHtml += `<audio controls src="${questionData.content.question_audio_file}" class="w-full mb-4"></audio>`;
+                }
+
+                let optionsHtml = '';
+                const options = questionData.content.options || {}; 
+                const optionKeys = ['A', 'B', 'C', 'D'];
+
+                optionKeys.forEach(key => {
+                    if (options[key]) { // Chỉ hiển thị nếu option có giá trị
+                        optionsHtml += `
+                            <button class="option-button" data-question-id="${questionData.item_id}" data-option="${key}">
+                                <span class="font-bold mr-2">${key}:</span> 
+                                <span>${options[key]}</span>
+                            </button>
+                        `;
+                    }
+                });
+
+                fullBatchContentHtml += groupSpecificContentHtml; // Nối nội dung nhóm con
+                fullBatchContentHtml += `
+                    <div class="question-card" data-item-id="${questionData.item_id}">
+                        <p class="text-gray-500 text-sm mb-2">Câu ${batchData.start_index + index + 1} / ${batchData.total_items_in_session}</p>
+                        ${preQuestionTextHtml}
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">${questionData.content.question}</h2>
+                        ${mediaHtml}
+                        <div class="options-container space-y-3">
+                            ${optionsHtml}
+                        </div>
+                        <div class="feedback-area mt-4"></div>
+                    </div>
+                `;
+            });
+
+            quizContentDiv.innerHTML = fullBatchContentHtml; 
+            quizProgressSpan.textContent = `(${batchData.start_index + 1}-${batchData.start_index + currentQuestionBatch.length} / ${batchData.total_items_in_session})`;
+
+            // Gắn listener cho các nút lựa chọn trong nhóm
+            document.querySelectorAll('.option-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (!isBatchSubmitted) {
+                        const questionId = this.dataset.questionId;
+                        // Xóa lựa chọn cũ cho câu hỏi này
+                        document.querySelectorAll(`.option-button[data-question-id="${questionId}"]`).forEach(btn => btn.classList.remove('selected'));
+                        this.classList.add('selected');
+                        userAnswers[questionId] = this.dataset.option; // Lưu đáp án
+                    }
+                });
+            });
+        }
+
+        // Hàm gửi đáp án cho cả nhóm
+        async function submitAnswerBatch() {
+            if (isBatchSubmitted) return;
+
+            // Kiểm tra xem người dùng đã chọn đáp án cho tất cả các câu hỏi trong nhóm chưa
+            const allAnswered = currentQuestionBatch.every(q => userAnswers.hasOwnProperty(q.item_id));
+            if (!allAnswered) {
+                alert("Vui lòng trả lời tất cả các câu hỏi trong nhóm trước khi gửi.");
+                return;
+            }
+
+            isBatchSubmitted = true;
+            submitBatchBtn.disabled = true; // Vô hiệu hóa nút Gửi đáp án
+
+            const answersToSend = Object.keys(userAnswers).map(itemId => ({
+                item_id: parseInt(itemId),
+                user_answer: userAnswers[itemId]
+            }));
+
+            try {
+                const response = await fetch(submitAnswerBatchUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ answers: answersToSend })
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const results = await response.json(); // Nhận danh sách kết quả cho từng câu
+
+                // Hiển thị feedback cho từng câu hỏi
+                results.forEach(result => {
+                    const questionCard = document.querySelector(`.question-card[data-item-id="${result.item_id}"]`);
+                    if (questionCard) {
+                        const feedbackArea = questionCard.querySelector('.feedback-area');
+                        
+                        let feedbackHtml = '';
+                        if (result.is_correct) {
+                            feedbackHtml += `<div class="feedback-box feedback-correct">Đáp án chính xác!</div>`;
+                        } else {
+                            feedbackHtml += `<div class="feedback-box feedback-incorrect">Sai rồi. Đáp án đúng là ${result.correct_answer}.</div>`;
+                        }
+
+                        if (result.explanation) {
+                            feedbackHtml += `<div class="feedback-explanation"><strong>Giải thích:</strong> ${result.explanation}</div>`;
+                        }
+
+                        feedbackArea.innerHTML = feedbackHtml;
+
+                        // Cập nhật màu sắc các lựa chọn
+                        questionCard.querySelectorAll('.option-button').forEach(button => {
+                            button.classList.remove('selected'); 
+                            if (button.dataset.option === result.correct_answer) {
+                                button.classList.add('correct');
+                            } else if (button.dataset.option === userAnswers[result.item_id] && !result.is_correct) {
+                                button.classList.add('incorrect');
+                            }
+                            button.disabled = true; // Vô hiệu hóa nút lựa chọn sau khi trả lời
+                        });
+                    }
+                });
+
+                submitBatchBtn.style.display = 'none'; // Ẩn nút Gửi đáp án
+                nextBatchBtn.style.display = 'block'; // Hiển thị nút Nhóm câu tiếp theo
+
+            } catch (error) {
+                console.error('Lỗi khi gửi đáp án nhóm:', error);
+                alert('Có lỗi xảy ra khi gửi đáp án. Vui lòng thử lại.');
+                isBatchSubmitted = false; // Cho phép thử lại
+                submitBatchBtn.disabled = false; // Kích hoạt lại nút Gửi đáp án
+            }
+        }
+
+        // Hàm lấy nhóm câu hỏi tiếp theo
+        async function getNextQuestionBatch() {
+            quizContentDiv.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
+                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                    <p>Đang tải câu hỏi...</p>
+                </div>
+            `;
+            submitBatchBtn.disabled = true;
+            nextBatchBtn.style.display = 'none'; // Ẩn nút Next Batch
+
+            try {
+                const response = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!response.ok) {
+                    if (response.status === 404) { // Hết câu hỏi
+                        const endMessage = await response.json();
+                        quizContentDiv.innerHTML = `
+                            <div class="text-center py-12 px-6 text-gray-600">
+                                <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
+                                <h3 class="text-xl font-semibold text-gray-700 mb-2">Hoàn thành phiên học!</h3>
+                                <p class="text-gray-500">${endMessage.message}</p>
+                                <button id="return-to-dashboard-btn" class="control-button bg-blue-600 text-white hover:bg-blue-700 mt-6">
+                                    <i class="fas fa-home mr-2"></i> Quay lại Dashboard
+                                </button>
+                            </div>
+                        `;
+                        quizProgressSpan.textContent = ''; // Xóa tiến độ
+                        submitBatchBtn.style.display = 'none'; // Ẩn nút Gửi
+                        nextBatchBtn.style.display = 'none'; // Ẩn nút Next
+                        endSessionBtn.style.display = 'none'; // Ẩn nút End Session
+                        document.getElementById('return-to-dashboard-btn').addEventListener('click', function() {
+                            window.location.href = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
+                        });
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const batchData = await response.json();
+                displayQuestionBatch(batchData);
+            } catch (error) {
+                console.error('Lỗi khi tải nhóm câu hỏi:', error);
+                quizContentDiv.innerHTML = `<p class="text-red-500 text-center">Không thể tải câu hỏi. Vui lòng thử lại.</p>`;
+                submitBatchBtn.disabled = false;
+                submitBatchBtn.style.display = 'block';
+                nextBatchBtn.style.display = 'none';
+            }
+        }
+
+        // Hàm kết thúc phiên học
+        endSessionBtn.addEventListener('click', async function() {
+            if (confirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại? Tiến độ của các câu hỏi chưa gửi sẽ không được lưu.')) {
+                try {
+                    const response = await fetch(endSessionUrl, { method: 'POST' });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const result = await response.json();
+                    alert(result.message); // Có thể thay bằng modal đẹp hơn
+                    window.location.href = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
+                } catch (error) {
+                    console.error('Lỗi khi kết thúc phiên:', error);
+                    alert('Có lỗi xảy ra khi kết thúc phiên. Vui lòng thử lại.');
+                }
+            }
+        });
+
+        // Gắn listener cho nút Gửi đáp án và Nhóm câu tiếp theo
+        submitBatchBtn.addEventListener('click', submitAnswerBatch);
+        nextBatchBtn.addEventListener('click', getNextQuestionBatch);
+
+        // Khởi tạo phiên học khi trang tải
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tải nhóm câu hỏi đầu tiên
+            getNextQuestionBatch();
+        });
+    </script>
+{% endblock %}

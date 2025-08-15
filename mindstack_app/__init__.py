@@ -1,13 +1,16 @@
 # File: web/mindstack_app/__init__.py
-# Version: 2.2
+# Version: 2.4
 # ĐÃ SỬA: Thêm email mặc định khi tạo tài khoản admin để khắc phục lỗi IntegrityError.
 # ĐÃ SỬA: Đăng ký Blueprint mới cho module learning mà không làm mất code gốc.
+# ĐÃ SỬA: Cấu hình logging cho ứng dụng Flask ngay trong hàm create_app để đảm bảo log debug hiển thị,
+#         và ngăn chặn việc propagate log để tránh trùng lặp hoặc bị ghi đè.
 
 from flask import Flask, g
 from .config import Config
 from .db_instance import db
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
+import logging # Import module logging
 
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
@@ -21,6 +24,18 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
+    # Cấu hình logging cho ứng dụng Flask
+    # Đảm bảo chỉ có một handler và cấp độ DEBUG
+    if not app.logger.handlers: # Chỉ thêm handler nếu chưa có
+        app.logger.setLevel(logging.DEBUG) # Đặt cấp độ log là DEBUG
+        handler = logging.StreamHandler() # Để log ra console
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        app.logger.addHandler(handler)
+        app.logger.propagate = False # Ngăn chặn log truyền lên root logger (tránh trùng lặp)
+
+    app.logger.info("Flask app logger configured successfully.") # Thêm một log thông báo cấu hình
+
     db.init_app(app)
     migrate = Migrate(app, db)
     login_manager.init_app(app)
@@ -69,7 +84,7 @@ def create_app(config_class=Config):
             admin.set_password('admin')
             db.session.add(admin)
             db.session.commit()
-            print("Đã tạo user admin mặc định.")
+            app.logger.info("Đã tạo user admin mặc định.") # Thay print bằng logger
             
     return app
 

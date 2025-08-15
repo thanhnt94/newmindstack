@@ -1,12 +1,24 @@
 <!-- File: newmindstack/mindstack_app/modules/learning/quiz_learning/templates/quiz_learning_dashboard.html -->
-<!-- Phiên bản: 1.19 -->
+<!-- Phiên bản: 1.33 -->
 <!-- Mục đích: Giao diện chính để chọn bộ câu hỏi và chế độ học Quiz. -->
-<!-- ĐÃ SỬA: Tải trực tiếp danh sách bộ Quiz thay vì dùng AJAX ban đầu. -->
-<!-- ĐÃ SỬA: Bỏ phân trang trong template. -->
+<!-- ĐÃ SỬA: Tải danh sách bộ Quiz qua AJAX và tích hợp phân trang. -->
+<!-- ĐÃ SỬA: Triển khai logic phân loại "Đang làm" và "Khám phá" bằng AJAX. -->
+<!-- ĐÃ SỬA: Khắc phục lỗi BuildError bằng cách thêm tiền tố blueprint 'learning.' vào các url_for. -->
+<!-- ĐÃ SỬA: Thêm nhiều console.log() để debug luồng JavaScript. -->
+<!-- ĐÃ SỬA: Khắc phục lỗi "Invalid URL" bằng cách cung cấp window.location.origin làm URL cơ sở cho URL constructor. -->
+<!-- ĐÃ SỬA: Reset lựa chọn bộ câu hỏi và chế độ học khi chuyển tab/trang. -->
+<!-- ĐÃ SỬA: Nhớ vị trí trang khi chuyển đổi giữa tab 'Đang làm' và 'Khám phá'. -->
+<!-- ĐÃ SỬA: Truyền selectedQuizMode đến backend khi tải chế độ học. -->
+<!-- ĐÃ SỬA: Lấy giá trị session_size từ dropdown và truyền vào URL bắt đầu phiên học. -->
+<!-- ĐÃ THÊM: Ngăn chặn việc chọn các bộ quiz có 0 câu hỏi. -->
+<!-- ĐÃ THÊM: Ngăn chặn việc chọn các chế độ học có 0 câu hỏi. -->
+<!-- ĐÃ SỬA: Vô hiệu hóa nút "Bắt đầu làm bài" nếu chế độ học được chọn có 0 câu hỏi khả dụng. -->
+<!-- ĐÃ SỬA: Khắc phục lỗi ValueError: invalid literal for int() bằng cách định nghĩa URL mẫu trực tiếp trong JS. -->
+<!-- ĐÃ SỬA: Thay đổi cách truyền selectedSessionSize để nó là batch_size. -->
 
 {% extends "base.html" %}
 {% from 'includes/_search_form.html' import render_search_form %}
-{% from 'includes/_pagination.html' import render_pagination %} {# Vẫn giữ import nhưng không dùng #}
+{# Macro render_pagination không còn dùng trực tiếp ở đây, mà sẽ dùng trong _quiz_sets_selection.html #}
 
 
 {% block title %}Học Quiz - MindStack{% endblock %}
@@ -51,55 +63,22 @@
             <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
                 <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ câu hỏi
             </h2>
+            
+            <div class="flex space-x-2 mb-4">
+                <button id="filter-doing" class="tab-filter-button px-4 py-2 rounded-md font-medium transition-colors duration-200 {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing">
+                    <i class="fas fa-play-circle mr-2"></i> Đang làm
+                </button>
+                <button id="filter-explore" class="tab-filter-button px-4 py-2 rounded-md font-medium transition-colors duration-200 {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore">
+                    <i class="fas fa-globe mr-2"></i> Khám phá
+                </button>
+            </div>
+
             <div id="quiz-sets-container" class="flex-grow">
-                {# Nội dung danh sách bộ câu hỏi được tải trực tiếp từ backend #}
-                {% if error_message %}
-                    <p class="text-red-500 text-center py-4">{{ error_message }}</p>
-                {% else %}
-                    <div class="mb-4">
-                        {# Form tìm kiếm cho bộ Quiz #}
-                        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...", search_field=search_field, search_options=quiz_set_search_options) }}
-                    </div>
-
-                    <div class="flex space-x-2 mb-4">
-                        <button id="filter-doing" class="tab-filter-button px-4 py-2 rounded-md font-medium transition-colors duration-200 {% if current_filter == 'doing' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700{% endif %}" data-filter="doing">
-                            <i class="fas fa-play-circle mr-2"></i> Đang làm
-                        </button>
-                        <button id="filter-explore" class="tab-filter-button px-4 py-2 rounded-md font-medium transition-colors duration-200 {% if current_filter == 'explore' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700{% endif %}" data-filter="explore">
-                            <i class="fas fa-globe mr-2"></i> Khám phá
-                        </button>
-                    </div>
-
-                    {% if quiz_sets %}
-                    <div class="space-y-3">
-                        {# Option để học tất cả các bộ #}
-                        <div class="quiz-set-item bg-gray-50 p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200 flex justify-between items-center" data-set-id="all">
-                            <div>
-                                <h3 class="font-semibold text-gray-800 flex items-center">
-                                    <i class="fas fa-infinity mr-2 text-gray-600"></i> Làm tất cả các bộ
-                                </h3>
-                            </div>
-                            {# Số lượng tổng cộng sẽ được tính ở backend và hiển thị ở chế độ học #}
-                        </div>
-
-                        {% for set in quiz_sets %}
-                        <div class="quiz-set-item bg-white p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200" data-set-id="{{ set.container_id }}">
-                            <h3 class="font-semibold text-gray-800">{{ set.title }}</h3>
-                            <p class="text-gray-600 text-sm">{{ set.item_count }} câu</p>
-                            <p class="text-gray-500 text-xs">tạo bởi {{ set.creator.username }}</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    {# Phân trang đã bị bỏ đi #}
-                    {% else %}
-                    <div class="text-center py-12 px-6 text-gray-600">
-                        <i class="fas fa-question-circle text-5xl text-gray-300 mb-4"></i>
-                        <p>Không tìm thấy bộ câu hỏi nào phù hợp.</p>
-                        <p class="text-sm text-gray-500 mt-2">Hãy thử thay đổi bộ lọc hoặc tìm kiếm.</p>
-                    </div>
-                    {% endif %}
-                {% endif %}
+                {# Nội dung danh sách bộ câu hỏi sẽ được tải ở đây qua AJAX #}
+                <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
+                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                    <p>Đang tải danh sách bộ câu hỏi...</p>
+                </div>
             </div>
         </div>
 
@@ -130,9 +109,20 @@
 {% block scripts %}
     {{ super() }}
     <script>
+        console.log(">>> JavaScript: Bắt đầu thực thi script trong quiz_learning_dashboard.html <<<");
+
         let selectedQuizSetId = null;
         let selectedQuizMode = null;
-        let currentFilter = "{{ current_filter }}"; 
+        let selectedSessionSize = 10; // Mặc định 10 câu (bây giờ là batch_size)
+        let currentFilter = "{{ current_filter | default('doing') }}"; 
+        
+        // Biến để lưu trang hiện tại cho mỗi tab
+        let doingPage = 1; 
+        let explorePage = 1;
+        
+        // Khởi tạo currentPage dựa trên currentFilter ban đầu
+        let currentPage = (currentFilter === 'doing' ? doingPage : explorePage);
+
 
         const quizSetsContainer = document.getElementById('quiz-sets-container');
         const quizModesContainer = document.getElementById('quiz-modes-container');
@@ -141,37 +131,78 @@
         const filterExploreBtn = document.getElementById('filter-explore');
 
         // Khai báo các URL cơ sở một lần khi template được render
-        // Sử dụng các endpoint rõ ràng
-        const quizModesPartialBaseUrlById = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_by_id', set_id=0) }}";
-        const quizModesPartialBaseUrlAll = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_all') }}";
-        const startQuizSessionBaseUrlById = "{{ url_for('learning.quiz_learning.start_quiz_session_by_id', set_id=0, mode='placeholder_mode') }}";
-        const startQuizSessionBaseUrlAll = "{{ url_for('learning.quiz_learning.start_quiz_session_all', mode='placeholder_mode') }}";
+        const quizModesPartialBaseUrlById = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_by_id', set_id=0) or '#' }}";
+        const quizModesPartialBaseUrlAll = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_all') or '#' }}";
+        
+        // Định nghĩa URL mẫu cho start_quiz_session với BATCH_SIZE_PLACEHOLDER
+        const startQuizSessionBaseUrlByIdTemplate = "/learn/start_quiz_session/SET_ID_PLACEHOLDER/MODE_PLACEHOLDER/BATCH_SIZE_PLACEHOLDER";
+        const startQuizSessionBaseUrlAllTemplate = "/learn/start_quiz_session/all/MODE_PLACEHOLDER/BATCH_SIZE_PLACEHOLDER";
+        
+        const getQuizSetsPartialUrl = "{{ url_for('learning.quiz_learning.get_quiz_sets_partial') or '#' }}";
 
 
-        // Hàm để tải danh sách bộ Quiz (chỉ dùng cho AJAX sau lần tải đầu)
-        async function loadQuizSets(page = 1, searchQuery = '', searchField = 'all', filter = 'doing') {
+        console.log("JavaScript: Các biến và URL đã được khởi tạo.");
+        console.log("JavaScript: currentFilter ban đầu:", currentFilter);
+        console.log("JavaScript: currentPage ban đầu:", currentPage);
+        console.log("JavaScript: getQuizSetsPartialUrl:", getQuizSetsPartialUrl);
+
+
+        // Hàm để tải danh sách bộ Quiz (dùng cho AJAX)
+        async function loadQuizSets(page, searchQuery, searchField, filter) {
+            console.log(`JavaScript: Gọi loadQuizSets (Trang: ${page}, Tìm kiếm: '${searchQuery}', Trường: '${searchField}', Lọc: '${filter}')`);
             quizSetsContainer.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải danh sách bộ câu hỏi...</p></div>`;
+            
+            // Reset lựa chọn và trạng thái nút khi tải lại danh sách
+            selectedQuizSetId = null; 
+            selectedQuizMode = null;
+            updateStartButtonState(); 
+            quizModesContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                    <i class="fas fa-info-circle text-4xl mb-3"></i>
+                    <p>Vui lòng chọn một bộ câu hỏi trước.</p>
+                </div>
+            `; // Reset nội dung chế độ học
+
+            // Kiểm tra URL trước khi tạo đối tượng URL
+            if (!getQuizSetsPartialUrl || getQuizSetsPartialUrl === '#') {
+                console.error("JavaScript: getQuizSetsPartialUrl không hợp lệ hoặc rỗng. Không thể gửi yêu cầu AJAX.");
+                quizSetsContainer.innerHTML = `<p class="text-red-500 text-center">Lỗi cấu hình URL. Vui lòng liên hệ quản trị viên.</p>`;
+                return; // Dừng hàm nếu URL không hợp lệ
+            }
+
             try {
-                const url = new URL("{{ url_for('learning.quiz_learning.get_quiz_sets_partial') }}");
-                url.searchParams.append('page', page); // Vẫn truyền page nhưng backend sẽ bỏ qua
+                const url = new URL(getQuizSetsPartialUrl, window.location.origin); 
+                url.searchParams.append('page', page);
                 url.searchParams.append('q', searchQuery);
                 url.searchParams.append('search_field', searchField);
                 url.searchParams.append('filter', filter);
 
+                console.log("JavaScript: Đang gửi yêu cầu fetch đến URL:", url.toString());
                 const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                // Thay thế toàn bộ nội dung của quizSetsContainer bằng phản hồi AJAX
-                quizSetsContainer.innerHTML = await response.text();
+                console.log("JavaScript: Đã nhận phản hồi từ fetch.");
+
+                if (!response.ok) {
+                    console.error(`JavaScript: Lỗi HTTP! Status: ${response.status}`);
+                    const errorText = await response.text(); // Lấy nội dung lỗi từ phản hồi
+                    console.error("JavaScript: Nội dung lỗi từ server:", errorText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const responseText = await response.text();
+                quizSetsContainer.innerHTML = responseText;
+                console.log("JavaScript: Nội dung bộ Quiz đã được tải thành công.");
+                
                 addQuizSetClickListeners();
-                // addPaginationAndSearchListeners(); // Bỏ gọi vì không còn phân trang
+                addPaginationAndSearchListeners(); // Gắn lại listener cho phân trang và tìm kiếm
             } catch (error) {
-                console.error('Lỗi khi tải danh sách bộ Quiz:', error);
+                console.error('JavaScript: Lỗi khi tải danh sách bộ Quiz:', error);
                 quizSetsContainer.innerHTML = `<p class="text-red-500 text-center">Không thể tải danh sách bộ câu hỏi. Vui lòng thử lại.</p>`;
             }
         }
 
         // Hàm để tải các chế độ học
         async function loadQuizModes(setId) {
+            console.log("JavaScript: Gọi loadQuizModes cho Set ID:", setId);
             quizModesContainer.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải chế độ học...</p></div>`;
             try {
                 let url;
@@ -181,24 +212,95 @@
                     url = quizModesPartialBaseUrlById.replace('/0', `/${setId}`);
                 }
                 
-                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                quizModesContainer.innerHTML = await response.text();
-                addQuizModeClickListeners();
-                const firstMode = quizModesContainer.querySelector('.quiz-mode-item');
-                if (firstMode) {
-                    firstMode.click();
+                // Kiểm tra URL trước khi tạo đối tượng URL
+                if (!url || url === '#') {
+                    console.error("JavaScript: URL chế độ học không hợp lệ hoặc rỗng. Không thể gửi yêu cầu AJAX.");
+                    quizModesContainer.innerHTML = `<p class="text-red-500 text-center">Lỗi cấu hình URL chế độ học. Vui lòng liên hệ quản trị viên.</p>`;
+                    return; // Dừng hàm nếu URL không hợp lệ
                 }
+
+                const fullUrl = new URL(url, window.location.origin); 
+                // Thêm selected_mode vào query parameter để backend biết mode nào đang được chọn
+                if (selectedQuizMode) {
+                    fullUrl.searchParams.append('selected_mode', selectedQuizMode);
+                }
+
+
+                console.log("JavaScript: Đang gửi yêu cầu fetch chế độ học đến URL:", fullUrl.toString());
+                const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                console.log("JavaScript: Đã nhận phản hồi chế độ học từ fetch.");
+
+                if (!response.ok) {
+                    console.error(`JavaScript: Lỗi HTTP khi tải chế độ học! Status: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error("JavaScript: Nội dung lỗi chế độ học từ server:", errorText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                quizModesContainer.innerHTML = await response.text();
+                console.log("JavaScript: Nội dung chế độ học đã được tải thành công.");
+                addQuizModeClickListeners();
+                
+                // Gắn listener cho dropdown chọn số câu hỏi
+                const sessionSizeSelect = document.getElementById('session-size-select');
+                if (sessionSizeSelect) {
+                    sessionSizeSelect.value = selectedSessionSize; // Đặt giá trị đã chọn
+                    sessionSizeSelect.addEventListener('change', function() {
+                        selectedSessionSize = parseInt(this.value);
+                        console.log("JavaScript: Số câu trong phiên học đã chọn:", selectedSessionSize);
+                        updateStartButtonState();
+                    });
+                }
+
+                // Tự động chọn chế độ đầu tiên CÓ SỐ CÂU > 0 nếu không có chế độ nào được chọn từ trước
+                // Hoặc chọn lại chế độ đã chọn nếu nó vẫn còn trong danh sách và CÓ SỐ CÂU > 0
+                if (!selectedQuizMode) { // Nếu chưa có mode nào được chọn
+                    const availableModes = Array.from(quizModesContainer.querySelectorAll('.quiz-mode-item')).filter(item => parseInt(item.dataset.count) > 0);
+                    if (availableModes.length > 0) {
+                        availableModes[0].click(); // Click chế độ đầu tiên có câu > 0
+                        console.log("JavaScript: Đã tự động chọn chế độ học đầu tiên có câu > 0.");
+                    } else {
+                        selectedQuizMode = null; 
+                        updateStartButtonState();
+                        console.log("JavaScript: Không tìm thấy chế độ học nào có câu > 0 để tự động chọn.");
+                    }
+                } else { // Nếu đã có mode được chọn từ trước, thử chọn lại nó
+                    const previouslySelectedModeElement = quizModesContainer.querySelector(`[data-mode-id="${selectedQuizMode}"]`);
+                    if (previouslySelectedModeElement && parseInt(previouslySelectedModeElement.dataset.count) > 0) {
+                        previouslySelectedModeElement.click();
+                        console.log(`JavaScript: Đã chọn lại chế độ học: ${selectedQuizMode}`);
+                    } else {
+                        // Nếu mode đã chọn trước đó không còn trong danh sách hoặc có 0 câu, reset
+                        selectedQuizMode = null;
+                        updateStartButtonState();
+                        console.log("JavaScript: Chế độ đã chọn trước đó không còn khả dụng hoặc có 0 câu, reset lựa chọn.");
+                        const availableModes = Array.from(quizModesContainer.querySelectorAll('.quiz-mode-item')).filter(item => parseInt(item.dataset.count) > 0);
+                        if (availableModes.length > 0) {
+                            availableModes[0].click();
+                            console.log("JavaScript: Đã tự động chọn chế độ học đầu tiên có câu > 0 sau khi reset.");
+                        }
+                    }
+                }
+
             } catch (error) {
-                console.error('Lỗi khi tải chế độ học:', error);
+                console.error('JavaScript: Lỗi khi tải chế độ học:', error);
                 quizModesContainer.innerHTML = `<p class="text-red-500 text-center">Không thể tải chế độ học. Vui lòng thử lại.</p>`;
             }
         }
 
         // Hàm thêm listener cho các bộ Quiz
         function addQuizSetClickListeners() {
+            console.log("JavaScript: Gắn listener cho các bộ Quiz.");
             document.querySelectorAll('.quiz-set-item').forEach(item => {
-                item.addEventListener('click', function() {
+                item.addEventListener('click', function(event) { // Thêm event vào đây
+                    const totalItems = parseInt(this.dataset.totalItems);
+                    if (totalItems === 0) {
+                        console.log("JavaScript: Bộ Quiz này có 0 câu hỏi, không thể chọn.");
+                        event.preventDefault(); // Ngăn chặn hành vi click
+                        event.stopPropagation(); // Ngăn chặn sự kiện lan truyền
+                        return;
+                    }
+
+                    console.log("JavaScript: Bộ Quiz đã được click, ID:", this.dataset.setId);
                     document.querySelectorAll('.quiz-set-item').forEach(el => el.classList.remove('selected-item'));
                     this.classList.add('selected-item');
                     selectedQuizSetId = this.dataset.setId;
@@ -210,8 +312,18 @@
 
         // Hàm thêm listener cho các chế độ học
         function addQuizModeClickListeners() {
+            console.log("JavaScript: Gắn listener cho các chế độ học.");
             document.querySelectorAll('.quiz-mode-item').forEach(item => {
-                item.addEventListener('click', function() {
+                item.addEventListener('click', function(event) { // Thêm event vào đây
+                    const modeCount = parseInt(this.dataset.count);
+                    if (modeCount === 0) {
+                        console.log("JavaScript: Chế độ học này có 0 câu hỏi, không thể chọn.");
+                        event.preventDefault(); // Ngăn chặn hành vi click
+                        event.stopPropagation(); // Ngăn chặn sự kiện lan truyền
+                        return;
+                    }
+
+                    console.log("JavaScript: Chế độ học đã được click, ID:", this.dataset.modeId);
                     document.querySelectorAll('.quiz-mode-item').forEach(el => el.classList.remove('selected-mode'));
                     this.classList.add('selected-mode');
                     selectedQuizMode = this.dataset.modeId;
@@ -220,47 +332,130 @@
             });
         }
 
-        // Hàm thêm listener cho form tìm kiếm (phân trang đã bỏ)
+        // Hàm thêm listener cho form tìm kiếm và phân trang
         function addPaginationAndSearchListeners() {
+            console.log("JavaScript: Gắn listener cho form tìm kiếm và phân trang.");
+            // Listener cho form tìm kiếm
             const searchForm = quizSetsContainer.querySelector('form');
             if (searchForm) {
                 searchForm.addEventListener('submit', function(event) {
                     event.preventDefault();
+                    console.log("JavaScript: Form tìm kiếm đã được submit.");
                     const formData = new FormData(searchForm);
                     const q = formData.get('q') || '';
                     const search_field = formData.get('search_field') || 'all';
-                    loadQuizSets(1, q, search_field, currentFilter);
+                    
+                    // Reset trang về 1 khi tìm kiếm mới
+                    if (currentFilter === 'doing') {
+                        doingPage = 1;
+                    } else {
+                        explorePage = 1;
+                    }
+                    currentPage = 1; // Cập nhật currentPage để phản ánh trang mới
+
+                    loadQuizSets(currentPage, q, search_field, currentFilter);
                 });
             }
+
+            // Listener cho các nút phân trang
+            document.querySelectorAll('.pagination a').forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault(); // Ngăn chặn hành vi mặc định của link
+                    console.log("JavaScript: Nút phân trang đã được click, URL:", this.href);
+                    const url = new URL(this.href, window.location.origin); 
+                    const page = url.searchParams.get('page');
+                    const q = url.searchParams.get('q') || '';
+                    const search_field = url.searchParams.get('search_field') || 'all';
+                    
+                    // Cập nhật trang hiện tại cho filter tương ứng
+                    if (currentFilter === 'doing') {
+                        doingPage = parseInt(page);
+                    } else {
+                        explorePage = parseInt(page);
+                    }
+                    currentPage = parseInt(page); // Cập nhật currentPage
+
+                    loadQuizSets(currentPage, q, search_field, currentFilter);
+                });
+            });
         }
 
         // Cập nhật trạng thái nút "Bắt đầu học"
         function updateStartButtonState() {
-            if (selectedQuizSetId && selectedQuizMode) {
+            console.log("JavaScript: Cập nhật trạng thái nút Bắt đầu học. Set ID:", selectedQuizSetId, "Mode:", selectedQuizMode, "Session Size:", selectedSessionSize);
+            
+            let isSetSelectable = false;
+            // Kiểm tra xem bộ quiz được chọn có hợp lệ không
+            if (selectedQuizSetId === 'all') {
+                // Tùy chọn "Làm tất cả các bộ" luôn được coi là có thể chọn nếu hiển thị
+                // (Logic hiển thị đã được kiểm soát trong _quiz_sets_selection.html)
+                isSetSelectable = true; 
+            } else if (selectedQuizSetId !== null) {
+                const selectedItemElement = document.querySelector(`.quiz-set-item[data-set-id="${selectedQuizSetId}"]`);
+                if (selectedItemElement) {
+                    const totalItems = parseInt(selectedItemElement.dataset.totalItems);
+                    isSetSelectable = (totalItems > 0);
+                }
+            }
+
+            let isModeSelectable = false;
+            // Kiểm tra xem chế độ học được chọn có hợp lệ không
+            if (selectedQuizMode !== null) {
+                const selectedModeElement = quizModesContainer.querySelector(`[data-mode-id="${selectedQuizMode}"]`);
+                if (selectedModeElement) {
+                    const modeCount = parseInt(selectedModeElement.dataset.count);
+                    isModeSelectable = (modeCount > 0);
+                }
+            }
+
+            // Nút "Bắt đầu làm bài" chỉ được kích hoạt khi:
+            // 1. Có bộ quiz được chọn VÀ bộ đó có câu hỏi
+            // 2. Có chế độ học được chọn VÀ chế độ đó có câu hỏi
+            // 3. Có số câu trong phiên được chọn
+            if (isSetSelectable && isModeSelectable && selectedSessionSize) {
                 startLearningBtn.disabled = false;
+                startLearningBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                startLearningBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
             } else {
                 startLearningBtn.disabled = true;
+                startLearningBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                startLearningBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             }
         }
 
         // Listener cho nút "Bắt đầu học"
         startLearningBtn.addEventListener('click', function() {
-            if (selectedQuizSetId && selectedQuizMode) {
+            console.log("JavaScript: Nút Bắt đầu học đã được click.");
+            if (selectedQuizSetId && selectedQuizMode && selectedSessionSize) {
                 let startUrl;
                 if (selectedQuizSetId === 'all') {
-                    startUrl = startQuizSessionBaseUrlAll.replace('placeholder_mode', selectedQuizMode);
+                    // Cập nhật URL để bao gồm session_size
+                    startUrl = startQuizSessionBaseUrlAllTemplate
+                        .replace('MODE_PLACEHOLDER', selectedQuizMode)
+                        .replace('BATCH_SIZE_PLACEHOLDER', selectedSessionSize); // Đổi SESSION_SIZE_PLACEHOLDER thành BATCH_SIZE_PLACEHOLDER
                 } else {
-                    startUrl = startQuizSessionBaseUrlById.replace('/0', `/${selectedQuizSetId}`).replace('placeholder_mode', selectedQuizMode);
+                    // Cập nhật URL để bao gồm session_size
+                    startUrl = startQuizSessionBaseUrlByIdTemplate
+                        .replace('SET_ID_PLACEHOLDER', selectedQuizSetId)
+                        .replace('MODE_PLACEHOLDER', selectedQuizMode)
+                        .replace('BATCH_SIZE_PLACEHOLDER', selectedSessionSize); // Đổi SESSION_SIZE_PLACEHOLDER thành BATCH_SIZE_PLACEHOLDER
                 }
-                
+                console.log("JavaScript: Chuyển hướng đến URL bắt đầu học:", startUrl);
                 window.location.href = startUrl;
             }
         });
 
         // Listener cho các nút tab lọc (Đang làm, Khám phá)
         filterDoingBtn.addEventListener('click', function() {
+            console.log("JavaScript: Nút 'Đang làm' đã được click.");
             if (currentFilter !== 'doing') {
+                // Lưu trang hiện tại của tab cũ trước khi chuyển
+                if (currentFilter === 'explore') {
+                    explorePage = currentPage;
+                }
                 currentFilter = 'doing';
+                currentPage = doingPage; // Tải trang đã lưu của tab mới
+
                 filterDoingBtn.classList.add('active');
                 filterDoingBtn.classList.remove('bg-gray-100', 'text-gray-700');
                 filterDoingBtn.classList.add('bg-blue-600', 'text-white');
@@ -269,13 +464,20 @@
                 filterExploreBtn.classList.add('bg-gray-100', 'text-gray-700');
                 filterExploreBtn.classList.remove('bg-blue-600', 'text-white');
                 
-                loadQuizSets(1, '', 'all', currentFilter); 
+                loadQuizSets(currentPage, '', 'all', currentFilter); 
             }
         });
 
         filterExploreBtn.addEventListener('click', function() {
+            console.log("JavaScript: Nút 'Khám phá' đã được click.");
             if (currentFilter !== 'explore') {
+                // Lưu trang hiện tại của tab cũ trước khi chuyển
+                if (currentFilter === 'doing') {
+                    doingPage = currentPage;
+                }
                 currentFilter = 'explore';
+                currentPage = explorePage; // Tải trang đã lưu của tab mới
+
                 filterExploreBtn.classList.add('active');
                 filterExploreBtn.classList.remove('bg-gray-100', 'text-gray-700');
                 filterExploreBtn.classList.add('bg-blue-600', 'text-white');
@@ -284,25 +486,16 @@
                 filterDoingBtn.classList.add('bg-gray-100', 'text-gray-700');
                 filterDoingBtn.classList.remove('bg-blue-600', 'text-white');
 
-                loadQuizSets(1, '', 'all', currentFilter); 
+                loadQuizSets(currentPage, '', 'all', currentFilter); 
             }
         });
 
 
-        // Gắn lại Event Listeners sau khi nội dung được render trực tiếp
+        // Khởi tạo: Tải danh sách bộ quiz khi trang tải xong
         document.addEventListener('DOMContentLoaded', function() {
-            addQuizSetClickListeners();
-            addPaginationAndSearchListeners(); // Vẫn cần để gắn listener cho form tìm kiếm
-            // Cập nhật trạng thái active của nút filter ban đầu
-            if (currentFilter === 'doing') {
-                filterDoingBtn.classList.add('active');
-                filterDoingBtn.classList.remove('bg-gray-100', 'text-gray-700');
-                filterDoingBtn.classList.add('bg-blue-600', 'text-white');
-            } else if (currentFilter === 'explore') {
-                filterExploreBtn.classList.add('active');
-                filterExploreBtn.classList.remove('bg-gray-100', 'text-gray-700');
-                filterExploreBtn.classList.add('bg-blue-600', 'text-white');
-            }
+            console.log("JavaScript: DOMContentLoaded fired. Bắt đầu tải bộ Quiz ban đầu.");
+            // Gọi loadQuizSets với filter ban đầu từ backend
+            loadQuizSets(currentPage, "{{ search_query }}", "{{ search_field }}", currentFilter);
         });
     </script>
 {% endblock %}
