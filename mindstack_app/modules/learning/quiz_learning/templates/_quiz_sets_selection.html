@@ -1,0 +1,48 @@
+<!-- File: newmindstack/mindstack_app/modules/learning/quiz_learning/templates/_quiz_sets_selection.html -->
+<!-- Phiên bản: 1.6 -->
+<!-- Mục đích: Partial template hiển thị danh sách các bộ Quiz để người dùng lựa chọn. -->
+<!-- ĐÃ SỬA: Bỏ phân trang trong template. -->
+
+{% from 'includes/_search_form.html' import render_search_form %}
+{% from 'includes/_pagination.html' import render_pagination %} {# Vẫn giữ import nhưng không dùng #}
+
+<div class="w-full">
+    <div class="mb-4">
+        {# Form tìm kiếm cho bộ Quiz #}
+        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...", search_field=search_field, search_options=search_options) }}
+    </div>
+
+    {# Các nút "Đang làm" và "Khám phá" đã được chuyển ra quiz_learning_dashboard.html #}
+    {# Để tránh trùng lặp và dễ quản lý trạng thái active #}
+    {# Hiện tại, tôi sẽ giữ chúng ở dashboard.html như hình ảnh bạn cung cấp #}
+
+    {% if quiz_sets %}
+    <div class="space-y-3">
+        {# Option để học tất cả các bộ #}
+        <div class="quiz-set-item bg-gray-50 p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200 flex justify-between items-center" data-set-id="all">
+            <div>
+                <h3 class="font-semibold text-gray-800 flex items-center">
+                    <i class="fas fa-infinity mr-2 text-gray-600"></i> Làm tất cả các bộ
+                </h3>
+            </div>
+            {# Số lượng tổng cộng sẽ được tính ở backend và hiển thị ở chế độ học #}
+        </div>
+
+        {% for set in quiz_sets %}
+        <div class="quiz-set-item bg-white p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200" data-set-id="{{ set.container_id }}">
+            <h3 class="font-semibold text-gray-800">{{ set.title }}</h3>
+            <p class="text-gray-600 text-sm">{{ set.item_count }} câu</p>
+            <p class="text-gray-500 text-xs">tạo bởi {{ set.creator.username }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# Phân trang đã bị bỏ đi #}
+    {% else %}
+    <div class="text-center py-12 px-6 text-gray-600">
+        <i class="fas fa-question-circle text-5xl text-gray-300 mb-4"></i>
+        <p>Không tìm thấy bộ câu hỏi nào phù hợp.</p>
+        <p class="text-sm text-gray-500 mt-2">Hãy thử thay đổi bộ lọc hoặc tìm kiếm.</p>
+    </div>
+    {% endif %}
+</div>

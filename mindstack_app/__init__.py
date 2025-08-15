@@ -1,6 +1,7 @@
 # File: web/mindstack_app/__init__.py
-# Version: 2.1
+# Version: 2.2
 # ĐÃ SỬA: Thêm email mặc định khi tạo tài khoản admin để khắc phục lỗi IntegrityError.
+# ĐÃ SỬA: Đăng ký Blueprint mới cho module learning mà không làm mất code gốc.
 
 from flask import Flask, g
 from .config import Config
@@ -46,6 +47,8 @@ def create_app(config_class=Config):
     from .modules.admin.user_management.user_routes import user_management_bp
     from .modules.user_profile import user_profile_bp 
     from .modules.content_management.routes import content_management_bp
+    # Import và đăng ký Blueprint MỚI cho module học tập
+    from .modules.learning.routes import learning_bp # Dòng này được thêm vào
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
@@ -53,6 +56,7 @@ def create_app(config_class=Config):
     app.register_blueprint(user_management_bp, url_prefix='/admin/users') 
     app.register_blueprint(user_profile_bp, url_prefix='/profile') 
     app.register_blueprint(content_management_bp, url_prefix='/content')
+    app.register_blueprint(learning_bp, url_prefix='/learn') # Dòng này được thêm vào
 
     with app.app_context():
         db.create_all()
@@ -68,3 +72,4 @@ def create_app(config_class=Config):
             print("Đã tạo user admin mặc định.")
             
     return app
+

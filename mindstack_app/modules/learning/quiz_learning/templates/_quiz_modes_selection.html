@@ -1,0 +1,26 @@
+<!-- File: newmindstack/mindstack_app/modules/learning/quiz_learning/templates/_quiz_modes_selection.html -->
+<!-- Phiên bản: 1.1 -->
+<!-- Mục đích: Partial template hiển thị các chế độ học Quiz. -->
+<!-- ĐÃ SỬA: Thêm dấu tick xanh cho chế độ được chọn. -->
+
+<div class="w-full space-y-3">
+    {% if modes %}
+        {% for mode in modes %}
+        <div class="quiz-mode-item bg-white p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200 flex justify-between items-center" data-mode-id="{{ mode.id }}">
+            <h3 class="font-semibold text-gray-800">{{ mode.name }}</h3>
+            <div class="flex items-center">
+                <span class="text-gray-600 mr-2">({{ mode.count }})</span>
+                {# Thêm dấu tick xanh nếu đây là chế độ mặc định được chọn (ví dụ: sequential) #}
+                {% if loop.first and selected_set_id %} {# Chỉ đánh dấu nếu có bộ thẻ được chọn, và là chế độ đầu tiên #}
+                    <i class="fas fa-check-circle text-green-500"></i>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center py-12 px-6 text-gray-600">
+            <i class="fas fa-info-circle text-5xl text-gray-300 mb-4"></i>
+            <p>Không có chế độ học nào khả dụng.</p>
+        </div>
+    {% endif %}
+</div>
