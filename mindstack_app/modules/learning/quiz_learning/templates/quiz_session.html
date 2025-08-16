@@ -1,12 +1,3 @@
-<!-- File: mindstack_app/modules/learning/quiz_learning/templates/quiz_session.html -->
-<!-- Phiên bản: 1.13 -->
-<!-- Mục đích: Giao diện chính để người dùng làm bài Quiz theo nhóm câu hỏi. -->
-<!-- ĐÃ SỬA: Thêm console.log để debug nội dung mediaHtml trước khi chèn vào DOM. -->
-<!-- ĐÃ SỬA: Đảm bảo các thuộc tính onerror được đặt đúng và hiển thị placeholder/thông báo lỗi. -->
-<!-- ĐÃ SỬA: Cho phép hiển thị question_image_file và question_audio_file của từng câu hỏi con, ngay cả khi chúng thuộc một LearningGroup (nếu group_details tồn tại). -->
-<!-- ĐÃ SỬA: Khắc phục vấn đề hiển thị ký tự xuống dòng (CHAR(10)) bằng cách chuyển đổi chúng thành thẻ <br> trong các trường văn bản. -->
-<!-- ĐÃ SỬA: Đảm bảo nội dung được hiển thị an toàn bằng cách escape HTML trước khi chèn vào DOM. -->
-
 {% extends "base.html" %}
 
 {% block title %}Làm bài Quiz{% endblock %}
@@ -28,7 +19,7 @@
             background-color: #ffffff; /* bg-white */
             padding: 1.5rem; /* p-6 */
             border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06); /* shadow-md */
             border-width: 1px; /* border */
             border-color: #e5e7eb; /* border-gray-200 */
             margin-bottom: 1.5rem; /* mb-6 */
@@ -102,6 +93,245 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+        /* Styles cho phần thống kê mới */
+        .statistics-container {
+            background-color: #ffffff; /* bg-white */
+            border: 1px solid #e2e8f0; /* border-gray-200 */
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 0.5rem; /* Giảm padding tổng thể */
+            margin-top: 1rem;
+            display: flex;
+            flex-wrap: nowrap; /* Đảm bảo các mục chính không xuống dòng */
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-group {
+            flex: 1 1 33%; /* 3 cột chính trên 1 hàng */
+            min-width: 80px; /* Giảm min-width cho các nhóm nhỏ hơn */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 0.3rem; /* Giảm padding */
+            margin: 0.1rem; /* Giảm khoảng cách giữa các nhóm */
+            border-right: 1px solid #f3f4f6; /* Đường phân cách */
+        }
+        .stat-group:last-of-type { /* Chỉ áp dụng cho phần tử cuối cùng trong flex container */
+            border-right: none; /* Xóa đường phân cách ở cuối */
+        }
+        /* Đảm bảo đường phân cách chỉ hiển thị giữa các cột chính, không phải giữa các hàng khi wrap */
+        @media (max-width: 640px) { /* Ví dụ breakpoint cho mobile */
+            .statistics-container {
+                flex-direction: column; /* Chuyển sang cột trên mobile */
+                align-items: stretch; /* Kéo dài các mục */
+            }
+            .stat-group {
+                border-right: none; /* Bỏ đường phân cách trên mobile */
+                border-bottom: 1px solid #f3f4f6; /* Thêm đường phân cách dưới */
+                padding: 0.5rem; /* Tăng padding trên mobile */
+            }
+            .stat-group:last-of-type {
+                border-bottom: none;
+            }
+        }
+        .stat-group .label {
+            font-size: 0.6rem; /* text-xs nhỏ hơn nữa */
+            color: #6b7280; /* text-gray-500 */
+            font-weight: 500;
+            white-space: nowrap;
+            margin-bottom: 0.2rem; /* Giảm margin-bottom */
+        }
+        .stat-group .value {
+            font-size: 0.8rem; /* text-base nhỏ hơn nữa */
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .stat-group .icon { /* Icon cho các mục thống kê */
+            font-size: 1.1rem; /* Kích thước icon */
+            margin-bottom: 0.2rem;
+            color: #3b82f6; /* Màu mặc định cho icon */
+        }
+        
+        /* History Section */
+        .history-section-group {
+            flex: 1 1 33%;
+            min-width: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 0.3rem;
+            margin: 0.1rem;
+            border-right: 1px solid #f3f4f6;
+        }
+        .history-section-group:last-of-type {
+            border-right: none;
+        }
+        .history-section-group .label {
+            font-size: 0.6rem;
+            color: #6b7280;
+            font-weight: 500;
+            white-space: nowrap;
+            margin-bottom: 0.2rem;
+        }
+        .history-container {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 2px;
+            padding: 0.3rem;
+            justify-content: center;
+            max-width: 100%;
+        }
+        .history-item {
+            width: 25px;
+            height: 25px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .history-item.correct {
+            background-color: #22c55e;
+        }
+        .history-item.incorrect {
+            background-color: #ef4444;
+        }
+        .history-item-tooltip {
+            position: relative;
+            cursor: pointer;
+        }
+        .history-item-tooltip .tooltiptext {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 3px 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+            font-size: 0.6rem;
+        }
+        .history-item-tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -3px;
+            border-width: 3px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        .history-item-tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        /* Styles cho Progress Bar */
+        .progress-bar-container {
+            width: 100%;
+            height: 1.25rem; /* Chiều cao dẹt hơn */
+            background-color: #e0e0e0;
+            border-radius: 0.625rem; /* Bo tròn tương ứng */
+            overflow: hidden;
+            position: relative; /* Đặt lại position relative cho container */
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); /* Đổ bóng bên trong để nổi bật */
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-image: linear-gradient(to right, #4CAF50, #8BC34A); /* Gradient xanh lá cây */
+            transition: width 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Đã xóa position: relative và z-index vì không còn cần thiết */
+        }
+
+        .progress-bar-text {
+            position: absolute; /* Đặt lại absolute */
+            width: 100%; /* Chiếm toàn bộ chiều rộng của container */
+            text-align: center; /* Căn giữa văn bản */
+            top: 50%; /* Đặt ở giữa theo chiều dọc */
+            transform: translateY(-50%); /* Dịch chuyển lên 50% chiều cao của chính nó */
+            left: 0; /* Thêm để căn giữa ngang khi absolute */
+            right: 0; /* Thêm để căn giữa ngang khi absolute */
+            color: #333; /* Màu chữ mặc định là xám đậm */
+            font-weight: bold;
+            font-size: 0.75rem; /* Kích thước chữ nhỏ hơn */
+            white-space: nowrap; /* Ngăn không cho text xuống dòng */
+            overflow: hidden; /* Cắt text nếu quá dài so với fill */
+            text-overflow: ellipsis; /* Thêm dấu ... nếu text bị cắt */
+        }
+        /* Thêm class để đổi màu chữ khi thanh fill đủ rộng */
+        .progress-bar-fill.has-text-overlap .progress-bar-text {
+            color: white;
+        }
+        
+        /* THÊM MỚI: CSS cho modal phóng to ảnh */
+        .image-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: none; /* Mặc định ẩn */
+            justify-content: center;
+            align-items: center;
+            z-index: 1001; /* Đảm bảo trên mọi thứ khác */
+            padding: 20px;
+            overflow: auto; /* Cho phép cuộn nếu ảnh quá lớn */
+            -webkit-overflow-scrolling: touch; /* Hỗ trợ cuộn mượt trên iOS */
+        }
+        .image-modal-content {
+            position: relative;
+            /* Đảm bảo modal content chiếm tối đa không gian có thể */
+            width: 90vw; /* 90% chiều rộng viewport */
+            height: 90vh; /* 90% chiều cao viewport */
+            max-width: 90%; /* Giới hạn lại để có padding */
+            max-height: 90%;
+            display: flex; /* Để căn giữa ảnh bên trong */
+            justify-content: center;
+            align-items: center;
+        }
+        .image-modal-content img {
+            display: block; /* Loại bỏ khoảng trắng dưới ảnh */
+            object-fit: contain; /* Đảm bảo ảnh vừa với khung, không bị cắt */
+            width: 100%; /* Ảnh sẽ cố gắng chiếm 100% chiều rộng của content */
+            height: 100%; /* Ảnh sẽ cố gắng chiếm 100% chiều cao của content */
+            cursor: zoom-in; /* Thêm hiệu ứng cursor để gợi ý có thể click */
+        }
+        .image-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            color: white;
+            font-size: 3rem;
+            cursor: pointer;
+            line-height: 1;
+            opacity: 0.8;
+        }
+        .quiz-image {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            cursor: zoom-in; /* Thêm hiệu ứng cursor để gợi ý có thể click */
+        }
     </style>
 {% endblock %}
 
@@ -113,8 +343,12 @@
     </h1>
 
     <div class="bg-white rounded-xl shadow-lg p-6 quiz-card">
+        <!-- Phần tổng kết phiên học mới -->
+        <div id="session-summary" class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6 text-center" style="display: none;">
+            <p class="text-lg font-semibold text-blue-800">Tổng kết phiên học: <span id="session-correct-count">0</span> / <span id="session-total-count">0</span> câu đúng</p>
+        </div>
+
         <div id="quiz-content" class="flex-grow">
-            <!-- Nội dung các câu hỏi trong nhóm sẽ được tải ở đây qua AJAX -->
             <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
                 <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
                 <p>Đang tải câu hỏi...</p>
@@ -134,11 +368,20 @@
         </div>
     </div>
 </div>
+
+{# THÊM MỚI: Modal phóng to ảnh #}
+<div id="image-zoom-modal" class="image-modal-overlay">
+    <span class="image-modal-close">&times;</span>
+    <div class="image-modal-content">
+        <img id="image-zoom-display" src="" alt="Zoomed Image">
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
     {{ super() }}
     <script>
+        // DI CHUYỂN HÀM RA PHẠM VI TOÀN CỤC
         let currentQuestionBatch = []; // Lưu trữ nhóm câu hỏi hiện tại
         let userAnswers = {}; // Lưu trữ đáp án của người dùng cho nhóm câu hỏi hiện tại
         let isBatchSubmitted = false; // Trạng thái đã gửi đáp án nhóm chưa
@@ -148,6 +391,14 @@
         const submitBatchBtn = document.getElementById('submit-batch-btn');
         const nextBatchBtn = document.getElementById('next-batch-btn');
         const endSessionBtn = document.getElementById('end-session-btn');
+        const sessionSummaryDiv = document.getElementById('session-summary'); // Element tổng kết phiên
+        const sessionCorrectCountSpan = document.getElementById('session-correct-count'); // Số câu đúng
+        const sessionTotalCountSpan = document.getElementById('session-total-count'); // Tổng số câu đã làm
+        
+        // Element cho modal phóng to ảnh
+        const imageZoomModal = document.getElementById('image-zoom-modal');
+        const imageZoomDisplay = document.getElementById('image-zoom-display');
+        const imageZoomCloseBtn = document.querySelector('.image-modal-close');
 
         // URL cho các API quiz session
         const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}"; // Route mới
@@ -169,7 +420,18 @@
             const tempDiv = document.createElement('div');
             tempDiv.textContent = text;
             // Chuyển đổi ký tự xuống dòng thành <br> sau khi đã escape
-            return tempDiv.innerHTML.replace(/\n/g, '<br>');
+            return tempDiv.innerHTML.replace(/\r?\n/g, '<br>'); // Đã sửa regex để xử lý cả \r\n và \n
+        }
+
+        // Hàm cập nhật hiển thị tổng kết phiên
+        function updateSessionSummary(correctCount, totalCount) {
+            sessionCorrectCountSpan.textContent = correctCount;
+            sessionTotalCountSpan.textContent = totalCount;
+            if (totalCount > 0) {
+                sessionSummaryDiv.style.display = 'block'; // Hiển thị phần tổng kết
+            } else {
+                sessionSummaryDiv.style.display = 'none'; // Ẩn nếu chưa có câu nào
+            }
         }
 
         // Hàm hiển thị nhóm câu hỏi
@@ -213,11 +475,11 @@
                         }
                         if (group.question_image_file) {
                             console.log(`Đường dẫn ảnh nhóm (Group): ${group.question_image_file}`);
-                            groupSpecificContentHtml += `<img src="${formatTextForHtml(group.question_image_file)}" alt="Hình ảnh nhóm" class="max-w-full h-auto rounded-md mb-4" onerror="this.onerror=null;this.src='https://placehold.co/150x100?text=L%E1%BB%97i+t%E1%BA%A3i+%E1%BA%A3nh+nh%C3%B3m'; console.error('Lỗi tải ảnh nhóm: ${group.question_image_file}')">`;
+                            mediaHtml += `<img src="${formatTextForHtml(group.question_image_file)}" alt="Hình ảnh nhóm" class="quiz-image my-4" onerror="this.onerror=null;this.src='https://placehold.co/150x100?text=L%E1%BB%97i+t%E1%BA%A3i+%E1%BA%A3nh+nh%C3%B3m'; console.error('Lỗi tải ảnh nhóm: ${group.question_image_file}')">`;
                         }
                         if (group.question_audio_file) {
                             console.log(`Đường dẫn audio nhóm (Group): ${group.question_audio_file}`);
-                            groupSpecificContentHtml += `<audio controls src="${formatTextForHtml(group.question_audio_file)}" class="w-full mb-4" onerror="this.onerror=null;this.outerHTML='<p class=\'text-red-500\'>Lỗi tải âm thanh nhóm</p>'; console.error('Lỗi tải audio nhóm: ${group.question_audio_file}')"></audio>`;
+                            mediaHtml += `<audio controls src="${formatTextForHtml(group.question_audio_file)}" class="w-full mb-4" onerror="this.onerror=null;this.outerHTML='<p class=\'text-red-500\'>Lỗi tải âm thanh nhóm</p>'; console.error('Lỗi tải audio nhóm: ${group.question_audio_file}')"></audio>`;
                         }
                     }
                     lastDisplayedGroupId = questionData.group_id; // Cập nhật group_id đã hiển thị
@@ -233,7 +495,7 @@
                 // Media của từng câu hỏi con
                 if (questionData.content.question_image_file) { 
                     console.log(`Đường dẫn ảnh câu hỏi (Item) ${questionData.item_id}: ${questionData.content.question_image_file}`);
-                    mediaHtml += `<img src="${formatTextForHtml(questionData.content.question_image_file)}" alt="Hình ảnh câu hỏi" class="max-w-full h-auto rounded-md mb-4" onerror="this.onerror=null;this.src='https://placehold.co/150x100?text=L%E1%BB%97i+t%E1%BA%A3i+%E1%BA%A3nh+c%C3%A2u+h%E1%BB%8Fi'; console.error('Lỗi tải ảnh câu hỏi: ${questionData.content.question_image_file}')">`;
+                    mediaHtml += `<img src="${formatTextForHtml(questionData.content.question_image_file)}" alt="Hình ảnh câu hỏi" class="quiz-image my-4" onerror="this.onerror=null;this.src='https://placehold.co/150x100?text=L%E1%BB%97i+t%E1%BA%A3i+%E1%BA%A3nh+c%C3%A2u+h%E1%BB%8Fi'; console.error('Lỗi tải ảnh câu hỏi: ${questionData.content.question_image_file}')"></audio>`;
                 }
                 if (questionData.content.question_audio_file) { 
                     console.log(`Đường dẫn audio câu hỏi (Item) ${questionData.item_id}: ${questionData.content.question_audio_file}`);
@@ -269,12 +531,16 @@
                             ${optionsHtml}
                         </div>
                         <div class="feedback-area mt-4"></div>
+                        <div class="statistics-area mt-4" style="display: none;"></div>
                     </div>
                 `;
             });
 
             quizContentDiv.innerHTML = fullBatchContentHtml; 
             quizProgressSpan.textContent = `(${batchData.start_index + 1}-${batchData.start_index + currentQuestionBatch.length} / ${batchData.total_items_in_session})`;
+
+            // Cập nhật tổng kết phiên ngay khi tải nhóm câu hỏi
+            updateSessionSummary(batchData.session_correct_answers, batchData.session_total_answered);
 
             // Gắn listener cho các nút lựa chọn trong nhóm
             document.querySelectorAll('.option-button').forEach(button => {
@@ -288,7 +554,107 @@
                     }
                 });
             });
+
+            // Gắn listener cho các hình ảnh để mở modal phóng to
+            document.querySelectorAll('.quiz-image').forEach(image => {
+                image.addEventListener('click', function() {
+                    openImageModal(this.src);
+                });
+            });
         }
+
+        // THÊM MỚI: Hàm xử lý modal phóng to ảnh
+        function openImageModal(imageUrl) {
+            imageZoomDisplay.src = imageUrl;
+            imageZoomModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Ngăn cuộn trang nền
+
+            // Đảm bảo ảnh đã tải xong trước khi điều chỉnh kích thước
+            imageZoomDisplay.onload = () => {
+                // Không cần Panzoom nữa, CSS object-fit: contain sẽ xử lý việc fit màn hình
+            };
+            imageZoomDisplay.onerror = () => {
+                console.error("Lỗi tải ảnh trong modal zoom.");
+                // Có thể hiển thị thông báo lỗi cho người dùng
+                closeImageModal();
+            };
+        }
+
+        function closeImageModal() {
+            imageZoomModal.style.display = 'none';
+            document.body.style.overflow = ''; // Cho phép cuộn trang lại
+            imageZoomDisplay.src = '';
+        }
+
+        imageZoomCloseBtn.addEventListener('click', closeImageModal);
+        imageZoomModal.addEventListener('click', function(event) {
+            // Đóng modal khi click vào overlay (không phải ảnh hoặc nút đóng)
+            if (event.target === imageZoomModal || event.target === imageZoomCloseBtn) {
+                closeImageModal();
+            }
+        });
+
+
+        // Hàm hiển thị thống kê
+        function displayStatistics(statistics, statisticsArea, score_change) {
+            if (!statistics) {
+                statisticsArea.innerHTML = '<p class="text-gray-500">Chưa có thống kê cho câu hỏi này.</p>';
+                return;
+            }
+            
+            // Tính toán phần trăm đúng để hiển thị trên progress bar
+            const correctPercentage = statistics.correct_percentage || 0;
+            
+            let statsHtml = `
+                <div class="statistics-container">
+                    <div class="stat-group">
+                        <i class="fas fa-chart-bar icon"></i>
+                        <span class="label">Tổng quan</span>
+                        <div class="progress-bar-container mt-1">
+                            <div class="progress-bar-fill" style="width: ${correctPercentage}%;"></div>
+                            <span class="progress-bar-text">${statistics.times_correct} / ${statistics.total_attempts} (${Math.round(correctPercentage)}%)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="history-section-group">
+                        <i class="fas fa-history icon"></i>
+                        <span class="label">Lịch sử gần đây</span>
+                        <div class="history-container">
+                            ${statistics.review_history ? statistics.review_history.slice(-10).map(entry => {
+                                const statusClass = entry.is_correct ? 'correct' : 'incorrect';
+                                const icon = entry.is_correct ? '&#10003;' : '&#10007;';
+                                const tooltipText = `Lúc: ${entry.timestamp_formatted || 'N/A'}<br>Đáp án: ${entry.user_answer}<br>Điểm: ${entry.score_change}`;
+                                return `
+                                    <div class="history-item-tooltip">
+                                        <div class="history-item ${statusClass}">${icon}</div>
+                                        <span class="tooltiptext">${tooltipText}</span>
+                                    </div>
+                                `;
+                            }).join('') : '<p class="text-gray-500 text-xs text-center">Chưa có lịch sử trả lời.</p>'}
+                        </div>
+                    </div>
+
+                    <div class="stat-group">
+                        <i class="fas fa-star icon"></i>
+                        <span class="label">Điểm đã kiếm được</span>
+                        <span class="value text-green-600">+${score_change}</span>
+                    </div>
+                </div>
+            `;
+            statisticsArea.innerHTML = statsHtml;
+            statisticsArea.style.display = 'block';
+
+            // Cập nhật màu chữ của progress-bar-text sau khi DOM được render
+            const progressBarTextElement = statisticsArea.querySelector('.progress-bar-text');
+            if (progressBarTextElement) {
+                if (correctPercentage > 50) { // Nếu phần trăm hoàn thành đủ cao, dùng chữ trắng
+                    progressBarTextElement.style.color = 'white';
+                } else { // Ngược lại, dùng màu xám đậm
+                    progressBarTextElement.style.color = '#333'; 
+                }
+            }
+        }
+
 
         // Hàm gửi đáp án cho cả nhóm
         async function submitAnswerBatch() {
@@ -297,12 +663,12 @@
             // Kiểm tra xem người dùng đã chọn đáp án cho tất cả các câu hỏi trong nhóm chưa
             const allAnswered = currentQuestionBatch.every(q => userAnswers.hasOwnProperty(q.item_id));
             if (!allAnswered) {
-                showCustomAlert("Vui lòng trả lời tất cả các câu hỏi trong nhóm trước khi gửi."); // Sử dụng modal alert tùy chỉnh
+                showCustomAlert("Vui lòng trả lời tất cả các câu hỏi trong nhóm trước khi gửi.");
                 return;
             }
 
             isBatchSubmitted = true;
-            submitBatchBtn.disabled = true; // Vô hiệu hóa nút Gửi đáp án
+            submitBatchBtn.disabled = true;
 
             const answersToSend = Object.keys(userAnswers).map(itemId => ({
                 item_id: parseInt(itemId),
@@ -320,13 +686,14 @@
                 });
 
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const results = await response.json(); // Nhận danh sách kết quả cho từng câu
+                const responseData = await response.json(); // Đổi tên biến để tránh nhầm lẫn với `results` bên trong
 
                 // Hiển thị feedback cho từng câu hỏi
-                results.forEach(result => {
+                responseData.results.forEach(result => { // Truy cập `results` từ `responseData`
                     const questionCard = document.querySelector(`.question-card[data-item-id="${result.item_id}"]`);
                     if (questionCard) {
                         const feedbackArea = questionCard.querySelector('.feedback-area');
+                        const statisticsArea = questionCard.querySelector('.statistics-area');
                         
                         let feedbackHtml = '';
                         if (result.is_correct) {
@@ -349,19 +716,25 @@
                             } else if (button.dataset.option === userAnswers[result.item_id] && !result.is_correct) {
                                 button.classList.add('incorrect');
                             }
-                            button.disabled = true; // Vô hiệu hóa nút lựa chọn sau khi trả lời
+                            button.disabled = true;
                         });
+
+                        // Hiển thị thống kê
+                        displayStatistics(result.statistics, statisticsArea, result.score_change);
                     }
                 });
 
-                submitBatchBtn.style.display = 'none'; // Ẩn nút Gửi đáp án
-                nextBatchBtn.style.display = 'block'; // Hiển thị nút Nhóm câu tiếp theo
+                // Cập nhật tổng kết phiên sau khi gửi đáp án
+                updateSessionSummary(responseData.session_correct_answers, responseData.session_total_answered);
+
+                submitBatchBtn.style.display = 'none';
+                nextBatchBtn.style.display = 'block';
 
             } catch (error) {
                 console.error('Lỗi khi gửi đáp án nhóm:', error);
-                showCustomAlert('Có lỗi xảy ra khi gửi đáp án. Vui lòng thử lại.'); // Sử dụng modal alert tùy chỉnh
-                isBatchSubmitted = false; // Cho phép thử lại
-                submitBatchBtn.disabled = false; // Kích hoạt lại nút Gửi đáp án
+                showCustomAlert('Có lỗi xảy ra khi gửi đáp án. Vui lòng thử lại.');
+                isBatchSubmitted = false;
+                submitBatchBtn.disabled = false;
             }
         }
 
@@ -374,12 +747,12 @@
                 </div>
             `;
             submitBatchBtn.disabled = true;
-            nextBatchBtn.style.display = 'none'; // Ẩn nút Next Batch
+            nextBatchBtn.style.display = 'none';
 
             try {
                 const response = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                 if (!response.ok) {
-                    if (response.status === 404) { // Hết câu hỏi
+                    if (response.status === 404) {
                         const endMessage = await response.json();
                         quizContentDiv.innerHTML = `
                             <div class="text-center py-12 px-6 text-gray-600">
@@ -391,10 +764,12 @@
                                 </button>
                             </div>
                         `;
-                        quizProgressSpan.textContent = ''; // Xóa tiến độ
-                        submitBatchBtn.style.display = 'none'; // Ẩn nút Gửi
-                        nextBatchBtn.style.display = 'none'; // Ẩn nút Next
-                        endSessionBtn.style.display = 'none'; // Ẩn nút End Session
+                        quizProgressSpan.textContent = '';
+                        submitBatchBtn.style.display = 'none';
+                        nextBatchBtn.style.display = 'none';
+                        endSessionBtn.style.display = 'none';
+                        // Ẩn tổng kết phiên khi kết thúc
+                        sessionSummaryDiv.style.display = 'none'; 
                         document.getElementById('return-to-dashboard-btn').addEventListener('click', function() {
                             window.location.href = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
                         });
@@ -404,7 +779,8 @@
                 }
                 const batchData = await response.json();
                 displayQuestionBatch(batchData);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error('Lỗi khi tải nhóm câu hỏi:', error);
                 quizContentDiv.innerHTML = `<p class="text-red-500 text-center">Không thể tải câu hỏi. Vui lòng thử lại.</p>`;
                 submitBatchBtn.disabled = false;
@@ -416,19 +792,20 @@
         /**
          * Xử lý sự kiện click cho nút Kết thúc phiên học.
          * Xác nhận với người dùng trước khi gửi yêu cầu kết thúc phiên.
+         * @param {Event} event - Đối tượng sự kiện click.
          */
-        endSessionBtn.addEventListener('click', async function() {
+        endSessionBtn.addEventListener('click', async function(event) {
             // Sử dụng một modal tùy chỉnh thay vì alert/confirm của trình duyệt
             showCustomConfirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại? Tiến độ của các câu hỏi chưa gửi sẽ không được lưu.', async () => {
                 try {
                     const response = await fetch(endSessionUrl, { method: 'POST' });
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const result = await response.json();
-                    showCustomAlert(result.message); // Sử dụng modal alert tùy chỉnh
+                    showFlashMessage(result.message, 'info');
                     window.location.href = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
                 } catch (error) {
                     console.error('Lỗi khi kết thúc phiên:', error);
-                    showCustomAlert('Có lỗi xảy ra khi kết thúc phiên. Vui lòng thử lại.');
+                    showFlashMessage('Có lỗi xảy ra khi kết thúc phiên. Vui lòng thử lại.', 'danger');
                 }
             });
         });

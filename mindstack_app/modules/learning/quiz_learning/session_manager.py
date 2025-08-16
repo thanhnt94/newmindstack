@@ -1,26 +1,19 @@
 # File: mindstack_app/modules/learning/quiz_learning/session_manager.py
-# Phiên bản: 1.11
+# Phiên bản: 1.21
 # Mục đích: Quản lý trạng thái của phiên học Quiz hiện tại cho người dùng.
-# ĐÃ SỬA: Khắc phục lỗi "all_item_ids" is not defined trong start_new_quiz_session.
-# ĐÃ SỬA: Thêm phương thức __init__, from_dict, và to_dict để quản lý trạng thái phiên dưới dạng đối tượng.
-# ĐÃ SỬA: Điều chỉnh các phương thức static hiện có để hoạt động với instance của QuizSessionManager.
-# ĐÃ SỬA: Hỗ trợ làm bài theo nhóm câu hỏi.
-# ĐÃ SỬA: Phương thức get_current_question_data trả về một nhóm câu hỏi.
-# ĐÃ SỬA: Phương thức process_answer nhận và xử lý nhiều đáp án.
-# ĐÃ THÊM: Logic xử lý câu hỏi phức hợp (LearningGroup).
-# ĐÃ SỬA: Sử dụng batch_size động từ người dùng thay vì hằng số cố định.
-# ĐÃ SỬA: Logic gộp pre_question_text nếu giống nhau trong một nhóm.
-# ĐÃ THÊM: Xác định và lưu common_pre_question_text ở cấp độ TOÀN BỘ PHIÊN HỌC.
-# ĐÃ SỬA: Gắn group_content trực tiếp vào từng LearningItem trong batchData.items.
-# ĐÃ SỬA: Khắc phục lỗi AttributeError: 'item_to_check' is not defined.
+# ĐÃ SỬA: Khắc phục triệt để lỗi đường dẫn media bằng cách loại bỏ hoàn toàn logic nối với thư mục con và sửa các lời gọi hàm.
 
-from flask import session, current_app
+from flask import session, current_app, url_for
 from flask_login import current_user
-from ....models import db, LearningItem, UserProgress, LearningGroup
+from ....models import db, LearningItem, UserProgress, LearningGroup, User
 from .algorithms import get_new_only_items, get_reviewed_items, get_hard_items
+from .quiz_logic import process_quiz_answer
+from .quiz_stats_logic import get_quiz_item_statistics
+from .config import QuizLearningConfig
 from sqlalchemy.sql import func
 import random
 import datetime
+import os
 
 class QuizSessionManager:
     """
@@ -93,7 +86,7 @@ class QuizSessionManager:
 
         Args:
             set_id (int/str): ID của bộ Quiz hoặc 'all'.
-            mode (str): Chế độ học ('new_only', 'due_only', 'hard_only').
+            mode (str): Chế độ học ('new_only', 'due_only', 'hard_only', ...).
             batch_size (int): Số lượng câu hỏi trong mỗi nhóm.
         
         Returns:
@@ -104,16 +97,25 @@ class QuizSessionManager:
         user_id = current_user.user_id
         all_items_for_session_objects = [] # Danh sách TẤT CẢ các đối tượng LearningItem cho phiên
 
-        # Lấy tất cả các câu hỏi phù hợp với chế độ (None để lấy tất cả)
-        if mode == 'new_only':
+        # Lấy hàm thuật toán tương ứng từ cấu hình
+        mode_config = next((m for m in QuizLearningConfig.QUIZ_MODES if m['id'] == mode), None)
+        if not mode_config:
+            print(f">>> SESSION_MANAGER: LỖI - Chế độ học không hợp lệ hoặc không được định nghĩa: {mode} <<<")
+            current_app.logger.error(f"SessionManager: Chế độ học không hợp lệ hoặc không được định nghĩa: {mode}")
+            return False
+        
+        algorithm_func_name = mode_config['algorithm_func_name']
+        
+        # Lấy hàm từ algorithms.py dựa trên tên
+        if algorithm_func_name == 'get_new_only_items':
             all_items_for_session_objects = get_new_only_items(user_id, set_id, None)
-        elif mode == 'due_only':
+        elif algorithm_func_name == 'get_reviewed_items':
             all_items_for_session_objects = get_reviewed_items(user_id, set_id, None)
-        elif mode == 'hard_only':
+        elif algorithm_func_name == 'get_hard_items':
             all_items_for_session_objects = get_hard_items(user_id, set_id, None)
         else:
-            print(f">>> SESSION_MANAGER: LỖI - Chế độ học không hợp lệ: {mode} <<<")
-            current_app.logger.error(f"SessionManager: Chế độ học không hợp lệ: {mode}")
+            print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy hàm thuật toán cho chế độ: {algorithm_func_name} <<<")
+            current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {algorithm_func_name}")
             return False
 
         print(f">>> SESSION_MANAGER: Chế độ '{mode}' tìm thấy {len(all_items_for_session_objects)} câu hỏi tổng cộng. <<<")
@@ -156,6 +158,30 @@ class QuizSessionManager:
         print(f">>> SESSION_MANAGER: Phiên học mới đã được khởi tạo với {len(all_items_for_session_objects)} câu hỏi. Batch size: {batch_size} <<<")
         current_app.logger.debug(f"SessionManager: Phiên học mới đã được khởi tạo với {len(all_items_for_session_objects)} câu hỏi. Batch size: {batch_size}")
         return True
+
+    def _get_media_absolute_url(self, file_path):
+        """
+        Chuyển đổi đường dẫn file media tương đối thành URL tuyệt đối.
+        
+        Args:
+            file_path (str): Đường dẫn tương đối của file media.
+        
+        Returns:
+            str: URL tuyệt đối của file media.
+        """
+        if not file_path:
+            return None
+        
+        # ĐÃ SỬA: Loại bỏ logic nối đường dẫn media_type + 's' và chỉ sử dụng tên file
+        # Flask đã được cấu hình để phục vụ file từ thư mục 'uploads'
+        try:
+            full_url = url_for('static', filename=file_path)
+            current_app.logger.debug(f"Media URL - Gốc: '{file_path}', URL: '{full_url}'")
+            return full_url
+        except Exception as e:
+            current_app.logger.error(f"Lỗi khi tạo URL cho media '{file_path}': {e}")
+            return None
+
 
     def get_next_batch(self, requested_batch_size):
         """
@@ -211,41 +237,66 @@ class QuizSessionManager:
                             LearningItem.item_id.in_(self.all_item_ids) # Đảm bảo chỉ lấy các item có trong phiên hiện tại
                         ).order_by(LearningItem.order_in_container).all()
 
+                        # Xử lý URL media cho group_details
+                        group_content = group.content.copy() # Tạo bản sao để sửa đổi
+                        if group_content.get('question_image_file'):
+                            group_content['question_image_file'] = self._get_media_absolute_url(group_content['question_image_file'])
+                        if group_content.get('question_audio_file'):
+                            group_content['question_audio_file'] = self._get_media_absolute_url(group_content['question_audio_file'])
+
                         for item in items_in_group_query:
                             item_dict = {
                                 'item_id': item.item_id,
                                 'content': item.content,
                                 'ai_explanation': item.ai_explanation,
                                 'group_id': item.group_id,
-                                'group_details': group.content # Gắn group_content trực tiếp vào item
+                                'group_details': group_content # Gắn group_content đã xử lý URL
                             }
+                            # Xử lý URL media cho từng item con
+                            if item_dict['content'].get('question_image_file'):
+                                item_dict['content']['question_image_file'] = self._get_media_absolute_url(item_dict['content']['question_image_file'])
+                            if item_dict['content'].get('question_audio_file'):
+                                item_dict['content']['question_audio_file'] = self._get_media_absolute_url(item_dict['content']['question_audio_file'])
+
                             items_data.append(item_dict)
                         processed_group_ids.add(item_to_check.group_id)
                         current_collected_entries += 1 # Đếm nhóm này là 1 entry
                         print(f">>> SESSION_MANAGER: Nhóm câu hỏi có {len(items_data)} item. Tổng entries đã thu thập: {current_collected_entries} <<<")
                     else:
-                        print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy LearningGroup với ID: {item_to_check.group_id}. Xử lý như câu đơn. <<<")
+                        print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy LearningGroup với ID: {item_id_to_check.group_id}. Xử lý như câu đơn. <<<")
                         # Fallback: nếu không tìm thấy group, xử lý như câu đơn
-                        items_data.append({
+                        item_dict = {
                             'item_id': item_to_check.item_id,
                             'content': item_to_check.content,
                             'ai_explanation': item_to_check.ai_explanation,
-                            'group_id': item_to_check.group_id,
+                            'group_id': item_to_check.group_id, # Sẽ là None
                             'group_details': None # Không có group_details
-                        })
+                        }
+                        # Xử lý URL media cho item
+                        if item_dict['content'].get('question_image_file'):
+                            item_dict['content']['question_image_file'] = self._get_media_absolute_url(item_dict['content']['question_image_file'])
+                        if item_dict['content'].get('question_audio_file'):
+                            item_dict['content']['question_audio_file'] = self._get_media_absolute_url(item_dict['content']['question_audio_file'])
+                        items_data.append(item_dict)
                         current_collected_entries += 1
                 else:
                     # Nếu nhóm đã được xử lý trong batch này, bỏ qua item này
                     print(f">>> SESSION_MANAGER: Item {item_id_to_check} thuộc nhóm đã xử lý. Bỏ qua. <<<")
             else:
                 # Câu hỏi đơn lẻ
-                items_data.append({
+                item_dict = {
                     'item_id': item_to_check.item_id,
                     'content': item_to_check.content,
                     'ai_explanation': item_to_check.ai_explanation,
                     'group_id': item_to_check.group_id, # Sẽ là None
                     'group_details': None # Không có group_details
-                })
+                }
+                # Xử lý URL media cho item
+                if item_dict['content'].get('question_image_file'):
+                    item_dict['content']['question_image_file'] = self._get_media_absolute_url(item_dict['content']['question_image_file'])
+                if item_dict['content'].get('question_audio_file'):
+                    item_dict['content']['question_audio_file'] = self._get_media_absolute_url(item_dict['content']['question_audio_file'])
+                items_data.append(item_dict)
                 current_collected_entries += 1 # Đếm câu đơn là 1 entry
                 print(f">>> SESSION_MANAGER: Thêm câu hỏi đơn lẻ {item_id_to_check}. Tổng entries đã thu thập: {current_collected_entries} <<<")
             
@@ -283,58 +334,40 @@ class QuizSessionManager:
         results = []
         actual_items_processed_in_batch = 0 # Số lượng item thực tế được xử lý trong batch này
 
+        # Lấy tổng điểm hiện tại của người dùng một lần duy nhất
+        current_user_obj = User.query.get(self.user_id)
+        current_user_total_score = current_user_obj.total_score if current_user_obj else 0
+
         for answer in answers:
             item_id = answer.get('item_id')
-            user_answer = answer.get('user_answer')
+            user_answer_text = answer.get('user_answer')
 
-            item = LearningItem.query.get(item_id)
-            if not item:
-                print(f">>> SESSION_MANAGER: LỖI - LearningItem không tìm thấy khi xử lý đáp án nhóm: {item_id} <<<")
-                results.append({'item_id': item_id, 'error': 'Question not found'})
-                continue
+            # GỌI HÀM TỪ QUIZ_LOGIC ĐỂ XỬ LÝ
+            score_change, updated_total_score, is_correct, correct_option_char, explanation = process_quiz_answer(
+                user_id=self.user_id,
+                item_id=item_id,
+                user_answer_text=user_answer_text,
+                current_user_total_score=current_user_total_score # Truyền tổng điểm hiện tại
+            )
+            current_user_total_score = updated_total_score # Cập nhật tổng điểm cho các câu tiếp theo trong batch
 
-            correct_answer = item.content.get('correct_answer')
-            is_correct = (user_answer == correct_answer)
-            explanation = item.content.get('explanation') or item.ai_explanation # Ưu tiên giải thích thủ công
-
-            # Cập nhật UserProgress
-            progress = UserProgress.query.filter_by(user_id=self.user_id, item_id=item_id).first() # Sử dụng self.user_id
-            if not progress:
-                print(f">>> SESSION_MANAGER: Tạo UserProgress mới cho user {self.user_id}, item {item_id} <<<")
-                progress = UserProgress(user_id=self.user_id, item_id=item_id)
-                db.session.add(progress)
-                progress.first_seen_timestamp = func.now()
-
-            if is_correct:
-                progress.correct_streak = (progress.correct_streak or 0) + 1
-                progress.incorrect_streak = 0
-                progress.times_correct = (progress.times_correct or 0) + 1
-                self.correct_answers += 1 # Cập nhật thuộc tính của instance
-                print(f">>> SESSION_MANAGER: Câu trả lời đúng. Correct streak: {progress.correct_streak} <<<")
-            else:
-                progress.correct_streak = 0
-                progress.incorrect_streak = (progress.incorrect_streak or 0) + 1
-                progress.times_incorrect = (progress.times_incorrect or 0) + 1
-                self.incorrect_answers += 1 # Cập nhật thuộc tính của instance
-                print(f">>> SESSION_MANAGER: Câu trả lời sai. Incorrect streak: {progress.incorrect_streak} <<<")
+            # Lấy thống kê cho câu hỏi vừa trả lời
+            item_stats = get_quiz_item_statistics(self.user_id, item_id)
             
             if is_correct:
-                progress.memory_score = min(1.0, (progress.memory_score or 0) + 0.1)
-                progress.due_time = func.now() + func.interval(f'{progress.correct_streak * 24} hour') 
+                self.correct_answers += 1 # Cập nhật thuộc tính của instance
+                print(f">>> SESSION_MANAGER: Câu trả lời đúng. Điểm thay đổi: {score_change} <<<")
             else:
-                progress.memory_score = max(0.0, (progress.memory_score or 0) - 0.2)
-                progress.due_time = func.now() 
-
-            progress.last_reviewed = func.now()
-            progress.status = 'learning' 
-            db.session.commit()
-            print(f">>> SESSION_MANAGER: UserProgress cập nhật cho item {item_id}. Correct: {is_correct}, Memory Score: {progress.memory_score} <<<")
-
+                self.incorrect_answers += 1 # Cập nhật thuộc tính của instance
+                print(f">>> SESSION_MANAGER: Câu trả lời sai. Điểm thay đổi: {score_change} <<<")
+            
             results.append({
                 'item_id': item_id,
                 'is_correct': is_correct,
-                'correct_answer': correct_answer,
-                'explanation': explanation
+                'correct_answer': correct_option_char, # TRẢ VỀ KÝ TỰ ĐÁP ÁN ĐÚNG CHO FRONTEND
+                'explanation': explanation,
+                'statistics': item_stats, # THÊM THỐNG KÊ VÀO KẾT QUẢ
+                'score_change': score_change, # THÊM score_change VÀO KẾT QUẢ
             })
             actual_items_processed_in_batch += 1 # Đếm số item đã xử lý
 

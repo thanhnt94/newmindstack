@@ -1,20 +1,7 @@
 <!-- File: newmindstack/mindstack_app/modules/learning/quiz_learning/templates/quiz_learning_dashboard.html -->
-<!-- Phiên bản: 1.33 -->
+<!-- Phiên bản: 1.50 -->
 <!-- Mục đích: Giao diện chính để chọn bộ câu hỏi và chế độ học Quiz. -->
-<!-- ĐÃ SỬA: Tải danh sách bộ Quiz qua AJAX và tích hợp phân trang. -->
-<!-- ĐÃ SỬA: Triển khai logic phân loại "Đang làm" và "Khám phá" bằng AJAX. -->
-<!-- ĐÃ SỬA: Khắc phục lỗi BuildError bằng cách thêm tiền tố blueprint 'learning.' vào các url_for. -->
-<!-- ĐÃ SỬA: Thêm nhiều console.log() để debug luồng JavaScript. -->
-<!-- ĐÃ SỬA: Khắc phục lỗi "Invalid URL" bằng cách cung cấp window.location.origin làm URL cơ sở cho URL constructor. -->
-<!-- ĐÃ SỬA: Reset lựa chọn bộ câu hỏi và chế độ học khi chuyển tab/trang. -->
-<!-- ĐÃ SỬA: Nhớ vị trí trang khi chuyển đổi giữa tab 'Đang làm' và 'Khám phá'. -->
-<!-- ĐÃ SỬA: Truyền selectedQuizMode đến backend khi tải chế độ học. -->
-<!-- ĐÃ SỬA: Lấy giá trị session_size từ dropdown và truyền vào URL bắt đầu phiên học. -->
-<!-- ĐÃ THÊM: Ngăn chặn việc chọn các bộ quiz có 0 câu hỏi. -->
-<!-- ĐÃ THÊM: Ngăn chặn việc chọn các chế độ học có 0 câu hỏi. -->
-<!-- ĐÃ SỬA: Vô hiệu hóa nút "Bắt đầu làm bài" nếu chế độ học được chọn có 0 câu hỏi khả dụng. -->
-<!-- ĐÃ SỬA: Khắc phục lỗi ValueError: invalid literal for int() bằng cách định nghĩa URL mẫu trực tiếp trong JS. -->
-<!-- ĐÃ SỬA: Thay đổi cách truyền selectedSessionSize để nó là batch_size. -->
+<!-- ĐÃ SỬA: Khắc phục lỗi ReferenceError bằng cách chỉ gọi loadQuizSets khi DOMContentLoaded. -->
 
 {% extends "base.html" %}
 {% from 'includes/_search_form.html' import render_search_form %}
@@ -48,19 +35,58 @@
             background-color: #3b82f6; /* blue-600 */
             color: white;
         }
+
+        /* THAY ĐỔI LỚN: Styles cho quiz-set-item làm thanh tiến trình */
+        .quiz-set-item {
+            position: relative; /* Quan trọng: để background-image định vị tương đối */
+            background-color: #ffffff; /* Nền trắng mặc định */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            overflow: hidden; /* Quan trọng: để background-image không tràn ra ngoài */
+            padding: 1rem; /* Padding bên trong thẻ */
+            transition: all 0.3s ease; /* Hiệu ứng chuyển động mượt mà */
+            /* Background-image sẽ được thiết lập và cập nhật bằng JavaScript */
+            background-repeat: no-repeat;
+            background-position: left center;
+            background-size: 0% 100%; /* Ban đầu 0% */
+            background-image: linear-gradient(to right, #FDFDEB, #FBF3BE); /* ĐÃ SỬA: Màu vàng nhạt hơn */
+        }
+        .quiz-set-item:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+            transform: translateY(-2px); /* Hiệu ứng nhấc nhẹ lên */
+        }
+
+        .quiz-set-completion-text {
+            /* Đây là class cho số liệu (ví dụ: 89 / 823) */
+            font-size: 1rem; /* text-base */
+            font-weight: 600; /* font-semibold */
+            white-space: nowrap;
+            padding-left: 0.5rem; /* Khoảng cách với mép trái */
+            padding-right: 0.5rem; /* Khoảng cách với mép phải */
+            /* Màu chữ sẽ được điều chỉnh bằng JavaScript để tương phản */
+        }
+        /* THÊM MỚI: CSS cho tiêu đề chính "Quiz" */
+        .main-quiz-title {
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1); /* Bóng đổ nhẹ cho chữ */
+            letter-spacing: 0.025em; /* Khoảng cách chữ nhẹ */
+        }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-4 sm:p-6 lg:p-8">
-    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center">
-        Học Quiz
+{# THAY ĐỔI: Điều chỉnh padding ngang trên mobile từ p-4 (16px) xuống px-1 (4px) #}
+<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    {# THAY ĐỔI: Điều chỉnh cỡ chữ của tiêu đề chính "Học Quiz" và thêm class mới #}
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center leading-tight main-quiz-title">
+        Quiz {# ĐÃ SỬA: Thay đổi nội dung chữ #}
     </h1>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Bước 1: Chọn một bộ câu hỏi -->
         <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            {# THAY ĐỔI: Cỡ chữ tiêu đề nhỏ hơn trên mobile và thêm truncate #}
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
                 <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ câu hỏi
             </h2>
             
@@ -84,9 +110,11 @@
 
         <!-- Bước 2: Chọn chế độ học -->
         <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            {# THAY ĐỔI: Cỡ chữ tiêu đề nhỏ hơn trên mobile và thêm truncate #}
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
                 <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học
             </h2>
+            {# KHỐI NÀY ĐÃ ĐƯỢC DI CHUYỂN RA NGOÀI ĐỂ LUÔN HIỂN THỊ #}
             <div id="quiz-modes-container" class="flex-grow">
                 <!-- Nội dung chế độ học sẽ được tải ở đây qua AJAX -->
                 <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
@@ -113,7 +141,9 @@
 
         let selectedQuizSetId = null;
         let selectedQuizMode = null;
-        let selectedSessionSize = 10; // Mặc định 10 câu (bây giờ là batch_size)
+        // KHẮC PHỤC LỖI: Đảm bảo giá trị được parse an toàn thành số nguyên
+        let selectedSessionSize = parseInt("{{ user_default_batch_size | default(10) }}"); 
+        
         let currentFilter = "{{ current_filter | default('doing') }}"; 
         
         // Biến để lưu trang hiện tại cho mỗi tab
@@ -139,12 +169,13 @@
         const startQuizSessionBaseUrlAllTemplate = "/learn/start_quiz_session/all/MODE_PLACEHOLDER/BATCH_SIZE_PLACEHOLDER";
         
         const getQuizSetsPartialUrl = "{{ url_for('learning.quiz_learning.get_quiz_sets_partial') or '#' }}";
-
+        const saveQuizSettingsUrl = "{{ url_for('learning.quiz_learning.save_quiz_settings') }}"; // URL để lưu cài đặt
 
         console.log("JavaScript: Các biến và URL đã được khởi tạo.");
         console.log("JavaScript: currentFilter ban đầu:", currentFilter);
         console.log("JavaScript: currentPage ban đầu:", currentPage);
         console.log("JavaScript: getQuizSetsPartialUrl:", getQuizSetsPartialUrl);
+        console.log("JavaScript: selectedSessionSize ban đầu:", selectedSessionSize);
 
 
         // Hàm để tải danh sách bộ Quiz (dùng cho AJAX)
@@ -156,12 +187,7 @@
             selectedQuizSetId = null; 
             selectedQuizMode = null;
             updateStartButtonState(); 
-            quizModesContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
-                    <i class="fas fa-info-circle text-4xl mb-3"></i>
-                    <p>Vui lòng chọn một bộ câu hỏi trước.</p>
-                </div>
-            `; // Reset nội dung chế độ học
+            // quizModesContainer.innerHTML = `...`; // KHÔNG CÒN CẦN RESET Ở ĐÂY NỮA
 
             // Kiểm tra URL trước khi tạo đối tượng URL
             if (!getQuizSetsPartialUrl || getQuizSetsPartialUrl === '#') {
@@ -194,6 +220,7 @@
                 
                 addQuizSetClickListeners();
                 addPaginationAndSearchListeners(); // Gắn lại listener cho phân trang và tìm kiếm
+                updateQuizSetProgressColors(); // THÊM MỚI: Cập nhật màu và text cho progress bar sau khi tải nội dung
             } catch (error) {
                 console.error('JavaScript: Lỗi khi tải danh sách bộ Quiz:', error);
                 quizSetsContainer.innerHTML = `<p class="text-red-500 text-center">Không thể tải danh sách bộ câu hỏi. Vui lòng thử lại.</p>`;
@@ -224,11 +251,13 @@
                 if (selectedQuizMode) {
                     fullUrl.searchParams.append('selected_mode', selectedQuizMode);
                 }
+                // THÊM MỚI: Thêm user_default_batch_size vào query parameter
+                fullUrl.searchParams.append('user_default_batch_size', selectedSessionSize);
 
 
                 console.log("JavaScript: Đang gửi yêu cầu fetch chế độ học đến URL:", fullUrl.toString());
                 const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                console.log("JavaScript: Đã nhận phản hồi chế độ học từ fetch.");
+                console.log("JavaScript: Đã nhận phản hồi từ fetch.");
 
                 if (!response.ok) {
                     console.error(`JavaScript: Lỗi HTTP khi tải chế độ học! Status: ${response.status}`);
@@ -243,11 +272,35 @@
                 // Gắn listener cho dropdown chọn số câu hỏi
                 const sessionSizeSelect = document.getElementById('session-size-select');
                 if (sessionSizeSelect) {
-                    sessionSizeSelect.value = selectedSessionSize; // Đặt giá trị đã chọn
-                    sessionSizeSelect.addEventListener('change', function() {
+                    // Đặt giá trị mặc định từ biến selectedSessionSize
+                    sessionSizeSelect.value = selectedSessionSize; 
+                    sessionSizeSelect.addEventListener('change', async function() { 
                         selectedSessionSize = parseInt(this.value);
                         console.log("JavaScript: Số câu trong phiên học đã chọn:", selectedSessionSize);
                         updateStartButtonState();
+                        
+                        // Gửi yêu cầu AJAX để lưu cài đặt mặc định
+                        try {
+                            const saveResponse = await fetch(saveQuizSettingsUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: JSON.stringify({ batch_size: selectedSessionSize })
+                            });
+                            const saveResult = await saveResponse.json();
+                            if (saveResult.success) {
+                                console.log("JavaScript: Cài đặt số câu hỏi mặc định đã được lưu thành công.");
+                                // Có thể hiển thị flash message nếu cần, nhưng thường không cần cho cài đặt tự động
+                            } else {
+                                console.error("JavaScript: Lỗi khi lưu cài đặt số câu hỏi mặc định:", saveResult.message);
+                                // showFlashMessage(saveResult.message, 'danger'); // Có thể hiển thị lỗi cho người dùng
+                            }
+                        } catch (error) {
+                            console.error("JavaScript: Lỗi AJAX khi lưu cài đặt số câu hỏi mặc định:", error);
+                            // showFlashMessage('Lỗi kết nối khi lưu cài đặt.', 'danger');
+                        }
                     });
                 }
 
@@ -423,6 +476,29 @@
             }
         }
 
+        // Hàm cập nhật màu nền và màu chữ cho quiz-set-item (thanh tiến trình)
+        function updateQuizSetProgressColors() {
+            document.querySelectorAll('.quiz-set-item').forEach(item => {
+                const completionPercentage = parseInt(item.dataset.completionPercentage);
+                const completionText = item.querySelector('.quiz-set-completion-text');
+
+                if (completionPercentage >= 0 && completionPercentage <= 100) {
+                    // Cập nhật background-size để tạo hiệu ứng lấp đầy
+                    item.style.backgroundSize = `${completionPercentage}% 100%`;
+
+                    // Điều chỉnh màu chữ dựa trên phần trăm hoàn thành
+                    if (completionText) {
+                        if (completionPercentage > 50) { // Nếu phần trăm hoàn thành đủ cao, dùng chữ trắng
+                            completionText.style.color = 'white';
+                        } else { // Ngược lại, dùng màu xám đậm
+                            completionText.style.color = '#333'; 
+                        }
+                    }
+                }
+            });
+        }
+
+
         // Listener cho nút "Bắt đầu học"
         startLearningBtn.addEventListener('click', function() {
             console.log("JavaScript: Nút Bắt đầu học đã được click.");
@@ -493,8 +569,7 @@
 
         // Khởi tạo: Tải danh sách bộ quiz khi trang tải xong
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("JavaScript: DOMContentLoaded fired. Bắt đầu tải bộ Quiz ban đầu.");
-            // Gọi loadQuizSets với filter ban đầu từ backend
+            // Tải nhóm câu hỏi đầu tiên
             loadQuizSets(currentPage, "{{ search_query }}", "{{ search_field }}", currentFilter);
         });
     </script>

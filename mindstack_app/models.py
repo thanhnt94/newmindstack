@@ -1,7 +1,8 @@
 # File: web/mindstack_app/models.py
-# Phiên bản: 12.1
+# Phiên bản: 12.2
 # ĐÃ SỬA: Khắc phục lỗi AmbiguousForeignKeysError bằng cách chỉ định `foreign_keys`
 #         cho mối quan hệ LearningContainer.creator.
+# ĐÃ THÊM: current_quiz_batch_size vào model User để lưu cài đặt mặc định số câu hỏi.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -68,7 +69,8 @@ class User(UserMixin, db.Model):
     current_course_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
     current_flashcard_mode = db.Column(db.String(50), nullable=True)
     current_quiz_mode = db.Column(db.String(50), nullable=True)
-    
+    current_quiz_batch_size = db.Column(db.Integer, nullable=True) # THÊM MỚI: Lưu số câu mặc định cho Quiz
+
     contributed_containers = db.relationship('ContainerContributor', backref='user', lazy=True)
 
     def get_id(self):

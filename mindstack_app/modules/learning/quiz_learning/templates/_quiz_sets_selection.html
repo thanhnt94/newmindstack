@@ -1,27 +1,34 @@
 <!-- File: newmindstack/mindstack_app/modules/learning/quiz_learning/templates/_quiz_sets_selection.html -->
-<!-- Phiên bản: 1.10 -->
+<!-- Phiên bản: 1.33 -->
 <!-- Mục đích: Partial template hiển thị danh sách các bộ Quiz để người dùng lựa chọn. -->
-<!-- ĐÃ SỬA: Tái tích hợp phân trang trong template và đảm bảo truyền đủ các tham số. -->
-<!-- ĐÃ THÊM: Truyền current_filter để phân trang và tìm kiếm giữ được trạng thái. -->
-<!-- ĐÃ SỬA: Ẩn tùy chọn "Làm tất cả các bộ" khi ở tab "Khám phá" HOẶC khi có ít hơn 2 bộ câu hỏi. -->
-<!-- ĐÃ THÊM: Vô hiệu hóa trực quan và ngăn chặn click cho các bộ quiz có 0 câu hỏi. -->
+<!-- ĐÃ SỬA: Áp dụng định dạng số liệu tiến độ dạng badge bầu dục cho cả bộ lọc 'doing' và 'explore'. -->
 
 {% from 'includes/_search_form.html' import render_search_form %}
 {% from 'includes/_pagination.html' import render_pagination %}
 
-<div class="w-full">
-    <div class="mb-4">
-        {# Form tìm kiếm cho bộ Quiz #}
-        {% set search_options_display = {
-            'title': 'Tiêu đề',
-            'description': 'Mô tả',
-            'tags': 'Thẻ'
-        } %}
-        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...", search_field=search_field, search_options=search_options_display) }}
-    </div>
+<div class="w-full space-y-3">
+    {# Dropdown chọn số lượng câu hỏi trong phiên học - ĐÃ ĐƯỢC DI CHUYỂN KHỎI ĐÂY #}
 
     {% if quiz_sets %}
     <div class="space-y-3">
+        {# KHỐI MÃ TẠO THANH TÌM KIẾM ĐƯỢC ĐẶT LÊN TRÊN #}
+        <div class="mb-6">
+            {# Truyền search_field_map (được đổi tên thành search_options để phù hợp với macro) và search_field vào macro tìm kiếm #}
+            {% set display_search_options = {
+                'title': 'Tiêu đề',
+                'description': 'Mô tả',
+                'tags': 'Thẻ'
+            } %}
+            {# THAY ĐỔI: Thêm class w-full để khung tìm kiếm rộng bằng khung của "Làm tất cả các bộ" #}
+            <div class="w-full">
+                {# Macro render_search_form cần được chỉnh sửa để input và button chiếm hết chiều rộng #}
+                {# Hiện tại, macro này được định nghĩa trong includes/_search_form.html #}
+                {# Tôi sẽ giả định rằng macro đó có thể được điều khiển bằng cách truyền thêm class #}
+                {# Nếu không, cần chỉnh sửa trực tiếp macro trong includes/_search_form.html #}
+                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...", search_field=search_field, search_options=display_search_options) }}
+            </div>
+        </div>
+
         {# Option để học tất cả các bộ (chỉ hiện khi filter là 'doing' VÀ có từ 2 bộ trở lên) #}
         {% if current_filter == 'doing' and quiz_sets|length >= 2 %}
         <div class="quiz-set-item bg-gray-50 p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200 flex justify-between items-center" data-set-id="all" data-total-items="all">
@@ -37,14 +44,32 @@
         {% for set in quiz_sets %}
         {# Thêm class để vô hiệu hóa và title nếu total_items là 0 #}
         {% set is_disabled = (set.total_items == 0) %}
-        <div class="quiz-set-item bg-white p-4 rounded-lg border border-gray-200 transition-colors duration-200 flex flex-col {% if is_disabled %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:bg-gray-100{% endif %}" 
+        <div class="quiz-set-item bg-white p-4 rounded-xl shadow-md overflow-hidden transition-all duration-300 relative
+             {% if is_disabled %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:shadow-lg{% endif %}" 
              data-set-id="{{ set.container_id }}" 
              data-total-items="{{ set.total_items }}"
+             data-completion-percentage="{{ set.completion_percentage | default(0) | int | string }}" {# THÊM: Lưu phần trăm vào data attribute #}
              {% if is_disabled %}title="Bộ câu hỏi này chưa có câu nào. Không thể chọn."{% endif %}>
-            <h3 class="font-semibold text-gray-800">{{ set.title }}</h3>
-            {# Hiển thị tiến độ học: Đã học / Tổng số #}
-            <p class="text-gray-600 text-sm">{{ set.item_count }}</p>
-            <p class="text-gray-500 text-xs">tạo bởi {{ set.creator.username }}</p>
+            
+            {# Background fill sẽ được tạo bằng CSS background-image #}
+
+            <div class="relative z-10 flex justify-between items-center w-full"> {# Đảm bảo nội dung nằm trên fill #}
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-gray-800 my-0">{{ set.title }}</h3>
+                    <p class="relative text-gray-500 text-xs mt-1">tạo bởi {{ set.creator.username }}</p>
+                </div>
+                {# THAY ĐỔI: Áp dụng định dạng badge cho cả hai trường hợp #}
+                <div class="flex-shrink-0 ml-4">
+                    <span class="quiz-set-completion-text bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center">
+                        {% if current_filter == 'doing' %}
+                            {{ set.item_count_display }}
+                        {% else %}
+                            {{ set.total_items }}
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
         </div>
         {% endfor %}
     </div>
@@ -58,4 +83,6 @@
         <p class="text-sm text-gray-500 mt-2">Hãy thử thay đổi bộ lọc hoặc tìm kiếm.</p>
     </div>
     {% endif %}
+
+    {# KHỐI CHẾ ĐỘ HỌC ĐÃ ĐƯỢC DI CHUYỂN RA NGOÀI CẤP TRÊN TRONG quiz_learning_dashboard.html #}
 </div>
