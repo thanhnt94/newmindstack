@@ -5,6 +5,9 @@
 {% block head %}
     {{ super() }}
     <style>
+        /* Mô tả: Tối ưu hóa giao diện trang Quiz để phẳng và đồng bộ hơn. */
+        /* Cập nhật: Đã điều chỉnh các lớp CSS để phù hợp với giao diện phẳng. */
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f9fafb; /* bg-gray-50 */
@@ -19,7 +22,8 @@
             background-color: #ffffff; /* bg-white */
             padding: 1.5rem; /* p-6 */
             border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06); /* shadow-md */
+            /* THAY ĐỔI: Chỉnh bóng từ shadow-md thành shadow-sm để phẳng hơn */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
             border-width: 1px; /* border */
             border-color: #e5e7eb; /* border-gray-200 */
             margin-bottom: 1.5rem; /* mb-6 */
@@ -43,33 +47,37 @@
             background-color: #eff6ff; /* hover:bg-blue-50 */
             border-color: #3b82f6; /* hover:border-blue-500 */
         }
+        /* THAY ĐỔI: Chỉnh lại box-shadow để đồng bộ, giữ nguyên màu sắc */
         .option-button.selected {
             background-color: #dbeafe; /* bg-blue-100 */
             border-color: #2563eb; /* border-blue-600 */
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* ring-2 ring-blue-500 */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* shadow-sm */
         }
         .option-button.correct {
             background-color: #dcfce7; /* bg-green-100 */
             border-color: #16a34a; /* border-green-600 */
-            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5); /* ring-2 ring-green-500 */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* shadow-sm */
         }
         .option-button.incorrect {
             background-color: #fee2e2; /* bg-red-100 */
             border-color: #dc2626; /* border-red-600 */
-            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5); /* ring-2 ring-red-500 */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* shadow-sm */
         }
+        /* THAY ĐỔI: Điều chỉnh màu sắc feedback để dịu hơn */
         .feedback-box {
             padding: 1rem; /* p-4 */
             margin-top: 1rem; /* mt-4 */
             border-radius: 0.5rem; /* rounded-lg */
         }
         .feedback-correct {
-            background-color: #22c55e; /* bg-green-500 */
-            color: white;
+            background-color: #dcfce7; /* bg-green-100 */
+            color: #166534; /* text-green-800 */
+            border: 1px solid #bbf7d0; /* border-green-200 */
         }
         .feedback-incorrect {
-            background-color: #ef4444; /* bg-red-500 */
-            color: white;
+            background-color: #fee2e2; /* bg-red-100 */
+            color: #991b1b; /* text-red-800 */
+            border: 1px solid #fecaca; /* border-red-200 */
         }
         .feedback-explanation {
             background-color: #f3f4f6; /* bg-gray-100 */
@@ -84,7 +92,8 @@
             font-weight: 600; /* font-semibold */
             transition-property: all; /* transition-colors */
             transition-duration: 300ms; /* duration-300 */
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* shadow-md */
+            /* THAY ĐỔI: Chỉnh bóng từ shadow-md thành shadow-sm */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -105,7 +114,8 @@
             flex-wrap: nowrap; /* Đảm bảo các mục chính không xuống dòng */
             justify-content: space-around;
             align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            /* THAY ĐỔI: Chỉnh bóng từ shadow-md thành shadow-sm */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
         .stat-group {
             /* THAY ĐỔI: Điều chỉnh flex-basis và min-width để phù hợp trên 1 hàng */
@@ -248,18 +258,18 @@
             border-radius: 0.625rem; /* Bo tròn tương ứng */
             overflow: hidden;
             position: relative; /* Đặt lại position relative cho container */
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); /* Đổ bóng bên trong để nổi bật */
+            /* THAY ĐỔI: Đã loại bỏ box-shadow để làm phẳng hơn */
         }
 
         .progress-bar-fill {
             height: 100%;
             width: 0%;
-            background-image: linear-gradient(to right, #4CAF50, #8BC34A); /* Gradient xanh lá cây */
+            /* THAY ĐỔI: Đã loại bỏ gradient, sử dụng màu phẳng */
+            background-color: #3b82f6;
             transition: width 0.5s ease-in-out;
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Đã xóa position: relative và z-index vì không còn cần thiết */
         }
 
         .progress-bar-text {
@@ -333,7 +343,8 @@
             max-width: 100%;
             height: auto;
             border-radius: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            /* THAY ĐỔI: Chỉnh bóng từ shadow-md thành shadow-sm */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
             cursor: zoom-in; /* Thêm hiệu ứng cursor để gợi ý có thể click */
         }
         /* THAY ĐỔI: CSS cho nút điều khiển */
@@ -380,11 +391,12 @@
 <div class="w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 main-quiz-container"> {# THÊM main-quiz-container #}
     <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center">
         Làm bài Quiz
-        <span id="quiz-progress" class="text-gray-500 text-base ml-3"></span>
+        {# THAY ĐỔI: Tăng kích thước font chữ và bỏ ml-3 #}
+        <span id="quiz-progress" class="text-gray-500 text-xl"></span>
     </h1>
 
-    <div class="bg-white rounded-xl shadow-lg p-6 quiz-card">
-        <!-- Phần tổng kết phiên học mới -->
+    {# THAY ĐỔI: Chỉnh shadow-lg thành shadow-md #}
+    <div class="bg-white rounded-xl shadow-md p-6 quiz-card">
         <div id="session-summary" class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6 text-center" style="display: none;">
             <p class="text-lg font-semibold text-blue-800">Tổng kết phiên học: <span id="session-correct-count">0</span> / <span id="session-total-count">0</span> câu đúng</p>
         </div>

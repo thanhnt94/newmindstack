@@ -1,8 +1,3 @@
-<!-- File: newmindstack/mindstack_app/modules/learning/quiz_learning/templates/_quiz_modes_selection.html -->
-<!-- Phiên bản: 1.14 -->
-<!-- Mục đích: Partial template hiển thị các chế độ học Quiz. -->
-<!-- ĐÃ SỬA: Loại bỏ dấu ngoặc đơn bao quanh số lượng câu hỏi trong các chế độ học. -->
-
 <div class="w-full space-y-3">
     {# Dropdown chọn số lượng câu hỏi trong phiên học #}
     <div class="mb-4 p-4 bg-white rounded-lg border border-gray-200">
@@ -12,7 +7,7 @@
             <option value="3" {% if user_default_batch_size == 3 %}selected{% endif %}>3 câu</option>
             <option value="5" {% if user_default_batch_size == 5 %}selected{% endif %}>5 câu</option>
             <option value="10" {% if user_default_batch_size == 10 %}selected{% endif %}>10 câu</option>
-            <option value="20" {% if user_default_batch_size == 20 %}selected{% endif %}>20 câu</option>
+            <option value="20" {% if user_default_batch_batch_size == 20 %}selected{% endif %}>20 câu</option>
             <option value="50" {% if user_default_batch_size == 50 %}selected{% endif %}>50 câu</option>
         </select>
     </div>
@@ -29,8 +24,8 @@
                  {% if is_disabled_mode %}title="Chế độ này không có câu hỏi nào khả dụng."{% endif %}>
                 <h3 class="font-semibold text-gray-800">{{ mode.name }}</h3>
                 <div class="flex items-center">
-                    {# THAY ĐỔI: Loại bỏ dấu ngoặc đơn #}
-                    <span class="bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center">{{ mode.count }}</span>
+                    {# THAY ĐỔI: Loại bỏ nền, padding và bo tròn, tăng kích thước font để đồng bộ với giao diện phẳng #}
+                    <span class="text-lg font-semibold text-gray-700">{{ mode.count }}</span>
                 </div>
             </div>
             {% endif %}
