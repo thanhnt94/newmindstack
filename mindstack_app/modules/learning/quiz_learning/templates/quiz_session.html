@@ -98,7 +98,8 @@
             background-color: #ffffff; /* bg-white */
             border: 1px solid #e2e8f0; /* border-gray-200 */
             border-radius: 0.75rem; /* rounded-xl */
-            padding: 0.5rem; /* Giảm padding tổng thể */
+            /* THAY ĐỔI: Giảm padding tổng thể trên mobile */
+            padding: 0.3rem; 
             margin-top: 1rem;
             display: flex;
             flex-wrap: nowrap; /* Đảm bảo các mục chính không xuống dòng */
@@ -107,13 +108,14 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .stat-group {
-            flex: 1 1 33%; /* 3 cột chính trên 1 hàng */
-            min-width: 80px; /* Giảm min-width cho các nhóm nhỏ hơn */
+            /* THAY ĐỔI: Điều chỉnh flex-basis và min-width để phù hợp trên 1 hàng */
+            flex: 1 1 30%; 
+            min-width: 60px; 
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            padding: 0.3rem; /* Giảm padding */
+            padding: 0.2rem; /* Giảm padding */
             margin: 0.1rem; /* Giảm khoảng cách giữa các nhóm */
             border-right: 1px solid #f3f4f6; /* Đường phân cách */
         }
@@ -123,33 +125,35 @@
         /* Đảm bảo đường phân cách chỉ hiển thị giữa các cột chính, không phải giữa các hàng khi wrap */
         @media (max-width: 640px) { /* Ví dụ breakpoint cho mobile */
             .statistics-container {
-                flex-direction: column; /* Chuyển sang cột trên mobile */
+                flex-direction: row; /* Giữ nguyên hàng trên mobile */
                 align-items: stretch; /* Kéo dài các mục */
             }
             .stat-group {
-                border-right: none; /* Bỏ đường phân cách trên mobile */
-                border-bottom: 1px solid #f3f4f6; /* Thêm đường phân cách dưới */
-                padding: 0.5rem; /* Tăng padding trên mobile */
+                border-right: 1px solid #f3f4f6; /* Giữ đường phân cách trên mobile */
+                border-bottom: none; /* Bỏ đường phân cách dưới */
+                padding: 0.2rem; /* Giữ padding trên mobile */
             }
             .stat-group:last-of-type {
-                border-bottom: none;
+                border-right: none;
             }
         }
         .stat-group .label {
-            font-size: 0.6rem; /* text-xs nhỏ hơn nữa */
+            /* THAY ĐỔI: Cỡ chữ nhỏ hơn nữa */
+            font-size: 0.55rem; 
             color: #6b7280; /* text-gray-500 */
             font-weight: 500;
             white-space: nowrap;
-            margin-bottom: 0.2rem; /* Giảm margin-bottom */
+            margin-bottom: 0.1rem; /* Giảm margin-bottom */
         }
         .stat-group .value {
-            font-size: 0.8rem; /* text-base nhỏ hơn nữa */
+            /* THAY ĐỔI: Cỡ chữ nhỏ hơn nữa */
+            font-size: 0.7rem; 
             font-weight: 600;
             color: #1f2937;
         }
         .stat-group .icon { /* Icon cho các mục thống kê */
-            font-size: 1.1rem; /* Kích thước icon */
-            margin-bottom: 0.2rem;
+            font-size: 1rem; /* Kích thước icon */
+            margin-bottom: 0.1rem;
             color: #3b82f6; /* Màu mặc định cho icon */
         }
         
@@ -271,7 +275,7 @@
             font-size: 0.75rem; /* Kích thước chữ nhỏ hơn */
             white-space: nowrap; /* Ngăn không cho text xuống dòng */
             overflow: hidden; /* Cắt text nếu quá dài so với fill */
-            text-overflow: ellipsis; /* Thêm dấu ... nếu text bị cắt */
+            text-overflow: ellipsis; /* Thêm dấu ... nếu bị cắt */
         }
         /* Thêm class để đổi màu chữ khi thanh fill đủ rộng */
         .progress-bar-fill.has-text-overlap .progress-bar-text {
@@ -332,11 +336,48 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             cursor: zoom-in; /* Thêm hiệu ứng cursor để gợi ý có thể click */
         }
+        /* THAY ĐỔI: CSS cho nút điều khiển */
+        .control-button-text {
+            font-size: 0.875rem; /* text-sm */
+            white-space: nowrap; /* Đảm bảo văn bản không xuống dòng */
+            overflow: hidden; /* Ẩn phần bị tràn */
+            text-overflow: ellipsis; /* Thêm dấu ... nếu bị cắt */
+        }
+        /* THAY ĐỔI: Điều chỉnh kích thước nút trên mobile */
+        @media (max-width: 640px) {
+            /* THAY ĐỔI: Giảm padding ngang cho container chính */
+            /* Sử dụng !important để ghi đè các lớp Tailwind khác */
+            .container {
+                padding: 0.5rem !important; /* Giảm padding bên trong card */
+            }
+
+            .main-quiz-container {
+                padding: 0.5rem !important; 
+            }
+
+            .quiz-card {
+                padding: 0.5rem !important; /* Giảm padding bên trong card */
+            }
+            .question-card {
+                padding: 0.5rem !important; /* Giảm padding bên trong question card */
+            }
+            .option-button {
+                padding: 0.75rem; /* Giảm padding của các lựa chọn */
+            }
+            .control-button {
+                padding: 0.5rem 0.75rem; /* Giảm padding */
+                font-size: 0.875rem; /* text-sm */
+            }
+            .control-button i {
+                margin-right: 0.25rem; /* Giảm margin icon */
+            }
+        }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+{# THAY ĐỔI: Thay đổi lớp padding của container chính để kiểm soát tốt hơn trên mobile #}
+<div class="w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 main-quiz-container"> {# THÊM main-quiz-container #}
     <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center">
         Làm bài Quiz
         <span id="quiz-progress" class="text-gray-500 text-base ml-3"></span>
@@ -357,13 +398,13 @@
 
         <div id="quiz-controls" class="mt-6 flex justify-between items-center">
             <button id="end-session-btn" class="control-button bg-gray-300 text-gray-800 hover:bg-gray-400">
-                <i class="fas fa-times-circle mr-2"></i> Kết thúc phiên
+                <i class="fas fa-times-circle mr-2"></i> <span class="control-button-text">Kết thúc</span> {# THAY ĐỔI: Rút gọn chữ #}
             </button>
             <button id="submit-batch-btn" class="control-button bg-blue-600 text-white hover:bg-blue-700">
-                <i class="fas fa-paper-plane mr-2"></i> Gửi đáp án
+                <i class="fas fa-paper-plane mr-2"></i> <span class="control-button-text">Gửi đáp án</span> {# Giữ nguyên vì đã ngắn gọn #}
             </button>
             <button id="next-batch-btn" class="control-button bg-green-600 text-white hover:bg-green-700" style="display: none;">
-                <i class="fas fa-arrow-right mr-2"></i> Nhóm câu tiếp theo
+                <i class="fas fa-arrow-right mr-2"></i> <span class="control-button-text">Tiếp theo</span> {# THAY ĐỔI: Rút gọn chữ #}
             </button>
         </div>
     </div>
@@ -451,7 +492,7 @@
             if (batchData.common_pre_question_text_global) {
                 fullBatchContentHtml += `
                     <div class="bg-gray-100 p-3 rounded-md mb-4 border border-gray-200">
-                        <p class="text-sm text-gray-600"><strong>Thông tin chung:</strong> ${formatTextForHtml(batchData.common_pre_question_text_global)}</p>
+                        <p class="text-sm text-gray-600">${formatTextForHtml(batchData.common_pre_question_text_global)}</p> {# ĐÃ SỬA: Bỏ chữ "Thông tin chung:" #}
                     </div>
                 `;
             }
@@ -499,7 +540,7 @@
                 }
                 if (questionData.content.question_audio_file) { 
                     console.log(`Đường dẫn audio câu hỏi (Item) ${questionData.item_id}: ${questionData.content.question_audio_file}`);
-                    mediaHtml += `<audio controls src="${formatTextForHtml(questionData.content.question_audio_file)}" class="w-full mb-4" onerror="this.onerror=null;this.outerHTML='<p class=\'text-red-500\'>Lỗi tải âm thanh câu hỏi</p>'; console.error('Lỗi tải audio câu hỏi: ${questionData.content.question_audio_file}')"></audio>`;
+                    mediaHtml += `<audio controls src="${formatTextForHtml(questionData.content.question_audio_file)}" class="w-full mb-4" onerror="this.onerror=null;this.outerHTML='<p class=\'text-red-500\'>Lỗi tải âm thanh nhóm</p>'; console.error('Lỗi tải audio câu hỏi: ${questionData.content.question_audio_file}')"></audio>`;
                 }
                 
                 console.log(`Nội dung mediaHtml cho item ${questionData.item_id} trước khi chèn:`, mediaHtml);
@@ -677,13 +718,10 @@
 
             try {
                 const response = await fetch(submitAnswerBatchUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({ answers: answersToSend })
-                });
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ answers: answersToSend }) // THAY ĐỔI: Sử dụng answersToSend
+                 });
 
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const responseData = await response.json(); // Đổi tên biến để tránh nhầm lẫn với `results` bên trong

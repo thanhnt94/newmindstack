@@ -1,7 +1,7 @@
 <!-- File: newmindstack/mindstack_app/modules/learning/quiz_learning/templates/quiz_learning_dashboard.html -->
-<!-- Phiên bản: 1.50 -->
+<!-- Phiên bản: 1.51 -->
 <!-- Mục đích: Giao diện chính để chọn bộ câu hỏi và chế độ học Quiz. -->
-<!-- ĐÃ SỬA: Khắc phục lỗi ReferenceError bằng cách chỉ gọi loadQuizSets khi DOMContentLoaded. -->
+<!-- ĐÃ SỬA: Đảm bảo lựa chọn bộ câu hỏi và chế độ học được reset khi chuyển tab/trang. -->
 
 {% extends "base.html" %}
 {% from 'includes/_search_form.html' import render_search_form %}
@@ -185,9 +185,12 @@
             
             // Reset lựa chọn và trạng thái nút khi tải lại danh sách
             selectedQuizSetId = null; 
-            selectedQuizMode = null;
-            updateStartButtonState(); 
-            // quizModesContainer.innerHTML = `...`; // KHÔNG CÒN CẦN RESET Ở ĐÂY NỮA
+            selectedQuizMode = null; // Đảm bảo chế độ cũng được reset
+            
+            // Xóa nội dung của khối chọn chế độ học và hiển thị thông báo mặc định
+            quizModesContainer.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ câu hỏi trước.</p></div>`;
+            
+            updateStartButtonState(); // Cập nhật trạng thái nút sau khi reset
 
             // Kiểm tra URL trước khi tạo đối tượng URL
             if (!getQuizSetsPartialUrl || getQuizSetsPartialUrl === '#') {
@@ -221,6 +224,11 @@
                 addQuizSetClickListeners();
                 addPaginationAndSearchListeners(); // Gắn lại listener cho phân trang và tìm kiếm
                 updateQuizSetProgressColors(); // THÊM MỚI: Cập nhật màu và text cho progress bar sau khi tải nội dung
+                
+                // Sau khi tải danh sách bộ Quiz, nếu có bộ được chọn trước đó, thử tải lại chế độ học của nó
+                // Logic này sẽ được gọi lại khi người dùng click vào một bộ quiz
+                // Không cần gọi loadQuizModes ở đây nếu selectedQuizSetId là null
+                // updateStartButtonState(); // Gọi lại để đảm bảo trạng thái nút chính xác sau khi tải xong
             } catch (error) {
                 console.error('JavaScript: Lỗi khi tải danh sách bộ Quiz:', error);
                 quizSetsContainer.innerHTML = `<p class="text-red-500 text-center">Không thể tải danh sách bộ câu hỏi. Vui lòng thử lại.</p>`;
