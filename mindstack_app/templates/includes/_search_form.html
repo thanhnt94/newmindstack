@@ -1,8 +1,9 @@
 {# File: Mindstack/web/mindstack_app/templates/includes/_search_form.html #}
-{# Phiên bản 3.3: Đã cập nhật để trường tìm kiếm hoàn toàn responsive và tràn viền. #}
+{# Phiên bản 3.4: Đã cập nhật để trường tìm kiếm hoàn toàn responsive và tràn viền. #}
+{# ĐÃ SỬA: Cập nhật url_for để chỉ truyền set_id nếu nó có giá trị (không phải None) để tránh lỗi BuildError. #}
 
 {% macro render_search_form(search_query=None, search_field='all', placeholder="Tìm kiếm...", set_id=None, search_options=None) %}
-<form method="GET" action="{{ url_for(request.endpoint, set_id=set_id) }}" class="flex items-stretch space-x-2 w-full"> {# THAY ĐỔI: Đảm bảo form chiếm toàn bộ chiều rộng #}
+<form method="GET" action="{{ url_for(request.endpoint, **({'set_id': set_id} if set_id is not none else {})) }}" class="flex items-stretch space-x-2 w-full"> {# THAY ĐỔI: Đảm bảo form chiếm toàn bộ chiều rộng #}
     
     {# Ô chọn trường tìm kiếm (hiện được tạo động) #}
     <select name="search_field" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">

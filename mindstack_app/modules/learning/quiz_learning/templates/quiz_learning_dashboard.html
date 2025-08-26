@@ -1,10 +1,12 @@
 <!-- =============================== -->
 <!-- File: mindstack_app/modules/learning/quiz_learning/templates/quiz_learning_dashboard.html -->
-<!-- Phiên bản: 1.54 (UI – Badge + Icon, giữ nguyên logic) -->
+<!-- Phiên bản: 1.55 (UI – Badge + Icon, giữ nguyên logic) -->
 <!-- Mục đích: Giao diện chính để chọn bộ câu hỏi và chế độ học Quiz. -->
 <!-- THAY ĐỔI 1.54:
   - Tiêu đề Quiz thêm icon câu hỏi (FontAwesome) + hiệu ứng vào trang (fade/scale).
   - Không thay đổi logic AJAX, URL hay dữ liệu.  -->
+<!-- THAY ĐỔI 1.55:
+  - Khắc phục lỗi không tải được danh sách bộ câu hỏi khi trang tải lần đầu do thiếu tham số search_query và search_field. -->
 <!-- =============================== -->
 
 {% extends "base.html" %}
@@ -136,6 +138,10 @@
     var selectedSessionSize = parseInt("{{ user_default_batch_size | default(10) }}");
     var currentFilter = "{{ current_filter | default('doing') }}";
     var doingPage = 1; var explorePage = 1; var currentPage = (currentFilter === 'doing' ? doingPage : explorePage);
+    // THÊM MỚI: Lấy giá trị ban đầu cho search_query và search_field
+    var currentSearchQuery = "{{ search_query | default('') }}";
+    var currentSearchField = "{{ search_field | default('all') }}";
+
 
     var quizSetsContainer = document.getElementById('quiz-sets-container');
     var quizModesContainer = document.getElementById('quiz-modes-container');
@@ -277,11 +283,11 @@
             searchForm.addEventListener('submit', function(e){
                 e.preventDefault();
                 var data = new FormData(searchForm);
-                var q = data.get('q') || '';
-                var search_field = data.get('search_field') || 'all';
+                currentSearchQuery = data.get('q') || ''; // Cập nhật biến trạng thái
+                currentSearchField = data.get('search_field') || 'all'; // Cập nhật biến trạng thái
                 if (currentFilter === 'doing') { doingPage = 1; } else { explorePage = 1; }
                 currentPage = 1;
-                loadQuizSets(currentPage, q, search_field, currentFilter);
+                loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
             });
         }
         document.querySelectorAll('.pagination a').forEach(function(a){
@@ -358,7 +364,7 @@
             filterDoingBtn.classList.remove('bg-gray-100','text-gray-700');
             filterExploreBtn.classList.remove('active','bg-blue-600','text-white');
             filterExploreBtn.classList.add('bg-gray-100','text-gray-700');
-            loadQuizSets(currentPage, '', 'all', currentFilter);
+            loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter); // THAY ĐỔI
         }
     });
     filterExploreBtn.addEventListener('click', function(){
@@ -369,13 +375,14 @@
             filterExploreBtn.classList.remove('bg-gray-100','text-gray-700');
             filterDoingBtn.classList.remove('active','bg-blue-600','text-white');
             filterDoingBtn.classList.add('bg-gray-100','text-gray-700');
-            loadQuizSets(currentPage, '', 'all', currentFilter);
+            loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter); // THAY ĐỔI
         }
     });
 
     // ==== Khởi tạo ====
     document.addEventListener('DOMContentLoaded', function(){
-        loadQuizSets(currentPage, "{{ search_query }}", "{{ search_field }}", currentFilter);
+        // THAY ĐỔI: Sử dụng các biến trạng thái mới khi tải lần đầu
+        loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
     });
     </script>
 {% endblock %}

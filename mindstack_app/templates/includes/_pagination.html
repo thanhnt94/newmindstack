@@ -1,11 +1,15 @@
 {# File: Mindstack/web/mindstack_app/templates/includes/_pagination.html #}
-{# Phiên bản 2.2: Đã thêm current_filter để giữ lại bộ lọc khi chuyển trang. #}
+{# Phiên bản 2.5: Đã gõ lại hoàn toàn để khắc phục lỗi cú pháp Jinja2. #}
+{# ĐÃ SỬA: Cập nhật url_for để chỉ truyền set_id nếu nó có giá trị (không phải None) để tránh lỗi BuildError. #}
+{# ĐÃ SỬA: Sử dụng {% set _ = url_params.update(...) %} để tránh lỗi cú pháp Jinja2 khi cập nhật dictionary. #}
 
 {% macro render_pagination(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
 <div class="flex justify-center items-center space-x-2 mt-6 pagination">
     {# Nút "Trang trước" #}
     {% if pagination.has_prev %}
-    <a href="{{ url_for(request.endpoint, page=pagination.prev_num, q=search_query, set_id=set_id, search_field=search_field, filter=current_filter) }}" 
+    {% set url_params = {'page': pagination.prev_num, 'q': search_query, 'search_field': search_field, 'filter': current_filter} %}
+    {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
+    <a href="{{ url_for(request.endpoint, **url_params) }}" 
        class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">
         &laquo;
     </a>
@@ -23,7 +27,9 @@
                 {{ page_num }}
             </span>
             {% else %}
-            <a href="{{ url_for(request.endpoint, page=page_num, q=search_query, set_id=set_id, search_field=search_field, filter=current_filter) }}" 
+            {% set url_params = {'page': page_num, 'q': search_query, 'search_field': search_field, 'filter': current_filter} %}
+            {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
+            <a href="{{ url_for(request.endpoint, **url_params) }}" 
                class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">
                 {{ page_num }}
             </a>
@@ -35,7 +41,9 @@
 
     {# Nút "Trang sau" #}
     {% if pagination.has_next %}
-    <a href="{{ url_for(request.endpoint, page=pagination.next_num, q=search_query, set_id=set_id, search_field=search_field, filter=current_filter) }}" 
+    {% set url_params = {'page': pagination.next_num, 'q': search_query, 'search_field': search_field, 'filter': current_filter} %}
+    {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
+    <a href="{{ url_for(request.endpoint, **url_params) }}" 
        class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">
         &raquo;
     </a>

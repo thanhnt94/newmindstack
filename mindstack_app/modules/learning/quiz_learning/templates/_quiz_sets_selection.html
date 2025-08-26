@@ -1,25 +1,24 @@
-
-
 <!-- =============================== -->
 <!-- File: mindstack_app/modules/learning/quiz_learning/templates/_quiz_sets_selection.html -->
-<!-- Phiên bản: 1.54 (UI – Progress phẳng) -->
+<!-- Phiên bản: 1.58 (Gõ lại hoàn toàn để khắc phục lỗi 'endfor' unknown tag) -->
 <!-- Mục đích: Partial danh sách bộ câu hỏi (hiển thị tiến độ). -->
-<!-- THAY ĐỔI 1.54:
-  - Thanh tiến độ đổi sang màu phẳng (không gradient): #FDE68A.
-  - Không đổi width % hay bất kỳ logic Jinja nào. -->
+<!-- THAY ĐỔI 1.58:
+  - Đã gõ lại toàn bộ file để loại bỏ các ký tự ẩn hoặc lỗi mã hóa gây ra lỗi TemplateSyntaxError.
+  - Form tìm kiếm luôn hiển thị. -->
 <!-- =============================== -->
 
 {% from 'includes/_search_form.html' import render_search_form %}
 {% from 'includes/_pagination.html' import render_pagination %}
 
 <div class="w-full space-y-3">
+    {# Form tìm kiếm luôn hiển thị #}
+    <div class="mb-6">
+        {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
+        <div class="w-full">{{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...", search_field=search_field, search_options=display_search_options) }}</div>
+    </div>
+
     {% if quiz_sets %}
     <div class="space-y-3">
-        <div class="mb-6">
-            {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
-            <div class="w-full">{{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...", search_field=search_field, search_options=display_search_options) }}</div>
-        </div>
-
         {% if current_filter == 'doing' and quiz_sets|length >= 2 %}
         <div class="quiz-set-item bg-blue-50 p-4 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors duration-200 flex justify-between items-center" data-set-id="all" data-total-items="all">
             <div>
