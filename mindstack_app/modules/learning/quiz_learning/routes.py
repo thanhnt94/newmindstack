@@ -1,8 +1,8 @@
 # File: mindstack_app/modules/learning/quiz_learning/routes.py
-# Phiên bản: 1.58
+# Phiên bản: 1.10
 # Mục đích: Định nghĩa các routes và logic cho module học Quiz.
-# ĐÃ THÊM: Route mới 'get_quiz_modes_partial_multi' để tính toán số câu hỏi cho nhiều bộ quiz.
-# ĐÃ THÊM: Logic cập nhật trường 'last_accessed' trong UserContainerState khi người dùng gửi đáp án.
+# ĐÃ SỬA: Cập nhật các route 'start_quiz_session_all' và 'start_quiz_session_multi' để nhận batch_size là query parameter.
+# ĐÃ SỬA: Sửa lỗi last_accessed không cập nhật bằng cách gán trực tiếp func.now() vào trường.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
@@ -11,7 +11,7 @@ from .algorithms import get_new_only_items, get_reviewed_items, get_hard_items, 
 from .session_manager import QuizSessionManager
 from .config import QuizLearningConfig
 from ....models import db, User, UserContainerState, LearningContainer
-from sqlalchemy.sql import func # THÊM MỚI: Import func để lấy thời gian hiện tại
+from sqlalchemy.sql import func
 
 
 quiz_learning_bp = Blueprint('quiz_learning', __name__,
@@ -33,11 +33,11 @@ def quiz_learning_dashboard():
     quiz_set_search_options = {
         'title': 'Tiêu đề', 'description': 'Mô tả', 'tags': 'Thẻ'
     }
-    
+
     template_vars = {
-        'search_query': search_query, 
+        'search_query': search_query,
         'search_field': search_field,
-        'quiz_set_search_options': quiz_set_search_options, 
+        'quiz_set_search_options': quiz_set_search_options,
         'current_filter': current_filter,
         'user_default_batch_size': user_default_batch_size
     }
@@ -53,13 +53,13 @@ def get_quiz_modes_partial_all():
     user_default_batch_size = current_user.current_quiz_batch_size if current_user.current_quiz_batch_size is not None else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
 
     modes = get_quiz_mode_counts(current_user.user_id, 'all')
-    return render_template('_quiz_modes_selection.html', 
-                           modes=modes, 
+    return render_template('_quiz_modes_selection.html',
+                           modes=modes,
                            selected_set_id='all',
                            selected_quiz_mode_id=selected_mode,
                            user_default_batch_size=user_default_batch_size
                            )
-    
+
 @quiz_learning_bp.route('/get_quiz_modes_partial/multi/<string:set_ids_str>', methods=['GET'])
 @login_required
 def get_quiz_modes_partial_multi(set_ids_str):
@@ -75,8 +75,8 @@ def get_quiz_modes_partial_multi(set_ids_str):
     except ValueError:
         return '<p class="text-red-500 text-center">Lỗi: Định dạng ID bộ quiz không hợp lệ.</p>', 400
 
-    return render_template('_quiz_modes_selection.html', 
-                           modes=modes, 
+    return render_template('_quiz_modes_selection.html',
+                           modes=modes,
                            selected_set_id='multi',
                            selected_quiz_mode_id=selected_mode,
                            user_default_batch_size=user_default_batch_size
@@ -92,22 +92,26 @@ def get_quiz_modes_partial_by_id(set_id):
     user_default_batch_size = current_user.current_quiz_batch_size if current_user.current_quiz_batch_size is not None else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
 
     modes = get_quiz_mode_counts(current_user.user_id, set_id)
-    return render_template('_quiz_modes_selection.html', 
-                           modes=modes, 
+
+    return render_template('_quiz_modes_selection.html',
+                           modes=modes,
                            selected_set_id=str(set_id),
                            selected_quiz_mode_id=selected_mode,
                            user_default_batch_size=user_default_batch_size
                            )
 
-@quiz_learning_bp.route('/start_quiz_session/all/<string:mode>/<int:batch_size>', methods=['GET'])
+@quiz_learning_bp.route('/start_quiz_session/all/<string:mode>', methods=['GET'])
 @login_required
-def start_quiz_session_all(mode, batch_size):
+def start_quiz_session_all(mode):
     """
     Bắt đầu một phiên học Quiz cho TẤT CẢ các bộ câu hỏi với chế độ và kích thước nhóm câu đã chọn.
     """
-    # Lấy danh sách các bộ ID đã chọn từ query params
-    set_ids_str = request.args.get('set_ids')
-    set_ids = [int(s) for s in set_ids_str.split(',') if s] if set_ids_str else 'all'
+    set_ids = 'all'
+    batch_size = request.args.get('batch_size', type=int)
+
+    if not batch_size:
+        flash('Lỗi: Thiếu kích thước nhóm câu hỏi.', 'danger')
+        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
 
     if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
@@ -115,12 +119,43 @@ def start_quiz_session_all(mode, batch_size):
         flash('Không có câu hỏi nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
         return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
 
-@quiz_learning_bp.route('/start_quiz_session/<int:set_id>/<string:mode>/<int:batch_size>', methods=['GET'])
+@quiz_learning_bp.route('/start_quiz_session/multi/<string:mode>', methods=['GET'])
 @login_required
-def start_quiz_session_by_id(set_id, mode, batch_size):
+def start_quiz_session_multi(mode):
+    """
+    Bắt đầu một phiên học Quiz cho nhiều bộ câu hỏi với chế độ và kích thước nhóm câu đã chọn.
+    """
+    set_ids_str = request.args.get('set_ids')
+    batch_size = request.args.get('batch_size', type=int)
+
+    if not set_ids_str or not batch_size:
+        flash('Lỗi: Thiếu thông tin bộ câu hỏi hoặc kích thước nhóm.', 'danger')
+        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+
+    try:
+        set_ids = [int(s) for s in set_ids_str.split(',') if s]
+    except ValueError:
+        flash('Lỗi: Định dạng ID bộ quiz không hợp lệ.', 'danger')
+        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+
+    if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
+        return redirect(url_for('learning.quiz_learning.quiz_session'))
+    else:
+        flash('Không có câu hỏi nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
+        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+
+@quiz_learning_bp.route('/start_quiz_session/<int:set_id>/<string:mode>', methods=['GET'])
+@login_required
+def start_quiz_session_by_id(set_id, mode):
     """
     Bắt đầu một phiên học Quiz cho một bộ câu hỏi cụ thể với chế độ và kích thước nhóm câu đã chọn.
     """
+    batch_size = request.args.get('batch_size', type=int)
+
+    if not batch_size:
+        flash('Lỗi: Thiếu kích thước nhóm câu hỏi.', 'danger')
+        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+
     if QuizSessionManager.start_new_quiz_session(set_id, mode, batch_size):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
@@ -178,7 +213,7 @@ def get_question_batch():
 def submit_answer_batch():
     """
     Nhận một danh sách các câu trả lời của người dùng, xử lý và cập nhật tiến độ.
-    Đã THÊM: Cập nhật last_accessed của UserContainerState.
+    ĐÃ SỬA: Cập nhật last_accessed của UserContainerState cho cả một bộ quiz đơn và nhiều bộ.
     """
     current_app.logger.debug("--- Bắt đầu submit_answer_batch ---")
     data = request.get_json()
@@ -196,37 +231,42 @@ def submit_answer_batch():
     if not session_manager:
         current_app.logger.warning("Không tìm thấy SessionManager khi submit_answer_batch.")
         return jsonify({'message': 'Phiên học không hợp lệ hoặc đã kết thúc.'}), 400
-    
-    # THÊM MỚI: Cập nhật last_accessed cho bộ quiz hiện tại
-    quiz_set_id = session_manager.set_id
-    if quiz_set_id != 'all':
-        try:
-            user_container_state = UserContainerState.query.filter_by(
-                user_id=current_user.user_id,
-                container_id=quiz_set_id
-            ).first()
-            if not user_container_state:
-                user_container_state = UserContainerState(
+
+    quiz_set_ids = session_manager.set_id
+    if not isinstance(quiz_set_ids, list):
+        if quiz_set_ids == 'all':
+            pass
+        else:
+            quiz_set_ids = [quiz_set_ids]
+
+    if quiz_set_ids and quiz_set_ids != ['all']:
+        for s_id in quiz_set_ids:
+            try:
+                user_container_state = UserContainerState.query.filter_by(
                     user_id=current_user.user_id,
-                    container_id=quiz_set_id,
-                    is_archived=False,
-                    is_favorite=False
-                )
-                db.session.add(user_container_state)
-            
-            # last_accessed sẽ tự động cập nhật nhờ onupdate=func.now() trong models.py
-            db.session.commit()
-            print(f">>> ROUTES: Đã cập nhật last_accessed cho bộ quiz {quiz_set_id} <<<")
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Lỗi khi cập nhật last_accessed cho bộ quiz {quiz_set_id}: {e}", exc_info=True)
+                    container_id=s_id
+                ).first()
+                if not user_container_state:
+                    user_container_state = UserContainerState(
+                        user_id=current_user.user_id,
+                        container_id=s_id,
+                        is_archived=False,
+                        is_favorite=False
+                    )
+                    db.session.add(user_container_state)
+                user_container_state.last_accessed = func.now()
+                db.session.commit()
+                print(f">>> ROUTES: Đã cập nhật last_accessed cho bộ quiz {s_id} <<<")
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"Lỗi khi cập nhật last_accessed cho bộ quiz {s_id}: {e}", exc_info=True)
 
 
     results = session_manager.process_answer_batch(answers)
     if 'error' in results:
         current_app.logger.error(f"Lỗi trong quá trình process_answer_batch: {results.get('error')}")
         return jsonify(results), 400
-    
+
     session['quiz_session'] = session_manager.to_dict()
 
     response_data = {
@@ -303,8 +343,8 @@ def get_quiz_sets_partial():
         quiz_sets = pagination.items
 
         template_vars = {
-            'quiz_sets': quiz_sets, 
-            'pagination': pagination, 
+            'quiz_sets': quiz_sets,
+            'pagination': pagination,
             'search_query': search_query,
             'search_field': search_field,
             'search_options_display': {
@@ -364,4 +404,3 @@ def toggle_archive(set_id):
         db.session.rollback()
         current_app.logger.error(f"Lỗi khi toggle archive cho bộ quiz {set_id}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi thay đổi trạng thái lưu trữ.'}), 500
-
