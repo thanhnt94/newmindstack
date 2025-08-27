@@ -1,14 +1,13 @@
 <!-- =============================== -->
 <!-- File: mindstack_app/modules/learning/quiz_learning/templates/quiz_learning_dashboard.html -->
-<!-- Phiên bản: 1.58 -->
+<!-- Phiên bản: 1.62 (Sửa lỗi tải chế độ học) -->
 <!-- Mục đích: Giao diện chính để chọn bộ câu hỏi và chế độ học Quiz. -->
-<!-- ĐÃ THÊM: Tab mới "Archive" để hiển thị các bộ quiz đã lưu trữ. -->
-<!-- ĐÃ SỬA: Cập nhật JavaScript để xử lý chuyển đổi giữa 3 tab: 'doing', 'explore', 'archive'. -->
+<!-- ĐÃ SỬA: Sửa logic JavaScript để tải đúng chế độ học khi chọn một bộ quiz. -->
+<!-- ĐÃ SỬA: Cập nhật hàm updateStartButtonState để xử lý multi-selection. -->
 <!-- =============================== -->
 
 {% extends "base.html" %}
 {% from 'includes/_search_form.html' import render_search_form %}
-{# Macro render_pagination không dùng trực tiếp ở đây; phần danh sách sử dụng trong _quiz_sets_selection.html #}
 
 {% block title %}Học Quiz - MindStack{% endblock %}
 
@@ -17,12 +16,11 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f9fafb; /* bg-gray-50 */
+            background-color: #f9fafb;
         }
-        /* Chọn item & mode */
         .selected-item {
-            border-color: #3b82f6 !important; /* blue-500 */
-            background-color: #eff6ff !important; /* blue-50 */
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
         }
         .selected-mode {
@@ -30,37 +28,20 @@
             background-color: #eff6ff !important;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
         }
-        /* Nút bắt đầu */
         .start-button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-        /* THAY ĐỔI: Thêm style cho tab filter button active */
         .tab-filter-button.active { 
             border-bottom: 2px solid #3b82f6; 
             color: #3b82f6; 
         }
         .tab-filter-button {
             transition: all 0.2s ease-in-out;
-            color: #6b7280; /* text-gray-500 */
+            color: #6b7280;
             font-weight: 500;
         }
 
-        /* Một số class giao diện list item (không quyết định màu progress bar) */
-        .quiz-set-item {
-            position: relative;
-            background-color: #ffffff;
-            border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border: 1px solid #e5e7eb; /* border-gray-200 */
-            overflow: hidden;
-            padding: 1rem; /* p-4 */
-            transition: all 0.3s ease;
-        }
-        .quiz-set-item:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05); transform: translateY(-2px); }
-        .quiz-set-completion-text { font-size: 1rem; font-weight: 600; white-space: nowrap; padding-left: .5rem; padding-right: .5rem; }
-
-        /* ====== TIÊU ĐỀ QUIZ ====== */
         .quiz-title-wrapper { 
             display: flex; 
             justify-content: center; 
@@ -94,40 +75,107 @@
             border-color: #60a5fa;
             transform: translateY(-2px);
         }
-
-        /* Responsive cho tiêu đề trên mobile */
-        @media (max-width: 1023px) {
-            .quiz-title-badge {
-                font-size: 1.75rem;
-                padding: 0.75rem 1.5rem;
-            }
-            .quiz-title-badge .fa-question-circle {
-                font-size: 2rem;
-                margin-right: 0.75rem;
-            }
+        
+        .quiz-set-item {
+            position: relative;
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            padding: 1rem;
+            transition: all 0.3s ease;
         }
-        @media (max-width: 639px) {
-            .quiz-title-badge {
-                font-size: 1.5rem;
-                padding: 0.6rem 1rem;
-            }
-            .quiz-title-badge .fa-question-circle {
-                font-size: 1.75rem;
-                margin-right: 0.5rem;
-            }
-        }
+        .quiz-set-item:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05); transform: translateY(-2px); }
 
-        /* THÊM MỚI: CSS cho icon archive/unarchive */
         .archive-icon {
             cursor: pointer;
-            color: #9ca3af; /* Màu xám */
+            color: #9ca3af;
             transition: color 0.2s ease;
         }
         .archive-icon:hover {
-            color: #3b82f6; /* Màu xanh khi hover */
+            color: #3b82f6;
         }
         .archived .archive-icon {
-            color: #3b82f6; /* Màu xanh khi đã archived */
+            color: #3b82f6;
+        }
+        
+        .multi-select-toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+        .multi-select-toggle {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 24px;
+            margin-left: 0.5rem;
+        }
+        .multi-select-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .multi-select-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .multi-select-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .multi-select-slider {
+            background-color: #2196F3;
+        }
+        input:checked + .multi-select-slider:before {
+            transform: translateX(16px);
+        }
+
+        .selected-sets-container {
+            margin-bottom: 1rem;
+            min-height: 2.5rem;
+            border-radius: 0.5rem;
+            background-color: #e5e7eb;
+            padding: 0.5rem;
+            color: #4b5563;
+            font-size: 0.875rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .selected-set-item {
+            background-color: #dbeafe;
+            color: #1e3a8a;
+            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 0.25rem;
+            display: inline-flex;
+            align-items: center;
+        }
+        .selected-set-item i {
+            margin-left: 0.5rem;
+            font-size: 0.6rem;
+            cursor: pointer;
         }
     </style>
 {% endblock %}
@@ -139,15 +187,26 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
-        <!-- Bước 1: Chọn một bộ câu hỏi -->
         <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
             <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
                 <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ câu hỏi
             </h2>
-            <div class="flex space-x-4 border-b border-gray-200 mb-4">
-                <button id="filter-doing" class="tab-filter-button flex items-center p-2 {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing"><i class="fas fa-play-circle mr-2"></i> Đang làm</button>
-                <button id="filter-explore" class="tab-filter-button flex items-center p-2 {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore"><i class="fas fa-globe mr-2"></i> Khám phá</button>
-                <button id="filter-archive" class="tab-filter-button flex items-center p-2 {% if current_filter == 'archive' %}active{% endif %}" data-filter="archive"><i class="fas fa-archive mr-2"></i> Archive</button>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex space-x-4 border-b border-gray-200">
+                    <button id="filter-doing" class="tab-filter-button flex items-center p-2 {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing"><i class="fas fa-play-circle mr-2"></i> Đang làm</button>
+                    <button id="filter-explore" class="tab-filter-button flex items-center p-2 {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore"><i class="fas fa-globe mr-2"></i> Khám phá</button>
+                    <button id="filter-archive" class="tab-filter-button flex items-center p-2 {% if current_filter == 'archive' %}active{% endif %}" data-filter="archive"><i class="fas fa-archive mr-2"></i> Archive</button>
+                </div>
+                <div class="multi-select-toggle-container">
+                    <label for="multi-select-toggle-input">Chọn nhiều</label>
+                    <label class="multi-select-toggle">
+                        <input type="checkbox" id="multi-select-toggle-input">
+                        <span class="multi-select-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div id="selected-sets-display" class="selected-sets-container hidden">
+                <span class="text-gray-500">Bộ quiz đã chọn:</span>
             </div>
             <div id="quiz-sets-container" class="flex-grow">
                 <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
@@ -157,7 +216,6 @@
             </div>
         </div>
 
-        <!-- Bước 2: Chọn chế độ học -->
         <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
             <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
                 <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học
@@ -171,7 +229,6 @@
         </div>
     </div>
 
-    <!-- Nút Bắt đầu học -->
     <div class="mt-8 text-center">
         <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" disabled>
             <i class="fas fa-play-circle mr-3"></i> Bắt đầu làm bài
@@ -186,37 +243,40 @@
     console.log('>>> quiz_learning_dashboard.js: init');
 
     // ==== Biến trạng thái ====
-    var selectedQuizSetId = null;
-    var selectedQuizMode = null;
-    var selectedSessionSize = parseInt("{{ user_default_batch_size | default(10) }}");
-    var currentFilter = "{{ current_filter | default('doing') }}";
-    var doingPage = 1; var explorePage = 1; var archivePage = 1; var currentPage = (currentFilter === 'doing' ? doingPage : (currentFilter === 'explore' ? explorePage : archivePage));
-    var currentSearchQuery = "{{ search_query | default('') }}";
-    var currentSearchField = "{{ search_field | default('all') }}";
+    let selectedQuizSetId = null;
+    let selectedQuizSetIds = [];
+    let selectedQuizMode = null;
+    let selectedSessionSize = parseInt("{{ user_default_batch_size | default(10) }}");
+    let currentFilter = "{{ current_filter | default('doing') }}";
+    let doingPage = 1; let explorePage = 1; let archivePage = 1; let currentPage = (currentFilter === 'doing' ? doingPage : (currentFilter === 'explore' ? explorePage : archivePage));
+    let currentSearchQuery = "{{ search_query | default('') }}";
+    let currentSearchField = "{{ search_field | default('all') }}";
+    let isMultiSelectMode = false;
 
-
-    var quizSetsContainer = document.getElementById('quiz-sets-container');
-    var quizModesContainer = document.getElementById('quiz-modes-container');
-    var startLearningBtn = document.getElementById('start-learning-btn');
-    var filterDoingBtn = document.getElementById('filter-doing');
-    var filterExploreBtn = document.getElementById('filter-explore');
-    var filterArchiveBtn = document.getElementById('filter-archive'); // THÊM MỚI
+    const quizSetsContainer = document.getElementById('quiz-sets-container');
+    const quizModesContainer = document.getElementById('quiz-modes-container');
+    const startLearningBtn = document.getElementById('start-learning-btn');
+    const multiSelectToggleInput = document.getElementById('multi-select-toggle-input');
+    const selectedSetsDisplay = document.getElementById('selected-sets-display');
 
     // ==== URL ====
-    var quizModesPartialBaseUrlById = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_by_id', set_id=0) or '#' }}";
-    var quizModesPartialBaseUrlAll = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_all') or '#' }}";
-    var startQuizSessionBaseUrlByIdTemplate = "/learn/start_quiz_session/SET_ID_PLACEHOLDER/MODE_PLACEHOLDER/BATCH_SIZE_PLACEHOLDER";
-    var startQuizSessionBaseUrlAllTemplate = "/learn/start_quiz_session/all/MODE_PLACEHOLDER/BATCH_SIZE_PLACEHOLDER";
-    var getQuizSetsPartialUrl = "{{ url_for('learning.quiz_learning.get_quiz_sets_partial') or '#' }}";
-    var saveQuizSettingsUrl = "{{ url_for('learning.quiz_learning.save_quiz_settings') }}";
-    var toggleArchiveUrl = "{{ url_for('learning.quiz_learning.toggle_archive', set_id=0) or '#' }}"; // THÊM MỚI
+    const quizModesPartialBaseUrlById = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_by_id', set_id=0) or '#' }}";
+    const quizModesPartialBaseUrlAll = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_all') or '#' }}";
+    const startQuizSessionBaseUrlByIdTemplate = "/learn/start_quiz_session/SET_ID_PLACEHOLDER/MODE_PLACEHOLDER/BATCH_SIZE_PLACEHOLDER";
+    const startQuizSessionBaseUrlAllTemplate = "/learn/start_quiz_session/all/MODE_PLACEHOLDER/BATCH_SIZE_PLACEHOLDER";
+    const getQuizSetsPartialUrl = "{{ url_for('learning.quiz_learning.get_quiz_sets_partial') or '#' }}";
+    const saveQuizSettingsUrl = "{{ url_for('learning.quiz_learning.save_quiz_settings') }}";
+    const toggleArchiveUrl = "{{ url_for('learning.quiz_learning.toggle_archive', set_id=0) or '#' }}";
 
     // ==== AJAX: Tải danh sách bộ Quiz ====
     async function loadQuizSets(page, searchQuery, searchField, filter) {
         console.log('loadQuizSets', page, searchQuery, searchField, filter);
         quizSetsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải danh sách bộ câu hỏi...</p></div>';
 
-        selectedQuizSetId = null; selectedQuizMode = null;
+        selectedQuizSetIds = [];
+        selectedQuizSetId = null; 
+        updateSelectedSetsDisplay();
+
         quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ câu hỏi trước.</p></div>';
         updateStartButtonState();
 
@@ -226,20 +286,21 @@
             return;
         }
         try {
-            var url = new URL(getQuizSetsPartialUrl, window.location.origin);
+            const url = new URL(getQuizSetsPartialUrl, window.location.origin);
             url.searchParams.append('page', page);
             url.searchParams.append('q', searchQuery || '');
             url.searchParams.append('search_field', searchField || 'all');
             url.searchParams.append('filter', filter || 'doing');
 
-            var response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) { throw new Error('HTTP ' + response.status); }
-            var html = await response.text();
+            const html = await response.text();
             quizSetsContainer.innerHTML = html;
             addQuizSetClickListeners();
             addPaginationAndSearchListeners();
-            addArchiveIconListeners(); // THÊM MỚI
+            addArchiveIconListeners();
             updateQuizSetProgressColors();
+            syncMultiSelectionUI();
         } catch (e) {
             console.error('Lỗi loadQuizSets:', e);
             quizSetsContainer.innerHTML = '<p class="text-red-500 text-center">Không thể tải danh sách bộ câu hỏi. Vui lòng thử lại.</p>';
@@ -251,45 +312,45 @@
         console.log('loadQuizModes ->', setId);
         quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải chế độ học...</p></div>';
         try {
-            var url;
+            let url;
             if (setId === 'all') { url = quizModesPartialBaseUrlAll; }
             else { url = quizModesPartialBaseUrlById.replace('/0', '/' + setId); }
             if (!url || url === '#') { throw new Error('URL chế độ học không hợp lệ'); }
 
-            var fullUrl = new URL(url, window.location.origin);
+            const fullUrl = new URL(url, window.location.origin);
             if (selectedQuizMode) { fullUrl.searchParams.append('selected_mode', selectedQuizMode); }
             fullUrl.searchParams.append('user_default_batch_size', selectedSessionSize);
 
-            var response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) { throw new Error('HTTP ' + response.status); }
-            var html = await response.text();
+            const html = await response.text();
             quizModesContainer.innerHTML = html;
             addQuizModeClickListeners();
 
-            var sessionSizeSelect = document.getElementById('session-size-select');
+            const sessionSizeSelect = document.getElementById('session-size-select');
             if (sessionSizeSelect) {
                 sessionSizeSelect.value = selectedSessionSize;
                 sessionSizeSelect.addEventListener('change', async function(){
                     selectedSessionSize = parseInt(this.value);
                     updateStartButtonState();
                     try {
-                        var res = await fetch(saveQuizSettingsUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ batch_size: selectedSessionSize }) });
-                        var js = await res.json();
+                        const res = await fetch(saveQuizSettingsUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ batch_size: selectedSessionSize }) });
+                        const js = await res.json();
                         if (!js.success) { console.error('Lưu batch_size lỗi:', js.message); }
                     } catch (err) { console.error('AJAX lưu batch_size lỗi:', err); }
                 });
             }
 
             if (!selectedQuizMode) {
-                var available = Array.from(quizModesContainer.querySelectorAll('.quiz-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
+                const available = Array.from(quizModesContainer.querySelectorAll('.quiz-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
                 if (available.length > 0) { available[0].click(); }
                 else { selectedQuizMode = null; updateStartButtonState(); }
             } else {
-                var prev = quizModesContainer.querySelector('[data-mode-id="' + selectedQuizMode + '"]');
+                const prev = quizModesContainer.querySelector('[data-mode-id="' + selectedQuizMode + '"]');
                 if (prev && parseInt(prev.dataset.count) > 0) { prev.click(); }
                 else {
                     selectedQuizMode = null; updateStartButtonState();
-                    var available2 = Array.from(quizModesContainer.querySelectorAll('.quiz-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
+                    const available2 = Array.from(quizModesContainer.querySelectorAll('.quiz-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
                     if (available2.length > 0) { available2[0].click(); }
                 }
             }
@@ -299,17 +360,96 @@
         }
     }
 
+    // THÊM MỚI: Đồng bộ trạng thái UI của multi-selection sau khi tải DOM
+    function syncMultiSelectionUI() {
+        if (isMultiSelectMode) {
+            document.querySelectorAll('.quiz-set-item').forEach(item => {
+                const setId = item.dataset.setId;
+                if (selectedQuizSetIds.includes(setId)) {
+                    item.classList.add('selected-item');
+                } else {
+                    item.classList.remove('selected-item');
+                }
+            });
+            updateSelectedSetsDisplay();
+        }
+        // THÊM MỚI: Cập nhật hiển thị nút 'Archive'
+        document.querySelectorAll('.archive-icon').forEach(icon => {
+            icon.style.display = isMultiSelectMode ? 'none' : '';
+        });
+    }
+
+    // THÊM MỚI: Cập nhật hiển thị các bộ đã chọn
+    function updateSelectedSetsDisplay() {
+        if (selectedQuizSetIds.length > 0) {
+            selectedSetsDisplay.classList.remove('hidden');
+            selectedSetsDisplay.innerHTML = `<span class="text-gray-500 mr-2">Bộ quiz đã chọn:</span>`;
+            selectedQuizSetIds.forEach(setId => {
+                const item = document.querySelector(`.quiz-set-item[data-set-id="${setId}"]`);
+                if (item) {
+                    const title = item.querySelector('h3').textContent;
+                    const selectedItemHtml = `
+                        <div class="selected-set-item" data-set-id="${setId}">
+                            <span>${title}</span>
+                            <i class="fas fa-times-circle remove-selected-set"></i>
+                        </div>
+                    `;
+                    selectedSetsDisplay.insertAdjacentHTML('beforeend', selectedItemHtml);
+                }
+            });
+        } else {
+            selectedSetsDisplay.classList.add('hidden');
+        }
+
+        document.querySelectorAll('.remove-selected-set').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const setIdToRemove = this.closest('.selected-set-item').dataset.setId;
+                handleQuizSetSelection(setIdToRemove);
+            });
+        });
+    }
+
+    // THÊM MỚI: Xử lý logic chọn một/chọn nhiều
+    function handleQuizSetSelection(setId) {
+        const item = document.querySelector(`.quiz-set-item[data-set-id="${setId}"]`);
+        if (!item) return;
+
+        if (isMultiSelectMode) {
+            if (selectedQuizSetIds.includes(setId)) {
+                selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setId);
+                item.classList.remove('selected-item');
+            } else {
+                selectedQuizSetIds.push(setId);
+                item.classList.add('selected-item');
+            }
+            quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn chế độ học.</p></div>';
+            selectedQuizMode = null;
+        } else {
+            if (selectedQuizSetId === setId) {
+                selectedQuizSetId = null;
+                item.classList.remove('selected-item');
+                quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ câu hỏi trước.</p></div>';
+            } else {
+                document.querySelectorAll('.quiz-set-item').forEach(el => el.classList.remove('selected-item'));
+                selectedQuizSetId = setId;
+                item.classList.add('selected-item');
+                loadQuizModes(selectedQuizSetId);
+            }
+        }
+        updateStartButtonState();
+        updateSelectedSetsDisplay();
+    }
+
+
     // ==== Listener: click chọn bộ Quiz ====
     function addQuizSetClickListeners() {
         document.querySelectorAll('.quiz-set-item').forEach(function(item){
             item.addEventListener('click', function(ev){
-                var totalItems = parseInt(this.dataset.totalItems);
+                const totalItems = parseInt(this.dataset.totalItems);
                 if (totalItems === 0) { ev.preventDefault(); ev.stopPropagation(); return; }
-                document.querySelectorAll('.quiz-set-item').forEach(function(el){ el.classList.remove('selected-item'); });
-                this.classList.add('selected-item');
-                selectedQuizSetId = this.dataset.setId;
-                updateStartButtonState();
-                loadQuizModes(selectedQuizSetId);
+                const setId = this.dataset.setId;
+                handleQuizSetSelection(setId);
             });
         });
     }
@@ -317,27 +457,25 @@
     // ==== Listener: click chọn chế độ học ====
     function addQuizModeClickListeners() {
         document.querySelectorAll('.quiz-mode-item').forEach(function(item){
-            item.addEventListener('click', function(ev){
-                var modeCount = parseInt(this.dataset.count);
-                if (modeCount === 0) { ev.preventDefault(); ev.stopPropagation(); return; }
-                document.querySelectorAll('.quiz-mode-item').forEach(function(el){ el.classList.remove('selected-mode'); });
-                this.classList.add('selected-mode');
-                selectedQuizMode = this.dataset.modeId;
-                updateStartButtonState();
-            });
+            const modeCount = parseInt(this.dataset.count);
+            if (modeCount === 0) { ev.preventDefault(); ev.stopPropagation(); return; }
+            document.querySelectorAll('.quiz-mode-item').forEach(function(el){ el.classList.remove('selected-mode'); });
+            this.classList.add('selected-mode');
+            selectedQuizMode = this.dataset.modeId;
+            updateStartButtonState();
         });
     }
 
     // ==== Listener: search + pagination trong partial danh sách ====
     function addPaginationAndSearchListeners() {
-        var searchForm = quizSetsContainer.querySelector('form');
+        const searchForm = quizSetsContainer.querySelector('form');
         if (searchForm) {
             searchForm.addEventListener('submit', function(e){
                 e.preventDefault();
-                var data = new FormData(searchForm);
+                const data = new FormData(searchForm);
                 currentSearchQuery = data.get('q') || '';
                 currentSearchField = data.get('search_field') || 'all';
-                if (currentFilter === 'doing') { doingPage = 1; } else if (currentFilter === 'explore') { explorePage = 1; } else { archivePage = 1; } // THAY ĐỔI
+                if (currentFilter === 'doing') { doingPage = 1; } else if (currentFilter === 'explore') { explorePage = 1; } else { archivePage = 1; }
                 currentPage = 1;
                 loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
             });
@@ -345,12 +483,12 @@
         document.querySelectorAll('.pagination a').forEach(function(a){
             a.addEventListener('click', function(e){
                 e.preventDefault();
-                var url = new URL(this.href, window.location.origin);
-                var page = parseInt(url.searchParams.get('page')) || 1;
-                var q = url.searchParams.get('q') || '';
-                var search_field = url.searchParams.get('search_field') || 'all';
-                var filter = url.searchParams.get('filter') || 'doing';
-                if (filter === 'doing') { doingPage = page; } else if (filter === 'explore') { explorePage = page; } else { archivePage = page; } // THAY ĐỔI
+                const url = new URL(this.href, window.location.origin);
+                const page = parseInt(url.searchParams.get('page')) || 1;
+                const q = url.searchParams.get('q') || '';
+                const search_field = url.searchParams.get('search_field') || 'all';
+                const filter = url.searchParams.get('filter') || 'doing';
+                if (filter === 'doing') { doingPage = page; } else if (filter === 'explore') { explorePage = page; } else { archivePage = page; }
                 currentPage = page;
                 loadQuizSets(currentPage, q, search_field, filter);
             });
@@ -361,30 +499,26 @@
     function addArchiveIconListeners() {
         document.querySelectorAll('.archive-icon').forEach(function(icon){
             icon.addEventListener('click', async function(event){
-                event.stopPropagation(); // Ngăn chặn sự kiện click lan truyền lên thẻ cha
+                event.stopPropagation();
                 const setId = this.dataset.setId;
                 if (!setId) return;
 
                 const url = toggleArchiveUrl.replace('/0', '/' + setId);
-                const isArchived = this.closest('.quiz-set-item').classList.contains('archived');
-
+                
                 try {
                     const response = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                     const result = await response.json();
                     
                     if (response.ok && result.success) {
-                        // Cập nhật giao diện mà không cần tải lại trang
                         const itemElement = this.closest('.quiz-set-item');
                         if (currentFilter === 'archive' && !result.is_archived) {
-                            itemElement.remove(); // Xóa khỏi tab Archive
+                            itemElement.remove();
                         } else if ((currentFilter === 'doing' || currentFilter === 'explore') && result.is_archived) {
-                            itemElement.remove(); // Xóa khỏi tab Doing/Explore
+                            itemElement.remove();
                         } else {
-                            // Cập nhật trạng thái cho các trường hợp còn lại
                             if (result.is_archived) {
                                 itemElement.classList.add('archived');
                                 this.title = "Bỏ lưu trữ";
-                                // Thêm class cho icon để đổi màu
                                 this.querySelector('i').classList.add('text-blue-500');
                                 this.querySelector('i').classList.remove('text-gray-400');
                             } else {
@@ -395,11 +529,8 @@
                             }
                         }
                         
-                        // Cập nhật tổng số trên tab Archive (đơn giản, cần cải tiến)
-                        // reload lại trang để đồng bộ
                         loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
                         
-                        // Hiển thị flash message
                         window.showFlashMessage(result.message, 'success');
 
                     } else {
@@ -415,18 +546,11 @@
 
     // ==== Trạng thái nút bắt đầu ====
     function updateStartButtonState() {
-        var isSetSelectable = false;
-        if (selectedQuizSetId === 'all') { isSetSelectable = true; }
-        else if (selectedQuizSetId !== null) {
-            var el = document.querySelector('.quiz-set-item[data-set-id="' + selectedQuizSetId + '"]');
-            if (el) { var total = parseInt(el.dataset.totalItems); isSetSelectable = (total > 0); }
-        }
-        var isModeSelectable = false;
-        if (selectedQuizMode !== null) {
-            var modeEl = quizModesContainer.querySelector('[data-mode-id="' + selectedQuizMode + '"]');
-            if (modeEl) { var cnt = parseInt(modeEl.dataset.count); isModeSelectable = (cnt > 0); }
-        }
-        if (isSetSelectable && isModeSelectable && selectedSessionSize) {
+        const selectedCount = isMultiSelectMode ? selectedQuizSetIds.length : (selectedQuizSetId ? 1 : 0);
+        const isSelected = selectedCount > 0;
+        const modeAvailable = selectedQuizMode !== null;
+
+        if (isSelected && modeAvailable && selectedSessionSize) {
             startLearningBtn.disabled = false;
             startLearningBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
             startLearningBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -440,23 +564,30 @@
     // ==== Cập nhật màu chữ theo % ====
     function updateQuizSetProgressColors() {
         document.querySelectorAll('.quiz-set-item').forEach(function(item){
-            var pct = parseInt(item.dataset.completionPercentage || '0');
-            var txt = item.querySelector('.quiz-set-completion-text');
+            const pct = parseInt(item.dataset.completionPercentage || '0');
+            const txt = item.querySelector('.quiz-set-completion-text');
             if (txt) { txt.style.color = (pct > 50 ? '#111' : '#333'); }
         });
     }
 
     // ==== Nút bắt đầu ====
     startLearningBtn.addEventListener('click', function(){
-        if (selectedQuizSetId && selectedQuizMode && selectedSessionSize) {
-            var startUrl;
-            if (selectedQuizSetId === 'all') {
-                startUrl = startQuizSessionBaseUrlAllTemplate
+        let setIdsToStart;
+        if (isMultiSelectMode) {
+            setIdsToStart = selectedQuizSetIds;
+        } else {
+            setIdsToStart = [selectedQuizSetId];
+        }
+
+        if (setIdsToStart.length > 0 && selectedQuizMode && selectedSessionSize) {
+            let startUrl;
+            if (setIdsToStart.length === 1 && setIdsToStart[0] !== 'all') {
+                startUrl = startQuizSessionBaseUrlByIdTemplate
+                    .replace('SET_ID_PLACEHOLDER', setIdsToStart[0])
                     .replace('MODE_PLACEHOLDER', selectedQuizMode)
                     .replace('BATCH_SIZE_PLACEHOLDER', selectedSessionSize);
             } else {
-                startUrl = startQuizSessionBaseUrlByIdTemplate
-                    .replace('SET_ID_PLACEHOLDER', selectedQuizSetId)
+                startUrl = startQuizSessionBaseUrlAllTemplate // Sẽ cập nhật route này sau
                     .replace('MODE_PLACEHOLDER', selectedQuizMode)
                     .replace('BATCH_SIZE_PLACEHOLDER', selectedSessionSize);
             }
@@ -467,7 +598,7 @@
     // ==== Chuyển tab Doing/Explore/Archive ====
     document.querySelectorAll('.tab-filter-button').forEach(function(button) {
         button.addEventListener('click', function() {
-            var newFilter = this.dataset.filter;
+            const newFilter = this.dataset.filter;
             if (currentFilter !== newFilter) {
                 if (currentFilter === 'doing') { doingPage = currentPage; }
                 else if (currentFilter === 'explore') { explorePage = currentPage; }
@@ -485,6 +616,20 @@
                 
                 loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
             }
+        });
+    });
+
+    // THÊM MỚI: Xử lý toggle multi-selection
+    multiSelectToggleInput.addEventListener('change', function() {
+        isMultiSelectMode = this.checked;
+        selectedQuizSetId = null;
+        selectedQuizSetIds = [];
+        document.querySelectorAll('.quiz-set-item').forEach(item => item.classList.remove('selected-item'));
+        updateStartButtonState();
+        updateSelectedSetsDisplay();
+        
+        document.querySelectorAll('.archive-icon').forEach(icon => {
+            icon.style.display = this.checked ? 'none' : '';
         });
     });
 

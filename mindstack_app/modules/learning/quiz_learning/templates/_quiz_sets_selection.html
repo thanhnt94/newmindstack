@@ -1,8 +1,9 @@
 <!-- =============================== -->
 <!-- File: mindstack_app/modules/learning/quiz_learning/templates/_quiz_sets_selection.html -->
-<!-- Phiên bản: 1.59 -->
+<!-- Phiên bản: 1.61 -->
 <!-- Mục đích: Partial danh sách bộ câu hỏi (hiển thị tiến độ và nút Archive). -->
-<!-- ĐÃ SỬA: Ẩn nút Archive ở tab Khám phá để đảm bảo logic ứng dụng. -->
+<!-- ĐÃ SỬA: Loại bỏ nút 'Select' và cập nhật logic click để chọn trực tiếp vào thẻ quiz. -->
+<!-- ĐÃ SỬA: Ẩn nút Archive khi bật chế độ multi-selection. -->
 <!-- =============================== -->
 
 {% from 'includes/_search_form.html' import render_search_form %}
@@ -29,7 +30,8 @@
         {% set is_disabled = (set.total_items == 0) %}
         {% set set_state = set.user_state | default({'is_archived': false}) %}
         <div class="quiz-set-item bg-white p-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 relative {% if is_disabled %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:shadow-md{% endif %} {% if set_state.is_archived %}archived{% endif %}"
-             data-set-id="{{ set.container_id }}" data-total-items="{{ set.total_items }}" data-completion-percentage="{{ set.completion_percentage | default(0) | int }}">
+             data-set-id="{{ set.container_id }}" data-total-items="{{ set.total_items }}" data-completion-percentage="{{ set.completion_percentage | default(0) | int }}"
+             data-title="{{ set.title }}">
 
             <!-- Thanh tiến độ -->
             <div class="absolute inset-y-0 left-0 rounded-l-xl" style="width: {{ set.completion_percentage | default(0) }}%; background: #FDE68A; z-index: 0;"></div>
@@ -39,8 +41,8 @@
                     <h3 class="font-semibold text-gray-800 my-0">{{ set.title }}</h3>
                     <p class="relative text-gray-500 text-xs mt-1">tạo bởi {{ set.creator.username }}</p>
                 </div>
-                <div class="flex-shrink-0 ml-4 flex items-center space-x-3">
-                    {# Nút Archive/Unarchive #}
+                <div class="flex-shrink-0 ml-4 flex items-center space-x-2">
+                    {# Nút Archive/Unarchive, chỉ hiển thị khi KHÔNG ở chế độ multi-selection #}
                     {% if current_filter != 'explore' %}
                     <div class="archive-icon" data-set-id="{{ set.container_id }}" title="{{ 'Bỏ lưu trữ' if set_state.is_archived else 'Lưu trữ' }}">
                         <i class="fas fa-archive {% if set_state.is_archived %}text-blue-500{% else %}text-gray-400{% endif %}"></i>
