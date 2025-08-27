@@ -1,8 +1,6 @@
 # File: web/mindstack_app/models.py
-# Phiên bản: 12.2
-# ĐÃ SỬA: Khắc phục lỗi AmbiguousForeignKeysError bằng cách chỉ định `foreign_keys`
-#         cho mối quan hệ LearningContainer.creator.
-# ĐÃ THÊM: current_quiz_batch_size vào model User để lưu cài đặt mặc định số câu hỏi.
+# Phiên bản: 12.4
+# ĐÃ SỬA: Thêm phương thức to_dict() vào UserContainerState để khắc phục lỗi AttributeError.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -69,9 +67,12 @@ class User(UserMixin, db.Model):
     current_course_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
     current_flashcard_mode = db.Column(db.String(50), nullable=True)
     current_quiz_mode = db.Column(db.String(50), nullable=True)
-    current_quiz_batch_size = db.Column(db.Integer, nullable=True) # THÊM MỚI: Lưu số câu mặc định cho Quiz
+    current_quiz_batch_size = db.Column(db.Integer, nullable=True)
 
     contributed_containers = db.relationship('ContainerContributor', backref='user', lazy=True)
+    # THÊM MỚI: Mối quan hệ với UserContainerState
+    container_states = db.relationship('UserContainerState', backref='user', lazy=True, cascade="all, delete-orphan")
+
 
     def get_id(self):
         return str(self.user_id)
@@ -81,6 +82,31 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+# THÊM MỚI: Model UserContainerState để lưu trữ các trạng thái cá nhân hóa của người dùng đối với các bộ học liệu
+class UserContainerState(db.Model):
+    __tablename__ = 'user_container_states'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=False)
+    
+    # Các trường trạng thái đa năng
+    is_archived = db.Column(db.Boolean, default=False, nullable=False)
+    is_favorite = db.Column(db.Boolean, default=False, nullable=False) # Ví dụ: Đánh dấu yêu thích
+    last_accessed = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now()) # Lần cuối truy cập
+
+    # Mối quan hệ với LearningContainer
+    container = db.relationship('LearningContainer', backref='user_states', lazy=True)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'container_id', name='_user_container_uc'),)
+
+    # THÊM MỚI: Phương thức to_dict() để trả về một dictionary
+    def to_dict(self):
+        return {
+            'is_archived': self.is_archived,
+            'is_favorite': self.is_favorite,
+            'last_accessed': self.last_accessed.isoformat() if self.last_accessed else None
+        }
 
 class UserProgress(db.Model):
     __tablename__ = 'user_progress'
@@ -167,3 +193,4 @@ class ApiKey(db.Model):
     is_exhausted = db.Column(db.Boolean, default=False)
     last_used_timestamp = db.Column(db.DateTime(timezone=True))
     notes = db.Column(db.Text)
+

@@ -1,7 +1,8 @@
 # File: mindstack_app/modules/learning/quiz_learning/session_manager.py
-# Phiên bản: 1.21
+# Phiên bản: 1.23
 # Mục đích: Quản lý trạng thái của phiên học Quiz hiện tại cho người dùng.
-# ĐÃ SỬA: Khắc phục triệt để lỗi đường dẫn media bằng cách loại bỏ hoàn toàn logic nối với thư mục con và sửa các lời gọi hàm.
+# ĐÃ SỬA: Khắc phục lỗi hoàn thành phiên học sớm khi chọn "Làm tất cả các bộ" và chế độ "Chỉ làm mới".
+#         Đảm bảo các hàm thuật toán trả về TẤT CẢ các câu hỏi khả dụng cho phiên.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
@@ -106,13 +107,14 @@ class QuizSessionManager:
         
         algorithm_func_name = mode_config['algorithm_func_name']
         
-        # Lấy hàm từ algorithms.py dựa trên tên
+        # GỌI HÀM THUẬT TOÁN VỚI session_size=None ĐỂ LẤY TẤT CẢ CÂU HỎI KHẢ DỤNG
+        # Sau đó chúng ta sẽ trộn và cắt nếu cần
         if algorithm_func_name == 'get_new_only_items':
-            all_items_for_session_objects = get_new_only_items(user_id, set_id, None)
+            all_items_for_session_objects = get_new_only_items(user_id, set_id, None) # TRUYỀN NONE
         elif algorithm_func_name == 'get_reviewed_items':
-            all_items_for_session_objects = get_reviewed_items(user_id, set_id, None)
+            all_items_for_session_objects = get_reviewed_items(user_id, set_id, None) # TRUYỀN NONE
         elif algorithm_func_name == 'get_hard_items':
-            all_items_for_session_objects = get_hard_items(user_id, set_id, None)
+            all_items_for_session_objects = get_hard_items(user_id, set_id, None) # TRUYỀN NONE
         else:
             print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy hàm thuật toán cho chế độ: {algorithm_func_name} <<<")
             current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {algorithm_func_name}")
@@ -130,6 +132,12 @@ class QuizSessionManager:
         # Trộn ngẫu nhiên tất cả các câu hỏi để đảm bảo tính ngẫu nhiên cho phiên học
         random.shuffle(all_items_for_session_objects) 
 
+        # ĐÃ XÓA: Đoạn code cắt danh sách câu hỏi theo batch_size ở đây
+        # if len(all_items_for_session_objects) > batch_size:
+        #     all_items_for_session_objects = all_items_for_session_objects[:batch_size]
+        #     print(f">>> SESSION_MANAGER: Đã cắt danh sách câu hỏi xuống còn {len(all_items_for_session_objects)} theo batch_size. <<<")
+
+
         # Xác định common_pre_question_text_global cho toàn bộ phiên học
         global_pre_texts = [item.content.get('pre_question_text') for item in all_items_for_session_objects if item.content.get('pre_question_text')]
         common_pre_question_text_global = None
@@ -145,7 +153,7 @@ class QuizSessionManager:
             batch_size=batch_size,
             all_item_ids=[item.item_id for item in all_items_for_session_objects],
             current_batch_start_index=0,
-            total_items_in_session=len(all_items_for_session_objects),
+            total_items_in_session=len(all_items_for_session_objects), # TỔNG SỐ CÂU HỎI THỰC TẾ
             correct_answers=0,
             incorrect_answers=0,
             start_time=datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -154,7 +162,6 @@ class QuizSessionManager:
         session[cls.SESSION_KEY] = new_session_manager.to_dict() # Lưu dictionary của instance vào session
         session.modified = True # Đảm bảo session được đánh dấu là đã thay đổi để lưu
 
-        # SỬA LỖI: Thay thế all_item_ids bằng all_items_for_session_objects
         print(f">>> SESSION_MANAGER: Phiên học mới đã được khởi tạo với {len(all_items_for_session_objects)} câu hỏi. Batch size: {batch_size} <<<")
         current_app.logger.debug(f"SessionManager: Phiên học mới đã được khởi tạo với {len(all_items_for_session_objects)} câu hỏi. Batch size: {batch_size}")
         return True
@@ -172,7 +179,6 @@ class QuizSessionManager:
         if not file_path:
             return None
         
-        # ĐÃ SỬA: Loại bỏ logic nối đường dẫn media_type + 's' và chỉ sử dụng tên file
         # Flask đã được cấu hình để phục vụ file từ thư mục 'uploads'
         try:
             full_url = url_for('static', filename=file_path)

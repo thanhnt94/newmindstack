@@ -22,7 +22,6 @@
             background-color: #ffffff; /* bg-white */
             padding: 1.5rem; /* p-6 */
             border-radius: 0.75rem; /* rounded-xl */
-            /* THAY ĐỔI: Chỉnh bóng từ shadow-md thành shadow-sm để phẳng hơn */
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
             border-width: 1px; /* border */
             border-color: #e5e7eb; /* border-gray-200 */
@@ -47,7 +46,6 @@
             background-color: #eff6ff; /* hover:bg-blue-50 */
             border-color: #3b82f6; /* hover:border-blue-500 */
         }
-        /* THAY ĐỔI: Chỉnh lại box-shadow để đồng bộ, giữ nguyên màu sắc */
         .option-button.selected {
             background-color: #dbeafe; /* bg-blue-100 */
             border-color: #2563eb; /* border-blue-600 */
@@ -63,7 +61,6 @@
             border-color: #dc2626; /* border-red-600 */
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* shadow-sm */
         }
-        /* THAY ĐỔI: Điều chỉnh màu sắc feedback để dịu hơn */
         .feedback-box {
             padding: 1rem; /* p-4 */
             margin-top: 1rem; /* mt-4 */
@@ -92,7 +89,6 @@
             font-weight: 600; /* font-semibold */
             transition-property: all; /* transition-colors */
             transition-duration: 300ms; /* duration-300 */
-            /* THAY ĐỔI: Chỉnh bóng từ shadow-md thành shadow-sm */
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
             display: flex;
             align-items: center;
@@ -107,113 +103,86 @@
             background-color: #ffffff; /* bg-white */
             border: 1px solid #e2e8f0; /* border-gray-200 */
             border-radius: 0.75rem; /* rounded-xl */
-            /* THAY ĐỔI: Giảm padding tổng thể trên mobile */
-            padding: 0.3rem; 
-            margin-top: 1rem;
-            display: flex;
-            flex-wrap: nowrap; /* Đảm bảo các mục chính không xuống dòng */
-            justify-content: space-around;
-            align-items: center;
-            /* THAY ĐỔI: Chỉnh bóng từ shadow-md thành shadow-sm */
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            padding: 1rem; /* Tăng padding tổng thể */
+            margin-top: 1.5rem; /* Tăng margin-top */
+            display: grid; /* Sử dụng Grid cho bố cục chính */
+            grid-template-columns: repeat(3, 1fr); /* 3 cột bằng nhau trên desktop */
+            gap: 1rem; /* Khoảng cách giữa các cột */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Shadow nổi bật hơn */
         }
         .stat-group {
-            /* THAY ĐỔI: Điều chỉnh flex-basis và min-width để phù hợp trên 1 hàng */
-            flex: 1 1 30%; 
-            min-width: 60px; 
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            padding: 0.2rem; /* Giảm padding */
-            margin: 0.1rem; /* Giảm khoảng cách giữa các nhóm */
-            border-right: 1px solid #f3f4f6; /* Đường phân cách */
-        }
-        .stat-group:last-of-type { /* Chỉ áp dụng cho phần tử cuối cùng trong flex container */
-            border-right: none; /* Xóa đường phân cách ở cuối */
-        }
-        /* Đảm bảo đường phân cách chỉ hiển thị giữa các cột chính, không phải giữa các hàng khi wrap */
-        @media (max-width: 640px) { /* Ví dụ breakpoint cho mobile */
-            .statistics-container {
-                flex-direction: row; /* Giữ nguyên hàng trên mobile */
-                align-items: stretch; /* Kéo dài các mục */
-            }
-            .stat-group {
-                border-right: 1px solid #f3f4f6; /* Giữ đường phân cách trên mobile */
-                border-bottom: none; /* Bỏ đường phân cách dưới */
-                padding: 0.2rem; /* Giữ padding trên mobile */
-            }
-            .stat-group:last-of-type {
-                border-right: none;
-            }
+            padding: 0.75rem; /* Tăng padding */
+            border-radius: 0.5rem; /* Bo tròn nhẹ */
+            background-color: #f9fafb; /* Nền nhẹ cho từng nhóm */
+            border: 1px solid #e5e7eb; /* Viền nhẹ */
         }
         .stat-group .label {
-            /* THAY ĐỔI: Cỡ chữ nhỏ hơn nữa */
-            font-size: 0.55rem; 
+            font-size: 0.8rem; /* Cỡ chữ lớn hơn */
             color: #6b7280; /* text-gray-500 */
             font-weight: 500;
             white-space: nowrap;
-            margin-bottom: 0.1rem; /* Giảm margin-bottom */
+            margin-bottom: 0.4rem; /* Tăng margin-bottom */
         }
         .stat-group .value {
-            /* THAY ĐỔI: Cỡ chữ nhỏ hơn nữa */
-            font-size: 0.7rem; 
-            font-weight: 600;
+            font-size: 1.25rem; /* Cỡ chữ lớn hơn */
+            font-weight: 700; /* Đậm hơn */
             color: #1f2937;
         }
-        .stat-group .icon { /* Icon cho các mục thống kê */
-            font-size: 1rem; /* Kích thước icon */
-            margin-bottom: 0.1rem;
+        .stat-group .icon {
+            font-size: 1.5rem; /* Kích thước icon lớn hơn */
+            margin-bottom: 0.5rem; /* Tăng margin-bottom */
             color: #3b82f6; /* Màu mặc định cho icon */
         }
         
-        /* History Section */
+        /* History Section (Đã điều chỉnh) */
         .history-section-group {
-            flex: 1 1 33%;
-            min-width: 80px;
+            grid-column: span 1; /* Chiếm 1 cột trên desktop */
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            padding: 0.3rem;
-            margin: 0.1rem;
-            border-right: 1px solid #f3f4f6;
-        }
-        .history-section-group:last-of-type {
-            border-right: none;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
         }
         .history-section-group .label {
-            font-size: 0.6rem;
+            font-size: 0.8rem;
             color: #6b7280;
             font-weight: 500;
             white-space: nowrap;
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.4rem;
         }
         .history-container {
             display: flex;
-            flex-wrap: nowrap;
-            gap: 2px;
-            padding: 0.3rem;
+            flex-wrap: wrap; /* Cho phép wrap trên mobile */
+            gap: 4px; /* Khoảng cách giữa các item lịch sử */
+            padding: 0.5rem;
             justify-content: center;
             max-width: 100%;
         }
         .history-item {
-            width: 25px;
-            height: 25px;
-            border-radius: 5px;
+            width: 30px; /* Kích thước lớn hơn */
+            height: 30px; /* Kích thước lớn hơn */
+            border-radius: 8px; /* Bo tròn nhiều hơn */
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            font-size: 0.9rem; /* Cỡ chữ lớn hơn */
             color: white;
             font-weight: bold;
             flex-shrink: 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1); /* Bóng đổ nhẹ */
         }
         .history-item.correct {
-            background-color: #22c55e;
+            background-color: #22c55e; /* Màu xanh lá */
         }
         .history-item.incorrect {
-            background-color: #ef4444;
+            background-color: #ef4444; /* Màu đỏ */
         }
         .history-item-tooltip {
             position: relative;
@@ -225,24 +194,24 @@
             color: #fff;
             text-align: center;
             border-radius: 4px;
-            padding: 3px 5px;
+            padding: 5px 8px; /* Tăng padding */
             position: absolute;
-            z-index: 1;
+            z-index: 10; /* Đảm bảo tooltip nằm trên cùng */
             bottom: 120%;
             left: 50%;
             transform: translateX(-50%);
             opacity: 0;
             transition: opacity 0.3s;
             white-space: nowrap;
-            font-size: 0.6rem;
+            font-size: 0.7rem; /* Cỡ chữ lớn hơn */
         }
         .history-item-tooltip .tooltiptext::after {
             content: "";
             position: absolute;
             top: 100%;
             left: 50%;
-            margin-left: -3px;
-            border-width: 3px;
+            margin-left: -5px; /* Điều chỉnh vị trí mũi tên */
+            border-width: 5px; /* Kích thước mũi tên */
             border-style: solid;
             border-color: #333 transparent transparent transparent;
         }
@@ -250,49 +219,55 @@
             visibility: visible;
             opacity: 1;
         }
-        /* Styles cho Progress Bar */
+        /* Styles cho Progress Bar (Đã điều chỉnh) */
         .progress-bar-container {
             width: 100%;
-            height: 1.25rem; /* Chiều cao dẹt hơn */
+            height: 1.5rem; /* Chiều cao lớn hơn */
             background-color: #e0e0e0;
-            border-radius: 0.625rem; /* Bo tròn tương ứng */
+            border-radius: 0.75rem; /* Bo tròn nhiều hơn */
             overflow: hidden;
-            position: relative; /* Đặt lại position relative cho container */
-            /* THAY ĐỔI: Đã loại bỏ box-shadow để làm phẳng hơn */
+            position: relative;
+            margin-top: 0.5rem; /* Thêm khoảng cách */
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Bóng đổ bên trong */
         }
 
         .progress-bar-fill {
             height: 100%;
             width: 0%;
-            /* THAY ĐỔI: Đã loại bỏ gradient, sử dụng màu phẳng */
-            background-color: #3b82f6;
+            background-color: #3b82f6; /* Màu xanh phẳng */
             transition: width 0.5s ease-in-out;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-radius: 0.75rem; /* Kế thừa bo tròn từ container */
         }
+        /* THÊM: Màu sắc động cho progress bar */
+        .progress-bar-fill.progress-green { background-color: #22c55e; } /* Xanh lá cho 100% */
+        .progress-bar-fill.progress-yellow { background-color: #facc15; } /* Vàng cho trung bình */
+        .progress-bar-fill.progress-red { background-color: #ef4444; } /* Đỏ cho thấp */
+
 
         .progress-bar-text {
-            position: absolute; /* Đặt lại absolute */
-            width: 100%; /* Chiếm toàn bộ chiều rộng của container */
-            text-align: center; /* Căn giữa văn bản */
-            top: 50%; /* Đặt ở giữa theo chiều dọc */
-            transform: translateY(-50%); /* Dịch chuyển lên 50% chiều cao của chính nó */
-            left: 0; /* Thêm để căn giữa ngang khi absolute */
-            right: 0; /* Thêm để căn giữa ngang khi absolute */
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 0;
+            right: 0;
             color: #333; /* Màu chữ mặc định là xám đậm */
             font-weight: bold;
-            font-size: 0.75rem; /* Kích thước chữ nhỏ hơn */
-            white-space: nowrap; /* Ngăn không cho text xuống dòng */
-            overflow: hidden; /* Cắt text nếu quá dài so với fill */
-            text-overflow: ellipsis; /* Thêm dấu ... nếu bị cắt */
+            font-size: 0.85rem; /* Kích thước chữ lớn hơn */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         /* Thêm class để đổi màu chữ khi thanh fill đủ rộng */
         .progress-bar-fill.has-text-overlap .progress-bar-text {
             color: white;
         }
         
-        /* THÊM MỚI: CSS cho modal phóng to ảnh */
+        /* CSS cho modal phóng to ảnh */
         .image-modal-overlay {
             position: fixed;
             top: 0;
@@ -300,31 +275,30 @@
             right: 0;
             bottom: 0;
             background-color: rgba(0, 0, 0, 0.75);
-            display: none; /* Mặc định ẩn */
+            display: none;
             justify-content: center;
             align-items: center;
-            z-index: 1001; /* Đảm bảo trên mọi thứ khác */
+            z-index: 1001;
             padding: 20px;
-            overflow: auto; /* Cho phép cuộn nếu ảnh quá lớn */
-            -webkit-overflow-scrolling: touch; /* Hỗ trợ cuộn mượt trên iOS */
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .image-modal-content {
             position: relative;
-            /* Đảm bảo modal content chiếm tối đa không gian có thể */
-            width: 90vw; /* 90% chiều rộng viewport */
-            height: 90vh; /* 90% chiều cao viewport */
-            max-width: 90%; /* Giới hạn lại để có padding */
+            width: 90vw;
+            height: 90vh;
+            max-width: 90%;
             max-height: 90%;
-            display: flex; /* Để căn giữa ảnh bên trong */
+            display: flex;
             justify-content: center;
             align-items: center;
         }
         .image-modal-content img {
-            display: block; /* Loại bỏ khoảng trắng dưới ảnh */
-            object-fit: contain; /* Đảm bảo ảnh vừa với khung, không bị cắt */
-            width: 100%; /* Ảnh sẽ cố gắng chiếm 100% chiều rộng của content */
-            height: 100%; /* Ảnh sẽ cố gắng chiếm 100% chiều cao của content */
-            cursor: zoom-in; /* Thêm hiệu ứng cursor để gợi ý có thể click */
+            display: block;
+            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            cursor: zoom-in;
         }
         .image-modal-close {
             position: absolute;
@@ -343,59 +317,86 @@
             max-width: 100%;
             height: auto;
             border-radius: 0.5rem;
-            /* THAY ĐỔI: Chỉnh bóng từ shadow-md thành shadow-sm */
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
-            cursor: zoom-in; /* Thêm hiệu ứng cursor để gợi ý có thể click */
+            cursor: zoom-in;
         }
-        /* THAY ĐỔI: CSS cho nút điều khiển */
+        /* CSS cho nút điều khiển */
         .control-button-text {
             font-size: 0.875rem; /* text-sm */
-            white-space: nowrap; /* Đảm bảo văn bản không xuống dòng */
-            overflow: hidden; /* Ẩn phần bị tràn */
-            text-overflow: ellipsis; /* Thêm dấu ... nếu bị cắt */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        /* THAY ĐỔI: Điều chỉnh kích thước nút trên mobile */
-        @media (max-width: 640px) {
-            /* THAY ĐỔI: Giảm padding ngang cho container chính */
-            /* Sử dụng !important để ghi đè các lớp Tailwind khác */
-            .container {
-                padding: 0.5rem !important; /* Giảm padding bên trong card */
+        /* Responsive cho các mục thống kê trên mobile */
+        @media (max-width: 1023px) { /* lg breakpoint */
+            .statistics-container {
+                grid-template-columns: repeat(1, 1fr); /* 1 cột trên mobile */
+                gap: 0.75rem; /* Giảm khoảng cách */
+                padding: 0.75rem;
             }
+            .stat-group, .history-section-group {
+                padding: 0.6rem;
+            }
+            .stat-group .label, .history-section-group .label {
+                font-size: 0.7rem;
+            }
+            .stat-group .value {
+                font-size: 1.1rem;
+            }
+            .stat-group .icon {
+                font-size: 1.3rem;
+            }
+            .history-item {
+                width: 28px;
+                height: 28px;
+                font-size: 0.85rem;
+            }
+            .progress-bar-container {
+                height: 1.4rem;
+            }
+            .progress-bar-text {
+                font-size: 0.8rem;
+            }
+        }
 
-            .main-quiz-container {
-                padding: 0.5rem !important; 
+        @media (max-width: 639px) { /* sm breakpoint */
+            .statistics-container {
+                padding: 0.5rem;
             }
-
-            .quiz-card {
-                padding: 0.5rem !important; /* Giảm padding bên trong card */
+            .stat-group, .history-section-group {
+                padding: 0.5rem;
             }
-            .question-card {
-                padding: 0.5rem !important; /* Giảm padding bên trong question card */
+            .stat-group .label, .history-section-group .label {
+                font-size: 0.65rem;
             }
-            .option-button {
-                padding: 0.75rem; /* Giảm padding của các lựa chọn */
+            .stat-group .value {
+                font-size: 1rem;
             }
-            .control-button {
-                padding: 0.5rem 0.75rem; /* Giảm padding */
-                font-size: 0.875rem; /* text-sm */
+            .stat-group .icon {
+                font-size: 1.2rem;
             }
-            .control-button i {
-                margin-right: 0.25rem; /* Giảm margin icon */
+            .history-item {
+                width: 25px;
+                height: 25px;
+                font-size: 0.8rem;
+            }
+            .progress-bar-container {
+                height: 1.25rem;
+            }
+            .progress-bar-text {
+                font-size: 0.75rem;
             }
         }
     </style>
 {% endblock %}
 
 {% block content %}
-{# THAY ĐỔI: Thay đổi lớp padding của container chính để kiểm soát tốt hơn trên mobile #}
-<div class="w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 main-quiz-container"> {# THÊM main-quiz-container #}
+<div class="w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 main-quiz-container">
     <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center">
         Làm bài Quiz
-        {# THAY ĐỔI: Tăng kích thước font chữ và bỏ ml-3 #}
         <span id="quiz-progress" class="text-gray-500 text-xl"></span>
     </h1>
 
-    {# THAY ĐỔI: Chỉnh shadow-lg thành shadow-md #}
     <div class="bg-white rounded-xl shadow-md p-6 quiz-card">
         <div id="session-summary" class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6 text-center" style="display: none;">
             <p class="text-lg font-semibold text-blue-800">Tổng kết phiên học: <span id="session-correct-count">0</span> / <span id="session-total-count">0</span> câu đúng</p>
@@ -410,19 +411,18 @@
 
         <div id="quiz-controls" class="mt-6 flex justify-between items-center">
             <button id="end-session-btn" class="control-button bg-gray-300 text-gray-800 hover:bg-gray-400">
-                <i class="fas fa-times-circle mr-2"></i> <span class="control-button-text">Kết thúc</span> {# THAY ĐỔI: Rút gọn chữ #}
+                <i class="fas fa-times-circle mr-2"></i> <span class="control-button-text">Kết thúc</span>
             </button>
             <button id="submit-batch-btn" class="control-button bg-blue-600 text-white hover:bg-blue-700">
-                <i class="fas fa-paper-plane mr-2"></i> <span class="control-button-text">Gửi đáp án</span> {# Giữ nguyên vì đã ngắn gọn #}
+                <i class="fas fa-paper-plane mr-2"></i> <span class="control-button-text">Gửi đáp án</span>
             </button>
             <button id="next-batch-btn" class="control-button bg-green-600 text-white hover:bg-green-700" style="display: none;">
-                <i class="fas fa-arrow-right mr-2"></i> <span class="control-button-text">Tiếp theo</span> {# THAY ĐỔI: Rút gọn chữ #}
+                <i class="fas fa-arrow-right mr-2"></i> <span class="control-button-text">Tiếp theo</span>
             </button>
         </div>
     </div>
 </div>
 
-{# THÊM MỚI: Modal phóng to ảnh #}
 <div id="image-zoom-modal" class="image-modal-overlay">
     <span class="image-modal-close">&times;</span>
     <div class="image-modal-content">
@@ -434,89 +434,73 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        // DI CHUYỂN HÀM RA PHẠM VI TOÀN CỤC
-        let currentQuestionBatch = []; // Lưu trữ nhóm câu hỏi hiện tại
-        let userAnswers = {}; // Lưu trữ đáp án của người dùng cho nhóm câu hỏi hiện tại
-        let isBatchSubmitted = false; // Trạng thái đã gửi đáp án nhóm chưa
+        let currentQuestionBatch = [];
+        let userAnswers = {};
+        let isBatchSubmitted = false;
 
         const quizContentDiv = document.getElementById('quiz-content');
         const quizProgressSpan = document.getElementById('quiz-progress');
         const submitBatchBtn = document.getElementById('submit-batch-btn');
         const nextBatchBtn = document.getElementById('next-batch-btn');
         const endSessionBtn = document.getElementById('end-session-btn');
-        const sessionSummaryDiv = document.getElementById('session-summary'); // Element tổng kết phiên
-        const sessionCorrectCountSpan = document.getElementById('session-correct-count'); // Số câu đúng
-        const sessionTotalCountSpan = document.getElementById('session-total-count'); // Tổng số câu đã làm
+        const sessionSummaryDiv = document.getElementById('session-summary');
+        const sessionCorrectCountSpan = document.getElementById('session-correct-count');
+        const sessionTotalCountSpan = document.getElementById('session-total-count');
         
-        // Element cho modal phóng to ảnh
         const imageZoomModal = document.getElementById('image-zoom-modal');
         const imageZoomDisplay = document.getElementById('image-zoom-display');
         const imageZoomCloseBtn = document.querySelector('.image-modal-close');
 
-        // URL cho các API quiz session
-        const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}"; // Route mới
-        const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}"; // Route mới
+        const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}";
+        const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}";
         const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
 
-        /**
-         * Chuyển đổi các ký tự đặc biệt trong văn bản thành các thực thể HTML
-         * và chuyển đổi ký tự xuống dòng thành thẻ <br>.
-         * Điều này giúp hiển thị văn bản an toàn và đúng định dạng trong HTML.
-         * @param {string} text - Chuỗi văn bản cần xử lý.
-         * @returns {string} Chuỗi HTML đã được xử lý.
-         */
         function formatTextForHtml(text) {
             if (text === null || text === undefined) {
                 return '';
             }
-            // Tạo một Textarea để HTML escape các ký tự đặc biệt
             const tempDiv = document.createElement('div');
             tempDiv.textContent = text;
-            // Chuyển đổi ký tự xuống dòng thành <br> sau khi đã escape
-            return tempDiv.innerHTML.replace(/\r?\n/g, '<br>'); // Đã sửa regex để xử lý cả \r\n và \n
+            return tempDiv.innerHTML.replace(/\r?\n/g, '<br>');
         }
 
-        // Hàm cập nhật hiển thị tổng kết phiên
         function updateSessionSummary(correctCount, totalCount) {
             sessionCorrectCountSpan.textContent = correctCount;
             sessionTotalCountSpan.textContent = totalCount;
             if (totalCount > 0) {
-                sessionSummaryDiv.style.display = 'block'; // Hiển thị phần tổng kết
+                sessionSummaryDiv.style.display = 'block';
             } else {
-                sessionSummaryDiv.style.display = 'none'; // Ẩn nếu chưa có câu nào
+                sessionSummaryDiv.style.display = 'none';
             }
         }
 
-        // Hàm hiển thị nhóm câu hỏi
         function displayQuestionBatch(batchData) {
-            console.log(">>> Frontend: Dữ liệu batchData nhận được:", batchData); // LOG MỚI
+            console.log(">>> Frontend: Dữ liệu batchData nhận được:", batchData);
             currentQuestionBatch = batchData.items;
-            userAnswers = {}; // Reset đáp án người dùng cho nhóm mới
+            userAnswers = {};
             isBatchSubmitted = false;
-            submitBatchBtn.style.display = 'block'; // Hiển thị nút Gửi đáp án
-            submitBatchBtn.disabled = false; // Kích hoạt nút Gửi đáp án
-            nextBatchBtn.style.display = 'none'; // Ẩn nút Nhóm câu tiếp theo
+            submitBatchBtn.style.display = 'block';
+            submitBatchBtn.disabled = false;
+            nextBatchBtn.style.display = 'none';
 
-            let fullBatchContentHtml = ''; // Để chứa toàn bộ nội dung của nhóm
-            let lastDisplayedGroupId = null; // Theo dõi group_id cuối cùng đã hiển thị passage/media
+            let fullBatchContentHtml = '';
+            let lastDisplayedGroupId = null;
             
-            // Hiển thị common_pre_question_text_global nếu có (từ session_manager)
             if (batchData.common_pre_question_text_global) {
                 fullBatchContentHtml += `
                     <div class="bg-gray-100 p-3 rounded-md mb-4 border border-gray-200">
-                        <p class="text-sm text-gray-600">${formatTextForHtml(batchData.common_pre_question_text_global)}</p> {# ĐÃ SỬA: Bỏ chữ "Thông tin chung:" #}
+                        <p class="text-sm text-gray-600">${formatTextForHtml(batchData.common_pre_question_text_global)}</p>
                     </div>
                 `;
             }
 
             currentQuestionBatch.forEach((questionData, index) => {
-                let groupSpecificContentHtml = ''; // Nội dung riêng cho nhóm con (passage/media)
+                let groupSpecificContentHtml = '';
                 let preQuestionTextHtml = '';
                 let mediaHtml = '';
 
-                // Hiển thị nội dung LearningGroup (passage, media) nếu có và là nhóm mới
                 if (questionData.group_id && questionData.group_id !== lastDisplayedGroupId) {
-                    const group = questionData.group_details; // group_details được gắn vào item
+                    const group = questionData.group_details;
                     if (group) {
                         if (group.passage_text) {
                             groupSpecificContentHtml += `
@@ -535,17 +519,15 @@
                             mediaHtml += `<audio controls src="${formatTextForHtml(group.question_audio_file)}" class="w-full mb-4" onerror="this.onerror=null;this.outerHTML='<p class=\'text-red-500\'>Lỗi tải âm thanh nhóm</p>'; console.error('Lỗi tải audio nhóm: ${group.question_audio_file}')"></audio>`;
                         }
                     }
-                    lastDisplayedGroupId = questionData.group_id; // Cập nhật group_id đã hiển thị
+                    lastDisplayedGroupId = questionData.group_id;
                 }
 
-                // Chỉ hiển thị pre_question_text của câu hỏi con nếu KHÔNG CÓ common_pre_question_text_global
                 if (questionData.content.pre_question_text && !batchData.common_pre_question_text_global) {
                     preQuestionTextHtml += `
                         <p class="text-sm text-gray-600 mb-2">${formatTextForHtml(questionData.content.pre_question_text)}</p>
                     `;
                 }
 
-                // Media của từng câu hỏi con
                 if (questionData.content.question_image_file) { 
                     console.log(`Đường dẫn ảnh câu hỏi (Item) ${questionData.item_id}: ${questionData.content.question_image_file}`);
                     mediaHtml += `<img src="${formatTextForHtml(questionData.content.question_image_file)}" alt="Hình ảnh câu hỏi" class="quiz-image my-4" onerror="this.onerror=null;this.src='https://placehold.co/150x100?text=L%E1%BB%97i+t%E1%BA%A3i+%E1%BA%A3nh+c%C3%A2u+h%E1%BB%8Fi'; console.error('Lỗi tải ảnh câu hỏi: ${questionData.content.question_image_file}')"></audio>`;
@@ -563,7 +545,7 @@
                 const optionKeys = ['A', 'B', 'C', 'D'];
 
                 optionKeys.forEach(key => {
-                    if (options[key]) { // Chỉ hiển thị nếu option có giá trị
+                    if (options[key]) {
                         optionsHtml += `
                             <button class="option-button" data-question-id="${questionData.item_id}" data-option="${key}">
                                 <span class="font-bold mr-2">${key}:</span> 
@@ -573,7 +555,7 @@
                     }
                 });
 
-                fullBatchContentHtml += groupSpecificContentHtml; // Nối nội dung nhóm con
+                fullBatchContentHtml += groupSpecificContentHtml;
                 fullBatchContentHtml += `
                     <div class="question-card" data-item-id="${questionData.item_id}">
                         <p class="text-gray-500 text-sm mb-2">Câu ${batchData.start_index + index + 1} / ${batchData.total_items_in_session}</p>
@@ -592,23 +574,19 @@
             quizContentDiv.innerHTML = fullBatchContentHtml; 
             quizProgressSpan.textContent = `(${batchData.start_index + 1}-${batchData.start_index + currentQuestionBatch.length} / ${batchData.total_items_in_session})`;
 
-            // Cập nhật tổng kết phiên ngay khi tải nhóm câu hỏi
             updateSessionSummary(batchData.session_correct_answers, batchData.session_total_answered);
 
-            // Gắn listener cho các nút lựa chọn trong nhóm
             document.querySelectorAll('.option-button').forEach(button => {
                 button.addEventListener('click', function() {
                     if (!isBatchSubmitted) {
                         const questionId = this.dataset.questionId;
-                        // Xóa lựa chọn cũ cho câu hỏi này
                         document.querySelectorAll(`.option-button[data-question-id="${questionId}"]`).forEach(btn => btn.classList.remove('selected'));
                         this.classList.add('selected');
-                        userAnswers[questionId] = this.dataset.option; // Lưu đáp án
+                        userAnswers[questionId] = this.dataset.option;
                     }
                 });
             });
 
-            // Gắn listener cho các hình ảnh để mở modal phóng to
             document.querySelectorAll('.quiz-image').forEach(image => {
                 image.addEventListener('click', function() {
                     openImageModal(this.src);
@@ -616,56 +594,60 @@
             });
         }
 
-        // THÊM MỚI: Hàm xử lý modal phóng to ảnh
         function openImageModal(imageUrl) {
             imageZoomDisplay.src = imageUrl;
             imageZoomModal.style.display = 'flex';
-            document.body.style.overflow = 'hidden'; // Ngăn cuộn trang nền
+            document.body.style.overflow = 'hidden';
 
-            // Đảm bảo ảnh đã tải xong trước khi điều chỉnh kích thước
-            imageZoomDisplay.onload = () => {
-                // Không cần Panzoom nữa, CSS object-fit: contain sẽ xử lý việc fit màn hình
-            };
+            imageZoomDisplay.onload = () => {};
             imageZoomDisplay.onerror = () => {
                 console.error("Lỗi tải ảnh trong modal zoom.");
-                // Có thể hiển thị thông báo lỗi cho người dùng
                 closeImageModal();
             };
         }
 
         function closeImageModal() {
             imageZoomModal.style.display = 'none';
-            document.body.style.overflow = ''; // Cho phép cuộn trang lại
+            document.body.style.overflow = '';
             imageZoomDisplay.src = '';
         }
 
         imageZoomCloseBtn.addEventListener('click', closeImageModal);
         imageZoomModal.addEventListener('click', function(event) {
-            // Đóng modal khi click vào overlay (không phải ảnh hoặc nút đóng)
             if (event.target === imageZoomModal || event.target === imageZoomCloseBtn) {
                 closeImageModal();
             }
         });
 
 
-        // Hàm hiển thị thống kê
+        // Hàm hiển thị thống kê (Đã CẬP NHẬT)
         function displayStatistics(statistics, statisticsArea, score_change) {
             if (!statistics) {
                 statisticsArea.innerHTML = '<p class="text-gray-500">Chưa có thống kê cho câu hỏi này.</p>';
                 return;
             }
             
-            // Tính toán phần trăm đúng để hiển thị trên progress bar
-            const correctPercentage = statistics.correct_percentage || 0;
-            
+            const totalAttempts = statistics.total_attempts || 0;
+            const timesCorrect = statistics.times_correct || 0;
+            const correctPercentage = totalAttempts > 0 ? (timesCorrect / totalAttempts * 100) : 0;
+
+            let progressBarColorClass = 'bg-blue-500'; // Mặc định
+            if (correctPercentage === 100 && totalAttempts > 0) {
+                progressBarColorClass = 'progress-green';
+            } else if (correctPercentage >= 50) {
+                progressBarColorClass = 'progress-yellow';
+            } else if (totalAttempts > 0) {
+                progressBarColorClass = 'progress-red';
+            }
+
             let statsHtml = `
                 <div class="statistics-container">
                     <div class="stat-group">
                         <i class="fas fa-chart-bar icon"></i>
                         <span class="label">Tổng quan</span>
-                        <div class="progress-bar-container mt-1">
-                            <div class="progress-bar-fill" style="width: ${correctPercentage}%;"></div>
-                            <span class="progress-bar-text">${statistics.times_correct} / ${statistics.total_attempts} (${Math.round(correctPercentage)}%)</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill ${progressBarColorClass}" style="width: ${correctPercentage}%;"></div>
+                            <span class="progress-bar-text">${timesCorrect} / ${totalAttempts} (${Math.round(correctPercentage)}%)</span>
                         </div>
                     </div>
                     
@@ -673,7 +655,7 @@
                         <i class="fas fa-history icon"></i>
                         <span class="label">Lịch sử gần đây</span>
                         <div class="history-container">
-                            ${statistics.review_history ? statistics.review_history.slice(-10).map(entry => {
+                            ${statistics.review_history && statistics.review_history.length > 0 ? statistics.review_history.slice(-10).map(entry => {
                                 const statusClass = entry.is_correct ? 'correct' : 'incorrect';
                                 const icon = entry.is_correct ? '&#10003;' : '&#10007;';
                                 const tooltipText = `Lúc: ${entry.timestamp_formatted || 'N/A'}<br>Đáp án: ${entry.user_answer}<br>Điểm: ${entry.score_change}`;
@@ -683,7 +665,7 @@
                                         <span class="tooltiptext">${tooltipText}</span>
                                     </div>
                                 `;
-                            }).join('') : '<p class="text-gray-500 text-xs text-center">Chưa có lịch sử trả lời.</p>'}
+                            }).join('') : '<p class="text-gray-500 text-xs text-center mt-2">Chưa có lịch sử trả lời.</p>'}
                         </div>
                     </div>
 
@@ -699,21 +681,25 @@
 
             // Cập nhật màu chữ của progress-bar-text sau khi DOM được render
             const progressBarTextElement = statisticsArea.querySelector('.progress-bar-text');
-            if (progressBarTextElement) {
-                if (correctPercentage > 50) { // Nếu phần trăm hoàn thành đủ cao, dùng chữ trắng
+            const progressBarFillElement = statisticsArea.querySelector('.progress-bar-fill');
+            if (progressBarTextElement && progressBarFillElement) {
+                // Kiểm tra xem văn bản có bị chồng lấn với thanh fill không
+                // Đây là một ước tính đơn giản, có thể cần điều chỉnh
+                const textWidth = progressBarTextElement.offsetWidth;
+                const fillWidth = progressBarFillElement.offsetWidth;
+
+                if (fillWidth > textWidth + 20) { // Nếu thanh fill đủ rộng hơn văn bản
                     progressBarTextElement.style.color = 'white';
-                } else { // Ngược lại, dùng màu xám đậm
-                    progressBarTextElement.style.color = '#333'; 
+                } else {
+                    progressBarTextElement.style.color = '#333';
                 }
             }
         }
 
 
-        // Hàm gửi đáp án cho cả nhóm
         async function submitAnswerBatch() {
             if (isBatchSubmitted) return;
 
-            // Kiểm tra xem người dùng đã chọn đáp án cho tất cả các câu hỏi trong nhóm chưa
             const allAnswered = currentQuestionBatch.every(q => userAnswers.hasOwnProperty(q.item_id));
             if (!allAnswered) {
                 showCustomAlert("Vui lòng trả lời tất cả các câu hỏi trong nhóm trước khi gửi.");
@@ -732,14 +718,13 @@
                 const response = await fetch(submitAnswerBatchUrl, {
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json' },
-                     body: JSON.stringify({ answers: answersToSend }) // THAY ĐỔI: Sử dụng answersToSend
+                     body: JSON.stringify({ answers: answersToSend })
                  });
 
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const responseData = await response.json(); // Đổi tên biến để tránh nhầm lẫn với `results` bên trong
+                const responseData = await response.json();
 
-                // Hiển thị feedback cho từng câu hỏi
-                responseData.results.forEach(result => { // Truy cập `results` từ `responseData`
+                responseData.results.forEach(result => {
                     const questionCard = document.querySelector(`.question-card[data-item-id="${result.item_id}"]`);
                     if (questionCard) {
                         const feedbackArea = questionCard.querySelector('.feedback-area');
@@ -758,7 +743,6 @@
 
                         feedbackArea.innerHTML = feedbackHtml;
 
-                        // Cập nhật màu sắc các lựa chọn
                         questionCard.querySelectorAll('.option-button').forEach(button => {
                             button.classList.remove('selected'); 
                             if (button.dataset.option === result.correct_answer) {
@@ -769,12 +753,10 @@
                             button.disabled = true;
                         });
 
-                        // Hiển thị thống kê
                         displayStatistics(result.statistics, statisticsArea, result.score_change);
                     }
                 });
 
-                // Cập nhật tổng kết phiên sau khi gửi đáp án
                 updateSessionSummary(responseData.session_correct_answers, responseData.session_total_answered);
 
                 submitBatchBtn.style.display = 'none';
@@ -788,7 +770,6 @@
             }
         }
 
-        // Hàm lấy nhóm câu hỏi tiếp theo
         async function getNextQuestionBatch() {
             quizContentDiv.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
@@ -818,7 +799,6 @@
                         submitBatchBtn.style.display = 'none';
                         nextBatchBtn.style.display = 'none';
                         endSessionBtn.style.display = 'none';
-                        // Ẩn tổng kết phiên khi kết thúc
                         sessionSummaryDiv.style.display = 'none'; 
                         document.getElementById('return-to-dashboard-btn').addEventListener('click', function() {
                             window.location.href = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
@@ -845,7 +825,6 @@
          * @param {Event} event - Đối tượng sự kiện click.
          */
         endSessionBtn.addEventListener('click', async function(event) {
-            // Sử dụng một modal tùy chỉnh thay vì alert/confirm của trình duyệt
             showCustomConfirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại? Tiến độ của các câu hỏi chưa gửi sẽ không được lưu.', async () => {
                 try {
                     const response = await fetch(endSessionUrl, { method: 'POST' });
@@ -860,13 +839,10 @@
             });
         });
 
-        // Gắn listener cho nút Gửi đáp án và Nhóm câu tiếp theo
         submitBatchBtn.addEventListener('click', submitAnswerBatch);
         nextBatchBtn.addEventListener('click', getNextQuestionBatch);
 
-        // Khởi tạo phiên học khi trang tải
         document.addEventListener('DOMContentLoaded', function() {
-            // Tải nhóm câu hỏi đầu tiên
             getNextQuestionBatch();
         });
 

@@ -1,5 +1,7 @@
 # File: web/mindstack_app/__init__.py
-# Version: 2.7
+# Version: 2.9
+# ĐÃ SỬA: Khắc phục lỗi `Error: Could not locate a Flask application`
+#         bằng cách thêm một đối tượng `app` ở cấp cao nhất để Flask CLI có thể tìm thấy.
 # ĐÃ SỬA: Khắc phục AttributeError: 'Config' object has no attribute 'BASE_DIR'
 #         bằng cách import BASE_DIR trực tiếp từ module config.
 # ĐÃ SỬA: Cấu hình Flask để phục vụ các file tĩnh từ thư mục 'uploads'.
@@ -8,14 +10,15 @@
 # ĐÃ SỬA: Cấu hình logging cho ứng dụng Flask ngay trong hàm create_app để đảm bảo log debug hiển thị,
 #         và ngăn chặn việc propagate log để tránh trùng lặp hoặc bị ghi đè.
 # ĐÃ SỬA: Cấu hình để chỉ sử dụng một thư mục tĩnh là 'uploads' cho tất cả các file media.
+# ĐÃ THÊM: Cấu hình Flask-Migrate để quản lý các thay đổi cơ sở dữ liệu.
 
 from flask import Flask, g
-from .config import Config, BASE_DIR # THAY ĐỔI: Import BASE_DIR trực tiếp từ .config
+from .config import Config, BASE_DIR
 from .db_instance import db
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
-import logging # Import module logging
-import os # Import module os để xử lý đường dẫn
+import logging
+import os
 
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
@@ -29,26 +32,21 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
-    # Cấu hình logging cho ứng dụng Flask
-    # Đảm bảo chỉ có một handler và cấp độ DEBUG
-    if not app.logger.handlers: # Chỉ thêm handler nếu chưa có
-        app.logger.setLevel(logging.DEBUG) # Đặt cấp độ log là DEBUG
-        handler = logging.StreamHandler() # Để log ra console
+    if not app.logger.handlers:
+        app.logger.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         app.logger.addHandler(handler)
-        app.logger.propagate = False # Ngăn chặn log truyền lên root logger (tránh trùng lặp)
+        app.logger.propagate = False
 
-    app.logger.info("Flask app logger configured successfully.") # Thêm một log thông báo cấu hình
+    app.logger.info("Flask app logger configured successfully.")
 
     db.init_app(app)
     migrate = Migrate(app, db)
     login_manager.init_app(app)
 
-    # CẤU HÌNH THƯ MỤC UPLOADS LÀM STATIC FOLDER
-    # Điều này cho phép Flask phục vụ các file từ thư mục UPLOAD_FOLDER
-    # thông qua URL bắt đầu bằng /uploads
-    app.static_folder = os.path.join(BASE_DIR, 'uploads') # THAY ĐỔI: Sử dụng BASE_DIR trực tiếp
+    app.static_folder = os.path.join(BASE_DIR, 'uploads')
     app.static_url_path = '/uploads'
     app.logger.info(f"Đã cấu hình thư mục tĩnh 'uploads' tại URL: {app.static_url_path}")
 
@@ -75,8 +73,7 @@ def create_app(config_class=Config):
     from .modules.admin.user_management.user_routes import user_management_bp
     from .modules.user_profile import user_profile_bp 
     from .modules.content_management.routes import content_management_bp
-    # Import và đăng ký Blueprint MỚI cho module học tập
-    from .modules.learning.routes import learning_bp # Dòng này được thêm vào
+    from .modules.learning.routes import learning_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
@@ -84,19 +81,19 @@ def create_app(config_class=Config):
     app.register_blueprint(user_management_bp, url_prefix='/admin/users') 
     app.register_blueprint(user_profile_bp, url_prefix='/profile') 
     app.register_blueprint(content_management_bp, url_prefix='/content')
-    app.register_blueprint(learning_bp, url_prefix='/learn') # Dòng này được thêm vào
+    app.register_blueprint(learning_bp, url_prefix='/learn')
 
     with app.app_context():
-        db.create_all()
+        # db.create_all() # BÌNH LUẬN DÒNG NÀY: Migration sẽ quản lý việc tạo bảng
         
-        # Logic tạo user admin mặc định nếu chưa tồn tại
         admin_user = User.query.filter_by(username='admin').first()
         if admin_user is None:
-            # SỬA: Thêm email mặc định
             admin = User(username='admin', email='admin@example.com', user_role='admin')
             admin.set_password('admin')
             db.session.add(admin)
             db.session.commit()
-            app.logger.info("Đã tạo user admin mặc định.") # Thay print bằng logger
+            app.logger.info("Đã tạo user admin mặc định.")
             
     return app
+
+app = create_app()

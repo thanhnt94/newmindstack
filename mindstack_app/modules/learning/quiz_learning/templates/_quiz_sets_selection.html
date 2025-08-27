@@ -1,10 +1,8 @@
 <!-- =============================== -->
 <!-- File: mindstack_app/modules/learning/quiz_learning/templates/_quiz_sets_selection.html -->
-<!-- Phiên bản: 1.58 (Gõ lại hoàn toàn để khắc phục lỗi 'endfor' unknown tag) -->
-<!-- Mục đích: Partial danh sách bộ câu hỏi (hiển thị tiến độ). -->
-<!-- THAY ĐỔI 1.58:
-  - Đã gõ lại toàn bộ file để loại bỏ các ký tự ẩn hoặc lỗi mã hóa gây ra lỗi TemplateSyntaxError.
-  - Form tìm kiếm luôn hiển thị. -->
+<!-- Phiên bản: 1.59 -->
+<!-- Mục đích: Partial danh sách bộ câu hỏi (hiển thị tiến độ và nút Archive). -->
+<!-- ĐÃ SỬA: Ẩn nút Archive ở tab Khám phá để đảm bảo logic ứng dụng. -->
 <!-- =============================== -->
 
 {% from 'includes/_search_form.html' import render_search_form %}
@@ -29,10 +27,11 @@
 
         {% for set in quiz_sets %}
         {% set is_disabled = (set.total_items == 0) %}
-        <div class="quiz-set-item bg-white p-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 relative {% if is_disabled %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:shadow-md{% endif %}"
-             data-set-id="{{ set.container_id }}" data-total-items="{{ set.total_items }}" data-completion-percentage="{{ set.completion_percentage | default(0) | int }}" {% if is_disabled %}title="Bộ câu hỏi này chưa có câu nào. Không thể chọn."{% endif %}>
+        {% set set_state = set.user_state | default({'is_archived': false}) %}
+        <div class="quiz-set-item bg-white p-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 relative {% if is_disabled %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:shadow-md{% endif %} {% if set_state.is_archived %}archived{% endif %}"
+             data-set-id="{{ set.container_id }}" data-total-items="{{ set.total_items }}" data-completion-percentage="{{ set.completion_percentage | default(0) | int }}">
 
-            <!-- Thanh tiến độ: phẳng, không gradient -->
+            <!-- Thanh tiến độ -->
             <div class="absolute inset-y-0 left-0 rounded-l-xl" style="width: {{ set.completion_percentage | default(0) }}%; background: #FDE68A; z-index: 0;"></div>
 
             <div class="relative z-10 flex justify-between items-center w-full">
@@ -40,7 +39,14 @@
                     <h3 class="font-semibold text-gray-800 my-0">{{ set.title }}</h3>
                     <p class="relative text-gray-500 text-xs mt-1">tạo bởi {{ set.creator.username }}</p>
                 </div>
-                <div class="flex-shrink-0 ml-4">
+                <div class="flex-shrink-0 ml-4 flex items-center space-x-3">
+                    {# Nút Archive/Unarchive #}
+                    {% if current_filter != 'explore' %}
+                    <div class="archive-icon" data-set-id="{{ set.container_id }}" title="{{ 'Bỏ lưu trữ' if set_state.is_archived else 'Lưu trữ' }}">
+                        <i class="fas fa-archive {% if set_state.is_archived %}text-blue-500{% else %}text-gray-400{% endif %}"></i>
+                    </div>
+                    {% endif %}
+                    {# Hiển thị số lượng câu hỏi #}
                     <span class="text-lg font-semibold text-gray-700 quiz-set-completion-text">
                         {% if current_filter == 'doing' %}
                             {{ set.item_count_display }}
