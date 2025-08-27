@@ -1,8 +1,8 @@
 # File: mindstack_app/modules/learning/quiz_learning/algorithms.py
-# Phiên bản: 1.14
+# Phiên bản: 1.15
 # Mục đích: Chứa logic thuật toán để lựa chọn và sắp xếp các câu hỏi Quiz cho các chế độ học khác nhau.
-# ĐÃ SỬA: Sửa hàm get_filtered_quiz_sets để sắp xếp các bộ "Đang làm" theo last_accessed.
-# ĐÃ SỬA: Đơn giản hóa logic lọc cho tab "Khám phá" để chỉ hiển thị các bộ chưa từng được tương tác.
+# ĐÃ SỬA: Cập nhật hàm _get_base_items_query để hỗ trợ lấy câu hỏi từ danh sách nhiều container_id.
+# ĐÃ SỬA: Cập nhật hàm get_quiz_mode_counts để có thể nhận một danh sách các set_id để tính tổng.
 
 from ....models import db, LearningItem, UserProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
@@ -17,18 +17,23 @@ def _get_base_items_query(user_id, container_id):
     """
     Tạo truy vấn cơ sở cho LearningItem dựa trên container_id hoặc tất cả các container có thể truy cập.
     Hàm này sẽ không lọc theo trạng thái archive. Việc lọc archive sẽ được xử lý ở các hàm gọi nó.
+    CÓ THỂ NHẬN: Một số nguyên (container_id), chuỗi 'all', hoặc một danh sách các số nguyên.
 
     Args:
         user_id (int): ID của người dùng hiện tại.
-        container_id (int/str): ID của LearningContainer hoặc 'all' nếu muốn lấy tất cả các bộ.
+        container_id (int/str/list): ID của LearningContainer, 'all', hoặc danh sách các ID.
 
     Returns:
         sqlalchemy.orm.query.Query: Đối tượng truy vấn LearningItem cơ sở.
     """
     print(f">>> ALGORITHMS: Bắt đầu _get_base_items_query cho user_id={user_id}, container_id={container_id} <<<")
     items_query = LearningItem.query.filter(LearningItem.item_type == 'QUIZ_MCQ')
-
-    if container_id == 'all':
+    
+    if isinstance(container_id, list):
+        # THÊM MỚI: Xử lý khi nhận một danh sách các ID bộ quiz
+        print(f">>> ALGORITHMS: Chế độ Multi-selection, IDs: {container_id} <<<")
+        items_query = items_query.filter(LearningItem.container_id.in_(container_id))
+    elif container_id == 'all':
         access_conditions = []
         if current_user.user_role != 'admin':
             access_conditions.append(LearningContainer.creator_user_id == user_id)

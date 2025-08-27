@@ -1,6 +1,7 @@
 # File: mindstack_app/modules/learning/quiz_learning/routes.py
-# Phiên bản: 1.57
+# Phiên bản: 1.58
 # Mục đích: Định nghĩa các routes và logic cho module học Quiz.
+# ĐÃ THÊM: Route mới 'get_quiz_modes_partial_multi' để tính toán số câu hỏi cho nhiều bộ quiz.
 # ĐÃ THÊM: Logic cập nhật trường 'last_accessed' trong UserContainerState khi người dùng gửi đáp án.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
@@ -58,6 +59,28 @@ def get_quiz_modes_partial_all():
                            selected_quiz_mode_id=selected_mode,
                            user_default_batch_size=user_default_batch_size
                            )
+    
+@quiz_learning_bp.route('/get_quiz_modes_partial/multi/<string:set_ids_str>', methods=['GET'])
+@login_required
+def get_quiz_modes_partial_multi(set_ids_str):
+    """
+    Trả về partial HTML chứa các chế độ học và số lượng câu hỏi tương ứng cho NHIỀU bộ Quiz.
+    """
+    selected_mode = request.args.get('selected_mode', None, type=str)
+    user_default_batch_size = current_user.current_quiz_batch_size if current_user.current_quiz_batch_size is not None else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
+
+    try:
+        set_ids = [int(s) for s in set_ids_str.split(',') if s]
+        modes = get_quiz_mode_counts(current_user.user_id, set_ids)
+    except ValueError:
+        return '<p class="text-red-500 text-center">Lỗi: Định dạng ID bộ quiz không hợp lệ.</p>', 400
+
+    return render_template('_quiz_modes_selection.html', 
+                           modes=modes, 
+                           selected_set_id='multi',
+                           selected_quiz_mode_id=selected_mode,
+                           user_default_batch_size=user_default_batch_size
+                           )
 
 @quiz_learning_bp.route('/get_quiz_modes_partial/<int:set_id>', methods=['GET'])
 @login_required
@@ -82,7 +105,11 @@ def start_quiz_session_all(mode, batch_size):
     """
     Bắt đầu một phiên học Quiz cho TẤT CẢ các bộ câu hỏi với chế độ và kích thước nhóm câu đã chọn.
     """
-    if QuizSessionManager.start_new_quiz_session('all', mode, batch_size):
+    # Lấy danh sách các bộ ID đã chọn từ query params
+    set_ids_str = request.args.get('set_ids')
+    set_ids = [int(s) for s in set_ids_str.split(',') if s] if set_ids_str else 'all'
+
+    if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
         flash('Không có câu hỏi nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
@@ -337,3 +364,4 @@ def toggle_archive(set_id):
         db.session.rollback()
         current_app.logger.error(f"Lỗi khi toggle archive cho bộ quiz {set_id}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi thay đổi trạng thái lưu trữ.'}), 500
+
