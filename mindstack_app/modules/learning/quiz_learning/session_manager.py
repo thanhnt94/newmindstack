@@ -1,8 +1,10 @@
 # File: mindstack_app/modules/learning/quiz_learning/session_manager.py
-# Phiên bản: 1.23
+# Phiên bản: 1.30
 # Mục đích: Quản lý trạng thái của phiên học Quiz hiện tại cho người dùng.
-# ĐÃ SỬA: Khắc phục lỗi hoàn thành phiên học sớm khi chọn "Làm tất cả các bộ" và chế độ "Chỉ làm mới".
-#         Đảm bảo các hàm thuật toán trả về TẤT CẢ các câu hỏi khả dụng cho phiên.
+# ĐÃ SỬA: Khắc phục lỗi "TypeError: object of type 'Query' has no len()" bằng cách sử dụng .count() trên đối tượng truy vấn SQLAlchemy để lấy tổng số câu hỏi một cách chính xác và hiệu quả.
+# ĐÃ SỬA: Khắc phục lỗi "session cookie is too large" bằng cách không lưu toàn bộ ID câu hỏi vào session.
+# ĐÃ SỬA: Cải thiện logic để xóa phiên học cũ hoàn toàn trước khi tạo phiên mới, đảm bảo các cài đặt như batch_size được cập nhật chính xác.
+# ĐÃ SỬA: Tải các câu hỏi theo từng batch ngẫu nhiên từ CSDL thay vì từ danh sách ID đã lưu sẵn.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
@@ -23,8 +25,8 @@ class QuizSessionManager:
     """
     SESSION_KEY = 'quiz_session'
 
-    def __init__(self, user_id, set_id, mode, batch_size, all_item_ids, 
-                 current_batch_start_index, total_items_in_session, 
+    def __init__(self, user_id, set_id, mode, batch_size, 
+                 total_items_in_session, processed_item_ids, 
                  correct_answers, incorrect_answers, start_time, common_pre_question_text_global):
         """
         Khởi tạo một phiên QuizSessionManager.
@@ -33,9 +35,8 @@ class QuizSessionManager:
         self.set_id = set_id
         self.mode = mode
         self.batch_size = batch_size
-        self.all_item_ids = all_item_ids
-        self.current_batch_start_index = current_batch_start_index
         self.total_items_in_session = total_items_in_session
+        self.processed_item_ids = processed_item_ids
         self.correct_answers = correct_answers
         self.incorrect_answers = incorrect_answers
         self.start_time = start_time
@@ -52,9 +53,8 @@ class QuizSessionManager:
             set_id=session_dict['set_id'],
             mode=session_dict['mode'],
             batch_size=session_dict['batch_size'],
-            all_item_ids=session_dict['all_item_ids'],
-            current_batch_start_index=session_dict['current_batch_start_index'],
             total_items_in_session=session_dict['total_items_in_session'],
+            processed_item_ids=session_dict.get('processed_item_ids', []),
             correct_answers=session_dict['correct_answers'],
             incorrect_answers=session_dict['incorrect_answers'],
             start_time=session_dict['start_time'],
@@ -70,9 +70,9 @@ class QuizSessionManager:
             'set_id': self.set_id,
             'mode': self.mode,
             'batch_size': self.batch_size,
-            'all_item_ids': self.all_item_ids,
-            'current_batch_start_index': self.current_batch_start_index,
             'total_items_in_session': self.total_items_in_session,
+            'processed_item_ids': self.processed_item_ids,
+            'current_batch_start_index': len(self.processed_item_ids),
             'correct_answers': self.correct_answers,
             'incorrect_answers': self.incorrect_answers,
             'start_time': self.start_time,
@@ -96,7 +96,9 @@ class QuizSessionManager:
         print(f">>> SESSION_MANAGER: Bắt đầu start_new_quiz_session cho set_id={set_id}, mode={mode}, batch_size={batch_size} <<<")
         current_app.logger.debug(f"SessionManager: Bắt đầu start_new_quiz_session cho set_id={set_id}, mode={mode}, batch_size={batch_size}")
         user_id = current_user.user_id
-        all_items_for_session_objects = [] # Danh sách TẤT CẢ các đối tượng LearningItem cho phiên
+        
+        # BƯỚC SỬA LỖI: Xóa phiên học cũ trước khi bắt đầu phiên mới
+        cls.end_quiz_session()
 
         # Lấy hàm thuật toán tương ứng từ cấu hình
         mode_config = next((m for m in QuizLearningConfig.QUIZ_MODES if m['id'] == mode), None)
@@ -105,55 +107,54 @@ class QuizSessionManager:
             current_app.logger.error(f"SessionManager: Chế độ học không hợp lệ hoặc không được định nghĩa: {mode}")
             return False
         
-        algorithm_func_name = mode_config['algorithm_func_name']
+        algorithm_func = None
+        if mode == 'new_only':
+            algorithm_func = get_new_only_items
+        elif mode == 'due_only':
+            algorithm_func = get_reviewed_items
+        elif mode == 'hard_only':
+            algorithm_func = get_hard_items
         
-        # GỌI HÀM THUẬT TOÁN VỚI session_size=None ĐỂ LẤY TẤT CẢ CÂU HỎI KHẢ DỤNG
-        # Sau đó chúng ta sẽ trộn và cắt nếu cần
-        if algorithm_func_name == 'get_new_only_items':
-            all_items_for_session_objects = get_new_only_items(user_id, set_id, None) # TRUYỀN NONE
-        elif algorithm_func_name == 'get_reviewed_items':
-            all_items_for_session_objects = get_reviewed_items(user_id, set_id, None) # TRUYỀN NONE
-        elif algorithm_func_name == 'get_hard_items':
-            all_items_for_session_objects = get_hard_items(user_id, set_id, None) # TRUYỀN NONE
-        else:
-            print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy hàm thuật toán cho chế độ: {algorithm_func_name} <<<")
-            current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {algorithm_func_name}")
+        if not algorithm_func:
+            print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy hàm thuật toán cho chế độ: {mode} <<<")
+            current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {mode}")
             return False
+        
+        # LẤY TỔNG SỐ CÂU HỎI CỦA PHIÊN MÀ KHÔNG LƯU CẢ DANH SÁCH ID
+        # SỬA LỖI: Sử dụng .count() trên đối tượng truy vấn để lấy tổng số câu hỏi một cách chính xác
+        total_items_in_session_query = algorithm_func(user_id, set_id, None)
+        total_items_in_session = total_items_in_session_query.count()
 
-        print(f">>> SESSION_MANAGER: Chế độ '{mode}' tìm thấy {len(all_items_for_session_objects)} câu hỏi tổng cộng. <<<")
-        current_app.logger.debug(f"SessionManager: Chế độ '{mode}' tìm thấy {len(all_items_for_session_objects)} câu hỏi tổng cộng.")
-
-        if not all_items_for_session_objects:
-            cls.end_quiz_session() # Sử dụng cls.end_quiz_session
+        if total_items_in_session == 0:
+            cls.end_quiz_session()
             print(">>> SESSION_MANAGER: Không có câu hỏi nào được tìm thấy cho phiên học mới. <<<")
             current_app.logger.warning("SessionManager: Không có câu hỏi nào được tìm thấy cho phiên học mới.")
             return False
-        
-        # Trộn ngẫu nhiên tất cả các câu hỏi để đảm bảo tính ngẫu nhiên cho phiên học
-        random.shuffle(all_items_for_session_objects) 
-
-        # ĐÃ XÓA: Đoạn code cắt danh sách câu hỏi theo batch_size ở đây
-        # if len(all_items_for_session_objects) > batch_size:
-        #     all_items_for_session_objects = all_items_for_session_objects[:batch_size]
-        #     print(f">>> SESSION_MANAGER: Đã cắt danh sách câu hỏi xuống còn {len(all_items_for_session_objects)} theo batch_size. <<<")
-
 
         # Xác định common_pre_question_text_global cho toàn bộ phiên học
-        global_pre_texts = [item.content.get('pre_question_text') for item in all_items_for_session_objects if item.content.get('pre_question_text')]
-        common_pre_question_text_global = None
-        if global_pre_texts and all(p == global_pre_texts[0] for p in global_pre_texts):
-            common_pre_question_text_global = global_pre_texts[0]
-            print(f">>> SESSION_MANAGER: Phát hiện common_pre_question_text_global: '{common_pre_question_text_global}' <<<")
+        # Cần lấy ngẫu nhiên một vài câu để kiểm tra, không lấy toàn bộ
+        sample_size = min(total_items_in_session, 50) # Lấy mẫu 50 câu hoặc ít hơn
+        
+        # Nếu tổng số câu hỏi nhỏ hơn sample_size, ta lấy toàn bộ
+        if total_items_in_session > 0:
+            sample_items = total_items_in_session_query.order_by(func.random()).limit(sample_size).all()
+            global_pre_texts = [item.content.get('pre_question_text') for item in sample_items if item.content.get('pre_question_text')]
+            common_pre_question_text_global = None
+            if global_pre_texts and all(p == global_pre_texts[0] for p in global_pre_texts):
+                common_pre_question_text_global = global_pre_texts[0]
+                print(f">>> SESSION_MANAGER: Phát hiện common_pre_question_text_global: '{common_pre_question_text_global}' <<<")
+        else:
+            common_pre_question_text_global = None
 
         # Tạo instance của QuizSessionManager và lưu vào session
+        # LƯU Ý: all_item_ids đã bị xóa khỏi đây và được thay bằng processed_item_ids (ban đầu trống)
         new_session_manager = cls(
             user_id=user_id,
             set_id=set_id,
             mode=mode,
             batch_size=batch_size,
-            all_item_ids=[item.item_id for item in all_items_for_session_objects],
-            current_batch_start_index=0,
-            total_items_in_session=len(all_items_for_session_objects), # TỔNG SỐ CÂU HỎI THỰC TẾ
+            total_items_in_session=total_items_in_session,
+            processed_item_ids=[], # Khởi tạo danh sách các ID đã xử lý
             correct_answers=0,
             incorrect_answers=0,
             start_time=datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -162,8 +163,8 @@ class QuizSessionManager:
         session[cls.SESSION_KEY] = new_session_manager.to_dict() # Lưu dictionary của instance vào session
         session.modified = True # Đảm bảo session được đánh dấu là đã thay đổi để lưu
 
-        print(f">>> SESSION_MANAGER: Phiên học mới đã được khởi tạo với {len(all_items_for_session_objects)} câu hỏi. Batch size: {batch_size} <<<")
-        current_app.logger.debug(f"SessionManager: Phiên học mới đã được khởi tạo với {len(all_items_for_session_objects)} câu hỏi. Batch size: {batch_size}")
+        print(f">>> SESSION_MANAGER: Phiên học mới đã được khởi tạo với {total_items_in_session} câu hỏi. Batch size: {batch_size} <<<")
+        current_app.logger.debug(f"SessionManager: Phiên học mới đã được khởi tạo với {total_items_in_session} câu hỏi. Batch size: {batch_size}")
         return True
 
     def _get_media_absolute_url(self, file_path):
@@ -191,8 +192,8 @@ class QuizSessionManager:
 
     def get_next_batch(self, requested_batch_size):
         """
-        Lấy dữ liệu của nhóm câu hỏi tiếp theo trong phiên, có xử lý nhóm câu hỏi phức hợp.
-        Sẽ lấy N câu hỏi đơn hoặc N nhóm câu hỏi (nếu câu đầu tiên là nhóm).
+        Lấy dữ liệu của nhóm câu hỏi tiếp theo trong phiên học.
+        Hàm này sẽ lấy ngẫu nhiên các câu hỏi từ CSDL và loại bỏ các câu hỏi đã được hiển thị.
 
         Args:
             requested_batch_size (int): Kích thước nhóm câu hỏi yêu cầu.
@@ -200,127 +201,73 @@ class QuizSessionManager:
         Returns:
             dict/None: Dữ liệu nhóm câu hỏi nếu có, None nếu phiên không hợp lệ hoặc hết câu.
         """
-        print(f">>> SESSION_MANAGER: Lấy nhóm câu hỏi: current_batch_start_index={self.current_batch_start_index}, total_items_in_session={self.total_items_in_session}, requested_batch_size={requested_batch_size} <<<")
-        current_app.logger.debug(f"SessionManager: Lấy nhóm câu hỏi: current_batch_start_index={self.current_batch_start_index}, total_items_in_session={self.total_items_in_session}, requested_batch_size={requested_batch_size}")
+        current_app.logger.debug(f"SessionManager: Lấy nhóm câu hỏi: Đã xử lý {len(self.processed_item_ids)}/{self.total_items_in_session}, requested_batch_size={requested_batch_size}")
+        
+        if len(self.processed_item_ids) >= self.total_items_in_session:
+            current_app.logger.debug("SessionManager: Hết câu hỏi trong phiên. Đã hiển thị đủ số lượng.")
+            return None
 
-        if self.current_batch_start_index >= self.total_items_in_session:
-            print(">>> SESSION_MANAGER: Hết nhóm câu hỏi trong phiên. <<<")
-            current_app.logger.debug("SessionManager: Hết nhóm câu hỏi trong phiên.")
-            return None # Hết câu hỏi
+        # Lấy hàm thuật toán tương ứng từ cấu hình
+        mode_config = next((m for m in QuizLearningConfig.QUIZ_MODES if m['id'] == self.mode), None)
+        if not mode_config:
+            current_app.logger.error(f"Chế độ học không hợp lệ: {self.mode}")
+            return None
+        
+        algorithm_func = None
+        if self.mode == 'new_only':
+            algorithm_func = get_new_only_items
+        elif self.mode == 'due_only':
+            algorithm_func = get_reviewed_items
+        elif self.mode == 'hard_only':
+            algorithm_func = get_hard_items
+        
+        if not algorithm_func:
+            current_app.logger.error(f"Không tìm thấy hàm thuật toán cho chế độ: {self.mode}")
+            return None
+
+        # Lấy danh sách ID các câu hỏi chưa được hiển thị
+        unprocessed_items_query = algorithm_func(self.user_id, self.set_id, None).filter(
+            LearningItem.item_id.notin_(self.processed_item_ids)
+        )
+        
+        # Lấy một số lượng câu hỏi ngẫu nhiên bằng với requested_batch_size
+        new_items_to_add_to_session = unprocessed_items_query.order_by(func.random()).limit(requested_batch_size).all()
+        
+        if not new_items_to_add_to_session:
+            current_app.logger.debug("Không còn câu hỏi mới nào để lấy.")
+            return None
 
         items_data = []
+        newly_processed_item_ids = []
+
+        for item in new_items_to_add_to_session:
+            item_dict = {
+                'item_id': item.item_id,
+                'content': item.content,
+                'ai_explanation': item.ai_explanation,
+                'group_id': item.group_id,
+                'group_details': None
+            }
+            if item_dict['content'].get('question_image_file'):
+                item_dict['content']['question_image_file'] = self._get_media_absolute_url(item_dict['content']['question_image_file'])
+            if item_dict['content'].get('question_audio_file'):
+                item_dict['content']['question_audio_file'] = self._get_media_absolute_url(item_dict['content']['question_audio_file'])
+
+            items_data.append(item_dict)
+            newly_processed_item_ids.append(item.item_id)
         
-        # Danh sách các group_id đã được xử lý trong batch này để tránh trùng lặp
-        processed_group_ids = set() 
-        
-        # Lặp để thu thập đủ số lượng "main entries" (câu hỏi đơn hoặc nhóm câu hỏi)
-        # hoặc cho đến khi hết câu hỏi trong phiên
-        current_collected_entries = 0
-        current_scan_index = self.current_batch_start_index
-
-        while current_collected_entries < requested_batch_size and current_scan_index < self.total_items_in_session:
-            item_id_to_check = self.all_item_ids[current_scan_index]
-            item_to_check = LearningItem.query.get(item_id_to_check)
-
-            if not item_to_check:
-                print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy LearningItem với ID: {item_id_to_check} khi quét. Bỏ qua. <<<")
-                current_app.logger.error(f"SessionManager: Không tìm thấy LearningItem với ID: {item_id_to_check} khi quét. Bỏ qua.")
-                current_scan_index += 1 # Bỏ qua item lỗi
-                continue
-
-            if item_to_check.group_id:
-                # Nếu item thuộc một nhóm và nhóm đó chưa được xử lý trong batch này
-                if item_to_check.group_id not in processed_group_ids:
-                    group = LearningGroup.query.get(item_to_check.group_id)
-                    if group:
-                        print(f">>> SESSION_MANAGER: Phát hiện nhóm câu hỏi (Group ID: {group.group_id}). Lấy tất cả item trong nhóm. <<<")
-                        
-                        # Lấy tất cả các item thuộc nhóm này VÀ CŨNG NẰM TRONG all_item_ids của phiên
-                        # Đảm bảo thứ tự theo order_in_container
-                        items_in_group_query = LearningItem.query.filter(
-                            LearningItem.group_id == group.group_id,
-                            LearningItem.item_type == 'QUIZ_MCQ',
-                            LearningItem.item_id.in_(self.all_item_ids) # Đảm bảo chỉ lấy các item có trong phiên hiện tại
-                        ).order_by(LearningItem.order_in_container).all()
-
-                        # Xử lý URL media cho group_details
-                        group_content = group.content.copy() # Tạo bản sao để sửa đổi
-                        if group_content.get('question_image_file'):
-                            group_content['question_image_file'] = self._get_media_absolute_url(group_content['question_image_file'])
-                        if group_content.get('question_audio_file'):
-                            group_content['question_audio_file'] = self._get_media_absolute_url(group_content['question_audio_file'])
-
-                        for item in items_in_group_query:
-                            item_dict = {
-                                'item_id': item.item_id,
-                                'content': item.content,
-                                'ai_explanation': item.ai_explanation,
-                                'group_id': item.group_id,
-                                'group_details': group_content # Gắn group_content đã xử lý URL
-                            }
-                            # Xử lý URL media cho từng item con
-                            if item_dict['content'].get('question_image_file'):
-                                item_dict['content']['question_image_file'] = self._get_media_absolute_url(item_dict['content']['question_image_file'])
-                            if item_dict['content'].get('question_audio_file'):
-                                item_dict['content']['question_audio_file'] = self._get_media_absolute_url(item_dict['content']['question_audio_file'])
-
-                            items_data.append(item_dict)
-                        processed_group_ids.add(item_to_check.group_id)
-                        current_collected_entries += 1 # Đếm nhóm này là 1 entry
-                        print(f">>> SESSION_MANAGER: Nhóm câu hỏi có {len(items_data)} item. Tổng entries đã thu thập: {current_collected_entries} <<<")
-                    else:
-                        print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy LearningGroup với ID: {item_id_to_check.group_id}. Xử lý như câu đơn. <<<")
-                        # Fallback: nếu không tìm thấy group, xử lý như câu đơn
-                        item_dict = {
-                            'item_id': item_to_check.item_id,
-                            'content': item_to_check.content,
-                            'ai_explanation': item_to_check.ai_explanation,
-                            'group_id': item_to_check.group_id, # Sẽ là None
-                            'group_details': None # Không có group_details
-                        }
-                        # Xử lý URL media cho item
-                        if item_dict['content'].get('question_image_file'):
-                            item_dict['content']['question_image_file'] = self._get_media_absolute_url(item_dict['content']['question_image_file'])
-                        if item_dict['content'].get('question_audio_file'):
-                            item_dict['content']['question_audio_file'] = self._get_media_absolute_url(item_dict['content']['question_audio_file'])
-                        items_data.append(item_dict)
-                        current_collected_entries += 1
-                else:
-                    # Nếu nhóm đã được xử lý trong batch này, bỏ qua item này
-                    print(f">>> SESSION_MANAGER: Item {item_id_to_check} thuộc nhóm đã xử lý. Bỏ qua. <<<")
-            else:
-                # Câu hỏi đơn lẻ
-                item_dict = {
-                    'item_id': item_to_check.item_id,
-                    'content': item_to_check.content,
-                    'ai_explanation': item_to_check.ai_explanation,
-                    'group_id': item_to_check.group_id, # Sẽ là None
-                    'group_details': None # Không có group_details
-                }
-                # Xử lý URL media cho item
-                if item_dict['content'].get('question_image_file'):
-                    item_dict['content']['question_image_file'] = self._get_media_absolute_url(item_dict['content']['question_image_file'])
-                if item_dict['content'].get('question_audio_file'):
-                    item_dict['content']['question_audio_file'] = self._get_media_absolute_url(item_dict['content']['question_audio_file'])
-                items_data.append(item_dict)
-                current_collected_entries += 1 # Đếm câu đơn là 1 entry
-                print(f">>> SESSION_MANAGER: Thêm câu hỏi đơn lẻ {item_id_to_check}. Tổng entries đã thu thập: {current_collected_entries} <<<")
-            
-            current_scan_index += 1 # Di chuyển đến item tiếp theo trong all_item_ids
-
-        # Sau khi vòng lặp kết thúc, items_data chứa các câu hỏi cho batch hiện tại
-        # current_batch_start_index sẽ được cập nhật trong process_answer_batch
-        
-        if not items_data:
-            print(">>> SESSION_MANAGER: Nhóm câu hỏi trống hoặc không tìm thấy item nào sau khi quét. <<<")
-            return None
+        # CẬP NHẬT DANH SÁCH CÁC ID ĐÃ XỬ LÝ
+        self.processed_item_ids.extend(newly_processed_item_ids)
+        session[self.SESSION_KEY] = self.to_dict()
+        session.modified = True
 
         return {
             'items': items_data,
-            'common_pre_question_text_global': self.common_pre_question_text_global, # Văn bản pre-question chung toàn phiên
-            'start_index': self.current_batch_start_index,
+            'common_pre_question_text_global': self.common_pre_question_text_global,
+            'start_index': len(self.processed_item_ids) - len(items_data),
             'total_items_in_session': self.total_items_in_session,
-            'actual_batch_item_count': len(items_data) # Số lượng item thực tế trong batch này
+            'session_correct_answers': self.correct_answers,
+            'session_total_answered': self.correct_answers + self.incorrect_answers
         }
 
     def process_answer_batch(self, answers):
@@ -338,9 +285,7 @@ class QuizSessionManager:
         current_app.logger.debug(f"SessionManager: Bắt đầu process_answer_batch với {len(answers)} đáp án.")
         
         results = []
-        actual_items_processed_in_batch = 0 # Số lượng item thực tế được xử lý trong batch này
-
-        # Lấy tổng điểm hiện tại của người dùng một lần duy nhất
+        
         current_user_obj = User.query.get(self.user_id)
         current_user_total_score = current_user_obj.total_score if current_user_obj else 0
 
@@ -348,40 +293,35 @@ class QuizSessionManager:
             item_id = answer.get('item_id')
             user_answer_text = answer.get('user_answer')
 
-            # GỌI HÀM TỪ QUIZ_LOGIC ĐỂ XỬ LÝ
             score_change, updated_total_score, is_correct, correct_option_char, explanation = process_quiz_answer(
                 user_id=self.user_id,
                 item_id=item_id,
                 user_answer_text=user_answer_text,
-                current_user_total_score=current_user_total_score # Truyền tổng điểm hiện tại
+                current_user_total_score=current_user_total_score
             )
-            current_user_total_score = updated_total_score # Cập nhật tổng điểm cho các câu tiếp theo trong batch
+            current_user_total_score = updated_total_score
 
-            # Lấy thống kê cho câu hỏi vừa trả lời
             item_stats = get_quiz_item_statistics(self.user_id, item_id)
             
             if is_correct:
-                self.correct_answers += 1 # Cập nhật thuộc tính của instance
+                self.correct_answers += 1
                 print(f">>> SESSION_MANAGER: Câu trả lời đúng. Điểm thay đổi: {score_change} <<<")
             else:
-                self.incorrect_answers += 1 # Cập nhật thuộc tính của instance
+                self.incorrect_answers += 1
                 print(f">>> SESSION_MANAGER: Câu trả lời sai. Điểm thay đổi: {score_change} <<<")
             
             results.append({
                 'item_id': item_id,
                 'is_correct': is_correct,
-                'correct_answer': correct_option_char, # TRẢ VỀ KÝ TỰ ĐÁP ÁN ĐÚNG CHO FRONTEND
+                'correct_answer': correct_option_char,
                 'explanation': explanation,
-                'statistics': item_stats, # THÊM THỐNG KÊ VÀO KẾT QUẢ
-                'score_change': score_change, # THÊM score_change VÀO KẾT QUẢ
+                'statistics': item_stats,
+                'score_change': score_change,
             })
-            actual_items_processed_in_batch += 1 # Đếm số item đã xử lý
-
-        # Tăng current_batch_start_index sau khi xử lý toàn bộ nhóm
-        self.current_batch_start_index += actual_items_processed_in_batch # Tăng theo số lượng câu hỏi thực tế trong batch
-        session[self.SESSION_KEY] = self.to_dict() # Lưu lại trạng thái cập nhật vào session
+        
+        session[self.SESSION_KEY] = self.to_dict()
         session.modified = True 
-        print(f">>> SESSION_MANAGER: Nhóm đáp án đã xử lý. current_batch_start_index: {self.current_batch_start_index} <<<")
+        print(f">>> SESSION_MANAGER: Nhóm đáp án đã xử lý. Đã xử lý tổng cộng: {len(self.processed_item_ids)} câu. <<<")
 
         return results
 

@@ -1,6 +1,9 @@
 # File: mindstack_app/modules/learning/quiz_learning/algorithms.py
-# Phiên bản: 1.15
+# Phiên bản: 1.16
 # Mục đích: Chứa logic thuật toán để lựa chọn và sắp xếp các câu hỏi Quiz cho các chế độ học khác nhau.
+# ĐÃ SỬA: Khắc phục lỗi "AttributeError: 'list' object has no attribute 'filter'" bằng cách thay đổi các hàm
+#         lấy câu hỏi (get_new_only_items, get_reviewed_items, get_hard_items) để trả về đối tượng truy vấn SQLAlchemy
+#         (query object) khi session_size là None. Điều này cho phép các hàm khác có thể lọc thêm.
 # ĐÃ SỬA: Cập nhật hàm _get_base_items_query để hỗ trợ lấy câu hỏi từ danh sách nhiều container_id.
 # ĐÃ SỬA: Cập nhật hàm get_quiz_mode_counts để có thể nhận một danh sách các set_id để tính tổng.
 
@@ -77,6 +80,7 @@ def get_new_only_items(user_id, container_id, session_size):
     """
     Lấy danh sách các câu hỏi chỉ làm mới (chưa có tiến độ) cho một phiên học.
     Hàm này sẽ loại trừ các bộ quiz đã được archive.
+    TRẢ VỀ: Một đối tượng truy vấn nếu session_size là None, hoặc một danh sách các item nếu session_size được chỉ định.
     """
     print(f">>> ALGORITHMS: Bắt đầu get_new_only_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
@@ -98,7 +102,8 @@ def get_new_only_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: new_items_query (chỉ làm mới): {new_items_query} <<<")
     
     if session_size is None or session_size == 999999:
-        items = new_items_query.all()
+        # SỬA LỖI: Trả về đối tượng truy vấn thay vì thực thi .all()
+        return new_items_query
     else:
         items = new_items_query.order_by(func.random()).limit(session_size).all()
     
@@ -109,6 +114,7 @@ def get_reviewed_items(user_id, container_id, session_size):
     """
     Lấy danh sách các câu hỏi đã làm (có tiến độ) cho một phiên học, không bao gồm câu mới.
     Hàm này sẽ loại trừ các bộ quiz đã được archive.
+    TRẢ VỀ: Một đối tượng truy vấn nếu session_size là None, hoặc một danh sách các item nếu session_size được chỉ định.
     """
     print(f">>> ALGORITHMS: Bắt đầu get_reviewed_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
@@ -128,7 +134,8 @@ def get_reviewed_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: reviewed_items_query (đã làm): {reviewed_items_query} <<<")
     
     if session_size is None or session_size == 999999:
-        items = reviewed_items_query.all()
+        # SỬA LỖI: Trả về đối tượng truy vấn thay vì thực thi .all()
+        return reviewed_items_query
     else:
         items = reviewed_items_query.order_by(func.random()).limit(session_size).all()
     
@@ -139,6 +146,7 @@ def get_hard_items(user_id, container_id, session_size):
     """
     Lấy danh sách các câu hỏi khó cho một phiên học.
     Hàm này sẽ loại trừ các bộ quiz đã được archive.
+    TRẢ VỀ: Một đối tượng truy vấn nếu session_size là None, hoặc một danh sách các item nếu session_size được chỉ định.
     """
     print(f">>> ALGORITHMS: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
@@ -159,7 +167,8 @@ def get_hard_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: hard_items_query (câu khó): {hard_items_query} <<<")
     
     if session_size is None or session_size == 999999:
-        items = hard_items_query.all()
+        # SỬA LỖI: Trả về đối tượng truy vấn thay vì thực thi .all()
+        return hard_items_query
     else:
         items = hard_items_query.order_by(func.random()).limit(session_size).all()
     
@@ -308,7 +317,7 @@ def get_quiz_mode_counts(user_id, set_identifier):
         algorithm_func = mode_function_map.get(mode_id)
 
         if algorithm_func:
-            count = len(algorithm_func(user_id, set_identifier, None))
+            count = algorithm_func(user_id, set_identifier, None).count()
             modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
         else:
             current_app.logger.warning(f"Không tìm thấy hàm thuật toán cho chế độ Quiz: {mode_id}")
