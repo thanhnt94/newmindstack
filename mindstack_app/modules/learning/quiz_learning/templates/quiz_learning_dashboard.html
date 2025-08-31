@@ -1,7 +1,9 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/quiz_learning/templates/quiz_learning_dashboard.html #}
-{# Phiên bản: 1.68 #}
+{# Phiên bản: 1.75 #}
 {# Mục đích: Giao diện chính để chọn bộ câu hỏi và chế độ học Quiz. #}
+{# ĐÃ SỬA: Tối ưu hóa lại bố cục responsive cho các tab và nút "Chọn nhiều", đảm bảo các tab chiếm full width khi nút "Chọn nhiều" xuống dòng trên màn hình nhỏ. #}
+{# ĐÃ SỬA: Cải thiện giao diện desktop để các tab được phân bố đều hơn, đồng thời chữ trong tab cũng to hơn và căn giữa để trông hài hòa hơn. #}
 {# ĐÃ SỬA: Cập nhật logic JavaScript để lấy giá trị batch_size từ dropdown trực tiếp khi nhấn nút "Bắt đầu" #}
 {# ĐÃ SỬA: Sửa lỗi tạo URL với placeholder. #}
 {# ĐÃ SỬA: Sửa lỗi không cập nhật batch_size khi chuyển từ chế độ bộ đơn sang toàn bộ. #}
@@ -41,6 +43,12 @@
             transition: all 0.2s ease-in-out;
             color: #6b7280;
             font-weight: 500;
+        }
+        /* THAY ĐỔI: Kích thước chữ cho các tab trên desktop */
+        @media (min-width: 1024px) { /* lg breakpoint */
+            .tab-filter-button {
+                font-size: 1.125rem; /* text-lg */
+            }
         }
 
         .quiz-title-wrapper { 
@@ -104,11 +112,65 @@
         .multi-select-toggle-container {
             display: flex;
             align-items: center;
-            justify-content: flex-end;
-            margin-bottom: 1rem;
+            justify-content: flex-end; /* Căn phải mặc định */
             font-size: 0.875rem;
             color: #4b5563;
         }
+        /* THAY ĐỔI LỚN: Điều chỉnh bố cục tabs và toggle cho responsive */
+        .tabs-and-toggle-wrapper {
+            display: flex;
+            flex-wrap: wrap; /* Cho phép các mục xuống dòng */
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb; /* Đường kẻ dưới */
+            padding-bottom: 0.5rem; /* Khoảng cách với đường kẻ */
+            margin-bottom: 1rem; /* Khoảng cách với nội dung bên dưới */
+        }
+        .tab-group {
+            display: flex;
+            flex-grow: 1; /* Cho phép giãn ra để chiếm không gian */
+            min-width: 0; /* Cho phép co lại */
+            overflow: hidden; /* Ẩn phần bị tràn nếu quá nhỏ */
+        }
+        /* THAY ĐỔI: Sử dụng flex-grow cho các nút tab để chúng phân bổ đều và căn giữa */
+        .tab-filter-button {
+            flex-grow: 1;
+            flex-shrink: 0;
+            padding: 0.75rem 0.5rem;
+            text-align: center; /* Căn giữa văn bản */
+            white-space: nowrap;
+            font-size: 0.875rem; /* Mặc định cho desktop */
+        }
+        /* Media query cho màn hình nhỏ hơn (ví dụ: mobile) */
+        @media (max-width: 639px) {
+            .tab-filter-button {
+                font-size: 0.75rem;
+                padding: 0.5rem 0.25rem;
+            }
+            .multi-select-toggle-container {
+                width: 100%;
+                justify-content: flex-end;
+                margin-top: 0.5rem;
+            }
+            .tab-group {
+                width: 100%;
+            }
+        }
+        /* Media query cho màn hình trung bình và lớn (desktop) */
+        @media (min-width: 640px) {
+            .tabs-and-toggle-wrapper {
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+            }
+            .tab-group {
+                flex-grow: 1; /* Vẫn cho phép tab giãn ra để chiếm không gian trống */
+                margin-right: 1rem;
+                justify-content: space-between; /* Phân bố đều các tab */
+            }
+            .multi-select-toggle-container {
+                margin-left: auto;
+            }
+        }
+
         .multi-select-toggle {
             position: relative;
             display: inline-block;
@@ -192,18 +254,23 @@
             <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
                 <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ câu hỏi
             </h2>
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex space-x-4 border-b border-gray-200">
-                    <button id="filter-doing" class="tab-filter-button flex items-center p-2 {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing"><i class="fas fa-play-circle mr-2"></i> Đang làm</button>
-                    <button id="filter-explore" class="tab-filter-button flex items-center p-2 {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore"><i class="fas fa-globe mr-2"></i> Khám phá</button>
-                    <button id="filter-archive" class="tab-filter-button flex items-center p-2 {% if current_filter == 'archive' %}active{% endif %}" data-filter="archive"><i class="fas fa-archive mr-2"></i> Archive</button>
-                </div>
-                <div class="multi-select-toggle-container">
-                    <label for="multi-select-toggle-input">Chọn nhiều</label>
-                    <label class="multi-select-toggle">
-                        <input type="checkbox" id="multi-select-toggle-input">
-                        <span class="multi-select-slider"></span>
-                    </label>
+            <div class="mb-4">
+                {# THAY ĐỔI: Wrapper chung cho tabs và toggle để dễ dàng quản lý bố cục responsive #}
+                <div class="tabs-and-toggle-wrapper">
+                    {# Nhóm các tab lại với nhau #}
+                    <div class="tab-group">
+                        <button id="filter-doing" class="tab-filter-button flex items-center justify-center {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing"><i class="fas fa-play-circle mr-2"></i> Đang làm</button>
+                        <button id="filter-explore" class="tab-filter-button flex items-center justify-center {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore"><i class="fas fa-globe mr-2"></i> Khám phá</button>
+                        <button id="filter-archive" class="tab-filter-button flex items-center justify-center {% if current_filter == 'archive' %}active{% endif %}" data-filter="archive"><i class="fas fa-archive mr-2"></i> Archive</button>
+                    </div>
+                    {# Nút "Chọn nhiều" sẽ ở dưới các tab trên mobile, và bên phải trên desktop #}
+                    <div class="multi-select-toggle-container">
+                        <label for="multi-select-toggle-input" class="text-sm">Chọn nhiều</label>
+                        <label class="multi-select-toggle">
+                            <input type="checkbox" id="multi-select-toggle-input">
+                            <span class="multi-select-slider"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div id="selected-sets-display" class="selected-sets-container hidden">
