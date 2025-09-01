@@ -1,6 +1,6 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/quiz_learning/templates/quiz_learning_dashboard.html #}
-{# Phiên bản: 1.75 #}
+{# Phiên bản: 1.77 #}
 {# Mục đích: Giao diện chính để chọn bộ câu hỏi và chế độ học Quiz. #}
 {# ĐÃ SỬA: Tối ưu hóa lại bố cục responsive cho các tab và nút "Chọn nhiều", đảm bảo các tab chiếm full width khi nút "Chọn nhiều" xuống dòng trên màn hình nhỏ. #}
 {# ĐÃ SỬA: Cải thiện giao diện desktop để các tab được phân bố đều hơn, đồng thời chữ trong tab cũng to hơn và căn giữa để trông hài hòa hơn. #}
@@ -47,7 +47,7 @@
         /* THAY ĐỔI: Kích thước chữ cho các tab trên desktop */
         @media (min-width: 1024px) { /* lg breakpoint */
             .tab-filter-button {
-                font-size: 1.125rem; /* text-lg */
+                font-size: 1.25rem; /* text-xl */
             }
         }
 
@@ -131,7 +131,7 @@
             min-width: 0; /* Cho phép co lại */
             overflow: hidden; /* Ẩn phần bị tràn nếu quá nhỏ */
         }
-        /* THAY ĐỔI: Sử dụng flex-grow cho các nút tab để chúng phân bổ đều và căn giữa */
+        /* THAY ĐỔI: Sử dụng flex-grow cho các nút tab để chúng phân bổ đều */
         .tab-filter-button {
             flex-grow: 1;
             flex-shrink: 0;
