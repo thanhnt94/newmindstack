@@ -1,6 +1,7 @@
 # File: mindstack_app/modules/learning/quiz_learning/routes.py
-# Phiên bản: 1.10
+# Phiên bản: 1.11
 # Mục đích: Định nghĩa các routes và logic cho module học Quiz.
+# ĐÃ SỬA: Thêm route mới '/bulk_unarchive' để bỏ lưu trữ hàng loạt.
 # ĐÃ SỬA: Cập nhật các route 'start_quiz_session_all' và 'start_quiz_session_multi' để nhận batch_size là query parameter.
 # ĐÃ SỬA: Sửa lỗi last_accessed không cập nhật bằng cách gán trực tiếp func.now() vào trường.
 
@@ -404,3 +405,39 @@ def toggle_archive(set_id):
         db.session.rollback()
         current_app.logger.error(f"Lỗi khi toggle archive cho bộ quiz {set_id}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi thay đổi trạng thái lưu trữ.'}), 500
+
+@quiz_learning_bp.route('/bulk_unarchive', methods=['POST'])
+@login_required
+def bulk_unarchive():
+    """
+    Xử lý yêu cầu bỏ lưu trữ hàng loạt cho các bộ quiz đã chọn.
+    """
+    data = request.get_json()
+    set_ids = data.get('set_ids')
+    
+    if not set_ids or not isinstance(set_ids, list):
+        return jsonify({'success': False, 'message': 'Dữ liệu không hợp lệ.'}), 400
+
+    try:
+        updated_count = 0
+        for set_id in set_ids:
+            user_container_state = UserContainerState.query.filter_by(
+                user_id=current_user.user_id,
+                container_id=set_id
+            ).first()
+            if user_container_state and user_container_state.is_archived:
+                user_container_state.is_archived = False
+                updated_count += 1
+        
+        db.session.commit()
+        
+        if updated_count > 0:
+            flash(f'Đã bỏ lưu trữ thành công {updated_count} bộ quiz.', 'success')
+            return jsonify({'success': True, 'message': f'Đã bỏ lưu trữ thành công {updated_count} bộ quiz.'})
+        else:
+            return jsonify({'success': False, 'message': 'Không có bộ quiz nào được bỏ lưu trữ.'}), 400
+    
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Lỗi khi bỏ lưu trữ hàng loạt: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi xử lý yêu cầu.'}), 500

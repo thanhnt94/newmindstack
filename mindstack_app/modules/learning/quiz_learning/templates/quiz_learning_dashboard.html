@@ -1,12 +1,8 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/quiz_learning/templates/quiz_learning_dashboard.html #}
-{# Phiên bản: 1.77 #}
+{# Phiên bản: 1.93 #}
 {# Mục đích: Giao diện chính để chọn bộ câu hỏi và chế độ học Quiz. #}
-{# ĐÃ SỬA: Tối ưu hóa lại bố cục responsive cho các tab và nút "Chọn nhiều", đảm bảo các tab chiếm full width khi nút "Chọn nhiều" xuống dòng trên màn hình nhỏ. #}
-{# ĐÃ SỬA: Cải thiện giao diện desktop để các tab được phân bố đều hơn, đồng thời chữ trong tab cũng to hơn và căn giữa để trông hài hòa hơn. #}
-{# ĐÃ SỬA: Cập nhật logic JavaScript để lấy giá trị batch_size từ dropdown trực tiếp khi nhấn nút "Bắt đầu" #}
-{# ĐÃ SỬA: Sửa lỗi tạo URL với placeholder. #}
-{# ĐÃ SỬA: Sửa lỗi không cập nhật batch_size khi chuyển từ chế độ bộ đơn sang toàn bộ. #}
+{# ĐÃ SỬA: Khắc phục triệt để lỗi reset lựa chọn khi chuyển trang bằng cách cải thiện logic lưu/tải từ localStorage. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -44,13 +40,7 @@
             color: #6b7280;
             font-weight: 500;
         }
-        /* THAY ĐỔI: Kích thước chữ cho các tab trên desktop */
-        @media (min-width: 1024px) { /* lg breakpoint */
-            .tab-filter-button {
-                font-size: 1.25rem; /* text-xl */
-            }
-        }
-
+        
         .quiz-title-wrapper { 
             display: flex; 
             justify-content: center; 
@@ -109,36 +99,36 @@
             color: #3b82f6;
         }
         
-        .multi-select-toggle-container {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end; /* Căn phải mặc định */
-            font-size: 0.875rem;
-            color: #4b5563;
-        }
-        /* THAY ĐỔI LỚN: Điều chỉnh bố cục tabs và toggle cho responsive */
+        /* THAY ĐỔI: Xóa hoàn toàn nút "Chọn nhiều" và logic liên quan */
         .tabs-and-toggle-wrapper {
             display: flex;
-            flex-wrap: wrap; /* Cho phép các mục xuống dòng */
+            flex-wrap: nowrap;
             align-items: center;
-            border-bottom: 1px solid #e5e7eb; /* Đường kẻ dưới */
-            padding-bottom: 0.5rem; /* Khoảng cách với đường kẻ */
-            margin-bottom: 1rem; /* Khoảng cách với nội dung bên dưới */
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
         }
         .tab-group {
             display: flex;
-            flex-grow: 1; /* Cho phép giãn ra để chiếm không gian */
-            min-width: 0; /* Cho phép co lại */
-            overflow: hidden; /* Ẩn phần bị tràn nếu quá nhỏ */
+            flex-grow: 1;
+            min-width: 0;
+            overflow: hidden;
         }
-        /* THAY ĐỔI: Sử dụng flex-grow cho các nút tab để chúng phân bổ đều */
         .tab-filter-button {
             flex-grow: 1;
-            flex-shrink: 0;
+            flex-shrink: 1;
             padding: 0.75rem 0.5rem;
-            text-align: center; /* Căn giữa văn bản */
+            text-align: center;
             white-space: nowrap;
-            font-size: 0.875rem; /* Mặc định cho desktop */
+            font-size: 0.875rem;
+        }
+        .tab-filter-button i {
+            margin-right: 0.5rem;
+        }
+        .tab-filter-button span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         /* Media query cho màn hình nhỏ hơn (ví dụ: mobile) */
         @media (max-width: 639px) {
@@ -146,70 +136,15 @@
                 font-size: 0.75rem;
                 padding: 0.5rem 0.25rem;
             }
-            .multi-select-toggle-container {
-                width: 100%;
-                justify-content: flex-end;
-                margin-top: 0.5rem;
-            }
-            .tab-group {
-                width: 100%;
-            }
         }
         /* Media query cho màn hình trung bình và lớn (desktop) */
         @media (min-width: 640px) {
-            .tabs-and-toggle-wrapper {
-                flex-wrap: nowrap;
-                justify-content: flex-start;
-            }
             .tab-group {
-                flex-grow: 1; /* Vẫn cho phép tab giãn ra để chiếm không gian trống */
-                margin-right: 1rem;
-                justify-content: space-between; /* Phân bố đều các tab */
+                justify-content: space-between;
             }
-            .multi-select-toggle-container {
-                margin-left: auto;
+            .tab-filter-button {
+                font-size: 1rem;
             }
-        }
-
-        .multi-select-toggle {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 24px;
-            margin-left: 0.5rem;
-        }
-        .multi-select-toggle input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .multi-select-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 24px;
-        }
-        .multi-select-slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .multi-select-slider {
-            background-color: #2196F3;
-        }
-        input:checked + .multi-select-slider:before {
-            transform: translateX(16px);
         }
 
         .selected-sets-container {
@@ -255,21 +190,11 @@
                 <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ câu hỏi
             </h2>
             <div class="mb-4">
-                {# THAY ĐỔI: Wrapper chung cho tabs và toggle để dễ dàng quản lý bố cục responsive #}
                 <div class="tabs-and-toggle-wrapper">
-                    {# Nhóm các tab lại với nhau #}
                     <div class="tab-group">
-                        <button id="filter-doing" class="tab-filter-button flex items-center justify-center {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing"><i class="fas fa-play-circle mr-2"></i> Đang làm</button>
-                        <button id="filter-explore" class="tab-filter-button flex items-center justify-center {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore"><i class="fas fa-globe mr-2"></i> Khám phá</button>
-                        <button id="filter-archive" class="tab-filter-button flex items-center justify-center {% if current_filter == 'archive' %}active{% endif %}" data-filter="archive"><i class="fas fa-archive mr-2"></i> Archive</button>
-                    </div>
-                    {# Nút "Chọn nhiều" sẽ ở dưới các tab trên mobile, và bên phải trên desktop #}
-                    <div class="multi-select-toggle-container">
-                        <label for="multi-select-toggle-input" class="text-sm">Chọn nhiều</label>
-                        <label class="multi-select-toggle">
-                            <input type="checkbox" id="multi-select-toggle-input">
-                            <span class="multi-select-slider"></span>
-                        </label>
+                        <button id="filter-doing" class="tab-filter-button flex items-center justify-center {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang làm</span></button>
+                        <button id="filter-explore" class="tab-filter-button flex items-center justify-center {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
+                        <button id="filter-archive" class="tab-filter-button flex items-center justify-center {% if current_filter == 'archive' %}active{% endif %}" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
                     </div>
                 </div>
             </div>
@@ -285,7 +210,7 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+            <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
                 <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học
             </h2>
             <div id="quiz-modes-container" class="flex-grow">
@@ -298,8 +223,11 @@
     </div>
 
     <div class="mt-8 text-center">
-        <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" disabled>
+        <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
             <i class="fas fa-play-circle mr-3"></i> Bắt đầu làm bài
+        </button>
+        <button id="bulk-unarchive-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
+            <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
         </button>
     </div>
 </div>
@@ -319,17 +247,19 @@
     let doingPage = 1; let explorePage = 1; let archivePage = 1; let currentPage = (currentFilter === 'doing' ? doingPage : (currentFilter === 'explore' ? explorePage : archivePage));
     let currentSearchQuery = "{{ search_query | default('') }}";
     let currentSearchField = "{{ search_field | default('all') }}";
-    let isMultiSelectMode = false;
+    let isMultiSelectMode = true;
 
     const quizSetsContainer = document.getElementById('quiz-sets-container');
     const quizModesContainer = document.getElementById('quiz-modes-container');
     const startLearningBtn = document.getElementById('start-learning-btn');
-    const multiSelectToggleInput = document.getElementById('multi-select-toggle-input');
+    const bulkUnarchiveBtn = document.getElementById('bulk-unarchive-btn');
     const selectedSetsDisplay = document.getElementById('selected-sets-display');
-    {# Element cho nút "Làm tất cả các bộ" #}
+    const step2Title = document.getElementById('step-2-title');
+    
+    const rightPanel = document.querySelector('.lg\\:grid-cols-2 > div:nth-child(2)');
+
     let allSetsButton = null;
 
-    {# ==== URL ==== #}
     const quizModesPartialBaseUrlById = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_by_id', set_id=0) or '#' }}";
     const quizModesPartialBaseUrlAll = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_all') or '#' }}";
     const quizModesPartialBaseUrlMulti = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_multi', set_ids_str='0') or '#' }}";
@@ -339,28 +269,32 @@
     const getQuizSetsPartialUrl = "{{ url_for('learning.quiz_learning.get_quiz_sets_partial') or '#' }}";
     const saveQuizSettingsUrl = "{{ url_for('learning.quiz_learning.save_quiz_settings') }}";
     const toggleArchiveUrl = "{{ url_for('learning.quiz_learning.toggle_archive', set_id=0) or '#' }}";
+    const bulkUnarchiveUrl = "{{ url_for('learning.quiz_learning.bulk_unarchive') }}";
 
-    {# Hàm ẩn/hiện nút "Làm tất cả các bộ" #}
     function toggleAllSetsButtonVisibility() {
         if (!allSetsButton) {
             allSetsButton = document.querySelector('.quiz-set-item[data-set-id="all"]');
         }
         if (allSetsButton) {
-            allSetsButton.style.display = isMultiSelectMode ? 'none' : 'flex';
+            allSetsButton.style.display = (currentFilter === 'doing') ? 'flex' : 'none';
         }
     }
     
-    {# ==== AJAX: Tải danh sách bộ Quiz ==== #}
     async function loadQuizSets(page, searchQuery, searchField, filter) {
         console.log('loadQuizSets', page, searchQuery, searchField, filter);
         quizSetsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải danh sách bộ câu hỏi...</p></div>';
+        
+        // Load selected IDs from localStorage on initial load
+        if (localStorage.getItem('selectedQuizSetIds')) {
+            selectedQuizSetIds = JSON.parse(localStorage.getItem('selectedQuizSetIds'));
+        } else {
+            selectedQuizSetIds = [];
+        }
 
-        selectedQuizSetIds = [];
         selectedQuizSetId = null;
         updateSelectedSetsDisplay();
 
-        quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ câu hỏi trước.</p></div>';
-        updateStartButtonState();
+        updateActionButtons();
 
         if (!getQuizSetsPartialUrl || getQuizSetsPartialUrl === '#') {
             console.error('getQuizSetsPartialUrl không hợp lệ.');
@@ -373,6 +307,7 @@
             url.searchParams.append('q', searchQuery || '');
             url.searchParams.append('search_field', searchField || 'all');
             url.searchParams.append('filter', filter || 'doing');
+            url.searchParams.append('is_multi_select_mode', 'true');
 
             const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) { throw new Error('HTTP ' + response.status); }
@@ -384,7 +319,6 @@
             updateQuizSetProgressColors();
             syncMultiSelectionUI();
             
-            {# Gọi hàm để ẩn/hiện nút "Làm tất cả các bộ" sau khi tải nội dung #}
             toggleAllSetsButtonVisibility();
         } catch (e) {
             console.error('Lỗi loadQuizSets:', e);
@@ -392,20 +326,24 @@
         }
     }
 
-    {# ==== AJAX: Tải chế độ học ==== #}
     async function loadQuizModes(setId) {
         console.log('loadQuizModes ->', setId);
+        if (currentFilter === 'archive') { return; } 
         quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải chế độ học...</p></div>';
         try {
             let url;
             if (Array.isArray(setId)) {
                 if (setId.length === 0) {
                      quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ câu hỏi trước.</p></div>';
-                     updateStartButtonState();
+                     updateActionButtons();
                      return;
                 }
-                const setIdsStr = setId.join(',');
-                url = quizModesPartialBaseUrlMulti.replace('/0', '/' + setIdsStr);
+                if (setId.length === 1 && setId[0] === 'all') {
+                    url = quizModesPartialBaseUrlAll;
+                } else {
+                    const setIdsStr = setId.join(',');
+                    url = quizModesPartialBaseUrlMulti.replace('/0', '/' + setIdsStr);
+                }
             } else if (setId === 'all') {
                 url = quizModesPartialBaseUrlAll;
             } else {
@@ -428,7 +366,7 @@
                 sessionSizeSelect.value = selectedSessionSize;
                 sessionSizeSelect.addEventListener('change', async function(){
                     selectedSessionSize = parseInt(this.value);
-                    updateStartButtonState();
+                    updateActionButtons();
                     try {
                         const res = await fetch(saveQuizSettingsUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ batch_size: selectedSessionSize }) });
                         const js = await res.json();
@@ -440,12 +378,12 @@
             if (!selectedQuizMode) {
                 const available = Array.from(quizModesContainer.querySelectorAll('.quiz-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
                 if (available.length > 0) { available[0].click(); }
-                else { selectedQuizMode = null; updateStartButtonState(); }
+                else { selectedQuizMode = null; updateActionButtons(); }
             } else {
                 const prev = quizModesContainer.querySelector('[data-mode-id="' + selectedQuizMode + '"]');
                 if (prev && parseInt(prev.dataset.count) > 0) { prev.click(); }
                 else {
-                    selectedQuizMode = null; updateStartButtonState();
+                    selectedQuizMode = null; updateActionButtons();
                     const available2 = Array.from(quizModesContainer.querySelectorAll('.quiz-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
                     if (available2.length > 0) { available2[0].click(); }
                 }
@@ -456,7 +394,6 @@
         }
     }
 
-    {# Đồng bộ trạng thái UI của multi-selection sau khi tải DOM #}
     function syncMultiSelectionUI() {
         if (isMultiSelectMode) {
             document.querySelectorAll('.quiz-set-item').forEach(item => {
@@ -469,21 +406,40 @@
             });
             updateSelectedSetsDisplay();
         }
-        {# Cập nhật hiển thị nút 'Archive' #}
         document.querySelectorAll('.archive-icon').forEach(icon => {
-            icon.style.display = isMultiSelectMode ? 'none' : '';
+            icon.style.display = (currentFilter === 'doing' || currentFilter === 'explore') ? '' : 'none';
         });
     }
 
-    {# Cập nhật hiển thị các bộ đã chọn #}
     function updateSelectedSetsDisplay() {
         if (selectedQuizSetIds.length > 0) {
             selectedSetsDisplay.classList.remove('hidden');
             selectedSetsDisplay.innerHTML = `<span class="text-gray-500 mr-2">Bộ quiz đã chọn:</span>`;
+            
+            // Lấy thông tin chi tiết của các bộ đã chọn từ DOM hiện tại hoặc từ localStorage
+            const allSelectedItems = new Map();
+            document.querySelectorAll('.quiz-set-item').forEach(item => { // Lặp qua TẤT CẢ các item trên trang
+                const setId = item.dataset.setId;
+                if (selectedQuizSetIds.includes(setId)) {
+                     const title = item.querySelector('h3').textContent;
+                     allSelectedItems.set(setId, title);
+                }
+            });
+            
+            // Cải thiện logic để lấy thông tin từ localStorage nếu không có trên trang hiện tại
             selectedQuizSetIds.forEach(setId => {
-                const item = document.querySelector(`.quiz-set-item[data-set-id="${setId}"]`);
-                if (item) {
-                    const title = item.querySelector('h3').textContent;
+                let title;
+                if (allSelectedItems.has(setId)) {
+                    title = allSelectedItems.get(setId);
+                } else if (setId === 'all') {
+                    title = 'Làm tất cả các bộ';
+                } else {
+                    // Lấy title từ localStorage nếu có
+                    const storedTitles = JSON.parse(localStorage.getItem('selectedQuizSetTitles')) || {};
+                    title = storedTitles[setId] || setId; // Dùng ID làm fallback
+                }
+
+                if (title) {
                     const selectedItemHtml = `
                         <div class="selected-set-item" data-set-id="${setId}">
                             <span>${title}</span>
@@ -493,6 +449,7 @@
                     selectedSetsDisplay.insertAdjacentHTML('beforeend', selectedItemHtml);
                 }
             });
+            
         } else {
             selectedSetsDisplay.classList.add('hidden');
         }
@@ -506,64 +463,75 @@
         });
     }
 
-    {# Xử lý logic chọn một/chọn nhiều #}
     function handleQuizSetSelection(setId) {
+        // Clear selection if "all" is selected and a new item is clicked
+        if (setId !== 'all' && selectedQuizSetIds.includes('all')) {
+            const allButton = document.querySelector('.quiz-set-item[data-set-id="all"]');
+            if (allButton) {
+                allButton.classList.remove('selected-item');
+            }
+            selectedQuizSetIds = [];
+        }
+        // Clear selection if an item is selected and "all" is clicked
+        if (setId === 'all' && selectedQuizSetIds.some(id => id !== 'all')) {
+            document.querySelectorAll('.quiz-set-item.selected-item').forEach(el => el.classList.remove('selected-item'));
+            selectedQuizSetIds = [];
+        }
+
         const item = document.querySelector(`.quiz-set-item[data-set-id="${setId}"]`);
-        if (!item) return;
-
-        if (isMultiSelectMode) {
-            if (setId === 'all') {
-                {# Bỏ qua nút "Làm tất cả các bộ" khi multi-select được bật #}
-                return;
-            }
-
-            if (selectedQuizSetIds.includes(setId)) {
-                selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setId);
-                item.classList.remove('selected-item');
-            } else {
-                selectedQuizSetIds.push(setId);
-                item.classList.add('selected-item');
-            }
-
-            selectedQuizMode = null;
-            if (selectedQuizSetIds.length > 0) {
-                 {# Tải chế độ học cho toàn bộ các bộ đã chọn #}
-                loadQuizModes(selectedQuizSetIds);
-            } else {
-                quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ câu hỏi trước.</p></div>';
-            }
+        
+        if (selectedQuizSetIds.includes(setId)) {
+            selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setId);
+            if (item) item.classList.remove('selected-item');
         } else {
-            if (selectedQuizSetId === setId) {
-                selectedQuizSetId = null;
-                item.classList.remove('selected-item');
+            selectedQuizSetIds.push(setId);
+            if (item) item.classList.add('selected-item');
+        }
+        
+        // Cập nhật localStorage
+        localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
+        // Lấy và lưu title vào localStorage
+        const storedTitles = JSON.parse(localStorage.getItem('selectedQuizSetTitles')) || {};
+        if (item) {
+            storedTitles[setId] = item.querySelector('h3').textContent;
+        }
+        localStorage.setItem('selectedQuizSetTitles', JSON.stringify(storedTitles));
+
+
+        selectedQuizMode = null;
+        if (selectedQuizSetIds.length > 0 && currentFilter !== 'archive') {
+            loadQuizModes(selectedQuizSetIds);
+        } else {
+            if (currentFilter !== 'archive') {
                 quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ câu hỏi trước.</p></div>';
             } else {
-                document.querySelectorAll('.quiz-set-item').forEach(el => el.classList.remove('selected-item'));
-                selectedQuizSetId = setId;
-                item.classList.add('selected-item');
-                loadQuizModes(selectedQuizSetId);
+                updateStep2Content();
             }
         }
-        updateStartButtonState();
+        
+        updateActionButtons();
         updateSelectedSetsDisplay();
+        toggleAllSetsButtonVisibility();
     }
 
 
-    // ==== Listener: click chọn bộ Quiz ====
     function addQuizSetClickListeners() {
         document.querySelectorAll('.quiz-set-item').forEach(function(item){
             item.addEventListener('click', function(ev){
                 const totalItems = parseInt(this.dataset.totalItems);
-                if (totalItems === 0) { ev.preventDefault(); ev.stopPropagation(); return; }
+                if (currentFilter !== 'doing' && this.dataset.setId === 'all') { 
+                    ev.preventDefault(); ev.stopPropagation(); return; 
+                }
+                if (currentFilter !== 'archive' && totalItems === 0 && this.dataset.setId !== 'all') { 
+                    ev.preventDefault(); ev.stopPropagation(); return; 
+                }
                 const setId = this.dataset.setId;
                 handleQuizSetSelection(setId);
             });
         });
     }
 
-    // ==== Listener: click chọn chế độ học ====
     function addQuizModeClickListeners() {
-        // SỬA LỖI: Gắn event listener cho từng item thay vì chạy logic trực tiếp
         document.querySelectorAll('.quiz-mode-item').forEach(function(item){
             item.addEventListener('click', function(ev){
                 const modeCount = parseInt(this.dataset.count);
@@ -575,17 +543,18 @@
                 document.querySelectorAll('.quiz-mode-item').forEach(function(el){ el.classList.remove('selected-mode'); });
                 this.classList.add('selected-mode');
                 selectedQuizMode = this.dataset.modeId;
-                updateStartButtonState();
+                updateActionButtons();
             });
         });
     }
 
-    // ==== Listener: search + pagination trong partial danh sách ====
     function addPaginationAndSearchListeners() {
         const searchForm = quizSetsContainer.querySelector('form');
         if (searchForm) {
             searchForm.addEventListener('submit', function(e){
                 e.preventDefault();
+                // Save selected IDs to localStorage before leaving the page
+                localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
                 const data = new FormData(searchForm);
                 currentSearchQuery = data.get('q') || '';
                 currentSearchField = data.get('search_field') || 'all';
@@ -597,6 +566,8 @@
         document.querySelectorAll('.pagination a').forEach(function(a){
             a.addEventListener('click', function(e){
                 e.preventDefault();
+                // Save selected IDs to localStorage before leaving the page
+                localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
                 const url = new URL(this.href, window.location.origin);
                 const page = parseInt(url.searchParams.get('page')) || 1;
                 const q = url.searchParams.get('q') || '';
@@ -609,7 +580,6 @@
         });
     }
 
-    {# Listener cho icon Archive #}
     function addArchiveIconListeners() {
         document.querySelectorAll('.archive-icon').forEach(function(icon){
             icon.addEventListener('click', async function(event){
@@ -642,6 +612,10 @@
                                 this.querySelector('i').classList.add('text-gray-400');
                             }
                         }
+                        
+                        // Cập nhật lại danh sách ID đã chọn sau khi thay đổi trạng thái archive
+                        selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setId);
+                        localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
 
                         loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
 
@@ -658,27 +632,41 @@
         });
     }
 
-    // ==== Trạng thái nút bắt đầu ====
-    function updateStartButtonState() {
-        const selectedCount = isMultiSelectMode ? selectedQuizSetIds.length : (selectedQuizSetId ? 1 : 0);
+    function updateActionButtons() {
+        const selectedCount = selectedQuizSetIds.length;
         const isSelected = selectedCount > 0;
-        const modeAvailable = selectedQuizMode !== null;
 
-        const sessionSizeSelect = document.getElementById('session-size-select');
-        const isSessionSizeSelected = sessionSizeSelect && sessionSizeSelect.value;
-        
-        if (isSelected && modeAvailable && isSessionSizeSelected) {
-            startLearningBtn.disabled = false;
-            startLearningBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-            startLearningBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        if (currentFilter === 'archive') {
+            startLearningBtn.style.display = 'none';
+            bulkUnarchiveBtn.style.display = 'block';
+            if (isSelected) {
+                bulkUnarchiveBtn.disabled = false;
+                bulkUnarchiveBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                bulkUnarchiveBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                bulkUnarchiveBtn.disabled = true;
+                bulkUnarchiveBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                bulkUnarchiveBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            }
         } else {
-            startLearningBtn.disabled = true;
-            startLearningBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-            startLearningBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            bulkUnarchiveBtn.style.display = 'none';
+            startLearningBtn.style.display = 'block';
+            const modeAvailable = selectedQuizMode !== null;
+            const sessionSizeSelect = document.getElementById('session-size-select');
+            const isSessionSizeSelected = sessionSizeSelect && sessionSizeSelect.value;
+            
+            if (isSelected && modeAvailable && isSessionSizeSelected) {
+                startLearningBtn.disabled = false;
+                startLearningBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                startLearningBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                startLearningBtn.disabled = true;
+                startLearningBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                startLearningBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            }
         }
     }
 
-    // ==== Cập nhật màu chữ theo % ====
     function updateQuizSetProgressColors() {
         document.querySelectorAll('.quiz-set-item').forEach(function(item){
             const pct = parseInt(item.dataset.completionPercentage || '0');
@@ -686,35 +674,61 @@
             if (txt) { txt.style.color = (pct > 50 ? '#111' : '#333'); }
         });
     }
-
-    // ==== Nút bắt đầu ====
+    
+    // THAY ĐỔI: Thêm event listener cho nút Start để xóa localStorage
     startLearningBtn.addEventListener('click', function(){
         const currentBatchSize = document.getElementById('session-size-select').value;
         let startUrl;
-
-        if (isMultiSelectMode) {
-            if (selectedQuizSetIds.length > 0 && selectedQuizMode && currentBatchSize) {
-                const setIdsStr = selectedQuizSetIds.join(',');
+        
+        if (selectedQuizSetIds.length > 0 && selectedQuizMode && currentBatchSize) {
+            localStorage.removeItem('selectedQuizSetIds'); // Xóa localStorage khi bắt đầu phiên học
+            const setIdsStr = selectedQuizSetIds.join(',');
+            if (selectedQuizSetIds.length === 1 && selectedQuizSetIds[0] === 'all') {
+                startUrl = new URL(startQuizSessionBaseUrlAllTemplate.replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
+                startUrl.searchParams.append('batch_size', currentBatchSize);
+            } else if (selectedQuizSetIds.length === 1 && selectedQuizSetIds[0] !== 'all') {
+                startUrl = new URL(startQuizSessionBaseUrlByIdTemplate.replace('0', selectedQuizSetIds[0]).replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
+                startUrl.searchParams.append('batch_size', currentBatchSize);
+            } else {
                 startUrl = new URL(startQuizSessionBaseUrlMultiTemplate.replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
                 startUrl.searchParams.append('set_ids', setIdsStr);
                 startUrl.searchParams.append('batch_size', currentBatchSize);
-                window.location.href = startUrl.toString();
             }
-        } else {
-            if (selectedQuizSetId && selectedQuizMode && currentBatchSize) {
-                if (selectedQuizSetId === 'all') {
-                    startUrl = new URL(startQuizSessionBaseUrlAllTemplate.replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
-                    startUrl.searchParams.append('batch_size', currentBatchSize);
-                } else {
-                    startUrl = new URL(startQuizSessionBaseUrlByIdTemplate.replace('0', selectedQuizSetId).replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
-                    startUrl.searchParams.append('batch_size', currentBatchSize);
-                }
-                window.location.href = startUrl.toString();
+            window.location.href = startUrl.toString();
+        }
+    });
+    
+    // THAY ĐỔI: Thêm event listener cho nút Unarchive để xóa localStorage
+    bulkUnarchiveBtn.addEventListener('click', async function(){
+        if (selectedQuizSetIds.length === 0) {
+            window.showFlashMessage('Vui lòng chọn ít nhất một bộ quiz để bỏ lưu trữ.', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch(bulkUnarchiveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ set_ids: selectedQuizSetIds })
+            });
+
+            const result = await response.json();
+            if (response.ok && result.success) {
+                localStorage.removeItem('selectedQuizSetIds'); // Xóa localStorage sau khi bỏ lưu trữ
+                window.showFlashMessage(result.message, 'success');
+                loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+            } else {
+                window.showFlashMessage(result.message || 'Có lỗi xảy ra khi bỏ lưu trữ.', 'danger');
             }
+        } catch (e) {
+            console.error('Lỗi khi bỏ lưu trữ hàng loạt:', e);
+            window.showFlashMessage('Không thể kết nối đến máy chủ.', 'danger');
         }
     });
 
-    // ==== Chuyển tab Doing/Explore/Archive ====
     document.querySelectorAll('.tab-filter-button').forEach(function(button) {
         button.addEventListener('click', function() {
             const newFilter = this.dataset.filter;
@@ -733,36 +747,57 @@
                 });
                 this.classList.add('active');
 
+                isMultiSelectMode = true; 
+                
+                updateStep2Content();
+                
+                // Save selected IDs to localStorage before loading new page
+                localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
+
                 loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
             }
         });
     });
-
-    {# Xử lý toggle multi-selection #}
-    multiSelectToggleInput.addEventListener('change', function() {
-        isMultiSelectMode = this.checked;
-        selectedQuizSetId = null;
-        selectedQuizSetIds = [];
-        document.querySelectorAll('.quiz-set-item').forEach(item => item.classList.remove('selected-item'));
-        updateStartButtonState();
-        updateSelectedSetsDisplay();
-
-        document.querySelectorAll('.archive-icon').forEach(icon => {
-            icon.style.display = this.checked ? 'none' : '';
-        });
-
-        {# THAY ĐỔI: Ẩn/hiện nút "Làm tất cả các bộ" khi toggle thay đổi #}
-        toggleAllSetsButtonVisibility();
-
-        if (!this.checked) {
-            {# Khi tắt multi-selection, tải lại các chế độ học để quay về trạng thái ban đầu #}
-            quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ câu hỏi trước.</p></div>';
+    
+    function updateStep2Content() {
+        const isMobile = window.innerWidth < 640;
+        if (currentFilter === 'archive') {
+            rightPanel.style.display = isMobile ? 'none' : 'flex';
+            step2Title.innerHTML = `<i class="fas fa-info-circle mr-3 text-blue-500"></i> Bỏ lưu trữ`;
+            
+            if (!isMobile) {
+                quizModesContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-700 p-4">
+                        <p class="text-base text-center mb-4">
+                            Hãy chọn các bộ cần để bỏ lưu trữ trên giao diện.
+                        </p>
+                    </div>
+                `;
+            }
+        } else {
+            rightPanel.style.display = 'flex';
+            step2Title.innerHTML = `<i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học`;
+            quizModesContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                    <i class="fas fa-info-circle text-4xl mb-3"></i>
+                    <p>Vui lòng chọn một bộ câu hỏi trước.</p>
+                </div>
+            `;
         }
-    });
+    }
 
-    // ==== Khởi tạo ====
+
     document.addEventListener('DOMContentLoaded', function(){
+        isMultiSelectMode = true; 
+        updateStep2Content();
+        
         loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
     });
+    
+    // Xóa localStorage khi người dùng đóng/refresh trang
+    window.addEventListener('beforeunload', function() {
+        localStorage.removeItem('selectedQuizSetIds');
+    });
+
     </script>
 {% endblock %}

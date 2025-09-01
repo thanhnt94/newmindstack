@@ -28,7 +28,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Cấu hình phân trang
-    ITEMS_PER_PAGE = 12 # Số mục trên mỗi trang
+    ITEMS_PER_PAGE = 3 # Số mục trên mỗi trang
 
     # Cấu hình thư mục lưu trữ file tải lên (media)
     # Thư mục gốc cho tất cả các file tải lên

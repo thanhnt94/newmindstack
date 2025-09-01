@@ -8,7 +8,7 @@ class QuizLearningConfig:
     """
     Cấu hình cho module học Quiz.
     """
-    DEFAULT_ITEMS_PER_PAGE = 12 # Số mục mặc định trên mỗi trang cho Quiz
+    DEFAULT_ITEMS_PER_PAGE = 3 # Số mục mặc định trên mỗi trang cho Quiz
 
     # THÊM MỚI: Số câu hỏi mặc định trong một nhóm (batch) cho phiên học Quiz
     QUIZ_DEFAULT_BATCH_SIZE = 10 
