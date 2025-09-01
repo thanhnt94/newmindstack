@@ -1,99 +1,224 @@
 {% extends "base.html" %}
+{% from 'includes/_search_form.html' import render_search_form %}
 
 {% block title %}Dashboard{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+        }
+        .selected-item {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        }
+        .selected-mode {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        }
+        .start-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .tab-filter-button.active { 
+            border-bottom: 2px solid #3b82f6; 
+            color: #3b82f6; 
+        }
+        .tab-filter-button {
+            transition: all 0.2s ease-in-out;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .flashcard-title-wrapper { 
+            display: flex; 
+            justify-content: center; 
+            margin-bottom: 2rem; 
+            width: 100%;
+        }
+        .flashcard-title-badge {
+            width: 100%;
+            max-width: 100%;
+            background: #e0f2fe;
+            color: #1e3a8a;
+            font-size: 2rem;
+            font-weight: 800;
+            padding: 0.75rem 2.5rem;
+            border-radius: 9999px;
+            border: 2px solid #bfdbfe;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            text-shadow: none;
+            letter-spacing: 0.05em;
+            transition: all .3s ease;
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+        .flashcard-title-badge .fa-clone { 
+            margin-right: .75rem;
+            font-size: 2.25rem;
+        }
+        .flashcard-title-badge:hover { 
+            box-shadow: 0 6px 14px rgba(30,58,138,0.20);
+            border-color: #60a5fa;
+            transform: translateY(-2px);
+        }
+        
+        .flashcard-set-item {
+            position: relative;
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+        .flashcard-set-item:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05); transform: translateY(-2px); }
+
+        .archive-icon {
+            cursor: pointer;
+            color: #9ca3af;
+            transition: color 0.2s ease;
+        }
+        .archive-icon:hover {
+            color: #3b82f6;
+        }
+        .archived .archive-icon {
+            color: #3b82f6;
+        }
+        
+        .tabs-and-toggle-wrapper {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .tab-group {
+            display: flex;
+            flex-grow: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .tab-filter-button {
+            flex-grow: 1;
+            flex-shrink: 1;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            white-space: nowrap;
+            font-size: 0.875rem;
+        }
+        .tab-filter-button i {
+            margin-right: 0.5rem;
+        }
+        .tab-filter-button span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        @media (max-width: 639px) {
+            .tab-filter-button {
+                font-size: 0.75rem;
+                padding: 0.5rem 0.25rem;
+            }
+        }
+        @media (min-width: 640px) {
+            .tab-group {
+                justify-content: space-between;
+            }
+            .tab-filter-button {
+                font-size: 1rem;
+            }
+        }
+
+        .selected-sets-container {
+            margin-bottom: 1rem;
+            min-height: 2.5rem;
+            border-radius: 0.5rem;
+            background-color: #e5e7eb;
+            padding: 0.5rem;
+            color: #4b5563;
+            font-size: 0.875rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .selected-set-item {
+            background-color: #dbeafe;
+            color: #1e3a8a;
+            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 0.25rem;
+            display: inline-flex;
+            align-items: center;
+        }
+        .selected-set-item i {
+            margin-left: 0.5rem;
+            font-size: 0.6rem;
+            cursor: pointer;
+        }
+    </style>
+{% endblock %}
+
 {% block content %}
-<div class="flex flex-wrap -mx-4 gap-4">
-    <div class="w-full md:w-1/2 px-4">
-        <div class="bg-white h-full rounded-xl shadow-md border border-gray-200">
-            <div class="px-6 py-4 flex items-center bg-gray-50 border-b border-gray-200 rounded-t-xl">
-                <i class="fas fa-clone mr-2 text-blue-500"></i>
-                <h3 class="font-semibold text-lg">Bước 1: Chọn một bộ thẻ</h3>
+<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    <div class="flashcard-title-wrapper">
+        <div id="flashcardTitle" class="flashcard-title-badge"><i class="fas fa-clone"></i>Flashcard</div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
+        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ thẻ
+            </h2>
+            <div class="mb-4">
+                <div class="tabs-and-toggle-wrapper">
+                    <div class="tab-group">
+                        <button id="filter-doing" class="tab-filter-button flex items-center justify-center active" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang học</span></button>
+                        <button id="filter-explore" class="tab-filter-button flex items-center justify-center" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
+                        <button id="filter-archive" class="tab-filter-button flex items-center justify-center" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
+                    </div>
+                </div>
             </div>
-            <div class="p-6">
-                <div class="flex mb-4">
-                    <input type="text" class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tìm kiếm bộ thẻ...">
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300"><i class="fas fa-search"></i></button>
+            <div id="selected-sets-display" class="selected-sets-container hidden">
+                <span class="text-gray-500">Bộ thẻ đã chọn:</span>
+            </div>
+            <div id="flashcard-sets-container" class="flex-grow">
+                <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
+                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                    <p>Đang tải danh sách bộ thẻ...</p>
                 </div>
+            </div>
+        </div>
 
-                <div class="flex justify-between mb-4 space-x-2">
-                    <button class="flex-1 flex items-center justify-center px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition duration-300">
-                        <i class="fas fa-book-open mr-2"></i> Đang học
-                    </button>
-                    <button class="flex-1 flex items-center justify-center px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-300">
-                        <i class="fas fa-rocket mr-2"></i> Khám phá
-                    </button>
-                </div>
-
-                <h6 class="text-gray-500 mt-6">∞ Học tất cả các bộ</h6>
-                <div class="mt-4 border-t border-gray-200 divide-y divide-gray-200">
-                    <a href="#" class="block px-4 py-3 bg-gray-50 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
-                        <div>
-                            <p class="mb-0 font-bold">Tủ vựng TOEIC</p>
-                            <small class="text-gray-500">tạo bởi thanhnt</small>
-                        </div>
-                        <span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">701 / 1257</span>
-                    </a>
-                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
-                        <div>
-                            <p class="mb-0 font-bold">Động từ theo sau bởi V-ing và To-V</p>
-                            <small class="text-gray-500">tạo bởi thanhnt</small>
-                        </div>
-                        <span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">5 / 136</span>
-                    </a>
-                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
-                        <div>
-                            <p class="mb-0 font-bold">2136 Kanji</p>
-                            <small class="text-gray-500">tạo bởi thanhnt</small>
-                        </div>
-                        <span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">0 / 2215</span>
-                    </a>
-                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
-                        <div>
-                            <p class="mb-0 font-bold">Tủ vựng Mimi Kara Oboeru N1</p>
-                            <small class="text-gray-500">tạo bởi thanhnt</small>
-                        </div>
-                        <span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">0 / 1170</span>
-                    </a>
+        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+            <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học
+            </h2>
+            <div id="flashcard-modes-container" class="flex-grow">
+                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                    <i class="fas fa-info-circle text-4xl mb-3"></i>
+                    <p>Vui lòng chọn một bộ thẻ trước.</p>
                 </div>
             </div>
         </div>
     </div>
-    <div class="w-full md:w-1/2 px-4">
-        <div class="bg-white h-full rounded-xl shadow-md border border-gray-200">
-            <div class="px-6 py-4 flex items-center bg-gray-50 border-b border-gray-200 rounded-t-xl">
-                <i class="fas fa-cog mr-2 text-blue-500"></i>
-                <h3 class="font-semibold text-lg">Bước 2: Chọn chế độ học</h3>
-            </div>
-            <div class="p-6">
-                <div class="border-t border-gray-200 divide-y divide-gray-200">
-                    <a href="#" class="block px-4 py-3 bg-blue-50 text-blue-800 border-l-4 border-blue-500 flex justify-between items-center">
-                        Học tuần tự
-                        <i class="fas fa-check-circle text-green-500"></i>
-                    </a>
-                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
-                        Chỉ học mới
-                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">556</span>
-                    </a>
-                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
-                        Ôn tập tới hạn
-                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">602</span>
-                    </a>
-                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
-                        Ôn tập ngẫu nhiên
-                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">703</span>
-                    </a>
-                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
-                        Ôn tập từ khó
-                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">1223</span>
-                    </a>
-                    <a href="#" class="block px-4 py-3 hover:bg-gray-100 transition duration-200 flex justify-between items-center">
-                        Auto Play
-                        <span class="bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">703</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+
+    <div class="mt-8 text-center">
+        <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
+            <i class="fas fa-play-circle mr-3"></i> Bắt đầu học
+        </button>
+        <button id="bulk-unarchive-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
+            <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
+        </button>
     </div>
 </div>
 {% endblock %}
