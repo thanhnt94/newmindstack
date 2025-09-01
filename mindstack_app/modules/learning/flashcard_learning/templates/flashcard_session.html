@@ -1,13 +1,3 @@
-<!-- File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html -->
-<!-- Phiên bản: 1.4 -->
-<!-- Mục đích: Giao diện học Flashcard hiện đại, sử dụng bố cục hai cột. -->
-<!--           Cột trái chứa thẻ flashcard, cột phải chứa bảng thống kê chi tiết. -->
-<!--           Toàn bộ CSS được tích hợp để đảm bảo tính module hóa. -->
-<!-- ĐÃ SỬA: Thay đổi hoàn toàn cấu trúc HTML và CSS để đạt được giao diện bố cục hai cột. -->
-<!-- ĐÃ SỬA: Cải thiện thiết kế thẻ, nút bấm và bảng thống kê. -->
-<!-- ĐÃ SỬA: Tối ưu hiển thị hình ảnh và audio trong thẻ. -->
-<!-- ĐÃ SỬA: Cập nhật lại các hàm JavaScript để phù hợp với cấu trúc HTML mới. -->
-
 {% extends "base.html" %}
 
 {% block title %}Học Flashcard{% endblock %}
@@ -22,6 +12,12 @@
             font-family: 'Inter', sans-serif;
             background-color: #f9fafb; /* bg-gray-50 */
         }
+        
+        /* Đảm bảo bố cục toàn trang không có cuộn */
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
 
         /* Container chính cho bố cục 2 cột */
         .session-layout {
@@ -29,7 +25,9 @@
             grid-template-columns: 2fr 1fr;
             gap: 2rem;
             max-width: 1200px;
-            margin: auto;
+            margin: 0 auto; /* Đã sửa margin để căn giữa */
+            height: 100%;
+            padding-bottom: 2rem; /* Thêm padding dưới để tránh dính footer */
         }
 
         /* Phần Flashcard */
@@ -37,11 +35,13 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            flex-grow: 1; /* Thêm flex-grow để nó tự lấp đầy không gian */
         }
         .flashcard-card-container {
             perspective: 1000px;
             width: 100%;
-            height: 500px;
+            flex-grow: 1; /* Thẻ con cũng cần flex-grow để tự co giãn */
+            height: auto; /* Loại bỏ chiều cao cố định */
             position: relative;
         }
         .flashcard-card {
@@ -94,7 +94,7 @@
             margin-top: 1rem;
             border-radius: 0.5rem;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            cursor: zoom-in;
+            /* Đã xóa cursor: zoom-in; */
         }
         .flashcard-buttons {
             display: none;
@@ -130,6 +130,8 @@
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
             border: 1px solid #e5e7eb;
             padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
         }
         .stat-group h3 {
             font-size: 1.25rem;
@@ -182,16 +184,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+<div class="w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 h-full flex flex-col">
     <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center">
         Học Flashcard
         <span id="flashcard-progress" class="text-gray-500 text-xl"></span>
     </h1>
 
-    <div class="session-layout">
-        <!-- Cột trái: Flashcard và nút điều khiển -->
+    <div class="session-layout flex-grow">
         <div class="flex-1 flashcard-wrapper">
-            <div id="flashcard-content">
+            <div id="flashcard-content" class="flex-grow flex items-center justify-center">
                 <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
                     <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
                     <p>Đang tải thẻ...</p>
@@ -205,7 +206,6 @@
             </div>
         </div>
 
-        <!-- Cột phải: Thống kê phiên học -->
         <div class="flex-1 statistics-card">
             <div class="stat-group">
                 <h3>Tổng quan phiên học</h3>
@@ -264,12 +264,6 @@
     </div>
 </div>
 
-<div id="image-zoom-modal" class="image-modal-overlay">
-    <span class="image-modal-close">&times;</span>
-    <div class="image-modal-content">
-        <img id="image-zoom-display" src="" alt="Zoomed Image">
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -289,10 +283,6 @@
         const getFlashcardBatchUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
         const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
         const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
-
-        const imageZoomModal = document.getElementById('image-zoom-modal');
-        const imageZoomDisplay = document.getElementById('image-zoom-display');
-        const imageZoomCloseBtn = document.querySelector('.image-modal-close');
         
         function formatTextForHtml(text) {
             if (text === null || text === undefined) {
@@ -379,13 +369,6 @@
                 button.addEventListener('click', () => {
                     const answer = button.dataset.answer;
                     submitFlashcardAnswer(flashcardData.item_id, answer);
-                });
-            });
-
-            document.querySelectorAll('.quiz-image').forEach(image => {
-                image.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    openImageModal(this.src);
                 });
             });
         }
@@ -479,31 +462,6 @@
                 showCustomAlert('Có lỗi xảy ra khi gửi đáp án. Vui lòng thử lại.');
             }
         }
-
-        function openImageModal(imageUrl) {
-            imageZoomDisplay.src = imageUrl;
-            imageZoomModal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-
-            imageZoomDisplay.onload = () => {};
-            imageZoomDisplay.onerror = () => {
-                console.error("Lỗi tải ảnh trong modal zoom.");
-                closeImageModal();
-            };
-        }
-
-        function closeImageModal() {
-            imageZoomModal.style.display = 'none';
-            document.body.style.overflow = '';
-            imageZoomDisplay.src = '';
-        }
-
-        imageZoomCloseBtn.addEventListener('click', closeImageModal);
-        imageZoomModal.addEventListener('click', function(event) {
-            if (event.target === imageZoomModal || event.target === imageZoomCloseBtn) {
-                closeImageModal();
-            }
-        });
 
         endSessionBtn.addEventListener('click', async function(event) {
             showCustomConfirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?', async () => {
