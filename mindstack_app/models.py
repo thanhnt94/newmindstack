@@ -1,6 +1,8 @@
 # File: web/mindstack_app/models.py
 # Phiên bản: 12.4
 # ĐÃ SỬA: Thêm phương thức to_dict() vào UserContainerState để khắc phục lỗi AttributeError.
+# ĐÃ SỬA: Xóa cột memory_score và thêm các cột easiness_factor, repetitions, interval
+#         để hỗ trợ thuật toán lặp lại ngắt quãng SuperMemo-2 (SM-2) cho Flashcard.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -114,7 +116,9 @@ class UserProgress(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
     due_time = db.Column(db.DateTime(timezone=True))
-    memory_score = db.Column(db.Float, default=0)
+    easiness_factor = db.Column(db.Float, default=2.5) # THÊM MỚI: Hệ số dễ
+    repetitions = db.Column(db.Integer, default=0)       # THÊM MỚI: Số lần lặp lại
+    interval = db.Column(db.Integer, default=0)          # THÊM MỚI: Khoảng thời gian ôn tập
     last_reviewed = db.Column(db.DateTime(timezone=True))
     correct_streak = db.Column(db.Integer, default=0)
     incorrect_streak = db.Column(db.Integer, default=0)
@@ -193,4 +197,3 @@ class ApiKey(db.Model):
     is_exhausted = db.Column(db.Boolean, default=False)
     last_used_timestamp = db.Column(db.DateTime(timezone=True))
     notes = db.Column(db.Text)
-

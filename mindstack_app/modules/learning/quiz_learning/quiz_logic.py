@@ -9,6 +9,7 @@
 # ĐÃ SỬA: Đảm bảo trả về ký tự đáp án đúng cho frontend để highlight chính xác.
 # ĐÃ SỬA: Thêm import 'current_app' để khắc phục lỗi UndefinedVariable.
 # ĐÃ SỬA: Xóa dòng import vòng tròn 'from .quiz_logic import process_quiz_answer'.
+# ĐÃ DỌN DẸP: Xóa các logic không cần thiết cho Quiz để tập trung vào chức năng chính.
 
 from ....models import db, User, LearningItem, UserProgress, ScoreLog
 from sqlalchemy.sql import func
@@ -114,9 +115,7 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     # Nếu không rơi vào mastered/hard và không phải lần đầu, giữ nguyên trạng thái hiện tại hoặc learning
     # (Trạng thái learning đã được đặt khi tạo mới)
 
-    # 5. Các trường memory_score, due_time, vague_streak, times_vague không được cập nhật ở đây cho Quiz.
-
-    # 6. Ghi vào review_history
+    # 5. Ghi vào review_history
     review_entry = {
         'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'user_answer': user_answer_text, # Ký tự đáp án người dùng chọn
@@ -129,13 +128,13 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     progress.review_history.append(review_entry)
     flag_modified(progress, "review_history") # Đánh dấu trường JSON đã thay đổi
 
-    # 7. Cập nhật tổng điểm của người dùng
+    # 6. Cập nhật tổng điểm của người dùng
     user = User.query.get(user_id)
     if user:
         user.total_score = (user.total_score or 0) + score_change
     updated_total_score = user.total_score if user else current_user_total_score + score_change
 
-    # 8. Ghi log vào ScoreLog
+    # 7. Ghi log vào ScoreLog
     reason = "Quiz Correct Answer" if is_correct else "Quiz Incorrect Answer"
     if is_first_time:
         reason += " (First Time Bonus)"
@@ -148,7 +147,7 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     )
     db.session.add(new_score_log)
 
-    # 9. Commit các thay đổi vào cơ sở dữ liệu
+    # 8. Commit các thay đổi vào cơ sở dữ liệu
     db.session.commit()
 
     return score_change, updated_total_score, is_correct, correct_option_char, explanation

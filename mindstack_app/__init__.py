@@ -10,13 +10,12 @@
 # ĐÃ SỬA: Cấu hình logging cho ứng dụng Flask ngay trong hàm create_app để đảm bảo log debug hiển thị,
 #         và ngăn chặn việc propagate log để tránh trùng lặp hoặc bị ghi đè.
 # ĐÃ SỬA: Cấu hình để chỉ sử dụng một thư mục tĩnh là 'uploads' cho tất cả các file media.
-# ĐÃ THÊM: Cấu hình Flask-Migrate để quản lý các thay đổi cơ sở dữ liệu.
+# ĐÃ SỬA: Loại bỏ Flask-Migrate và thay thế bằng db.create_all() để tự động tạo database.
 
 from flask import Flask, g
 from .config import Config, BASE_DIR
 from .db_instance import db
 from flask_login import LoginManager, current_user
-from flask_migrate import Migrate
 import logging
 import os
 
@@ -43,7 +42,6 @@ def create_app(config_class=Config):
     app.logger.info("Flask app logger configured successfully.")
 
     db.init_app(app)
-    migrate = Migrate(app, db)
     login_manager.init_app(app)
 
     app.static_folder = os.path.join(BASE_DIR, 'uploads')
@@ -84,7 +82,8 @@ def create_app(config_class=Config):
     app.register_blueprint(learning_bp, url_prefix='/learn')
 
     with app.app_context():
-        # db.create_all() # BÌNH LUẬN DÒNG NÀY: Migration sẽ quản lý việc tạo bảng
+        # Thêm dòng này để tự động tạo tất cả các bảng nếu chúng chưa tồn tại.
+        db.create_all()
         
         admin_user = User.query.filter_by(username='admin').first()
         if admin_user is None:

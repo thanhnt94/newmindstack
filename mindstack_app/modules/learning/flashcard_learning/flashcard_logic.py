@@ -1,7 +1,9 @@
 # File: mindstack_app/modules/learning/flashcard_learning/flashcard_logic.py
-# Phiên bản: 1.0
+# Phiên bản: 1.3
 # Mục đích: Chứa logic nghiệp vụ để xử lý câu trả lời Flashcard, cập nhật tiến độ người dùng,
 #           tính điểm và ghi log điểm số. Sử dụng thuật toán Spaced Repetition (SuperMemo-2).
+# ĐÃ SỬA: Cập nhật logic khởi tạo UserProgress để thêm các trường hỗ trợ thuật toán SM-2 (easiness_factor, repetitions, interval).
+# ĐÃ SỬA: Khôi phục lại hàm process_flashcard_answer bị thiếu, gây ra lỗi ImportError.
 
 from ....models import db, User, LearningItem, UserProgress, ScoreLog
 from sqlalchemy.sql import func
