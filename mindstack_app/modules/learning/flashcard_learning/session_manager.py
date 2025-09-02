@@ -1,7 +1,9 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 1.1
+# Phiên bản: 1.3
 # Mục đích: Quản lý trạng thái của phiên học Flashcard hiện tại cho người dùng.
 # ĐÃ SỬA: Loại bỏ tham số batch_size để hỗ trợ mô hình 1 thẻ/lần.
+# ĐÃ SỬA: Cải thiện hàm get_next_batch để đảm bảo các trường 'front' và 'back' luôn tồn tại trong dữ liệu trả về.
+# ĐÃ SỬA: Cập nhật hàm _get_media_absolute_url để xử lý đường dẫn tệp không nhất quán, khắc phục lỗi 404.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
@@ -30,8 +32,8 @@ class FlashcardSessionManager:
         """
         self.user_id = user_id
         self.set_id = set_id
-        self.mode = mode
         # batch_size không cần thiết vì luôn là 1
+        self.mode = mode
         self.total_items_in_session = total_items_in_session
         self.processed_item_ids = processed_item_ids
         self.correct_answers = correct_answers
@@ -142,13 +144,20 @@ class FlashcardSessionManager:
     def _get_media_absolute_url(self, file_path):
         """
         Chuyển đổi đường dẫn file media tương đối thành URL tuyệt đối.
+        
+        Hàm này đã được cập nhật để xử lý các đường dẫn không nhất quán,
+        loại bỏ tiền tố 'media/flashcard/' không cần thiết.
         """
         if not file_path:
             return None
         
+        # Sửa lỗi: Nếu đường dẫn chứa tiền tố không cần thiết, hãy loại bỏ nó
+        # Dựa trên lỗi 404, đường dẫn có thể bị trùng lặp như /uploads/media/flashcard/...
+        cleaned_file_path = file_path.replace('media/flashcard/', '')
+        
         try:
-            full_url = url_for('static', filename=file_path)
-            current_app.logger.debug(f"Media URL - Gốc: '{file_path}', URL: '{full_url}'")
+            full_url = url_for('static', filename=cleaned_file_path)
+            current_app.logger.debug(f"Media URL - Gốc: '{file_path}', Đã dọn dẹp: '{cleaned_file_path}', URL: '{full_url}'")
             return full_url
         except Exception as e:
             current_app.logger.error(f"Lỗi khi tạo URL cho media '{file_path}': {e}")
@@ -202,7 +211,16 @@ class FlashcardSessionManager:
         for item in new_items_to_add_to_session:
             item_dict = {
                 'item_id': item.item_id,
-                'content': item.content,
+                'content': {
+                    'front': item.content.get('front', ''),
+                    'back': item.content.get('back', ''),
+                    'front_audio_content': item.content.get('front_audio_content', ''),
+                    'front_audio_url': item.content.get('front_audio_url', ''),
+                    'back_audio_content': item.content.get('back_audio_content', ''),
+                    'back_audio_url': item.content.get('back_audio_url', ''),
+                    'front_img': item.content.get('front_img', ''),
+                    'back_img': item.content.get('back_img', ''),
+                },
                 'ai_explanation': item.ai_explanation
             }
             # Xử lý URL media

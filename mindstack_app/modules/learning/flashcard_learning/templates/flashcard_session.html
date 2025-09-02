@@ -1,526 +1,186 @@
-{% extends "base.html" %}
+{# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
+{# Phiên bản: 3.1
+ - SỬA FLIP: xoay TỪNG MẶT (front/back) -> không bị mirror, không thấy lưng mặt trước
+ - .front: 0deg -> 180deg; .back: 180deg -> 360deg khi .flipped
+ - Giữ căn dọc, ảnh đáy có nút ×, nút trả lời trong thẻ, full-height
+#}
 
+{% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
 
 {% block head %}
-    {{ super() }}
-    <style>
-        /*
-         * Đã tích hợp CSS trực tiếp vào file HTML để module hóa.
-         */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f9fafb; /* bg-gray-50 */
-        }
-        
-        /* Đảm bảo bố cục toàn trang không có cuộn */
-        html, body {
-            height: 100%;
-            overflow: hidden;
-        }
+  {{ super() }}
+  <style>
+    body{ font-family:'Inter',sans-serif; background:#f9fafb; }
 
-        /* Container chính cho bố cục 2 cột */
-        .session-layout {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 2rem;
-            max-width: 1200px;
-            margin: 0 auto; /* Đã sửa margin để căn giữa */
-            height: 100%;
-            padding-bottom: 2rem; /* Thêm padding dưới để tránh dính footer */
-        }
+    /* ===== FULL HEIGHT giữa header & footer ===== */
+    .page-shell{ position:absolute; left:0; right:0; top:calc(var(--header-h,0px) + 16px); bottom:var(--footer-h,0px); display:flex; flex-direction:column; min-height:0; }
 
-        /* Phần Flashcard */
-        .flashcard-wrapper {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            flex-grow: 1; /* Thêm flex-grow để nó tự lấp đầy không gian */
-        }
-        .flashcard-card-container {
-            perspective: 1000px;
-            width: 100%;
-            flex-grow: 1; /* Thẻ con cũng cần flex-grow để tự co giãn */
-            height: auto; /* Loại bỏ chiều cao cố định */
-            position: relative;
-        }
-        .flashcard-card {
-            width: 100%;
-            height: 100%;
-            transform-style: preserve-3d;
-            transition: transform 0.6s;
-            position: relative;
-            background-color: #ffffff;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            border: 1px solid #e5e7eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 2rem;
-            box-sizing: border-box;
-            cursor: pointer;
-        }
-        .flashcard-card.flipped {
-            transform: rotateY(180deg);
-        }
-        .flashcard-front, .flashcard-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            backface-visibility: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            box-sizing: border-box;
-            word-wrap: break-word;
-            word-break: break-word;
-            overflow-y: auto;
-        }
-        .flashcard-back {
-            transform: rotateY(180deg);
-        }
-        .flashcard-content-text {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #1f2937;
-        }
-        .flashcard-media img, .flashcard-media audio {
-            max-width: 100%;
-            max-height: 250px;
-            margin-top: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            /* Đã xóa cursor: zoom-in; */
-        }
-        .flashcard-buttons {
-            display: none;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 2rem;
-        }
-        .flashcard-buttons.visible {
-            display: flex;
-        }
-        .feedback-button {
-            padding: 0.75rem 1.5rem;
-            border-radius: 9999px;
-            font-weight: 600;
-            color: #ffffff;
-            transition: all 0.2s;
-            cursor: pointer;
-            border: none;
-            flex: 1; /* Chia đều các nút */
-        }
-        .feedback-button:hover {
-            opacity: 0.8;
-        }
-        .button-again { background-color: #ef4444; }
-        .button-hard { background-color: #f59e0b; }
-        .button-medium { background-color: #3b82f6; }
-        .button-easy { background-color: #10b981; }
+    /* ===== Lưới ===== */
+    .session-layout{ height:calc(100% - var(--title-h, 0px) - 24px); display:grid; grid-template-columns:minmax(0,5fr) minmax(320px,2fr); gap:2rem; max-width:1680px; margin:0 auto; padding:0 2rem 1.5rem; align-items:stretch; min-height:0; }
+    @media (max-width:1024px){ .session-layout{ grid-template-columns:1fr; max-width:100%; padding:0 1rem 1rem; height:calc(100% - var(--title-h,0px) - 16px);} }
 
-        /* Phần thống kê */
-        .statistics-card {
-            background-color: #ffffff;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            border: 1px solid #e5e7eb;
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-        }
-        .stat-group h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1f2937;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-        }
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 1rem;
-            background-color: #f3f4f6;
-            border-radius: 0.5rem;
-        }
-        .stat-label {
-            font-size: 0.875rem;
-            color: #6b7280;
-            font-weight: 500;
-        }
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1f2937;
-        }
-        .stat-meta {
-            font-size: 0.75rem;
-            color: #9ca3af;
-        }
-        
-        @media (max-width: 768px) {
-            .session-layout {
-                grid-template-columns: 1fr;
-            }
-            .flashcard-card-container {
-                height: 400px;
-            }
-            .flashcard-content-text {
-                font-size: 1.25rem;
-            }
-        }
-    </style>
+    .flashcard-wrapper{ display:flex; flex-direction:column; height:100%; min-height:0; }
+    #flashcard-content{ flex:1 1 auto; min-height:0; }
+
+    /* ===== Thẻ: Flip 3D (xoay TỪNG MẶT) ===== */
+    .flashcard-card-container{ perspective:1200px; -webkit-perspective:1200px; width:100%; height:100%; }
+    .flashcard-card{ width:100%; height:100%; position:relative; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,.08); overflow:hidden; transform-style:preserve-3d; -webkit-transform-style:preserve-3d; cursor:pointer; }
+
+    .face{ position:absolute; inset:0; padding:12px 18px; display:flex; flex-direction:column; justify-content:center; gap:10px; min-height:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; transition: transform .6s; }
+    .front{ transform: rotateY(0deg); text-align:center; }
+    .back { transform: rotateY(180deg); }
+    /* Khi lật: xoay TỪNG MẶT để mặt hiển thị luôn đúng chiều */
+    .flashcard-card.flipped .front{ transform: rotateY(180deg); }
+    .flashcard-card.flipped .back { transform: rotateY(360deg); }
+
+    /* Thanh tiêu đề */
+    .card-toolbar{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; margin-bottom:.25rem; }
+    .card-toolbar .label{ text-transform:uppercase; text-align:center; font-weight:700; color:#6b7280; letter-spacing:.06em; }
+
+    /* Nội dung text (căn dọc giữa) */
+    .text-area{ flex:1 1 auto; min-height:0; overflow:auto; display:flex; align-items:center; }
+    .text-area>.flashcard-content-text{ width:100%; }
+    .front .text-area .flashcard-content-text{ text-align:center; font-size:2.2rem; font-weight:700; color:#1f2937; }
+    .back  .text-area .flashcard-content-text{ text-align:left; font-size:22px; line-height:1.5; color:#111827; white-space:pre-wrap; }
+
+    /* Ảnh/Âm thanh đáy thẻ (có nút ×) */
+    .image-popup{ flex:0 0 auto; max-height:40vh; display:flex; align-items:center; justify-content:center; background:#f8f9fa; border-top:1px solid #e5e7eb; padding:10px; position:relative; }
+    .image-popup.hidden{ display:none; }
+    .image-popup img, .image-popup audio{ max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; }
+    .image-close{ position:absolute; top:8px; left:8px; background:rgba(0,0,0,.55); color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-size:16px; line-height:28px; text-align:center; cursor:pointer; }
+
+    /* Nút đánh giá trong thẻ */
+    .actions{ display:none; gap:.75rem; justify-content:center; margin-top:.6rem; }
+    .actions.visible{ display:flex; }
+    .btn{ border:none; color:#fff; font-weight:700; padding:.75rem 1.2rem; border-radius:9999px; box-shadow:0 1px 2px rgba(0,0,0,.06); cursor:pointer; }
+    .btn-again{ background:#ef4444; } .btn-hard{ background:#f59e0b; } .btn-med{ background:#3b82f6; } .btn-easy{ background:#10b981; }
+
+    /* Ẩn cụm nút ngoài (đã move vào thẻ) */
+    #flashcard-buttons{ display:none !important; }
+
+    /* Thống kê */
+    .statistics-card{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,.08); padding:1.5rem; display:flex; flex-direction:column; height:100%; min-height:0; }
+  </style>
 {% endblock %}
 
 {% block content %}
-<div class="w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 h-full flex flex-col">
-    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center">
-        Học Flashcard
-        <span id="flashcard-progress" class="text-gray-500 text-xl"></span>
-    </h1>
-
-    <div class="session-layout flex-grow">
-        <div class="flex-1 flashcard-wrapper">
-            <div id="flashcard-content" class="flex-grow flex items-center justify-center">
-                <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
-                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                    <p>Đang tải thẻ...</p>
-                </div>
-            </div>
-            <div id="flashcard-buttons" class="flashcard-buttons">
-                <button class="feedback-button button-again" data-answer="again">Học lại</button>
-                <button class="feedback-button button-hard" data-answer="hard">Khó</button>
-                <button class="feedback-button button-medium" data-answer="medium">Bình thường</button>
-                <button class="feedback-button button-easy" data-answer="easy">Dễ</button>
-            </div>
-        </div>
-
-        <div class="flex-1 statistics-card">
-            <div class="stat-group">
-                <h3>Tổng quan phiên học</h3>
-                <div class="stat-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Tổng ôn</span>
-                        <span id="session-total-answered" class="stat-value">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Đúng</span>
-                        <span id="session-correct-count" class="stat-value text-green-600">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Sai</span>
-                        <span id="session-incorrect-count" class="stat-value text-red-600">0</span>
-                    </div>
-                </div>
-            </div>
-            <hr class="my-6">
-            <div id="flashcard-stats-area" class="stat-group" style="display: none;">
-                <h3>Tiến độ thẻ hiện tại</h3>
-                <div class="stat-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Trạng thái</span>
-                        <span id="stat-status" class="stat-value text-blue-600">new</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Lặp lại</span>
-                        <span id="stat-repetitions" class="stat-value">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Hệ số dễ</span>
-                        <span id="stat-easiness-factor" class="stat-value">2.5</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Khoảng cách</span>
-                        <span id="stat-interval" class="stat-value">0 ngày</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Xem lần cuối</span>
-                        <span id="stat-last-reviewed" class="stat-value">N/A</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Đến hạn tiếp theo</span>
-                        <span id="stat-due-time" class="stat-value">N/A</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mt-8 flex justify-center">
-                <button id="end-session-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300 transition duration-300 shadow-md flex items-center">
-                    <i class="fas fa-times-circle mr-2"></i> Kết thúc phiên
-                </button>
-            </div>
-        </div>
+<div class="page-shell">
+  <h1 class="page-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3 text-center">Học Flashcard <span id="flashcard-progress" class="text-gray-500 text-xl"></span></h1>
+  <div class="session-layout">
+    <!-- LEFT: Flashcard -->
+    <div class="flashcard-wrapper">
+      <div id="flashcard-content">
+        <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>
+      </div>
+      <div id="flashcard-buttons" class="mt-3"></div>
     </div>
-</div>
 
+    <!-- RIGHT: Statistics -->
+    <div class="statistics-card">
+      <div class="stat-group">
+        <h3 class="text-lg font-semibold text-center">Tổng quan phiên học</h3>
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          <div class="text-center bg-gray-100 rounded-md p-3"><div class="text-sm text-gray-500">Tổng ôn</div><div id="session-total-answered" class="text-2xl font-bold">0</div></div>
+          <div class="text-center bg-gray-100 rounded-md p-3"><div class="text-sm text-gray-500">Đúng</div><div id="session-correct-count" class="text-2xl font-bold text-green-600">0</div></div>
+          <div class="text-center bg-gray-100 rounded-md p-3 col-span-2"><div class="text-sm text-gray-500">Sai</div><div id="session-incorrect-count" class="text-2xl font-bold text-red-600">0</div></div>
+        </div>
+      </div>
+      <hr class="my-6">
+      <div class="mt-2 flex justify-center"><button id="end-session-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button></div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }}
-    <script>
-        let currentFlashcardBatch = [];
-        let currentFlashcardIndex = 0;
+  {{ super() }}
+  <script>
+    /* ===== Tính chiều cao header/footer/title để layout full-height ===== */
+    function updateFixedHeights(){
+      const header=document.querySelector('header'); const footer=document.querySelector('footer'); const title=document.querySelector('.page-title, h1');
+      const hh=header?header.offsetHeight:0, fh=footer?footer.offsetHeight:0; let th=0; if(title){const cs=getComputedStyle(title); th=title.offsetHeight+parseFloat(cs.marginTop||0)+parseFloat(cs.marginBottom||0);} 
+      document.documentElement.style.setProperty('--header-h', hh+'px'); document.documentElement.style.setProperty('--footer-h', fh+'px'); document.documentElement.style.setProperty('--title-h', th+'px');
+    }
+    window.addEventListener('load', updateFixedHeights); window.addEventListener('resize', updateFixedHeights); new ResizeObserver(updateFixedHeights).observe(document.body);
 
-        const flashcardContentDiv = document.getElementById('flashcard-content');
-        const flashcardProgressSpan = document.getElementById('flashcard-progress');
-        const endSessionBtn = document.getElementById('end-session-btn');
-        const flashcardStatsArea = document.getElementById('flashcard-stats-area');
-        const sessionTotalAnsweredSpan = document.getElementById('session-total-answered');
-        const sessionCorrectCountSpan = document.getElementById('session-correct-count');
-        const sessionIncorrectCountSpan = document.getElementById('session-incorrect-count');
+    /* ===== State ===== */
+    let currentFlashcardBatch=[]; let currentFlashcardIndex=0;
+    const flashcardContentDiv=document.getElementById('flashcard-content');
+    const flashcardProgressSpan=document.getElementById('flashcard-progress');
+    const endSessionBtn=document.getElementById('end-session-btn');
+    const sessionTotalAnsweredSpan=document.getElementById('session-total-answered');
+    const sessionCorrectCountSpan=document.getElementById('session-correct-count');
+    const sessionIncorrectCountSpan=document.getElementById('session-incorrect-count');
 
-        const getFlashcardBatchUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
-        const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
-        const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
-        
-        function formatTextForHtml(text) {
-            if (text === null || text === undefined) {
-                return '';
-            }
-            const tempDiv = document.createElement('div');
-            tempDiv.textContent = text;
-            return tempDiv.innerHTML.replace(/\r?\n/g, '<br>');
-        }
-        
-        function formatDateTime(isoString) {
-            if (!isoString) return 'N/A';
-            const date = new Date(isoString);
-            const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
-            return date.toLocaleDateString('vi-VN', options);
-        }
-        
-        function updateSessionSummary(correctCount, incorrectCount, totalAnswered) {
-            sessionCorrectCountSpan.textContent = correctCount;
-            sessionIncorrectCountSpan.textContent = incorrectCount;
-            sessionTotalAnsweredSpan.textContent = totalAnswered;
-        }
+    const getFlashcardBatchUrl="{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
+    const submitAnswerUrl="{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
+    const endSessionUrl="{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
 
-        function displayStatistics(stats) {
-            if (!stats) {
-                flashcardStatsArea.style.display = 'none';
-                return;
-            }
-            
-            document.getElementById('stat-status').textContent = stats.status;
-            document.getElementById('stat-repetitions').textContent = stats.repetitions;
-            document.getElementById('stat-easiness-factor').textContent = parseFloat(stats.easiness_factor).toFixed(2);
-            document.getElementById('stat-interval').textContent = stats.interval + " ngày";
-            document.getElementById('stat-last-reviewed').textContent = formatDateTime(stats.last_reviewed);
-            document.getElementById('stat-due-time').textContent = formatDateTime(stats.due_time);
-            flashcardStatsArea.style.display = 'block';
-        }
-        
-        function displayFlashcard(flashcardData, index, total) {
-            console.log(">>> Frontend: Hiển thị thẻ:", flashcardData);
-            flashcardProgressSpan.textContent = `(${index + 1} / ${total})`;
-            
-            const frontContent = formatTextForHtml(flashcardData.content.front);
-            const backContent = formatTextForHtml(flashcardData.content.back);
-            
-            const frontImageHtml = flashcardData.content.front_img ? `<img src="${flashcardData.content.front_img}" alt="Mặt trước" class="quiz-image" onerror="this.onerror=null;this.src='https://placehold.co/150x100?text=L%E1%BB%97i+t%E1%BA%A3i+%E1%BA%A3nh';">` : '';
-            const backImageHtml = flashcardData.content.back_img ? `<img src="${flashcardData.content.back_img}" alt="Mặt sau" class="quiz-image" onerror="this.onerror=null;this.src='https://placehold.co/150x100?text=L%E1%BB%97i+t%E1%BA%A3i+%E1%BA%A3nh';">` : '';
-            
-            const frontAudioHtml = flashcardData.content.front_audio_url ? `<audio controls src="${flashcardData.content.front_audio_url}" class="w-full mt-4" onerror="this.onerror=null;this.outerHTML='<p class=\'text-red-500\'>Lỗi tải âm thanh</p>';"></audio>` : '';
-            const backAudioHtml = flashcardData.content.back_audio_url ? `<audio controls src="${flashcardData.content.back_audio_url}" class="w-full mt-4" onerror="this.onerror=null;this.outerHTML='<p class=\'text-red-500\'>Lỗi tải âm thanh</p>';"></audio>` : '';
-            
-            const cardHtml = `
-                <div class="flashcard-card-container">
-                    <div id="flashcard-card" class="flashcard-card">
-                        <div class="flashcard-front">
-                            <p class="text-xs text-gray-500 mb-1">Mặt trước</p>
-                            <div class="flex-grow flex flex-col justify-center items-center w-full overflow-y-auto">
-                                <div class="flashcard-content-text">${frontContent}</div>
-                                <div class="flashcard-media">${frontImageHtml}${frontAudioHtml}</div>
-                            </div>
-                        </div>
-                        <div class="flashcard-back">
-                            <p class="text-xs text-gray-500 mb-1">Mặt sau</p>
-                            <div class="flex-grow flex flex-col justify-center items-center w-full overflow-y-auto">
-                                <div class="flashcard-content-text">${backContent}</div>
-                                <div class="flashcard-media">${backImageHtml}${backAudioHtml}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            flashcardContentDiv.innerHTML = cardHtml;
-            
-            const card = document.getElementById('flashcard-card');
-            const buttons = document.getElementById('flashcard-buttons');
-            
-            card.addEventListener('click', () => {
-                card.classList.toggle('flipped');
-                buttons.classList.add('visible');
-            });
-            
-            document.querySelectorAll('.feedback-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const answer = button.dataset.answer;
-                    submitFlashcardAnswer(flashcardData.item_id, answer);
-                });
-            });
-        }
-        
-        async function getNextFlashcardBatch() {
-            flashcardContentDiv.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
-                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                    <p>Đang tải thẻ...</p>
-                </div>
-            `;
-            flashcardStatsArea.style.display = 'none';
-            document.getElementById('flashcard-buttons').classList.remove('visible');
-            
-            try {
-                const response = await fetch(getFlashcardBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        const endMessage = await response.json();
-                        flashcardContentDiv.innerHTML = `
-                            <div class="text-center py-12 px-6 text-gray-600">
-                                <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
-                                <h3 class="text-xl font-semibold text-gray-700 mb-2">Hoàn thành phiên học!</h3>
-                                <p class="text-gray-500">${formatTextForHtml(endMessage.message)}</p>
-                                <button id="return-to-dashboard-btn" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 mt-6 flex items-center justify-center mx-auto">
-                                    <i class="fas fa-home mr-2"></i> Quay lại Dashboard
-                                </button>
-                            </div>
-                        `;
-                        flashcardProgressSpan.textContent = '';
-                        endSessionBtn.style.display = 'none';
-                        document.getElementById('return-to-dashboard-btn').addEventListener('click', function() {
-                            window.location.href = "{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}";
-                        });
-                        return;
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const batchData = await response.json();
-                currentFlashcardBatch = batchData.items;
-                currentFlashcardIndex = 0;
-                displayFlashcard(currentFlashcardBatch[currentFlashcardIndex], batchData.start_index, batchData.total_items_in_session);
-                
-                // Hiển thị thống kê lần đầu tiên nếu có
-                if (batchData.items[0].statistics) {
-                    displayStatistics(batchData.items[0].statistics);
-                } else {
-                    flashcardStatsArea.style.display = 'none';
-                }
-                updateSessionSummary(batchData.session_correct_answers, batchData.session_incorrect_answers, batchData.session_total_answered);
+    function formatTextForHtml(text){ if(text==null) return ''; const d=document.createElement('div'); d.textContent=text; return d.innerHTML.replace(/\r?\n/g,'<br>'); }
 
+    function updateSessionSummary(c,i,t){ sessionCorrectCountSpan.textContent=c; sessionIncorrectCountSpan.textContent=i; sessionTotalAnsweredSpan.textContent=t; }
 
-            } catch (error) {
-                console.error('Lỗi khi tải nhóm thẻ:', error);
-                flashcardContentDiv.innerHTML = `<p class="text-red-500 text-center">Không thể tải thẻ. Vui lòng thử lại.</p>`;
-            }
-        }
+    // Giảm cỡ chữ nếu tràn, tới min thì để cuộn
+    function adjustFontSize(){
+      const scrollArea=document.querySelector('.back .text-area'); const txt=document.querySelector('.back .flashcard-content-text'); const card=document.getElementById('flashcard-card');
+      if(!scrollArea||!txt||!card) return; txt.style.fontSize='';
+      const isOverflow=()=>scrollArea.scrollHeight>scrollArea.clientHeight; let current=parseFloat(getComputedStyle(txt).fontSize)||22; const min=18;
+      while(isOverflow() && current>min){ current-=1; txt.style.fontSize=current+'px'; }
+    }
 
-        async function submitFlashcardAnswer(itemId, answer) {
-            try {
-                const response = await fetch(submitAnswerUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ item_id: itemId, user_answer: answer })
-                });
+    function renderCard(data){
+      const c=data.content; const fTxt=c.front||'Không có nội dung'; const bTxt=c.back||'Không có nội dung';
+      const fImg=c.front_img?`<img src="${c.front_img}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';">`:'';
+      const bImg=c.back_img?`<img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';">`:'';
+      const fAud=c.front_audio_url?`<audio controls src="${c.front_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>`:'';
+      const bAud=c.back_audio_url?`<audio controls src="${c.back_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>`:'';
 
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const responseData = await response.json();
-                
-                // Hiển thị thống kê mới nhất
-                if (responseData.statistics) {
-                    displayStatistics(responseData.statistics);
-                } else {
-                    flashcardStatsArea.style.display = 'none';
-                }
-                
-                updateSessionSummary(responseData.session_correct_answers, responseData.session_incorrect_answers, responseData.session_total_answered);
+      const html=`
+      <div class="flashcard-card-container">
+        <div id="flashcard-card" class="flashcard-card">
+          <!-- FRONT -->
+          <div class="face front">
+            <div class="card-toolbar"><span></span><span class="label">MẶT TRƯỚC</span><span></span></div>
+            <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(fTxt)}</div></div>
+            <div class="image-popup ${(fImg||fAud)?'':'hidden'}" id="front-image">${fImg}${fAud}<button class="image-close" data-target="front-image">×</button></div>
+          </div>
+          <!-- BACK -->
+          <div class="face back">
+            <div class="card-toolbar"><span></span><span class="label">MẶT SAU</span><span></span></div>
+            <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div></div>
+            <div class="image-popup ${(bImg||bAud)?'':'hidden'}" id="back-image">${bImg}${bAud}<button class="image-close" data-target="back-image">×</button></div>
+            <div class="actions" id="internal-actions">
+              <button class="btn btn-again" data-answer="again">Học lại</button>
+              <button class="btn btn-hard"  data-answer="hard">Khó</button>
+              <button class="btn btn-med"   data-answer="medium">Bình thường</button>
+              <button class="btn btn-easy"  data-answer="easy">Dễ</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
 
-                // Chờ một chút trước khi chuyển sang thẻ tiếp theo
-                setTimeout(() => {
-                    currentFlashcardIndex++;
-                    if (currentFlashcardIndex < currentFlashcardBatch.length) {
-                        getNextFlashcardBatch();
-                    } else {
-                        getNextFlashcardBatch();
-                    }
-                }, 1500);
+      flashcardContentDiv.innerHTML=html;
 
-            } catch (error) {
-                console.error('Lỗi khi gửi đáp án thẻ:', error);
-                showCustomAlert('Có lỗi xảy ra khi gửi đáp án. Vui lòng thử lại.');
-            }
-        }
+      const card=document.getElementById('flashcard-card'); const actions=document.getElementById('internal-actions');
+      card.addEventListener('click',()=>{ card.classList.toggle('flipped'); actions?.classList.add('visible'); setTimeout(adjustFontSize,0); });
 
-        endSessionBtn.addEventListener('click', async function(event) {
-            showCustomConfirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?', async () => {
-                try {
-                    const response = await fetch(endSessionUrl, { method: 'POST' });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const result = await response.json();
-                    showFlashMessage(result.message, 'info');
-                    window.location.href = "{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}";
-                } catch (error) {
-                    console.error('Lỗi khi kết thúc phiên:', error);
-                    showFlashMessage('Có lỗi xảy ra khi kết thúc phiên. Vui lòng thử lại.', 'danger');
-                }
-            });
-        });
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            getNextFlashcardBatch();
-        });
-        
-        // Hàm hiển thị modal tùy chỉnh (thay thế alert và confirm)
-        function showCustomAlert(message) {
-            const modalHtml = `
-                <div id="custom-alert-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-                    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-                        <p class="text-lg font-semibold text-gray-800 mb-4">${formatTextForHtml(message)}</p>
-                        <button id="custom-alert-ok-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">OK</button>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            document.getElementById('custom-alert-ok-btn').addEventListener('click', () => {
-                document.getElementById('custom-alert-modal').remove();
-            });
-        }
-        
-        function showCustomConfirm(message, onConfirm, onCancel = null) {
-            const modalHtml = `
-                <div id="custom-confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-                    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-                        <p class="text-lg font-semibold text-gray-800 mb-4">${formatTextForHtml(message)}</p>
-                        <div class="flex justify-center space-x-4">
-                            <button id="custom-confirm-ok-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Xác nhận</button>
-                            <button id="custom-confirm-cancel-btn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">Hủy bỏ</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
+      document.querySelectorAll('.btn').forEach(b=> b.addEventListener('click',ev=>{ ev.stopPropagation(); submitFlashcardAnswer(data.item_id,b.dataset.answer); }));
+      document.querySelectorAll('.image-close').forEach(btn=> btn.addEventListener('click',ev=>{ ev.stopPropagation(); const id=btn.dataset.target; document.getElementById(id)?.classList.add('hidden'); setTimeout(adjustFontSize,200); }));
+      setTimeout(adjustFontSize,0);
+    }
 
-            document.getElementById('custom-confirm-ok-btn').addEventListener('click', () => {
-                document.getElementById('custom-confirm-modal').remove();
-                if (onConfirm) onConfirm();
-            });
+    async function getNextFlashcardBatch(){
+      flashcardContentDiv.innerHTML=`<div class=\"flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]\"><i class=\"fas fa-spinner fa-spin text-4xl mb-3\"></i><p>Đang tải thẻ...</p></div>`;
+      try{ const res=await fetch(getFlashcardBatchUrl,{headers:{'X-Requested-With':'XMLHttpRequest'}}); if(!res.ok){ if(res.status===404){ const end=await res.json(); flashcardContentDiv.innerHTML=`<div class=\"text-center py-12 text-gray-600\"><i class=\"fas fa-check-circle text-5xl text-green-500 mb-4\"></i><h3 class=\"text-xl font-semibold text-gray-700 mb-2\">Hoàn thành phiên học!</h3><p class=\"text-gray-500\">${formatTextForHtml(end.message)}</p></div>`; flashcardProgressSpan.textContent=''; endSessionBtn.style.display='none'; return;} throw new Error('HTTP '+res.status);} const batch=await res.json(); currentFlashcardBatch=batch.items; currentFlashcardIndex=0; renderCard(currentFlashcardBatch[currentFlashcardIndex]); updateSessionSummary(batch.session_correct_answers,batch.session_incorrect_answers,batch.session_total_answered);} catch(e){ console.error('Lỗi khi tải nhóm thẻ:',e); flashcardContentDiv.innerHTML=`<p class='text-red-500 text-center'>Không thể tải thẻ. Vui lòng thử lại.</p>`; }
+    }
 
-            document.getElementById('custom-confirm-cancel-btn').addEventListener('click', () => {
-                document.getElementById('custom-confirm-modal').remove();
-                if (onCancel) onCancel();
-            });
-        }
-    </script>
+    async function submitFlashcardAnswer(itemId,answer){
+      try{ const res=await fetch(submitAnswerUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ item_id:itemId, user_answer:answer })}); if(!res.ok) throw new Error('HTTP '+res.status); const data=await res.json(); updateSessionSummary(data.session_correct_answers,data.session_incorrect_answers,data.session_total_answered); setTimeout(()=>{ currentFlashcardIndex++; getNextFlashcardBatch(); }, 900);} catch(e){ console.error('Lỗi khi gửi đáp án:',e); alert('Có lỗi khi gửi đáp án. Vui lòng thử lại.'); }
+    }
+
+    endSessionBtn.addEventListener('click', async()=>{ if(!confirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?')) return; try{ const res=await fetch(endSessionUrl,{method:'POST'}); if(!res.ok) throw new Error('HTTP '+res.status); const r=await res.json(); alert(r.message||'Đã kết thúc phiên.'); window.location.href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}"; }catch(e){ alert('Có lỗi xảy ra khi kết thúc phiên.'); } });
+
+    document.addEventListener('DOMContentLoaded',()=>{ updateFixedHeights(); getNextFlashcardBatch(); });
+  </script>
 {% endblock %}
