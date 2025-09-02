@@ -1,9 +1,10 @@
 # File: mindstack_app/modules/learning/flashcard_learning/flashcard_logic.py
-# Phiên bản: 1.3
+# Phiên bản: 1.4
 # Mục đích: Chứa logic nghiệp vụ để xử lý câu trả lời Flashcard, cập nhật tiến độ người dùng,
 #           tính điểm và ghi log điểm số. Sử dụng thuật toán Spaced Repetition (SuperMemo-2).
-# ĐÃ SỬA: Cập nhật logic khởi tạo UserProgress để thêm các trường hỗ trợ thuật toán SM-2 (easiness_factor, repetitions, interval).
-# ĐÃ SỬA: Khôi phục lại hàm process_flashcard_answer bị thiếu, gây ra lỗi ImportError.
+# ĐÃ SỬA: Loại bỏ logic cập nhật các cột không cần thiết (streak, times_correct, times_incorrect, times_vague)
+#         và chỉ cập nhật review_history.
+# ĐÃ SỬA: Cập nhật logic tính điểm và trạng thái dựa trên thuật toán SM-2.
 
 from ....models import db, User, LearningItem, UserProgress, ScoreLog
 from sqlalchemy.sql import func
@@ -79,48 +80,39 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
             item_id=item_id,
             easiness_factor=2.5, # Khởi tạo Easiness Factor
             repetitions=0,
-            interval=0
+            interval=0,
+            status='new'
         )
         db.session.add(progress)
         progress.first_seen_timestamp = func.now()
-        progress.status = 'new'
-
-    # Cập nhật các chỉ số thống kê cơ bản
-    progress.last_reviewed = func.now()
-    is_correct = (user_answer_quality >= 3)
-    
-    if is_correct:
-        progress.times_correct = (progress.times_correct or 0) + 1
-        score_change += 10 # Điểm cơ bản cho câu trả lời đúng
-        if user_answer_quality == 5:
-            score_change += 10 # Thêm điểm thưởng cho câu trả lời hoàn hảo
-        progress.correct_streak = (progress.correct_streak or 0) + 1
-        progress.incorrect_streak = 0
-    elif user_answer_quality == 2:
-        progress.times_vague = (progress.times_vague or 0) + 1
-        progress.vague_streak = (progress.vague_streak or 0) + 1
-        progress.correct_streak = 0
-        progress.incorrect_streak = 0
-        score_change += 5 # Điểm cho câu trả lời mập mờ
-    else: # quality 0, 1
-        progress.times_incorrect = (progress.times_incorrect or 0) + 1
-        progress.incorrect_streak = (progress.incorrect_streak or 0) + 1
-        progress.correct_streak = 0
-        score_change -= 5 # Phạt điểm cho câu trả lời sai
 
     # Cập nhật thuật toán Spaced Repetition
+    progress.last_reviewed = func.now()
+    is_correct = (user_answer_quality >= 3)
     progress.due_time = calculate_next_review(progress, user_answer_quality)
+
+    # Tính điểm số dựa trên chất lượng trả lời
+    if user_answer_quality == 5:
+        score_change = 25
+    elif user_answer_quality == 4:
+        score_change = 15
+    elif user_answer_quality == 3:
+        score_change = 10
+    elif user_answer_quality == 2:
+        score_change = 5
+    else:
+        score_change = -5
 
     # Cập nhật trạng thái (status)
     if progress.status == 'new' and is_correct:
         progress.status = 'learning'
     elif progress.status == 'learning' and progress.repetitions > 2 and is_correct:
         progress.status = 'mastered'
-    elif progress.incorrect_streak > 2:
+    elif user_answer_quality <= 2 and progress.easiness_factor < 1.8: # Cập nhật trạng thái 'hard' dựa trên chất lượng trả lời và E-Factor
         progress.status = 'hard'
     elif progress.status == 'hard' and is_correct:
         progress.status = 'learning'
-
+    
     # Ghi vào review_history
     review_entry = {
         'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -141,7 +133,7 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     updated_total_score = user.total_score if user else current_user_total_score + score_change
 
     # Ghi log vào ScoreLog
-    reason = "Flashcard Correct Answer" if is_correct else "Flashcard Incorrect Answer"
+    reason = f"Flashcard Answer (Quality: {user_answer_quality})"
     new_score_log = ScoreLog(
         user_id=user_id,
         item_id=item_id,

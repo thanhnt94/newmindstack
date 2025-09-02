@@ -1,7 +1,8 @@
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 9.0 #}
-{# Mục đích: Giao diện học Flashcard được cải thiện để đẹp và trực quan hơn. #}
-{# ĐÃ SỬA: Khắc phục triệt để lỗi lật ngược các thành phần phụ trên mặt sau (tiêu đề, nút, ảnh). #}
+{# Phiên bản: 14.0 #}
+{# Mục đích: Khắc phục lỗi padding và cải thiện hiển thị thống kê. #}
+{# ĐÃ SỬA: Điều chỉnh CSS của .page-shell và .session-layout để cân bằng padding. #}
+{# ĐÃ SỬA: Cập nhật JavaScript để hiển thị điểm số thay đổi cho thẻ hiện tại. #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -19,22 +20,51 @@
         position: absolute;
         left: 0;
         right: 0;
-        top: calc(var(--header-h, 0px) + 16px);
+        top: var(--header-h, 0px);
         bottom: var(--footer-h, 0px);
         display: flex;
         flex-direction: column;
         min-height: 0;
+        padding-top: 1rem;
     }
 
+    @media (max-width: 1024px) {
+        .page-shell {
+            top: var(--header-h, 0px);
+            bottom: 0;
+            padding-top: 0;
+        }
+    }
+    
+    .page-title {
+        color: #1f2937;
+        margin-bottom: 2rem;
+        font-size: 2.25rem;
+        font-weight: 800;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .page-title .text-gray-500 {
+        font-size: 1.25rem;
+        margin-left: 0.5rem;
+        font-weight: 600;
+        text-transform: none;
+        letter-spacing: normal;
+    }
     /* ===== Lưới 2 cột cho session layout ===== */
     .session-layout {
-        height: calc(100% - var(--title-h, 0px) - 24px);
+        height: 100%;
         display: grid;
         grid-template-columns: minmax(0, 5fr) minmax(320px, 2fr);
         gap: 2rem;
         max-width: 1680px;
         margin: 0 auto;
-        padding: 0 2rem 1.5rem;
+        padding: 1.5rem 2rem 1.5rem 2rem;
         align-items: stretch;
         min-height: 0;
     }
@@ -43,8 +73,8 @@
         .session-layout {
             grid-template-columns: 1fr;
             max-width: 100%;
-            padding: 0 1rem 1rem;
-            height: calc(100% - var(--title-h, 0px) - 16px);
+            padding: 1rem;
+            height: 100%;
         }
     }
 
@@ -273,9 +303,7 @@
 
 {% block content %}
 <div class="page-shell">
-  <h1 class="page-title text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3 text-center">Ôn tập Flashcard <span id="flashcard-progress" class="text-gray-500 text-xl"></span></h1>
   <div class="session-layout">
-    <!-- LEFT: Flashcard -->
     <div class="flashcard-wrapper">
       <div id="flashcard-content">
         <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>
@@ -283,11 +311,9 @@
       <div id="flashcard-buttons" class="mt-3"></div>
     </div>
 
-    <!-- RIGHT: Statistics -->
     <div class="statistics-card">
-      <div class="stat-group">
-        <h3 class="text-lg font-semibold text-center text-gray-800">Tổng quan phiên học</h3>
-        <div class="grid grid-cols-2 gap-3 mt-3">
+        <h3 class="text-lg font-semibold text-center text-gray-800">Thống kê phiên học</h3>
+        <div class="grid grid-cols-2 gap-3 mt-4">
           <div class="text-center bg-gray-100 rounded-md p-3">
             <div class="text-sm text-gray-500">Tổng ôn</div>
             <div id="session-total-answered" class="text-2xl font-bold">0</div>
@@ -296,21 +322,32 @@
             <div class="text-sm text-gray-500">Đúng</div>
             <div id="session-correct-count" class="text-2xl font-bold text-green-600">0</div>
           </div>
-          <div class="text-center bg-gray-100 rounded-md p-3 col-span-2">
+          <div class="text-center bg-gray-100 rounded-md p-3">
             <div class="text-sm text-gray-500">Sai</div>
             <div id="session-incorrect-count" class="text-2xl font-bold text-red-600">0</div>
           </div>
+          <div class="text-center bg-gray-100 rounded-md p-3">
+            <div class="text-sm text-gray-500">Mập mờ</div>
+            <div id="session-vague-count" class="text-2xl font-bold text-yellow-600">0</div>
+          </div>
         </div>
-      </div>
-      <hr class="my-6">
-      <div class="mt-2 flex justify-center">
-        <button id="end-session-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button>
-      </div>
+
+        <hr class="my-6">
+        <h3 class="text-lg font-semibold text-center text-gray-800">Thống kê thẻ hiện tại</h3>
+        <div id="current-card-stats" class="mt-4 flex-grow space-y-4">
+            <div class="text-center text-gray-500">
+                <i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.
+            </div>
+        </div>
+
+        <hr class="my-6">
+        <div class="mt-2 flex justify-center">
+            <button id="end-session-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button>
+        </div>
     </div>
   </div>
 </div>
 
-<!-- Custom Modal -->
 <div id="endSessionModal" class="custom-modal-overlay">
   <div class="custom-modal-content">
     <p class="text-lg font-semibold text-gray-800 mb-4">Bạn có chắc chắn muốn kết thúc phiên học hiện tại?</p>
@@ -328,9 +365,10 @@
   <script>
     /* ===== Tính chiều cao header/footer/title để layout full-height ===== */
     function updateFixedHeights(){
-      const header=document.querySelector('header'); const footer=document.querySelector('footer'); const title=document.querySelector('.page-title, h1');
-      const hh=header?header.offsetHeight:0, fh=footer?footer.offsetHeight:0; let th=0; if(title){const cs=getComputedStyle(title); th=title.offsetHeight+parseFloat(cs.marginTop||0)+parseFloat(cs.marginBottom||0);} 
-      document.documentElement.style.setProperty('--header-h', hh+'px'); document.documentElement.style.setProperty('--footer-h', fh+'px'); document.documentElement.style.setProperty('--title-h', th+'px');
+      const header=document.querySelector('header'); const footer=document.querySelector('footer');
+      const hh=header?header.offsetHeight:0, fh=footer?footer.offsetHeight:0;
+      document.documentElement.style.setProperty('--header-h', hh+'px');
+      document.documentElement.style.setProperty('--footer-h', fh+'px');
     }
     window.addEventListener('load', updateFixedHeights); window.addEventListener('resize', updateFixedHeights); new ResizeObserver(updateFixedHeights).observe(document.body);
 
@@ -344,6 +382,8 @@
     const sessionTotalAnsweredSpan = document.getElementById('session-total-answered');
     const sessionCorrectCountSpan = document.getElementById('session-correct-count');
     const sessionIncorrectCountSpan = document.getElementById('session-incorrect-count');
+    const sessionVagueCountSpan = document.getElementById('session-vague-count');
+    const currentCardStatsDiv = document.getElementById('current-card-stats');
 
     const endSessionModal = document.getElementById('endSessionModal');
     const confirmEndSessionBtn = document.getElementById('confirmEndSessionBtn');
@@ -360,9 +400,10 @@
       return d.innerHTML.replace(/\r?\n/g,'<br>');
     }
 
-    function updateSessionSummary(c, i, t){
+    function updateSessionSummary(c, i, v, t){
       sessionCorrectCountSpan.textContent = c;
       sessionIncorrectCountSpan.textContent = i;
+      sessionVagueCountSpan.textContent = v;
       sessionTotalAnsweredSpan.textContent = t;
     }
 
@@ -393,7 +434,6 @@
       const html = `
       <div class="flashcard-card-container">
         <div id="flashcard-card" class="flashcard-card">
-          <!-- FRONT -->
           <div class="face front">
             <div class="card-toolbar"><span></span><span class="label">MẶT TRƯỚC</span><span></span></div>
             <div class="text-area">
@@ -401,7 +441,6 @@
             </div>
             <div class="media-container ${(fImg||fAud)?'':'hidden'}" id="front-media">${fImg}${fAud}<button class="media-close" data-target="front-media">×</button></div>
           </div>
-          <!-- BACK -->
           <div class="face back">
             <div class="card-toolbar"><span></span><span class="label">MẶT SAU</span><span></span></div>
             <div class="text-area">
@@ -446,8 +485,69 @@
       setTimeout(adjustFontSize, 0);
     }
 
+    function renderCardStats(stats, scoreChange) {
+        if (!stats) {
+            currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
+            return;
+        }
+        
+        const totalReviews = stats.total_reviews || 0;
+        const correctCount = stats.times_correct || 0;
+        const incorrectCount = stats.times_incorrect || 0;
+        const vagueCount = stats.times_vague || 0;
+
+        const dueTime = stats.due_time ? new Date(stats.due_time).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
+        
+        const scoreChangeColor = scoreChange > 0 ? 'text-green-600' : (scoreChange < 0 ? 'text-red-600' : 'text-gray-600');
+        const scoreChangeSign = scoreChange > 0 ? '+' : '';
+
+        let statsHtml = `
+            <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="bg-gray-100 rounded-md p-2">
+                    <div class="text-sm text-gray-500">Tổng ôn</div>
+                    <div class="text-xl font-bold">${totalReviews}</div>
+                </div>
+                <div class="bg-gray-100 rounded-md p-2">
+                    <div class="text-sm text-gray-500">Đúng</div>
+                    <div class="text-xl font-bold text-green-600">${correctCount}</div>
+                </div>
+                <div class="bg-gray-100 rounded-md p-2">
+                    <div class="text-sm text-gray-500">Sai</div>
+                    <div class="text-xl font-bold text-red-600">${incorrectCount}</div>
+                </div>
+                <div class="bg-gray-100 rounded-md p-2">
+                    <div class="text-sm text-gray-500">Mập mờ</div>
+                    <div class="text-xl font-bold text-yellow-600">${vagueCount}</div>
+                </div>
+            </div>
+            
+            <div class="mt-4 space-y-2">
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Điểm:</span>
+                    <span class="font-semibold text-right ${scoreChangeColor}">${scoreChangeSign}${scoreChange}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Trạng thái:</span>
+                    <span class="font-semibold text-right">${stats.status}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Lần cuối ôn:</span>
+                    <span class="font-semibold text-right">${new Date(stats.last_reviewed).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Đến hạn ôn lại:</span>
+                    <span class="font-semibold text-right">${dueTime}</span>
+                </div>
+            </div>
+        `;
+
+        currentCardStatsDiv.innerHTML = statsHtml;
+    }
+
     async function getNextFlashcardBatch(){
       flashcardContentDiv.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>`;
+      currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
+
       try {
         const res = await fetch(getFlashcardBatchUrl, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
         if (!res.ok) {
@@ -465,8 +565,6 @@
             document.getElementById('return-to-dashboard-btn').addEventListener('click', () => {
               window.location.href = "{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}";
             });
-            flashcardProgressSpan.textContent = '';
-            endSessionBtn.style.display = 'none';
             return;
           }
           throw new Error('HTTP ' + res.status);
@@ -475,7 +573,7 @@
         currentFlashcardBatch = batch.items;
         currentFlashcardIndex = 0;
         renderCard(currentFlashcardBatch[currentFlashcardIndex]);
-        updateSessionSummary(batch.session_correct_answers, batch.session_incorrect_answers, batch.session_total_answered);
+        updateSessionSummary(batch.session_correct_answers, batch.session_incorrect_answers, batch.session_vague_answers, batch.session_total_answered);
       } catch (e) {
         console.error('Lỗi khi tải nhóm thẻ:', e);
         flashcardContentDiv.innerHTML = `<p class='text-red-500 text-center'>Không thể tải thẻ. Vui lòng thử lại.</p>`;
@@ -491,7 +589,13 @@
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
-        updateSessionSummary(data.session_correct_answers, data.session_incorrect_answers, data.session_total_answered);
+        updateSessionSummary(data.session_correct_answers, data.session_incorrect_answers, data.session_vague_answers, data.session_total_answered);
+        
+        // Hiển thị thống kê cho thẻ vừa trả lời
+        if (data.statistics) {
+            renderCardStats(data.statistics, data.score_change);
+        }
+
         setTimeout(() => {
           currentFlashcardIndex++;
           getNextFlashcardBatch();

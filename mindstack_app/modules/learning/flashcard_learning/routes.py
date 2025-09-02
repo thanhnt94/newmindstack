@@ -1,8 +1,9 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 1.2
+# Phiên bản: 1.3
 # Mục đích: Định nghĩa các routes và logic cho module học Flashcard.
 # ĐÃ SỬA: Loại bỏ toàn bộ logic batch_size và cập nhật các route để phù hợp với mô hình 1 thẻ/lần.
 # ĐÃ SỬA: Xóa route lưu cài đặt flashcard vì không còn cần thiết.
+# ĐÃ SỬA: Cập nhật các routes get_flashcard_batch và submit_flashcard_answer để xử lý và trả về dữ liệu thống kê mới từ session manager.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
@@ -256,6 +257,7 @@ def submit_flashcard_answer():
         current_app.logger.error(f"Lỗi trong quá trình process_flashcard_answer: {result.get('error')}")
         return jsonify(result), 400
 
+    # Cập nhật session với dữ liệu mới từ session_manager
     session['flashcard_session'] = session_manager.to_dict()
 
     current_app.logger.debug("--- Kết thúc submit_flashcard_answer (Thành công) ---")

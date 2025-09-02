@@ -1,10 +1,11 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 1.4
+# Phiên bản: 1.5
 # Mục đích: Quản lý trạng thái của phiên học Flashcard hiện tại cho người dùng.
 # ĐÃ SỬA: Loại bỏ tham số batch_size để hỗ trợ mô hình 1 thẻ/lần.
 # ĐÃ SỬA: Cải thiện hàm get_next_batch để đảm bảo các trường 'front' và 'back' luôn tồn tại trong dữ liệu trả về.
 # ĐÃ SỬA: Cập nhật hàm _get_media_absolute_url để xử lý đường dẫn tệp không nhất quán, khắc phục lỗi 404.
 # ĐÃ SỬA: Cập nhật logic khởi tạo để không còn phụ thuộc vào batch_size.
+# ĐÃ SỬA: Cập nhật hàm process_flashcard_answer để xử lý dữ liệu thống kê mới trả về từ flashcard_logic.py
 
 from flask import session, current_app, url_for
 from flask_login import current_user
@@ -33,7 +34,6 @@ class FlashcardSessionManager:
         """
         self.user_id = user_id
         self.set_id = set_id
-        # batch_size không cần thiết vì luôn là 1
         self.mode = mode
         self.total_items_in_session = total_items_in_session
         self.processed_item_ids = processed_item_ids
@@ -273,12 +273,13 @@ class FlashcardSessionManager:
                 current_user_total_score=current_user_total_score
             )
             
-            if is_correct:
+            # Cập nhật số liệu thống kê phiên học dựa trên chất lượng trả lời
+            if user_answer_quality >= 3:
                 self.correct_answers += 1
-            elif user_answer == 'again':
-                self.incorrect_answers += 1
-            else:
+            elif user_answer_quality == 2:
                 self.vague_answers += 1
+            else:
+                self.incorrect_answers += 1
 
             session[self.SESSION_KEY] = self.to_dict()
             session.modified = True 
