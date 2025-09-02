@@ -1,11 +1,12 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 1.8
+# Phiên bản: 1.9
 # Mục đích: Định nghĩa các routes và logic cho module học Flashcard.
 # ĐÃ SỬA: Khắc phục lỗi trong submit_flashcard_answer và flashcard_session để hỗ trợ tùy chọn nút đánh giá.
 # ĐÃ SỬA: Cập nhật route `save_flashcard_settings` để lưu số nút đánh giá của người dùng.
 # ĐÃ SỬA: Cập nhật route `flashcard_learning_dashboard` để đọc và truyền số nút đánh giá của người dùng vào template.
 # ĐÃ SỬA: Thêm route mới get_flashcard_options_partial để load động các chế độ học và nút.
 # ĐÃ SỬA: Sửa lỗi TypeError trong session_manager.process_flashcard_answer.
+# ĐÃ THÊM: Logic ánh xạ linh hoạt cho các hệ thống nút đánh giá khác nhau.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
@@ -232,6 +233,7 @@ def submit_flashcard_answer():
                         is_favorite=False
                     )
                     db.session.add(user_container_state)
+                # SỬA LỖI: Sử dụng func.now() để cập nhật thời gian
                 user_container_state.last_accessed = func.now()
                 db.session.commit()
                 print(f">>> ROUTES: Đã cập nhật last_accessed cho bộ thẻ {s_id} <<<")
@@ -239,8 +241,19 @@ def submit_flashcard_answer():
                 db.session.rollback()
                 current_app.logger.error(f"Lỗi khi cập nhật last_accessed cho bộ thẻ {s_id}: {e}", exc_info=True)
 
-    # Lấy mapping từ user_answer sang quality, ví dụ cho 3 nút
-    quality_map = {'nhớ': 4, 'mơ_hồ': 2, 'quên': 1}
+    # THAY ĐỔI LỚN: Ánh xạ câu trả lời của người dùng sang điểm chất lượng SM-2
+    # Dựa trên số nút mà người dùng đã chọn
+    user_button_count = current_user.flashcard_button_count or 3
+    quality_map = {}
+    if user_button_count == 3:
+        quality_map = {'nhớ': 4, 'mơ_hồ': 2, 'quên': 1}
+    elif user_button_count == 4:
+        # Anki's buttons map to quality scores
+        quality_map = {'again': 1, 'hard': 3, 'good': 4, 'easy': 5}
+    elif user_button_count == 6:
+        # Full SM-2 buttons map to quality scores 0-5
+        quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'good': 3, 'easy': 4, 'very_easy': 5}
+    
     user_answer_quality = quality_map.get(user_answer, 0)
     
     result = session_manager.process_flashcard_answer(item_id, user_answer_quality)
@@ -251,8 +264,21 @@ def submit_flashcard_answer():
     # Cập nhật session với dữ liệu mới từ session_manager
     session['flashcard_session'] = session_manager.to_dict()
 
+    response_data = {
+        'success': True,
+        'score_change': result.get('score_change'),
+        'updated_total_score': result.get('updated_total_score'),
+        'is_correct': result.get('is_correct'),
+        'new_progress_status': result.get('new_progress_status'),
+        'statistics': result.get('statistics'),
+        'session_correct_answers': session_manager.correct_answers,
+        'session_incorrect_answers': session_manager.incorrect_answers,
+        'session_vague_answers': session_manager.vague_answers,
+        'session_total_answered': session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
+    }
+
     current_app.logger.debug("--- Kết thúc submit_flashcard_answer (Thành công) ---")
-    return jsonify(result)
+    return jsonify(response_data)
 
 
 @flashcard_learning_bp.route('/end_session_flashcard', methods=['POST'])

@@ -1,8 +1,9 @@
 # File: mindstack_app/modules/learning/flashcard_learning/flashcard_logic.py
-# Phiên bản: 1.6
+# Phiên bản: 1.7
 # Mục đích: Chứa logic nghiệp vụ để xử lý câu trả lời Flashcard, cập nhật tiến độ người dùng,
 #           tính điểm và ghi log điểm số. Sử dụng thuật toán Spaced Repetition (SuperMemo-2).
 # ĐÃ SỬA: Sửa tham số đầu vào của hàm process_flashcard_answer để nhận user_answer_quality.
+# ĐÃ THÊM: Logic tính toán điểm số và cập nhật trạng thái thẻ dựa trên các giá trị quality (0-5) từ các hệ thống Anki và Full SM-2.
 
 from ....models import db, User, LearningItem, UserProgress, ScoreLog
 from sqlalchemy.sql import func
@@ -16,12 +17,12 @@ def calculate_next_review(progress, quality):
     """
     Tính toán thời gian ôn tập tiếp theo và cập nhật hệ số E-Factor theo thuật toán SM-2.
     - quality (chất lượng câu trả lời):
-        5 = perfect response
-        4 = correct response, but with hesitation
-        3 = correct but difficult to recall
-        2 = incorrect response, but was easily remembered after seeing the correct answer
-        1 = incorrect response, but was remembered after some difficulty
-        0 = completely incorrect response
+        5 = perfect response (Dễ)
+        4 = correct response, but with hesitation (Tốt)
+        3 = correct but difficult to recall (Khó)
+        2 = incorrect response, but was easily remembered after seeing the correct answer (Mơ hồ)
+        1 = incorrect response, but was remembered after some difficulty (Quên)
+        0 = completely incorrect response (Rất khó)
     """
     if quality >= 3:
         if progress.repetitions == 0:

@@ -1,7 +1,8 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 1.6
+# Phiên bản: 1.7
 # Mục đích: Quản lý trạng thái của phiên học Flashcard hiện tại cho người dùng.
 # ĐÃ SỬA: Sửa lỗi TypeError bằng cách gọi hàm process_flashcard_answer trong flashcard_logic.py với tham số user_answer.
+# ĐÃ THÊM: Cập nhật logic xử lý câu trả lời để hỗ trợ các hệ thống nút đánh giá khác nhau.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
@@ -251,19 +252,30 @@ class FlashcardSessionManager:
     def process_flashcard_answer(self, item_id, user_answer):
         """
         Xử lý một câu trả lời của người dùng cho một thẻ flashcard.
+        Args:
+            item_id (int): ID của thẻ.
+            user_answer (str): Chuỗi đại diện cho nút mà người dùng đã bấm.
         """
         print(f">>> SESSION_MANAGER: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer={user_answer} <<<")
         current_app.logger.debug(f"SessionManager: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer={user_answer}")
-
-        # THÊM MỚI: Ánh xạ câu trả lời của người dùng sang điểm chất lượng SM-2
-        quality_map = {'nhớ': 4, 'mơ_hồ': 2, 'quên': 1, 'again': 1, 'hard': 3, 'good': 4, 'easy': 5, 'fail': 0}
-        user_answer_quality = quality_map.get(user_answer, 0) # Mặc định là 0 nếu không tìm thấy
 
         try:
             current_user_obj = User.query.get(self.user_id)
             current_user_total_score = current_user_obj.total_score if current_user_obj else 0
 
-            # SỬA LỖI: Gọi hàm process_flashcard_answer với tham số đúng
+            # THAY ĐỔI: Chuyển logic ánh xạ từ route sang đây để dễ quản lý hơn.
+            # Dựa trên số nút mà người dùng đã chọn
+            user_button_count = current_user.flashcard_button_count or 3
+            quality_map = {}
+            if user_button_count == 3:
+                quality_map = {'nhớ': 4, 'mơ_hồ': 2, 'quên': 1}
+            elif user_button_count == 4:
+                quality_map = {'again': 1, 'hard': 3, 'good': 4, 'easy': 5}
+            elif user_button_count == 6:
+                quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'good': 3, 'easy': 4, 'very_easy': 5}
+            
+            user_answer_quality = quality_map.get(user_answer, 0)
+            
             score_change, updated_total_score, is_correct, new_progress_status, item_stats = process_flashcard_answer(
                 user_id=self.user_id,
                 item_id=item_id,
@@ -271,8 +283,7 @@ class FlashcardSessionManager:
                 current_user_total_score=current_user_total_score
             )
             
-            # Cập nhật số liệu thống kê phiên học dựa trên chất lượng trả lời
-            if user_answer_quality >= 3:
+            if is_correct:
                 self.correct_answers += 1
             elif user_answer_quality == 2:
                 self.vague_answers += 1
@@ -289,7 +300,12 @@ class FlashcardSessionManager:
                 'updated_total_score': updated_total_score,
                 'is_correct': is_correct,
                 'new_progress_status': new_progress_status,
-                'statistics': item_stats
+                'statistics': item_stats,
+                # THÊM MỚI: Trả về số liệu thống kê phiên học để cập nhật giao diện
+                'session_correct_answers': self.correct_answers,
+                'session_incorrect_answers': self.incorrect_answers,
+                'session_vague_answers': self.vague_answers,
+                'session_total_answered': self.correct_answers + self.incorrect_answers + self.vague_answers
             }
 
         except Exception as e:

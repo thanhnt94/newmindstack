@@ -1,8 +1,9 @@
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 15.0 #}
-{# Mục đích: Cập nhật giao diện để hiển thị 3 nút đánh giá Flashcard mặc định theo yêu cầu. #}
+{# Phiên bản: 16.0 #}
+{# Mục đích: Cập nhật giao diện và logic JavaScript để hiển thị các nút đánh giá Flashcard tùy theo cài đặt của người dùng (3, 4 hoặc 6 nút). #}
 {# ĐÃ SỬA: Thay thế 4 nút đánh giá (Học lại, Khó, Bình thường, Dễ) bằng 3 nút mới (Quên, Mơ hồ, Nhớ). #}
 {# ĐÃ SỬA: Cập nhật logic JavaScript để gửi đúng giá trị mới đến backend. #}
+{# ĐÃ SỬA: Cập nhật các nút đánh giá và thống kê để hỗ trợ 3, 4, và 6 nút. #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -254,9 +255,18 @@
         cursor: pointer;
     }
 
-    .btn-quên { background: #ef4444; }
-    .btn-mơ-hồ { background: #f59e0b; }
-    .btn-nhớ { background: #10b981; }
+    /* Màu sắc cho các nút khác nhau */
+    .btn-quality-0, .btn-quality-1 { background: #ef4444; } /* Red */
+    .btn-quality-2 { background: #f59e0b; } /* Amber */
+    .btn-quality-3 { background: #3b82f6; } /* Blue */
+    .btn-quality-4 { background: #10b981; } /* Green */
+    .btn-quality-5 { background: #22c55e; } /* Deeper Green */
+    
+    /* Màu sắc thống kê */
+    .stat-incorrect { color: #ef4444; }
+    .stat-vague { color: #f59e0b; }
+    .stat-correct { color: #10b981; }
+    .stat-very-correct { color: #22c55e; }
 
     /* Ẩn cụm nút ngoài (đã move vào thẻ) */
     #flashcard-buttons {
@@ -312,18 +322,18 @@
 
     <div class="statistics-card">
         <h3 class="text-lg font-semibold text-center text-gray-800">Thống kê phiên học</h3>
-        <div class="grid grid-cols-3 gap-3 mt-4">
+        <div id="session-stats-container" class="grid grid-cols-3 gap-3 mt-4">
           <div class="text-center bg-gray-100 rounded-md p-3">
             <div class="text-sm text-gray-500">Quên</div>
-            <div id="session-incorrect-count" class="text-2xl font-bold text-red-600">0</div>
+            <div id="session-incorrect-count" class="text-2xl font-bold stat-incorrect">0</div>
           </div>
           <div class="text-center bg-gray-100 rounded-md p-3">
             <div class="text-sm text-gray-500">Mơ hồ</div>
-            <div id="session-vague-count" class="text-2xl font-bold text-yellow-600">0</div>
+            <div id="session-vague-count" class="text-2xl font-bold stat-vague">0</div>
           </div>
           <div class="text-center bg-gray-100 rounded-md p-3">
             <div class="text-sm text-gray-500">Nhớ</div>
-            <div id="session-correct-count" class="text-2xl font-bold text-green-600">0</div>
+            <div id="session-correct-count" class="text-2xl font-bold stat-correct">0</div>
           </div>
         </div>
         <div class="text-center bg-gray-100 rounded-md p-3 mt-3">
@@ -387,6 +397,9 @@
     const endSessionModal = document.getElementById('endSessionModal');
     const confirmEndSessionBtn = document.getElementById('confirmEndSessionBtn');
     const cancelEndSessionBtn = document.getElementById('cancelEndSessionBtn');
+    
+    // THÊM MỚI: Biến lưu số nút đánh giá của người dùng
+    const userButtonCount = parseInt("{{ user_button_count | default(3) }}");
 
     const getFlashcardBatchUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
     const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
@@ -405,7 +418,36 @@
       sessionVagueCountSpan.textContent = v;
       sessionTotalAnsweredSpan.textContent = t;
     }
-
+    
+    // THÊM MỚI: Cập nhật hàm để tạo các nút đánh giá động
+    function createRatingButtons(userButtonCount) {
+        let buttons = [];
+        if (userButtonCount === 3) {
+            buttons = [
+                { label: 'Quên', class: 'btn-quality-1', answer: 'quên' },
+                { label: 'Mơ hồ', class: 'btn-quality-2', answer: 'mơ_hồ' },
+                { label: 'Nhớ', class: 'btn-quality-4', answer: 'nhớ' }
+            ];
+        } else if (userButtonCount === 4) {
+            buttons = [
+                { label: 'Again', class: 'btn-quality-1', answer: 'again' },
+                { label: 'Hard', class: 'btn-quality-3', answer: 'hard' },
+                { label: 'Good', class: 'btn-quality-4', answer: 'good' },
+                { label: 'Easy', class: 'btn-quality-5', answer: 'easy' }
+            ];
+        } else if (userButtonCount === 6) {
+            buttons = [
+                { label: 'Fail', class: 'btn-quality-0', answer: 'fail' },
+                { label: 'Very Hard', class: 'btn-quality-1', answer: 'very_hard' },
+                { label: 'Hard', class: 'btn-quality-2', answer: 'hard' },
+                { label: 'Good', class: 'btn-quality-3', answer: 'good' },
+                { label: 'Easy', class: 'btn-quality-4', answer: 'easy' },
+                { label: 'Very Easy', class: 'btn-quality-5', answer: 'very_easy' }
+            ];
+        }
+        return buttons;
+    }
+    
     function adjustFontSize(){
       const scrollArea = document.querySelector('.back .text-area');
       const txt = document.querySelector('.back .flashcard-content-text');
@@ -429,6 +471,9 @@
       const bImg = c.back_img ? `<img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';">` : '';
       const fAud = c.front_audio_url ? `<audio controls src="${c.front_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>` : '';
       const bAud = c.back_audio_url ? `<audio controls src="${c.back_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>` : '';
+      
+      const buttons = createRatingButtons(userButtonCount);
+      const buttonHtml = buttons.map(btn => `<button class="btn ${btn.class}" data-answer="${btn.answer}">${btn.label}</button>`).join('');
 
       const html = `
       <div class="flashcard-card-container">
@@ -447,9 +492,7 @@
             </div>
             <div class="media-container ${(bImg||bAud)?'':'hidden'}" id="back-media">${bImg}${bAud}<button class="media-close" data-target="back-media">×</button></div>
             <div class="actions" id="internal-actions">
-              <button class="btn btn-quên" data-answer="quên">Quên</button>
-              <button class="btn btn-mơ-hồ" data-answer="mơ_hồ">Mơ hồ</button>
-              <button class="btn btn-nhớ" data-answer="nhớ">Nhớ</button>
+              ${buttonHtml}
             </div>
           </div>
         </div>
@@ -489,12 +532,12 @@
             return;
         }
         
-        const totalReviews = stats.total_reviews || 0;
-        const correctCount = stats.times_correct || 0;
-        const incorrectCount = stats.times_incorrect || 0;
-        const vagueCount = stats.times_vague || 0;
+        const totalReviews = stats.times_reviewed || 0;
+        const correctCount = stats.correct_count || 0;
+        const incorrectCount = stats.incorrect_count || 0;
+        const hardCount = stats.hard_count || 0;
 
-        const dueTime = stats.due_time ? new Date(stats.due_time).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
+        const nextReviewTime = stats.next_review ? new Date(stats.next_review).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
         
         const scoreChangeColor = scoreChange > 0 ? 'text-green-600' : (scoreChange < 0 ? 'text-red-600' : 'text-gray-600');
         const scoreChangeSign = scoreChange > 0 ? '+' : '';
@@ -514,8 +557,8 @@
                     <div class="text-xl font-bold text-red-600">${incorrectCount}</div>
                 </div>
                 <div class="bg-gray-100 rounded-md p-2">
-                    <div class="text-sm text-gray-500">Mập mờ</div>
-                    <div class="text-xl font-bold text-yellow-600">${vagueCount}</div>
+                    <div class="text-sm text-gray-500">Khó</div>
+                    <div class="text-xl font-bold text-yellow-600">${hardCount}</div>
                 </div>
             </div>
             
@@ -534,7 +577,7 @@
                 </div>
                 <div class="flex justify-between items-center text-sm text-gray-600">
                     <span>Đến hạn ôn lại:</span>
-                    <span class="font-semibold text-right">${dueTime}</span>
+                    <span class="font-semibold text-right">${nextReviewTime}</span>
                 </div>
             </div>
         `;
