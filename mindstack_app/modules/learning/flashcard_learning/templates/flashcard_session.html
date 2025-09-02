@@ -1,8 +1,8 @@
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 14.0 #}
-{# Mục đích: Khắc phục lỗi padding và cải thiện hiển thị thống kê. #}
-{# ĐÃ SỬA: Điều chỉnh CSS của .page-shell và .session-layout để cân bằng padding. #}
-{# ĐÃ SỬA: Cập nhật JavaScript để hiển thị điểm số thay đổi cho thẻ hiện tại. #}
+{# Phiên bản: 15.0 #}
+{# Mục đích: Cập nhật giao diện để hiển thị 3 nút đánh giá Flashcard mặc định theo yêu cầu. #}
+{# ĐÃ SỬA: Thay thế 4 nút đánh giá (Học lại, Khó, Bình thường, Dễ) bằng 3 nút mới (Quên, Mơ hồ, Nhớ). #}
+{# ĐÃ SỬA: Cập nhật logic JavaScript để gửi đúng giá trị mới đến backend. #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -254,10 +254,9 @@
         cursor: pointer;
     }
 
-    .btn-again { background: #ef4444; }
-    .btn-hard { background: #f59e0b; }
-    .btn-med { background: #3b82f6; }
-    .btn-easy { background: #10b981; }
+    .btn-quên { background: #ef4444; }
+    .btn-mơ-hồ { background: #f59e0b; }
+    .btn-nhớ { background: #10b981; }
 
     /* Ẩn cụm nút ngoài (đã move vào thẻ) */
     #flashcard-buttons {
@@ -313,23 +312,23 @@
 
     <div class="statistics-card">
         <h3 class="text-lg font-semibold text-center text-gray-800">Thống kê phiên học</h3>
-        <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="grid grid-cols-3 gap-3 mt-4">
           <div class="text-center bg-gray-100 rounded-md p-3">
-            <div class="text-sm text-gray-500">Tổng ôn</div>
-            <div id="session-total-answered" class="text-2xl font-bold">0</div>
-          </div>
-          <div class="text-center bg-gray-100 rounded-md p-3">
-            <div class="text-sm text-gray-500">Đúng</div>
-            <div id="session-correct-count" class="text-2xl font-bold text-green-600">0</div>
-          </div>
-          <div class="text-center bg-gray-100 rounded-md p-3">
-            <div class="text-sm text-gray-500">Sai</div>
+            <div class="text-sm text-gray-500">Quên</div>
             <div id="session-incorrect-count" class="text-2xl font-bold text-red-600">0</div>
           </div>
           <div class="text-center bg-gray-100 rounded-md p-3">
-            <div class="text-sm text-gray-500">Mập mờ</div>
+            <div class="text-sm text-gray-500">Mơ hồ</div>
             <div id="session-vague-count" class="text-2xl font-bold text-yellow-600">0</div>
           </div>
+          <div class="text-center bg-gray-100 rounded-md p-3">
+            <div class="text-sm text-gray-500">Nhớ</div>
+            <div id="session-correct-count" class="text-2xl font-bold text-green-600">0</div>
+          </div>
+        </div>
+        <div class="text-center bg-gray-100 rounded-md p-3 mt-3">
+            <div class="text-sm text-gray-500">Tổng ôn</div>
+            <div id="session-total-answered" class="text-2xl font-bold">0</div>
         </div>
 
         <hr class="my-6">
@@ -448,10 +447,9 @@
             </div>
             <div class="media-container ${(bImg||bAud)?'':'hidden'}" id="back-media">${bImg}${bAud}<button class="media-close" data-target="back-media">×</button></div>
             <div class="actions" id="internal-actions">
-              <button class="btn btn-again" data-answer="again">Học lại</button>
-              <button class="btn btn-hard" data-answer="hard">Khó</button>
-              <button class="btn btn-med" data-answer="medium">Bình thường</button>
-              <button class="btn btn-easy" data-answer="easy">Dễ</button>
+              <button class="btn btn-quên" data-answer="quên">Quên</button>
+              <button class="btn btn-mơ-hồ" data-answer="mơ_hồ">Mơ hồ</button>
+              <button class="btn btn-nhớ" data-answer="nhớ">Nhớ</button>
             </div>
           </div>
         </div>

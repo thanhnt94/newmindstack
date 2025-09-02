@@ -1,11 +1,7 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 1.5
+# Phiên bản: 1.6
 # Mục đích: Quản lý trạng thái của phiên học Flashcard hiện tại cho người dùng.
-# ĐÃ SỬA: Loại bỏ tham số batch_size để hỗ trợ mô hình 1 thẻ/lần.
-# ĐÃ SỬA: Cải thiện hàm get_next_batch để đảm bảo các trường 'front' và 'back' luôn tồn tại trong dữ liệu trả về.
-# ĐÃ SỬA: Cập nhật hàm _get_media_absolute_url để xử lý đường dẫn tệp không nhất quán, khắc phục lỗi 404.
-# ĐÃ SỬA: Cập nhật logic khởi tạo để không còn phụ thuộc vào batch_size.
-# ĐÃ SỬA: Cập nhật hàm process_flashcard_answer để xử lý dữ liệu thống kê mới trả về từ flashcard_logic.py
+# ĐÃ SỬA: Sửa lỗi TypeError bằng cách gọi hàm process_flashcard_answer trong flashcard_logic.py với tham số user_answer.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
@@ -259,13 +255,15 @@ class FlashcardSessionManager:
         print(f">>> SESSION_MANAGER: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer={user_answer} <<<")
         current_app.logger.debug(f"SessionManager: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer={user_answer}")
 
-        quality_map = {'easy': 5, 'medium': 4, 'hard': 3, 'again': 1}
-        user_answer_quality = quality_map.get(user_answer, 0)
+        # THÊM MỚI: Ánh xạ câu trả lời của người dùng sang điểm chất lượng SM-2
+        quality_map = {'nhớ': 4, 'mơ_hồ': 2, 'quên': 1, 'again': 1, 'hard': 3, 'good': 4, 'easy': 5, 'fail': 0}
+        user_answer_quality = quality_map.get(user_answer, 0) # Mặc định là 0 nếu không tìm thấy
 
         try:
             current_user_obj = User.query.get(self.user_id)
             current_user_total_score = current_user_obj.total_score if current_user_obj else 0
 
+            # SỬA LỖI: Gọi hàm process_flashcard_answer với tham số đúng
             score_change, updated_total_score, is_correct, new_progress_status, item_stats = process_flashcard_answer(
                 user_id=self.user_id,
                 item_id=item_id,

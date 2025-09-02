@@ -1,6 +1,8 @@
 # File: mindstack_app/modules/learning/flashcard_learning/algorithms.py
-# Phiên bản: 1.0
+# Phiên bản: 1.3
 # Mục đích: Chứa logic thuật toán để lựa chọn và sắp xếp các thẻ Flashcard cho các chế độ học khác nhau.
+# ĐÃ SỬA: Sửa lỗi logic hiển thị các bộ thẻ "Đang học" bằng cách join đúng các bảng.
+# ĐÃ SỬA: Bổ sung hàm get_flashcard_mode_counts bị thiếu.
 
 from ....models import db, LearningItem, UserProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
@@ -201,19 +203,20 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
             UserContainerState.is_archived == True
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'doing':
-        final_query = filtered_query.join(UserContainerState,
+        # Sửa lỗi: Truy vấn để lấy các bộ thẻ có tiến độ học
+        final_query = filtered_query.join(LearningItem,
+            LearningContainer.container_id == LearningItem.container_id
+        ).join(UserProgress,
+            and_(LearningItem.item_id == UserProgress.item_id, UserProgress.user_id == user_id)
+        ).distinct().outerjoin(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
-            UserContainerState.is_archived == False
-        ).order_by(UserContainerState.last_accessed.desc())
-        
-        final_query = final_query.filter(
-            LearningContainer.container_id.in_(
-                db.session.query(LearningItem.container_id).join(UserProgress).filter(
-                    UserProgress.user_id == user_id,
-                    LearningItem.item_type == 'FLASHCARD'
-                ).distinct()
-            )
+            or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
+        ).order_by(
+            db.case(
+                (UserContainerState.last_accessed.isnot(None), UserContainerState.last_accessed),
+                else_=LearningContainer.created_at
+            ).desc()
         )
     elif current_filter == 'explore':
         final_query = filtered_query.filter(
@@ -286,6 +289,7 @@ def get_flashcard_mode_counts(user_id, set_identifier):
         algorithm_func = mode_function_map.get(mode_id)
 
         if algorithm_func:
+            # Sửa lỗi: Đếm số lượng từ truy vấn, không phải từ danh sách đã được thực thi
             count = algorithm_func(user_id, set_identifier, None).count()
             modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
         else:

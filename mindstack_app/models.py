@@ -1,8 +1,8 @@
 # File: web/mindstack_app/models.py
-# Phiên bản: 12.5
-# ĐÃ SỬA: Loại bỏ các cột dư thừa trong UserProgress như times_correct, times_incorrect, các streak.
-#         Dữ liệu này có thể được tính toán từ review_history.
+# Phiên bản: 12.4
 # ĐÃ SỬA: Thêm phương thức to_dict() vào UserContainerState để khắc phục lỗi AttributeError.
+# ĐÃ SỬA: Xóa cột memory_score và thêm các cột easiness_factor, repetitions, interval
+#         để hỗ trợ thuật toán lặp lại ngắt quãng SuperMemo-2 (SM-2) cho Flashcard.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -70,6 +70,7 @@ class User(UserMixin, db.Model):
     current_flashcard_mode = db.Column(db.String(50), nullable=True)
     current_quiz_mode = db.Column(db.String(50), nullable=True)
     current_quiz_batch_size = db.Column(db.Integer, nullable=True)
+    flashcard_button_count = db.Column(db.Integer, default=3) # THÊM MỚI: Cài đặt số nút đánh giá cho Flashcard
 
     contributed_containers = db.relationship('ContainerContributor', backref='user', lazy=True)
     # THÊM MỚI: Mối quan hệ với UserContainerState
@@ -120,8 +121,13 @@ class UserProgress(db.Model):
     repetitions = db.Column(db.Integer, default=0)       # THÊM MỚI: Số lần lặp lại
     interval = db.Column(db.Integer, default=0)          # THÊM MỚI: Khoảng thời gian ôn tập
     last_reviewed = db.Column(db.DateTime(timezone=True))
-    # ĐÃ SỬA: Loại bỏ các cột không cần thiết cho SM-2
+    correct_streak = db.Column(db.Integer, default=0)
+    incorrect_streak = db.Column(db.Integer, default=0)
+    vague_streak = db.Column(db.Integer, default=0)
     status = db.Column(db.String(50), default='new') # 'new', 'learning', 'mastered'
+    times_correct = db.Column(db.Integer, default=0)
+    times_incorrect = db.Column(db.Integer, default=0)
+    times_vague = db.Column(db.Integer, default=0)
     first_seen_timestamp = db.Column(db.DateTime(timezone=True))
     review_history = db.Column(JSON)
     __table_args__ = (db.UniqueConstraint('user_id', 'item_id', name='_user_item_uc'),)

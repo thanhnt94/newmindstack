@@ -1,9 +1,11 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 1.3
+# Phiên bản: 1.8
 # Mục đích: Định nghĩa các routes và logic cho module học Flashcard.
-# ĐÃ SỬA: Loại bỏ toàn bộ logic batch_size và cập nhật các route để phù hợp với mô hình 1 thẻ/lần.
-# ĐÃ SỬA: Xóa route lưu cài đặt flashcard vì không còn cần thiết.
-# ĐÃ SỬA: Cập nhật các routes get_flashcard_batch và submit_flashcard_answer để xử lý và trả về dữ liệu thống kê mới từ session manager.
+# ĐÃ SỬA: Khắc phục lỗi trong submit_flashcard_answer và flashcard_session để hỗ trợ tùy chọn nút đánh giá.
+# ĐÃ SỬA: Cập nhật route `save_flashcard_settings` để lưu số nút đánh giá của người dùng.
+# ĐÃ SỬA: Cập nhật route `flashcard_learning_dashboard` để đọc và truyền số nút đánh giá của người dùng vào template.
+# ĐÃ SỬA: Thêm route mới get_flashcard_options_partial để load động các chế độ học và nút.
+# ĐÃ SỬA: Sửa lỗi TypeError trong session_manager.process_flashcard_answer.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
@@ -28,6 +30,8 @@ def flashcard_learning_dashboard():
     search_query = request.args.get('q', '', type=str)
     search_field = request.args.get('search_field', 'all', type=str)
     current_filter = request.args.get('filter', 'doing', type=str)
+    
+    user_button_count = current_user.flashcard_button_count if current_user.flashcard_button_count else 3
 
     flashcard_set_search_options = {
         'title': 'Tiêu đề', 'description': 'Mô tả', 'tags': 'Thẻ'
@@ -37,64 +41,42 @@ def flashcard_learning_dashboard():
         'search_query': search_query,
         'search_field': search_field,
         'flashcard_set_search_options': flashcard_set_search_options,
-        'current_filter': current_filter
+        'current_filter': current_filter,
+        'user_button_count': user_button_count
     }
     return render_template('flashcard_learning_dashboard.html', **template_vars)
 
 
-@flashcard_learning_bp.route('/get_flashcard_modes_partial/all', methods=['GET'])
+@flashcard_learning_bp.route('/get_flashcard_options_partial/<set_identifier>', methods=['GET'])
 @login_required
-def get_flashcard_modes_partial_all():
+def get_flashcard_options_partial(set_identifier):
     """
-    Trả về partial HTML chứa các chế độ học và số lượng thẻ tương ứng cho TẤT CẢ các bộ Flashcard.
+    Trả về partial HTML chứa các chế độ học và số nút đánh giá tương ứng.
     """
     selected_mode = request.args.get('selected_mode', None, type=str)
-
-    modes = get_flashcard_mode_counts(current_user.user_id, 'all')
-    return render_template('_flashcard_modes_selection.html',
-                           modes=modes,
-                           selected_set_id='all',
-                           selected_flashcard_mode_id=selected_mode
-                           )
-
-
-@flashcard_learning_bp.route('/get_flashcard_modes_partial/multi/<string:set_ids_str>', methods=['GET'])
-@login_required
-def get_flashcard_modes_partial_multi(set_ids_str):
-    """
-    Trả về partial HTML chứa các chế độ học và số lượng thẻ tương ứng cho NHIỀU bộ Flashcard.
-    """
-    selected_mode = request.args.get('selected_mode', None, type=str)
-
-    try:
-        set_ids = [int(s) for s in set_ids_str.split(',') if s]
-        modes = get_flashcard_mode_counts(current_user.user_id, set_ids)
-    except ValueError:
-        return '<p class="text-red-500 text-center">Lỗi: Định dạng ID bộ thẻ không hợp lệ.</p>', 400
+    user_button_count = current_user.flashcard_button_count if current_user.flashcard_button_count else 3
+    
+    modes = []
+    
+    # Logic để lấy modes theo set_identifier
+    if set_identifier == 'all':
+        modes = get_flashcard_mode_counts(current_user.user_id, 'all')
+    else:
+        try:
+            set_ids = [int(s) for s in set_identifier.split(',') if s]
+            if len(set_ids) == 1:
+                modes = get_flashcard_mode_counts(current_user.user_id, set_ids[0])
+            else:
+                modes = get_flashcard_mode_counts(current_user.user_id, set_ids)
+        except ValueError:
+            return '<p class="text-red-500 text-center">Lỗi: Định dạng ID bộ thẻ không hợp lệ.</p>', 400
 
     return render_template('_flashcard_modes_selection.html',
                            modes=modes,
-                           selected_set_id='multi',
-                           selected_flashcard_mode_id=selected_mode
+                           selected_set_id=set_identifier,
+                           selected_flashcard_mode_id=selected_mode,
+                           user_button_count=user_button_count
                            )
-
-
-@flashcard_learning_bp.route('/get_flashcard_modes_partial/<int:set_id>', methods=['GET'])
-@login_required
-def get_flashcard_modes_partial_by_id(set_id):
-    """
-    Trả về partial HTML chứa các chế độ học và số lượng thẻ tương ứng cho một bộ Flashcard cụ thể.
-    """
-    selected_mode = request.args.get('selected_mode', None, type=str)
-
-    modes = get_flashcard_mode_counts(current_user.user_id, set_id)
-
-    return render_template('_flashcard_modes_selection.html',
-                           modes=modes,
-                           selected_set_id=str(set_id),
-                           selected_flashcard_mode_id=selected_mode
-                           )
-
 
 @flashcard_learning_bp.route('/start_flashcard_session/all/<string:mode>', methods=['GET'])
 @login_required
@@ -158,7 +140,11 @@ def flashcard_session():
     if 'flashcard_session' not in session:
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
         return redirect(url_for('learning.flashcard_learning.flashcard_learning_dashboard'))
-    return render_template('flashcard_session.html')
+    
+    # Đọc cài đặt số nút của người dùng để truyền vào template
+    user_button_count = current_user.flashcard_button_count if current_user.flashcard_button_count else 3
+    
+    return render_template('flashcard_session.html', user_button_count=user_button_count)
 
 
 @flashcard_learning_bp.route('/get_flashcard_batch', methods=['GET'])
@@ -187,6 +173,8 @@ def get_flashcard_batch():
         
         # Vì chỉ có một thẻ, chúng ta có thể trả về trực tiếp
         flashcard_batch['session_correct_answers'] = session_manager.correct_answers
+        flashcard_batch['session_incorrect_answers'] = session_manager.incorrect_answers
+        flashcard_batch['session_vague_answers'] = session_manager.vague_answers
         flashcard_batch['session_total_answered'] = session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
 
         current_app.logger.debug("--- Kết thúc get_flashcard_batch (Thành công) ---")
@@ -202,7 +190,7 @@ def get_flashcard_batch():
 @login_required
 def submit_flashcard_answer():
     """
-    Nhận câu trả lời của người dùng (dễ, khó, bình thường), xử lý và cập nhật tiến độ.
+    Nhận câu trả lời của người dùng, xử lý và cập nhật tiến độ.
     """
     current_app.logger.debug("--- Bắt đầu submit_flashcard_answer ---")
     data = request.get_json()
@@ -251,8 +239,11 @@ def submit_flashcard_answer():
                 db.session.rollback()
                 current_app.logger.error(f"Lỗi khi cập nhật last_accessed cho bộ thẻ {s_id}: {e}", exc_info=True)
 
-
-    result = session_manager.process_flashcard_answer(item_id, user_answer)
+    # Lấy mapping từ user_answer sang quality, ví dụ cho 3 nút
+    quality_map = {'nhớ': 4, 'mơ_hồ': 2, 'quên': 1}
+    user_answer_quality = quality_map.get(user_answer, 0)
+    
+    result = session_manager.process_flashcard_answer(item_id, user_answer_quality)
     if 'error' in result:
         current_app.logger.error(f"Lỗi trong quá trình process_flashcard_answer: {result.get('error')}")
         return jsonify(result), 400
@@ -281,11 +272,26 @@ def end_session_flashcard():
 @login_required
 def save_flashcard_settings():
     """
-    Lưu cài đặt số thẻ mặc định trong một phiên học Flashcard của người dùng.
-    Lưu ý: Không còn cần thiết vì Flashcard luôn dùng batch_size=1
+    Lưu cài đặt số nút đánh giá mặc định trong một phiên học Flashcard của người dùng.
     """
-    flash('Cài đặt số thẻ mặc định không áp dụng cho Flashcard.', 'info')
-    return jsonify({'success': False, 'message': 'Không áp dụng.'}), 400
+    data = request.get_json()
+    button_count = data.get('button_count')
+
+    if button_count is None or not isinstance(button_count, int) or button_count not in [3, 4, 6]:
+        return jsonify({'success': False, 'message': 'Số nút đánh giá không hợp lệ.'}), 400
+
+    try:
+        user = User.query.get(current_user.user_id)
+        if user:
+            user.flashcard_button_count = button_count
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Cài đặt số nút đã được lưu.'})
+        else:
+            return jsonify({'success': False, 'message': 'Không tìm thấy người dùng.'}), 404
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Lỗi khi lưu cài đặt Flashcard của người dùng: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi lưu cài đặt.'}), 500
 
 
 @flashcard_learning_bp.route('/get_flashcard_sets_partial', methods=['GET'])

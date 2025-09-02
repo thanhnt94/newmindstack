@@ -1,8 +1,10 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_learning_dashboard.html #}
-{# Phiên bản: 1.1 #}
-{# Mục đích: Giao diện chính để chọn bộ thẻ và chế độ học Flashcard. #}
-{# ĐÃ SỬA: Xóa bỏ các tham chiếu đến batch_size và dropdown chọn kích thước phiên học. #}
+{# Phiên bản: 2.3 #}
+{# Mục đích: Giao diện chính để chọn bộ thẻ, chế độ học và tùy chọn số nút đánh giá. #}
+{# ĐÃ SỬA: Di chuyển phần chọn chế độ học và số nút đánh giá sang một div riêng. #}
+{# ĐÃ SỬA: Cập nhật JavaScript để tải động các tùy chọn này sau khi chọn bộ thẻ. #}
+{# ĐÃ SỬA: Thêm URL API cho get_flashcard_options_partial. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -172,6 +174,7 @@
             font-size: 0.6rem;
             cursor: pointer;
         }
+
     </style>
 {% endblock %}
 
@@ -208,9 +211,9 @@
 
         <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
             <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
-                <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học
+                <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
             </h2>
-            <div id="flashcard-modes-container" class="flex-grow">
+            <div id="flashcard-options-container" class="flex-grow">
                 <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
                     <i class="fas fa-info-circle text-4xl mb-3"></i>
                     <p>Vui lòng chọn một bộ thẻ trước.</p>
@@ -243,9 +246,10 @@
     let currentSearchQuery = "{{ search_query | default('') }}";
     let currentSearchField = "{{ search_field | default('all') }}";
     let isMultiSelectMode = true;
+    let selectedButtonCount = parseInt("{{ user_button_count | default(3) }}");
 
     const flashcardSetsContainer = document.getElementById('flashcard-sets-container');
-    const flashcardModesContainer = document.getElementById('flashcard-modes-container');
+    const flashcardOptionsContainer = document.getElementById('flashcard-options-container');
     const startLearningBtn = document.getElementById('start-learning-btn');
     const bulkUnarchiveBtn = document.getElementById('bulk-unarchive-btn');
     const selectedSetsDisplay = document.getElementById('selected-sets-display');
@@ -254,15 +258,34 @@
     const rightPanel = document.querySelector('.lg\\:grid-cols-2 > div:nth-child(2)');
     let allSetsButton = null;
 
-    const flashcardModesPartialBaseUrlById = "{{ url_for('learning.flashcard_learning.get_flashcard_modes_partial_by_id', set_id=0) or '#' }}";
-    const flashcardModesPartialBaseUrlAll = "{{ url_for('learning.flashcard_learning.get_flashcard_modes_partial_all') or '#' }}";
-    const flashcardModesPartialBaseUrlMulti = "{{ url_for('learning.flashcard_learning.get_flashcard_modes_partial_multi', set_ids_str='0') or '#' }}";
+    const flashcardOptionsPartialBaseUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_options_partial', set_identifier='0') or '#' }}";
     const startFlashcardSessionBaseUrlAllTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_all', mode='MODE_PLACEHOLDER') }}";
     const startFlashcardSessionBaseUrlMultiTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_multi', mode='MODE_PLACEHOLDER') }}";
     const startFlashcardSessionBaseUrlByIdTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_by_id', set_id=0, mode='MODE_PLACEHOLDER') }}";
     const getFlashcardSetsPartialUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_sets_partial') or '#' }}";
     const toggleArchiveUrl = "{{ url_for('learning.flashcard_learning.toggle_archive_flashcard', set_id=0) or '#' }}";
     const bulkUnarchiveUrl = "{{ url_for('learning.flashcard_learning.bulk_unarchive_flashcard') }}";
+    const saveFlashcardSettingsUrl = "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}";
+    
+    // Gán event listener cho dropdown số nút
+    document.addEventListener('change', async function(event) {
+        if (event.target.id === 'button-count-select') {
+            selectedButtonCount = parseInt(event.target.value);
+            updateActionButtons();
+            try {
+                const res = await fetch(saveFlashcardSettingsUrl, { 
+                    method: 'POST', 
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'X-Requested-With': 'XMLHttpRequest' 
+                    }, 
+                    body: JSON.stringify({ button_count: selectedButtonCount }) 
+                });
+                const js = await res.json();
+                if (!js.success) { console.error('Lưu button_count lỗi:', js.message); }
+            } catch (err) { console.error('AJAX lưu button_count lỗi:', err); }
+        }
+    });
 
     function toggleAllSetsButtonVisibility() {
         if (!allSetsButton) {
@@ -316,29 +339,12 @@
         }
     }
 
-    async function loadFlashcardModes(setId) {
-        console.log('loadFlashcardModes ->', setId);
+    async function loadFlashcardOptions(setIdentifier) {
+        console.log('loadFlashcardOptions ->', setIdentifier);
         if (currentFilter === 'archive') { return; } 
-        flashcardModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải chế độ học...</p></div>';
+        flashcardOptionsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải chế độ học...</p></div>';
         try {
-            let url;
-            if (Array.isArray(setId)) {
-                if (setId.length === 0) {
-                     flashcardModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ thẻ trước.</p></div>';
-                     updateActionButtons();
-                     return;
-                }
-                if (setId.length === 1 && setId[0] === 'all') {
-                    url = flashcardModesPartialBaseUrlAll;
-                } else {
-                    const setIdsStr = setId.join(',');
-                    url = flashcardModesPartialBaseUrlMulti.replace('/0', '/' + setIdsStr);
-                }
-            } else if (setId === 'all') {
-                url = flashcardModesPartialBaseUrlAll;
-            } else {
-                url = flashcardModesPartialBaseUrlById.replace('/0', '/' + setId);
-            }
+            const url = flashcardOptionsPartialBaseUrl.replace('/0', '/' + setIdentifier);
             if (!url || url === '#') { throw new Error('URL chế độ học không hợp lệ'); }
 
             const fullUrl = new URL(url, window.location.origin);
@@ -347,28 +353,28 @@
             const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) { throw new Error('HTTP ' + response.status); }
             const html = await response.text();
-            flashcardModesContainer.innerHTML = html;
+            flashcardOptionsContainer.innerHTML = html;
             addFlashcardModeClickListeners();
             
-            const firstAvailableMode = flashcardModesContainer.querySelector('.flashcard-mode-item[data-count="0"]');
+            const firstAvailableMode = flashcardOptionsContainer.querySelector('.flashcard-mode-item[data-count="0"]');
             if (firstAvailableMode) { firstAvailableMode.classList.add('opacity-50', 'cursor-not-allowed'); }
 
             if (!selectedFlashcardMode) {
-                const available = Array.from(flashcardModesContainer.querySelectorAll('.flashcard-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
+                const available = Array.from(flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
                 if (available.length > 0) { available[0].click(); }
                 else { selectedFlashcardMode = null; updateActionButtons(); }
             } else {
-                const prev = flashcardModesContainer.querySelector('[data-mode-id="' + selectedFlashcardMode + '"]');
+                const prev = flashcardOptionsContainer.querySelector('[data-mode-id="' + selectedFlashcardMode + '"]');
                 if (prev && parseInt(prev.dataset.count) > 0) { prev.click(); }
                 else {
                     selectedFlashcardMode = null; updateActionButtons();
-                    const available2 = Array.from(flashcardModesContainer.querySelectorAll('.flashcard-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
+                    const available2 = Array.from(flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
                     if (available2.length > 0) { available2[0].click(); }
                 }
             }
         } catch (e) {
-            console.error('Lỗi loadFlashcardModes:', e);
-            flashcardModesContainer.innerHTML = '<p class="text-red-500 text-center">Không thể tải chế độ học. Vui lòng thử lại.</p>';
+            console.error('Lỗi loadFlashcardOptions:', e);
+            flashcardOptionsContainer.innerHTML = '<p class="text-red-500 text-center">Không thể tải chế độ học. Vui lòng thử lại.</p>';
         }
     }
 
@@ -470,10 +476,11 @@
 
         selectedFlashcardMode = null;
         if (selectedFlashcardSetIds.length > 0 && currentFilter !== 'archive') {
-            loadFlashcardModes(selectedFlashcardSetIds);
+            const setIdsStr = selectedFlashcardSetIds.join(',');
+            loadFlashcardOptions(setIdsStr);
         } else {
             if (currentFilter !== 'archive') {
-                flashcardModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ thẻ trước.</p></div>';
+                flashcardOptionsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ thẻ trước.</p></div>';
             } else {
                 updateStep2Content();
             }
@@ -724,7 +731,7 @@
             step2Title.innerHTML = `<i class="fas fa-info-circle mr-3 text-blue-500"></i> Bỏ lưu trữ`;
             
             if (!isMobile) {
-                flashcardModesContainer.innerHTML = `
+                flashcardOptionsContainer.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-full text-gray-700 p-4">
                         <p class="text-base text-center mb-4">
                             Hãy chọn các bộ cần để bỏ lưu trữ trên giao diện.
@@ -734,13 +741,18 @@
             }
         } else {
             rightPanel.style.display = 'flex';
-            step2Title.innerHTML = `<i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học`;
-            flashcardModesContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
-                    <i class="fas fa-info-circle text-4xl mb-3"></i>
-                    <p>Vui lòng chọn một bộ thẻ trước.</p>
-                </div>
-            `;
+            step2Title.innerHTML = `<i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học`;
+            if (selectedFlashcardSetIds.length > 0) {
+                 const setIdsStr = selectedFlashcardSetIds.join(',');
+                 loadFlashcardOptions(setIdsStr);
+            } else {
+                 flashcardOptionsContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                        <i class="fas fa-info-circle text-4xl mb-3"></i>
+                        <p>Vui lòng chọn một bộ thẻ trước.</p>
+                    </div>
+                `;
+            }
         }
     }
 

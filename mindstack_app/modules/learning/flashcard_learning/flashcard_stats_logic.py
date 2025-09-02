@@ -1,9 +1,8 @@
 # File: mindstack_app/modules/learning/flashcard_learning/flashcard_stats_logic.py
-# Phiên bản: 1.1
+# Phiên bản: 1.2
 # Mục đích: Chứa logic để tính toán và trả về các thống kê chi tiết cho từng thẻ Flashcard.
-# ĐÃ SỬA: Cập nhật hàm get_flashcard_item_statistics để tính toán các chỉ số
-#         thống kê (total_reviews, times_correct, streak, v.v.) bằng cách phân tích
-#         dữ liệu từ cột JSON review_history.
+# ĐÃ SỬA: Cập nhật logic tính toán lại các chỉ số thống kê dựa trên dữ liệu từ cột JSON review_history,
+#         phù hợp với logic của 3 nút mới.
 
 from ....models import UserProgress
 import datetime
