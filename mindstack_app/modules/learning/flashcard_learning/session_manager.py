@@ -1,9 +1,10 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 1.3
+# Phiên bản: 1.4
 # Mục đích: Quản lý trạng thái của phiên học Flashcard hiện tại cho người dùng.
 # ĐÃ SỬA: Loại bỏ tham số batch_size để hỗ trợ mô hình 1 thẻ/lần.
 # ĐÃ SỬA: Cải thiện hàm get_next_batch để đảm bảo các trường 'front' và 'back' luôn tồn tại trong dữ liệu trả về.
 # ĐÃ SỬA: Cập nhật hàm _get_media_absolute_url để xử lý đường dẫn tệp không nhất quán, khắc phục lỗi 404.
+# ĐÃ SỬA: Cập nhật logic khởi tạo để không còn phụ thuộc vào batch_size.
 
 from flask import session, current_app, url_for
 from flask_login import current_user

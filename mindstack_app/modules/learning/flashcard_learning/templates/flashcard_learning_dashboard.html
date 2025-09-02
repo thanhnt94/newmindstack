@@ -1,7 +1,8 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_learning_dashboard.html #}
-{# Phiên bản: 1.0 #}
+{# Phiên bản: 1.1 #}
 {# Mục đích: Giao diện chính để chọn bộ thẻ và chế độ học Flashcard. #}
+{# ĐÃ SỬA: Xóa bỏ các tham chiếu đến batch_size và dropdown chọn kích thước phiên học. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -237,7 +238,6 @@
     {# ==== Biến trạng thái ==== #}
     let selectedFlashcardSetIds = [];
     let selectedFlashcardMode = null;
-    let selectedSessionSize = parseInt("{{ user_default_batch_size | default(10) }}");
     let currentFilter = "{{ current_filter | default('doing') }}";
     let doingPage = 1; let explorePage = 1; let archivePage = 1; let currentPage = (currentFilter === 'doing' ? doingPage : (currentFilter === 'explore' ? explorePage : archivePage));
     let currentSearchQuery = "{{ search_query | default('') }}";
@@ -261,7 +261,6 @@
     const startFlashcardSessionBaseUrlMultiTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_multi', mode='MODE_PLACEHOLDER') }}";
     const startFlashcardSessionBaseUrlByIdTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_by_id', set_id=0, mode='MODE_PLACEHOLDER') }}";
     const getFlashcardSetsPartialUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_sets_partial') or '#' }}";
-    const saveFlashcardSettingsUrl = "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}";
     const toggleArchiveUrl = "{{ url_for('learning.flashcard_learning.toggle_archive_flashcard', set_id=0) or '#' }}";
     const bulkUnarchiveUrl = "{{ url_for('learning.flashcard_learning.bulk_unarchive_flashcard') }}";
 
@@ -344,27 +343,12 @@
 
             const fullUrl = new URL(url, window.location.origin);
             if (selectedFlashcardMode) { fullUrl.searchParams.append('selected_mode', selectedFlashcardMode); }
-            fullUrl.searchParams.append('user_default_batch_size', selectedSessionSize);
 
             const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) { throw new Error('HTTP ' + response.status); }
             const html = await response.text();
             flashcardModesContainer.innerHTML = html;
             addFlashcardModeClickListeners();
-
-            const sessionSizeSelect = document.getElementById('session-size-select');
-            if (sessionSizeSelect) {
-                sessionSizeSelect.value = selectedSessionSize;
-                sessionSizeSelect.addEventListener('change', async function(){
-                    selectedSessionSize = parseInt(this.value);
-                    updateActionButtons();
-                    try {
-                        const res = await fetch(saveFlashcardSettingsUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ batch_size: selectedSessionSize }) });
-                        const js = await res.json();
-                        if (!js.success) { console.error('Lưu batch_size lỗi:', js.message); }
-                    } catch (err) { console.error('AJAX lưu batch_size lỗi:', err); }
-                });
-            }
             
             const firstAvailableMode = flashcardModesContainer.querySelector('.flashcard-mode-item[data-count="0"]');
             if (firstAvailableMode) { firstAvailableMode.classList.add('opacity-50', 'cursor-not-allowed'); }
@@ -635,10 +619,8 @@
             bulkUnarchiveBtn.style.display = 'none';
             startLearningBtn.style.display = 'block';
             const modeAvailable = selectedFlashcardMode !== null;
-            const sessionSizeSelect = document.getElementById('session-size-select');
-            const isSessionSizeSelected = sessionSizeSelect && sessionSizeSelect.value;
             
-            if (isSelected && modeAvailable && isSessionSizeSelected) {
+            if (isSelected && modeAvailable) {
                 startLearningBtn.disabled = false;
                 startLearningBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
                 startLearningBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -659,22 +641,18 @@
     }
     
     startLearningBtn.addEventListener('click', function(){
-        const currentBatchSize = document.getElementById('session-size-select').value;
         let startUrl;
         
-        if (selectedFlashcardSetIds.length > 0 && selectedFlashcardMode && currentBatchSize) {
+        if (selectedFlashcardSetIds.length > 0 && selectedFlashcardMode) {
             localStorage.removeItem('selectedFlashcardSetIds');
             const setIdsStr = selectedFlashcardSetIds.join(',');
             if (selectedFlashcardSetIds.length === 1 && selectedFlashcardSetIds[0] === 'all') {
                 startUrl = new URL(startFlashcardSessionBaseUrlAllTemplate.replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
-                startUrl.searchParams.append('batch_size', currentBatchSize);
             } else if (selectedFlashcardSetIds.length === 1 && selectedFlashcardSetIds[0] !== 'all') {
                 startUrl = new URL(startFlashcardSessionBaseUrlByIdTemplate.replace('0', selectedFlashcardSetIds[0]).replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
-                startUrl.searchParams.append('batch_size', currentBatchSize);
             } else {
                 startUrl = new URL(startFlashcardSessionBaseUrlMultiTemplate.replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
                 startUrl.searchParams.append('set_ids', setIdsStr);
-                startUrl.searchParams.append('batch_size', currentBatchSize);
             }
             window.location.href = startUrl.toString();
         }

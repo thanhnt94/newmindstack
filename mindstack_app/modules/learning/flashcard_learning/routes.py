@@ -1,7 +1,8 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 1.1
+# Phiên bản: 1.2
 # Mục đích: Định nghĩa các routes và logic cho module học Flashcard.
 # ĐÃ SỬA: Loại bỏ toàn bộ logic batch_size và cập nhật các route để phù hợp với mô hình 1 thẻ/lần.
+# ĐÃ SỬA: Xóa route lưu cài đặt flashcard vì không còn cần thiết.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user

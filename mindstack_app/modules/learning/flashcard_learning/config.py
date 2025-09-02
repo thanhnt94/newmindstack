@@ -1,15 +1,13 @@
 # File: mindstack_app/modules/learning/flashcard_learning/config.py
-# Phiên bản: 1.0
+# Phiên bản: 1.1
 # Mục đích: Chứa các cấu hình riêng cho module học Flashcard.
+# ĐÃ SỬA: Xóa biến FLASHCARD_DEFAULT_BATCH_SIZE vì flashcard luôn học từng thẻ một.
 
 class FlashcardLearningConfig:
     """
     Cấu hình cho module học Flashcard.
     """
     DEFAULT_ITEMS_PER_PAGE = 3 # Số mục mặc định trên mỗi trang cho Flashcard
-
-    # Số thẻ mặc định trong một nhóm (batch) cho phiên học Flashcard
-    FLASHCARD_DEFAULT_BATCH_SIZE = 10 
 
     # Định nghĩa các chế độ học Flashcard
     FLASHCARD_MODES = [
