@@ -1,9 +1,6 @@
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 16.0 #}
-{# Mục đích: Cập nhật giao diện và logic JavaScript để hiển thị các nút đánh giá Flashcard tùy theo cài đặt của người dùng (3, 4 hoặc 6 nút). #}
-{# ĐÃ SỬA: Thay thế 4 nút đánh giá (Học lại, Khó, Bình thường, Dễ) bằng 3 nút mới (Quên, Mơ hồ, Nhớ). #}
-{# ĐÃ SỬA: Cập nhật logic JavaScript để gửi đúng giá trị mới đến backend. #}
-{# ĐÃ SỬA: Cập nhật các nút đánh giá và thống kê để hỗ trợ 3, 4, và 6 nút. #}
+{# Phiên bản: 21.0 #}
+{# Mục đích: Khắc phục lỗi hiển thị trên di động, đảm bảo thẻ flashcard hiển thị tràn viền, không có cuộn và ẩn footer. #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -11,30 +8,37 @@
 {% block head %}
   {{ super() }}
   <style>
+    /* ===== CSS tùy chỉnh mới cho Flashcard Session ===== */
     body {
         font-family: 'Inter', sans-serif;
         background-color: #f9fafb;
     }
+    
+    /* Ghi đè CSS từ base.html để ẩn footer chỉ trên trang này */
+    @media (max-width: 1024px) {
+        body > footer {
+            display: none !important;
+        }
+    }
 
     /* ===== Layout toàn trang (full height) ===== */
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Ngăn cuộn trang chính */
+    }
+
     .page-shell {
-        position: absolute;
+        position: fixed; /* Sử dụng fixed để chiếm toàn bộ viewport */
         left: 0;
         right: 0;
         top: var(--header-h, 0px);
-        bottom: var(--footer-h, 0px);
+        bottom: 0; /* Chiếm hết chiều cao còn lại */
         display: flex;
         flex-direction: column;
-        min-height: 0;
-        padding-top: 1rem;
-    }
-
-    @media (max-width: 1024px) {
-        .page-shell {
-            top: var(--header-h, 0px);
-            bottom: 0;
-            padding-top: 0;
-        }
+        padding: 0;
+        overflow: hidden;
     }
     
     .page-title {
@@ -57,7 +61,7 @@
         text-transform: none;
         letter-spacing: normal;
     }
-    /* ===== Lưới 2 cột cho session layout ===== */
+    /* ===== Lưới 2 cột cho session layout (chuyển thành 1 cột trên mobile) ===== */
     .session-layout {
         height: 100%;
         display: grid;
@@ -68,14 +72,53 @@
         padding: 1.5rem 2rem 1.5rem 2rem;
         align-items: stretch;
         min-height: 0;
+        flex-grow: 1;
     }
-
+    
     @media (max-width: 1024px) {
+        /* Bố cục trên màn hình di động */
+        .page-shell {
+            top: var(--header-h, 0px);
+            bottom: 0;
+            padding: 0;
+        }
         .session-layout {
-            grid-template-columns: 1fr;
-            max-width: 100%;
-            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
             height: 100%;
+            padding: 0;
+            overflow: hidden; /* Quan trọng: Loại bỏ cuộn trên layout chính */
+        }
+        .statistics-card {
+            display: none !important;
+        }
+        .flashcard-wrapper {
+            flex: 1; /* Chiếm hết không gian còn lại */
+            padding: 0.5rem; /* Giảm padding để thẻ tràn viền hơn */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        #flashcard-content {
+            flex: 1;
+            padding-bottom: 0.5rem; /* Thêm padding dưới để nút không bị dính */
+        }
+        .flashcard-card-container, .flashcard-card, .face {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Căn trên và dưới */
+        }
+        .text-area {
+            flex: 1;
+        }
+        .actions {
+            margin-top: 1rem !important;
+            padding-top: 0;
+        }
+        .flashcard-card {
+            padding: 0.5rem; /* Giảm padding trên thẻ flashcard */
         }
     }
 
@@ -198,6 +241,7 @@
         flex: 0 0 auto;
         max-height: 40vh;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         background: #f8f9fa;
@@ -255,18 +299,9 @@
         cursor: pointer;
     }
 
-    /* Màu sắc cho các nút khác nhau */
-    .btn-quality-0, .btn-quality-1 { background: #ef4444; } /* Red */
-    .btn-quality-2 { background: #f59e0b; } /* Amber */
-    .btn-quality-3 { background: #3b82f6; } /* Blue */
-    .btn-quality-4 { background: #10b981; } /* Green */
-    .btn-quality-5 { background: #22c55e; } /* Deeper Green */
-    
-    /* Màu sắc thống kê */
-    .stat-incorrect { color: #ef4444; }
-    .stat-vague { color: #f59e0b; }
-    .stat-correct { color: #10b981; }
-    .stat-very-correct { color: #22c55e; }
+    .btn-quên { background: #ef4444; }
+    .btn-mơ-hồ { background: #f59e0b; }
+    .btn-nhớ { background: #10b981; }
 
     /* Ẩn cụm nút ngoài (đã move vào thẻ) */
     #flashcard-buttons {
@@ -274,16 +309,18 @@
     }
 
     /* Thống kê */
-    .statistics-card {
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
-        padding: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        min-height: 0;
+    @media (min-width: 1024px) {
+        .statistics-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+        }
     }
     
     /* Custom Modal */
@@ -307,6 +344,64 @@
       text-align: center;
       max-width: 400px;
     }
+    /* Styles cho Progress Bar */
+    .statistics-card-new {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .progress-bar-group {
+      margin-bottom: 1rem;
+    }
+
+    .progress-bar-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      background-color: #e5e7eb;
+      border-radius: 9999px;
+      overflow: hidden;
+      height: 1.25rem;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.5s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .progress-bar-fill-correct { background-color: #10b981; }
+    .progress-bar-fill-vague { background-color: #f59e0b; }
+    .progress-bar-fill-incorrect { background-color: #ef4444; }
+
+    /* Điều chỉnh font size cho nội dung thẻ trên mobile */
+    @media (max-width: 640px) {
+        .front .text-area .flashcard-content-text {
+            font-size: 1.8rem;
+        }
+        .back .text-area .flashcard-content-text {
+            font-size: 18px;
+        }
+        .session-layout {
+            padding: 0.5rem;
+        }
+    }
   </style>
 {% endblock %}
 
@@ -321,29 +416,51 @@
     </div>
 
     <div class="statistics-card">
-        <h3 class="text-lg font-semibold text-center text-gray-800">Thống kê phiên học</h3>
-        <div id="session-stats-container" class="grid grid-cols-3 gap-3 mt-4">
-          <div class="text-center bg-gray-100 rounded-md p-3">
-            <div class="text-sm text-gray-500">Quên</div>
-            <div id="session-incorrect-count" class="text-2xl font-bold stat-incorrect">0</div>
-          </div>
-          <div class="text-center bg-gray-100 rounded-md p-3">
-            <div class="text-sm text-gray-500">Mơ hồ</div>
-            <div id="session-vague-count" class="text-2xl font-bold stat-vague">0</div>
-          </div>
-          <div class="text-center bg-gray-100 rounded-md p-3">
-            <div class="text-sm text-gray-500">Nhớ</div>
-            <div id="session-correct-count" class="text-2xl font-bold stat-correct">0</div>
-          </div>
+        <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê phiên học</h3>
+        
+        <div class="progress-bar-group">
+            <div class="progress-bar-label">
+                <span>Tổng số thẻ đã học</span>
+                <span id="session-total-answered-label">0</span>
+            </div>
+            <div class="progress-bar-container">
+                <div id="session-total-answered-bar" class="progress-bar-fill"></div>
+            </div>
         </div>
-        <div class="text-center bg-gray-100 rounded-md p-3 mt-3">
-            <div class="text-sm text-gray-500">Tổng ôn</div>
-            <div id="session-total-answered" class="text-2xl font-bold">0</div>
+
+        <div class="grid grid-cols-1 gap-3">
+            <div class="progress-bar-group">
+                <div class="progress-bar-label">
+                    <span>Thẻ Nhớ</span>
+                    <span id="session-correct-count-label">0</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="session-correct-bar" class="progress-bar-fill progress-bar-fill-correct"></div>
+                </div>
+            </div>
+            <div class="progress-bar-group">
+                <div class="progress-bar-label">
+                    <span>Thẻ Mơ hồ</span>
+                    <span id="session-vague-count-label">0</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="session-vague-bar" class="progress-bar-fill progress-bar-fill-vague"></div>
+                </div>
+            </div>
+            <div class="progress-bar-group">
+                <div class="progress-bar-label">
+                    <span>Thẻ Quên</span>
+                    <span id="session-incorrect-count-label">0</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="session-incorrect-bar" class="progress-bar-fill progress-bar-fill-incorrect"></div>
+                </div>
+            </div>
         </div>
 
         <hr class="my-6">
-        <h3 class="text-lg font-semibold text-center text-gray-800">Thống kê thẻ hiện tại</h3>
-        <div id="current-card-stats" class="mt-4 flex-grow space-y-4">
+        <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê thẻ hiện tại</h3>
+        <div id="current-card-stats" class="flex-grow space-y-4">
             <div class="text-center text-gray-500">
                 <i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.
             </div>
@@ -374,32 +491,39 @@
   <script>
     /* ===== Tính chiều cao header/footer/title để layout full-height ===== */
     function updateFixedHeights(){
-      const header=document.querySelector('header'); const footer=document.querySelector('footer');
-      const hh=header?header.offsetHeight:0, fh=footer?footer.offsetHeight:0;
+      const header=document.querySelector('header');
+      const mainElement = document.querySelector('main');
+      const footer=document.querySelector('footer');
+      const hh=header?header.offsetHeight:0;
+      const fh=footer?footer.offsetHeight:0;
+
+      // Cập nhật biến CSS để main content có thể tính toán chiều cao
       document.documentElement.style.setProperty('--header-h', hh+'px');
       document.documentElement.style.setProperty('--footer-h', fh+'px');
     }
-    window.addEventListener('load', updateFixedHeights); window.addEventListener('resize', updateFixedHeights); new ResizeObserver(updateFixedHeights).observe(document.body);
+    window.addEventListener('load', updateFixedHeights);
+    window.addEventListener('resize', updateFixedHeights);
+    new ResizeObserver(updateFixedHeights).observe(document.body);
 
     /* ===== State ===== */
     let currentFlashcardBatch = [];
     let currentFlashcardIndex = 0;
 
     const flashcardContentDiv = document.getElementById('flashcard-content');
-    const flashcardProgressSpan = document.getElementById('flashcard-progress');
     const endSessionBtn = document.getElementById('end-session-btn');
-    const sessionTotalAnsweredSpan = document.getElementById('session-total-answered');
-    const sessionCorrectCountSpan = document.getElementById('session-correct-count');
-    const sessionIncorrectCountSpan = document.getElementById('session-incorrect-count');
-    const sessionVagueCountSpan = document.getElementById('session-vague-count');
+    const sessionTotalAnsweredLabel = document.getElementById('session-total-answered-label');
+    const sessionTotalAnsweredBar = document.getElementById('session-total-answered-bar');
+    const sessionCorrectCountLabel = document.getElementById('session-correct-count-label');
+    const sessionCorrectBar = document.getElementById('session-correct-bar');
+    const sessionIncorrectCountLabel = document.getElementById('session-incorrect-count-label');
+    const sessionIncorrectBar = document.getElementById('session-incorrect-bar');
+    const sessionVagueCountLabel = document.getElementById('session-vague-count-label');
+    const sessionVagueBar = document.getElementById('session-vague-bar');
     const currentCardStatsDiv = document.getElementById('current-card-stats');
 
     const endSessionModal = document.getElementById('endSessionModal');
     const confirmEndSessionBtn = document.getElementById('confirmEndSessionBtn');
     const cancelEndSessionBtn = document.getElementById('cancelEndSessionBtn');
-    
-    // THÊM MỚI: Biến lưu số nút đánh giá của người dùng
-    const userButtonCount = parseInt("{{ user_button_count | default(3) }}");
 
     const getFlashcardBatchUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
     const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
@@ -412,42 +536,58 @@
       return d.innerHTML.replace(/\r?\n/g,'<br>');
     }
 
-    function updateSessionSummary(c, i, v, t){
-      sessionCorrectCountSpan.textContent = c;
-      sessionIncorrectCountSpan.textContent = i;
-      sessionVagueCountSpan.textContent = v;
-      sessionTotalAnsweredSpan.textContent = t;
+    /**
+     * Cập nhật hiển thị thống kê phiên học với các thanh tiến trình mới.
+     * @param {number} correct - Số câu trả lời đúng.
+     * @param {number} incorrect - Số câu trả lời sai.
+     * @param {number} vague - Số câu trả lời mập mờ.
+     * @param {number} total - Tổng số thẻ đã trả lời.
+     */
+    function updateSessionSummary(correct, incorrect, vague, total){
+      // Chỉnh sửa để tìm các ID mới
+      const totalAnsweredLabel = document.getElementById('session-total-answered-label');
+      if (totalAnsweredLabel) totalAnsweredLabel.textContent = `${total}`;
+      
+      const correctCountLabel = document.getElementById('session-correct-count-label');
+      if (correctCountLabel) correctCountLabel.textContent = `${correct}`;
+      
+      const incorrectCountLabel = document.getElementById('session-incorrect-count-label');
+      if (incorrectCountLabel) incorrectCountLabel.textContent = `${incorrect}`;
+
+      const vagueCountLabel = document.getElementById('session-vague-count-label');
+      if (vagueCountLabel) vagueCountLabel.textContent = `${vague}`;
+      
+
+      const correctPct = total > 0 ? (correct / total) * 100 : 0;
+      const incorrectPct = total > 0 ? (incorrect / total) * 100 : 0;
+      const vaguePct = total > 0 ? (vague / total) * 100 : 0;
+      
+      // Chỉnh sửa để tìm các ID mới
+      const correctBar = document.getElementById('session-correct-bar');
+      if (correctBar) {
+          correctBar.style.width = `${correctPct}%`;
+          correctBar.textContent = correct > 0 ? `${Math.round(correctPct)}%` : '';
+      }
+      
+      const incorrectBar = document.getElementById('session-incorrect-bar');
+      if (incorrectBar) {
+          incorrectBar.style.width = `${incorrectPct}%`;
+          incorrectBar.textContent = incorrect > 0 ? `${Math.round(incorrectPct)}%` : '';
+      }
+
+      const vagueBar = document.getElementById('session-vague-bar');
+      if (vagueBar) {
+          vagueBar.style.width = `${vaguePct}%`;
+          vagueBar.textContent = vague > 0 ? `${Math.round(vaguePct)}%` : '';
+      }
+      
+      const totalAnsweredBar = document.getElementById('session-total-answered-bar');
+      if (totalAnsweredBar) {
+          totalAnsweredBar.style.width = `${100}%`;
+          totalAnsweredBar.textContent = total > 0 ? 'Phiên học đang diễn ra...' : '';
+      }
     }
-    
-    // THÊM MỚI: Cập nhật hàm để tạo các nút đánh giá động
-    function createRatingButtons(userButtonCount) {
-        let buttons = [];
-        if (userButtonCount === 3) {
-            buttons = [
-                { label: 'Quên', class: 'btn-quality-1', answer: 'quên' },
-                { label: 'Mơ hồ', class: 'btn-quality-2', answer: 'mơ_hồ' },
-                { label: 'Nhớ', class: 'btn-quality-4', answer: 'nhớ' }
-            ];
-        } else if (userButtonCount === 4) {
-            buttons = [
-                { label: 'Again', class: 'btn-quality-1', answer: 'again' },
-                { label: 'Hard', class: 'btn-quality-3', answer: 'hard' },
-                { label: 'Good', class: 'btn-quality-4', answer: 'good' },
-                { label: 'Easy', class: 'btn-quality-5', answer: 'easy' }
-            ];
-        } else if (userButtonCount === 6) {
-            buttons = [
-                { label: 'Fail', class: 'btn-quality-0', answer: 'fail' },
-                { label: 'Very Hard', class: 'btn-quality-1', answer: 'very_hard' },
-                { label: 'Hard', class: 'btn-quality-2', answer: 'hard' },
-                { label: 'Good', class: 'btn-quality-3', answer: 'good' },
-                { label: 'Easy', class: 'btn-quality-4', answer: 'easy' },
-                { label: 'Very Easy', class: 'btn-quality-5', answer: 'very_easy' }
-            ];
-        }
-        return buttons;
-    }
-    
+
     function adjustFontSize(){
       const scrollArea = document.querySelector('.back .text-area');
       const txt = document.querySelector('.back .flashcard-content-text');
@@ -471,9 +611,6 @@
       const bImg = c.back_img ? `<img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';">` : '';
       const fAud = c.front_audio_url ? `<audio controls src="${c.front_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>` : '';
       const bAud = c.back_audio_url ? `<audio controls src="${c.back_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>` : '';
-      
-      const buttons = createRatingButtons(userButtonCount);
-      const buttonHtml = buttons.map(btn => `<button class="btn ${btn.class}" data-answer="${btn.answer}">${btn.label}</button>`).join('');
 
       const html = `
       <div class="flashcard-card-container">
@@ -492,7 +629,9 @@
             </div>
             <div class="media-container ${(bImg||bAud)?'':'hidden'}" id="back-media">${bImg}${bAud}<button class="media-close" data-target="back-media">×</button></div>
             <div class="actions" id="internal-actions">
-              ${buttonHtml}
+              <button class="btn btn-quên" data-answer="quên">Quên</button>
+              <button class="btn btn-mơ-hồ" data-answer="mơ_hồ">Mơ hồ</button>
+              <button class="btn btn-nhớ" data-answer="nhớ">Nhớ</button>
             </div>
           </div>
         </div>
@@ -526,42 +665,60 @@
       setTimeout(adjustFontSize, 0);
     }
 
+    /**
+     * @param {object} stats - Các số liệu thống kê của thẻ.
+     * @param {number} scoreChange - Điểm số thay đổi trong lần này.
+     */
     function renderCardStats(stats, scoreChange) {
         if (!stats) {
             currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
             return;
         }
         
-        const totalReviews = stats.times_reviewed || 0;
-        const correctCount = stats.correct_count || 0;
-        const incorrectCount = stats.incorrect_count || 0;
-        const hardCount = stats.hard_count || 0;
+        const totalReviews = stats.total_reviews || 0;
+        const correctCount = stats.times_correct || 0;
+        const incorrectCount = stats.times_incorrect || 0;
+        const vagueCount = stats.times_vague || 0;
+        const correctPercentage = totalReviews > 0 ? (correctCount / totalReviews * 100) : 0;
+        const incorrectPercentage = totalReviews > 0 ? (incorrectCount / totalReviews * 100) : 0;
+        const vaguePercentage = totalReviews > 0 ? (vagueCount / totalReviews * 100) : 0;
 
-        const nextReviewTime = stats.next_review ? new Date(stats.next_review).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
+        const dueTime = stats.due_time ? new Date(stats.due_time).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
         
         const scoreChangeColor = scoreChange > 0 ? 'text-green-600' : (scoreChange < 0 ? 'text-red-600' : 'text-gray-600');
         const scoreChangeSign = scoreChange > 0 ? '+' : '';
 
         let statsHtml = `
-            <div class="grid grid-cols-2 gap-3 text-center">
-                <div class="bg-gray-100 rounded-md p-2">
-                    <div class="text-sm text-gray-500">Tổng ôn</div>
-                    <div class="text-xl font-bold">${totalReviews}</div>
+            <div class="space-y-4">
+                <div class="progress-bar-group">
+                    <div class="progress-bar-label">
+                        <span>Nhớ (${correctCount})</span>
+                        <span>${Math.round(correctPercentage)}%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill progress-bar-fill-correct" style="width: ${correctPercentage}%;"></div>
+                    </div>
                 </div>
-                <div class="bg-gray-100 rounded-md p-2">
-                    <div class="text-sm text-gray-500">Đúng</div>
-                    <div class="text-xl font-bold text-green-600">${correctCount}</div>
+                <div class="progress-bar-group">
+                    <div class="progress-bar-label">
+                        <span>Mơ hồ (${vagueCount})</span>
+                        <span>${Math.round(vaguePercentage)}%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill progress-bar-fill-vague" style="width: ${vaguePercentage}%;"></div>
+                    </div>
                 </div>
-                <div class="bg-gray-100 rounded-md p-2">
-                    <div class="text-sm text-gray-500">Sai</div>
-                    <div class="text-xl font-bold text-red-600">${incorrectCount}</div>
-                </div>
-                <div class="bg-gray-100 rounded-md p-2">
-                    <div class="text-sm text-gray-500">Khó</div>
-                    <div class="text-xl font-bold text-yellow-600">${hardCount}</div>
+                <div class="progress-bar-group">
+                    <div class="progress-bar-label">
+                        <span>Quên (${incorrectCount})</span>
+                        <span>${Math.round(incorrectPercentage)}%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill progress-bar-fill-incorrect" style="width: ${incorrectPercentage}%;"></div>
+                    </div>
                 </div>
             </div>
-            
+
             <div class="mt-4 space-y-2">
                 <div class="flex justify-between items-center text-sm text-gray-600">
                     <span>Điểm:</span>
@@ -577,7 +734,7 @@
                 </div>
                 <div class="flex justify-between items-center text-sm text-gray-600">
                     <span>Đến hạn ôn lại:</span>
-                    <span class="font-semibold text-right">${nextReviewTime}</span>
+                    <span class="font-semibold text-right">${dueTime}</span>
                 </div>
             </div>
         `;
