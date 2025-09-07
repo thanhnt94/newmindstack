@@ -1,8 +1,7 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/quiz_learning/templates/quiz_learning_dashboard.html #}
-{# Phiên bản: 1.93 #}
-{# Mục đích: Giao diện chính để chọn bộ câu hỏi và chế độ học Quiz. #}
-{# ĐÃ SỬA: Khắc phục triệt để lỗi reset lựa chọn khi chuyển trang bằng cách cải thiện logic lưu/tải từ localStorage. #}
+{# Phiên bản: 1.13 #}
+{# Mục đích: Khắc phục lỗi font size và padding quá lớn trên di động. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -175,6 +174,42 @@
             font-size: 0.6rem;
             cursor: pointer;
         }
+
+        /* THÊM MỚI: CSS tối ưu cho màn hình di động */
+        @media (max-width: 640px) {
+            .container {
+                padding: 0.5rem;
+            }
+            .quiz-title-wrapper {
+                margin-bottom: 1rem;
+            }
+            .quiz-title-badge {
+                font-size: 1.25rem;
+                padding: 0.5rem 1rem;
+            }
+            .quiz-title-badge .fa-question-circle {
+                font-size: 1.5rem;
+                margin-right: 0.5rem;
+            }
+            .grid > div {
+                padding: 0.5rem;
+            }
+            h2.sm\:text-2xl {
+                font-size: 1.125rem; /* text-lg */
+            }
+            .p-6 {
+                padding: 1rem;
+            }
+            .mb-4 {
+                margin-bottom: 0.75rem;
+            }
+            .quiz-set-item {
+                padding: 0.75rem;
+            }
+            .quiz-set-item .text-lg {
+                font-size: 0.9rem;
+            }
+        }
     </style>
 {% endblock %}
 
@@ -239,7 +274,6 @@
     console.log('>>> quiz_learning_dashboard.js: init');
 
     {# ==== Biến trạng thái ==== #}
-    let selectedQuizSetId = null;
     let selectedQuizSetIds = [];
     let selectedQuizMode = null;
     let selectedSessionSize = parseInt("{{ user_default_batch_size | default(10) }}");
@@ -680,7 +714,7 @@
         const currentBatchSize = document.getElementById('session-size-select').value;
         let startUrl;
         
-        if (selectedQuizSetIds.length > 0 && selectedQuizMode && currentBatchSize) {
+        if (selectedQuizSetIds.length > 0 && selectedQuizMode) {
             localStorage.removeItem('selectedQuizSetIds'); // Xóa localStorage khi bắt đầu phiên học
             const setIdsStr = selectedQuizSetIds.join(',');
             if (selectedQuizSetIds.length === 1 && selectedQuizSetIds[0] === 'all') {
@@ -777,12 +811,17 @@
         } else {
             rightPanel.style.display = 'flex';
             step2Title.innerHTML = `<i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học`;
-            quizModesContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
-                    <i class="fas fa-info-circle text-4xl mb-3"></i>
-                    <p>Vui lòng chọn một bộ câu hỏi trước.</p>
-                </div>
-            `;
+            if (selectedQuizSetIds.length > 0) {
+                 const setIdsStr = selectedQuizSetIds.join(',');
+                 loadQuizModes(setIdsStr);
+            } else {
+                 quizModesContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                        <i class="fas fa-info-circle text-4xl mb-3"></i>
+                        <p>Vui lòng chọn một bộ câu hỏi trước.</p>
+                    </div>
+                `;
+            }
         }
     }
 

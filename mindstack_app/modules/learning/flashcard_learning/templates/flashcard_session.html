@@ -1,6 +1,6 @@
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 21.0 #}
-{# Mục đích: Khắc phục lỗi hiển thị trên di động, đảm bảo thẻ flashcard hiển thị tràn viền, không có cuộn và ẩn footer. #}
+{# Phiên bản: 28.0 #}
+{# Mục đích: Khắc phục lỗi bố cục nút đánh giá cho 3, 4, 6 nút trên di động. #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -14,7 +14,7 @@
         background-color: #f9fafb;
     }
     
-    /* Ghi đè CSS từ base.html để ẩn footer chỉ trên trang này */
+    /* Ghi đè CSS từ base.html để ẩn footer chỉ trên trang này khi ở màn hình nhỏ */
     @media (max-width: 1024px) {
         body > footer {
             display: none !important;
@@ -103,6 +103,7 @@
         #flashcard-content {
             flex: 1;
             padding-bottom: 0.5rem; /* Thêm padding dưới để nút không bị dính */
+            padding-top: 0.5rem; /* Thêm padding trên để cân bằng */
         }
         .flashcard-card-container, .flashcard-card, .face {
             height: 100%;
@@ -116,6 +117,9 @@
         .actions {
             margin-top: 1rem !important;
             padding-top: 0;
+            gap: 0.5rem; /* Giảm khoảng cách giữa các nút */
+            justify-content: center;
+            width: 100%;
         }
         .flashcard-card {
             padding: 0.5rem; /* Giảm padding trên thẻ flashcard */
@@ -288,7 +292,7 @@
     .actions.visible {
         display: flex;
     }
-
+    
     .btn {
         border: none;
         color: #fff;
@@ -297,11 +301,54 @@
         border-radius: 9999px;
         box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
         cursor: pointer;
+        font-size: 1rem;
+        flex-grow: 1; /* Các nút sẽ tự động giãn nở để lấp đầy không gian */
+        flex-shrink: 1;
+        flex-basis: 0;
+        white-space: nowrap; /* Ngăn không cho chữ trong nút bị xuống dòng */
     }
 
     .btn-quên { background: #ef4444; }
     .btn-mơ-hồ { background: #f59e0b; }
     .btn-nhớ { background: #10b981; }
+    /* Nút 4 và 6 tùy chỉnh */
+    .btn-fail { background-color: #ef4444; }
+    .btn-hard { background-color: #f59e0b; }
+    .btn-good { background-color: #10b981; }
+    .btn-easy { background-color: #22c55e; }
+    .btn-very-hard { background-color: #dc2626; }
+    .btn-medium { background-color: #facc15; }
+    .btn-very-easy { background-color: #10b981; }
+    
+    /* Ghi đè CSS cho nút trên mobile */
+    @media (max-width: 768px) {
+        .btn {
+            font-size: 0.8rem;
+            padding: 0.6rem 0.8rem;
+        }
+
+        /* Bố cục cho 3 nút: 1 hàng */
+        .actions[data-button-count="3"] {
+            display: flex !important;
+            flex-wrap: nowrap;
+            justify-content: space-around;
+        }
+
+        /* Bố cục cho 4 nút: 1 hàng */
+        .actions[data-button-count="4"] {
+            display: flex !important;
+            flex-wrap: nowrap;
+            justify-content: space-around;
+        }
+
+        /* Bố cục cho 6 nút: 2 hàng, mỗi hàng 3 nút */
+        .actions[data-button-count="6"] {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+    }
+
 
     /* Ẩn cụm nút ngoài (đã move vào thẻ) */
     #flashcard-buttons {
@@ -528,6 +575,7 @@
     const getFlashcardBatchUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
     const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
     const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
+    const userButtonCount = {{ user_button_count }};
 
     function formatTextForHtml(text){
       if (text == null) return '';
@@ -603,6 +651,42 @@
       }
     }
 
+    /**
+     * Tạo các nút đánh giá động dựa trên cài đặt của người dùng.
+     * @returns {string} HTML chứa các nút đánh giá.
+     */
+    function generateDynamicButtons(buttonCount) {
+        let buttonsHtml = '';
+        const buttonSets = {
+            3: [
+                { class: 'btn-quên', text: 'Quên', value: 'quên' },
+                { class: 'btn-mơ-hồ', text: 'Mơ hồ', value: 'mơ_hồ' },
+                { class: 'btn-nhớ', text: 'Nhớ', value: 'nhớ' }
+            ],
+            4: [
+                { class: 'btn-fail', text: 'Học lại', value: 'fail' },
+                { class: 'btn-hard', text: 'Khó', value: 'hard' },
+                { class: 'btn-good', text: 'Bình thường', value: 'good' },
+                { class: 'btn-easy', text: 'Dễ', value: 'easy' }
+            ],
+            6: [
+                { class: 'btn-fail', text: 'Rất khó', value: 'fail' },
+                { class: 'btn-very-hard', text: 'Khó', value: 'very_hard' },
+                { class: 'btn-hard', text: 'Trung bình', value: 'hard' },
+                { class: 'btn-medium', text: 'Dễ', value: 'medium' },
+                { class: 'btn-good', text: 'Rất dễ', value: 'good' },
+                { class: 'btn-very-easy', text: 'Dễ dàng', value: 'very_easy' }
+            ]
+        };
+
+        const buttons = buttonSets[buttonCount] || buttonSets[3];
+        buttons.forEach(btn => {
+            buttonsHtml += `<button class="btn ${btn.class}" data-answer="${btn.value}">${btn.text}</button>`;
+        });
+        
+        return buttonsHtml;
+    }
+
     function renderCard(data){
       const c = data.content;
       const fTxt = c.front || 'Không có nội dung';
@@ -611,6 +695,8 @@
       const bImg = c.back_img ? `<img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';">` : '';
       const fAud = c.front_audio_url ? `<audio controls src="${c.front_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>` : '';
       const bAud = c.back_audio_url ? `<audio controls src="${c.back_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>` : '';
+
+      const buttonsHtml = generateDynamicButtons(userButtonCount);
 
       const html = `
       <div class="flashcard-card-container">
@@ -628,10 +714,8 @@
               <div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div>
             </div>
             <div class="media-container ${(bImg||bAud)?'':'hidden'}" id="back-media">${bImg}${bAud}<button class="media-close" data-target="back-media">×</button></div>
-            <div class="actions" id="internal-actions">
-              <button class="btn btn-quên" data-answer="quên">Quên</button>
-              <button class="btn btn-mơ-hồ" data-answer="mơ_hồ">Mơ hồ</button>
-              <button class="btn btn-nhớ" data-answer="nhớ">Nhớ</button>
+            <div class="actions" id="internal-actions" data-button-count="${userButtonCount}">
+              ${buttonsHtml}
             </div>
           </div>
         </div>

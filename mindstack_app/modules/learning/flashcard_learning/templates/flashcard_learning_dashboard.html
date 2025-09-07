@@ -1,10 +1,7 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_learning_dashboard.html #}
-{# Phiên bản: 2.3 #}
-{# Mục đích: Giao diện chính để chọn bộ thẻ, chế độ học và tùy chọn số nút đánh giá. #}
-{# ĐÃ SỬA: Di chuyển phần chọn chế độ học và số nút đánh giá sang một div riêng. #}
-{# ĐÃ SỬA: Cập nhật JavaScript để tải động các tùy chọn này sau khi chọn bộ thẻ. #}
-{# ĐÃ SỬA: Thêm URL API cho get_flashcard_options_partial. #}
+{# Phiên bản: 2.5 #}
+{# Mục đích: Khắc phục lỗi font size và padding quá lớn trên di động. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -173,6 +170,45 @@
             margin-left: 0.5rem;
             font-size: 0.6rem;
             cursor: pointer;
+        }
+
+        /* THÊM MỚI: CSS tối ưu cho màn hình di động */
+        @media (max-width: 640px) {
+            .container {
+                padding: 0.5rem;
+            }
+            .flashcard-title-wrapper {
+                margin-bottom: 1rem;
+            }
+            .flashcard-title-badge {
+                font-size: 1.25rem;
+                padding: 0.5rem 1rem;
+            }
+            .flashcard-title-badge .fa-clone {
+                font-size: 1.5rem;
+                margin-right: 0.5rem;
+            }
+            .grid > div {
+                padding: 0.5rem;
+            }
+            h2.sm\:text-2xl {
+                font-size: 1.125rem; /* text-lg */
+            }
+            .h2 .text-xl {
+                font-size: 1rem; /* text-base */
+            }
+            .p-6 {
+                padding: 1rem;
+            }
+            .mb-4 {
+                margin-bottom: 0.75rem;
+            }
+            .flashcard-set-item {
+                padding: 0.75rem;
+            }
+            .flashcard-set-item .text-lg {
+                font-size: 0.9rem;
+            }
         }
 
     </style>
