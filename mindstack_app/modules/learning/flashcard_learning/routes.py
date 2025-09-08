@@ -1,12 +1,9 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 1.9
+# Phiên bản: 2.0
 # Mục đích: Định nghĩa các routes và logic cho module học Flashcard.
+# ĐÃ SỬA: Cập nhật route `get_flashcard_batch` để sử dụng FlashcardSessionManager, đảm bảo logic tự động tạo audio từ text hoạt động.
+# ĐÃ THÊM: Route mới `/regenerate-audio-from-content` để kích hoạt việc tạo audio cache từ frontend.
 # ĐÃ SỬA: Khắc phục lỗi trong submit_flashcard_answer và flashcard_session để hỗ trợ tùy chọn nút đánh giá.
-# ĐÃ SỬA: Cập nhật route `save_flashcard_settings` để lưu số nút đánh giá của người dùng.
-# ĐÃ SỬA: Cập nhật route `flashcard_learning_dashboard` để đọc và truyền số nút đánh giá của người dùng vào template.
-# ĐÃ SỬA: Thêm route mới get_flashcard_options_partial để load động các chế độ học và nút.
-# ĐÃ SỬA: Sửa lỗi TypeError trong session_manager.process_flashcard_answer.
-# ĐÃ THÊM: Logic ánh xạ linh hoạt cho các hệ thống nút đánh giá khác nhau.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
@@ -14,12 +11,16 @@ import traceback
 from .algorithms import get_new_only_items, get_due_items, get_hard_items, get_filtered_flashcard_sets, get_flashcard_mode_counts
 from .session_manager import FlashcardSessionManager
 from .config import FlashcardLearningConfig
-from ....models import db, User, UserContainerState, LearningContainer
+from ....models import db, User, UserContainerState, LearningContainer, LearningItem
 from sqlalchemy.sql import func
-
+import asyncio
+from .audio_service import AudioService
+import os
 
 flashcard_learning_bp = Blueprint('flashcard_learning', __name__,
                                   template_folder='templates')
+
+audio_service = AudioService()
 
 
 @flashcard_learning_bp.route('/flashcard_learning_dashboard')
@@ -164,8 +165,11 @@ def get_flashcard_batch():
     try:
         # Lấy một thẻ duy nhất mỗi lần
         flashcard_batch = session_manager.get_next_batch()
-        session['flashcard_session'] = session_manager.to_dict()
         
+        # Cập nhật session sau khi lấy batch
+        session['flashcard_session'] = session_manager.to_dict()
+        session.modified = True
+
         if flashcard_batch is None:
             session_manager.end_flashcard_session()
             current_app.logger.info(f"Phiên học Flashcard cho người dùng {current_user.user_id} đã kết thúc do hết thẻ.")
@@ -439,3 +443,35 @@ def bulk_unarchive_flashcard():
         db.session.rollback()
         current_app.logger.error(f"Lỗi khi bỏ lưu trữ hàng loạt: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi xử lý yêu cầu.'}), 500
+
+@flashcard_learning_bp.route('/regenerate-audio-from-content', methods=['POST'])
+@login_required
+def regenerate_audio_from_content():
+    """
+    Kích hoạt việc tạo file audio từ nội dung văn bản.
+    """
+    data = request.get_json()
+    item_id = data.get('item_id')
+    side = data.get('side')
+    content_to_read = data.get('content_to_read')
+
+    if not item_id or not side or not content_to_read:
+        return jsonify({'success': False, 'message': 'Dữ liệu không hợp lệ.'}), 400
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        path_or_url, success, msg = loop.run_until_complete(audio_service.get_cached_or_generate_audio(content_to_read))
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Đã tạo audio thành công.',
+                'audio_url': url_for('static', filename=os.path.relpath(path_or_url, current_app.static_folder))
+            })
+        else:
+            return jsonify({'success': False, 'message': msg}), 500
+    except Exception as e:
+        current_app.logger.error(f"Lỗi khi tạo audio từ nội dung: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi xử lý yêu cầu.'}), 500
+    finally:
+        loop.close()

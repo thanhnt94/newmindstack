@@ -1,8 +1,10 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 1.7
+# Phiên bản: 1.10
 # Mục đích: Quản lý trạng thái của phiên học Flashcard hiện tại cho người dùng.
+# ĐÃ SỬA: Loại bỏ logic tự động tạo audio từ text trong get_next_batch để cải thiện tốc độ.
 # ĐÃ SỬA: Sửa lỗi TypeError bằng cách gọi hàm process_flashcard_answer trong flashcard_logic.py với tham số user_answer.
 # ĐÃ THÊM: Cập nhật logic xử lý câu trả lời để hỗ trợ các hệ thống nút đánh giá khác nhau.
+# ĐÃ SỬA: Bổ sung logic lưu URL audio đã tạo vào database để nút audio hoạt động vĩnh viễn.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
@@ -12,14 +14,20 @@ from .flashcard_logic import process_flashcard_answer
 from .flashcard_stats_logic import get_flashcard_item_statistics
 from .config import FlashcardLearningConfig
 from sqlalchemy.sql import func
+from sqlalchemy.orm.attributes import flag_modified
 import random
 import datetime
 import os
+import asyncio
+from .audio_service import AudioService # THÊM MỚI: Import AudioService
+
+# Khởi tạo một instance của AudioService
+audio_service = AudioService()
 
 class FlashcardSessionManager:
     """
-    Quản lý phiên học Flashcard cho một người dùng.
-    Sử dụng Flask session để lưu trữ trạng thái.
+    Mô tả: Quản lý phiên học Flashcard cho một người dùng.
+           Sử dụng Flask session để lưu trữ trạng thái.
     """
     SESSION_KEY = 'flashcard_session'
 
@@ -27,7 +35,7 @@ class FlashcardSessionManager:
                  total_items_in_session, processed_item_ids, 
                  correct_answers, incorrect_answers, vague_answers, start_time):
         """
-        Khởi tạo một phiên FlashcardSessionManager.
+        Mô tả: Khởi tạo một phiên FlashcardSessionManager.
         """
         self.user_id = user_id
         self.set_id = set_id
@@ -43,7 +51,7 @@ class FlashcardSessionManager:
     @classmethod
     def from_dict(cls, session_dict):
         """
-        Tạo một instance FlashcardSessionManager từ một dictionary (thường từ Flask session).
+        Mô tả: Tạo một instance FlashcardSessionManager từ một dictionary (thường từ Flask session).
         """
         return cls(
             user_id=session_dict['user_id'],
@@ -59,7 +67,7 @@ class FlashcardSessionManager:
 
     def to_dict(self):
         """
-        Chuyển đổi instance FlashcardSessionManager thành một dictionary để lưu vào Flask session.
+        Mô tả: Chuyển đổi instance FlashcardSessionManager thành một dictionary để lưu vào Flask session.
         """
         return {
             'user_id': self.user_id,
@@ -77,15 +85,7 @@ class FlashcardSessionManager:
     @classmethod
     def start_new_flashcard_session(cls, set_id, mode):
         """
-        Khởi tạo một phiên học Flashcard mới.
-        Lấy danh sách thẻ dựa trên chế độ.
-
-        Args:
-            set_id (int/str): ID của bộ Flashcard hoặc 'all'.
-            mode (str): Chế độ học ('new_only', 'due_only', 'hard_only', ...).
-        
-        Returns:
-            bool: True nếu phiên được khởi tạo thành công, False nếu không có thẻ.
+        Mô tả: Khởi tạo một phiên học Flashcard mới.
         """
         print(f">>> SESSION_MANAGER: Bắt đầu start_new_flashcard_session cho set_id={set_id}, mode={mode} <<<")
         current_app.logger.debug(f"SessionManager: Bắt đầu start_new_flashcard_session cho set_id={set_id}, mode={mode}")
@@ -141,16 +141,11 @@ class FlashcardSessionManager:
 
     def _get_media_absolute_url(self, file_path):
         """
-        Chuyển đổi đường dẫn file media tương đối thành URL tuyệt đối.
-        
-        Hàm này đã được cập nhật để xử lý các đường dẫn không nhất quán,
-        loại bỏ tiền tố 'media/flashcard/' không cần thiết.
+        Mô tả: Chuyển đổi đường dẫn file media tương đối thành URL tuyệt đối.
         """
         if not file_path:
             return None
         
-        # Sửa lỗi: Nếu đường dẫn chứa tiền tố không cần thiết, hãy loại bỏ nó
-        # Dựa trên lỗi 404, đường dẫn có thể bị trùng lặp như /uploads/media/flashcard/...
         cleaned_file_path = file_path.replace('media/flashcard/', '')
         
         try:
@@ -164,12 +159,12 @@ class FlashcardSessionManager:
 
     def get_next_batch(self):
         """
-        Lấy dữ liệu của một thẻ tiếp theo trong phiên học.
-
+        Mô tả: Lấy dữ liệu của một thẻ tiếp theo trong phiên học.
+               Đã loại bỏ logic tự động tạo audio để tăng tốc độ.
         Returns:
             dict/None: Dữ liệu thẻ nếu có, None nếu phiên không hợp lệ hoặc hết thẻ.
         """
-        requested_batch_size = 1 # Flashcard luôn lấy từng thẻ một
+        requested_batch_size = 1
         current_app.logger.debug(f"SessionManager: Lấy thẻ tiếp theo: Đã xử lý {len(self.processed_item_ids)}/{self.total_items_in_session}")
         
         if len(self.processed_item_ids) >= self.total_items_in_session:
@@ -207,6 +202,7 @@ class FlashcardSessionManager:
         newly_processed_item_ids = []
 
         for item in new_items_to_add_to_session:
+            # Tạo item_dict ban đầu
             item_dict = {
                 'item_id': item.item_id,
                 'content': {
@@ -221,19 +217,21 @@ class FlashcardSessionManager:
                 },
                 'ai_explanation': item.ai_explanation
             }
-            # Xử lý URL media
-            if item_dict['content'].get('front_img'):
-                item_dict['content']['front_img'] = self._get_media_absolute_url(item_dict['content']['front_img'])
-            if item_dict['content'].get('back_img'):
-                item_dict['content']['back_img'] = self._get_media_absolute_url(item_dict['content']['back_img'])
+            
+            # Chỉ chuyển đổi URL đã tồn tại thành URL tuyệt đối, không tạo mới
             if item_dict['content'].get('front_audio_url'):
                 item_dict['content']['front_audio_url'] = self._get_media_absolute_url(item_dict['content']['front_audio_url'])
             if item_dict['content'].get('back_audio_url'):
                 item_dict['content']['back_audio_url'] = self._get_media_absolute_url(item_dict['content']['back_audio_url'])
+            if item_dict['content'].get('front_img'):
+                item_dict['content']['front_img'] = self._get_media_absolute_url(item_dict['content']['front_img'])
+            if item_dict['content'].get('back_img'):
+                item_dict['content']['back_img'] = self._get_media_absolute_url(item_dict['content']['back_img'])
 
             items_data.append(item_dict)
             newly_processed_item_ids.append(item.item_id)
         
+
         self.processed_item_ids.extend(newly_processed_item_ids)
         session[self.SESSION_KEY] = self.to_dict()
         session.modified = True
@@ -251,10 +249,7 @@ class FlashcardSessionManager:
 
     def process_flashcard_answer(self, item_id, user_answer):
         """
-        Xử lý một câu trả lời của người dùng cho một thẻ flashcard.
-        Args:
-            item_id (int): ID của thẻ.
-            user_answer (str): Chuỗi đại diện cho nút mà người dùng đã bấm.
+        Mô tả: Xử lý một câu trả lời của người dùng cho một thẻ flashcard.
         """
         print(f">>> SESSION_MANAGER: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer={user_answer} <<<")
         current_app.logger.debug(f"SessionManager: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer={user_answer}")
@@ -263,8 +258,6 @@ class FlashcardSessionManager:
             current_user_obj = User.query.get(self.user_id)
             current_user_total_score = current_user_obj.total_score if current_user_obj else 0
 
-            # THAY ĐỔI: Chuyển logic ánh xạ từ route sang đây để dễ quản lý hơn.
-            # Dựa trên số nút mà người dùng đã chọn
             user_button_count = current_user.flashcard_button_count or 3
             quality_map = {}
             if user_button_count == 3:
@@ -301,7 +294,6 @@ class FlashcardSessionManager:
                 'is_correct': is_correct,
                 'new_progress_status': new_progress_status,
                 'statistics': item_stats,
-                # THÊM MỚI: Trả về số liệu thống kê phiên học để cập nhật giao diện
                 'session_correct_answers': self.correct_answers,
                 'session_incorrect_answers': self.incorrect_answers,
                 'session_vague_answers': self.vague_answers,
@@ -315,7 +307,7 @@ class FlashcardSessionManager:
     @classmethod
     def end_flashcard_session(cls):
         """
-        Kết thúc phiên học Flashcard hiện tại và xóa dữ liệu khỏi session.
+        Mô tả: Kết thúc phiên học Flashcard hiện tại và xóa dữ liệu khỏi session.
         """
         if cls.SESSION_KEY in session:
             session.pop(cls.SESSION_KEY, None)
@@ -326,7 +318,7 @@ class FlashcardSessionManager:
     @classmethod
     def get_session_status(cls):
         """
-        Lấy trạng thái hiện tại của phiên học.
+        Mô tả: Lấy trạng thái hiện tại của phiên học.
         """
         status = session.get(cls.SESSION_KEY)
         print(f">>> SESSION_MANAGER: Lấy trạng thái session: {status} <<<")

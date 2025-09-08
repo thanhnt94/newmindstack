@@ -1,6 +1,9 @@
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 28.0 #}
-{# Mục đích: Khắc phục lỗi bố cục nút đánh giá cho 3, 4, 6 nút trên di động. #}
+{# Phiên bản: 34.0 #}
+{# Mục đích: Khắc phục triệt để lỗi hiển thị, xung đột click và logic tải audio theo phản hồi của người dùng. #}
+{# ĐÃ SỬA: Loại bỏ thông báo "Lỗi âm thanh" cứng và thay thế bằng cơ chế xử lý lỗi tinh tế hơn. #}
+{# ĐÃ SỬA: Cải thiện logic JavaScript để nút audio hoạt động đáng tin cậy và không xung đột với việc lật thẻ. #}
+{# ĐÃ THÊM: Biểu tượng loading (spinner) khi audio đang được tạo. #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -76,7 +79,7 @@
     }
     
     @media (max-width: 1024px) {
-        /* Bố cục trên màn hình di động */
+        /* Bố cục trên màn màn hình di động */
         .page-shell {
             top: var(--header-h, 0px);
             bottom: 0;
@@ -179,7 +182,6 @@
     /* Đảm bảo mặt trước hiển thị đúng chiều ở trạng thái bình thường */
     .front { 
         transform: rotateY(0deg); 
-        text-align: center; 
     }
     
     /* Đảm bảo mặt sau bị lật ở trạng thái bình thường để ẩn đi */
@@ -199,17 +201,70 @@
     /* Thanh tiêu đề của thẻ */
     .card-toolbar {
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        grid-template-columns: auto 1fr auto; /* Chỉ 3 cột: edit, label, audio */
         align-items: center;
-        margin-bottom: .25rem;
+        margin-bottom: 0;
+        padding: 10px 1.5rem 0.5rem 1.5rem;
+        position: absolute;
+        width: 100%;
+        top: 0;
+        left: 0;
     }
 
     .card-toolbar .label {
         text-transform: uppercase;
         text-align: center;
-        font-weight: 700;
+        font-weight: 600;
         color: #6b7280;
         letter-spacing: .06em;
+        font-size: 1rem;
+    }
+    
+    .card-toolbar .icon-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: transparent;
+        color: #9ca3af;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: color 0.2s ease, background-color 0.2s ease;
+    }
+    
+    .card-toolbar .icon-btn:hover {
+        background-color: #f3f4f6;
+        color: #3b82f6;
+    }
+    .card-toolbar .icon-btn.is-active {
+        color: #3b82f6;
+    }
+    .card-toolbar .icon-btn.is-disabled {
+        background-color: #9ca3af; /* Màu xám khi disabled */
+        color: #e5e7eb;
+        cursor: not-allowed;
+    }
+
+    /* Style cho nút audio như ảnh mẫu */
+    .card-toolbar .play-audio-btn {
+        background-color: #2563eb; /* Màu xanh da trời */
+        color: #ffffff; /* Màu chữ trắng */
+        width: 36px; /* Kích thước nhỏ hơn một chút */
+        height: 36px;
+        font-size: 1rem; /* Kích thước icon nhỏ hơn */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Thêm đổ bóng */
+    }
+
+    .card-toolbar .play-audio-btn:hover {
+        background-color: #1d4ed8; /* Màu xanh đậm hơn khi hover */
+        color: #ffffff;
+    }
+    .card-toolbar .play-audio-btn.is-disabled {
+        background-color: #9ca3af; /* Màu xám khi disabled */
+        color: #e5e7eb;
+        cursor: not-allowed;
     }
 
     /* Nội dung text (căn dọc giữa) */
@@ -219,6 +274,9 @@
         overflow: auto;
         display: flex;
         align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 3rem 1rem;
     }
 
     .text-area > .flashcard-content-text {
@@ -226,7 +284,6 @@
     }
 
     .front .text-area .flashcard-content-text {
-        text-align: center;
         font-size: 2.2rem;
         font-weight: 700;
         color: #1f2937;
@@ -258,7 +315,7 @@
         display: none;
     }
 
-    .media-container img, .media-container audio {
+    .media-container img {
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
@@ -286,7 +343,13 @@
         display: none;
         gap: .75rem;
         justify-content: center;
-        margin-top: .6rem;
+        padding: 1rem 1.5rem;
+        position: absolute;
+        width: 100%;
+        bottom: 0;
+        left: 0;
+        background: #fff;
+        border-top: 1px solid #e5e7eb;
     }
 
     .actions.visible {
@@ -318,6 +381,7 @@
     .btn-easy { background-color: #22c55e; }
     .btn-very-hard { background-color: #dc2626; }
     .btn-medium { background-color: #facc15; }
+    .btn-good { background-color: #10b981; }
     .btn-very-easy { background-color: #10b981; }
     
     /* Ghi đè CSS cho nút trên mobile */
@@ -482,7 +546,7 @@
                     <span id="session-correct-count-label">0</span>
                 </div>
                 <div class="progress-bar-container">
-                    <div id="session-correct-bar" class="progress-bar-fill progress-bar-fill-correct"></div>
+                    <div class="progress-bar-fill progress-bar-fill-correct" style="width: 0%;"></div>
                 </div>
             </div>
             <div class="progress-bar-group">
@@ -491,7 +555,7 @@
                     <span id="session-vague-count-label">0</span>
                 </div>
                 <div class="progress-bar-container">
-                    <div id="session-vague-bar" class="progress-bar-fill progress-bar-fill-vague"></div>
+                    <div class="progress-bar-fill progress-bar-fill-vague" style="width: 0%;"></div>
                 </div>
             </div>
             <div class="progress-bar-group">
@@ -500,7 +564,7 @@
                     <span id="session-incorrect-count-label">0</span>
                 </div>
                 <div class="progress-bar-container">
-                    <div id="session-incorrect-bar" class="progress-bar-fill progress-bar-fill-incorrect"></div>
+                    <div class="progress-bar-fill progress-bar-fill-incorrect" style="width: 0%;"></div>
                 </div>
             </div>
         </div>
@@ -575,6 +639,7 @@
     const getFlashcardBatchUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
     const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
     const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
+    const regenerateAudioUrl = "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}";
     const userButtonCount = {{ user_button_count }};
 
     function formatTextForHtml(text){
@@ -588,11 +653,10 @@
      * Cập nhật hiển thị thống kê phiên học với các thanh tiến trình mới.
      * @param {number} correct - Số câu trả lời đúng.
      * @param {number} incorrect - Số câu trả lời sai.
-     * @param {number} vague - Số câu trả lời mập mờ.
+     * @param (number) vague - Số câu trả lời mập mờ.
      * @param {number} total - Tổng số thẻ đã trả lời.
      */
     function updateSessionSummary(correct, incorrect, vague, total){
-      // Chỉnh sửa để tìm các ID mới
       const totalAnsweredLabel = document.getElementById('session-total-answered-label');
       if (totalAnsweredLabel) totalAnsweredLabel.textContent = `${total}`;
       
@@ -610,7 +674,6 @@
       const incorrectPct = total > 0 ? (incorrect / total) * 100 : 0;
       const vaguePct = total > 0 ? (vague / total) * 100 : 0;
       
-      // Chỉnh sửa để tìm các ID mới
       const correctBar = document.getElementById('session-correct-bar');
       if (correctBar) {
           correctBar.style.width = `${correctPct}%`;
@@ -689,31 +752,41 @@
 
     function renderCard(data){
       const c = data.content;
-      const fTxt = c.front || 'Không có nội dung';
-      const bTxt = c.back || 'Không có nội dung';
-      const fImg = c.front_img ? `<img src="${c.front_img}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';">` : '';
-      const bImg = c.back_img ? `<img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';">` : '';
-      const fAud = c.front_audio_url ? `<audio controls src="${c.front_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>` : '';
-      const bAud = c.back_audio_url ? `<audio controls src="${c.back_audio_url}" class="w-full mt-2" onerror="this.outerHTML='<p class=\\'text-red-500\\'>Lỗi âm thanh</p>'"></audio>` : '';
+      const itemId = data.item_id;
+      const fTxt = c.front || '';
+      const bTxt = c.back || '';
+      
+      const hasFrontAudioContent = c.front_audio_url || c.front_audio_content;
+      const hasBackAudioContent = c.back_audio_url || c.back_audio_content;
 
       const buttonsHtml = generateDynamicButtons(userButtonCount);
-
+      
       const html = `
       <div class="flashcard-card-container">
         <div id="flashcard-card" class="flashcard-card">
           <div class="face front">
-            <div class="card-toolbar"><span></span><span class="label">MẶT TRƯỚC</span><span></span></div>
+            <div class="card-toolbar">
+                <button class="icon-btn edit-card-btn"><i class="fas fa-pencil-alt"></i></button>
+                <span class="label">MẶT TRƯỚC</span>
+                <button class="icon-btn play-audio-btn ${hasFrontAudioContent ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${c.front_audio_content || ''}" ${hasFrontAudioContent ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>
+            </div>
             <div class="text-area">
               <div class="flashcard-content-text">${formatTextForHtml(fTxt)}</div>
             </div>
-            <div class="media-container ${(fImg||fAud)?'':'hidden'}" id="front-media">${fImg}${fAud}<button class="media-close" data-target="front-media">×</button></div>
+            ${c.front_img ? `<div class="media-container"><img src="${c.front_img}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
+            <audio id="front-audio" class="hidden" src="${c.front_audio_url || ''}"></audio>
           </div>
           <div class="face back">
-            <div class="card-toolbar"><span></span><span class="label">MẶT SAU</span><span></span></div>
+            <div class="card-toolbar">
+                <button class="icon-btn edit-card-btn is-disabled"><i class="fas fa-pencil-alt"></i></button>
+                <span class="label">MẶT SAU</span>
+                <button class="icon-btn play-audio-btn ${hasBackAudioContent ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${c.back_audio_content || ''}" ${hasBackAudioContent ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>
+            </div>
             <div class="text-area">
               <div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div>
             </div>
-            <div class="media-container ${(bImg||bAud)?'':'hidden'}" id="back-media">${bImg}${bAud}<button class="media-close" data-target="back-media">×</button></div>
+            ${c.back_img ? `<div class="media-container"><img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
+            <audio id="back-audio" class="hidden" src="${c.back_audio_url || ''}"></audio>
             <div class="actions" id="internal-actions" data-button-count="${userButtonCount}">
               ${buttonsHtml}
             </div>
@@ -740,13 +813,67 @@
         submitFlashcardAnswer(data.item_id, b.dataset.answer);
       }));
       
-      document.querySelectorAll('.media-close').forEach(btn => btn.addEventListener('click', ev => {
-        ev.stopPropagation();
-        const id = btn.dataset.target;
-        document.getElementById(id)?.classList.add('hidden');
-        setTimeout(adjustFontSize, 200);
-      }));
+      document.querySelectorAll('.play-audio-btn').forEach(btn => {
+        btn.addEventListener('click', ev => {
+          ev.stopPropagation();
+          const audioPlayer = document.querySelector(btn.dataset.audioTarget);
+          if (!btn.disabled) {
+            // Tạm dừng tất cả các audio khác trước khi phát
+            document.querySelectorAll('audio').forEach(otherAudio => {
+                if (otherAudio !== audioPlayer && !otherAudio.paused) {
+                    otherAudio.pause();
+                    otherAudio.currentTime = 0;
+                }
+            });
+
+            if (audioPlayer.src) {
+              if (audioPlayer.paused) {
+                audioPlayer.play();
+              } else {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+              }
+            } else {
+              // Nếu chưa có URL, tạo audio và sau đó phát
+              generateAndPlayAudio(btn, audioPlayer);
+            }
+          }
+        });
+      });
       setTimeout(adjustFontSize, 0);
+    }
+
+    async function generateAndPlayAudio(button, audioPlayer) {
+      const itemId = button.dataset.itemId;
+      const side = button.dataset.side;
+      const contentToRead = button.dataset.contentToRead;
+      
+      button.disabled = true;
+      button.classList.add('is-disabled');
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+      try {
+        const response = await fetch(regenerateAudioUrl, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ item_id: itemId, side: side, content_to_read: contentToRead })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          audioPlayer.src = result.audio_url;
+          audioPlayer.play();
+        } else {
+          showCustomAlert(result.message || 'Lỗi khi tạo audio.');
+        }
+      } catch (error) {
+        console.error('Lỗi khi tạo audio:', error);
+        showCustomAlert('Không thể kết nối đến máy chủ để tạo audio.');
+      } finally {
+        button.disabled = false;
+        button.classList.remove('is-disabled');
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+      }
     }
 
     /**
@@ -759,15 +886,15 @@
             return;
         }
         
-        const totalReviews = stats.total_reviews || 0;
+        const totalReviews = stats.times_correct + stats.times_incorrect + stats.times_vague || 0;
         const correctCount = stats.times_correct || 0;
         const incorrectCount = stats.times_incorrect || 0;
         const vagueCount = stats.times_vague || 0;
-        const correctPercentage = totalReviews > 0 ? (correctCount / totalReviews * 100) : 0;
-        const incorrectPercentage = totalReviews > 0 ? (incorrectCount / totalReviews * 100) : 0;
-        const vaguePercentage = totalReviews > 0 ? (vagueCount / totalReviews * 100) : 0;
-
-        const dueTime = stats.due_time ? new Date(stats.due_time).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
+        const correctPercentage = totalReviews > 0 ? (correctCount / totalReviews) * 100 : 0;
+        const incorrectPercentage = totalReviews > 0 ? (incorrectCount / totalReviews) * 100 : 0;
+        const vaguePercentage = totalReviews > 0 ? (vagueCount / totalReviews) * 100 : 0;
+        
+        const dueTime = stats.next_review ? new Date(stats.next_review).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
         
         const scoreChangeColor = scoreChange > 0 ? 'text-green-600' : (scoreChange < 0 ? 'text-red-600' : 'text-gray-600');
         const scoreChangeSign = scoreChange > 0 ? '+' : '';

@@ -1,6 +1,10 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 4.4
+# Phiên bản: 4.5
 # ĐÃ SỬA: Cập nhật template_folder của Blueprint để phản ánh cấu trúc thư mục mới.
+# ĐÃ THÊM: Tích hợp AudioService để tạo và cache file audio từ Text-to-Speech.
+# ĐÃ THÊM: Route mới để tái tạo audio cho một thẻ cụ thể.
+# ĐÃ SỬA: Cập nhật các route add và edit flashcard item để gọi AudioService.
+# ĐÃ SỬA: Điều chỉnh route list_flashcard_items để hiển thị URL audio đã được cache nếu có.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
@@ -11,11 +15,17 @@ from ....models import db, LearningContainer, LearningItem, ContainerContributor
 import pandas as pd
 import tempfile
 import os
+import asyncio
 from ....utils.pagination import get_pagination_data
 from ....utils.search import apply_search_filter
+# THÊM MỚI: Import AudioService
+from ...learning.flashcard_learning.audio_service import AudioService
 
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
                             template_folder='templates') # Đã cập nhật đường dẫn template
+
+# Khởi tạo service
+audio_service = AudioService()
 
 @flashcards_bp.route('/flashcards/process_excel_info', methods=['POST'])
 @login_required
@@ -332,7 +342,7 @@ def list_flashcard_items(set_id):
     if not flashcard_set.is_public and \
        current_user.user_role != 'admin' and \
        flashcard_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id).first():
+       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         abort(403) # Không có quyền
 
     page = request.args.get('page', 1, type=int)
@@ -515,4 +525,3 @@ def delete_flashcard_item(set_id, item_id):
     else:
         flash('Thẻ đã được xóa.', 'success')
         return redirect(url_for('.list_flashcard_items', set_id=set_id))
-
