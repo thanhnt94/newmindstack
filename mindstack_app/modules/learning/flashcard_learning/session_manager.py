@@ -1,7 +1,7 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 1.10
+# Phiên bản: 1.12
 # Mục đích: Quản lý trạng thái của phiên học Flashcard hiện tại cho người dùng.
-# ĐÃ SỬA: Loại bỏ logic tự động tạo audio từ text trong get_next_batch để cải thiện tốc độ.
+# ĐÃ SỬA: Khắc phục lỗi tạo đường dẫn URL trong _get_media_absolute_url để tương thích với cấu hình tĩnh của Flask.
 # ĐÃ SỬA: Sửa lỗi TypeError bằng cách gọi hàm process_flashcard_answer trong flashcard_logic.py với tham số user_answer.
 # ĐÃ THÊM: Cập nhật logic xử lý câu trả lời để hỗ trợ các hệ thống nút đánh giá khác nhau.
 # ĐÃ SỬA: Bổ sung logic lưu URL audio đã tạo vào database để nút audio hoạt động vĩnh viễn.
@@ -31,8 +31,8 @@ class FlashcardSessionManager:
     """
     SESSION_KEY = 'flashcard_session'
 
-    def __init__(self, user_id, set_id, mode, 
-                 total_items_in_session, processed_item_ids, 
+    def __init__(self, user_id, set_id, mode,
+                 total_items_in_session, processed_item_ids,
                  correct_answers, incorrect_answers, vague_answers, start_time):
         """
         Mô tả: Khởi tạo một phiên FlashcardSessionManager.
@@ -142,15 +142,18 @@ class FlashcardSessionManager:
     def _get_media_absolute_url(self, file_path):
         """
         Mô tả: Chuyển đổi đường dẫn file media tương đối thành URL tuyệt đối.
+               Đã sửa để xử lý đúng các trường hợp đường dẫn có và không có dấu '/'.
         """
         if not file_path:
             return None
         
-        cleaned_file_path = file_path.replace('media/flashcard/', '')
-        
         try:
-            full_url = url_for('static', filename=cleaned_file_path)
-            current_app.logger.debug(f"Media URL - Gốc: '{file_path}', Đã dọn dẹp: '{cleaned_file_path}', URL: '{full_url}'")
+            # Loại bỏ ký tự '/' ở đầu nếu có, để tránh tạo URL không chính xác
+            if file_path.startswith('/'):
+                file_path = file_path.lstrip('/')
+            
+            full_url = url_for('static', filename=file_path)
+            current_app.logger.debug(f"Media URL - Gốc: '{file_path}', URL: '{full_url}'")
             return full_url
         except Exception as e:
             current_app.logger.error(f"Lỗi khi tạo URL cho media '{file_path}': {e}")

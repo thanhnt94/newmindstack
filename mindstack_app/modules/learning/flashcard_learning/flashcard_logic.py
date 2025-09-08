@@ -1,9 +1,9 @@
 # File: mindstack_app/modules/learning/flashcard_learning/flashcard_logic.py
-# Phiên bản: 1.7
+# Phiên bản: 1.8
 # Mục đích: Chứa logic nghiệp vụ để xử lý câu trả lời Flashcard, cập nhật tiến độ người dùng,
 #           tính điểm và ghi log điểm số. Sử dụng thuật toán Spaced Repetition (SuperMemo-2).
-# ĐÃ SỬA: Sửa tham số đầu vào của hàm process_flashcard_answer để nhận user_answer_quality.
-# ĐÃ THÊM: Logic tính toán điểm số và cập nhật trạng thái thẻ dựa trên các giá trị quality (0-5) từ các hệ thống Anki và Full SM-2.
+# ĐÃ SỬA: Sửa lỗi cập nhật sai các chỉ số thống kê, đảm bảo mỗi lựa chọn của người dùng
+#         (nhớ, mơ hồ, quên) được ánh xạ chính xác.
 
 from ....models import db, User, LearningItem, UserProgress, ScoreLog
 from sqlalchemy.sql import func
@@ -12,7 +12,6 @@ import datetime
 import math
 from flask import current_app
 
-# Thuật toán Spaced Repetition SuperMemo-2 (SM-2)
 def calculate_next_review(progress, quality):
     """
     Tính toán thời gian ôn tập tiếp theo và cập nhật hệ số E-Factor theo thuật toán SM-2.
@@ -90,6 +89,22 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     is_correct = (user_answer_quality >= 3)
     progress.due_time = calculate_next_review(progress, user_answer_quality)
 
+    # Cập nhật các chỉ số thống kê dựa trên user_answer_quality
+    # Reset tất cả các chuỗi
+    progress.correct_streak = 0
+    progress.incorrect_streak = 0
+    progress.vague_streak = 0
+    
+    if user_answer_quality >= 3:
+        progress.times_correct = (progress.times_correct or 0) + 1
+        progress.correct_streak = (progress.correct_streak or 0) + 1
+    elif user_answer_quality == 2:
+        progress.times_vague = (progress.times_vague or 0) + 1
+        progress.vague_streak = (progress.vague_streak or 0) + 1
+    else:
+        progress.times_incorrect = (progress.times_incorrect or 0) + 1
+        progress.incorrect_streak = (progress.incorrect_streak or 0) + 1
+        
     # Tính điểm số dựa trên chất lượng trả lời
     if user_answer_quality == 5:
         score_change = 25

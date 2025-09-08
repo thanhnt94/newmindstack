@@ -1,9 +1,8 @@
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 34.0 #}
-{# Mục đích: Khắc phục triệt để lỗi hiển thị, xung đột click và logic tải audio theo phản hồi của người dùng. #}
-{# ĐÃ SỬA: Loại bỏ thông báo "Lỗi âm thanh" cứng và thay thế bằng cơ chế xử lý lỗi tinh tế hơn. #}
-{# ĐÃ SỬA: Cải thiện logic JavaScript để nút audio hoạt động đáng tin cậy và không xung đột với việc lật thẻ. #}
-{# ĐÃ THÊM: Biểu tượng loading (spinner) khi audio đang được tạo. #}
+{# Phiên bản: 34.4 #}
+{# Mục đích: Khắc phục lỗi hình ảnh bị đè lên bởi các nút hành động trên mặt sau flashcard. #}
+{# ĐÃ SỬA: Cập nhật CSS để `text-area` và `media-container` có thể co giãn linh hoạt. #}
+{# ĐÃ SỬA: Đảm bảo các nút hành động luôn nằm ở cuối thẻ. #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -171,7 +170,7 @@
         padding: 1.5rem;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: space-between; /* Đảm bảo nội dung và nút được đẩy ra hai phía */
         gap: 10px;
         min-height: 0;
         backface-visibility: hidden;
@@ -209,6 +208,7 @@
         width: 100%;
         top: 0;
         left: 0;
+        z-index: 10; /* Đảm bảo toolbar luôn ở trên */
     }
 
     .card-toolbar .label {
@@ -242,8 +242,8 @@
         color: #3b82f6;
     }
     .card-toolbar .icon-btn.is-disabled {
-        background-color: #9ca3af; /* Màu xám khi disabled */
-        color: #e5e7eb;
+        background-color: transparent;
+        color: #9ca3af;
         cursor: not-allowed;
     }
 
@@ -255,6 +255,7 @@
         height: 36px;
         font-size: 1rem; /* Kích thước icon nhỏ hơn */
         box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Thêm đổ bóng */
+        cursor: pointer;
     }
 
     .card-toolbar .play-audio-btn:hover {
@@ -269,14 +270,15 @@
 
     /* Nội dung text (căn dọc giữa) */
     .text-area {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
+        flex: 1 1 auto; /* Cho phép co giãn và chiếm không gian còn lại */
+        min-height: 0; /* Cho phép flex item thu nhỏ */
+        overflow: auto; /* Cho phép cuộn nếu nội dung text quá dài */
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 3rem 1rem;
+        padding: 3rem 1rem 1rem 1rem; /* Điều chỉnh padding */
+        margin-top: 40px; /* Để tránh bị toolbar che */
     }
 
     .text-area > .flashcard-content-text {
@@ -299,8 +301,8 @@
 
     /* Ảnh/Âm thanh đáy thẻ (có nút ×) */
     .media-container {
-        flex: 0 0 auto;
-        max-height: 40vh;
+        flex: 0 0 auto; /* Không cho phép co giãn, chiếm đủ không gian cần thiết */
+        max-height: 40vh; /* Giới hạn chiều cao tối đa của ảnh */
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -344,12 +346,13 @@
         gap: .75rem;
         justify-content: center;
         padding: 1rem 1.5rem;
-        position: absolute;
+        position: relative; /* Thay đổi từ absolute sang relative để không đè lên media-container */
         width: 100%;
         bottom: 0;
         left: 0;
         background: #fff;
         border-top: 1px solid #e5e7eb;
+        flex-shrink: 0; /* Không cho phép thu nhỏ để luôn hiển thị đầy đủ */
     }
 
     .actions.visible {
@@ -674,19 +677,19 @@
       const incorrectPct = total > 0 ? (incorrect / total) * 100 : 0;
       const vaguePct = total > 0 ? (vague / total) * 100 : 0;
       
-      const correctBar = document.getElementById('session-correct-bar');
+      const correctBar = document.querySelector('.progress-bar-fill-correct');
       if (correctBar) {
           correctBar.style.width = `${correctPct}%`;
           correctBar.textContent = correct > 0 ? `${Math.round(correctPct)}%` : '';
       }
       
-      const incorrectBar = document.getElementById('session-incorrect-bar');
+      const incorrectBar = document.querySelector('.progress-bar-fill-incorrect');
       if (incorrectBar) {
           incorrectBar.style.width = `${incorrectPct}%`;
           incorrectBar.textContent = incorrect > 0 ? `${Math.round(incorrectPct)}%` : '';
       }
 
-      const vagueBar = document.getElementById('session-vague-bar');
+      const vagueBar = document.querySelector('.progress-bar-fill-vague');
       if (vagueBar) {
           vagueBar.style.width = `${vaguePct}%`;
           vagueBar.textContent = vague > 0 ? `${Math.round(vaguePct)}%` : '';
@@ -727,7 +730,7 @@
                 { class: 'btn-nhớ', text: 'Nhớ', value: 'nhớ' }
             ],
             4: [
-                { class: 'btn-fail', text: 'Học lại', value: 'fail' },
+                { class: 'btn-fail', text: 'Học lại', value: 'again' },
                 { class: 'btn-hard', text: 'Khó', value: 'hard' },
                 { class: 'btn-good', text: 'Bình thường', value: 'good' },
                 { class: 'btn-easy', text: 'Dễ', value: 'easy' }
@@ -756,8 +759,8 @@
       const fTxt = c.front || '';
       const bTxt = c.back || '';
       
-      const hasFrontAudioContent = c.front_audio_url || c.front_audio_content;
-      const hasBackAudioContent = c.back_audio_url || c.back_audio_content;
+      const hasFrontAudio = c.front_audio_url || c.front_audio_content;
+      const hasBackAudio = c.back_audio_url || c.back_audio_content;
 
       const buttonsHtml = generateDynamicButtons(userButtonCount);
       
@@ -768,7 +771,7 @@
             <div class="card-toolbar">
                 <button class="icon-btn edit-card-btn"><i class="fas fa-pencil-alt"></i></button>
                 <span class="label">MẶT TRƯỚC</span>
-                <button class="icon-btn play-audio-btn ${hasFrontAudioContent ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${c.front_audio_content || ''}" ${hasFrontAudioContent ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>
+                <button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${c.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>
             </div>
             <div class="text-area">
               <div class="flashcard-content-text">${formatTextForHtml(fTxt)}</div>
@@ -780,7 +783,7 @@
             <div class="card-toolbar">
                 <button class="icon-btn edit-card-btn is-disabled"><i class="fas fa-pencil-alt"></i></button>
                 <span class="label">MẶT SAU</span>
-                <button class="icon-btn play-audio-btn ${hasBackAudioContent ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${c.back_audio_content || ''}" ${hasBackAudioContent ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>
+                <button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${c.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>
             </div>
             <div class="text-area">
               <div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div>
@@ -816,30 +819,26 @@
       document.querySelectorAll('.play-audio-btn').forEach(btn => {
         btn.addEventListener('click', ev => {
           ev.stopPropagation();
+          // SỬA LỖI: Sử dụng camelCase để truy cập thuộc tính dataset
           const audioPlayer = document.querySelector(btn.dataset.audioTarget);
-          if (!btn.disabled) {
-            // Tạm dừng tất cả các audio khác trước khi phát
-            document.querySelectorAll('audio').forEach(otherAudio => {
-                if (otherAudio !== audioPlayer && !otherAudio.paused) {
-                    otherAudio.pause();
-                    otherAudio.currentTime = 0;
-                }
-            });
-
-            if (audioPlayer.src) {
-              if (audioPlayer.paused) {
-                audioPlayer.play();
-              } else {
-                audioPlayer.pause();
-                audioPlayer.currentTime = 0;
-              }
+          if (btn.classList.contains('is-disabled')) {
+            return;
+          }
+          // Kiểm tra xem audio đã có sẵn nguồn chưa
+          if (audioPlayer.src && audioPlayer.src !== window.location.href) {
+            if (audioPlayer.paused) {
+              audioPlayer.play();
             } else {
-              // Nếu chưa có URL, tạo audio và sau đó phát
-              generateAndPlayAudio(btn, audioPlayer);
+              audioPlayer.pause();
+              audioPlayer.currentTime = 0;
             }
+          } else {
+            // Nếu chưa có URL, tạo audio và sau đó phát
+            generateAndPlayAudio(btn, audioPlayer);
           }
         });
       });
+
       setTimeout(adjustFontSize, 0);
     }
 
@@ -848,7 +847,6 @@
       const side = button.dataset.side;
       const contentToRead = button.dataset.contentToRead;
       
-      button.disabled = true;
       button.classList.add('is-disabled');
       button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
@@ -860,17 +858,28 @@
         });
         const result = await response.json();
 
-        if (result.success) {
+        if (result.success && result.audio_url) {
+          // Gắn URL mới và lắng nghe sự kiện để phát
           audioPlayer.src = result.audio_url;
-          audioPlayer.play();
+          audioPlayer.load(); // Bắt đầu tải file audio
+          audioPlayer.oncanplay = () => {
+            audioPlayer.play();
+            button.classList.remove('is-disabled');
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+          };
+          audioPlayer.onerror = () => {
+             showCustomAlert('Không thể phát file âm thanh. Vui lòng thử lại.');
+             button.classList.remove('is-disabled');
+             button.innerHTML = '<i class="fas fa-volume-up"></i>';
+          };
         } else {
           showCustomAlert(result.message || 'Lỗi khi tạo audio.');
+          button.classList.remove('is-disabled');
+          button.innerHTML = '<i class="fas fa-volume-up"></i>';
         }
       } catch (error) {
         console.error('Lỗi khi tạo audio:', error);
         showCustomAlert('Không thể kết nối đến máy chủ để tạo audio.');
-      } finally {
-        button.disabled = false;
         button.classList.remove('is-disabled');
         button.innerHTML = '<i class="fas fa-volume-up"></i>';
       }
@@ -886,13 +895,13 @@
             return;
         }
         
-        const totalReviews = stats.times_correct + stats.times_incorrect + stats.times_vague || 0;
-        const correctCount = stats.times_correct || 0;
-        const incorrectCount = stats.times_incorrect || 0;
-        const vagueCount = stats.times_vague || 0;
+        const totalReviews = stats.times_reviewed || 0;
+        const correctCount = stats.correct_count || 0;
+        const incorrectCount = stats.incorrect_count || 0;
+        const hardCount = stats.hard_count || 0;
         const correctPercentage = totalReviews > 0 ? (correctCount / totalReviews) * 100 : 0;
         const incorrectPercentage = totalReviews > 0 ? (incorrectCount / totalReviews) * 100 : 0;
-        const vaguePercentage = totalReviews > 0 ? (vagueCount / totalReviews) * 100 : 0;
+        const hardPercentage = totalReviews > 0 ? (hardCount / totalReviews) * 100 : 0;
         
         const dueTime = stats.next_review ? new Date(stats.next_review).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
         
@@ -912,11 +921,11 @@
                 </div>
                 <div class="progress-bar-group">
                     <div class="progress-bar-label">
-                        <span>Mơ hồ (${vagueCount})</span>
-                        <span>${Math.round(vaguePercentage)}%</span>
+                        <span>Mơ hồ (${hardCount})</span>
+                        <span>${Math.round(hardPercentage)}%</span>
                     </div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar-fill progress-bar-fill-vague" style="width: ${vaguePercentage}%;"></div>
+                        <div class="progress-bar-fill progress-bar-fill-vague" style="width: ${hardPercentage}%;"></div>
                     </div>
                 </div>
                 <div class="progress-bar-group">
