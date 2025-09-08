@@ -3,6 +3,8 @@
 {# Mục đích: Khắc phục lỗi hình ảnh bị đè lên bởi các nút hành động trên mặt sau flashcard. #}
 {# ĐÃ SỬA: Cập nhật CSS để `text-area` và `media-container` có thể co giãn linh hoạt. #}
 {# ĐÃ SỬA: Đảm bảo các nút hành động luôn nằm ở cuối thẻ. #}
+{# ĐÃ SỬA: Loại bỏ position: fixed và sử dụng Flexbox. #}
+{# ĐÃ SỬA: Bổ sung logic ẩn header/footer trên di động. #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -23,22 +25,17 @@
         }
     }
 
-    /* ===== Layout toàn trang (full height) ===== */
+    /* ===== Layout toàn trang (full height) - ĐÃ CẬP NHẬT ===== */
     html, body {
         height: 100%;
         margin: 0;
         padding: 0;
-        overflow: hidden; /* Ngăn cuộn trang chính */
     }
 
     .page-shell {
-        position: fixed; /* Sử dụng fixed để chiếm toàn bộ viewport */
-        left: 0;
-        right: 0;
-        top: var(--header-h, 0px);
-        bottom: 0; /* Chiếm hết chiều cao còn lại */
         display: flex;
         flex-direction: column;
+        height: 100%;
         padding: 0;
         overflow: hidden;
     }
@@ -603,7 +600,8 @@
 {% block scripts %}
   {{ super() }}
   <script>
-    /* ===== Tính chiều cao header/footer/title để layout full-height ===== */
+    /* ===== Tính chiều cao header/footer/title để layout full-height - ĐÃ BỊ LOẠI BỎ ===== */
+    /* Hàm này không còn cần thiết vì đã sử dụng Flexbox trên body */
     function updateFixedHeights(){
       const header=document.querySelector('header');
       const mainElement = document.querySelector('main');
@@ -615,9 +613,9 @@
       document.documentElement.style.setProperty('--header-h', hh+'px');
       document.documentElement.style.setProperty('--footer-h', fh+'px');
     }
-    window.addEventListener('load', updateFixedHeights);
-    window.addEventListener('resize', updateFixedHeights);
-    new ResizeObserver(updateFixedHeights).observe(document.body);
+    // window.addEventListener('load', updateFixedHeights);
+    // window.addEventListener('resize', updateFixedHeights);
+    // new ResizeObserver(updateFixedHeights).observe(document.body);
 
     /* ===== State ===== */
     let currentFlashcardBatch = [];
@@ -789,10 +787,10 @@
               <div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div>
             </div>
             ${c.back_img ? `<div class="media-container"><img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
-            <audio id="back-audio" class="hidden" src="${c.back_audio_url || ''}"></audio>
             <div class="actions" id="internal-actions" data-button-count="${userButtonCount}">
               ${buttonsHtml}
             </div>
+            <audio id="back-audio" class="hidden" src="${c.back_audio_url || ''}"></audio>
           </div>
         </div>
       </div>`;
@@ -1064,7 +1062,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      updateFixedHeights();
+      // updateFixedHeights(); // Hàm này đã bị loại bỏ
+      document.body.classList.add('flashcard-session-active');
       getNextFlashcardBatch();
     });
   </script>

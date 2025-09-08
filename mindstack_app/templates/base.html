@@ -80,6 +80,32 @@
         .modal-close-button:hover {
             color: #4b5563;
         }
+
+        /* ===== Bổ sung CSS cho layout Flexbox và ẩn trên di động ===== */
+        body.flashcard-session-active {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        body.flashcard-session-active > header,
+        body.flashcard-session-active > footer {
+            display: none;
+        }
+        
+        body.flashcard-session-active > main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: auto; /* Cho phép cuộn trên màn hình di động */
+        }
+
+        @media (min-width: 1024px) {
+            body.flashcard-session-active > header,
+            body.flashcard-session-active > footer {
+                display: block; /* Hiển thị lại trên desktop */
+            }
+        }
     </style>
     {% block head %}{% endblock %}
 </head>
