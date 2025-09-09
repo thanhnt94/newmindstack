@@ -1,7 +1,7 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 3.2
-# MỤC ĐÍCH: Khắc phục lỗi ánh xạ nút bấm sang điểm chất lượng (quality).
-# ĐÃ SỬA: Cập nhật quality_map để xử lý giá trị số và giá trị tiếng Việt, tránh lỗi mặc định.
+# Phiên bản: 3.3
+# MỤC ĐÍCH: Sửa lỗi ánh xạ nút bấm sang điểm chất lượng (quality) để tránh lỗi mặc định.
+# ĐÃ SỬA: Cập nhật quality_map để xử lý cả giá trị số và giá trị tiếng Việt/Anh.
 # ĐÃ SỬA: Thay thế import UserProgress bằng FlashcardProgress.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
@@ -237,7 +237,6 @@ def submit_flashcard_answer():
                         is_favorite=False
                     )
                     db.session.add(user_container_state)
-                # SỬA LỖI: Sử dụng func.now() để cập nhật thời gian
                 user_container_state.last_accessed = func.now()
                 db.session.commit()
                 print(f">>> ROUTES: Đã cập nhật last_accessed cho bộ thẻ {s_id} <<<")
@@ -245,23 +244,23 @@ def submit_flashcard_answer():
                 db.session.rollback()
                 current_app.logger.error(f"Lỗi khi cập nhật last_accessed cho bộ thẻ {s_id}: {e}", exc_info=True)
                 
-    # LẤY CHÍNH XÁC GIÁ TRỊ TỪ user_answer VÀ ÁNH XẠ VÀO quality_map MỘT CÁCH RÕ RÀNG
     user_button_count = current_user.flashcard_button_count or 3
     quality_map = {}
     if user_button_count == 3:
+        # Ánh xạ giá trị tiếng Việt
         quality_map = {'quên': 1, 'mơ_hồ': 2, 'nhớ': 4}
     elif user_button_count == 4:
-        # Ánh xạ giá trị tiếng Anh và giá trị tiếng Việt của các nút
+        # Ánh xạ giá trị tiếng Anh và tiếng Việt
         quality_map = {'again': 1, 'hard': 3, 'good': 4, 'easy': 5,
                        'Học lại': 1, 'Khó': 3, 'Bình thường': 4, 'Dễ': 5}
     elif user_button_count == 6:
-        # Ánh xạ giá trị tiếng Anh và giá trị tiếng Việt của các nút
+        # Ánh xạ giá trị tiếng Anh và tiếng Việt
         quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 4, 'very_easy': 5,
                        'Rất khó': 0, 'Khó': 1, 'Trung bình': 2, 'Dễ': 3, 'Rất dễ': 4, 'Dễ dàng': 5}
     
-    # SỬA: Lấy giá trị từ quality_map, nếu không tìm thấy thì trả về giá trị mặc định là 0
-    # Điều này đảm bảo rằng bất kỳ giá trị nào không khớp sẽ được xử lý là 'Rất khó' (quality=0)
-    user_answer_quality = quality_map.get(user_answer, 0)
+    # SỬA LỖI: Chuyển user_answer thành chuỗi trước khi tra cứu trong dictionary
+    # để đảm bảo các giá trị số từ frontend cũng được xử lý đúng.
+    user_answer_quality = quality_map.get(str(user_answer), 0)
     
     result = session_manager.process_flashcard_answer(item_id, user_answer_quality)
     if 'error' in result:
