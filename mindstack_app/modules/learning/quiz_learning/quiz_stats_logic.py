@@ -1,22 +1,23 @@
 # File: mindstack_app/modules/learning/quiz_learning/quiz_stats_logic.py
-# Phiên bản: 1.1
-# Mục đích: Chứa logic để tính toán và trả về các thống kê chi tiết cho từng câu hỏi Quiz.
-# ĐÃ SỬA: Điều chỉnh để trả về review_history chi tiết hơn thay vì chỉ tóm tắt.
-# ĐÃ SỬA: Định dạng lại ngày tháng để dễ sử dụng hơn ở frontend.
+# Phiên bản: 2.0
+# MỤC ĐÍCH: Cập nhật logic để sử dụng model QuizProgress mới thay cho UserProgress.
+# ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress.
+# ĐÃ SỬA: Cập nhật hàm truy vấn để tương tác với bảng QuizProgress.
 
-from ....models import UserProgress
+from ....models import QuizProgress
 import datetime
 
 def get_quiz_item_statistics(user_id, item_id):
     """
     Lấy các thống kê chi tiết về tiến độ của người dùng đối với một câu hỏi Quiz cụ thể.
+    Truy vấn từ model QuizProgress.
 
     Args:
         user_id (int): ID của người dùng.
         item_id (int): ID của câu hỏi Quiz.
 
     Returns:
-        dict: Một dictionary chứa các thống kê, hoặc None nếu không tìm thấy UserProgress.
+        dict: Một dictionary chứa các thống kê, hoặc None nếu không tìm thấy QuizProgress.
               Các thống kê bao gồm:
               - 'total_attempts': Tổng số lần trả lời.
               - 'times_correct': Số lần trả lời đúng.
@@ -29,7 +30,8 @@ def get_quiz_item_statistics(user_id, item_id):
               - 'last_reviewed': Thời điểm ôn tập cuối cùng (định dạng ISO 8601).
               - 'review_history': Lịch sử trả lời đầy đủ (danh sách các dict).
     """
-    progress = UserProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
+    # SỬA: Truy vấn từ bảng QuizProgress thay vì UserProgress
+    progress = QuizProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
 
     if not progress:
         return None # Không có tiến độ cho câu hỏi này
@@ -64,4 +66,3 @@ def get_quiz_item_statistics(user_id, item_id):
         'last_reviewed': progress.last_reviewed.isoformat() if progress.last_reviewed else None,
         'review_history': formatted_review_history # Trả về lịch sử đầy đủ
     }
-

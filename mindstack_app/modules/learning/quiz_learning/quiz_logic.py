@@ -1,17 +1,11 @@
 # File: mindstack_app/modules/learning/quiz_learning/quiz_logic.py
-# Phiên bản: 1.4
-# Mục đích: Chứa logic nghiệp vụ để xử lý câu trả lời Quiz, cập nhật tiến độ người dùng,
-#           tính điểm và ghi log điểm số.
-# ĐÃ SỬA: Loại bỏ logic cập nhật memory_score, due_time, vague_streak và times_vague
-#         theo yêu cầu, vì các trường này không áp dụng cho Quiz ở hiện tại.
-# ĐÃ SỬA: Khắc phục logic so sánh đáp án: so sánh ký tự lựa chọn của người dùng
-#         với ký tự lựa chọn đúng (A, B, C, D) thay vì nội dung văn bản.
-# ĐÃ SỬA: Đảm bảo trả về ký tự đáp án đúng cho frontend để highlight chính xác.
-# ĐÃ SỬA: Thêm import 'current_app' để khắc phục lỗi UndefinedVariable.
-# ĐÃ SỬA: Xóa dòng import vòng tròn 'from .quiz_logic import process_quiz_answer'.
-# ĐÃ DỌN DẸP: Xóa các logic không cần thiết cho Quiz để tập trung vào chức năng chính.
+# Phiên bản: 2.0
+# MỤC ĐÍCH: Cập nhật logic để sử dụng model QuizProgress mới thay cho UserProgress.
+# ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress.
+# ĐÃ SỬA: Cập nhật logic truy vấn và tạo bản ghi để tương tác với bảng QuizProgress.
+# ĐÃ SỬA: Thêm item_type vào ScoreLog khi tạo bản ghi.
 
-from ....models import db, User, LearningItem, UserProgress, ScoreLog
+from ....models import db, User, LearningItem, QuizProgress, ScoreLog
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
 import datetime
@@ -20,7 +14,7 @@ from flask import current_app # Import current_app
 
 def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_score):
     """
-    Xử lý một câu trả lời Quiz của người dùng, cập nhật UserProgress,
+    Xử lý một câu trả lời Quiz của người dùng, cập nhật QuizProgress,
     tính điểm và ghi log điểm số.
 
     Args:
@@ -47,7 +41,7 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
         return 0, current_user_total_score, False, None, "Lỗi: Không tìm thấy câu hỏi."
 
     # Lấy đáp án đúng (dạng văn bản) và các lựa chọn
-    correct_answer_text_from_db = item.content.get('correct_answer') # Đây là nội dung văn bản của đáp án đúng
+    correct_answer_text_from_db = item.content.get('correct_answer')
     options = item.content.get('options', {})
     explanation = item.content.get('explanation') or item.ai_explanation # Ưu tiên giải thích thủ công
 
@@ -58,28 +52,21 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
             correct_option_char = key
             break
     
-    # Nếu không tìm thấy ký tự đáp án đúng, có thể do dữ liệu không khớp
     if correct_option_char is None:
-        # Fallback: Nếu correct_answer_text_from_db không khớp với bất kỳ option nào,
-        # có thể là correct_answer_text_from_db đã là ký tự 'A','B','C','D'
-        # Hoặc có lỗi dữ liệu. Cần log cảnh báo.
         if correct_answer_text_from_db in ['A', 'B', 'C', 'D']:
              correct_option_char = correct_answer_text_from_db
         else:
             current_app.logger.error(f"Lỗi dữ liệu: Không tìm thấy ký tự lựa chọn cho đáp án đúng '{correct_answer_text_from_db}' của item_id={item_id}. Options: {options}")
-            # Trong trường hợp này, chúng ta có thể coi là sai để không bị kẹt
             is_correct = False
             return score_change, current_user_total_score, is_correct, correct_option_char, explanation
 
-
-    # SO SÁNH ĐÁP ÁN: user_answer_text (ký tự người dùng chọn) với correct_option_char (ký tự đáp án đúng)
     is_correct = (user_answer_text == correct_option_char)
 
-    # 1. Lấy hoặc tạo bản ghi UserProgress
-    progress = UserProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
+    # 1. Lấy hoặc tạo bản ghi QuizProgress
+    progress = QuizProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
     if not progress:
         is_first_time = True
-        progress = UserProgress(user_id=user_id, item_id=item_id)
+        progress = QuizProgress(user_id=user_id, item_id=item_id)
         db.session.add(progress)
         progress.first_seen_timestamp = func.now()
         progress.status = 'learning' # Mặc định là learning khi mới bắt đầu
@@ -112,8 +99,6 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
         progress.status = 'hard'
     elif is_first_time: # Nếu là lần đầu tiên, đặt là learning
         progress.status = 'learning'
-    # Nếu không rơi vào mastered/hard và không phải lần đầu, giữ nguyên trạng thái hiện tại hoặc learning
-    # (Trạng thái learning đã được đặt khi tạo mới)
 
     # 5. Ghi vào review_history
     review_entry = {
@@ -143,7 +128,8 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
         user_id=user_id,
         item_id=item_id,
         score_change=score_change,
-        reason=reason
+        reason=reason,
+        item_type='QUIZ_MCQ' # THÊM: Lưu loại item
     )
     db.session.add(new_score_log)
 

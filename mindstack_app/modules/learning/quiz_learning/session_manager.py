@@ -1,14 +1,12 @@
 # File: mindstack_app/modules/learning/quiz_learning/session_manager.py
-# Phiên bản: 1.30
-# Mục đích: Quản lý trạng thái của phiên học Quiz hiện tại cho người dùng.
-# ĐÃ SỬA: Khắc phục lỗi "TypeError: object of type 'Query' has no len()" bằng cách sử dụng .count() trên đối tượng truy vấn SQLAlchemy để lấy tổng số câu hỏi một cách chính xác và hiệu quả.
-# ĐÃ SỬA: Khắc phục lỗi "session cookie is too large" bằng cách không lưu toàn bộ ID câu hỏi vào session.
-# ĐÃ SỬA: Cải thiện logic để xóa phiên học cũ hoàn toàn trước khi tạo phiên mới, đảm bảo các cài đặt như batch_size được cập nhật chính xác.
-# ĐÃ SỬA: Tải các câu hỏi theo từng batch ngẫu nhiên từ CSDL thay vì từ danh sách ID đã lưu sẵn.
+# Phiên bản: 2.0
+# MỤC ĐÍCH: Cập nhật logic để sử dụng model QuizProgress mới thay cho UserProgress.
+# ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress.
+# ĐÃ SỬA: Cập nhật các hàm khởi tạo, lấy câu hỏi, xử lý đáp án để tương tác với bảng mới.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
-from ....models import db, LearningItem, UserProgress, LearningGroup, User
+from ....models import db, LearningItem, QuizProgress, LearningGroup, User
 from .algorithms import get_new_only_items, get_reviewed_items, get_hard_items
 from .quiz_logic import process_quiz_answer
 from .quiz_stats_logic import get_quiz_item_statistics
@@ -147,7 +145,6 @@ class QuizSessionManager:
             common_pre_question_text_global = None
 
         # Tạo instance của QuizSessionManager và lưu vào session
-        # LƯU Ý: all_item_ids đã bị xóa khỏi đây và được thay bằng processed_item_ids (ban đầu trống)
         new_session_manager = cls(
             user_id=user_id,
             set_id=set_id,
@@ -301,6 +298,7 @@ class QuizSessionManager:
             )
             current_user_total_score = updated_total_score
 
+            # SỬA: Lấy thống kê từ hàm mới đã được cập nhật để truy vấn bảng QuizProgress
             item_stats = get_quiz_item_statistics(self.user_id, item_id)
             
             if is_correct:

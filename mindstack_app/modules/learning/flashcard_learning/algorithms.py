@@ -1,10 +1,11 @@
 # File: mindstack_app/modules/learning/flashcard_learning/algorithms.py
-# Phiên bản: 1.3
-# Mục đích: Chứa logic thuật toán để lựa chọn và sắp xếp các thẻ Flashcard cho các chế độ học khác nhau.
-# ĐÃ SỬA: Sửa lỗi logic hiển thị các bộ thẻ "Đang học" bằng cách join đúng các bảng.
-# ĐÃ SỬA: Bổ sung hàm get_flashcard_mode_counts bị thiếu.
+# Phiên bản: 2.0
+# MỤC ĐÍCH: Cập nhật logic truy vấn để sử dụng model FlashcardProgress mới.
+# ĐÃ SỬA: Thay thế import UserProgress bằng FlashcardProgress.
+# ĐÃ SỬA: Cập nhật các hàm lấy thẻ (get_new_only_items, get_due_items, get_hard_items)
+#         và hàm lấy danh sách bộ thẻ (get_filtered_flashcard_sets) để truy vấn bảng mới.
 
-from ....models import db, LearningItem, UserProgress, LearningContainer, ContainerContributor, UserContainerState
+from ....models import db, LearningItem, FlashcardProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
@@ -80,10 +81,11 @@ def get_new_only_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_new_only_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
     
-    new_items_query = base_items_query.outerjoin(UserProgress, 
-        and_(UserProgress.item_id == LearningItem.item_id, UserProgress.user_id == user_id)
+    # SỬA: Join với FlashcardProgress thay vì UserProgress
+    new_items_query = base_items_query.outerjoin(FlashcardProgress, 
+        and_(FlashcardProgress.item_id == LearningItem.item_id, FlashcardProgress.user_id == user_id)
     ).filter(
-        UserProgress.item_id == None
+        FlashcardProgress.item_id == None
     )
 
     new_items_query = new_items_query.outerjoin(UserContainerState,
@@ -111,9 +113,10 @@ def get_due_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_due_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
     
-    due_items_query = base_items_query.join(UserProgress).filter(
-        UserProgress.user_id == user_id,
-        UserProgress.due_time <= func.now()
+    # SỬA: Join với FlashcardProgress thay vì UserProgress
+    due_items_query = base_items_query.join(FlashcardProgress).filter(
+        FlashcardProgress.user_id == user_id,
+        FlashcardProgress.due_time <= func.now()
     )
     
     due_items_query = due_items_query.outerjoin(UserContainerState,
@@ -127,7 +130,7 @@ def get_due_items(user_id, container_id, session_size):
     if session_size is None or session_size == 999999:
         return due_items_query
     else:
-        items = due_items_query.order_by(UserProgress.due_time.asc()).limit(session_size).all()
+        items = due_items_query.order_by(FlashcardProgress.due_time.asc()).limit(session_size).all()
     
     print(f">>> ALGORITHMS: get_due_items tìm thấy {len(items)} thẻ. <<<")
     return items
@@ -141,9 +144,10 @@ def get_hard_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
 
-    hard_items_query = base_items_query.join(UserProgress).filter(
-        UserProgress.user_id == user_id,
-        UserProgress.status == 'hard'
+    # SỬA: Join với FlashcardProgress thay vì UserProgress
+    hard_items_query = base_items_query.join(FlashcardProgress).filter(
+        FlashcardProgress.user_id == user_id,
+        FlashcardProgress.status == 'hard'
     )
     
     hard_items_query = hard_items_query.outerjoin(UserContainerState,
@@ -203,11 +207,11 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
             UserContainerState.is_archived == True
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'doing':
-        # Sửa lỗi: Truy vấn để lấy các bộ thẻ có tiến độ học
+        # SỬA: Truy vấn để lấy các bộ thẻ có tiến độ học từ bảng FlashcardProgress
         final_query = filtered_query.join(LearningItem,
             LearningContainer.container_id == LearningItem.container_id
-        ).join(UserProgress,
-            and_(LearningItem.item_id == UserProgress.item_id, UserProgress.user_id == user_id)
+        ).join(FlashcardProgress,
+            and_(LearningItem.item_id == FlashcardProgress.item_id, FlashcardProgress.user_id == user_id)
         ).distinct().outerjoin(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
@@ -244,9 +248,10 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
             item_type='FLASHCARD'
         ).count()
         
-        learned_items = db.session.query(UserProgress).filter(
-            UserProgress.user_id == user_id,
-            UserProgress.item_id.in_(
+        # SỬA: Truy vấn số lượng thẻ đã học từ bảng FlashcardProgress
+        learned_items = db.session.query(FlashcardProgress).filter(
+            FlashcardProgress.user_id == user_id,
+            FlashcardProgress.item_id.in_(
                 db.session.query(LearningItem.item_id).filter(
                     LearningItem.container_id == set_item.container_id,
                     LearningItem.item_type == 'FLASHCARD'

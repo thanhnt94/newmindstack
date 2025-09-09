@@ -1,9 +1,8 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 2.2
-# Mục đích: Định nghĩa các routes và logic cho module học Flashcard.
-# ĐÃ SỬA: Cập nhật route `regenerate-audio-from-content` để xử lý lỗi đường dẫn file (dấu gạch chéo ngược) trên các hệ điều hành khác nhau, đảm bảo URL luôn hợp lệ.
-# ĐÃ SỬA: Khắc phục lỗi trong submit_flashcard_answer và flashcard_session để hỗ trợ tùy chọn nút đánh giá.
-# ĐÃ THÊM: Bổ sung logic để lưu URL audio đã tạo vào database để nút audio hoạt động vĩnh viễn.
+# Phiên bản: 3.2
+# MỤC ĐÍCH: Khắc phục lỗi ánh xạ nút bấm sang điểm chất lượng (quality).
+# ĐÃ SỬA: Cập nhật quality_map để xử lý giá trị số và giá trị tiếng Việt, tránh lỗi mặc định.
+# ĐÃ SỬA: Thay thế import UserProgress bằng FlashcardProgress.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
@@ -11,7 +10,7 @@ import traceback
 from .algorithms import get_new_only_items, get_due_items, get_hard_items, get_filtered_flashcard_sets, get_flashcard_mode_counts
 from .session_manager import FlashcardSessionManager
 from .config import FlashcardLearningConfig
-from ....models import db, User, UserProgress, UserContainerState, LearningContainer, LearningItem
+from ....models import db, User, FlashcardProgress, UserContainerState, LearningContainer, LearningItem
 from sqlalchemy.sql import func
 import asyncio
 from .audio_service import AudioService
@@ -245,20 +244,23 @@ def submit_flashcard_answer():
             except Exception as e:
                 db.session.rollback()
                 current_app.logger.error(f"Lỗi khi cập nhật last_accessed cho bộ thẻ {s_id}: {e}", exc_info=True)
-
-    # THAY ĐỔI LỚN: Ánh xạ câu trả lời của người dùng sang điểm chất lượng SM-2
-    # Dựa trên số nút mà người dùng đã chọn
+                
+    # LẤY CHÍNH XÁC GIÁ TRỊ TỪ user_answer VÀ ÁNH XẠ VÀO quality_map MỘT CÁCH RÕ RÀNG
     user_button_count = current_user.flashcard_button_count or 3
     quality_map = {}
     if user_button_count == 3:
-        quality_map = {'nhớ': 4, 'mơ_hồ': 2, 'quên': 1}
+        quality_map = {'quên': 1, 'mơ_hồ': 2, 'nhớ': 4}
     elif user_button_count == 4:
-        # Anki's buttons map to quality scores
-        quality_map = {'again': 1, 'hard': 3, 'good': 4, 'easy': 5}
+        # Ánh xạ giá trị tiếng Anh và giá trị tiếng Việt của các nút
+        quality_map = {'again': 1, 'hard': 3, 'good': 4, 'easy': 5,
+                       'Học lại': 1, 'Khó': 3, 'Bình thường': 4, 'Dễ': 5}
     elif user_button_count == 6:
-        # Full SM-2 buttons map to quality scores 0-5
-        quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'good': 3, 'easy': 4, 'very_easy': 5}
+        # Ánh xạ giá trị tiếng Anh và giá trị tiếng Việt của các nút
+        quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 4, 'very_easy': 5,
+                       'Rất khó': 0, 'Khó': 1, 'Trung bình': 2, 'Dễ': 3, 'Rất dễ': 4, 'Dễ dàng': 5}
     
+    # SỬA: Lấy giá trị từ quality_map, nếu không tìm thấy thì trả về giá trị mặc định là 0
+    # Điều này đảm bảo rằng bất kỳ giá trị nào không khớp sẽ được xử lý là 'Rất khó' (quality=0)
     user_answer_quality = quality_map.get(user_answer, 0)
     
     result = session_manager.process_flashcard_answer(item_id, user_answer_quality)
@@ -266,7 +268,6 @@ def submit_flashcard_answer():
         current_app.logger.error(f"Lỗi trong quá trình process_flashcard_answer: {result.get('error')}")
         return jsonify(result), 400
 
-    # Cập nhật session với dữ liệu mới từ session_manager
     session['flashcard_session'] = session_manager.to_dict()
 
     response_data = {

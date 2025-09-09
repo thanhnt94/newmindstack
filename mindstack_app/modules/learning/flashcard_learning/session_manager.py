@@ -1,14 +1,12 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 1.12
-# Mục đích: Quản lý trạng thái của phiên học Flashcard hiện tại cho người dùng.
-# ĐÃ SỬA: Khắc phục lỗi tạo đường dẫn URL trong _get_media_absolute_url để tương thích với cấu hình tĩnh của Flask.
-# ĐÃ SỬA: Sửa lỗi TypeError bằng cách gọi hàm process_flashcard_answer trong flashcard_logic.py với tham số user_answer.
-# ĐÃ THÊM: Cập nhật logic xử lý câu trả lời để hỗ trợ các hệ thống nút đánh giá khác nhau.
-# ĐÃ SỬA: Bổ sung logic lưu URL audio đã tạo vào database để nút audio hoạt động vĩnh viễn.
+# Phiên bản: 2.0
+# MỤC ĐÍCH: Cập nhật logic để sử dụng model FlashcardProgress mới thay cho UserProgress.
+# ĐÃ SỬA: Thay thế import UserProgress bằng FlashcardProgress.
+# ĐÃ SỬA: Cập nhật các hàm khởi tạo, lấy thẻ, xử lý đáp án để tương tác với bảng mới.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
-from ....models import db, LearningItem, UserProgress, LearningGroup, User
+from ....models import db, LearningItem, FlashcardProgress, LearningGroup, User
 from .algorithms import get_new_only_items, get_due_items, get_hard_items
 from .flashcard_logic import process_flashcard_answer
 from .flashcard_stats_logic import get_flashcard_item_statistics
@@ -19,7 +17,7 @@ import random
 import datetime
 import os
 import asyncio
-from .audio_service import AudioService # THÊM MỚI: Import AudioService
+from .audio_service import AudioService
 
 # Khởi tạo một instance của AudioService
 audio_service = AudioService()
@@ -112,6 +110,7 @@ class FlashcardSessionManager:
             current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {mode}")
             return False
         
+        # SỬA: Thay đổi hàm gọi để lấy tổng số item
         total_items_in_session_query = algorithm_func(user_id, set_id, None)
         total_items_in_session = total_items_in_session_query.count()
 
@@ -148,7 +147,6 @@ class FlashcardSessionManager:
             return None
         
         try:
-            # Loại bỏ ký tự '/' ở đầu nếu có, để tránh tạo URL không chính xác
             if file_path.startswith('/'):
                 file_path = file_path.lstrip('/')
             
@@ -159,11 +157,9 @@ class FlashcardSessionManager:
             current_app.logger.error(f"Lỗi khi tạo URL cho media '{file_path}': {e}")
             return None
 
-
     def get_next_batch(self):
         """
         Mô tả: Lấy dữ liệu của một thẻ tiếp theo trong phiên học.
-               Đã loại bỏ logic tự động tạo audio để tăng tốc độ.
         Returns:
             dict/None: Dữ liệu thẻ nếu có, None nếu phiên không hợp lệ hoặc hết thẻ.
         """
@@ -205,7 +201,6 @@ class FlashcardSessionManager:
         newly_processed_item_ids = []
 
         for item in new_items_to_add_to_session:
-            # Tạo item_dict ban đầu
             item_dict = {
                 'item_id': item.item_id,
                 'content': {
@@ -221,7 +216,6 @@ class FlashcardSessionManager:
                 'ai_explanation': item.ai_explanation
             }
             
-            # Chỉ chuyển đổi URL đã tồn tại thành URL tuyệt đối, không tạo mới
             if item_dict['content'].get('front_audio_url'):
                 item_dict['content']['front_audio_url'] = self._get_media_absolute_url(item_dict['content']['front_audio_url'])
             if item_dict['content'].get('back_audio_url'):
@@ -234,12 +228,10 @@ class FlashcardSessionManager:
             items_data.append(item_dict)
             newly_processed_item_ids.append(item.item_id)
         
-
         self.processed_item_ids.extend(newly_processed_item_ids)
         session[self.SESSION_KEY] = self.to_dict()
         session.modified = True
 
-        # Trả về một dictionary duy nhất cho thẻ hiện tại
         return {
             'items': items_data,
             'start_index': len(self.processed_item_ids) - len(items_data),

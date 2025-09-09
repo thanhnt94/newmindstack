@@ -1,10 +1,9 @@
 # File: mindstack_app/modules/learning/flashcard_learning/flashcard_stats_logic.py
-# Phiên bản: 1.1
-# Mục đích: Cung cấp logic để tính toán và truy vấn các thống kê chi tiết cho từng Flashcard.
-#           Các thống kê này bao gồm tổng số lần xem, số lần trả lời đúng/sai/khó, chuỗi ôn tập, và tỷ lệ trả lời đúng.
-# ĐÃ THÊM: Logic để tính toán số lần "đúng", "sai" và "khó" dựa trên giá trị user_answer_quality của các hệ thống mới.
+# Phiên bản: 2.1
+# MỤC ĐÍCH: Cập nhật logic thống kê để phản ánh đầy đủ các chỉ số của SM-2.
+# ĐÃ SỬA: Thay đổi cách tính correct_rate, hard_count và thêm các chỉ số SM-2.
 
-from ....models import db, UserProgress
+from ....models import db, FlashcardProgress
 import datetime
 
 def get_flashcard_item_statistics(user_id, item_id):
@@ -18,14 +17,14 @@ def get_flashcard_item_statistics(user_id, item_id):
     Returns:
         dict: Một dictionary chứa các thống kê của flashcard.
     """
-    progress = UserProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
+    progress = FlashcardProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
 
     if not progress or not progress.review_history:
         return {
             'times_reviewed': 0,
             'correct_count': 0,
             'incorrect_count': 0,
-            'hard_count': 0,
+            'vague_count': 0, # ĐÃ SỬA: Đổi hard_count thành vague_count
             'correct_rate': 0.0,
             'current_streak': 0,
             'longest_streak': 0,
@@ -41,7 +40,7 @@ def get_flashcard_item_statistics(user_id, item_id):
     total_reviews = len(progress.review_history)
     correct_count = 0
     incorrect_count = 0
-    hard_count = 0
+    vague_count = 0 # ĐÃ SỬA: Đổi hard_count thành vague_count
     current_streak = 0
     longest_streak = 0
     
@@ -49,6 +48,8 @@ def get_flashcard_item_statistics(user_id, item_id):
     for review in progress.review_history:
         quality = review.get('user_answer_quality', 0)
         
+        # SỬA: Logic tính các chỉ số dựa trên SM-2
+        # Quality 3, 4, 5 được coi là đúng
         if quality >= 3:
             correct_count += 1
             current_streak += 1
@@ -58,20 +59,22 @@ def get_flashcard_item_statistics(user_id, item_id):
                 longest_streak = current_streak
             current_streak = 0
         
-        if quality <= 2:
-            hard_count += 1
+        # Quality 2 được coi là mơ hồ
+        if quality == 2:
+            vague_count += 1 # ĐÃ SỬA: Đếm số lần trả lời mơ hồ
 
     # Cập nhật longest_streak cuối cùng
     if current_streak > longest_streak:
         longest_streak = current_streak
 
+    # SỬA: Tỉ lệ đúng được tính dựa trên số lần đúng so với tổng số lần trả lời
     correct_rate = (correct_count / total_reviews) * 100 if total_reviews > 0 else 0.0
 
     stats = {
         'times_reviewed': total_reviews,
         'correct_count': correct_count,
         'incorrect_count': incorrect_count,
-        'hard_count': hard_count,
+        'vague_count': vague_count, # ĐÃ SỬA: Trả về vague_count
         'correct_rate': round(correct_rate, 2),
         'current_streak': current_streak,
         'longest_streak': longest_streak,

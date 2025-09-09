@@ -1,10 +1,8 @@
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 34.4 #}
-{# Mục đích: Khắc phục lỗi hình ảnh bị đè lên bởi các nút hành động trên mặt sau flashcard. #}
-{# ĐÃ SỬA: Cập nhật CSS để `text-area` và `media-container` có thể co giãn linh hoạt. #}
-{# ĐÃ SỬA: Đảm bảo các nút hành động luôn nằm ở cuối thẻ. #}
-{# ĐÃ SỬA: Loại bỏ position: fixed và sử dụng Flexbox. #}
-{# ĐÃ SỬA: Bổ sung logic ẩn header/footer trên di động. #}
+{# Phiên bản: 35.2 #}
+{# MỤC ĐÍCH: Sửa lỗi logic nút bấm và cải thiện luồng hiển thị thống kê. #}
+{# ĐÃ SỬA: Cập nhật JavaScript để gửi giá trị data-answer chính xác tới backend. #}
+{# ĐÃ SỬA: Cải tiến luồng hiển thị thống kê thẻ trước đó trên giao diện. #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -570,7 +568,7 @@
         </div>
 
         <hr class="my-6">
-        <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê thẻ hiện tại</h3>
+        <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê thẻ trước đó</h3>
         <div id="current-card-stats" class="flex-grow space-y-4">
             <div class="text-center text-gray-500">
                 <i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.
@@ -600,8 +598,6 @@
 {% block scripts %}
   {{ super() }}
   <script>
-    /* ===== Tính chiều cao header/footer/title để layout full-height - ĐÃ BỊ LOẠI BỎ ===== */
-    /* Hàm này không còn cần thiết vì đã sử dụng Flexbox trên body */
     function updateFixedHeights(){
       const header=document.querySelector('header');
       const mainElement = document.querySelector('main');
@@ -609,28 +605,24 @@
       const hh=header?header.offsetHeight:0;
       const fh=footer?footer.offsetHeight:0;
 
-      // Cập nhật biến CSS để main content có thể tính toán chiều cao
       document.documentElement.style.setProperty('--header-h', hh+'px');
       document.documentElement.style.setProperty('--footer-h', fh+'px');
     }
-    // window.addEventListener('load', updateFixedHeights);
-    // window.addEventListener('resize', updateFixedHeights);
-    // new ResizeObserver(updateFixedHeights).observe(document.body);
 
-    /* ===== State ===== */
     let currentFlashcardBatch = [];
     let currentFlashcardIndex = 0;
+    let previousCardStats = null; // Biến mới để lưu stats của thẻ trước
 
     const flashcardContentDiv = document.getElementById('flashcard-content');
     const endSessionBtn = document.getElementById('end-session-btn');
     const sessionTotalAnsweredLabel = document.getElementById('session-total-answered-label');
     const sessionTotalAnsweredBar = document.getElementById('session-total-answered-bar');
     const sessionCorrectCountLabel = document.getElementById('session-correct-count-label');
-    const sessionCorrectBar = document.getElementById('session-correct-bar');
+    const sessionCorrectBar = document.querySelector('.progress-bar-fill-correct');
     const sessionIncorrectCountLabel = document.getElementById('session-incorrect-count-label');
-    const sessionIncorrectBar = document.getElementById('session-incorrect-bar');
+    const sessionIncorrectBar = document.querySelector('.progress-bar-fill-incorrect');
     const sessionVagueCountLabel = document.getElementById('session-vague-count-label');
-    const sessionVagueBar = document.getElementById('session-vague-bar');
+    const sessionVagueBar = document.querySelector('.progress-bar-fill-vague');
     const currentCardStatsDiv = document.getElementById('current-card-stats');
 
     const endSessionModal = document.getElementById('endSessionModal');
@@ -896,10 +888,10 @@
         const totalReviews = stats.times_reviewed || 0;
         const correctCount = stats.correct_count || 0;
         const incorrectCount = stats.incorrect_count || 0;
-        const hardCount = stats.hard_count || 0;
+        const vagueCount = stats.vague_count || 0;
         const correctPercentage = totalReviews > 0 ? (correctCount / totalReviews) * 100 : 0;
         const incorrectPercentage = totalReviews > 0 ? (incorrectCount / totalReviews) * 100 : 0;
-        const hardPercentage = totalReviews > 0 ? (hardCount / totalReviews) * 100 : 0;
+        const vaguePercentage = totalReviews > 0 ? (vagueCount / totalReviews) * 100 : 0;
         
         const dueTime = stats.next_review ? new Date(stats.next_review).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
         
@@ -919,11 +911,11 @@
                 </div>
                 <div class="progress-bar-group">
                     <div class="progress-bar-label">
-                        <span>Mơ hồ (${hardCount})</span>
-                        <span>${Math.round(hardPercentage)}%</span>
+                        <span>Mơ hồ (${vagueCount})</span>
+                        <span>${Math.round(vaguePercentage)}%</span>
                     </div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar-fill progress-bar-fill-vague" style="width: ${hardPercentage}%;"></div>
+                        <div class="progress-bar-fill progress-bar-fill-vague" style="width: ${vaguePercentage}%;"></div>
                     </div>
                 </div>
                 <div class="progress-bar-group">
@@ -947,8 +939,16 @@
                     <span class="font-semibold text-right">${stats.status}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm text-gray-600">
-                    <span>Lần cuối ôn:</span>
-                    <span class="font-semibold text-right">${new Date(stats.last_reviewed).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                    <span>Hệ số dễ (EF):</span>
+                    <span class="font-semibold text-right">${stats.easiness_factor}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Lặp lại (n):</span>
+                    <span class="font-semibold text-right">${stats.repetitions}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Khoảng thời gian (I):</span>
+                    <span class="font-semibold text-right">${stats.interval} ngày</span>
                 </div>
                 <div class="flex justify-between items-center text-sm text-gray-600">
                     <span>Đến hạn ôn lại:</span>
@@ -961,8 +961,14 @@
     }
 
     async function getNextFlashcardBatch(){
+      if (previousCardStats) {
+        renderCardStats(previousCardStats.stats, previousCardStats.scoreChange);
+        previousCardStats = null;
+      } else {
+        currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
+      }
+      
       flashcardContentDiv.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>`;
-      currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
 
       try {
         const res = await fetch(getFlashcardBatchUrl, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
@@ -1007,15 +1013,17 @@
         const data = await res.json();
         updateSessionSummary(data.session_correct_answers, data.session_incorrect_answers, data.session_vague_answers, data.session_total_answered);
         
-        // Hiển thị thống kê cho thẻ vừa trả lời
+        // SỬA: Lưu thống kê của thẻ vừa trả lời vào biến tạm
         if (data.statistics) {
-            renderCardStats(data.statistics, data.score_change);
+            previousCardStats = {
+              stats: data.statistics,
+              scoreChange: data.score_change
+            };
         }
 
-        setTimeout(() => {
-          currentFlashcardIndex++;
-          getNextFlashcardBatch();
-        }, 900);
+        // SỬA: Thay thế setTimeout bằng việc gọi hàm load thẻ mới ngay lập tức
+        currentFlashcardIndex++;
+        getNextFlashcardBatch();
       } catch (e) {
         console.error('Lỗi khi gửi đáp án:', e);
         showCustomAlert('Có lỗi khi gửi đáp án. Vui lòng thử lại.');
@@ -1062,7 +1070,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      // updateFixedHeights(); // Hàm này đã bị loại bỏ
       document.body.classList.add('flashcard-session-active');
       getNextFlashcardBatch();
     });

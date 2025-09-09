@@ -1,9 +1,7 @@
 # File: mindstack_app/modules/learning/quiz_learning/routes.py
-# Phiên bản: 1.11
-# Mục đích: Định nghĩa các routes và logic cho module học Quiz.
-# ĐÃ SỬA: Thêm route mới '/bulk_unarchive' để bỏ lưu trữ hàng loạt.
-# ĐÃ SỬA: Cập nhật các route 'start_quiz_session_all' và 'start_quiz_session_multi' để nhận batch_size là query parameter.
-# ĐÃ SỬA: Sửa lỗi last_accessed không cập nhật bằng cách gán trực tiếp func.now() vào trường.
+# Phiên bản: 2.0
+# MỤC ĐÍCH: Cập nhật logic để sử dụng model QuizProgress mới thay cho UserProgress.
+# ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress trong các hàm truy vấn.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
@@ -11,7 +9,7 @@ import traceback
 from .algorithms import get_new_only_items, get_reviewed_items, get_hard_items, get_filtered_quiz_sets, get_quiz_mode_counts
 from .session_manager import QuizSessionManager
 from .config import QuizLearningConfig
-from ....models import db, User, UserContainerState, LearningContainer
+from ....models import db, User, UserContainerState, LearningContainer, QuizProgress
 from sqlalchemy.sql import func
 
 
@@ -252,7 +250,7 @@ def submit_answer_batch():
                         user_id=current_user.user_id,
                         container_id=s_id,
                         is_archived=False,
-                        is_favorite=False
+                        is_favorite=False # Mặc định là False
                     )
                     db.session.add(user_container_state)
                 user_container_state.last_accessed = func.now()

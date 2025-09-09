@@ -1,11 +1,11 @@
 # File: mindstack_app/modules/learning/flashcard_learning/flashcard_logic.py
-# Phiên bản: 1.8
-# Mục đích: Chứa logic nghiệp vụ để xử lý câu trả lời Flashcard, cập nhật tiến độ người dùng,
-#           tính điểm và ghi log điểm số. Sử dụng thuật toán Spaced Repetition (SuperMemo-2).
-# ĐÃ SỬA: Sửa lỗi cập nhật sai các chỉ số thống kê, đảm bảo mỗi lựa chọn của người dùng
-#         (nhớ, mơ hồ, quên) được ánh xạ chính xác.
+# Phiên bản: 2.1
+# MỤC ĐÍCH: Sửa logic cập nhật streak và times_vague để chính xác hơn.
+# ĐÃ SỬA: Sửa logic reset và tăng các streak (correct, incorrect, vague).
+# ĐÃ SỬA: Đảm bảo times_vague được cập nhật khi user_answer_quality là 2.
+# ĐÃ SỬA: Thêm item_type vào ScoreLog khi tạo bản ghi.
 
-from ....models import db, User, LearningItem, UserProgress, ScoreLog
+from ....models import db, User, LearningItem, FlashcardProgress, ScoreLog
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
 import datetime
@@ -45,7 +45,7 @@ def calculate_next_review(progress, quality):
 
 def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user_total_score):
     """
-    Xử lý một câu trả lời Flashcard của người dùng, cập nhật UserProgress,
+    Xử lý một câu trả lời Flashcard của người dùng, cập nhật FlashcardProgress,
     tính điểm và ghi log điểm số.
 
     Args:
@@ -65,18 +65,17 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     score_change = 0
     is_first_time = False
 
-    # Lấy thông tin thẻ và tiến độ
     item = LearningItem.query.get(item_id)
     if not item:
         return 0, current_user_total_score, False, None, "Lỗi: Không tìm thấy thẻ."
 
-    progress = UserProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
+    progress = FlashcardProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
     if not progress:
         is_first_time = True
-        progress = UserProgress(
+        progress = FlashcardProgress(
             user_id=user_id,
             item_id=item_id,
-            easiness_factor=2.5, # Khởi tạo Easiness Factor
+            easiness_factor=2.5,
             repetitions=0,
             interval=0,
             status='new'
@@ -84,28 +83,27 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         db.session.add(progress)
         progress.first_seen_timestamp = func.now()
 
-    # Cập nhật thuật toán Spaced Repetition
     progress.last_reviewed = func.now()
     is_correct = (user_answer_quality >= 3)
     progress.due_time = calculate_next_review(progress, user_answer_quality)
 
-    # Cập nhật các chỉ số thống kê dựa trên user_answer_quality
-    # Reset tất cả các chuỗi
-    progress.correct_streak = 0
-    progress.incorrect_streak = 0
-    progress.vague_streak = 0
-    
+    # SỬA: Logic cập nhật streaks và times_count chính xác hơn
     if user_answer_quality >= 3:
         progress.times_correct = (progress.times_correct or 0) + 1
         progress.correct_streak = (progress.correct_streak or 0) + 1
+        progress.incorrect_streak = 0
+        progress.vague_streak = 0
     elif user_answer_quality == 2:
         progress.times_vague = (progress.times_vague or 0) + 1
         progress.vague_streak = (progress.vague_streak or 0) + 1
-    else:
+        progress.correct_streak = 0
+        progress.incorrect_streak = 0
+    else: # user_answer_quality < 2
         progress.times_incorrect = (progress.times_incorrect or 0) + 1
         progress.incorrect_streak = (progress.incorrect_streak or 0) + 1
+        progress.correct_streak = 0
+        progress.vague_streak = 0
         
-    # Tính điểm số dựa trên chất lượng trả lời
     if user_answer_quality == 5:
         score_change = 25
     elif user_answer_quality == 4:
@@ -117,17 +115,15 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     else:
         score_change = -5
 
-    # Cập nhật trạng thái (status)
     if progress.status == 'new' and is_correct:
         progress.status = 'learning'
     elif progress.status == 'learning' and progress.repetitions > 2 and is_correct:
         progress.status = 'mastered'
-    elif user_answer_quality <= 2 and progress.easiness_factor < 1.8: # Cập nhật trạng thái 'hard' dựa trên chất lượng trả lời và E-Factor
+    elif user_answer_quality <= 2 and progress.easiness_factor < 1.8:
         progress.status = 'hard'
     elif progress.status == 'hard' and is_correct:
         progress.status = 'learning'
     
-    # Ghi vào review_history
     review_entry = {
         'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'user_answer_quality': user_answer_quality,
@@ -140,19 +136,18 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     progress.review_history.append(review_entry)
     flag_modified(progress, "review_history")
 
-    # Cập nhật tổng điểm của người dùng
     user = User.query.get(user_id)
     if user:
         user.total_score = (user.total_score or 0) + score_change
     updated_total_score = user.total_score if user else current_user_total_score + score_change
 
-    # Ghi log vào ScoreLog
     reason = f"Flashcard Answer (Quality: {user_answer_quality})"
     new_score_log = ScoreLog(
         user_id=user_id,
         item_id=item_id,
         score_change=score_change,
-        reason=reason
+        reason=reason,
+        item_type='FLASHCARD'
     )
     db.session.add(new_score_log)
 

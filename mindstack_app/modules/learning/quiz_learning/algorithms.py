@@ -1,13 +1,11 @@
 # File: mindstack_app/modules/learning/quiz_learning/algorithms.py
-# Phiên bản: 1.16
-# Mục đích: Chứa logic thuật toán để lựa chọn và sắp xếp các câu hỏi Quiz cho các chế độ học khác nhau.
-# ĐÃ SỬA: Khắc phục lỗi "AttributeError: 'list' object has no attribute 'filter'" bằng cách thay đổi các hàm
-#         lấy câu hỏi (get_new_only_items, get_reviewed_items, get_hard_items) để trả về đối tượng truy vấn SQLAlchemy
-#         (query object) khi session_size là None. Điều này cho phép các hàm khác có thể lọc thêm.
-# ĐÃ SỬA: Cập nhật hàm _get_base_items_query để hỗ trợ lấy câu hỏi từ danh sách nhiều container_id.
-# ĐÃ SỬA: Cập nhật hàm get_quiz_mode_counts để có thể nhận một danh sách các set_id để tính tổng.
+# Phiên bản: 2.0
+# MỤC ĐÍCH: Cập nhật logic truy vấn để sử dụng model QuizProgress mới thay cho UserProgress.
+# ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress.
+# ĐÃ SỬA: Cập nhật các hàm lấy câu hỏi (get_new_only_items, get_reviewed_items, get_hard_items)
+#         và hàm lấy danh sách bộ quiz (get_filtered_quiz_sets) để truy vấn bảng mới.
 
-from ....models import db, LearningItem, UserProgress, LearningContainer, ContainerContributor, UserContainerState
+from ....models import db, LearningItem, QuizProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
@@ -85,11 +83,11 @@ def get_new_only_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_new_only_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
     
-    # Lọc các item chưa có bản ghi UserProgress cho người dùng hiện tại
-    new_items_query = base_items_query.outerjoin(UserProgress, 
-        and_(UserProgress.item_id == LearningItem.item_id, UserProgress.user_id == user_id)
+    # SỬA: Join với QuizProgress thay vì UserProgress
+    new_items_query = base_items_query.outerjoin(QuizProgress, 
+        and_(QuizProgress.item_id == LearningItem.item_id, QuizProgress.user_id == user_id)
     ).filter(
-        UserProgress.item_id == None
+        QuizProgress.item_id == None
     )
 
     # THÊM MỚI: Loại trừ các bộ quiz đã được archive
@@ -102,7 +100,6 @@ def get_new_only_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: new_items_query (chỉ làm mới): {new_items_query} <<<")
     
     if session_size is None or session_size == 999999:
-        # SỬA LỖI: Trả về đối tượng truy vấn thay vì thực thi .all()
         return new_items_query
     else:
         items = new_items_query.order_by(func.random()).limit(session_size).all()
@@ -119,9 +116,10 @@ def get_reviewed_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_reviewed_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
     
-    reviewed_items_query = base_items_query.join(UserProgress).filter(
-        UserProgress.user_id == user_id,
-        UserProgress.first_seen_timestamp != None
+    # SỬA: Join với QuizProgress thay vì UserProgress
+    reviewed_items_query = base_items_query.join(QuizProgress).filter(
+        QuizProgress.user_id == user_id,
+        QuizProgress.first_seen_timestamp != None
     )
     
     # THÊM MỚI: Loại trừ các bộ quiz đã được archive
@@ -134,7 +132,6 @@ def get_reviewed_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: reviewed_items_query (đã làm): {reviewed_items_query} <<<")
     
     if session_size is None or session_size == 999999:
-        # SỬA LỖI: Trả về đối tượng truy vấn thay vì thực thi .all()
         return reviewed_items_query
     else:
         items = reviewed_items_query.order_by(func.random()).limit(session_size).all()
@@ -151,10 +148,11 @@ def get_hard_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
 
-    hard_items_query = base_items_query.join(UserProgress).filter(
-        UserProgress.user_id == user_id,
-        (UserProgress.times_correct + UserProgress.times_incorrect) >= 10,
-        (UserProgress.times_correct / (UserProgress.times_correct + UserProgress.times_incorrect)) < 0.5
+    # SỬA: Join với QuizProgress thay vì UserProgress
+    hard_items_query = base_items_query.join(QuizProgress).filter(
+        QuizProgress.user_id == user_id,
+        (QuizProgress.times_correct + QuizProgress.times_incorrect) >= 10,
+        (QuizProgress.times_correct / (QuizProgress.times_correct + QuizProgress.times_incorrect)) < 0.5
     )
     
     # THÊM MỚI: Loại trừ các bộ quiz đã được archive
@@ -167,7 +165,6 @@ def get_hard_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: hard_items_query (câu khó): {hard_items_query} <<<")
     
     if session_size is None or session_size == 999999:
-        # SỬA LỖI: Trả về đối tượng truy vấn thay vì thực thi .all()
         return hard_items_query
     else:
         items = hard_items_query.order_by(func.random()).limit(session_size).all()
@@ -229,11 +226,11 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
             UserContainerState.is_archived == False
         ).order_by(UserContainerState.last_accessed.desc())
         
-        # Áp dụng bộ lọc 'doing' để chỉ lấy các bộ có tiến độ
+        # SỬA: Áp dụng bộ lọc 'doing' để chỉ lấy các bộ có tiến độ từ bảng QuizProgress
         final_query = final_query.filter(
             LearningContainer.container_id.in_(
-                db.session.query(LearningItem.container_id).join(UserProgress).filter(
-                    UserProgress.user_id == user_id,
+                db.session.query(LearningItem.container_id).join(QuizProgress).filter(
+                    QuizProgress.user_id == user_id,
                     LearningItem.item_type == 'QUIZ_MCQ'
                 ).distinct()
             )
@@ -269,9 +266,10 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
             item_type='QUIZ_MCQ'
         ).count()
         
-        learned_items = db.session.query(UserProgress).filter(
-            UserProgress.user_id == user_id,
-            UserProgress.item_id.in_(
+        # SỬA: Truy vấn số lượng câu hỏi đã làm từ bảng QuizProgress
+        learned_items = db.session.query(QuizProgress).filter(
+            QuizProgress.user_id == user_id,
+            QuizProgress.item_id.in_(
                 db.session.query(LearningItem.item_id).filter(
                     LearningItem.container_id == set_item.container_id,
                     LearningItem.item_type == 'QUIZ_MCQ'
