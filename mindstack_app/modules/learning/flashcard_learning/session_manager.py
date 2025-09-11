@@ -1,8 +1,8 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 2.0
-# MỤC ĐÍCH: Cập nhật logic để sử dụng model FlashcardProgress mới thay cho UserProgress.
-# ĐÃ SỬA: Thay thế import UserProgress bằng FlashcardProgress.
-# ĐÃ SỬA: Cập nhật các hàm khởi tạo, lấy thẻ, xử lý đáp án để tương tác với bảng mới.
+# Phiên bản: 3.0
+# MỤC ĐÍCH: Sửa lỗi logic xử lý câu trả lời flashcard bị lặp và sai.
+# ĐÃ SỬA: Loại bỏ việc tra cứu quality_map không cần thiết trong hàm process_flashcard_answer.
+# ĐÃ SỬA: Đổi tên tham số 'user_answer' thành 'user_answer_quality' để thể hiện đúng bản chất dữ liệu đầu vào.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
@@ -110,7 +110,6 @@ class FlashcardSessionManager:
             current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {mode}")
             return False
         
-        # SỬA: Thay đổi hàm gọi để lấy tổng số item
         total_items_in_session_query = algorithm_func(user_id, set_id, None)
         total_items_in_session = total_items_in_session_query.count()
 
@@ -242,46 +241,40 @@ class FlashcardSessionManager:
             'session_total_answered': self.correct_answers + self.incorrect_answers + self.vague_answers
         }
 
-    def process_flashcard_answer(self, item_id, user_answer):
+    def process_flashcard_answer(self, item_id, user_answer_quality):
         """
         Mô tả: Xử lý một câu trả lời của người dùng cho một thẻ flashcard.
+               Hàm này giờ đây nhận trực tiếp điểm chất lượng (dạng số) đã được xử lý.
         """
-        print(f">>> SESSION_MANAGER: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer={user_answer} <<<")
-        current_app.logger.debug(f"SessionManager: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer={user_answer}")
+        print(f">>> SESSION_MANAGER: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer_quality={user_answer_quality} <<<")
+        current_app.logger.debug(f"SessionManager: Bắt đầu process_flashcard_answer cho item_id={item_id}, user_answer_quality={user_answer_quality}")
 
         try:
             current_user_obj = User.query.get(self.user_id)
             current_user_total_score = current_user_obj.total_score if current_user_obj else 0
 
-            user_button_count = current_user.flashcard_button_count or 3
-            quality_map = {}
-            if user_button_count == 3:
-                quality_map = {'nhớ': 4, 'mơ_hồ': 2, 'quên': 1}
-            elif user_button_count == 4:
-                quality_map = {'again': 1, 'hard': 3, 'good': 4, 'easy': 5}
-            elif user_button_count == 6:
-                quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'good': 3, 'easy': 4, 'very_easy': 5}
-            
-            user_answer_quality = quality_map.get(user_answer, 0)
+            # SỬA LỖI: Loại bỏ hoàn toàn logic tra cứu quality_map ở đây.
+            # Giá trị user_answer_quality nhận vào đã là dạng số (integer).
             
             score_change, updated_total_score, is_correct, new_progress_status, item_stats = process_flashcard_answer(
                 user_id=self.user_id,
                 item_id=item_id,
-                user_answer_quality=user_answer_quality,
+                user_answer_quality=user_answer_quality, # Truyền thẳng giá trị số đã nhận
                 current_user_total_score=current_user_total_score
             )
             
+            # Cập nhật số liệu thống kê của phiên học
             if is_correct:
                 self.correct_answers += 1
-            elif user_answer_quality == 2:
+            elif user_answer_quality == 2: # Trường hợp "mơ hồ"
                 self.vague_answers += 1
-            else:
+            else: # Các trường hợp còn lại là "sai"
                 self.incorrect_answers += 1
 
             session[self.SESSION_KEY] = self.to_dict()
             session.modified = True 
             
-            print(f">>> SESSION_MANAGER: Thẻ đã xử lý. Đáp án: {user_answer}, Điểm thay đổi: {score_change} <<<")
+            print(f">>> SESSION_MANAGER: Thẻ đã xử lý. Quality: {user_answer_quality}, Điểm thay đổi: {score_change} <<<")
             return {
                 'success': True,
                 'score_change': score_change,

@@ -1,8 +1,7 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 3.3
-# MỤC ĐÍCH: Sửa lỗi ánh xạ nút bấm sang điểm chất lượng (quality) để tránh lỗi mặc định.
-# ĐÃ SỬA: Cập nhật quality_map để xử lý cả giá trị số và giá trị tiếng Việt/Anh.
-# ĐÃ SỬA: Thay thế import UserProgress bằng FlashcardProgress.
+# Phiên bản: 3.4
+# MỤC ĐÍCH: Cập nhật logic ánh xạ các nút bấm sang điểm chất lượng (quality) theo yêu cầu mới.
+# ĐÃ SỬA: Thay đổi quality_map để quy đổi các nút của chế độ 4 và 6 nút về 3 nhóm chính (Nhớ, Mơ hồ, Quên).
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
@@ -60,7 +59,6 @@ def get_flashcard_options_partial(set_identifier):
     
     modes = []
     
-    # Logic để lấy modes theo set_identifier
     if set_identifier == 'all':
         modes = get_flashcard_mode_counts(current_user.user_id, 'all')
     else:
@@ -143,7 +141,6 @@ def flashcard_session():
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
         return redirect(url_for('learning.flashcard_learning.flashcard_learning_dashboard'))
     
-    # Đọc cài đặt số nút của người dùng để truyền vào template
     user_button_count = current_user.flashcard_button_count if current_user.flashcard_button_count else 3
     
     return render_template('flashcard_session.html', user_button_count=user_button_count)
@@ -163,10 +160,8 @@ def get_flashcard_batch():
     session_manager = FlashcardSessionManager.from_dict(session['flashcard_session'])
     
     try:
-        # Lấy một thẻ duy nhất mỗi lần
         flashcard_batch = session_manager.get_next_batch()
         
-        # Cập nhật session sau khi lấy batch
         session['flashcard_session'] = session_manager.to_dict()
         session.modified = True
 
@@ -176,7 +171,6 @@ def get_flashcard_batch():
             current_app.logger.debug("--- Kết thúc get_flashcard_batch (Hết thẻ) ---")
             return jsonify({'message': 'Bạn đã hoàn thành tất cả các thẻ trong phiên học này!'}), 404
         
-        # Vì chỉ có một thẻ, chúng ta có thể trả về trực tiếp
         flashcard_batch['session_correct_answers'] = session_manager.correct_answers
         flashcard_batch['session_incorrect_answers'] = session_manager.incorrect_answers
         flashcard_batch['session_vague_answers'] = session_manager.vague_answers
@@ -246,21 +240,19 @@ def submit_flashcard_answer():
                 
     user_button_count = current_user.flashcard_button_count or 3
     quality_map = {}
+    
+    # SỬA ĐỔI: Ánh xạ các nút về 3 nhóm chính: Nhớ (quality=4), Mơ hồ (quality=2), Quên (quality=1)
     if user_button_count == 3:
-        # Ánh xạ giá trị tiếng Việt
+        # Giữ nguyên như cũ
         quality_map = {'quên': 1, 'mơ_hồ': 2, 'nhớ': 4}
     elif user_button_count == 4:
-        # Ánh xạ giá trị tiếng Anh và tiếng Việt
-        quality_map = {'again': 1, 'hard': 3, 'good': 4, 'easy': 5,
-                       'Học lại': 1, 'Khó': 3, 'Bình thường': 4, 'Dễ': 5}
+        # 'Học lại' -> Quên, 'Khó' & 'Bình thường' -> Mơ hồ, 'Dễ' -> Nhớ
+        quality_map = {'again': 1, 'hard': 2, 'good': 2, 'easy': 4}
     elif user_button_count == 6:
-        # Ánh xạ giá trị tiếng Anh và tiếng Việt
-        quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 4, 'very_easy': 5,
-                       'Rất khó': 0, 'Khó': 1, 'Trung bình': 2, 'Dễ': 3, 'Rất dễ': 4, 'Dễ dàng': 5}
-    
-    # SỬA LỖI: Chuyển user_answer thành chuỗi trước khi tra cứu trong dictionary
-    # để đảm bảo các giá trị số từ frontend cũng được xử lý đúng.
-    user_answer_quality = quality_map.get(str(user_answer), 0)
+        # 'Rất khó' & 'Khó' -> Quên, 'Trung bình' & 'Dễ' -> Mơ hồ, 'Rất dễ' & 'Dễ dàng' -> Nhớ
+        quality_map = {'fail': 1, 'very_hard': 1, 'hard': 2, 'medium': 2, 'good': 4, 'very_easy': 4}
+
+    user_answer_quality = quality_map.get(str(user_answer).lower(), 0)
     
     result = session_manager.process_flashcard_answer(item_id, user_answer_quality)
     if 'error' in result:
@@ -466,14 +458,9 @@ def regenerate_audio_from_content():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        # Sử dụng audio_service để lấy hoặc tạo file audio
         path_or_url, success, msg = loop.run_until_complete(audio_service.get_cached_or_generate_audio(content_to_read))
         if success:
-            # SỬA LỖI: Cập nhật đường dẫn file audio vào database
-            # Đường dẫn cần được lưu dưới dạng tương đối so với thư mục 'uploads'
             relative_path = os.path.relpath(path_or_url, current_app.static_folder)
-            
-            # SỬA LỖI: Thay thế dấu gạch chéo ngược Windows bằng dấu gạch chéo xuôi cho URL
             relative_path = relative_path.replace(os.path.sep, '/')
 
             if side == 'front':

@@ -1,9 +1,8 @@
 # File: mindstack_app/modules/learning/flashcard_learning/flashcard_logic.py
-# Phiên bản: 2.1
-# MỤC ĐÍCH: Sửa logic cập nhật streak và times_vague để chính xác hơn.
-# ĐÃ SỬA: Sửa logic reset và tăng các streak (correct, incorrect, vague).
-# ĐÃ SỬA: Đảm bảo times_vague được cập nhật khi user_answer_quality là 2.
-# ĐÃ SỬA: Thêm item_type vào ScoreLog khi tạo bản ghi.
+# Phiên bản: 2.2
+# MỤC ĐÍCH: Cập nhật lại logic tính điểm theo yêu cầu mới (không trừ điểm).
+# ĐÃ SỬA: Thay đổi cách tính score_change: Nhớ (+10), Mơ hồ (+5), Quên (0).
+# ĐÃ SỬA: Logic is_correct giờ đây chỉ dùng để phân loại, không ảnh hưởng trực tiếp đến điểm số.
 
 from ....models import db, User, LearningItem, FlashcardProgress, ScoreLog
 from sqlalchemy.sql import func
@@ -16,14 +15,11 @@ def calculate_next_review(progress, quality):
     """
     Tính toán thời gian ôn tập tiếp theo và cập nhật hệ số E-Factor theo thuật toán SM-2.
     - quality (chất lượng câu trả lời):
-        5 = perfect response (Dễ)
-        4 = correct response, but with hesitation (Tốt)
-        3 = correct but difficult to recall (Khó)
-        2 = incorrect response, but was easily remembered after seeing the correct answer (Mơ hồ)
-        1 = incorrect response, but was remembered after some difficulty (Quên)
-        0 = completely incorrect response (Rất khó)
+        4 = Nhớ
+        2 = Mơ hồ
+        1 = Quên
     """
-    if quality >= 3:
+    if quality >= 3: # Chỉ khi trả lời là "Nhớ" (quality=4)
         if progress.repetitions == 0:
             progress.interval = 1
         elif progress.repetitions == 1:
@@ -31,11 +27,19 @@ def calculate_next_review(progress, quality):
         else:
             progress.interval = math.ceil(progress.interval * progress.easiness_factor)
         progress.repetitions += 1
-    else:
+    else: # Khi trả lời là "Mơ hồ" hoặc "Quên"
         progress.repetitions = 0
         progress.interval = 1
 
-    progress.easiness_factor = progress.easiness_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    # Công thức SM-2 gốc sử dụng quality từ 0-5, ta cần điều chỉnh lại một chút
+    # Hoặc giữ nguyên logic này vì nó vẫn hoạt động tốt để điều chỉnh độ khó
+    # Ta sẽ giữ nguyên công thức này để EF vẫn được điều chỉnh linh hoạt
+    sm2_quality = 0
+    if quality == 4: sm2_quality = 5 # Nhớ -> Perfect
+    if quality == 2: sm2_quality = 3 # Mơ hồ -> Correct but difficult
+    if quality == 1: sm2_quality = 1 # Quên -> Incorrect
+
+    progress.easiness_factor = progress.easiness_factor + (0.1 - (5 - sm2_quality) * (0.08 + (5 - sm2_quality) * 0.02))
     if progress.easiness_factor < 1.3:
         progress.easiness_factor = 1.3
 
@@ -46,21 +50,16 @@ def calculate_next_review(progress, quality):
 def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user_total_score):
     """
     Xử lý một câu trả lời Flashcard của người dùng, cập nhật FlashcardProgress,
-    tính điểm và ghi log điểm số.
+    tính điểm và ghi log điểm số theo logic mới.
 
     Args:
         user_id (int): ID của người dùng.
         item_id (int): ID của thẻ Flashcard.
-        user_answer_quality (int): Chất lượng câu trả lời theo SuperMemo-2 (0-5).
-        current_user_total_score (int): Tổng điểm hiện tại của người dùng trước khi xử lý thẻ này.
+        user_answer_quality (int): Chất lượng câu trả lời đã được quy đổi (4: Nhớ, 2: Mơ hồ, 1: Quên).
+        current_user_total_score (int): Tổng điểm hiện tại của người dùng.
 
     Returns:
         tuple: (score_change, updated_total_score, is_correct, new_progress_status, item_stats)
-               score_change (int): Điểm số thay đổi trong lần này.
-               updated_total_score (int): Tổng điểm mới của người dùng.
-               is_correct (bool): True nếu câu trả lời được coi là đúng (quality >= 3), False nếu sai.
-               new_progress_status (str): Trạng thái tiến độ mới của thẻ ('new', 'learning', 'mastered', 'hard').
-               item_stats (dict): Các thống kê mới nhất của thẻ.
     """
     score_change = 0
     is_first_time = False
@@ -84,37 +83,36 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         progress.first_seen_timestamp = func.now()
 
     progress.last_reviewed = func.now()
-    is_correct = (user_answer_quality >= 3)
+    # is_correct chỉ dùng để phân loại, không ảnh hưởng điểm
+    is_correct = (user_answer_quality >= 3) 
     progress.due_time = calculate_next_review(progress, user_answer_quality)
 
-    # SỬA: Logic cập nhật streaks và times_count chính xác hơn
-    if user_answer_quality >= 3:
+    # Cập nhật streaks và times_count
+    if user_answer_quality == 4: # Nhớ
         progress.times_correct = (progress.times_correct or 0) + 1
         progress.correct_streak = (progress.correct_streak or 0) + 1
         progress.incorrect_streak = 0
         progress.vague_streak = 0
-    elif user_answer_quality == 2:
+    elif user_answer_quality == 2: # Mơ hồ
         progress.times_vague = (progress.times_vague or 0) + 1
         progress.vague_streak = (progress.vague_streak or 0) + 1
         progress.correct_streak = 0
         progress.incorrect_streak = 0
-    else: # user_answer_quality < 2
+    else: # Quên (quality = 1)
         progress.times_incorrect = (progress.times_incorrect or 0) + 1
         progress.incorrect_streak = (progress.incorrect_streak or 0) + 1
         progress.correct_streak = 0
         progress.vague_streak = 0
         
-    if user_answer_quality == 5:
-        score_change = 25
-    elif user_answer_quality == 4:
-        score_change = 15
-    elif user_answer_quality == 3:
+    # SỬA ĐỔI: Áp dụng thang điểm mới
+    if user_answer_quality == 4: # Nhớ
         score_change = 10
-    elif user_answer_quality == 2:
+    elif user_answer_quality == 2: # Mơ hồ
         score_change = 5
-    else:
-        score_change = -5
+    else: # Quên
+        score_change = 0 # Không cộng, không trừ
 
+    # Cập nhật trạng thái
     if progress.status == 'new' and is_correct:
         progress.status = 'learning'
     elif progress.status == 'learning' and progress.repetitions > 2 and is_correct:

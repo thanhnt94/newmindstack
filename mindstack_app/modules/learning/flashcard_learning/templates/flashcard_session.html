@@ -1,8 +1,9 @@
+{# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 35.2 #}
-{# MỤC ĐÍCH: Sửa lỗi logic nút bấm và cải thiện luồng hiển thị thống kê. #}
-{# ĐÃ SỬA: Cập nhật JavaScript để gửi giá trị data-answer chính xác tới backend. #}
-{# ĐÃ SỬA: Cải tiến luồng hiển thị thống kê thẻ trước đó trên giao diện. #}
+{# Phiên bản: 35.5 #}
+{# MỤC ĐÍCH: Giảm padding phía dưới cho các nút hành động trên giao diện mobile. #}
+{# ĐÃ SỬA: Điều chỉnh padding của lớp .actions trong media query để các nút chiếm ít không gian hơn. #}
+{# =============================== #}
 
 {% extends "base.html" %}
 {% block title %}Học Flashcard{% endblock %}
@@ -84,7 +85,7 @@
             flex-direction: column;
             width: 100%;
             height: 100%;
-            padding: 0;
+            padding: 0 !important;
             overflow: hidden; /* Quan trọng: Loại bỏ cuộn trên layout chính */
         }
         .statistics-card {
@@ -92,34 +93,34 @@
         }
         .flashcard-wrapper {
             flex: 1; /* Chiếm hết không gian còn lại */
-            padding: 0.5rem; /* Giảm padding để thẻ tràn viền hơn */
+            padding: 0 !important;
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
         #flashcard-content {
             flex: 1;
-            padding-bottom: 0.5rem; /* Thêm padding dưới để nút không bị dính */
-            padding-top: 0.5rem; /* Thêm padding trên để cân bằng */
+            padding: 0.5rem; /* Thêm padding nhẹ để nội dung không bị sát viền */
         }
         .flashcard-card-container, .flashcard-card, .face {
             height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: space-between; /* Căn trên và dưới */
+            padding: 0.1rem !important;
         }
         .text-area {
             flex: 1;
         }
         .actions {
-            margin-top: 1rem !important;
-            padding-top: 0;
-            gap: 0.5rem; /* Giảm khoảng cách giữa các nút */
+            margin-top: 0.5rem !important; /* ĐÃ SỬA: Giảm khoảng cách với nội dung phía trên */
+            padding: 0.5rem !important; /* ĐÃ SỬA: Giảm padding trên/dưới cho các nút */
+            gap: 0rem;
             justify-content: center;
             width: 100%;
         }
         .flashcard-card {
-            padding: 0.5rem; /* Giảm padding trên thẻ flashcard */
+            padding: 0.2rem !important; /* Giảm padding trên thẻ flashcard */
         }
     }
 
