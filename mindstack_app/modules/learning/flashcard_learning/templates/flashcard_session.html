@@ -1,9 +1,9 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 43.0 #}
-{# MỤC ĐÍCH: Khắc phục lỗi "đang tải thẻ..." và lỗi điểm không cập nhật. #}
-{# ĐÃ SỬA: Khôi phục lại hàm startTimer trong JavaScript vì nó cần thiết cho logic chạy đúng. #}
-{# ĐÃ SỬA: Cập nhật hàm `getNextFlashcardBatch` để đảm bảo `startTimer` được gọi với dữ liệu thời gian chính xác, khắc phục lỗi treo. #}
+{# Phiên bản: 37.0 #}
+{# MỤC ĐÍCH: Cập nhật màu sắc các nút bấm để phản ánh thang điểm mới. #}
+{# ĐÃ THÊM: Các lớp CSS cho các sắc độ màu (đậm/nhạt) của đỏ, vàng, xanh. #}
+{# ĐÃ SỬA: Cập nhật hàm generateDynamicButtons để gán các lớp màu mới tương ứng với điểm. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -18,31 +18,49 @@
         background-color: #f9fafb;
     }
     
+    /* Ghi đè CSS từ base.html để ẩn footer chỉ trên trang này khi ở màn hình nhỏ */
     @media (max-width: 1024px) {
-        body > footer { display: none !important; }
-        body { overflow: hidden !important; }
+        body > footer {
+            display: none !important;
+        }
     }
 
+    /* ===== Layout toàn trang (full height) - ĐÃ CẬP NHẬT ===== */
     html, body {
         height: 100%;
         margin: 0;
         padding: 0;
-        overflow: hidden; 
     }
 
     .page-shell {
         display: flex;
         flex-direction: column;
-        height: 100vh; /* Fallback */
-        height: calc(var(--vh, 1vh) * 100);
+        height: 100%;
         padding: 0;
-        overflow: hidden; 
-        padding-top: env(safe-area-inset-top);
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-        padding-bottom: env(safe-area-inset-bottom);
+        overflow: hidden;
     }
     
+    .page-title {
+        color: #1f2937;
+        margin-bottom: 2rem;
+        font-size: 2.25rem;
+        font-weight: 800;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .page-title .text-gray-500 {
+        font-size: 1.25rem;
+        margin-left: 0.5rem;
+        font-weight: 600;
+        text-transform: none;
+        letter-spacing: normal;
+    }
+    /* ===== Lưới 2 cột cho session layout (chuyển thành 1 cột trên mobile) ===== */
     .session-layout {
         height: 100%;
         display: grid;
@@ -54,15 +72,14 @@
         align-items: stretch;
         min-height: 0;
         flex-grow: 1;
-        overflow: hidden; 
     }
     
     @media (max-width: 1024px) {
+        /* Bố cục trên màn màn hình di động */
         .page-shell {
             top: var(--header-h, 0px);
             bottom: 0;
             padding: 0;
-            padding-top: env(safe-area-inset-top);
         }
         .session-layout {
             display: flex;
@@ -70,71 +87,64 @@
             width: 100%;
             height: 100%;
             padding: 0 !important;
-            overflow: hidden; 
+            overflow: hidden; /* Quan trọng: Loại bỏ cuộn trên layout chính */
         }
-        .statistics-card { display: none !important; }
+        .statistics-card {
+            display: none !important;
+        }
         .flashcard-wrapper {
-            flex: 1; 
+            flex: 1; /* Chiếm hết không gian còn lại */
             padding: 0 !important;
-            overflow: hidden; 
+            overflow: hidden;
             display: flex;
             flex-direction: column;
         }
         #flashcard-content {
             flex: 1;
-            padding: 0.5rem; 
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            padding: 0.5rem; /* Thêm padding nhẹ để nội dung không bị sát viền */
         }
         .flashcard-card-container, .flashcard-card, .face {
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; 
+            justify-content: space-between; /* Căn trên và dưới */
             padding: 0.1rem !important;
-            overflow: hidden;
         }
         .text-area {
             flex: 1;
-            overflow: auto; 
-            padding: 1.5rem 1rem 1rem 1rem !important;
-            margin-top: 40px; 
         }
         .actions {
-            margin-top: 0.5rem !important; 
-            padding: 0.5rem !important; 
+            margin-top: 0.5rem !important; /* ĐÃ SỬA: Giảm khoảng cách với nội dung phía trên */
+            padding: 0.5rem !important; /* ĐÃ SỬA: Giảm padding trên/dưới cho các nút */
             gap: 0rem;
             justify-content: center;
             width: 100%;
-            overflow: hidden;
         }
         .flashcard-card {
-            padding: 0.2rem !important;
+            padding: 0.2rem !important; /* Giảm padding trên thẻ flashcard */
         }
     }
 
+    /* ===== Wrapper cho thẻ Flashcard ===== */
     .flashcard-wrapper {
         display: flex;
         flex-direction: column;
         height: 100%;
         min-height: 0;
-        overflow: hidden; 
     }
 
     #flashcard-content {
         flex: 1 1 auto;
         min-height: 0;
-        overflow: hidden; 
     }
 
+    /* ===== Thẻ: Flip 3D (xoay TOÀN BỘ thẻ) ===== */
     .flashcard-card-container {
         perspective: 1200px;
         -webkit-perspective: 1200px;
         width: 100%;
         height: 100%;
         min-height: 300px;
-        overflow: hidden; 
     }
 
     .flashcard-card {
@@ -145,7 +155,7 @@
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
-        overflow: hidden; 
+        overflow: hidden;
         transform-style: preserve-3d;
         -webkit-transform-style: preserve-3d;
         cursor: pointer;
@@ -157,23 +167,37 @@
         padding: 1.5rem;
         display: flex;
         flex-direction: column;
-        justify-content: space-between; 
+        justify-content: space-between; /* Đảm bảo nội dung và nút được đẩy ra hai phía */
         gap: 10px;
         min-height: 0;
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         transition: transform .6s ease-in-out;
-        overflow: hidden; 
     }
     
-    .front { transform: rotateY(0deg); }
-    .back { transform: rotateY(180deg); }
-    .flashcard-card.flipped .front { transform: rotateY(180deg); }
-    .flashcard-card.flipped .back { transform: rotateY(360deg); }
+    /* Đảm bảo mặt trước hiển thị đúng chiều ở trạng thái bình thường */
+    .front { 
+        transform: rotateY(0deg); 
+    }
     
+    /* Đảm bảo mặt sau bị lật ở trạng thái bình thường để ẩn đi */
+    .back { 
+        transform: rotateY(180deg);
+    }
+    
+    /* Khi lật thẻ, mặt trước sẽ bị xoay và mặt sau sẽ được xoay về đúng chiều */
+    .flashcard-card.flipped .front {
+        transform: rotateY(180deg);
+    }
+    
+    .flashcard-card.flipped .back {
+        transform: rotateY(360deg);
+    }
+    
+    /* Thanh tiêu đề của thẻ */
     .card-toolbar {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: auto 1fr auto; /* Chỉ 3 cột: edit, label, audio */
         align-items: center;
         margin-bottom: 0;
         padding: 10px 1.5rem 0.5rem 1.5rem;
@@ -181,7 +205,7 @@
         width: 100%;
         top: 0;
         left: 0;
-        z-index: 10;
+        z-index: 10; /* Đảm bảo toolbar luôn ở trên */
     }
 
     .card-toolbar .label {
@@ -207,36 +231,75 @@
         transition: color 0.2s ease, background-color 0.2s ease;
     }
     
-    .card-toolbar .icon-btn:hover { background-color: #f3f4f6; color: #3b82f6; }
-    .card-toolbar .icon-btn.is-active { color: #3b82f6; }
-    .card-toolbar .icon-btn.is-disabled { background-color: transparent; color: #9ca3af; cursor: not-allowed; }
-
-    .card-toolbar .play-audio-btn {
-        background-color: #2563eb; color: #ffffff; width: 36px; height: 36px; font-size: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer;
+    .card-toolbar .icon-btn:hover {
+        background-color: #f3f4f6;
+        color: #3b82f6;
     }
-    .card-toolbar .play-audio-btn:hover { background-color: #1d4ed8; color: #ffffff; }
-    .card-toolbar .play-audio-btn.is-disabled { background-color: #9ca3af; color: #e5e7eb; cursor: not-allowed; }
+    .card-toolbar .icon-btn.is-active {
+        color: #3b82f6;
+    }
+    .card-toolbar .icon-btn.is-disabled {
+        background-color: transparent;
+        color: #9ca3af;
+        cursor: not-allowed;
+    }
 
+    /* Style cho nút audio như ảnh mẫu */
+    .card-toolbar .play-audio-btn {
+        background-color: #2563eb; /* Màu xanh da trời */
+        color: #ffffff; /* Màu chữ trắng */
+        width: 36px; /* Kích thước nhỏ hơn một chút */
+        height: 36px;
+        font-size: 1rem; /* Kích thước icon nhỏ hơn */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Thêm đổ bóng */
+        cursor: pointer;
+    }
+
+    .card-toolbar .play-audio-btn:hover {
+        background-color: #1d4ed8; /* Màu xanh đậm hơn khi hover */
+        color: #ffffff;
+    }
+    .card-toolbar .play-audio-btn.is-disabled {
+        background-color: #9ca3af; /* Màu xám khi disabled */
+        color: #e5e7eb;
+        cursor: not-allowed;
+    }
+
+    /* Nội dung text (căn dọc giữa) */
     .text-area {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
+        flex: 1 1 auto; /* Cho phép co giãn và chiếm không gian còn lại */
+        min-height: 0; /* Cho phép flex item thu nhỏ */
+        overflow: auto; /* Cho phép cuộn nếu nội dung text quá dài */
         display: flex;
-        align-items: center; 
+        align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 3rem 1rem 1rem 1rem;
-        margin-top: 40px;
+        padding: 3rem 1rem 1rem 1rem; /* Điều chỉnh padding */
+        margin-top: 40px; /* Để tránh bị toolbar che */
     }
-    .text-area.is-scrollable { align-items: flex-start; }
 
-    .text-area > .flashcard-content-text { width: 100%; }
-    .front .text-area .flashcard-content-text { font-size: 2.2rem; font-weight: 700; color: #1f2937; }
-    .back .text-area .flashcard-content-text { text-align: left; font-size: 22px; line-height: 1.5; color: #111827; white-space: pre-wrap; }
+    .text-area > .flashcard-content-text {
+        width: 100%;
+    }
 
+    .front .text-area .flashcard-content-text {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .back .text-area .flashcard-content-text {
+        text-align: left;
+        font-size: 22px;
+        line-height: 1.5;
+        color: #111827;
+        white-space: pre-wrap;
+    }
+
+    /* Ảnh/Âm thanh đáy thẻ (có nút ×) */
     .media-container {
-        flex: 0 0 auto;
-        max-height: 40vh;
+        flex: 0 0 auto; /* Không cho phép co giãn, chiếm đủ không gian cần thiết */
+        max-height: 40vh; /* Giới hạn chiều cao tối đa của ảnh */
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -245,37 +308,113 @@
         border-top: 1px solid #e5e7eb;
         padding: 10px;
         position: relative;
-        overflow: hidden;
     }
-    .media-container.hidden { display: none; }
-    .media-container img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+
+    .media-container.hidden {
+        display: none;
+    }
+
+    .media-container img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+    }
 
     .media-close {
-        position: absolute; top: 8px; left: 8px; background: rgba(0, 0, 0, .55); color: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 16px; line-height: 28px; text-align: center; cursor: pointer;
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(0, 0, 0, .55);
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        font-size: 16px;
+        line-height: 28px;
+        text-align: center;
+        cursor: pointer;
     }
 
+    /* Nút đánh giá trong thẻ */
     .actions {
-        display: none; gap: .75rem; justify-content: center; padding: 1rem 1.5rem; position: relative; width: 100%; bottom: 0; left: 0; background: #fff; border-top: 1px solid #e5e7eb; flex-shrink: 0; overflow: hidden;
+        display: none;
+        gap: .75rem;
+        justify-content: center;
+        padding: 1rem 1.5rem;
+        position: relative; /* Thay đổi từ absolute sang relative để không đè lên media-container */
+        width: 100%;
+        bottom: 0;
+        left: 0;
+        background: #fff;
+        border-top: 1px solid #e5e7eb;
+        flex-shrink: 0; /* Không cho phép thu nhỏ để luôn hiển thị đầy đủ */
     }
-    .actions.visible { display: flex; }
+
+    .actions.visible {
+        display: flex;
+    }
     
     .btn {
-        border: none; color: #fff; font-weight: 700; padding: .75rem 1.2rem; border-radius: 9999px; box-shadow: 0 1px 2px rgba(0, 0, 0, .06); cursor: pointer; font-size: 1rem; flex-grow: 1; flex-shrink: 1; flex-basis: 0; white-space: nowrap; 
+        border: none;
+        color: #fff;
+        font-weight: 700;
+        padding: .75rem 1.2rem;
+        border-radius: 9999px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+        cursor: pointer;
+        font-size: 1rem;
+        flex-grow: 1; /* Các nút sẽ tự động giãn nở để lấp đầy không gian */
+        flex-shrink: 1;
+        flex-basis: 0;
+        white-space: nowrap; /* Ngăn không cho chữ trong nút bị xuống dòng */
     }
 
-    .btn-quên { background: #ef4444; } .btn-mơ-hồ { background: #f59e0b; } .btn-nhớ { background: #10b981; }
-    .btn-fail { background-color: #ef4444; } .btn-hard { background-color: #f59e0b; } .btn-good { background-color: #10b981; } .btn-easy { background-color: #22c55e; } .btn-very-hard { background-color: #dc2626; } .btn-medium { background-color: #facc15; } .btn-very-easy { background-color: #10b981; }
-    
+    /* THÊM MỚI: Các lớp màu sắc đậm nhạt */
+    .btn-red-dark { background-color: #dc2626; } /* red-600 */
+    .btn-red-light { background-color: #ef4444; } /* red-500 */
+    .btn-yellow-dark { background-color: #f59e0b; } /* amber-500 */
+    .btn-yellow-light { background-color: #facc15; } /* yellow-400 */
+    .btn-green-light { background-color: #10b981; } /* emerald-500 */
+    .btn-green-dark { background-color: #059669; } /* emerald-600 */
+
+    /* Ghi đè CSS cho nút trên mobile */
     @media (max-width: 768px) {
-        .btn { font-size: 0.8rem; padding: 0.6rem 0.8rem; }
-        .actions[data-button-count="3"] { display: flex !important; flex-wrap: nowrap; justify-content: space-around; }
-        .actions[data-button-count="4"] { display: flex !important; flex-wrap: nowrap; justify-content: space-around; }
-        .actions[data-button-count="6"] { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+        .btn {
+            font-size: 0.8rem;
+            padding: 0.6rem 0.8rem;
+        }
+
+        /* Bố cục cho 3 nút: 1 hàng */
+        .actions[data-button-count="3"] {
+            display: flex !important;
+            flex-wrap: nowrap;
+            justify-content: space-around;
+        }
+
+        /* Bố cục cho 4 nút: 1 hàng */
+        .actions[data-button-count="4"] {
+            display: flex !important;
+            flex-wrap: nowrap;
+            justify-content: space-around;
+        }
+
+        /* Bố cục cho 6 nút: 2 hàng, mỗi hàng 3 nút */
+        .actions[data-button-count="6"] {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
     }
 
-    #flashcard-buttons { display: none !important; }
 
-    /* THIẾT KẾ LẠI: Khu vực thống kê */
+    /* Ẩn cụm nút ngoài (đã move vào thẻ) */
+    #flashcard-buttons {
+        display: none !important;
+    }
+
+    /* Thống kê */
     @media (min-width: 1024px) {
         .statistics-card {
             background: #fff;
@@ -287,95 +426,87 @@
             flex-direction: column;
             height: 100%;
             min-height: 0;
-            gap: 1.5rem;
         }
-
-        .stat-header, .stat-breakdown, .stat-card, #current-card-stats {
-            width: 100%;
-        }
-
-        .stat-header {
-            text-align: center;
-        }
-
-        .stat-header .main-stats {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 0.75rem;
-            background-color: #f9fafb;
-            border-radius: 0.75rem;
-            border: 1px solid #f3f4f6;
-        }
-
-        .stat-header .stat-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .stat-header .stat-label {
-            font-size: 0.8rem;
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        .stat-header .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #111827;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .stat-header .stat-value .fas {
-            font-size: 1.1rem;
-        }
-        
-        .stat-header .text-green-500 { color: #22c55e; }
-
-        .stat-breakdown {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.75rem;
-        }
-
-        .stat-card {
-            background-color: #f9fafb;
-            padding: 0.75rem;
-            border-radius: 0.75rem;
-            text-align: center;
-            border: 1px solid #f3f4f6;
-        }
-        
-        .stat-card .fas { font-size: 1.25rem; margin-bottom: 0.25rem; }
-        .stat-card .stat-label { font-size: 0.75rem; color: #6b7280; font-weight: 500; }
-        .stat-card .stat-value { font-size: 1.25rem; font-weight: 700; }
-
-        .stat-card.green { color: #15803d; background-color: #f0fdf4; border-color: #dcfce7; }
-        .stat-card.amber { color: #b45309; background-color: #fffbeb; border-color: #fef3c7; }
-        .stat-card.red { color: #b91c1c; background-color: #fef2f2; border-color: #fee2e2; }
-
     }
     
+    /* Custom Modal */
     .custom-modal-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
     }
+
     .custom-modal-content {
-      background-color: white; padding: 2rem; border-radius: 0.5rem; text-align: center; max-width: 400px;
+      background-color: white;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      text-align: center;
+      max-width: 400px;
+    }
+    /* Styles cho Progress Bar */
+    .statistics-card-new {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
 
-    .progress-bar-group { margin-bottom: 1rem; }
-    .progress-bar-label { font-size: 0.875rem; font-weight: 600; color: #374151; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
-    .progress-bar-container { width: 100%; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; height: 1.25rem; }
-    .progress-bar-fill { height: 100%; width: 0%; transition: width 0.5s ease-in-out; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
-    .progress-bar-fill-correct { background-color: #10b981; } .progress-bar-fill-vague { background-color: #f59e0b; } .progress-bar-fill-incorrect { background-color: #ef4444; }
+    .progress-bar-group {
+      margin-bottom: 1rem;
+    }
 
+    .progress-bar-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      background-color: #e5e7eb;
+      border-radius: 9999px;
+      overflow: hidden;
+      height: 1.25rem;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.5s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .progress-bar-fill-correct { background-color: #10b981; }
+    .progress-bar-fill-vague { background-color: #f59e0b; }
+    .progress-bar-fill-incorrect { background-color: #ef4444; }
+
+    /* Điều chỉnh font size cho nội dung thẻ trên mobile */
     @media (max-width: 640px) {
-        .front .text-area .flashcard-content-text { font-size: 1.8rem; }
-        .back .text-area .flashcard-content-text { font-size: 18px; }
-        .session-layout { padding: 0.5rem; }
+        .front .text-area .flashcard-content-text {
+            font-size: 1.8rem;
+        }
+        .back .text-area .flashcard-content-text {
+            font-size: 18px;
+        }
+        .session-layout {
+            padding: 0.5rem;
+        }
     }
   </style>
 {% endblock %}
@@ -390,51 +521,38 @@
       <div id="flashcard-buttons" class="mt-3"></div>
     </div>
 
-    {# KHU VỰC THỐNG KÊ ĐÃ THIẾT KẾ LẠI #}
     <div class="statistics-card">
-        <div class="stat-header">
-            <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê phiên học</h3>
-            <div class="main-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Tổng điểm</span>
-                    <span id="user-total-score" class="stat-value"><i class="fas fa-star text-yellow-400"></i>0</span>
+        <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê phiên học</h3>
+        
+        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Tổng điểm</span>
+                    <div id="total-score-display" class="text-2xl font-bold text-gray-800 flex items-center justify-center">
+                        <i class="fas fa-star text-yellow-400 mr-2"></i>
+                        <span>-</span>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Điểm phiên này</span>
-                    <span id="session-score" class="stat-value text-green-500">+0</span>
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Điểm phiên này</span>
+                    <div id="session-score-display" class="text-2xl font-bold text-green-600">
+                        +0
+                    </div>
                 </div>
             </div>
-            <div class="mt-3 text-center text-gray-600 font-semibold" id="session-progress">0 / 0</div>
         </div>
         
-        <div class="stat-breakdown">
-            <div class="stat-card green">
-                <i class="fas fa-check-circle"></i>
-                <div id="session-correct-count" class="stat-value">0</div>
-                <div class="stat-label">Thẻ Nhớ</div>
-            </div>
-            <div class="stat-card amber">
-                <i class="fas fa-question-circle"></i>
-                <div id="session-vague-count" class="stat-value">0</div>
-                <div class="stat-label">Thẻ Mơ hồ</div>
-            </div>
-            <div class="stat-card red">
-                <i class="fas fa-times-circle"></i>
-                <div id="session-incorrect-count" class="stat-value">0</div>
-                <div class="stat-label">Thẻ Quên</div>
-            </div>
-        </div>
-
-        <hr class="my-2">
-        <h3 class="text-lg font-semibold text-center text-gray-800 mb-2">Thống kê thẻ trước đó</h3>
+        <hr class="my-6">
+        <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê thẻ trước đó</h3>
         <div id="current-card-stats" class="flex-grow space-y-4">
-            <div class="text-center text-gray-500 p-4">
+            <div class="text-center text-gray-500">
                 <i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.
             </div>
         </div>
 
-        <div class="mt-auto pt-4 flex justify-center">
-            <button id="end-session-btn" class="w-full px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 shadow-sm transition-colors">Kết thúc phiên</button>
+        <hr class="my-6">
+        <div class="mt-2 flex justify-center">
+            <button id="end-session-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button>
         </div>
     </div>
   </div>
@@ -455,37 +573,33 @@
 {% block scripts %}
   {{ super() }}
   <script>
-    function setViewportHeight() {
-        let vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
-    setViewportHeight();
-    window.addEventListener('resize', setViewportHeight);
-    
     function updateFixedHeights(){
       const header=document.querySelector('header');
       const mainElement = document.querySelector('main');
       const footer=document.querySelector('footer');
       const hh=header?header.offsetHeight:0;
       const fh=footer?footer.offsetHeight:0;
+
       document.documentElement.style.setProperty('--header-h', hh+'px');
       document.documentElement.style.setProperty('--footer-h', fh+'px');
     }
 
     let currentFlashcardBatch = [];
     let currentFlashcardIndex = 0;
-    let previousCardStats = null; 
-    let initialTotalScore = {{ initial_total_score | default(0) }};
-    let sessionScoreGained = 0;
+    let previousCardStats = null; // Biến mới để lưu stats của thẻ trước
+    
+    // THÊM MỚI: Biến theo dõi điểm
+    let sessionScore = 0;
+    let currentUserTotalScore = {{ current_user.total_score | default(0) }};
+
 
     const flashcardContentDiv = document.getElementById('flashcard-content');
     const endSessionBtn = document.getElementById('end-session-btn');
-    const userTotalScoreEl = document.getElementById('user-total-score');
-    const sessionScoreEl = document.getElementById('session-score');
-    const sessionProgressEl = document.getElementById('session-progress');
-    const sessionCorrectCountEl = document.getElementById('session-correct-count');
-    const sessionVagueCountEl = document.getElementById('session-vague-count');
-    const sessionIncorrectCountEl = document.getElementById('session-incorrect-count');
+    
+    // THÊM MỚI: Lấy các element hiển thị điểm
+    const totalScoreDisplay = document.getElementById('total-score-display').querySelector('span');
+    const sessionScoreDisplay = document.getElementById('session-score-display');
+    
     const currentCardStatsDiv = document.getElementById('current-card-stats');
 
     const endSessionModal = document.getElementById('endSessionModal');
@@ -505,41 +619,17 @@
       return d.innerHTML.replace(/\r?\n/g,'<br>');
     }
 
-    function adjustContentAlignment(card) {
-        if (!card) return;
-        const textArea = card.querySelector('.back .text-area');
-        if (textArea) {
-            const isScrollable = textArea.scrollHeight > textArea.clientHeight;
-            if (isScrollable) {
-                textArea.classList.add('is-scrollable');
-            } else {
-                textArea.classList.remove('is-scrollable');
-            }
-        }
-    }
-
     /**
-     * Cập nhật giao diện thống kê phiên học.
+     * Cập nhật hiển thị thống kê phiên học với các thanh tiến trình mới.
+     * @param {number} correct - Số câu trả lời đúng.
+     * @param {number} incorrect - Số câu trả lời sai.
+     * @param (number) vague - Số câu trả lời mập mờ.
+     * @param {number} total - Tổng số thẻ đã trả lời.
      */
-    function updateSessionSummary(data) {
-        sessionScoreGained = (data.updated_total_score || initialTotalScore) - initialTotalScore;
-        
-        userTotalScoreEl.innerHTML = `<i class="fas fa-star text-yellow-400"></i>${data.updated_total_score}`;
-        sessionScoreEl.textContent = `+${sessionScoreGained}`;
-        sessionProgressEl.textContent = `${data.session_total_answered} / ${data.total_items_in_session}`;
-        sessionCorrectCountEl.textContent = data.session_correct_answers;
-        sessionVagueCountEl.textContent = data.session_vague_answers;
-        sessionIncorrectCountEl.textContent = data.session_incorrect_answers;
-    }
-
-    // KHÔI PHỤC: Hàm startTimer (không có hiển thị)
-    let sessionTimerInterval = null;
-    function startTimer(startTimeIso) {
-        if (sessionTimerInterval) clearInterval(sessionTimerInterval);
-        const startTime = new Date(startTimeIso);
-        sessionTimerInterval = setInterval(() => {
-            // Hàm này vẫn chạy nhưng không cập nhật phần tử nào đã bị xóa
-        }, 1000);
+    function updateSessionSummary(correct, incorrect, vague, total){
+      // THAY ĐỔI: Hàm này bây giờ chỉ cập nhật điểm số
+      totalScoreDisplay.textContent = currentUserTotalScore;
+      sessionScoreDisplay.textContent = `+${sessionScore}`;
     }
 
     function adjustFontSize(){
@@ -555,36 +645,43 @@
         current -= 1;
         txt.style.fontSize = current + 'px';
       }
-      adjustContentAlignment(card);
     }
 
+    /**
+     * Tạo các nút đánh giá động dựa trên cài đặt của người dùng.
+     * @returns {string} HTML chứa các nút đánh giá.
+     */
     function generateDynamicButtons(buttonCount) {
         let buttonsHtml = '';
+        
+        // SỬA: Cập nhật buttonSets với các lớp màu mới
         const buttonSets = {
             3: [
-                { class: 'btn-quên', text: 'Quên', value: 'quên' },
-                { class: 'btn-mơ-hồ', text: 'Mơ hồ', value: 'mơ_hồ' },
-                { class: 'btn-nhớ', text: 'Nhớ', value: 'nhớ' }
+                { class: 'btn-red-dark', text: 'Quên', value: 'quên' },
+                { class: 'btn-yellow-dark', text: 'Mơ hồ', value: 'mơ_hồ' },
+                { class: 'btn-green-dark', text: 'Nhớ', value: 'nhớ' }
             ],
             4: [
-                { class: 'btn-fail', text: 'Học lại', value: 'again' },
-                { class: 'btn-hard', text: 'Khó', value: 'hard' },
-                { class: 'btn-good', text: 'Bình thường', value: 'good' },
-                { class: 'btn-easy', text: 'Dễ', value: 'easy' }
+                { class: 'btn-red-dark', text: 'Học lại', value: 'again' },
+                { class: 'btn-red-light', text: 'Khó', value: 'hard' },
+                { class: 'btn-yellow-dark', text: 'Bình thường', value: 'good' },
+                { class: 'btn-green-dark', text: 'Dễ', value: 'easy' }
             ],
             6: [
-                { class: 'btn-fail', text: 'Rất khó', value: 'fail' },
-                { class: 'btn-very-hard', text: 'Khó', value: 'very_hard' },
-                { class: 'btn-hard', text: 'Trung bình', value: 'hard' },
-                { class: 'btn-medium', text: 'Dễ', value: 'medium' },
-                { class: 'btn-good', text: 'Rất dễ', value: 'good' },
-                { class: 'btn-very-easy', text: 'Dễ dàng', value: 'very_easy' }
+                { class: 'btn-red-dark', text: 'Rất khó', value: 'fail' },
+                { class: 'btn-red-light', text: 'Khó', value: 'very_hard' },
+                { class: 'btn-yellow-dark', text: 'Trung bình', value: 'hard' },
+                { class: 'btn-yellow-light', text: 'Dễ', value: 'medium' },
+                { class: 'btn-green-light', text: 'Rất dễ', value: 'good' },
+                { class: 'btn-green-dark', text: 'Dễ dàng', value: 'very_easy' }
             ]
         };
+
         const buttons = buttonSets[buttonCount] || buttonSets[3];
         buttons.forEach(btn => {
             buttonsHtml += `<button class="btn ${btn.class}" data-answer="${btn.value}">${btn.text}</button>`;
         });
+        
         return buttonsHtml;
     }
 
@@ -640,7 +737,6 @@
         card.classList.toggle('flipped');
         if (card.classList.contains('flipped')) {
             actions?.classList.add('visible');
-            setTimeout(() => adjustContentAlignment(card), 0);
         } else {
             actions?.classList.remove('visible');
         }
@@ -655,16 +751,27 @@
       document.querySelectorAll('.play-audio-btn').forEach(btn => {
         btn.addEventListener('click', ev => {
           ev.stopPropagation();
+          // SỬA LỖI: Sử dụng camelCase để truy cập thuộc tính dataset
           const audioPlayer = document.querySelector(btn.dataset.audioTarget);
-          if (btn.classList.contains('is-disabled')) { return; }
+          if (btn.classList.contains('is-disabled')) {
+            return;
+          }
+          // Kiểm tra xem audio đã có sẵn nguồn chưa
           if (audioPlayer.src && audioPlayer.src !== window.location.href) {
-            if (audioPlayer.paused) { audioPlayer.play(); } else { audioPlayer.pause(); audioPlayer.currentTime = 0; }
+            if (audioPlayer.paused) {
+              audioPlayer.play();
+            } else {
+              audioPlayer.pause();
+              audioPlayer.currentTime = 0;
+            }
           } else {
+            // Nếu chưa có URL, tạo audio và sau đó phát
             generateAndPlayAudio(btn, audioPlayer);
           }
         });
       });
-      setTimeout(() => adjustContentAlignment(card), 0);
+
+      setTimeout(adjustFontSize, 0);
     }
 
     async function generateAndPlayAudio(button, audioPlayer) {
@@ -684,8 +791,9 @@
         const result = await response.json();
 
         if (result.success && result.audio_url) {
+          // Gắn URL mới và lắng nghe sự kiện để phát
           audioPlayer.src = result.audio_url;
-          audioPlayer.load(); 
+          audioPlayer.load(); // Bắt đầu tải file audio
           audioPlayer.oncanplay = () => {
             audioPlayer.play();
             button.classList.remove('is-disabled');
@@ -709,33 +817,88 @@
       }
     }
 
+    /**
+     * @param {object} stats - Các số liệu thống kê của thẻ.
+     * @param {number} scoreChange - Điểm số thay đổi trong lần này.
+     */
     function renderCardStats(stats, scoreChange) {
         if (!stats) {
-            currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500 p-4"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
+            currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
             return;
         }
         
         const totalReviews = stats.times_reviewed || 0;
         const correctCount = stats.correct_count || 0;
+        const incorrectCount = stats.incorrect_count || 0;
         const vagueCount = stats.vague_count || 0;
         const correctPercentage = totalReviews > 0 ? (correctCount / totalReviews) * 100 : 0;
-        const vaguePercentage = totalReviews > 0 ? ((vagueCount || 0) / totalReviews) * 100 : 0;
-        const incorrectPercentage = 100 - correctPercentage - vaguePercentage;
+        const incorrectPercentage = totalReviews > 0 ? (incorrectCount / totalReviews) * 100 : 0;
+        const vaguePercentage = totalReviews > 0 ? (vagueCount / totalReviews) * 100 : 0;
         
         const dueTime = stats.next_review ? new Date(stats.next_review).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Chưa có';
+        
         const scoreChangeColor = scoreChange > 0 ? 'text-green-600' : (scoreChange < 0 ? 'text-red-600' : 'text-gray-600');
         const scoreChangeSign = scoreChange > 0 ? '+' : '';
 
         let statsHtml = `
-            <div class="space-y-2 text-sm">
-                <div class="flex justify-between items-center"><span>Điểm:</span><span class="font-semibold ${scoreChangeColor}">${scoreChangeSign}${scoreChange}</span></div>
-                <div class="flex justify-between items-center"><span>Trạng thái:</span><span class="font-semibold">${stats.status}</span></div>
-                <div class="flex justify-between items-center"><span>Hệ số dễ (EF):</span><span class="font-semibold">${stats.easiness_factor}</span></div>
-                <div class="flex justify-between items-center"><span>Lặp lại (n):</span><span class="font-semibold">${stats.repetitions}</span></div>
-                <div class="flex justify-between items-center"><span>Khoảng thời gian (I):</span><span class="font-semibold">${stats.interval} ngày</span></div>
-                <div class="flex justify-between items-center"><span>Đến hạn ôn lại:</span><span class="font-semibold text-right">${dueTime}</span></div>
+            <div class="space-y-4">
+                <div class="progress-bar-group">
+                    <div class="progress-bar-label">
+                        <span>Nhớ (${correctCount})</span>
+                        <span>${Math.round(correctPercentage)}%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill progress-bar-fill-correct" style="width: ${correctPercentage}%;"></div>
+                    </div>
+                </div>
+                <div class="progress-bar-group">
+                    <div class="progress-bar-label">
+                        <span>Mơ hồ (${vagueCount})</span>
+                        <span>${Math.round(vaguePercentage)}%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill progress-bar-fill-vague" style="width: ${vaguePercentage}%;"></div>
+                    </div>
+                </div>
+                <div class="progress-bar-group">
+                    <div class="progress-bar-label">
+                        <span>Quên (${incorrectCount})</span>
+                        <span>${Math.round(incorrectPercentage)}%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill progress-bar-fill-incorrect" style="width: ${incorrectPercentage}%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 space-y-2">
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Điểm:</span>
+                    <span class="font-semibold text-right ${scoreChangeColor}">${scoreChangeSign}${scoreChange}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Trạng thái:</span>
+                    <span class="font-semibold text-right">${stats.status}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Hệ số dễ (EF):</span>
+                    <span class="font-semibold text-right">${stats.easiness_factor}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Lặp lại (n):</span>
+                    <span class="font-semibold text-right">${stats.repetitions}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Khoảng thời gian (I):</span>
+                    <span class="font-semibold text-right">${stats.interval} ngày</span>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600">
+                    <span>Đến hạn ôn lại:</span>
+                    <span class="font-semibold text-right">${dueTime}</span>
+                </div>
             </div>
         `;
+
         currentCardStatsDiv.innerHTML = statsHtml;
     }
 
@@ -744,7 +907,7 @@
         renderCardStats(previousCardStats.stats, previousCardStats.scoreChange);
         previousCardStats = null;
       } else {
-        currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500 p-4"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
+        currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
       }
       
       flashcardContentDiv.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>`;
@@ -773,26 +936,16 @@
         const batch = await res.json();
         currentFlashcardBatch = batch.items;
         currentFlashcardIndex = 0;
-        
-        initialTotalScore = batch.initial_total_score || {{ initial_total_score | default(0) }};
-        
-        // SỬA: Khởi tạo/Cập nhật thông tin thống kê ban đầu
-        updateSessionSummary({
-            updated_total_score: initialTotalScore,
-            session_total_answered: batch.session_total_answered || 0,
-            total_items_in_session: batch.total_items_in_session || 0,
-            session_correct_answers: batch.session_correct_answers || 0,
-            session_vague_answers: batch.session_vague_answers || 0,
-            session_incorrect_answers: batch.session_incorrect_answers || 0
-        });
-
-        // SỬA: Đảm bảo startTimer được gọi với giá trị hợp lệ
-        if (batch.start_time) {
-            startTimer(batch.start_time);
-        }
-
         renderCard(currentFlashcardBatch[currentFlashcardIndex]);
         
+        // Cập nhật điểm ban đầu khi tải thẻ
+        updateSessionSummary(
+            batch.session_correct_answers, 
+            batch.session_incorrect_answers, 
+            batch.session_vague_answers, 
+            batch.session_total_answered
+        );
+
       } catch (e) {
         console.error('Lỗi khi tải nhóm thẻ:', e);
         flashcardContentDiv.innerHTML = `<p class='text-red-500 text-center'>Không thể tải thẻ. Vui lòng thử lại.</p>`;
@@ -809,12 +962,18 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         
-        if (data.session_total_answered === 1) {
-            initialTotalScore = data.updated_total_score - data.score_change;
-        }
+        // THAY ĐỔI: Cập nhật điểm số
+        sessionScore += data.score_change;
+        currentUserTotalScore = data.updated_total_score;
+        updateSessionSummary(
+            data.session_correct_answers, 
+            data.session_incorrect_answers, 
+            data.session_vague_answers, 
+            data.session_total_answered
+        );
 
-        updateSessionSummary(data);
         
+        // SỬA: Lưu thống kê của thẻ vừa trả lời vào biến tạm
         if (data.statistics) {
             previousCardStats = {
               stats: data.statistics,
@@ -822,6 +981,7 @@
             };
         }
 
+        // SỬA: Thay thế setTimeout bằng việc gọi hàm load thẻ mới ngay lập tức
         currentFlashcardIndex++;
         getNextFlashcardBatch();
       } catch (e) {
@@ -830,6 +990,7 @@
       }
     }
 
+    // Custom Modal for End Session
     endSessionBtn.addEventListener('click', () => {
       endSessionModal.style.display = 'flex';
     });
@@ -852,6 +1013,7 @@
       endSessionModal.style.display = 'none';
     });
 
+    // Custom Alert Function
     function showCustomAlert(message) {
       const modalHtml = `
           <div id="custom-alert-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
@@ -869,8 +1031,8 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       document.body.classList.add('flashcard-session-active');
+      totalScoreDisplay.textContent = currentUserTotalScore; // Hiển thị tổng điểm ban đầu
       getNextFlashcardBatch();
     });
   </script>
 {% endblock %}
-

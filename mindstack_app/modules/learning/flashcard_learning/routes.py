@@ -1,8 +1,7 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 4.0
-# MỤC ĐÍCH: Nâng cấp khu vực thống kê phiên học.
-# ĐÃ SỬA: Cập nhật hàm get_flashcard_batch để trả về thêm total_score và start_time của người dùng.
-# ĐÃ SỬA: Cập nhật hàm flashcard_session để truyền total_score và start_time vào template.
+# Phiên bản: 3.5
+# MỤC ĐÍCH: Cập nhật quality_map để sử dụng thang điểm 0-5 mới cho SM-2.
+# ĐÃ SỬA: Thay đổi logic ánh xạ các nút bấm sang điểm chất lượng (quality) theo thang điểm 0-5.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
@@ -144,17 +143,7 @@ def flashcard_session():
     
     user_button_count = current_user.flashcard_button_count if current_user.flashcard_button_count else 3
     
-    # THÊM MỚI: Lấy thông tin cần thiết để truyền vào template
-    session_data = session['flashcard_session']
-    initial_total_score = current_user.total_score or 0
-    start_time_iso = session_data.get('start_time')
-
-    return render_template(
-        'flashcard_session.html', 
-        user_button_count=user_button_count,
-        initial_total_score=initial_total_score,
-        start_time_iso=start_time_iso
-    )
+    return render_template('flashcard_session.html', user_button_count=user_button_count)
 
 
 @flashcard_learning_bp.route('/get_flashcard_batch', methods=['GET'])
@@ -182,13 +171,10 @@ def get_flashcard_batch():
             current_app.logger.debug("--- Kết thúc get_flashcard_batch (Hết thẻ) ---")
             return jsonify({'message': 'Bạn đã hoàn thành tất cả các thẻ trong phiên học này!'}), 404
         
-        # THÊM MỚI: Bổ sung các thông tin cần thiết cho giao diện thống kê mới
         flashcard_batch['session_correct_answers'] = session_manager.correct_answers
         flashcard_batch['session_incorrect_answers'] = session_manager.incorrect_answers
         flashcard_batch['session_vague_answers'] = session_manager.vague_answers
         flashcard_batch['session_total_answered'] = session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
-        flashcard_batch['start_time'] = session_manager.start_time
-        flashcard_batch['initial_total_score'] = (current_user.total_score or 0) - (session_manager.correct_answers * 10 + session_manager.vague_answers * 5)
 
         current_app.logger.debug("--- Kết thúc get_flashcard_batch (Thành công) ---")
         return jsonify(flashcard_batch)
@@ -255,12 +241,13 @@ def submit_flashcard_answer():
     user_button_count = current_user.flashcard_button_count or 3
     quality_map = {}
     
+    # SỬA ĐỔI: Ánh xạ các nút về thang điểm 0-5
     if user_button_count == 3:
-        quality_map = {'quên': 1, 'mơ_hồ': 2, 'nhớ': 4}
+        quality_map = {'quên': 0, 'mơ_hồ': 3, 'nhớ': 5}
     elif user_button_count == 4:
-        quality_map = {'again': 1, 'hard': 2, 'good': 2, 'easy': 4}
+        quality_map = {'again': 0, 'hard': 1, 'good': 3, 'easy': 5}
     elif user_button_count == 6:
-        quality_map = {'fail': 1, 'very_hard': 1, 'hard': 2, 'medium': 2, 'good': 4, 'very_easy': 4}
+        quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 4, 'very_easy': 5}
 
     user_answer_quality = quality_map.get(str(user_answer).lower(), 0)
     
