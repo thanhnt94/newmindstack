@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Ghi chú{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-semibold text-gray-800 mb-6">Ghi chú của tôi</h1>
+
+    {% if notes_with_items %}
+    <div class="space-y-4">
+        {% for note, item in notes_with_items %}
+        <div class="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+            <div class="text-xs text-gray-500 mb-2">
+                <span>Ghi chú cho thẻ ID: {{ item.item_id }}</span> |
+                <span>Ngày tạo: {{ note.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-md mb-3">
+                <p class="font-semibold text-gray-700">Thẻ gốc:</p>
+                <p class="text-sm text-gray-600"><b>Mặt trước:</b> {{ item.content.front }}</p>
+                <p class="text-sm text-gray-600"><b>Mặt sau:</b> {{ item.content.back }}</p>
+            </div>
+            <div>
+                <p class="font-semibold text-gray-700">Nội dung ghi chú:</p>
+                <p class="text-gray-800 whitespace-pre-wrap">{{ note.content }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12 px-6 text-gray-600">
+        <i class="fas fa-sticky-note text-5xl text-gray-300 mb-4"></i>
+        <p>Bạn chưa có ghi chú nào.</p>
+        <p class="text-sm text-gray-500 mt-2">Bạn có thể thêm ghi chú trong lúc học Flashcard.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

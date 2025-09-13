@@ -172,6 +172,12 @@
                                 href="{{ url_for('content_management.content_dashboard') }}">
                                 <i class="fas fa-boxes mr-2 w-4"></i> Quản lý học liệu
                             </a>
+                            {# THÊM MỚI: Link đến trang quản lý ghi chú #}
+                            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
+                                {% if request.endpoint.startswith('notes.') %}bg-blue-100 text-blue-600{% endif %}" 
+                                href="{{ url_for('notes.manage_notes') }}">
+                                <i class="fas fa-sticky-note mr-2 w-4"></i> Ghi chú của tôi
+                            </a>
                             {% if current_user.user_role == 'admin' %}
                             <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
                                 {% if request.endpoint.startswith('admin.') and not request.endpoint.startswith('admin.content_management.') %}bg-blue-100 text-blue-600{% endif %}" 
