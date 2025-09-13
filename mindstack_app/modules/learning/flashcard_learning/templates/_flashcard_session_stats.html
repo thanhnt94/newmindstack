@@ -1,136 +1,12 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/_flashcard_session_stats.html #}
-{# Phiên bản: 1.3 #}
-{# MỤC ĐÍCH: File partial chứa giao diện cho khung thống kê phiên học, bao gồm cả CSS. #}
-{# ĐÃ SỬA: Đưa toàn bộ CSS liên quan vào trong file này để đảm bảo tính độc lập. #}
-{# ĐÃ SỬA: Thêm CSS cho `.statistics-card` để khắc phục lỗi mất nền và cố định kích thước. #}
+{# Phiên bản: 2.0 #}
+{# MỤC ĐÍCH: Cập nhật giao diện để hỗ trợ 2 tab thống kê: "Thẻ hiện tại" và "Thẻ trước đó". #}
+{# ĐÃ THÊM: Cấu trúc HTML cho tab và các vùng chứa nội dung tương ứng. #}
+{# ĐÃ SỬA: Tinh chỉnh lại CSS để phù hợp với giao diện tab. #}
 {# =============================== #}
 
 <style>
-    /* Styles cho Progress Bar */
-    .statistics-card-new {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-
-    .progress-bar-group {
-      margin-bottom: 1rem;
-    }
-
-    .progress-bar-label {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #374151;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.25rem;
-    }
-
-    .progress-bar-container {
-      width: 100%;
-      background-color: #e5e7eb;
-      border-radius: 9999px;
-      overflow: hidden;
-      height: 1.25rem;
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      transition: width 0.5s ease-in-out;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 0.75rem;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .progress-bar-fill-correct { background-color: #10b981; }
-    .progress-bar-fill-vague { background-color: #f59e0b; }
-    .progress-bar-fill-incorrect { background-color: #ef4444; }
-
-    /* THÊM MỚI: CSS cho phần thông tin thẻ vừa học */
-    .card-info-section {
-        border-top: 1px solid #e5e7eb;
-        padding-top: 1.5rem;
-        margin-top: 1.5rem;
-    }
-    .card-info-title {
-        display: flex;
-        align-items: center;
-        font-weight: 600;
-        color: #3b82f6;
-        cursor: pointer;
-        user-select: none;
-        margin-bottom: 0.5rem;
-    }
-    .card-info-title i {
-        margin-right: 0.5rem;
-        transition: transform 0.2s ease;
-    }
-    .card-info-title.collapsed i {
-        transform: rotate(-90deg);
-    }
-    .card-info-content {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease-out;
-    }
-    .card-info-content.open {
-        max-height: 500px; /* Giá trị lớn hơn nội dung để chuyển động mượt mà */
-        padding-top: 0.5rem;
-    }
-    .card-info-content p {
-        font-size: 0.875rem;
-        line-height: 1.4;
-        color: #4b5563;
-        margin-bottom: 0.5rem;
-        white-space: pre-wrap;
-    }
-    .card-info-content .label {
-        font-weight: 600;
-        color: #1f2937;
-    }
-
-    /* THÊM MỚI: CSS cho grid hiển thị chỉ số thống kê */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-    .stat-box {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 1rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        background-color: #f9fafb;
-    }
-    .stat-box .icon {
-        font-size: 1.5rem;
-        color: #3b82f6;
-        margin-bottom: 0.5rem;
-    }
-    .stat-box .value {
-        font-size: 1.125rem;
-        font-weight: 700;
-        color: #1f2937;
-    }
-    .stat-box .label {
-        font-size: 0.875rem;
-        color: #6b7280;
-    }
-    .stat-box.status .value {
-        text-transform: capitalize;
-    }
-    
     /* Styles cho khung thống kê chính */
     .statistics-card {
         background: #fff;
@@ -143,9 +19,68 @@
         height: 100%;
         min-height: 0;
         overflow-y: auto;
-        width: 500px;
+        width: 100%; /* Sửa lại để linh hoạt hơn */
+        max-width: 500px; /* Giới hạn chiều rộng tối đa */
     }
 
+    /* Styles cho Tab Navigation */
+    .stats-tab-nav {
+        display: flex;
+        border-bottom: 2px solid #e5e7eb;
+        margin-bottom: 1.5rem;
+    }
+    .stats-tab-button {
+        flex: 1;
+        padding: 0.75rem 0.5rem;
+        text-align: center;
+        font-weight: 600;
+        color: #6b7280;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px; /* Để border nằm đè lên border của container */
+        cursor: pointer;
+        transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .stats-tab-button.active {
+        color: #3b82f6;
+        border-color: #3b82f6;
+    }
+    .stats-tab-button:hover {
+        color: #3b82f6;
+    }
+
+    /* Styles cho các Tab Content Pane */
+    .stats-tab-pane {
+        display: none; /* Mặc định ẩn tất cả các tab */
+    }
+    .stats-tab-pane.active {
+        display: block; /* Chỉ hiện tab có class active */
+    }
+
+
+    /* Styles cho Progress Bar (Giữ nguyên) */
+    .progress-bar-group { margin-bottom: 1rem; }
+    .progress-bar-label { font-size: 0.875rem; font-weight: 600; color: #374151; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+    .progress-bar-container { width: 100%; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; height: 1.25rem; }
+    .progress-bar-fill { height: 100%; width: 0%; transition: width 0.5s ease-in-out; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+    .progress-bar-fill-correct { background-color: #10b981; }
+    .progress-bar-fill-vague { background-color: #f59e0b; }
+    .progress-bar-fill-incorrect { background-color: #ef4444; }
+
+    /* Styles cho các phần còn lại (Giữ nguyên) */
+    .card-info-section { border-top: 1px solid #e5e7eb; padding-top: 1.5rem; margin-top: 1.5rem; }
+    .card-info-title { display: flex; align-items: center; font-weight: 600; color: #3b82f6; cursor: pointer; user-select: none; margin-bottom: 0.5rem; }
+    .card-info-title i { margin-right: 0.5rem; transition: transform 0.2s ease; }
+    .card-info-title.collapsed i { transform: rotate(-90deg); }
+    .card-info-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+    .card-info-content.open { max-height: 500px; padding-top: 0.5rem; }
+    .card-info-content p { font-size: 0.875rem; line-height: 1.4; color: #4b5563; margin-bottom: 0.5rem; white-space: pre-wrap; }
+    .card-info-content .label { font-weight: 600; color: #1f2937; }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem; }
+    .stat-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; background-color: #f9fafb; }
+    .stat-box .icon { font-size: 1.5rem; color: #3b82f6; margin-bottom: 0.5rem; }
+    .stat-box .value { font-size: 1.125rem; font-weight: 700; color: #1f2937; }
+    .stat-box .label { font-size: 0.875rem; color: #6b7280; }
+    .stat-box.status .value { text-transform: capitalize; }
 </style>
 
 <div class="statistics-card">
@@ -169,13 +104,28 @@
         </div>
     </div>
     
-    <hr class="my-6">
-    <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê thẻ trước đó</h3>
-    <div id="current-card-stats" class="flex-grow space-y-4">
-        <div class="text-center text-gray-500">
-            <i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.
+    <div class="stats-tab-nav">
+        <button class="stats-tab-button active" data-target="current-card-stats-pane">Thẻ hiện tại</button>
+        <button class="stats-tab-button" data-target="previous-card-stats-pane">Thẻ trước đó</button>
+    </div>
+
+    <div class="flex-grow">
+        <div id="current-card-stats-pane" class="stats-tab-pane active">
+            <div id="current-card-stats" class="flex-grow space-y-4">
+                <div class="text-center text-gray-500">
+                    <i class="fas fa-info-circle mr-2"></i> Đang tải thông tin thẻ...
+                </div>
+            </div>
+        </div>
+        <div id="previous-card-stats-pane" class="stats-tab-pane">
+            <div id="previous-card-stats" class="flex-grow space-y-4">
+                <div class="text-center text-gray-500">
+                    <i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.
+                </div>
+            </div>
         </div>
     </div>
+
 
     <hr class="my-6">
     <div class="mt-2 flex justify-center">
