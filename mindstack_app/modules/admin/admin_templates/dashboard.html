@@ -8,25 +8,28 @@
     <p class="text-gray-600">Chào mừng bạn đến với khu vực quản trị. Tại đây bạn có thể quản lý người dùng, cài đặt hệ thống và nhiều hơn nữa.</p>
     
     <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Card quản lý người dùng -->
         <a href="{{ url_for('user_management.manage_users') }}" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
             <i class="fas fa-users text-blue-500 text-5xl mb-4"></i>
             <h2 class="text-xl font-semibold text-gray-800 mb-2">Quản lý Người dùng</h2>
             <p class="text-gray-600">Thêm, sửa, xóa và xem thông tin người dùng.</p>
         </a>
 
-        <!-- Card quản lý Nội dung (Admin) - CẬP NHẬT LIÊN KẾT -->
         <a href="{{ url_for('content_management.content_dashboard') }}" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
-            <i class="fas fa-boxes text-orange-500 text-5xl mb-4"></i> {# Đổi icon và màu cho phù hợp #}
+            <i class="fas fa-boxes text-orange-500 text-5xl mb-4"></i>
             <h2 class="text-xl font-semibold text-gray-800 mb-2">Quản lý Nội dung</h2>
             <p class="text-gray-600">Quản lý tất cả các bộ thẻ, quiz, khóa học trên hệ thống.</p>
         </a>
 
-        <!-- Card khác (ví dụ: Xem nhật ký) -->
-        <a href="#" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
-            <i class="fas fa-file-alt text-green-500 text-5xl mb-4"></i>
+        <a href="{{ url_for('api_key_management.list_api_keys') }}" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
+            <i class="fas fa-key text-purple-500 text-5xl mb-4"></i>
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">Quản lý API Keys</h2>
+            <p class="text-gray-600">Thêm, sửa, và theo dõi trạng thái các API key của Google Gemini.</p>
+        </a>
+
+        <a href="#" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center opacity-50 cursor-not-allowed">
+            <i class="fas fa-cogs text-green-500 text-5xl mb-4"></i>
             <h2 class="text-xl font-semibold text-gray-800 mb-2">Cài đặt Hệ thống</h2>
-            <p class="text-gray-600">Cấu hình các thiết lập của ứng dụng.</p>
+            <p class="text-gray-600">Cấu hình các thiết lập của ứng dụng (sắp có).</p>
         </a>
     </div>
 </div>

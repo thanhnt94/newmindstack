@@ -1,8 +1,10 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
 {# Phiên bản: 47.0 #}
-{# MỤC ĐÍCH: Thay thế phần "Chi tiết thẻ" bằng nội dung rút gọn của mặt trước và mặt sau. #}
-{# ĐÃ SỬA: Cập nhật hàm renderCardStatsHtml để hiển thị 20 ký tự đầu tiên của thẻ trước đó. #}
+{# MỤC ĐÍCH: Tích hợp nút "Hỏi AI" và cửa sổ modal AI. #}
+{# ĐÃ THÊM: Nút icon robot AI vào toolbar của thẻ. #}
+{# ĐÃ THÊM: Nhúng template _ai_modal.html. #}
+{# ĐÃ THÊM: JavaScript để xử lý logic mở modal và gọi API AI. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -200,7 +202,8 @@
     /* Thanh tiêu đề của thẻ */
     .card-toolbar {
         display: grid;
-        grid-template-columns: auto 1fr auto; /* Chỉ 3 cột: edit, label, audio */
+        /* THAY ĐỔI: Thêm cột cho nút AI */
+        grid-template-columns: auto auto 1fr auto; /* stats/edit, AI, label, audio */
         align-items: center;
         margin-bottom: 0;
         padding: 10px 1.5rem 0.5rem 1.5rem;
@@ -634,6 +637,10 @@
         </div>
     </div>
 </div>
+
+{# THÊM MỚI: Nhúng modal AI #}
+{% include 'includes/_ai_modal.html' %}
+
 {% endblock %}
 
 {% block scripts %}
@@ -676,6 +683,10 @@
     const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
     const regenerateAudioUrl = "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}";
     const userButtonCount = {{ user_button_count }};
+    
+    // THÊM MỚI: URL cho API AI
+    const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
+
 
     function formatTextForHtml(text){
       if (text == null) return '';
@@ -730,9 +741,12 @@
         const leftButtonHtml = isMobile ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-chart-bar"></i></button>` : `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
         const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
         const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
+        // THÊM MỚI: Nút AI
+        const aiButtonHtml = `<button class="icon-btn open-ai-modal-btn" data-item-id="${itemId}"><i class="fas fa-robot"></i></button>`;
+
         return {
-            front: `<div class="card-toolbar">${leftButtonHtml}<span class="label">MẶT TRƯỚC</span>${audioButtonHtmlFront}</div>`,
-            back: `<div class="card-toolbar">${leftButtonHtml}<span class="label">MẶT SAU</span>${audioButtonHtmlBack}</div>`
+            front: `<div class="card-toolbar">${leftButtonHtml}${aiButtonHtml}<span class="label">MẶT TRƯỚC</span>${audioButtonHtmlFront}</div>`,
+            back: `<div class="card-toolbar">${leftButtonHtml}${aiButtonHtml}<span class="label">MẶT SAU</span>${audioButtonHtmlBack}</div>`
         };
     }
 
@@ -746,19 +760,20 @@
       const hasBackAudio = c.back_audio_url || c.back_audio_content;
       const buttonsHtml = generateDynamicButtons(userButtonCount);
       const isMobile = window.innerWidth < 1024;
-      const leftButtonHtmlFront = isMobile ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-chart-bar"></i></button>` : `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
-      const leftButtonHtmlBack = isMobile ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-chart-bar"></i></button>` : `<button class="icon-btn edit-card-btn is-disabled"><i class="fas fa-pencil-alt"></i></button>`;
+      
+      const toolbars = getCardToolbar(isMobile, itemId, setId);
+
       const html = `
       <div class="flashcard-card-container">
         <div id="flashcard-card" class="flashcard-card">
           <div class="face front">
-            <div class="card-toolbar">${leftButtonHtmlFront}<span class="label">MẶT TRƯỚC</span><button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${c.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button></div>
+            ${toolbars.front}
             <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(fTxt)}</div></div>
             ${c.front_img ? `<div class="media-container"><img src="${c.front_img}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
             <audio id="front-audio" class="hidden" src="${c.front_audio_url || ''}"></audio>
           </div>
           <div class="face back">
-            <div class="card-toolbar">${leftButtonHtmlBack}<span class="label">MẶT SAU</span><button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${c.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button></div>
+            ${toolbars.back}
             <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div></div>
             ${c.back_img ? `<div class="media-container"><img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
             <div class="actions" id="internal-actions" data-button-count="${userButtonCount}">${buttonsHtml}</div>
@@ -793,6 +808,12 @@
       document.querySelectorAll('.open-stats-modal-btn').forEach(btn => btn.addEventListener('click', ev => {
         ev.stopPropagation();
         toggleStatsModal(true);
+      }));
+       // THÊM MỚI: Gán sự kiện cho nút AI
+      document.querySelectorAll('.open-ai-modal-btn').forEach(btn => btn.addEventListener('click', ev => {
+          ev.stopPropagation();
+          const itemId = btn.dataset.itemId;
+          openAiModal(itemId);
       }));
       setTimeout(adjustFontSize, 0);
     }
@@ -869,7 +890,7 @@
                 <div class="progress-bar-group"><div class="progress-bar-label"><span>Mơ hồ (${vagueCount})</span><span>${Math.round(vaguePercentage)}%</span></div><div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-vague" style="width: ${vaguePercentage}%;"></div></div></div>
                 <div class="progress-bar-group"><div class="progress-bar-label"><span>Quên (${incorrectCount})</span><span>${Math.round(incorrectPercentage)}%</span></div><div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-incorrect" style="width: ${incorrectPercentage}%;"></div></div></div>
             </div>
-            ${cardContent.front ? `<div class="card-info-section"><p><span class="label">Mặt trước:</span> ${formatTextForHtml(cardContent.front.substring(0, 20))}${cardContent.front.length > 20 ? '...' : ''}</p><p><span class="label">Mặt sau:</span> ${formatTextForHtml(cardContent.back.substring(0, 20))}${cardContent.back.length > 20 ? '...' : ''}</p></div>` : ''}
+            ${cardContent.front ? `<div class="card-info-section"><div class="card-info-title collapsed" data-toggle="card-details-content"><i class="fas fa-caret-right"></i><span>Chi tiết thẻ</span></div><div class="card-info-content"><p><span class="label">Mặt trước:</span> ${formatTextForHtml(cardContent.front)}</p><p><span class="label">Mặt sau:</span> ${formatTextForHtml(cardContent.back)}</p></div></div>` : ''}
             <div class="stats-grid">
                 ${!isInitial ? `<div class="stat-box"><i class="fas fa-star icon"></i><span class="value ${scoreChangeColor}">${scoreChangeSign}${scoreChange}</span><span class="label">Điểm</span></div>` : ''}
                 <div class="stat-box status"><i class="fas fa-signal icon"></i><span class="value">${stats.status}</span><span class="label">Trạng thái</span></div>
@@ -1053,6 +1074,90 @@
             pane.classList.toggle('active', pane.id === targetPaneId);
         });
     }
+
+    // ==============================================================================
+    // THÊM MỚI: LOGIC CHO AI MODAL
+    // ==============================================================================
+    const aiModal = document.getElementById('ai-modal');
+    const aiModalCloseBtn = document.getElementById('ai-modal-close-btn');
+    const aiModalTerm = document.getElementById('ai-modal-term');
+    const aiResponseContainer = document.getElementById('ai-response-container');
+    const aiPromptButtons = document.querySelectorAll('.ai-prompt-btn');
+    const aiCustomPromptInput = document.getElementById('ai-custom-prompt');
+    let currentAiItemId = null;
+
+    function openAiModal(itemId) {
+        currentAiItemId = itemId;
+        const cardData = currentFlashcardBatch.find(item => item.item_id == itemId);
+        if (!cardData) return;
+
+        aiModalTerm.textContent = cardData.content.front;
+        aiResponseContainer.innerHTML = '<div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>';
+        aiCustomPromptInput.value = '';
+        aiModal.classList.add('open');
+    }
+
+    function closeAiModal() {
+        aiModal.classList.remove('open');
+        currentAiItemId = null;
+    }
+
+    async function fetchAiResponse(promptType, customQuestion = null) {
+        if (!currentAiItemId) return;
+
+        aiResponseContainer.innerHTML = `
+            <div class="ai-loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>AI đang suy nghĩ...</span>
+            </div>`;
+
+        try {
+            const response = await fetch(getAiResponseUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    item_id: currentAiItemId,
+                    prompt_type: promptType,
+                    custom_question: customQuestion
+                })
+            });
+
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                aiResponseContainer.innerHTML = formatTextForHtml(result.response);
+            } else {
+                aiResponseContainer.innerHTML = `<p class="text-red-500">Lỗi: ${result.message || 'Không thể nhận phản hồi từ AI.'}</p>`;
+            }
+        } catch (error) {
+            console.error('Lỗi khi gọi API AI:', error);
+            aiResponseContainer.innerHTML = `<p class="text-red-500">Lỗi kết nối đến máy chủ AI.</p>`;
+        }
+    }
+
+    aiModalCloseBtn.addEventListener('click', closeAiModal);
+    aiModal.addEventListener('click', (event) => {
+        if (event.target === aiModal) {
+            closeAiModal();
+        }
+    });
+
+    aiPromptButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            fetchAiResponse(button.dataset.promptType);
+        });
+    });
+
+    aiCustomPromptInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            const question = aiCustomPromptInput.value.trim();
+            if (question) {
+                fetchAiResponse('custom', question);
+            }
+        }
+    });
+
 
     document.addEventListener('DOMContentLoaded', () => {
       setVh();

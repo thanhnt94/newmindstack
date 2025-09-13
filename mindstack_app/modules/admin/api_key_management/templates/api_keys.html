@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý API Keys{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <h1 class="text-3xl font-semibold text-gray-800 flex items-center">
+             <a href="{{ url_for('admin.admin_dashboard') }}" class="text-blue-500 hover:text-blue-700 mr-3" title="Quay lại Admin Dashboard">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            Quản lý API Keys
+        </h1>
+        <a href="{{ url_for('api_key_management.add_api_key') }}" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
+            <i class="fas fa-plus-circle mr-2"></i> Thêm API Key mới
+        </a>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full leading-normal">
+            <thead>
+                <tr>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Giá trị Key (ẩn)</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ghi chú</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Lần cuối dùng</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key in keys %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">{{ key.key_id }}</td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm font-mono">{{ key.key_value[:4] }}...{{ key.key_value[-4:] }}</td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">{{ key.notes or '' }}</td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm text-center">
+                        {% if key.is_active and not key.is_exhausted %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Hoạt động</span>
+                        {% elif not key.is_active %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Vô hiệu hóa</span>
+                        {% elif key.is_exhausted %}
+                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Cạn kiệt</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">{{ key.last_used_timestamp.strftime('%Y-%m-%d %H:%M:%S') if key.last_used_timestamp else 'Chưa dùng' }}</td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
+                        <div class="flex space-x-3">
+                            <a href="{{ url_for('api_key_management.edit_api_key', key_id=key.key_id) }}" class="text-blue-600 hover:text-blue-900" title="Sửa"><i class="fas fa-edit"></i></a>
+                            <form action="{{ url_for('api_key_management.delete_api_key', key_id=key.key_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa API key này?');">
+                                <button type="submit" class="text-red-600 hover:text-red-900" title="Xóa"><i class="fas fa-trash-alt"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-10 text-gray-500">Chưa có API key nào. Hãy thêm một key mới.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

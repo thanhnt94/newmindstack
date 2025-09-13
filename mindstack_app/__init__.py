@@ -1,16 +1,7 @@
 # File: web/mindstack_app/__init__.py
-# Version: 2.9
-# ĐÃ SỬA: Khắc phục lỗi `Error: Could not locate a Flask application`
-#         bằng cách thêm một đối tượng `app` ở cấp cao nhất để Flask CLI có thể tìm thấy.
-# ĐÃ SỬA: Khắc phục AttributeError: 'Config' object has no attribute 'BASE_DIR'
-#         bằng cách import BASE_DIR trực tiếp từ module config.
-# ĐÃ SỬA: Cấu hình Flask để phục vụ các file tĩnh từ thư mục 'uploads'.
-# ĐÃ SỬA: Thêm email mặc định khi tạo tài khoản admin để khắc phục lỗi IntegrityError.
-# ĐÃ SỬA: Đăng ký Blueprint mới cho module learning mà không làm mất code gốc.
-# ĐÃ SỬA: Cấu hình logging cho ứng dụng Flask ngay trong hàm create_app để đảm bảo log debug hiển thị,
-#         và ngăn chặn việc propagate log để tránh trùng lặp hoặc bị ghi đè.
-# ĐÃ SỬA: Cấu hình để chỉ sử dụng một thư mục tĩnh là 'uploads' cho tất cả các file media.
-# ĐÃ SỬA: Loại bỏ Flask-Migrate và thay thế bằng db.create_all() để tự động tạo database.
+# Version: 3.1
+# MỤC ĐÍCH: Đăng ký Blueprint cho module quản lý API key.
+# ĐÃ THÊM: Import và đăng ký api_key_management_bp.
 
 from flask import Flask, g
 from .config import Config, BASE_DIR
@@ -69,17 +60,24 @@ def create_app(config_class=Config):
     from .modules.main.routes import main_bp
     from .modules.admin import admin_bp 
     from .modules.admin.user_management.user_routes import user_management_bp
+    # THÊM MỚI: Import blueprint quản lý API key
+    from .modules.admin.api_key_management.routes import api_key_management_bp
     from .modules.user_profile import user_profile_bp 
     from .modules.content_management.routes import content_management_bp
     from .modules.learning.routes import learning_bp
+    from .modules.ai_services.routes import ai_services_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(user_management_bp, url_prefix='/admin/users') 
+    # THÊM MỚI: Đăng ký blueprint quản lý API key
+    app.register_blueprint(api_key_management_bp, url_prefix='/admin/api-keys')
     app.register_blueprint(user_profile_bp, url_prefix='/profile') 
     app.register_blueprint(content_management_bp, url_prefix='/content')
     app.register_blueprint(learning_bp, url_prefix='/learn')
+    app.register_blueprint(ai_services_bp)
+
 
     with app.app_context():
         # Thêm dòng này để tự động tạo tất cả các bảng nếu chúng chưa tồn tại.

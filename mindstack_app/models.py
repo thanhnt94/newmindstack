@@ -1,9 +1,8 @@
 # File: web/mindstack_app/models.py
-# Phiên bản: 13.0
-# MỤC ĐÍCH: Tách model UserProgress thành FlashcardProgress và QuizProgress
-# ĐÃ SỬA: Xóa model UserProgress.
-# ĐÃ THÊM: Hai model mới là FlashcardProgress và QuizProgress.
-# ĐÃ SỬA: Cập nhật ScoreLog để lưu item_type.
+# Phiên bản: 13.1
+# MỤC ĐÍCH: Khắc phục lỗi AttributeError bằng cách thêm mối quan hệ (relationship)
+#          từ LearningContainer đến LearningItem.
+# ĐÃ SỬA: Thêm dòng db.relationship vào model LearningContainer.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -34,6 +33,10 @@ class LearningContainer(db.Model):
     # Mối quan hệ với User để dễ dàng truy cập thông tin người tạo
     creator = db.relationship('User', backref='created_containers', foreign_keys=[creator_user_id], lazy=True)
     contributors = db.relationship('ContainerContributor', backref='container', lazy=True, cascade="all, delete-orphan")
+    
+    # THÊM MỚI: Mối quan hệ một-nhiều với LearningItem
+    # Dòng này tạo ra thuộc tính 'container' trong mỗi đối tượng LearningItem
+    items = db.relationship('LearningItem', backref='container', lazy=True, cascade="all, delete-orphan")
 
 
 class LearningGroup(db.Model):

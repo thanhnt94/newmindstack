@@ -1,9 +1,7 @@
 # File: web/mindstack_app/config.py
-# Phiên bản: 1.3
-# Mục đích: Chứa các cấu hình cơ bản cho ứng dụng, đã được cập nhật
-# để tương thích với cấu trúc thư mục mới và thêm cấu hình phân trang.
-# ĐÃ SỬA: Cập nhật để chỉ sử dụng một thư mục 'uploads' duy nhất cho tất cả media.
-# ĐÃ THÊM: Định nghĩa hằng số cho thư mục cache audio của Flashcard.
+# Phiên bản: 1.5
+# MỤC ĐÍCH: Xóa bỏ cấu hình GEMINI_API_KEY tĩnh.
+# ĐÃ SỬA: Đã xóa biến GEMINI_API_KEY.
 
 import os
 
@@ -37,7 +35,7 @@ class Config:
 
     # Định nghĩa thư mục con cho cache audio của flashcard
     FLASHCARD_AUDIO_CACHE_DIR = os.path.join(UPLOAD_FOLDER, 'flashcard', 'audio', 'cache')
-
+    
     # Đảm bảo thư mục database tồn tại khi ứng dụng khởi chạy
     db_dir = os.path.dirname(DATABASE_PATH)
     if not os.path.exists(db_dir):
