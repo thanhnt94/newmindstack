@@ -1,9 +1,9 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 37.0 #}
-{# MỤC ĐÍCH: Cập nhật màu sắc các nút bấm để phản ánh thang điểm mới. #}
-{# ĐÃ THÊM: Các lớp CSS cho các sắc độ màu (đậm/nhạt) của đỏ, vàng, xanh. #}
-{# ĐÃ SỬA: Cập nhật hàm generateDynamicButtons để gán các lớp màu mới tương ứng với điểm. #}
+{# Phiên bản: 43.0 #}
+{# MỤC ĐÍCH: Đảm bảo giao diện thống kê trên di động hiển thị đầy đủ thông tin như trên máy tính. #}
+{# ĐÃ SỬA: Sửa logic JavaScript để render toàn bộ nội dung thống kê vào cả phiên bản desktop và mobile popup. #}
+{# ĐÃ SỬA: Thêm nút "Kết thúc phiên" vào popup trên di động. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -35,7 +35,8 @@
     .page-shell {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        /* THAY ĐỔI: Sử dụng biến CSS --vh để cố định chiều cao */
+        height: calc(var(--vh, 1vh) * 100);
         padding: 0;
         overflow: hidden;
     }
@@ -64,7 +65,7 @@
     .session-layout {
         height: 100%;
         display: grid;
-        grid-template-columns: minmax(0, 5fr) minmax(320px, 2fr);
+        grid-template-columns: minmax(0, 5fr) minmax(500px, 2fr);
         gap: 2rem;
         max-width: 1680px;
         margin: 0 auto;
@@ -74,6 +75,7 @@
         flex-grow: 1;
     }
     
+    /* ĐÃ SỬA: Bố cục mobile được điều chỉnh để không hiển thị khung thống kê mặc định nữa */
     @media (max-width: 1024px) {
         /* Bố cục trên màn màn hình di động */
         .page-shell {
@@ -426,6 +428,8 @@
             flex-direction: column;
             height: 100%;
             min-height: 0;
+            overflow-y: auto;
+            width: 500px;
         }
     }
     
@@ -450,63 +454,144 @@
       text-align: center;
       max-width: 400px;
     }
-    /* Styles cho Progress Bar */
-    .statistics-card-new {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
+    
+    /* THÊM MỚI: CSS cho popup thống kê trên mobile */
+    .stats-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: none;
+        z-index: 999;
+        overflow-y: auto;
+    }
+    .stats-modal-overlay.open {
+        display: block;
+    }
+    .stats-modal-content {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100%; /* Chiếm toàn bộ chiều rộng màn hình */
+        height: 100%;
+        background-color: #f9fafb;
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+        box-shadow: -4px 0 10px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+    }
+    .stats-modal-content.open {
+        transform: translateX(0);
+    }
+    
+    .stats-modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #fff;
+    }
+    
+    .stats-modal-header h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+    
+    .stats-modal-close-btn {
+        background: none;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        color: #6b7280;
+    }
+    
+    .stats-modal-body {
+        flex-grow: 1;
+        padding: 1rem;
+        overflow-y: auto;
+    }
+    
+    /* THÊM MỚI: CSS cho phần thông tin thẻ vừa học */
+    .card-info-section {
+        border-top: 1px solid #e5e7eb;
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    .card-info-title {
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        color: #3b82f6;
+        cursor: pointer;
+        user-select: none;
+        margin-bottom: 0.5rem;
+    }
+    .card-info-title i {
+        margin-right: 0.5rem;
+        transition: transform 0.2s ease;
+    }
+    .card-info-title.collapsed i {
+        transform: rotate(-90deg);
+    }
+    .card-info-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+    .card-info-content.open {
+        max-height: 500px; /* Giá trị lớn hơn nội dung để chuyển động mượt mà */
+        padding-top: 0.5rem;
+    }
+    .card-info-content p {
+        font-size: 0.875rem;
+        line-height: 1.4;
+        color: #4b5563;
+        margin-bottom: 0.5rem;
+        white-space: pre-wrap;
+    }
+    .card-info-content .label {
+        font-weight: 600;
+        color: #1f2937;
     }
 
-    .progress-bar-group {
-      margin-bottom: 1rem;
+    /* THÊM MỚI: CSS cho grid hiển thị chỉ số thống kê */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-top: 1rem;
     }
-
-    .progress-bar-label {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #374151;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.25rem;
+    .stat-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        background-color: #f9fafb;
     }
-
-    .progress-bar-container {
-      width: 100%;
-      background-color: #e5e7eb;
-      border-radius: 9999px;
-      overflow: hidden;
-      height: 1.25rem;
+    .stat-box .icon {
+        font-size: 1.5rem;
+        color: #3b82f6;
+        margin-bottom: 0.5rem;
     }
-
-    .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      transition: width 0.5s ease-in-out;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 0.75rem;
-      font-weight: 700;
-      white-space: nowrap;
+    .stat-box .value {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1f2937;
     }
-
-    .progress-bar-fill-correct { background-color: #10b981; }
-    .progress-bar-fill-vague { background-color: #f59e0b; }
-    .progress-bar-fill-incorrect { background-color: #ef4444; }
-
-    /* Điều chỉnh font size cho nội dung thẻ trên mobile */
-    @media (max-width: 640px) {
-        .front .text-area .flashcard-content-text {
-            font-size: 1.8rem;
-        }
-        .back .text-area .flashcard-content-text {
-            font-size: 18px;
-        }
-        .session-layout {
-            padding: 0.5rem;
-        }
+    .stat-box .label {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    .stat-box.status .value {
+        text-transform: capitalize;
     }
   </style>
 {% endblock %}
@@ -521,40 +606,8 @@
       <div id="flashcard-buttons" class="mt-3"></div>
     </div>
 
-    <div class="statistics-card">
-        <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê phiên học</h3>
-        
-        <div class="bg-gray-50 p-4 rounded-lg mb-6">
-            <div class="grid grid-cols-2 gap-4 text-center">
-                <div>
-                    <span class="text-sm font-medium text-gray-500">Tổng điểm</span>
-                    <div id="total-score-display" class="text-2xl font-bold text-gray-800 flex items-center justify-center">
-                        <i class="fas fa-star text-yellow-400 mr-2"></i>
-                        <span>-</span>
-                    </div>
-                </div>
-                <div>
-                    <span class="text-sm font-medium text-gray-500">Điểm phiên này</span>
-                    <div id="session-score-display" class="text-2xl font-bold text-green-600">
-                        +0
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <hr class="my-6">
-        <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê thẻ trước đó</h3>
-        <div id="current-card-stats" class="flex-grow space-y-4">
-            <div class="text-center text-gray-500">
-                <i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.
-            </div>
-        </div>
-
-        <hr class="my-6">
-        <div class="mt-2 flex justify-center">
-            <button id="end-session-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button>
-        </div>
-    </div>
+    {# Bao gồm file partial chứa giao diện thống kê #}
+    {% include '_flashcard_session_stats.html' %}
   </div>
 </div>
 
@@ -568,27 +621,43 @@
     </div>
   </div>
 </div>
+
+<div id="statsModal" class="stats-modal-overlay">
+    <div id="statsModalContent" class="stats-modal-content">
+        <div class="stats-modal-header">
+            <h3>Thống kê phiên học</h3>
+            <button id="closeStatsModalBtn" class="stats-modal-close-btn">&times;</button>
+        </div>
+        <div id="statsModalBody" class="stats-modal-body">
+            {# Nội dung thống kê sẽ được render vào đây #}
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
   {{ super() }}
   <script>
-    function updateFixedHeights(){
-      const header=document.querySelector('header');
-      const mainElement = document.querySelector('main');
-      const footer=document.querySelector('footer');
-      const hh=header?header.offsetHeight:0;
-      const fh=footer?footer.offsetHeight:0;
-
-      document.documentElement.style.setProperty('--header-h', hh+'px');
-      document.documentElement.style.setProperty('--footer-h', fh+'px');
+    /**
+     * Mô tả: Khắc phục vấn đề đơn vị vh (viewport height) không chính xác trên trình duyệt di động.
+     * Hàm này tính toán chiều cao thực tế của viewport và lưu vào biến CSS tùy chỉnh --vh.
+     * Điều này giúp các phần tử sử dụng 100vh luôn khớp với không gian hiển thị thực tế,
+     * ngăn chặn tình trạng nội dung bị cắt hoặc tạo cuộn ngoài ý muốn.
+     */
+    function setVh() {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
     }
+    
+    // THAY ĐỔI: Chạy hàm khi DOM tải và khi resize
+    window.addEventListener('resize', setVh);
+    window.addEventListener('DOMContentLoaded', setVh);
+
 
     let currentFlashcardBatch = [];
     let currentFlashcardIndex = 0;
-    let previousCardStats = null; // Biến mới để lưu stats của thẻ trước
+    let previousCardStats = null;
     
-    // THÊM MỚI: Biến theo dõi điểm
     let sessionScore = 0;
     let currentUserTotalScore = {{ current_user.total_score | default(0) }};
 
@@ -596,15 +665,22 @@
     const flashcardContentDiv = document.getElementById('flashcard-content');
     const endSessionBtn = document.getElementById('end-session-btn');
     
-    // THÊM MỚI: Lấy các element hiển thị điểm
-    const totalScoreDisplay = document.getElementById('total-score-display').querySelector('span');
-    const sessionScoreDisplay = document.getElementById('session-score-display');
+    // SỬA: Lấy các element hiển thị điểm từ file partial
+    const totalScoreDisplay = document.querySelector('.statistics-card #total-score-display span');
+    const sessionScoreDisplay = document.querySelector('.statistics-card #session-score-display');
     
     const currentCardStatsDiv = document.getElementById('current-card-stats');
 
     const endSessionModal = document.getElementById('endSessionModal');
     const confirmEndSessionBtn = document.getElementById('confirmEndSessionBtn');
     const cancelEndSessionBtn = document.getElementById('cancelEndSessionBtn');
+    
+    // Lấy các element của modal thống kê
+    const statsModal = document.getElementById('statsModal');
+    const statsModalContent = document.getElementById('statsModalContent');
+    const closeStatsModalBtn = document.getElementById('closeStatsModalBtn');
+    const statsModalBody = document.getElementById('statsModalBody');
+
 
     const getFlashcardBatchUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
     const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
@@ -627,9 +703,17 @@
      * @param {number} total - Tổng số thẻ đã trả lời.
      */
     function updateSessionSummary(correct, incorrect, vague, total){
-      // THAY ĐỔI: Hàm này bây giờ chỉ cập nhật điểm số
-      totalScoreDisplay.textContent = currentUserTotalScore;
-      sessionScoreDisplay.textContent = `+${sessionScore}`;
+      // SỬA: Cập nhật lại các element chính xác
+      const desktopTotalScore = document.querySelector('.statistics-card #total-score-display span');
+      const desktopSessionScore = document.querySelector('.statistics-card #session-score-display');
+      
+      const modalTotalScore = document.querySelector('#statsModal .statistics-card #total-score-display span');
+      const modalSessionScore = document.querySelector('#statsModal .statistics-card #session-score-display');
+      
+      if (desktopTotalScore) desktopTotalScore.textContent = currentUserTotalScore;
+      if (desktopSessionScore) desktopSessionScore.textContent = `+${sessionScore}`;
+      if (modalTotalScore) modalTotalScore.textContent = currentUserTotalScore;
+      if (modalSessionScore) modalSessionScore.textContent = `+${sessionScore}`;
     }
 
     function adjustFontSize(){
@@ -654,7 +738,6 @@
     function generateDynamicButtons(buttonCount) {
         let buttonsHtml = '';
         
-        // SỬA: Cập nhật buttonSets với các lớp màu mới
         const buttonSets = {
             3: [
                 { class: 'btn-red-dark', text: 'Quên', value: 'quên' },
@@ -684,10 +767,45 @@
         
         return buttonsHtml;
     }
+    
+    /**
+     * @param {boolean} isMobile - True nếu là màn hình di động, False nếu không.
+     * @param {string} itemId - ID của thẻ.
+     * @returns {string} HTML của toolbar.
+     */
+    function getCardToolbar(isMobile, itemId, setId) {
+        const hasFrontAudio = currentFlashcardBatch[currentFlashcardIndex].content.front_audio_url || currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content;
+        const hasBackAudio = currentFlashcardBatch[currentFlashcardIndex].content.back_audio_url || currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content;
+        
+        // Nút bên trái: Thống kê trên mobile, Sửa trên desktop
+        const leftButtonHtml = isMobile
+            ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-chart-bar"></i></button>`
+            : `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
+
+        // Nút audio bên phải
+        const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
+        const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
+
+        return {
+            front: `
+                <div class="card-toolbar">
+                    ${leftButtonHtml}
+                    <span class="label">MẶT TRƯỚC</span>
+                    ${audioButtonHtmlFront}
+                </div>`,
+            back: `
+                <div class="card-toolbar">
+                    ${leftButtonHtml}
+                    <span class="label">MẶT SAU</span>
+                    ${audioButtonHtmlBack}
+                </div>`
+        };
+    }
 
     function renderCard(data){
       const c = data.content;
       const itemId = data.item_id;
+      const setId = data.container_id;
       const fTxt = c.front || '';
       const bTxt = c.back || '';
       
@@ -696,12 +814,22 @@
 
       const buttonsHtml = generateDynamicButtons(userButtonCount);
       
+      const isMobile = window.innerWidth < 1024;
+      const leftButtonHtmlFront = isMobile 
+        ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-chart-bar"></i></button>`
+        : `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
+        
+      const leftButtonHtmlBack = isMobile
+        ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-chart-bar"></i></button>`
+        : `<button class="icon-btn edit-card-btn is-disabled"><i class="fas fa-pencil-alt"></i></button>`;
+
+
       const html = `
       <div class="flashcard-card-container">
         <div id="flashcard-card" class="flashcard-card">
           <div class="face front">
             <div class="card-toolbar">
-                <button class="icon-btn edit-card-btn"><i class="fas fa-pencil-alt"></i></button>
+                ${leftButtonHtmlFront}
                 <span class="label">MẶT TRƯỚC</span>
                 <button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${c.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>
             </div>
@@ -713,7 +841,7 @@
           </div>
           <div class="face back">
             <div class="card-toolbar">
-                <button class="icon-btn edit-card-btn is-disabled"><i class="fas fa-pencil-alt"></i></button>
+                ${leftButtonHtmlBack}
                 <span class="label">MẶT SAU</span>
                 <button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${c.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>
             </div>
@@ -751,12 +879,10 @@
       document.querySelectorAll('.play-audio-btn').forEach(btn => {
         btn.addEventListener('click', ev => {
           ev.stopPropagation();
-          // SỬA LỖI: Sử dụng camelCase để truy cập thuộc tính dataset
           const audioPlayer = document.querySelector(btn.dataset.audioTarget);
           if (btn.classList.contains('is-disabled')) {
             return;
           }
-          // Kiểm tra xem audio đã có sẵn nguồn chưa
           if (audioPlayer.src && audioPlayer.src !== window.location.href) {
             if (audioPlayer.paused) {
               audioPlayer.play();
@@ -765,10 +891,17 @@
               audioPlayer.currentTime = 0;
             }
           } else {
-            // Nếu chưa có URL, tạo audio và sau đó phát
             generateAndPlayAudio(btn, audioPlayer);
           }
         });
+      });
+      
+      // THÊM MỚI: Event listener cho nút mở modal thống kê
+      document.querySelectorAll('.open-stats-modal-btn').forEach(btn => {
+          btn.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              toggleStatsModal(true);
+          });
       });
 
       setTimeout(adjustFontSize, 0);
@@ -791,9 +924,8 @@
         const result = await response.json();
 
         if (result.success && result.audio_url) {
-          // Gắn URL mới và lắng nghe sự kiện để phát
           audioPlayer.src = result.audio_url;
-          audioPlayer.load(); // Bắt đầu tải file audio
+          audioPlayer.load();
           audioPlayer.oncanplay = () => {
             audioPlayer.play();
             button.classList.remove('is-disabled');
@@ -817,13 +949,56 @@
       }
     }
 
+    function formatMinutesAsDuration(minutes) {
+        if (minutes <= 0) return 'Dưới 1 phút';
+        const M_IN_H = 60;
+        const M_IN_D = 1440;
+        const M_IN_W = 10080;
+        const M_IN_MO = 43200;
+
+        let result = [];
+        let remainingMinutes = minutes;
+
+        if (remainingMinutes >= M_IN_MO) {
+            const months = Math.floor(remainingMinutes / M_IN_MO);
+            result.push(`${months} tháng`);
+            remainingMinutes %= M_IN_MO;
+        }
+        if (remainingMinutes >= M_IN_W) {
+            const weeks = Math.floor(remainingMinutes / M_IN_W);
+            result.push(`${weeks} tuần`);
+            remainingMinutes %= M_IN_W;
+        }
+        if (remainingMinutes >= M_IN_D) {
+            const days = Math.floor(remainingMinutes / M_IN_D);
+            result.push(`${days} ngày`);
+            remainingMinutes %= M_IN_D;
+        }
+        if (remainingMinutes >= M_IN_H) {
+            const hours = Math.floor(remainingMinutes / M_IN_H);
+            result.push(`${hours} giờ`);
+            remainingMinutes %= M_IN_H;
+        }
+        if (remainingMinutes > 0) {
+            result.push(`${remainingMinutes} phút`);
+        }
+
+        return result.join(' ');
+    }
+    
     /**
      * @param {object} stats - Các số liệu thống kê của thẻ.
      * @param {number} scoreChange - Điểm số thay đổi trong lần này.
+     * @param {object} cardContent - Nội dung của thẻ vừa trả lời.
      */
-    function renderCardStats(stats, scoreChange) {
+    function renderCardStats(stats, scoreChange, cardContent) {
+        const defaultStatsHtml = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
+
         if (!stats) {
-            currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
+            currentCardStatsDiv.innerHTML = defaultStatsHtml;
+            if (window.innerWidth < 1024) {
+                 statsModalBody.innerHTML = defaultStatsHtml;
+            }
             return;
         }
         
@@ -840,7 +1015,10 @@
         const scoreChangeColor = scoreChange > 0 ? 'text-green-600' : (scoreChange < 0 ? 'text-red-600' : 'text-gray-600');
         const scoreChangeSign = scoreChange > 0 ? '+' : '';
 
-        let statsHtml = `
+        const formattedInterval = formatMinutesAsDuration(stats.interval);
+        const formattedIntervalDisplay = formattedInterval || 'Chưa có';
+        
+        const statsHtml = `
             <div class="space-y-4">
                 <div class="progress-bar-group">
                     <div class="progress-bar-label">
@@ -871,43 +1049,155 @@
                 </div>
             </div>
 
-            <div class="mt-4 space-y-2">
-                <div class="flex justify-between items-center text-sm text-gray-600">
-                    <span>Điểm:</span>
-                    <span class="font-semibold text-right ${scoreChangeColor}">${scoreChangeSign}${scoreChange}</span>
+            <div class="card-info-section">
+                <div id="card-details-toggle" class="card-info-title collapsed">
+                    <i class="fas fa-caret-right"></i>
+                    <span>Chi tiết thẻ</span>
                 </div>
-                <div class="flex justify-between items-center text-sm text-gray-600">
-                    <span>Trạng thái:</span>
-                    <span class="font-semibold text-right">${stats.status}</span>
+                <div id="card-details-content" class="card-info-content">
+                    <p><span class="label">Mặt trước:</span> ${formatTextForHtml(cardContent.front)}</p>
+                    <p><span class="label">Mặt sau:</span> ${formatTextForHtml(cardContent.back)}</p>
                 </div>
-                <div class="flex justify-between items-center text-sm text-gray-600">
-                    <span>Hệ số dễ (EF):</span>
-                    <span class="font-semibold text-right">${stats.easiness_factor}</span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <i class="fas fa-star icon"></i>
+                    <span class="value ${scoreChangeColor}">${scoreChangeSign}${scoreChange}</span>
+                    <span class="label">Điểm</span>
                 </div>
-                <div class="flex justify-between items-center text-sm text-gray-600">
-                    <span>Lặp lại (n):</span>
-                    <span class="font-semibold text-right">${stats.repetitions}</span>
+                <div class="stat-box status">
+                    <i class="fas fa-signal icon"></i>
+                    <span class="value">${stats.status}</span>
+                    <span class="label">Trạng thái</span>
                 </div>
-                <div class="flex justify-between items-center text-sm text-gray-600">
-                    <span>Khoảng thời gian (I):</span>
-                    <span class="font-semibold text-right">${stats.interval} ngày</span>
+                <div class="stat-box">
+                    <i class="fas fa-bolt icon"></i>
+                    <span class="value">${stats.easiness_factor}</span>
+                    <span class="label">Hệ số dễ (EF)</span>
                 </div>
-                <div class="flex justify-between items-center text-sm text-gray-600">
-                    <span>Đến hạn ôn lại:</span>
-                    <span class="font-semibold text-right">${dueTime}</span>
+                <div class="stat-box">
+                    <i class="fas fa-sync-alt icon"></i>
+                    <span class="value">${stats.repetitions}</span>
+                    <span class="label">Lặp lại (n)</span>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-clock icon"></i>
+                    <span class="value">${formattedIntervalDisplay}</span>
+                    <span class="label">Khoảng thời gian (I)</span>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-calendar-check icon"></i>
+                    <span class="value text-sm">${dueTime}</span>
+                    <span class="label">Đến hạn ôn lại</span>
                 </div>
             </div>
         `;
 
+        // Render nội dung vào desktop hoặc mobile modal
         currentCardStatsDiv.innerHTML = statsHtml;
+        const toggleBtn = currentCardStatsDiv.querySelector('#card-details-toggle');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                const content = currentCardStatsDiv.querySelector('#card-details-content');
+                this.classList.toggle('collapsed');
+                content.classList.toggle('open');
+            });
+        }
+        
+        if (window.innerWidth < 1024) {
+            statsModalBody.innerHTML = `
+                <div class="p-4">
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <span class="text-sm font-medium text-gray-500">Tổng điểm</span>
+                                <div id="total-score-display" class="text-2xl font-bold text-gray-800 flex items-center justify-center">
+                                    <i class="fas fa-star text-yellow-400 mr-2"></i>
+                                    <span>${currentUserTotalScore}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-sm font-medium text-gray-500">Điểm phiên này</span>
+                                <div id="session-score-display" class="text-2xl font-bold text-green-600">
+                                    +${sessionScore}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-6">
+                    <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê thẻ trước đó</h3>
+                    ${statsHtml}
+                    <hr class="my-6">
+                    <div class="mt-2 flex justify-center">
+                        <button id="end-session-modal-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button>
+                    </div>
+                </div>
+            `;
+            // Thêm lại event listener cho nút toggle trong modal
+            const modalToggleBtn = statsModalBody.querySelector('#card-details-toggle');
+            if (modalToggleBtn) {
+                modalToggleBtn.addEventListener('click', function() {
+                    const content = statsModalBody.querySelector('#card-details-content');
+                    this.classList.toggle('collapsed');
+                    content.classList.toggle('open');
+                });
+            }
+            // Thêm event listener cho nút kết thúc phiên trong modal
+            const endModalBtn = document.getElementById('end-session-modal-btn');
+            if (endModalBtn) {
+                endModalBtn.addEventListener('click', () => {
+                    endSessionBtn.click();
+                });
+            }
+        }
     }
 
     async function getNextFlashcardBatch(){
       if (previousCardStats) {
-        renderCardStats(previousCardStats.stats, previousCardStats.scoreChange);
+        renderCardStats(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent);
         previousCardStats = null;
       } else {
-        currentCardStatsDiv.innerHTML = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
+        const defaultStatsHtml = `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.</div>`;
+        currentCardStatsDiv.innerHTML = defaultStatsHtml;
+        // Cập nhật cả modal mobile
+        if (window.innerWidth < 1024) {
+             statsModalBody.innerHTML = `
+                <div class="p-4">
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <span class="text-sm font-medium text-gray-500">Tổng điểm</span>
+                                <div id="total-score-display" class="text-2xl font-bold text-gray-800 flex items-center justify-center">
+                                    <i class="fas fa-star text-yellow-400 mr-2"></i>
+                                    <span>${currentUserTotalScore}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-sm font-medium text-gray-500">Điểm phiên này</span>
+                                <div id="session-score-display" class="text-2xl font-bold text-green-600">
+                                    +${sessionScore}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-6">
+                    <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê thẻ trước đó</h3>
+                    ${defaultStatsHtml}
+                    <hr class="my-6">
+                    <div class="mt-2 flex justify-center">
+                        <button id="end-session-modal-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button>
+                    </div>
+                </div>
+            `;
+            // Thêm event listener cho nút kết thúc phiên trong modal
+            const endModalBtn = document.getElementById('end-session-modal-btn');
+            if (endModalBtn) {
+                endModalBtn.addEventListener('click', () => {
+                    endSessionBtn.click();
+                });
+            }
+        }
       }
       
       flashcardContentDiv.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>`;
@@ -938,7 +1228,6 @@
         currentFlashcardIndex = 0;
         renderCard(currentFlashcardBatch[currentFlashcardIndex]);
         
-        // Cập nhật điểm ban đầu khi tải thẻ
         updateSessionSummary(
             batch.session_correct_answers, 
             batch.session_incorrect_answers, 
@@ -962,7 +1251,6 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         
-        // THAY ĐỔI: Cập nhật điểm số
         sessionScore += data.score_change;
         currentUserTotalScore = data.updated_total_score;
         updateSessionSummary(
@@ -972,16 +1260,14 @@
             data.session_total_answered
         );
 
-        
-        // SỬA: Lưu thống kê của thẻ vừa trả lời vào biến tạm
         if (data.statistics) {
             previousCardStats = {
               stats: data.statistics,
-              scoreChange: data.score_change
+              scoreChange: data.score_change,
+              cardContent: currentFlashcardBatch[currentFlashcardIndex].content
             };
         }
 
-        // SỬA: Thay thế setTimeout bằng việc gọi hàm load thẻ mới ngay lập tức
         currentFlashcardIndex++;
         getNextFlashcardBatch();
       } catch (e) {
@@ -1028,10 +1314,32 @@
           document.getElementById('custom-alert-modal').remove();
       });
     }
+    
+    // THÊM MỚI: Hàm quản lý modal thống kê
+    function toggleStatsModal(show) {
+        if (show) {
+            statsModal.classList.add('open');
+            statsModalContent.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            if (previousCardStats) {
+                renderCardStats(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent);
+            }
+        } else {
+            statsModal.classList.remove('open');
+            statsModalContent.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    // THÊM MỚI: Event listener cho nút đóng modal
+    closeStatsModalBtn.addEventListener('click', () => {
+        toggleStatsModal(false);
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
+      setVh(); // Chạy hàm tính chiều cao khi DOM đã tải
       document.body.classList.add('flashcard-session-active');
-      totalScoreDisplay.textContent = currentUserTotalScore; // Hiển thị tổng điểm ban đầu
+      updateSessionSummary(0, 0, 0, 0); // Sửa lỗi: Cập nhật điểm ban đầu khi tải trang
       getNextFlashcardBatch();
     });
   </script>
