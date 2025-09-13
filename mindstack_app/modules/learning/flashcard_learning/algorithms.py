@@ -1,9 +1,8 @@
 # File: mindstack_app/modules/learning/flashcard_learning/algorithms.py
-# Phiên bản: 2.0
-# MỤC ĐÍCH: Cập nhật logic truy vấn để sử dụng model FlashcardProgress mới.
-# ĐÃ SỬA: Thay thế import UserProgress bằng FlashcardProgress.
-# ĐÃ SỬA: Cập nhật các hàm lấy thẻ (get_new_only_items, get_due_items, get_hard_items)
-#         và hàm lấy danh sách bộ thẻ (get_filtered_flashcard_sets) để truy vấn bảng mới.
+# Phiên bản: 2.3
+# MỤC ĐÍCH: Khắc phục lỗi TypeError: object of type 'Query' has no len() và cải thiện logic.
+# ĐÃ SỬA: Thay đổi cách lấy số lượng bản ghi từ len() sang .count() trên đối tượng truy vấn.
+# ĐÃ SỬA: Cải thiện logic trong get_mixed_items để xử lý các đối tượng truy vấn đúng cách.
 
 from ....models import db, LearningItem, FlashcardProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
@@ -12,6 +11,7 @@ from flask import current_app
 from ....utils.pagination import get_pagination_data
 from ....utils.search import apply_search_filter
 from .config import FlashcardLearningConfig
+import random
 
 def _get_base_items_query(user_id, container_id):
     """
@@ -166,6 +166,38 @@ def get_hard_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: get_hard_items tìm thấy {len(items)} thẻ. <<<")
     return items
 
+def get_mixed_items(user_id, container_id, session_size):
+    """
+    Mô tả: Lấy danh sách các thẻ kết hợp giữa ôn tập và học mới cho một phiên học.
+           Ưu tiên các thẻ đến hạn trước, sau đó là các thẻ mới.
+    Args:
+        user_id (int): ID của người dùng.
+        container_id (int/str/list): ID của bộ thẻ, 'all', hoặc danh sách ID.
+        session_size (int): Số lượng thẻ tối đa cho phiên.
+    Returns:
+        list: Danh sách các đối tượng LearningItem.
+    """
+    print(f">>> ALGORITHMS: Bắt đầu get_mixed_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
+    
+    # THAY ĐỔI: Chạy truy vấn để lấy danh sách các thẻ đến hạn
+    due_items = get_due_items(user_id, container_id, session_size).all()
+    
+    if len(due_items) < session_size:
+        num_new_items_needed = session_size - len(due_items)
+        new_items = get_new_only_items(user_id, container_id, num_new_items_needed).all()
+        
+        # Kết hợp hai danh sách và xáo trộn để đảm bảo thứ tự ngẫu nhiên
+        mixed_items = due_items + new_items
+        random.shuffle(mixed_items)
+        
+        print(f">>> ALGORITHMS: get_mixed_items tìm thấy {len(due_items)} thẻ đến hạn và {len(new_items)} thẻ mới. Tổng cộng: {len(mixed_items)} <<<")
+        return mixed_items
+    else:
+        # Nếu có đủ thẻ đến hạn, chỉ lấy thẻ đến hạn và xáo trộn
+        random.shuffle(due_items)
+        print(f">>> ALGORITHMS: get_mixed_items tìm thấy đủ thẻ đến hạn. Tổng cộng: {len(due_items)} <<<")
+        return due_items
+
 def get_filtered_flashcard_sets(user_id, search_query, search_field, current_filter, page, per_page=FlashcardLearningConfig.DEFAULT_ITEMS_PER_PAGE):
     """
     Lấy danh sách các bộ Flashcard đã được lọc và phân trang dựa trên các tiêu chí.
@@ -283,6 +315,7 @@ def get_flashcard_mode_counts(user_id, set_identifier):
     
     modes_with_counts = []
     mode_function_map = {
+        'mixed_srs': get_mixed_items,
         'new_only': get_new_only_items,
         'due_only': get_due_items,
         'hard_only': get_hard_items,
@@ -294,8 +327,16 @@ def get_flashcard_mode_counts(user_id, set_identifier):
         algorithm_func = mode_function_map.get(mode_id)
 
         if algorithm_func:
-            # Sửa lỗi: Đếm số lượng từ truy vấn, không phải từ danh sách đã được thực thi
-            count = algorithm_func(user_id, set_identifier, None).count()
+            # SỬA LỖI: Sử dụng .count() trên đối tượng truy vấn để lấy số lượng
+            # Thay vì gọi hàm với session_size=None và sau đó dùng len()
+            if mode_id == 'mixed_srs':
+                # Chế độ mixed_srs cần phải chạy logic để lấy số lượng thẻ
+                due_count = get_due_items(user_id, set_identifier, None).count()
+                new_count = get_new_only_items(user_id, set_identifier, None).count()
+                count = due_count + new_count
+            else:
+                count = algorithm_func(user_id, set_identifier, None).count()
+            
             modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
         else:
             current_app.logger.warning(f"Không tìm thấy hàm thuật toán cho chế độ Flashcard: {mode_id}")

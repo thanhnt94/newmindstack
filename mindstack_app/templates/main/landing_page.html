@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Chào mừng đến với Mindstack{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <div class="flex flex-col items-center justify-center text-center p-8 bg-white shadow-lg rounded-xl max-w-4xl mx-auto my-12">
+        <div class="text-blue-500 mb-6">
+            <i class="fas fa-brain text-7xl animate-pulse"></i>
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-4 animate-fade-in">
+            Nâng cao trí nhớ của bạn với Mindstack
+        </h1>
+        <p class="text-lg text-gray-600 mb-8 max-w-2xl animate-fade-in-delay">
+            Mindstack là một ứng dụng học tập hiệu quả, sử dụng hệ thống lặp lại ngắt quãng (Spaced Repetition) để giúp bạn ghi nhớ thông tin nhanh chóng và lâu dài. Bắt đầu học Flashcard, làm bài Quiz và khám phá các khóa học ngay hôm nay!
+        </p>
+        <div class="space-y-4 sm:space-y-0 sm:space-x-4 flex flex-col sm:flex-row items-center animate-fade-in-delay-2">
+            <a href="{{ url_for('auth.register') }}" class="w-full sm:w-auto px-8 py-3 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300 transform hover:scale-105 shadow-md">
+                Đăng ký miễn phí
+            </a>
+            <a href="{{ url_for('auth.login') }}" class="w-full sm:w-auto px-8 py-3 text-lg font-semibold text-blue-600 bg-white border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition duration-300 transform hover:scale-105 shadow-md">
+                Đăng nhập
+            </a>
+        </div>
+    </div>
+
+    <section class="mt-16 text-center">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8">Các tính năng nổi bật</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="feature-card bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                <i class="fas fa-clone text-5xl text-blue-500 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Flashcard</h3>
+                <p class="text-gray-600">Ghi nhớ từ vựng, khái niệm bằng thẻ ghi nhớ thông minh với thuật toán lặp lại ngắt quãng.</p>
+            </div>
+            <div class="feature-card bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                <i class="fas fa-question-circle text-5xl text-green-500 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Quiz</h3>
+                <p class="text-gray-600">Tự kiểm tra kiến thức với các bài kiểm tra trắc nghiệm đa dạng và tùy chỉnh.</p>
+            </div>
+            <div class="feature-card bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                <i class="fas fa-book text-5xl text-orange-500 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Khóa học</h3>
+                <p class="text-gray-600">Xây dựng và học các khóa học có cấu trúc bài học rõ ràng, bao gồm cả nội dung text và media.</p>
+            </div>
+            <div class="feature-card bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                <i class="fas fa-chart-bar text-5xl text-purple-500 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Thống kê chi tiết</h3>
+                <p class="text-gray-600">Theo dõi tiến độ học tập, điểm số và hiệu suất ghi nhớ của bạn với các thống kê trực quan.</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 1s ease-out forwards; }
+    .animate-fade-in-delay { animation: fadeIn 1s ease-out forwards 0.5s; opacity: 0; }
+    .animate-fade-in-delay-2 { animation: fadeIn 1s ease-out forwards 1s; opacity: 0; }
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.1);
+      }
+    }
+</style>
+{% endblock %}

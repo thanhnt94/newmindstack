@@ -1,12 +1,14 @@
 # File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 3.5
-# MỤC ĐÍCH: Cập nhật quality_map để sử dụng thang điểm 0-5 mới cho SM-2.
-# ĐÃ SỬA: Thay đổi logic ánh xạ các nút bấm sang điểm chất lượng (quality) theo thang điểm 0-5.
+# Phiên bản: 3.7
+# MỤC ĐÍCH: Cập nhật logic để hỗ trợ chế độ học mới "Học và ôn tập (đan xen)".
+# ĐÃ SỬA: Sửa đổi hàm start_new_flashcard_session để gọi đúng thuật toán mới.
+# ĐÃ SỬA: Sửa lỗi truyền tham số trong get_flashcard_options_partial để tránh lỗi IndexError.
+# ĐÃ SỬA: Bổ sung logic để lấy thuật toán `get_mixed_items`.
 
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
 import traceback
-from .algorithms import get_new_only_items, get_due_items, get_hard_items, get_filtered_flashcard_sets, get_flashcard_mode_counts
+from .algorithms import get_new_only_items, get_due_items, get_hard_items, get_mixed_items, get_filtered_flashcard_sets, get_flashcard_mode_counts
 from .session_manager import FlashcardSessionManager
 from .config import FlashcardLearningConfig
 from ....models import db, User, FlashcardProgress, UserContainerState, LearningContainer, LearningItem
@@ -65,11 +67,15 @@ def get_flashcard_options_partial(set_identifier):
         try:
             set_ids = [int(s) for s in set_identifier.split(',') if s]
             if len(set_ids) == 1:
+                # THAY ĐỔI: Lấy phần tử đầu tiên của danh sách
                 modes = get_flashcard_mode_counts(current_user.user_id, set_ids[0])
             else:
                 modes = get_flashcard_mode_counts(current_user.user_id, set_ids)
         except ValueError:
             return '<p class="text-red-500 text-center">Lỗi: Định dạng ID bộ thẻ không hợp lệ.</p>', 400
+        except IndexError:
+            return '<p class="text-red-500 text-center">Lỗi: Không tìm thấy ID bộ thẻ.</p>', 400
+
 
     return render_template('_flashcard_modes_selection.html',
                            modes=modes,

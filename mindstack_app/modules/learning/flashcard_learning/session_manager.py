@@ -1,13 +1,13 @@
 # File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 3.0
-# MỤC ĐÍCH: Sửa lỗi logic xử lý câu trả lời flashcard bị lặp và sai.
-# ĐÃ SỬA: Loại bỏ việc tra cứu quality_map không cần thiết trong hàm process_flashcard_answer.
-# ĐÃ SỬA: Đổi tên tham số 'user_answer' thành 'user_answer_quality' để thể hiện đúng bản chất dữ liệu đầu vào.
+# Phiên bản: 3.1
+# MỤC ĐÍCH: Sửa lỗi "Không tìm thấy hàm thuật toán cho chế độ: mixed_srs".
+# ĐÃ SỬA: Thêm logic để xử lý chế độ học mới 'mixed_srs' và gọi hàm thuật toán tương ứng.
+# ĐÃ SỬA: Import thêm hàm get_mixed_items.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
 from ....models import db, LearningItem, FlashcardProgress, LearningGroup, User
-from .algorithms import get_new_only_items, get_due_items, get_hard_items
+from .algorithms import get_new_only_items, get_due_items, get_hard_items, get_mixed_items
 from .flashcard_logic import process_flashcard_answer
 from .flashcard_stats_logic import get_flashcard_item_statistics
 from .config import FlashcardLearningConfig
@@ -104,12 +104,17 @@ class FlashcardSessionManager:
             algorithm_func = get_due_items
         elif mode == 'hard_only':
             algorithm_func = get_hard_items
+        # THAY ĐỔI: Thêm chế độ mixed_srs vào đây
+        elif mode == 'mixed_srs':
+            algorithm_func = get_mixed_items
         
         if not algorithm_func:
             print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy hàm thuật toán cho chế độ: {mode} <<<")
             current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {mode}")
             return False
         
+        # LẤY TỔNG SỐ CÂU HỎI CỦA PHIÊN MÀ KHÔNG LƯU CẢ DANH SÁCH ID
+        # SỬA LỖI: Sử dụng .count() trên đối tượng truy vấn để lấy tổng số câu hỏi một cách chính xác
         total_items_in_session_query = algorithm_func(user_id, set_id, None)
         total_items_in_session = total_items_in_session_query.count()
 
@@ -181,6 +186,8 @@ class FlashcardSessionManager:
             algorithm_func = get_due_items
         elif self.mode == 'hard_only':
             algorithm_func = get_hard_items
+        elif self.mode == 'mixed_srs':
+            algorithm_func = get_mixed_items
         
         if not algorithm_func:
             current_app.logger.error(f"Không tìm thấy hàm thuật toán cho chế độ: {self.mode}")

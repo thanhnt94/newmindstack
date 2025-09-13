@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from 'includes/_search_form.html' import render_search_form %}
 
 {% block title %}Dashboard{% endblock %}
 
@@ -10,215 +9,83 @@
             font-family: 'Inter', sans-serif;
             background-color: #f9fafb;
         }
-        .selected-item {
-            border-color: #3b82f6 !important;
-            background-color: #eff6ff !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-        }
-        .selected-mode {
-            border-color: #3b82f6 !important;
-            background-color: #eff6ff !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-        }
-        .start-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .tab-filter-button.active { 
-            border-bottom: 2px solid #3b82f6; 
-            color: #3b82f6; 
-        }
-        .tab-filter-button {
-            transition: all 0.2s ease-in-out;
-            color: #6b7280;
-            font-weight: 500;
-        }
-        
-        .flashcard-title-wrapper { 
-            display: flex; 
-            justify-content: center; 
-            margin-bottom: 2rem; 
-            width: 100%;
-        }
-        .flashcard-title-badge {
-            width: 100%;
-            max-width: 100%;
-            background: #e0f2fe;
-            color: #1e3a8a;
-            font-size: 2rem;
-            font-weight: 800;
-            padding: 0.75rem 2.5rem;
-            border-radius: 9999px;
-            border: 2px solid #bfdbfe;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-            text-shadow: none;
-            letter-spacing: 0.05em;
-            transition: all .3s ease;
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center;
-        }
-        .flashcard-title-badge .fa-clone { 
-            margin-right: .75rem;
-            font-size: 2.25rem;
-        }
-        .flashcard-title-badge:hover { 
-            box-shadow: 0 6px 14px rgba(30,58,138,0.20);
-            border-color: #60a5fa;
-            transform: translateY(-2px);
-        }
-        
-        .flashcard-set-item {
-            position: relative;
+        .feature-card {
             background-color: #ffffff;
             border-radius: 0.75rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border: 1px solid #e5e7eb;
-            overflow: hidden;
-            padding: 1rem;
             transition: all 0.3s ease;
-        }
-        .flashcard-set-item:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05); transform: translateY(-2px); }
-
-        .archive-icon {
-            cursor: pointer;
-            color: #9ca3af;
-            transition: color 0.2s ease;
-        }
-        .archive-icon:hover {
-            color: #3b82f6;
-        }
-        .archived .archive-icon {
-            color: #3b82f6;
-        }
-        
-        .tabs-and-toggle-wrapper {
-            display: flex;
-            flex-wrap: nowrap;
-            align-items: center;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        .tab-group {
-            display: flex;
-            flex-grow: 1;
-            min-width: 0;
-            overflow: hidden;
-        }
-        .tab-filter-button {
-            flex-grow: 1;
-            flex-shrink: 1;
-            padding: 0.75rem 0.5rem;
             text-align: center;
-            white-space: nowrap;
-            font-size: 0.875rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2.5rem;
         }
-        .tab-filter-button i {
-            margin-right: 0.5rem;
+        .feature-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-5px);
         }
-        .tab-filter-button span {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .feature-card i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #4f46e5;
         }
-        @media (max-width: 639px) {
-            .tab-filter-button {
-                font-size: 0.75rem;
-                padding: 0.5rem 0.25rem;
-            }
+        .feature-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
         }
-        @media (min-width: 640px) {
-            .tab-group {
-                justify-content: space-between;
-            }
-            .tab-filter-button {
-                font-size: 1rem;
-            }
+        .feature-card p {
+            font-size: 1rem;
+            color: #6b7280;
         }
 
-        .selected-sets-container {
-            margin-bottom: 1rem;
-            min-height: 2.5rem;
-            border-radius: 0.5rem;
-            background-color: #e5e7eb;
-            padding: 0.5rem;
-            color: #4b5563;
-            font-size: 0.875rem;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .selected-set-item {
-            background-color: #dbeafe;
-            color: #1e3a8a;
-            border-radius: 9999px;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin: 0.25rem;
-            display: inline-flex;
-            align-items: center;
-        }
-        .selected-set-item i {
-            margin-left: 0.5rem;
-            font-size: 0.6rem;
-            cursor: pointer;
+        /* Responsive adjustments */
+        @media (max-width: 639px) {
+            .feature-card {
+                padding: 1.5rem;
+            }
+            .feature-card i {
+                font-size: 3rem;
+            }
+            .feature-card h2 {
+                font-size: 1.25rem;
+            }
+            .feature-card p {
+                font-size: 0.875rem;
+            }
         }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-    <div class="flashcard-title-wrapper">
-        <div id="flashcardTitle" class="flashcard-title-badge"><i class="fas fa-clone"></i>Flashcard</div>
-    </div>
+<div class="container mx-auto p-4 sm:p-6 lg:p-8 text-center">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-8">
+        Chào mừng, {{ current_user.username }}!
+    </h1>
+    <p class="text-lg text-gray-600 mb-12">
+        Bắt đầu phiên học của bạn hoặc quản lý nội dung từ các chức năng dưới đây.
+    </p>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
-        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
-                <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ thẻ
-            </h2>
-            <div class="mb-4">
-                <div class="tabs-and-toggle-wrapper">
-                    <div class="tab-group">
-                        <button id="filter-doing" class="tab-filter-button flex items-center justify-center active" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang học</span></button>
-                        <button id="filter-explore" class="tab-filter-button flex items-center justify-center" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
-                        <button id="filter-archive" class="tab-filter-button flex items-center justify-center" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
-                    </div>
-                </div>
-            </div>
-            <div id="selected-sets-display" class="selected-sets-container hidden">
-                <span class="text-gray-500">Bộ thẻ đã chọn:</span>
-            </div>
-            <div id="flashcard-sets-container" class="flex-grow">
-                <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
-                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                    <p>Đang tải danh sách bộ thẻ...</p>
-                </div>
-            </div>
-        </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <a href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}" class="feature-card">
+            <i class="fas fa-clone text-blue-500"></i>
+            <h2>Học Flashcard</h2>
+            <p>Ôn tập từ vựng, khái niệm bằng hệ thống lặp lại ngắt quãng.</p>
+        </a>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-            <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
-                <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học
-            </h2>
-            <div id="flashcard-modes-container" class="flex-grow">
-                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
-                    <i class="fas fa-info-circle text-4xl mb-3"></i>
-                    <p>Vui lòng chọn một bộ thẻ trước.</p>
-                </div>
-            </div>
-        </div>
-    </div>
+        <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}" class="feature-card">
+            <i class="fas fa-question-circle text-green-500"></i>
+            <h2>Làm Quiz</h2>
+            <p>Tự kiểm tra kiến thức với các bộ câu hỏi trắc nghiệm.</p>
+        </a>
 
-    <div class="mt-8 text-center">
-        <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-            <i class="fas fa-play-circle mr-3"></i> Bắt đầu học
-        </button>
-        <button id="bulk-unarchive-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-            <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
-        </button>
+        <a href="{{ url_for('content_management.content_dashboard') }}" class="feature-card">
+            <i class="fas fa-book text-orange-500"></i>
+            <h2>Quản lý nội dung</h2>
+            <p>Tạo, chỉnh sửa và quản lý các bộ thẻ, quiz, và khóa học của bạn.</p>
+        </a>
     </div>
 </div>
 {% endblock %}
