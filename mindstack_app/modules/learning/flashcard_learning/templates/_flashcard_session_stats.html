@@ -1,43 +1,43 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/_flashcard_session_stats.html #}
-{# Phiên bản: 2.1 #}
-{# MỤC ĐÍCH: Cập nhật giao diện để hỗ trợ 2 tab thống kê: "Thẻ hiện tại" và "Thẻ trước đó". #}
-{# ĐÃ THÊM: Cấu trúc HTML cho tab và các vùng chứa nội dung tương ứng. #}
-{# ĐÃ SỬA: Tinh chỉnh lại CSS để phù hợp với giao diện tab. #}
-{# ĐÃ SỬA: Thêm id cho các tab pane để dễ dàng truy cập và render nội dung vào đó. #}
+{# Phiên bản: 2.2 #}
+{# MỤC ĐÍCH: Tối ưu hóa giao diện cột thống kê để co nhỏ nội dung, tránh cuộn trên màn hình lớn. #}
+{# ĐÃ SỬA: Giảm padding, margin, kích thước font và chiều cao các thành phần. #}
+{# ĐÃ SỬA: Điều chỉnh lại grid layout của các ô stat-box để gọn hơn. #}
 {# =============================== #}
 
 <style>
-    /* Styles cho khung thống kê chính */
+    /* Styles cho khung thống kê chính - ĐÃ ĐIỀU CHỈNH */
     .statistics-card {
         background: #fff;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
-        padding: 1.5rem;
+        padding: 1rem; /* SỬA: Giảm padding từ 1.5rem */
         display: flex;
         flex-direction: column;
         height: 100%;
         min-height: 0;
         overflow-y: auto;
-        width: 100%; /* Sửa lại để linh hoạt hơn */
-        max-width: 500px; /* Giới hạn chiều rộng tối đa */
+        width: 100%;
+        max-width: 500px;
     }
 
-    /* Styles cho Tab Navigation */
+    /* Styles cho Tab Navigation - ĐÃ ĐIỀU CHỈNH */
     .stats-tab-nav {
         display: flex;
         border-bottom: 2px solid #e5e7eb;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem; /* SỬA: Giảm margin từ 1.5rem */
     }
     .stats-tab-button {
         flex: 1;
-        padding: 0.75rem 0.5rem;
+        padding: 0.6rem 0.5rem; /* SỬA: Giảm padding */
         text-align: center;
         font-weight: 600;
+        font-size: 0.9rem; /* SỬA: Giảm font size */
         color: #6b7280;
         border-bottom: 2px solid transparent;
-        margin-bottom: -2px; /* Để border nằm đè lên border của container */
+        margin-bottom: -2px;
         cursor: pointer;
         transition: color 0.2s ease, border-color 0.2s ease;
     }
@@ -51,54 +51,49 @@
 
     /* Styles cho các Tab Content Pane */
     .stats-tab-pane {
-        display: none; /* Mặc định ẩn tất cả các tab */
+        display: none;
     }
     .stats-tab-pane.active {
-        display: block; /* Chỉ hiện tab có class active */
+        display: block;
     }
 
-
-    /* Styles cho Progress Bar (Giữ nguyên) */
-    .progress-bar-group { margin-bottom: 1rem; }
-    .progress-bar-label { font-size: 0.875rem; font-weight: 600; color: #374151; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
-    .progress-bar-container { width: 100%; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; height: 1.25rem; }
-    .progress-bar-fill { height: 100%; width: 0%; transition: width 0.5s ease-in-out; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+    /* Styles cho Progress Bar - ĐÃ ĐIỀU CHỈNH */
+    .progress-bar-group { margin-bottom: 0.75rem; } /* SỬA: Giảm margin */
+    .progress-bar-label { font-size: 0.8rem; font-weight: 600; color: #374151; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+    .progress-bar-container { width: 100%; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; height: 1rem; } /* SỬA: Giảm chiều cao */
+    .progress-bar-fill { height: 100%; width: 0%; transition: width 0.5s ease-in-out; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
     .progress-bar-fill-correct { background-color: #10b981; }
     .progress-bar-fill-vague { background-color: #f59e0b; }
     .progress-bar-fill-incorrect { background-color: #ef4444; }
 
-    /* Styles cho các phần còn lại (Giữ nguyên) */
-    .card-info-section { border-top: 1px solid #e5e7eb; padding-top: 1.5rem; margin-top: 1.5rem; }
-    .card-info-title { display: flex; align-items: center; font-weight: 600; color: #3b82f6; cursor: pointer; user-select: none; margin-bottom: 0.5rem; }
-    .card-info-title i { margin-right: 0.5rem; transition: transform 0.2s ease; }
-    .card-info-title.collapsed i { transform: rotate(-90deg); }
-    .card-info-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
-    .card-info-content.open { max-height: 500px; padding-top: 0.5rem; }
-    .card-info-content p { font-size: 0.875rem; line-height: 1.4; color: #4b5563; margin-bottom: 0.5rem; white-space: pre-wrap; }
-    .card-info-content .label { font-weight: 600; color: #1f2937; }
-    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem; }
-    .stat-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; background-color: #f9fafb; }
-    .stat-box .icon { font-size: 1.5rem; color: #3b82f6; margin-bottom: 0.5rem; }
-    .stat-box .value { font-size: 1.125rem; font-weight: 700; color: #1f2937; }
-    .stat-box .label { font-size: 0.875rem; color: #6b7280; }
+    /* Styles cho các phần còn lại - ĐÃ ĐIỀU CHỈNH */
+    .card-info-section { border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem; }
+    .card-info-title { font-size: 0.9rem; } /* SỬA: Giảm font size */
+    .card-info-content p { font-size: 0.8rem; } /* SỬA: Giảm font size */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-top: 1rem; } /* SỬA: Giảm gap */
+    .stat-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; background-color: #f9fafb; } /* SỬA: Giảm padding */
+    .stat-box .icon { font-size: 1.1rem; color: #3b82f6; margin-bottom: 0.25rem; } /* SỬA: Giảm font size và margin */
+    .stat-box .value { font-size: 0.9rem; font-weight: 700; color: #1f2937; } /* SỬA: Giảm font size */
+    .stat-box .label { font-size: 0.7rem; color: #6b7280; } /* SỬA: Giảm font size */
     .stat-box.status .value { text-transform: capitalize; }
+    .stat-box.full-width { grid-column: span 2 / span 2; } /* THÊM: Class để ô chiếm 2 cột */
 </style>
 
 <div class="statistics-card">
-    <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê phiên học</h3>
+    <h3 class="text-md font-semibold text-center text-gray-800 mb-3">Thống kê phiên học</h3>
     
-    <div class="bg-gray-50 p-4 rounded-lg mb-6">
-        <div class="grid grid-cols-2 gap-4 text-center">
+    <div class="bg-gray-50 p-3 rounded-lg mb-4">
+        <div class="grid grid-cols-2 gap-2 text-center">
             <div>
-                <span class="text-sm font-medium text-gray-500">Tổng điểm</span>
-                <div id="total-score-display" class="text-2xl font-bold text-gray-800 flex items-center justify-center">
-                    <i class="fas fa-star text-yellow-400 mr-2"></i>
+                <span class="text-xs font-medium text-gray-500">Tổng điểm</span>
+                <div id="total-score-display" class="text-xl font-bold text-gray-800 flex items-center justify-center">
+                    <i class="fas fa-star text-yellow-400 mr-1"></i>
                     <span>-</span>
                 </div>
             </div>
             <div>
-                <span class="text-sm font-medium text-gray-500">Điểm phiên này</span>
-                <div id="session-score-display" class="text-2xl font-bold text-green-600">
+                <span class="text-xs font-medium text-gray-500">Điểm phiên này</span>
+                <div id="session-score-display" class="text-xl font-bold text-green-600">
                     +0
                 </div>
             </div>
@@ -113,23 +108,22 @@
     <div class="flex-grow">
         <div id="current-card-stats-pane" class="stats-tab-pane active">
             <div id="current-card-stats" class="flex-grow space-y-4">
-                <div class="text-center text-gray-500">
+                <div class="text-center text-gray-500 text-sm">
                     <i class="fas fa-info-circle mr-2"></i> Đang tải thông tin thẻ...
                 </div>
             </div>
         </div>
         <div id="previous-card-stats-pane" class="stats-tab-pane">
             <div id="previous-card-stats" class="flex-grow space-y-4">
-                <div class="text-center text-gray-500">
+                <div class="text-center text-gray-500 text-sm">
                     <i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.
                 </div>
             </div>
         </div>
     </div>
 
-
-    <hr class="my-6">
-    <div class="mt-2 flex justify-center">
-        <button id="end-session-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button>
+    <hr class="my-4">
+    <div class="mt-auto flex justify-center">
+        <button id="end-session-btn" class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 shadow-sm text-sm">Kết thúc phiên</button>
     </div>
 </div>
