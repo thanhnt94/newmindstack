@@ -1,9 +1,8 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 46.0 #}
-{# MỤC ĐÍCH: Khắc phục lỗi popup thống kê trên mobile bị trắng. #}
-{# ĐÃ SỬA: Cập nhật hàm toggleStatsModal để render lại nội dung thống kê trực tiếp cho modal. Đảm bảo dữ liệu được kiểm tra an toàn trước khi render. #}
-{# ĐÃ SỬA: Đảm bảo biến previousCardStats được khởi tạo và sử dụng nhất quán. #}
+{# Phiên bản: 47.0 #}
+{# MỤC ĐÍCH: Thay thế phần "Chi tiết thẻ" bằng nội dung rút gọn của mặt trước và mặt sau. #}
+{# ĐÃ SỬA: Cập nhật hàm renderCardStatsHtml để hiển thị 20 ký tự đầu tiên của thẻ trước đó. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -870,7 +869,7 @@
                 <div class="progress-bar-group"><div class="progress-bar-label"><span>Mơ hồ (${vagueCount})</span><span>${Math.round(vaguePercentage)}%</span></div><div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-vague" style="width: ${vaguePercentage}%;"></div></div></div>
                 <div class="progress-bar-group"><div class="progress-bar-label"><span>Quên (${incorrectCount})</span><span>${Math.round(incorrectPercentage)}%</span></div><div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-incorrect" style="width: ${incorrectPercentage}%;"></div></div></div>
             </div>
-            ${cardContent.front ? `<div class="card-info-section"><div class="card-info-title collapsed" data-toggle="card-details-content"><i class="fas fa-caret-right"></i><span>Chi tiết thẻ</span></div><div class="card-info-content"><p><span class="label">Mặt trước:</span> ${formatTextForHtml(cardContent.front)}</p><p><span class="label">Mặt sau:</span> ${formatTextForHtml(cardContent.back)}</p></div></div>` : ''}
+            ${cardContent.front ? `<div class="card-info-section"><p><span class="label">Mặt trước:</span> ${formatTextForHtml(cardContent.front.substring(0, 20))}${cardContent.front.length > 20 ? '...' : ''}</p><p><span class="label">Mặt sau:</span> ${formatTextForHtml(cardContent.back.substring(0, 20))}${cardContent.back.length > 20 ? '...' : ''}</p></div>` : ''}
             <div class="stats-grid">
                 ${!isInitial ? `<div class="stat-box"><i class="fas fa-star icon"></i><span class="value ${scoreChangeColor}">${scoreChangeSign}${scoreChange}</span><span class="label">Điểm</span></div>` : ''}
                 <div class="stat-box status"><i class="fas fa-signal icon"></i><span class="value">${stats.status}</span><span class="label">Trạng thái</span></div>
