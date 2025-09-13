@@ -1,8 +1,8 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 45.0 #}
+{# Phiên bản: 46.0 #}
 {# MỤC ĐÍCH: Khắc phục lỗi popup thống kê trên mobile bị trắng. #}
-{# ĐÃ SỬA: Cập nhật hàm toggleStatsModal để render lại nội dung thống kê trực tiếp cho modal từ biến dữ liệu, thay vì sao chép từ phần tử bị ẩn. #}
+{# ĐÃ SỬA: Cập nhật hàm toggleStatsModal để render lại nội dung thống kê trực tiếp cho modal. Đảm bảo dữ liệu được kiểm tra an toàn trước khi render. #}
 {# ĐÃ SỬA: Đảm bảo biến previousCardStats được khởi tạo và sử dụng nhất quán. #}
 {# =============================== #}
 
@@ -91,7 +91,9 @@
             padding: 0 !important;
             overflow: hidden; /* Quan trọng: Loại bỏ cuộn trên layout chính */
         }
-        .statistics-card {
+        .stats-modal-body .statistics-card { display:block !important; }
+        
+        .session-layout > .statistics-card {
             display: none !important;
         }
         .flashcard-wrapper {
@@ -984,11 +986,22 @@
             
             // Lấy dữ liệu thẻ hiện tại
             const currentCardData = currentFlashcardBatch.length > 0 ? currentFlashcardBatch[currentFlashcardIndex] : null;
-            const initialStatsHtml = currentCardData ? renderCardStatsHtml(currentCardData.initial_stats, 0, {}, true) : '<div class="text-center text-gray-500">Chưa có thẻ nào.</div>';
+            let initialStatsHtml;
+            if (currentCardData && currentCardData.initial_stats) {
+                initialStatsHtml = renderCardStatsHtml(currentCardData.initial_stats, 0, {}, true);
+            } else {
+                initialStatsHtml = '<div class="text-center text-gray-500">Chưa có thẻ nào.</div>';
+            }
 
             // Lấy dữ liệu thẻ trước đó
             const previousStatsHtml = previousCardStats ? renderCardStatsHtml(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent, false) : '<div class="text-center text-gray-500">Chưa trả lời thẻ nào.</div>';
-
+            
+            // Tạo HTML cho các tab
+            const tabsHtml = `
+                <div id="modal-current-pane" class="stats-tab-pane active">${initialStatsHtml}</div>
+                <div id="modal-previous-pane" class="stats-tab-pane">${previousStatsHtml}</div>
+            `;
+            
             // Render trực tiếp vào modal
             statsModalBody.innerHTML = `
                 <div class="statistics-card !shadow-none !border-none !p-0">
@@ -1010,14 +1023,20 @@
                         <button class="stats-tab-button" data-target="modal-previous-pane">Thẻ trước đó</button>
                     </div>
                     <div>
-                        <div id="modal-current-pane" class="stats-tab-pane active">${initialStatsHtml}</div>
-                        <div id="modal-previous-pane" class="stats-tab-pane">${previousStatsHtml}</div>
+                        ${tabsHtml}
                     </div>
                     <hr class="my-6"><div class="mt-2 flex justify-center"><button id="end-session-modal-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button></div>
                 </div>
             `;
+            // Gán lại sự kiện cho các nút trong modal
             statsModalBody.querySelectorAll('.stats-tab-button').forEach(btn => btn.addEventListener('click', handleTabClick));
             document.getElementById('end-session-modal-btn')?.addEventListener('click', () => endSessionBtn.click());
+
+             // Mở tab "Thẻ trước đó" nếu có dữ liệu
+            if (previousCardStats) {
+                statsModalBody.querySelector('button[data-target="modal-previous-pane"]').click();
+            }
+            
         } else {
             statsModal.classList.remove('open');
             statsModalContent.classList.remove('open');
