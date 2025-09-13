@@ -1,8 +1,7 @@
 # File: mindstack_app/modules/learning/flashcard_learning/algorithms.py
-# Phiên bản: 2.3
-# MỤC ĐÍCH: Khắc phục lỗi TypeError: object of type 'Query' has no len() và cải thiện logic.
-# ĐÃ SỬA: Thay đổi cách lấy số lượng bản ghi từ len() sang .count() trên đối tượng truy vấn.
-# ĐÃ SỬA: Cải thiện logic trong get_mixed_items để xử lý các đối tượng truy vấn đúng cách.
+# Phiên bản: 2.3 (Corrected)
+# MỤC ĐÍCH: Khắc phục lỗi TypeError: '<' not supported between instances of 'int' and 'NoneType'.
+# ĐÃ SỬA: Cập nhật hàm get_mixed_items để xử lý chính xác trường hợp session_size là None, trả về một query hợp nhất để đếm.
 
 from ....models import db, LearningItem, FlashcardProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
@@ -168,35 +167,31 @@ def get_hard_items(user_id, container_id, session_size):
 
 def get_mixed_items(user_id, container_id, session_size):
     """
-    Mô tả: Lấy danh sách các thẻ kết hợp giữa ôn tập và học mới cho một phiên học.
-           Ưu tiên các thẻ đến hạn trước, sau đó là các thẻ mới.
+    Mô tả: Lấy một truy vấn hợp nhất của thẻ đến hạn và thẻ mới.
+           Hàm này chủ yếu được dùng để ĐẾM tổng số thẻ có thể học khi bắt đầu một phiên.
+           Logic chọn thẻ thực tế nằm trong SessionManager.
     Args:
         user_id (int): ID của người dùng.
         container_id (int/str/list): ID của bộ thẻ, 'all', hoặc danh sách ID.
-        session_size (int): Số lượng thẻ tối đa cho phiên.
+        session_size (int): Thường là None khi gọi từ SessionManager.
     Returns:
-        list: Danh sách các đối tượng LearningItem.
+        Query: Một đối tượng truy vấn SQLAlchemy.
     """
     print(f">>> ALGORITHMS: Bắt đầu get_mixed_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     
-    # THAY ĐỔI: Chạy truy vấn để lấy danh sách các thẻ đến hạn
-    due_items = get_due_items(user_id, container_id, session_size).all()
+    # ĐÃ SỬA: Khắc phục lỗi TypeError bằng cách chỉ trả về một query hợp nhất để đếm, thay vì xử lý logic phức tạp ở đây.
+    # Hàm này chỉ cần cung cấp một cách để biết tổng số thẻ có thể học trong chế độ này.
     
-    if len(due_items) < session_size:
-        num_new_items_needed = session_size - len(due_items)
-        new_items = get_new_only_items(user_id, container_id, num_new_items_needed).all()
-        
-        # Kết hợp hai danh sách và xáo trộn để đảm bảo thứ tự ngẫu nhiên
-        mixed_items = due_items + new_items
-        random.shuffle(mixed_items)
-        
-        print(f">>> ALGORITHMS: get_mixed_items tìm thấy {len(due_items)} thẻ đến hạn và {len(new_items)} thẻ mới. Tổng cộng: {len(mixed_items)} <<<")
-        return mixed_items
-    else:
-        # Nếu có đủ thẻ đến hạn, chỉ lấy thẻ đến hạn và xáo trộn
-        random.shuffle(due_items)
-        print(f">>> ALGORITHMS: get_mixed_items tìm thấy đủ thẻ đến hạn. Tổng cộng: {len(due_items)} <<<")
-        return due_items
+    due_items_query = get_due_items(user_id, container_id, None)
+    new_items_query = get_new_only_items(user_id, container_id, None)
+    
+    # Kết hợp hai truy vấn lại với nhau
+    # Đây là cách hiệu quả để đếm tổng số thẻ duy nhất từ cả hai nhóm
+    mixed_query = due_items_query.union(new_items_query)
+    
+    print(f">>> ALGORITHMS: get_mixed_items đã tạo một query hợp nhất. <<<")
+    return mixed_query
+
 
 def get_filtered_flashcard_sets(user_id, search_query, search_field, current_filter, page, per_page=FlashcardLearningConfig.DEFAULT_ITEMS_PER_PAGE):
     """
