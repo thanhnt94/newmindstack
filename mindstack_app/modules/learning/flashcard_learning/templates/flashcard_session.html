@@ -1,9 +1,12 @@
-{# =============================== #}
-{# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 61.0 #}
-{# MỤC ĐÍCH: Sửa lỗi hiển thị 2 navbar và 2 tiêu đề trong modal thống kê. #}
-{# ĐÃ SỬA: Loại bỏ HTML trùng lặp và tích hợp tiêu đề, nút đóng vào navbar mới. #}
-{# =============================== #}
+{#
+    File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
+    Phiên bản: 68.0
+    MỤC ĐÍCH: Khắc phục triệt để các lỗi hiển thị và xử lý logic trên giao diện Flashcard Session.
+    ĐÃ SỬA: Sửa lỗi 1: Khắc phục lỗi `TypeError: Cannot read properties of null` trong hàm submitFlashcardAnswer.
+    ĐÃ SỬA: Sửa lỗi 2: Chỉnh sửa CSS để nội dung không bị đè lên thanh toolbar trên mobile.
+    ĐÃ SỬA: Sửa lỗi 3: Cấu trúc lại HTML và CSS để nội dung thẻ được căn giữa khi không có cuộn và căn trên khi có cuộn.
+    ĐÃ THÊM: Tích hợp logic bật/tắt ảnh và nút "đóng" ảnh vào media container.
+#}
 
 {% extends "base.html" %}
 {% from 'includes/_navbar.html' import render_navbar %}
@@ -17,7 +20,7 @@
         font-family: 'Inter', sans-serif;
         background-color: #f9fafb;
     }
-    
+
     /* Ghi đè CSS từ base.html để ẩn footer chỉ trên trang này khi ở màn hình nhỏ */
     @media (max-width: 1024px) {
         body > footer {
@@ -41,7 +44,7 @@
         padding: 0;
         overflow: hidden;
     }
-    
+
     .page-title {
         color: #1f2937;
         margin-bottom: 2rem;
@@ -77,7 +80,7 @@
         /* THAY ĐỔI: Cố định layout */
         overflow: hidden;
     }
-    
+
     @media (max-width: 1024px) {
         /* Bố cục trên màn màn hình di động */
         .page-shell {
@@ -94,7 +97,7 @@
             overflow: hidden; /* Quan trọng: Loại bỏ cuộn trên layout chính */
         }
         .stats-modal-body .statistics-card { display:block !important; }
-        
+
         .session-layout > .statistics-card {
             display: none !important;
         }
@@ -109,12 +112,19 @@
             flex: 1;
             padding: 0.5rem; /* Thêm padding nhẹ để nội dung không bị sát viền */
         }
-        .flashcard-card-container, .flashcard-card, .face {
+        .flashcard-card-container, .flashcard-card {
             height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: space-between; /* Căn trên và dưới */
-            padding: 0.1rem !important;
+        }
+        .face {
+            /* SỬA LỖI 2: Đảm bảo có đủ padding cho thanh toolbar trên di động */
+            padding: 60px 0.5rem 0.5rem 0.5rem !important;
+        }
+        ._card-container {
+            /* THÊM MỚI: Tối ưu layout nội dung trên mobile */
+            padding: 0.2rem !important;
         }
         .text-area {
             flex: 1;
@@ -168,11 +178,11 @@
         -webkit-transform-style: preserve-3d;
         cursor: pointer;
     }
-    
+
     .face {
         position: absolute;
         inset: 0;
-        /* THAY ĐỔI: Tăng padding-top để tạo khoảng trống an toàn cho toolbar */
+        /* ĐÃ SỬA: Tăng padding-top để tạo khoảng trống an toàn cho toolbar */
         padding: 60px 1.5rem 1.5rem 1.5rem;
         display: flex;
         flex-direction: column;
@@ -183,23 +193,23 @@
         -webkit-backface-visibility: hidden;
         transition: transform .6s ease-in-out;
     }
-    
-    .front { 
-        transform: rotateY(0deg); 
+
+    .front {
+        transform: rotateY(0deg);
     }
-    
-    .back { 
+
+    .back {
         transform: rotateY(180deg);
     }
-    
+
     .flashcard-card.flipped .front {
         transform: rotateY(180deg);
     }
-    
+
     .flashcard-card.flipped .back {
         transform: rotateY(360deg);
     }
-    
+
     .card-toolbar {
         display: grid;
         grid-template-columns: 1fr auto 1fr;
@@ -230,7 +240,7 @@
         letter-spacing: .06em;
         font-size: 1rem;
     }
-    
+
     .card-toolbar .icon-btn {
         width: 40px;
         height: 40px;
@@ -244,7 +254,7 @@
         cursor: pointer;
         transition: color 0.2s ease, background-color 0.2s ease;
     }
-    
+
     .card-toolbar .icon-btn:hover {
         background-color: #f3f4f6;
         color: #3b82f6;
@@ -280,44 +290,38 @@
 
     /* Cấu trúc mới cho nội dung thẻ */
     ._card-container {
-      flex: 1 1 auto;
-      min-height: 0;
-      padding: 0 1rem;
-      /* THAY ĐỔI: Xóa margin-top không cần thiết */
-      margin-top: 0; 
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: flex-start;
+        justify-content: flex-start;   /* thay vì center */
+        align-items: stretch;          /* kéo rộng vùng text */
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 0 1rem;
+        margin-top: 0;
+        display: flex;
+        flex-direction: column;
     }
-    
+
     .text-area {
-      flex: 1 1 auto;
-      min-height: 0;
-      width: 100%;
-      overflow-y: auto;
-      padding: 1rem 0;
-      display: flex; 
-      justify-content: flex-start;
-    }
-    
-    .front .text-area {
+        flex-grow: 1;
+        min-height: 0;
+        width: 100%;
+        overflow-y: auto;
+        padding: 1rem 0;
+        display: flex;
         align-items: center;
         justify-content: center;
     }
-
-    .front .text-area .flashcard-content-text {
-        text-align: center;
+    
+    /* Ghi đè lại text-align cho mặt sau để căn trái khi có nhiều dòng */
+    .back .text-area .flashcard-content-text {
+        text-align: left;
     }
     
-    .text-area.align-top {
-        align-items: flex-start;
+    /* THÊM MỚI: CSS cho trạng thái có cuộn */
+    .text-area.has-scroll {
+        justify-content: flex-start;   /* thay vì center */
+        align-items: flex-start;   
     }
-
-    .text-area > .flashcard-content-text {
-        width: 100%;
-    }
-
+    
     .front .text-area .flashcard-content-text {
         font-size: 2.2rem;
         font-weight: 700;
@@ -337,14 +341,41 @@
         padding-bottom: 1rem;
         width: 100%;
         text-align: center;
+        position: relative;
     }
-
+    
+    .media-container.hidden {
+        display: none;
+    }
+    
     .media-container img {
         max-width: 100%;
         height: auto;
         object-fit: contain;
         display: block;
         margin: auto;
+    }
+
+    .close-media-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 2rem;
+        height: 2rem;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .close-media-btn:hover {
+        background-color: rgba(0, 0, 0, 0.7);
+        transform: scale(1.1);
     }
 
 
@@ -366,7 +397,7 @@
     .actions.visible {
         display: flex;
     }
-    
+
     .btn {
         border: none;
         color: #fff;
@@ -430,7 +461,7 @@
             width: 500px;
         }
     }
-    
+
     .custom-modal-overlay {
       position: fixed;
       top: 0;
@@ -451,7 +482,7 @@
       text-align: center;
       max-width: 400px;
     }
-    
+
     .stats-modal-overlay {
         position: fixed;
         top: 0;
@@ -482,7 +513,7 @@
     .stats-modal-content.open {
         transform: translateX(0);
     }
-    
+
     .stats-modal-header {
         padding: 1rem 1.5rem;
         border-bottom: 1px solid #e5e7eb;
@@ -491,13 +522,13 @@
         justify-content: space-between;
         background-color: #fff;
     }
-    
+
     .stats-modal-header h3 {
         font-size: 1.25rem;
         font-weight: 700;
         color: #1f2937;
     }
-    
+
     .stats-modal-close-btn {
         background: none;
         border: none;
@@ -505,13 +536,13 @@
         cursor: pointer;
         color: #6b7280;
     }
-    
+
     .stats-modal-body {
         flex-grow: 1;
         padding: 1rem;
         overflow-y: auto;
     }
-    
+
     .card-info-section {
         border-top: 1px solid #e5e7eb;
         padding-top: 1.5rem;
@@ -579,10 +610,6 @@
         font-size: 1.125rem;
         font-weight: 700;
         color: #1f2937;
-    }
-    .stat-box .label {
-        font-size: 0.875rem;
-        color: #6b7280;
     }
     .stat-box.status .value {
         text-transform: capitalize;
@@ -705,20 +732,50 @@
       if (modalSessionScore) modalSessionScore.textContent = `+${sessionScore}`;
     }
 
-    function adjustFontSize(){
-      const scrollArea = document.querySelector('.back .text-area');
-      const txt = document.querySelector('.back .flashcard-content-text');
-      const card = document.getElementById('flashcard-card');
-      if (!scrollArea || !txt || !card) return;
-      txt.style.fontSize = '';
-      const isOverflow = () => scrollArea.scrollHeight > scrollArea.clientHeight;
-      let current = parseFloat(getComputedStyle(txt).fontSize) || 22;
-      const min = 18;
-      while (isOverflow() && current > min) {
-        current -= 1;
-        txt.style.fontSize = current + 'px';
-      }
+    /**
+     * Tự động điều chỉnh kích thước font và căn chỉnh nội dung mặt sau thẻ.
+     * Áp dụng căn giữa khi không có cuộn, và căn trên khi có cuộn.
+     */
+    function adjustCardLayout() {
+    const card = document.getElementById('flashcard-card');
+    if (!card) return;
+
+    const textAreas = card.querySelectorAll('.text-area');
+
+    textAreas.forEach(scrollArea => {
+        const txt = scrollArea.querySelector('.flashcard-content-text');
+        if (!txt) return;
+
+        // Reset style
+        txt.style.fontSize = '';
+        scrollArea.classList.remove('has-scroll');
+        scrollArea.parentElement?.classList?.remove('has-scroll'); // NEW: bỏ trạng thái container
+
+        // Đợi DOM render xong rồi đo
+        setTimeout(() => {
+        const hasScroll = scrollArea.scrollHeight > scrollArea.clientHeight;
+
+        if (hasScroll) {
+            // Ghim lên trên: set class cho cả text-area và container
+            scrollArea.classList.add('has-scroll');
+            scrollArea.parentElement?.classList?.add('has-scroll');
+
+            // Đảm bảo nhìn thấy từ đầu nội dung
+            scrollArea.scrollTop = 0;
+        }
+
+        // Thu nhỏ font nếu vẫn tràn
+        let current = parseFloat(getComputedStyle(txt).fontSize) || 22;
+        const min = 18;
+        while (scrollArea.scrollHeight > scrollArea.clientHeight && current > min) {
+            current -= 1;
+            txt.style.fontSize = current + 'px';
+        }
+        }, 0);
+    });
     }
+
+
 
     function generateDynamicButtons(buttonCount) {
         let buttonsHtml = '';
@@ -772,14 +829,18 @@
         <div id="flashcard-card" class="flashcard-card">
           <div class="face front">
             ${toolbars.front}
-            <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(fTxt)}</div></div>
-            ${c.front_img ? `<div class="media-container"><img src="${c.front_img}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
-            <audio id="front-audio" class="hidden" src="${c.front_audio_url || ''}"></audio>
+            <div class="_card-container">
+              <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(fTxt)}</div></div>
+              ${c.front_img ? `<div class="media-container"><img src="${c.front_img}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"><button class="close-media-btn">&times;</button></div>` : ''}
+              <audio id="front-audio" class="hidden" src="${c.front_audio_url || ''}"></audio>
+            </div>
           </div>
           <div class="face back">
             ${toolbars.back}
-            <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div></div>
-            ${c.back_img ? `<div class="media-container"><img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
+            <div class="_card-container">
+              <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div></div>
+              ${c.back_img ? `<div class="media-container"><img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"><button class="close-media-btn">&times;</button></div>` : ''}
+            </div>
             <div class="actions" id="internal-actions" data-button-count="${userButtonCount}">${buttonsHtml}</div>
             <audio id="back-audio" class="hidden" src="${c.back_audio_url || ''}"></audio>
           </div>
@@ -792,7 +853,8 @@
       card.addEventListener('click', () => {
         card.classList.toggle('flipped');
         actions?.classList.toggle('visible', card.classList.contains('flipped'));
-        setTimeout(adjustFontSize, 0);
+        // SỬA LỖI 3: Gọi hàm mới đã được cập nhật
+        setTimeout(adjustCardLayout, 0);
       });
       
       // ĐÃ SỬA: Ngăn sự kiện click từ các nút lan ra thẻ
@@ -831,7 +893,20 @@
           openNotePanel(itemId);
       }));
       
-      setTimeout(adjustFontSize, 0);
+      // THÊM MỚI: Logic cho nút đóng ảnh
+      document.querySelectorAll('.close-media-btn').forEach(btn => {
+        btn.addEventListener('click', ev => {
+            ev.stopPropagation();
+            const mediaContainer = btn.closest('.media-container');
+            if (mediaContainer) {
+                mediaContainer.classList.add('hidden');
+                setTimeout(adjustCardLayout, 0); // Điều chỉnh layout sau khi ẩn ảnh
+            }
+        });
+      });
+      
+      // SỬA LỖI 3: Gọi hàm mới khi render thẻ lần đầu
+      setTimeout(adjustCardLayout, 0);
     }
 
     async function generateAndPlayAudio(button, audioPlayer) {
@@ -889,8 +964,8 @@
         if (!stats) return `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> ${isInitial ? 'Đây là thẻ mới.' : 'Không có dữ liệu thống kê.'}</div>`;
         const totalReviews = stats.times_reviewed || 0;
         const correctCount = stats.correct_count || 0;
-        const incorrectCount = stats.incorrect_count || 0;
-        const vagueCount = stats.vague_count || 0;
+        const incorrectCount = stats.times_incorrect || 0;
+        const vagueCount = stats.times_vague || 0;
         const correctPercentage = totalReviews > 0 ? (correctCount / totalReviews) * 100 : 0;
         const incorrectPercentage = totalReviews > 0 ? (incorrectCount / totalReviews) * 100 : 0;
         const vaguePercentage = totalReviews > 0 ? (vagueCount / totalReviews) * 100 : 0;
@@ -966,7 +1041,10 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ item_id: itemId, user_answer: answer })
         });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`HTTP error! status: ${res.status}, body: ${errorText}`);
+        }
         const data = await res.json();
         
         sessionScore += data.score_change;
@@ -981,7 +1059,10 @@
         const previousStatsHtml = renderCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
         displayCardStats(previousCardStatsContainer, previousStatsHtml);
 
-        document.querySelector('.stats-tab-button[data-target="modal-previous-card-pane"]').click();
+        const prevTabButton = document.querySelector('.stats-tab-button[data-target="modal-previous-card-pane"]');
+        if (prevTabButton) {
+            prevTabButton.click();
+        }
         
         currentFlashcardIndex++;
         getNextFlashcardBatch();
@@ -1264,5 +1345,13 @@
       updateSessionSummary(0, 0, 0, 0);
       getNextFlashcardBatch();
     });
+
+    window.addEventListener('resize', () => {
+    setVh();
+    // NEW: căn chỉnh lại bố cục thẻ sau khi viewport đổi
+    setTimeout(adjustCardLayout, 0);
+    });
+
+
   </script>
 {% endblock %}
