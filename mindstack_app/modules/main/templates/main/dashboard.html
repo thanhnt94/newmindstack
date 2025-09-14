@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+        }
+        .feature-card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2.5rem;
+        }
+        .feature-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-5px);
+        }
+        .feature-card i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #4f46e5;
+        }
+        .feature-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        .feature-card p {
+            font-size: 1rem;
+            color: #6b7280;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 639px) {
+            .feature-card {
+                padding: 1.5rem;
+            }
+            .feature-card i {
+                font-size: 3rem;
+            }
+            .feature-card h2 {
+                font-size: 1.25rem;
+            }
+            .feature-card p {
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-4 sm:p-6 lg:p-8 text-center">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-8">
+        Chào mừng, {{ current_user.username }}!
+    </h1>
+    <p class="text-lg text-gray-600 mb-12">
+        Bắt đầu phiên học của bạn hoặc quản lý nội dung từ các chức năng dưới đây.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <a href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}" class="feature-card">
+            <i class="fas fa-clone text-blue-500"></i>
+            <h2>Học Flashcard</h2>
+            <p>Ôn tập từ vựng, khái niệm bằng hệ thống lặp lại ngắt quãng.</p>
+        </a>
+
+        <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}" class="feature-card">
+            <i class="fas fa-question-circle text-green-500"></i>
+            <h2>Làm Quiz</h2>
+            <p>Tự kiểm tra kiến thức với các bộ câu hỏi trắc nghiệm.</p>
+        </a>
+
+        <a href="{{ url_for('content_management.content_dashboard') }}" class="feature-card">
+            <i class="fas fa-book text-orange-500"></i>
+            <h2>Quản lý nội dung</h2>
+            <p>Tạo, chỉnh sửa và quản lý các bộ thẻ, quiz, và khóa học của bạn.</p>
+        </a>
+    </div>
+</div>
+{% endblock %}
