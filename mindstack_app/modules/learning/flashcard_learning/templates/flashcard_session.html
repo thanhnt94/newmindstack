@@ -1,11 +1,12 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 52.0 #}
-{# MỤC ĐÍCH: Khắc phục lỗi lật thẻ khi nhấn các nút trên toolbar. #}
-{# ĐÃ SỬA: Thêm logic `ev.stopPropagation()` vào các nút icon trên toolbar để ngăn sự kiện click lan truyền ra thẻ cha. #}
+{# Phiên bản: 61.0 #}
+{# MỤC ĐÍCH: Sửa lỗi hiển thị 2 navbar và 2 tiêu đề trong modal thống kê. #}
+{# ĐÃ SỬA: Loại bỏ HTML trùng lặp và tích hợp tiêu đề, nút đóng vào navbar mới. #}
 {# =============================== #}
 
 {% extends "base.html" %}
+{% from 'includes/_navbar.html' import render_navbar %}
 {% block title %}Học Flashcard{% endblock %}
 
 {% block head %}
@@ -29,6 +30,8 @@
         height: 100%;
         margin: 0;
         padding: 0;
+        /* THAY ĐỔI: Thêm overflow: hidden để ngăn cuộn toàn trang */
+        overflow: hidden;
     }
 
     .page-shell {
@@ -71,6 +74,8 @@
         align-items: stretch;
         min-height: 0;
         flex-grow: 1;
+        /* THAY ĐỔI: Cố định layout */
+        overflow: hidden;
     }
     
     @media (max-width: 1024px) {
@@ -272,17 +277,39 @@
         cursor: not-allowed;
     }
 
-    /* Nội dung text (căn dọc giữa) */
+    /* Cấu trúc mới cho nội dung thẻ */
+    ._card-container {
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: 0 1rem;
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start; /* Căn trái theo yêu cầu */
+    }
+    
     .text-area {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
-        display: flex;
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      overflow-y: auto;
+      padding: 1rem 0;
+      display: flex; 
+      justify-content: flex-start;
+    }
+    
+    .front .text-area {
         align-items: center;
         justify-content: center;
+    }
+
+    .front .text-area .flashcard-content-text {
         text-align: center;
-        padding: 3rem 1rem 1rem 1rem;
-        margin-top: 40px;
+    }
+    
+    .text-area.align-top {
+        align-items: flex-start;
     }
 
     .text-area > .flashcard-content-text {
@@ -296,12 +323,29 @@
     }
 
     .back .text-area .flashcard-content-text {
-        text-align: left;
         font-size: 22px;
         line-height: 1.5;
         color: #111827;
         white-space: pre-wrap;
     }
+    
+    .media-container {
+        flex-shrink: 0;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        width: 100%;
+        text-align: center;
+    }
+
+    .media-container img {
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
+        /* THAY ĐỔI: Căn giữa ảnh bằng margin auto */
+        display: block;
+        margin: auto;
+    }
+
 
     /* Nút đánh giá trong thẻ */
     .actions {
@@ -439,7 +483,7 @@
     }
     
     .stats-modal-header {
-        padding: 1.5rem;
+        padding: 1rem 1.5rem;
         border-bottom: 1px solid #e5e7eb;
         display: flex;
         align-items: center;
@@ -542,6 +586,60 @@
     .stat-box.status .value {
         text-transform: capitalize;
     }
+    
+    /* THAY ĐỔI: CSS mới cho navbar di động trong modal */
+    .modal-nav {
+        display: none; /* Mặc định ẩn trên desktop */
+        background-color: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 0.5rem 1rem;
+        justify-content: space-around;
+        align-items: center;
+    }
+    .modal-nav a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0.5rem;
+        font-weight: 600;
+        color: #4b5563;
+        font-size: 0.8rem;
+        flex: 1;
+        transition: color 0.2s ease, background-color 0.2s ease;
+    }
+    .modal-nav a:hover {
+        background-color: #f3f4f6;
+    }
+    .modal-nav a.active-nav-link {
+        color: #3b82f6;
+        background-color: #e0f2fe;
+        border-radius: 0.5rem;
+    }
+    .modal-nav a i {
+        font-size: 1.25rem;
+        margin-bottom: 0.25rem;
+        color: #9ca3af;
+    }
+    .modal-nav a.active-nav-link i {
+        color: #3b82f6;
+    }
+    @media (max-width: 1024px) {
+        .mobile-navbar {
+            display: flex;
+        }
+    }
+    /* Kết thúc CSS cho navbar */
+    
+    /* THAY ĐỔI: Điều chỉnh header của modal để phù hợp với navbar mới */
+    .stats-modal-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #fff;
+    }
   </style>
 {% endblock %}
 
@@ -576,6 +674,9 @@
 
 <div id="statsModal" class="stats-modal-overlay">
     <div id="statsModalContent" class="stats-modal-content">
+        <header class="bg-white shadow-md">
+            {{ render_navbar(current_user, request) }}
+        </header>
         <div class="stats-modal-header">
             <h3>Thống kê phiên học</h3>
             <button id="closeStatsModalBtn" class="stats-modal-close-btn">&times;</button>
@@ -933,7 +1034,7 @@
         const previousStatsHtml = renderCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
         displayCardStats(previousCardStatsContainer, previousStatsHtml);
 
-        document.querySelector('.stats-tab-button[data-target="previous-card-stats-pane"]').click();
+        document.querySelector('.stats-tab-button[data-target="modal-previous-pane"]').click();
         
         currentFlashcardIndex++;
         getNextFlashcardBatch();
@@ -986,9 +1087,42 @@
                 <div id="modal-previous-pane" class="stats-tab-pane">${previousStatsHtml}</div>
             `;
             
+            // THAY ĐỔI: Tái cấu trúc HTML của modal để bao gồm navbar trong một header riêng biệt
+            const modalHeaderHtml = `
+                <nav class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+                    <ul class="flex items-center space-x-2 w-full">
+                        <li>
+                            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 bg-blue-100 text-blue-600"
+                                href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}">
+                                <i class="fas fa-clone mr-1 md:mr-2"></i>
+                                <span>Flashcard</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                                href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}">
+                                <i class="fas fa-question-circle mr-1 md:mr-2"></i>
+                                <span>Quiz</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                                href="{{ url_for('content_management.content_dashboard') }}">
+                                <i class="fas fa-boxes mr-1 md:mr-2"></i>
+                                <span>Quản lý</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="stats-modal-header">
+                    <h3>Thống kê phiên học</h3>
+                    <button id="closeStatsModalBtn" class="stats-modal-close-btn">&times;</button>
+                </div>
+            `;
+            
             statsModalBody.innerHTML = `
                 <div class="statistics-card !shadow-none !border-none !p-0">
-                    <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê phiên học</h3>
+                    <h3 class="text-lg font-semibold text-center text-gray-800 my-4">Thống kê phiên học</h3>
                     <div class="bg-gray-50 p-4 rounded-lg mb-6">
                         <div class="grid grid-cols-2 gap-4 text-center">
                             <div>
@@ -1008,7 +1142,8 @@
                     <div>
                         ${tabsHtml}
                     </div>
-                    <hr class="my-6"><div class="mt-2 flex justify-center"><button id="end-session-modal-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button></div>
+                    <hr class="my-6">
+                    <div class="mt-2 flex justify-center"><button id="end-session-modal-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button></div>
                 </div>
             `;
             statsModalBody.querySelectorAll('.stats-tab-button').forEach(btn => btn.addEventListener('click', handleTabClick));

@@ -1,0 +1,92 @@
+{#
+    File: mindstack_app/modules/shared/templates/includes/_navbar.html
+    Phiên bản: 2.0
+    Mục đích: Cung cấp macro Jinja2 để render thanh điều hướng chính.
+              Macro này có thể được tái sử dụng ở bất cứ đâu để đảm bảo tính nhất quán.
+#}
+{% macro render_navbar(current_user, request) %}
+<nav class="container mx-auto px-4 py-3 flex items-center justify-between">
+    <a class="flex items-center space-x-2" href="{{ url_for('main.dashboard') }}">
+        <i class="fas fa-brain text-2xl md:text-3xl text-blue-400"></i>
+        <span class="hidden md:inline text-lg md:text-[20px] font-normal">Mindstack</span>
+    </a>
+    
+    <ul class="flex-grow flex justify-center items-center space-x-2 md:space-x-6">
+        {% if current_user.is_authenticated %}
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
+                {% if request.endpoint.startswith('learning.flashcard_learning') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
+                aria-current="page" href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}">
+                <i class="fas fa-clone mr-1 md:mr-2"></i>
+                <span>Flashcard</span>
+            </a>
+        </li>
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
+                {% if request.endpoint.startswith('learning.quiz_learning') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
+                href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}">
+                <i class="fas fa-question-circle mr-1 md:mr-2"></i>
+                <span>Quiz</span>
+            </a>
+        </li>
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
+                {% if request.endpoint.startswith('content_management.') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
+                href="{{ url_for('content_management.content_dashboard') }}">
+                <i class="fas fa-boxes mr-1 md:mr-2"></i>
+                <span>Quản lý</span>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+
+    <ul class="flex items-center space-x-4">
+        {% if current_user.is_authenticated %}
+        <li class="relative group">
+            <a class="text-gray-600 font-medium hover:text-blue-500 flex items-center" href="#" id="user-menu-button">
+                <span class="hidden md:inline mr-2">{{ current_user.username }}</span>
+                <i class="fas fa-user-circle text-2xl md:text-xl"></i>
+            </a>
+            <div class="absolute right-0 w-48 origin-top-right transform scale-95 opacity-0 invisible group-hover:visible group-hover:opacity-100 group-hover:scale-100 transition duration-200 ease-out z-50">
+                <div class="bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
+                        {% if request.endpoint == 'user_profile.view_profile' or request.endpoint == 'user_profile.edit_profile' %}bg-blue-100 text-blue-600{% endif %}" 
+                        href="{{ url_for('user_profile.view_profile') }}">
+                        <i class="fas fa-user mr-2 w-4"></i> Profile
+                    </a>
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
+                        {% if request.endpoint.startswith('content_management.') %}bg-blue-100 text-blue-600{% endif %}" 
+                        href="{{ url_for('content_management.content_dashboard') }}">
+                        <i class="fas fa-boxes mr-2 w-4"></i> Quản lý học liệu
+                    </a>
+                    {# THÊM MỚI: Link đến trang quản lý ghi chú #}
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
+                        {% if request.endpoint.startswith('notes.') %}bg-blue-100 text-blue-600{% endif %}" 
+                        href="{{ url_for('notes.manage_notes') }}">
+                        <i class="fas fa-sticky-note mr-2 w-4"></i> Ghi chú của tôi
+                    </a>
+                    {% if current_user.user_role == 'admin' %}
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 
+                        {% if request.endpoint.startswith('admin.') and not request.endpoint.startswith('admin.content_management.') %}bg-blue-100 text-blue-600{% endif %}" 
+                        href="{{ url_for('admin.admin_dashboard') }}">
+                        <i class="fas fa-user-shield mr-2 w-4"></i> Admin
+                    </a>
+                    {% endif %}
+                    <div class="h-px bg-gray-200 my-1"></div>
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('auth.logout') }}">
+                        <i class="fas fa-sign-out-alt mr-2 w-4"></i> Đăng xuất
+                    </a>
+                </div>
+            </div>
+        </li>
+        {% else %}
+        <li>
+            <a class="text-blue-600 hover:text-blue-800 font-medium" href="{{ url_for('auth.login') }}">Đăng nhập</a>
+        </li>
+        <li>
+            <a class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300" href="{{ url_for('auth.register') }}">Đăng ký</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endmacro %}
