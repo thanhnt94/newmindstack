@@ -7,8 +7,8 @@ from ....models import db, LearningItem, FlashcardProgress, LearningContainer, C
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
-from ....utils.pagination import get_pagination_data
-from ....utils.search import apply_search_filter
+from ....modules.shared.utils.pagination import get_pagination_data
+from ....modules.shared.utils.search import apply_search_filter
 from .config import FlashcardLearningConfig
 import random
 

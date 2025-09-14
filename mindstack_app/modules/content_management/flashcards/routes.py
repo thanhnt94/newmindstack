@@ -16,8 +16,8 @@ import pandas as pd
 import tempfile
 import os
 import asyncio
-from ....utils.pagination import get_pagination_data
-from ....utils.search import apply_search_filter
+from ....modules.shared.utils.pagination import get_pagination_data
+from ....modules.shared.utils.search import apply_search_filter
 # THÊM MỚI: Import AudioService
 from ...learning.flashcard_learning.audio_service import AudioService
 

@@ -17,8 +17,8 @@ from ....models import db, LearningContainer, LearningItem, LearningGroup, Conta
 import pandas as pd
 import tempfile
 import os
-from ....utils.pagination import get_pagination_data
-from ....utils.search import apply_search_filter
+from ....modules.shared.utils.pagination import get_pagination_data
+from ....modules.shared.utils.search import apply_search_filter
 
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
                         template_folder='templates') # Đã cập nhật đường dẫn template

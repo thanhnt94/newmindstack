@@ -65,8 +65,9 @@ def create_app(config_class=Config):
     from .modules.content_management.routes import content_management_bp
     from .modules.learning.routes import learning_bp
     from .modules.ai_services.routes import ai_services_bp
-    # THÊM MỚI: Import blueprint cho ghi chú
     from .modules.notes.routes import notes_bp
+    # THÊM MỚI: Import blueprint cho module shared
+    from .modules.shared import shared_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
@@ -77,8 +78,9 @@ def create_app(config_class=Config):
     app.register_blueprint(content_management_bp, url_prefix='/content')
     app.register_blueprint(learning_bp, url_prefix='/learn')
     app.register_blueprint(ai_services_bp)
-    # THÊM MỚI: Đăng ký blueprint cho ghi chú
     app.register_blueprint(notes_bp)
+    # THÊM MỚI: Đăng ký blueprint cho shared
+    app.register_blueprint(shared_bp)
 
 
     with app.app_context():

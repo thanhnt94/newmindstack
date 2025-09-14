@@ -7,13 +7,13 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.orm.attributes import flag_modified
-from ..forms import CourseForm, LessonForm # Đã sửa từ CourseSetForm thành CourseForm
+from ..forms import CourseForm, LessonForm # Đã sửa từ CourseSetForm
 from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
 import pandas as pd
 import tempfile
 import os
-from ....utils.pagination import get_pagination_data
-from ....utils.search import apply_search_filter
+from ....modules.shared.utils.pagination import get_pagination_data
+from ....modules.shared.utils.search import apply_search_filter
 
 courses_bp = Blueprint('content_management_courses', __name__,
                        template_folder='templates') # Đã cập nhật đường dẫn template
@@ -427,4 +427,3 @@ def delete_lesson(set_id, item_id):
     else:
         flash('Bài học đã được xóa.', 'success')
         return redirect(url_for('.list_lessons', set_id=set_id))
-
