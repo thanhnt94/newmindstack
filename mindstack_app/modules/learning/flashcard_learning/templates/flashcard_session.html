@@ -1,10 +1,8 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html #}
-{# Phiên bản: 47.0 #}
-{# MỤC ĐÍCH: Tích hợp nút "Hỏi AI" và cửa sổ modal AI. #}
-{# ĐÃ THÊM: Nút icon robot AI vào toolbar của thẻ. #}
-{# ĐÃ THÊM: Nhúng template _ai_modal.html. #}
-{# ĐÃ THÊM: JavaScript để xử lý logic mở modal và gọi API AI. #}
+{# Phiên bản: 52.0 #}
+{# MỤC ĐÍCH: Khắc phục lỗi lật thẻ khi nhấn các nút trên toolbar. #}
+{# ĐÃ SỬA: Thêm logic `ev.stopPropagation()` vào các nút icon trên toolbar để ngăn sự kiện click lan truyền ra thẻ cha. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -36,7 +34,6 @@
     .page-shell {
         display: flex;
         flex-direction: column;
-        /* THAY ĐỔI: Sử dụng biến CSS --vh để cố định chiều cao */
         height: calc(var(--vh, 1vh) * 100);
         padding: 0;
         overflow: hidden;
@@ -76,7 +73,6 @@
         flex-grow: 1;
     }
     
-    /* ĐÃ SỬA: Bố cục mobile được điều chỉnh để không hiển thị khung thống kê mặc định nữa */
     @media (max-width: 1024px) {
         /* Bố cục trên màn màn hình di động */
         .page-shell {
@@ -119,14 +115,14 @@
             flex: 1;
         }
         .actions {
-            margin-top: 0.5rem !important; /* ĐÃ SỬA: Giảm khoảng cách với nội dung phía trên */
-            padding: 0.5rem !important; /* ĐÃ SỬA: Giảm padding trên/dưới cho các nút */
+            margin-top: 0.5rem !important;
+            padding: 0.5rem !important;
             gap: 0rem;
             justify-content: center;
             width: 100%;
         }
         .flashcard-card {
-            padding: 0.2rem !important; /* Giảm padding trên thẻ flashcard */
+            padding: 0.2rem !important;
         }
     }
 
@@ -136,6 +132,8 @@
         flex-direction: column;
         height: 100%;
         min-height: 0;
+        position: relative;
+        overflow: hidden;
     }
 
     #flashcard-content {
@@ -172,7 +170,7 @@
         padding: 1.5rem;
         display: flex;
         flex-direction: column;
-        justify-content: space-between; /* Đảm bảo nội dung và nút được đẩy ra hai phía */
+        justify-content: space-between;
         gap: 10px;
         min-height: 0;
         backface-visibility: hidden;
@@ -180,17 +178,14 @@
         transition: transform .6s ease-in-out;
     }
     
-    /* Đảm bảo mặt trước hiển thị đúng chiều ở trạng thái bình thường */
     .front { 
         transform: rotateY(0deg); 
     }
     
-    /* Đảm bảo mặt sau bị lật ở trạng thái bình thường để ẩn đi */
     .back { 
         transform: rotateY(180deg);
     }
     
-    /* Khi lật thẻ, mặt trước sẽ bị xoay và mặt sau sẽ được xoay về đúng chiều */
     .flashcard-card.flipped .front {
         transform: rotateY(180deg);
     }
@@ -199,19 +194,26 @@
         transform: rotateY(360deg);
     }
     
-    /* Thanh tiêu đề của thẻ */
     .card-toolbar {
         display: grid;
-        /* THAY ĐỔI: Thêm cột cho nút AI */
-        grid-template-columns: auto auto 1fr auto; /* stats/edit, AI, label, audio */
+        grid-template-columns: 1fr auto 1fr;
         align-items: center;
-        margin-bottom: 0;
-        padding: 10px 1.5rem 0.5rem 1.5rem;
+        padding: 10px 1rem 0.5rem 1rem;
         position: absolute;
         width: 100%;
         top: 0;
         left: 0;
-        z-index: 10; /* Đảm bảo toolbar luôn ở trên */
+        z-index: 10;
+    }
+
+    .toolbar-left, .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .toolbar-right {
+        justify-content: flex-end;
     }
 
     .card-toolbar .label {
@@ -250,38 +252,37 @@
         cursor: not-allowed;
     }
 
-    /* Style cho nút audio như ảnh mẫu */
     .card-toolbar .play-audio-btn {
-        background-color: #2563eb; /* Màu xanh da trời */
-        color: #ffffff; /* Màu chữ trắng */
-        width: 36px; /* Kích thước nhỏ hơn một chút */
+        background-color: #2563eb;
+        color: #ffffff;
+        width: 36px;
         height: 36px;
-        font-size: 1rem; /* Kích thước icon nhỏ hơn */
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Thêm đổ bóng */
+        font-size: 1rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         cursor: pointer;
     }
 
     .card-toolbar .play-audio-btn:hover {
-        background-color: #1d4ed8; /* Màu xanh đậm hơn khi hover */
+        background-color: #1d4ed8;
         color: #ffffff;
     }
     .card-toolbar .play-audio-btn.is-disabled {
-        background-color: #9ca3af; /* Màu xám khi disabled */
+        background-color: #9ca3af;
         color: #e5e7eb;
         cursor: not-allowed;
     }
 
     /* Nội dung text (căn dọc giữa) */
     .text-area {
-        flex: 1 1 auto; /* Cho phép co giãn và chiếm không gian còn lại */
-        min-height: 0; /* Cho phép flex item thu nhỏ */
-        overflow: auto; /* Cho phép cuộn nếu nội dung text quá dài */
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 3rem 1rem 1rem 1rem; /* Điều chỉnh padding */
-        margin-top: 40px; /* Để tránh bị toolbar che */
+        padding: 3rem 1rem 1rem 1rem;
+        margin-top: 40px;
     }
 
     .text-area > .flashcard-content-text {
@@ -302,60 +303,19 @@
         white-space: pre-wrap;
     }
 
-    /* Ảnh/Âm thanh đáy thẻ (có nút ×) */
-    .media-container {
-        flex: 0 0 auto; /* Không cho phép co giãn, chiếm đủ không gian cần thiết */
-        max-height: 40vh; /* Giới hạn chiều cao tối đa của ảnh */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: #f8f9fa;
-        border-top: 1px solid #e5e7eb;
-        padding: 10px;
-        position: relative;
-    }
-
-    .media-container.hidden {
-        display: none;
-    }
-
-    .media-container img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        border-radius: 8px;
-    }
-
-    .media-close {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        background: rgba(0, 0, 0, .55);
-        color: #fff;
-        border: none;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        font-size: 16px;
-        line-height: 28px;
-        text-align: center;
-        cursor: pointer;
-    }
-
     /* Nút đánh giá trong thẻ */
     .actions {
         display: none;
         gap: .75rem;
         justify-content: center;
         padding: 1rem 1.5rem;
-        position: relative; /* Thay đổi từ absolute sang relative để không đè lên media-container */
+        position: relative;
         width: 100%;
         bottom: 0;
         left: 0;
         background: #fff;
         border-top: 1px solid #e5e7eb;
-        flex-shrink: 0; /* Không cho phép thu nhỏ để luôn hiển thị đầy đủ */
+        flex-shrink: 0;
     }
 
     .actions.visible {
@@ -371,42 +331,34 @@
         box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
         cursor: pointer;
         font-size: 1rem;
-        flex-grow: 1; /* Các nút sẽ tự động giãn nở để lấp đầy không gian */
+        flex-grow: 1;
         flex-shrink: 1;
         flex-basis: 0;
-        white-space: nowrap; /* Ngăn không cho chữ trong nút bị xuống dòng */
+        white-space: nowrap;
     }
 
-    /* THÊM MỚI: Các lớp màu sắc đậm nhạt */
-    .btn-red-dark { background-color: #dc2626; } /* red-600 */
-    .btn-red-light { background-color: #ef4444; } /* red-500 */
-    .btn-yellow-dark { background-color: #f59e0b; } /* amber-500 */
-    .btn-yellow-light { background-color: #facc15; } /* yellow-400 */
-    .btn-green-light { background-color: #10b981; } /* emerald-500 */
-    .btn-green-dark { background-color: #059669; } /* emerald-600 */
+    .btn-red-dark { background-color: #dc2626; }
+    .btn-red-light { background-color: #ef4444; }
+    .btn-yellow-dark { background-color: #f59e0b; }
+    .btn-yellow-light { background-color: #facc15; }
+    .btn-green-light { background-color: #10b981; }
+    .btn-green-dark { background-color: #059669; }
 
-    /* Ghi đè CSS cho nút trên mobile */
     @media (max-width: 768px) {
         .btn {
             font-size: 0.8rem;
             padding: 0.6rem 0.8rem;
         }
-
-        /* Bố cục cho 3 nút: 1 hàng */
         .actions[data-button-count="3"] {
             display: flex !important;
             flex-wrap: nowrap;
             justify-content: space-around;
         }
-
-        /* Bố cục cho 4 nút: 1 hàng */
         .actions[data-button-count="4"] {
             display: flex !important;
             flex-wrap: nowrap;
             justify-content: space-around;
         }
-
-        /* Bố cục cho 6 nút: 2 hàng, mỗi hàng 3 nút */
         .actions[data-button-count="6"] {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr);
@@ -414,13 +366,10 @@
         }
     }
 
-
-    /* Ẩn cụm nút ngoài (đã move vào thẻ) */
     #flashcard-buttons {
         display: none !important;
     }
 
-    /* Thống kê */
     @media (min-width: 1024px) {
         .statistics-card {
             background: #fff;
@@ -437,7 +386,6 @@
         }
     }
     
-    /* Custom Modal */
     .custom-modal-overlay {
       position: fixed;
       top: 0;
@@ -459,7 +407,6 @@
       max-width: 400px;
     }
     
-    /* THÊM MỚI: CSS cho popup thống kê trên mobile */
     .stats-modal-overlay {
         position: fixed;
         top: 0;
@@ -478,7 +425,7 @@
         position: absolute;
         top: 0;
         right: 0;
-        width: 100%; /* Chiếm toàn bộ chiều rộng màn hình */
+        width: 100%;
         height: 100%;
         background-color: #f9fafb;
         transform: translateX(100%);
@@ -520,7 +467,6 @@
         overflow-y: auto;
     }
     
-    /* THÊM MỚI: CSS cho phần thông tin thẻ vừa học */
     .card-info-section {
         border-top: 1px solid #e5e7eb;
         padding-top: 1.5rem;
@@ -548,7 +494,7 @@
         transition: max-height 0.3s ease-out;
     }
     .card-info-content.open {
-        max-height: 500px; /* Giá trị lớn hơn nội dung để chuyển động mượt mà */
+        max-height: 500px;
         padding-top: 0.5rem;
     }
     .card-info-content p {
@@ -563,7 +509,6 @@
         color: #1f2937;
     }
 
-    /* THÊM MỚI: CSS cho grid hiển thị chỉ số thống kê */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -608,6 +553,9 @@
         <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>
       </div>
       <div id="flashcard-buttons" class="mt-3"></div>
+      
+      {# Nhúng bảng ghi chú #}
+      {% include 'notes/_note_panel.html' %}
     </div>
 
     {# Bao gồm file partial chứa giao diện thống kê #}
@@ -638,7 +586,7 @@
     </div>
 </div>
 
-{# THÊM MỚI: Nhúng modal AI #}
+{# Nhúng modal AI #}
 {% include 'ai_services/_ai_modal.html' %}
 
 {% endblock %}
@@ -655,7 +603,7 @@
 
     let currentFlashcardBatch = [];
     let currentFlashcardIndex = 0;
-    let previousCardStats = null; // SỬA: Biến lưu trữ dữ liệu thống kê của thẻ TRƯỚC ĐÓ
+    let previousCardStats = null; 
 
     let sessionScore = 0;
     let currentUserTotalScore = {{ current_user.total_score | default(0) }};
@@ -684,9 +632,10 @@
     const regenerateAudioUrl = "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}";
     const userButtonCount = {{ user_button_count }};
     
-    // THÊM MỚI: URL cho API AI
     const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
-
+    
+    const getNoteUrl = "{{ url_for('notes.get_note', item_id=0) }}";
+    const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
 
     function formatTextForHtml(text){
       if (text == null) return '';
@@ -738,15 +687,24 @@
     function getCardToolbar(isMobile, itemId, setId) {
         const hasFrontAudio = currentFlashcardBatch[currentFlashcardIndex].content.front_audio_url || currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content;
         const hasBackAudio = currentFlashcardBatch[currentFlashcardIndex].content.back_audio_url || currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content;
-        const leftButtonHtml = isMobile ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-chart-bar"></i></button>` : `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
+        
+        // ĐÃ SỬA: Logic tạo các nút cho thanh công cụ
+        const menuButtonHtml = isMobile ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-bars"></i></button>` : '';
+        const aiButtonHtml = `<button class="icon-btn open-ai-modal-btn" data-item-id="${itemId}"><i class="fas fa-robot"></i></button>`;
+        const noteButtonHtml = `<button class="icon-btn open-note-panel-btn" data-item-id="${itemId}"><i class="fas fa-sticky-note"></i></button>`;
+        const editButtonHtml = `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
+
         const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
         const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
-        // THÊM MỚI: Nút AI
-        const aiButtonHtml = `<button class="icon-btn open-ai-modal-btn" data-item-id="${itemId}"><i class="fas fa-robot"></i></button>`;
+        
+        // ĐÃ SỬA: Cấu trúc HTML của thanh công cụ
+        const leftToolbarContent = isMobile 
+            ? `${menuButtonHtml}${aiButtonHtml}${noteButtonHtml}` 
+            : `${aiButtonHtml}${noteButtonHtml}`;
 
         return {
-            front: `<div class="card-toolbar">${leftButtonHtml}${aiButtonHtml}<span class="label">MẶT TRƯỚC</span>${audioButtonHtmlFront}</div>`,
-            back: `<div class="card-toolbar">${leftButtonHtml}${aiButtonHtml}<span class="label">MẶT SAU</span>${audioButtonHtmlBack}</div>`
+            front: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT TRƯỚC</span><div class="toolbar-right">${editButtonHtml}${audioButtonHtmlFront}</div></div>`,
+            back: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT SAU</span><div class="toolbar-right">${editButtonHtml}${audioButtonHtmlBack}</div></div>`
         };
     }
 
@@ -756,8 +714,6 @@
       const setId = data.container_id;
       const fTxt = c.front || '';
       const bTxt = c.back || '';
-      const hasFrontAudio = c.front_audio_url || c.front_audio_content;
-      const hasBackAudio = c.back_audio_url || c.back_audio_content;
       const buttonsHtml = generateDynamicButtons(userButtonCount);
       const isMobile = window.innerWidth < 1024;
       
@@ -784,18 +740,28 @@
       flashcardContentDiv.innerHTML = html;
       const card = document.getElementById('flashcard-card');
       const actions = document.getElementById('internal-actions');
+      
       card.addEventListener('click', () => {
         card.classList.toggle('flipped');
         actions?.classList.toggle('visible', card.classList.contains('flipped'));
         setTimeout(adjustFontSize, 0);
       });
+      
+      // ĐÃ SỬA: Ngăn sự kiện click từ các nút lan ra thẻ
+      document.querySelectorAll('.card-toolbar .icon-btn').forEach(btn => {
+          btn.addEventListener('click', ev => {
+              ev.stopPropagation();
+          });
+      });
+      
       document.querySelectorAll('.btn').forEach(b => b.addEventListener('click', ev => {
         ev.stopPropagation();
         submitFlashcardAnswer(data.item_id, b.dataset.answer);
       }));
+      
+      // Gán lại sự kiện cho các nút chức năng sau khi render
       document.querySelectorAll('.play-audio-btn').forEach(btn => {
-        btn.addEventListener('click', ev => {
-          ev.stopPropagation();
+        btn.addEventListener('click', () => {
           const audioPlayer = document.querySelector(btn.dataset.audioTarget);
           if (btn.classList.contains('is-disabled')) return;
           if (audioPlayer.src && audioPlayer.src !== window.location.href) {
@@ -805,16 +771,18 @@
           }
         });
       });
-      document.querySelectorAll('.open-stats-modal-btn').forEach(btn => btn.addEventListener('click', ev => {
-        ev.stopPropagation();
+      document.querySelectorAll('.open-stats-modal-btn').forEach(btn => btn.addEventListener('click', () => {
         toggleStatsModal(true);
       }));
-       // THÊM MỚI: Gán sự kiện cho nút AI
-      document.querySelectorAll('.open-ai-modal-btn').forEach(btn => btn.addEventListener('click', ev => {
-          ev.stopPropagation();
+      document.querySelectorAll('.open-ai-modal-btn').forEach(btn => btn.addEventListener('click', () => {
           const itemId = btn.dataset.itemId;
           openAiModal(itemId);
       }));
+      document.querySelectorAll('.open-note-panel-btn').forEach(btn => btn.addEventListener('click', () => {
+          const itemId = btn.dataset.itemId;
+          openNotePanel(itemId);
+      }));
+      
       setTimeout(adjustFontSize, 0);
     }
 
@@ -957,7 +925,7 @@
         currentUserTotalScore = data.updated_total_score;
         
         const previousCardContent = currentFlashcardBatch[currentFlashcardIndex].content;
-        previousCardStats = { // SỬA: Cập nhật biến global
+        previousCardStats = { 
             stats: data.statistics,
             scoreChange: data.score_change,
             cardContent: previousCardContent
@@ -997,14 +965,12 @@
       document.getElementById('custom-alert-ok-btn').addEventListener('click', () => document.getElementById('custom-alert-modal').remove());
     }
     
-    // SỬA: Logic render cho modal
     function toggleStatsModal(show) {
         if (show) {
             statsModal.classList.add('open');
             statsModalContent.classList.add('open');
             document.body.style.overflow = 'hidden';
             
-            // Lấy dữ liệu thẻ hiện tại
             const currentCardData = currentFlashcardBatch.length > 0 ? currentFlashcardBatch[currentFlashcardIndex] : null;
             let initialStatsHtml;
             if (currentCardData && currentCardData.initial_stats) {
@@ -1013,16 +979,13 @@
                 initialStatsHtml = '<div class="text-center text-gray-500">Chưa có thẻ nào.</div>';
             }
 
-            // Lấy dữ liệu thẻ trước đó
             const previousStatsHtml = previousCardStats ? renderCardStatsHtml(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent, false) : '<div class="text-center text-gray-500">Chưa trả lời thẻ nào.</div>';
             
-            // Tạo HTML cho các tab
             const tabsHtml = `
                 <div id="modal-current-pane" class="stats-tab-pane active">${initialStatsHtml}</div>
                 <div id="modal-previous-pane" class="stats-tab-pane">${previousStatsHtml}</div>
             `;
             
-            // Render trực tiếp vào modal
             statsModalBody.innerHTML = `
                 <div class="statistics-card !shadow-none !border-none !p-0">
                     <h3 class="text-lg font-semibold text-center text-gray-800 mb-4">Thống kê phiên học</h3>
@@ -1048,11 +1011,9 @@
                     <hr class="my-6"><div class="mt-2 flex justify-center"><button id="end-session-modal-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 shadow-sm">Kết thúc phiên</button></div>
                 </div>
             `;
-            // Gán lại sự kiện cho các nút trong modal
             statsModalBody.querySelectorAll('.stats-tab-button').forEach(btn => btn.addEventListener('click', handleTabClick));
             document.getElementById('end-session-modal-btn')?.addEventListener('click', () => endSessionBtn.click());
 
-             // Mở tab "Thẻ trước đó" nếu có dữ liệu
             if (previousCardStats) {
                 statsModalBody.querySelector('button[data-target="modal-previous-pane"]').click();
             }
@@ -1076,7 +1037,7 @@
     }
 
     // ==============================================================================
-    // THÊM MỚI: LOGIC CHO AI MODAL
+    // LOGIC CHO AI MODAL
     // ==============================================================================
     const aiModal = document.getElementById('ai-modal');
     const aiModalCloseBtn = document.getElementById('ai-modal-close-btn');
@@ -1157,6 +1118,77 @@
             }
         }
     });
+
+    // ==============================================================================
+    // LOGIC CHO NOTE PANEL
+    // ==============================================================================
+    const notePanel = document.getElementById('note-panel');
+    const noteTextarea = document.getElementById('note-textarea');
+    const saveNoteBtn = document.getElementById('save-note-btn');
+    const cancelNoteBtn = document.getElementById('cancel-note-btn');
+    let currentNoteItemId = null;
+
+    async function openNotePanel(itemId) {
+        if (!itemId) return;
+        currentNoteItemId = itemId;
+        
+        noteTextarea.value = 'Đang tải ghi chú...';
+        noteTextarea.disabled = true;
+        try {
+            const response = await fetch(getNoteUrl.replace('/0', `/${itemId}`));
+            const result = await response.json();
+            if (response.ok && result.success) {
+                noteTextarea.value = result.content;
+            } else {
+                noteTextarea.value = '';
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải ghi chú:', error);
+            noteTextarea.value = 'Lỗi khi tải ghi chú.';
+        } finally {
+            noteTextarea.disabled = false;
+        }
+
+        notePanel.classList.add('open');
+    }
+
+    function closeNotePanel() {
+        notePanel.classList.remove('open');
+        currentNoteItemId = null;
+        noteTextarea.value = '';
+    }
+
+    async function saveNote() {
+        if (!currentNoteItemId) return;
+
+        const content = noteTextarea.value;
+        saveNoteBtn.disabled = true;
+        saveNoteBtn.textContent = 'Đang lưu...';
+
+        try {
+            const response = await fetch(saveNoteUrl.replace('/0', `/${currentNoteItemId}`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                window.showFlashMessage(result.message, 'success');
+                closeNotePanel();
+            } else {
+                window.showFlashMessage(result.message || 'Lỗi khi lưu ghi chú.', 'danger');
+            }
+        } catch (error) {
+            console.error('Lỗi khi lưu ghi chú:', error);
+            window.showFlashMessage('Lỗi kết nối khi lưu ghi chú.', 'danger');
+        } finally {
+            saveNoteBtn.disabled = false;
+            saveNoteBtn.textContent = 'Lưu Ghi chú';
+        }
+    }
+
+    saveNoteBtn.addEventListener('click', saveNote);
+    cancelNoteBtn.addEventListener('click', closeNotePanel);
 
 
     document.addEventListener('DOMContentLoaded', () => {
