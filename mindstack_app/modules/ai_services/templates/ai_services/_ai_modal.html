@@ -1,7 +1,8 @@
 {#
     File: mindstack_app/templates/includes/_ai_modal.html
-    Phiên bản: 1.0
+    Phiên bản: 1.4
     Mục đích: Template cho modal (cửa sổ) chung để tương tác với Trợ lý AI.
+              ĐÃ SỬA: Loại bỏ khai báo biến trùng lặp.
 #}
 <style>
     .ai-modal-overlay {
@@ -65,7 +66,7 @@
         flex-grow: 1;
     }
     .ai-prompt-buttons {
-        display: flex;
+        display: none; /* Ẩn các nút prompt */
         flex-wrap: wrap;
         gap: 0.75rem;
         margin-bottom: 1.5rem;
@@ -85,6 +86,7 @@
         border-color: #9ca3af;
     }
     .ai-custom-prompt-area {
+        display: none; /* Ẩn ô nhập prompt tùy chỉnh */
         width: 100%;
         padding: 0.75rem;
         border: 1px solid #d1d5db;
@@ -99,7 +101,6 @@
         border-radius: 0.5rem;
         padding: 1rem;
         min-height: 100px;
-        white-space: pre-wrap; /* Giữ nguyên định dạng xuống dòng và khoảng trắng */
         font-family: 'Inter', sans-serif;
         line-height: 1.6;
         color: #374151;
@@ -138,3 +139,70 @@
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    const aiModal = document.getElementById('ai-modal');
+    const aiModalCloseBtn = document.getElementById('ai-modal-close-btn');
+    const aiModalTerm = document.getElementById('ai-modal-term');
+    const aiResponseContainer = document.getElementById('ai-response-container');
+    const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
+    
+    let currentAiItemId = null;
+    
+    // Hàm này sẽ được gọi từ trang cha
+    window.openAiModal = function(itemId, termContent, itemContent) {
+        currentAiItemId = itemId;
+        aiModalTerm.textContent = termContent; // Sử dụng dữ liệu từ trang cha
+        aiModal.classList.add('open');
+        
+        fetchAiResponse('explanation', itemContent);
+    };
+
+    function closeAiModal() {
+        aiModal.classList.remove('open');
+        currentAiItemId = null;
+        aiResponseContainer.innerHTML = `<div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>`; // Reset nội dung
+    }
+
+    async function fetchAiResponse(promptType, itemContent) {
+        if (!currentAiItemId) return;
+
+        aiResponseContainer.innerHTML = `
+            <div class="ai-loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>AI đang suy nghĩ...</span>
+            </div>`;
+
+        try {
+            const response = await fetch(getAiResponseUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    item_id: currentAiItemId,
+                    prompt_type: promptType,
+                    custom_question: itemContent
+                })
+            });
+
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                aiResponseContainer.innerHTML = marked.parse(result.response);
+            } else {
+                aiResponseContainer.innerHTML = `<p class="text-red-500">Lỗi: ${result.message || 'Không thể nhận phản hồi từ AI.'}</p>`;
+            }
+        } catch (error) {
+            console.error('Lỗi khi gọi API AI:', error);
+            aiResponseContainer.innerHTML = `<p class="text-red-500">Lỗi kết nối đến máy chủ AI.</p>`;
+        }
+    }
+
+    aiModalCloseBtn.addEventListener('click', closeAiModal);
+    aiModal.addEventListener('click', (event) => {
+        if (event.target === aiModal) {
+            closeAiModal();
+        }
+    });
+
+</script>

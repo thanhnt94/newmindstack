@@ -1,7 +1,8 @@
 # File: mindstack_app/modules/ai_services/prompts.py
-# Phiên bản: 2.1
-# MỤC ĐÍCH: Thêm chú thích để làm rõ logic truy cập container.
-# ĐÃ SỬA: Bổ sung comment giải thích về backref.
+# Phiên bản: 2.2
+# MỤC ĐÍCH: Triển khai logic phân cấp prompt.
+# ĐÃ SỬA: Bổ sung logic để lấy prompt từ LearningItem, sau đó đến LearningContainer,
+#         và cuối cùng là prompt mặc định.
 
 # Prompt mặc định cho việc giải thích Flashcard
 DEFAULT_FLASHCARD_EXPLANATION_PROMPT = (
@@ -95,11 +96,15 @@ def get_formatted_prompt(item, purpose='explanation', custom_question=None):
     raw_prompt = ""
     container = item.container
     
-    # 1. Ưu tiên prompt tùy chỉnh trong 'ai_settings' của container
-    if container and isinstance(container.ai_settings, dict):
+    # 1. Ưu tiên prompt tùy chỉnh trong content của item
+    if isinstance(item.content, dict) and item.content.get('ai_prompt'):
+        raw_prompt = item.content.get('ai_prompt')
+    
+    # 2. Nếu không có, dùng prompt tùy chỉnh của container
+    if not raw_prompt and container and isinstance(container.ai_settings, dict):
         raw_prompt = container.ai_settings.get('custom_prompt')
 
-    # 2. Nếu không có, dùng prompt mặc định theo loại item
+    # 3. Nếu vẫn không có, dùng prompt mặc định theo loại item
     if not raw_prompt:
         if item.item_type == 'FLASHCARD':
             raw_prompt = DEFAULT_FLASHCARD_EXPLANATION_PROMPT

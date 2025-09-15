@@ -9,18 +9,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title }}</title>
-    <!-- Nhúng Google Fonts cho font Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CSS tùy chỉnh để căn chỉnh logo và thiết lập font mặc định -->
     <style>
         html, body {
             height: 100%;
@@ -112,6 +108,17 @@
                             {{ form.passage_order(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Thứ tự đoạn văn (ví dụ: 1, 2)") }}
                         </div>
                     </div>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-6">
+                    {{ form.ai_prompt.label(class="block text-sm font-medium text-gray-700") }}
+                    <p class="text-xs text-gray-500 mb-2">{{ form.ai_prompt.description }}</p>
+                    {{ form.ai_prompt(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows="3", placeholder="Nhập prompt tùy chỉnh...") }}
+                    {% if form.ai_prompt.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.ai_prompt.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
 
                 <div class="flex justify-end space-x-4 pt-4">

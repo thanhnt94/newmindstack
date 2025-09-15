@@ -1,5 +1,6 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 4.5
+# Phiên bản: 4.6
+# ĐÃ SỬA: Cập nhật các route add và edit flashcard item để xử lý trường ai_prompt.
 # ĐÃ SỬA: Cập nhật template_folder của Blueprint để phản ánh cấu trúc thư mục mới.
 # ĐÃ THÊM: Tích hợp AudioService để tạo và cache file audio từ Text-to-Speech.
 # ĐÃ THÊM: Route mới để tái tạo audio cho một thẻ cụ thể.
@@ -173,7 +174,7 @@ def add_flashcard_set():
                     back_content = str(row['back']) if pd.notna(row['back']) else ''
                     if front_content and back_content:
                         item_content = {'front': front_content, 'back': back_content}
-                        optional_cols = ['front_audio_content', 'back_audio_content', 'front_img', 'back_img', 'ai_explanation']
+                        optional_cols = ['front_audio_content', 'back_audio_content', 'front_img', 'back_img', 'ai_explanation', 'ai_prompt']
                         for col in optional_cols:
                             if col in df.columns and pd.notna(row[col]):
                                 item_content[col] = str(row[col])
@@ -266,7 +267,7 @@ def edit_flashcard_set(set_id):
                     back_content = str(row['back']) if pd.notna(row['back']) else ''
                     if front_content and back_content:
                         item_content = {'front': front_content, 'back': back_content}
-                        optional_cols = ['front_audio_content', 'back_audio_content', 'front_img', 'back_img', 'ai_explanation']
+                        optional_cols = ['front_audio_content', 'back_audio_content', 'front_img', 'back_img', 'ai_explanation', 'ai_prompt']
                         for col in optional_cols:
                             if col in df.columns and pd.notna(row[col]):
                                 item_content[col] = str(row[col])
@@ -362,7 +363,8 @@ def list_flashcard_items(set_id):
         'front_audio_content': LearningItem.content['front_audio_content'],
         'back_audio_content': LearningItem.content['back_audio_content'],
         'front_img': LearningItem.content['front_img'],
-        'back_img': LearningItem.content['back_img']
+        'back_img': LearningItem.content['back_img'],
+        'ai_prompt': LearningItem.content['ai_prompt']
     }
     
     # Áp dụng bộ lọc tìm kiếm với search_field_map đúng định dạng
@@ -412,18 +414,22 @@ def add_flashcard_item(set_id):
         new_order = (max_order or 0) + 1
         
         # Tạo thẻ Flashcard mới
+        content_dict = {
+            'front': form.front.data, 'back': form.back.data,
+            'front_audio_content': form.front_audio_content.data,
+            'front_audio_url': form.front_audio_url.data,
+            'back_audio_content': form.back_audio_content.data,
+            'back_audio_url': form.back_audio_url.data,
+            'front_img': form.front_img.data,
+            'back_img': form.back_img.data,
+        }
+        if form.ai_prompt.data:
+            content_dict['ai_prompt'] = form.ai_prompt.data
+
         new_item = LearningItem(
             container_id=set_id,
             item_type='FLASHCARD',
-            content={
-                'front': form.front.data, 'back': form.back.data,
-                'front_audio_content': form.front_audio_content.data,
-                'front_audio_url': form.front_audio_url.data,
-                'back_audio_content': form.back_audio_content.data,
-                'back_audio_url': form.back_audio_url.data,
-                'front_img': form.front_img.data,
-                'back_img': form.back_img.data,
-            },
+            content=content_dict,
             order_in_container=new_order
         )
         db.session.add(new_item)
@@ -474,6 +480,11 @@ def edit_flashcard_item(set_id, item_id):
         flashcard_item.content['front_img'] = form.front_img.data
         flashcard_item.content['back_img'] = form.back_img.data
         
+        if form.ai_prompt.data:
+            flashcard_item.content['ai_prompt'] = form.ai_prompt.data
+        elif 'ai_prompt' in flashcard_item.content:
+            del flashcard_item.content['ai_prompt']
+
         # Đánh dấu trường JSON đã thay đổi để SQLAlchemy lưu lại
         flag_modified(flashcard_item, "content")
         db.session.commit() # Lưu thay đổi
@@ -495,6 +506,7 @@ def edit_flashcard_item(set_id, item_id):
         form.back_audio_url.data = flashcard_item.content.get('back_audio_url')
         form.front_img.data = flashcard_item.content.get('front_img')
         form.back_img.data = flashcard_item.content.get('back_img')
+        form.ai_prompt.data = flashcard_item.content.get('ai_prompt')
     
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':

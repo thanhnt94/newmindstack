@@ -668,6 +668,7 @@
 
 {% block scripts %}
   {{ super() }}
+  
   <script>
     function setVh() {
         let vh = window.innerHeight * 0.01;
@@ -676,6 +677,7 @@
     window.addEventListener('resize', setVh);
     window.addEventListener('DOMContentLoaded', setVh);
 
+    // ĐÃ SỬA: Biến này chỉ được khai báo một lần
     let currentFlashcardBatch = [];
     let currentFlashcardIndex = 0;
     let previousCardStats = null; 
@@ -706,8 +708,6 @@
     const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
     const regenerateAudioUrl = "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}";
     const userButtonCount = {{ user_button_count }};
-    
-    const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
     
     const getNoteUrl = "{{ url_for('notes.get_note', item_id=0) }}";
     const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
@@ -886,7 +886,10 @@
       }));
       document.querySelectorAll('.open-ai-modal-btn').forEach(btn => btn.addEventListener('click', () => {
           const itemId = btn.dataset.itemId;
-          openAiModal(itemId);
+          const currentCard = currentFlashcardBatch[currentFlashcardIndex];
+          const termContent = currentCard.content.front;
+          const itemContent = currentCard.content;
+          window.openAiModal(itemId, termContent, itemContent);
       }));
       document.querySelectorAll('.open-note-panel-btn').forEach(btn => btn.addEventListener('click', () => {
           const itemId = btn.dataset.itemId;
@@ -1186,86 +1189,14 @@
     // ==============================================================================
     // LOGIC CHO AI MODAL
     // ==============================================================================
-    const aiModal = document.getElementById('ai-modal');
-    const aiModalCloseBtn = document.getElementById('ai-modal-close-btn');
-    const aiModalTerm = document.getElementById('ai-modal-term');
-    const aiResponseContainer = document.getElementById('ai-response-container');
-    const aiPromptButtons = document.querySelectorAll('.ai-prompt-btn');
-    const aiCustomPromptInput = document.getElementById('ai-custom-prompt');
-    let currentAiItemId = null;
-
+    // Hàm này được định nghĩa ở đây để giao tiếp với modal
     function openAiModal(itemId) {
-        currentAiItemId = itemId;
-        const cardData = currentFlashcardBatch.find(item => item.item_id == itemId);
-        if (!cardData) return;
-
-        aiModalTerm.textContent = cardData.content.front;
-        aiResponseContainer.innerHTML = '<div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>';
-        aiCustomPromptInput.value = '';
-        aiModal.classList.add('open');
+        const currentCard = currentFlashcardBatch[currentFlashcardIndex];
+        const termContent = currentCard.content.front;
+        const itemContent = currentCard.content;
+        window.openAiModal(itemId, termContent, itemContent);
     }
-
-    function closeAiModal() {
-        aiModal.classList.remove('open');
-        currentAiItemId = null;
-    }
-
-    async function fetchAiResponse(promptType, customQuestion = null) {
-        if (!currentAiItemId) return;
-
-        aiResponseContainer.innerHTML = `
-            <div class="ai-loading-spinner">
-                <i class="fas fa-spinner fa-spin"></i>
-                <span>AI đang suy nghĩ...</span>
-            </div>`;
-
-        try {
-            const response = await fetch(getAiResponseUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    item_id: currentAiItemId,
-                    prompt_type: promptType,
-                    custom_question: customQuestion
-                })
-            });
-
-            const result = await response.json();
-            
-            if (response.ok && result.success) {
-                aiResponseContainer.innerHTML = formatTextForHtml(result.response);
-            } else {
-                aiResponseContainer.innerHTML = `<p class="text-red-500">Lỗi: ${result.message || 'Không thể nhận phản hồi từ AI.'}</p>`;
-            }
-        } catch (error) {
-            console.error('Lỗi khi gọi API AI:', error);
-            aiResponseContainer.innerHTML = `<p class="text-red-500">Lỗi kết nối đến máy chủ AI.</p>`;
-        }
-    }
-
-    aiModalCloseBtn.addEventListener('click', closeAiModal);
-    aiModal.addEventListener('click', (event) => {
-        if (event.target === aiModal) {
-            closeAiModal();
-        }
-    });
-
-    aiPromptButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            fetchAiResponse(button.dataset.promptType);
-        });
-    });
-
-    aiCustomPromptInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            const question = aiCustomPromptInput.value.trim();
-            if (question) {
-                fetchAiResponse('custom', question);
-            }
-        }
-    });
-
+    
     // ==============================================================================
     // LOGIC CHO NOTE PANEL
     // ==============================================================================
@@ -1351,7 +1282,6 @@
     // NEW: căn chỉnh lại bố cục thẻ sau khi viewport đổi
     setTimeout(adjustCardLayout, 0);
     });
-
 
   </script>
 {% endblock %}

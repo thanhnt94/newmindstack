@@ -9,18 +9,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title }}</title>
-    <!-- Nhúng Google Fonts cho font Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CSS tùy chỉnh để căn chỉnh logo và thiết lập font mặc định -->
     <style>
         html, body {
             height: 100%;
@@ -91,8 +87,13 @@
                             {{ form.back_img(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh mặt sau") }}
                         </div>
                         <div>
+                            {{ form.ai_prompt.label(class="block text-sm font-medium text-gray-700") }}
+                            <p class="text-xs text-gray-500 mb-2">{{ form.ai_prompt.description }}</p>
+                            {{ form.ai_prompt(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows="3", placeholder="Nhập prompt tùy chỉnh...") }}
+                        </div>
+                        <div>
                             {{ form.ai_explanation.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.ai_explanation(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50", rows="3", readonly=True) }}
+                            {{ form.ai_explanation(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 focus:outline-none", rows="3", readonly=True) }}
                         </div>
                     </div>
                 </div>
@@ -113,9 +114,7 @@
         const form = document.getElementById('flashcardItemForm');
         if (form) {
             // Đặt action của form dựa trên URL hiện tại (để xử lý cả add và edit)
-            // Lấy URL từ window.location.href của iframe
             const currentUrl = new URL(window.location.href);
-            // Xóa tham số is_modal để action URL chỉ là endpoint gốc
             currentUrl.searchParams.delete('is_modal'); 
             form.action = currentUrl.toString();
 

@@ -1,12 +1,7 @@
 # File: newmindstack/mindstack_app/modules/content_management/quizzes/routes.py
-# Phiên bản: 3.30
-# ĐÃ SỬA: Khắc phục UnboundLocalError: local variable 'file' referenced before assignment
-#         bằng cách đảm bảo biến 'excel_file' được gán giá trị bên trong khối if kiểm tra file.
-# ĐÃ SỬA: Khắc phục UnboundLocalError cho group_image_file và group_audio_file
-#         bằng cách khởi tạo chúng ở đầu mỗi vòng lặp.
-# ĐÃ SỬA: Cập nhật template_folder của Blueprint để phản ánh cấu trúc thư mục mới.
-# ĐÃ SỬA: Bổ sung logic đọc và lưu trữ question_image_file và question_audio_file
-#         vào content của LearningItem khi upload từ Excel.
+# Phiên bản: 3.32
+# ĐÃ SỬA: Cập nhật các route add và edit quiz item để xử lý trường ai_prompt.
+# ĐÃ SỬA: Bổ sung ai_prompt vào item_search_field_map trong list_quiz_items.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
@@ -90,10 +85,10 @@ def list_quiz_sets():
     }
     
     # Áp dụng bộ lọc tìm kiếm
-    base_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
+    filtered_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
 
     # Lấy dữ liệu phân trang
-    pagination = get_pagination_data(base_query.order_by(LearningContainer.created_at.desc()), page)
+    pagination = get_pagination_data(filtered_query.order_by(LearningContainer.created_at.desc()), page)
     quiz_sets = pagination.items
     
     # Đếm số lượng câu hỏi trong mỗi bộ
@@ -219,6 +214,9 @@ def add_quiz_set():
                     # Lấy các trường media riêng cho LearningItem (câu hỏi con)
                     item_image_file = str(row['question_image_file']) if 'question_image_file' in df.columns and pd.notna(row['question_image_file']) else None
                     item_audio_file = str(row['question_audio_file']) if 'question_audio_file' in df.columns and pd.notna(row['question_audio_file']) else None
+                    
+                    # Lấy trường ai_prompt
+                    item_ai_prompt = str(row['ai_prompt']) if 'ai_prompt' in df.columns and pd.notna(row['ai_prompt']) else None
 
                     item_content = {
                         'question': question_text,
@@ -233,8 +231,10 @@ def add_quiz_set():
                         'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None,
                         'passage_order': int(passage_order) if passage_order else None, # Đảm bảo lưu passage_order vào item content
                         'question_image_file': item_image_file, # THÊM VÀO: Lưu tên file ảnh của câu hỏi con
-                        'question_audio_file': item_audio_file # THÊM VÀO: Lưu tên file audio của câu hỏi con
+                        'question_audio_file': item_audio_file, # THÊM VÀO: Lưu tên file audio của câu hỏi con
                     }
+                    if item_ai_prompt:
+                        item_content['ai_prompt'] = item_ai_prompt
 
                     # Debug log: Kiểm tra các giá trị media trước khi lưu
                     current_app.logger.debug(f"Hàng {index + 2}: Item Image: '{item_image_file}', Item Audio: '{item_audio_file}'")
@@ -364,7 +364,8 @@ def list_quiz_items(set_id):
         'pre_question_text': LearningItem.content['pre_question_text'],
         'passage_text': LearningItem.content['passage_text'],
         'question_image_file': LearningItem.content['question_image_file'],
-        'question_audio_file': LearningItem.content['question_audio_file']
+        'question_audio_file': LearningItem.content['question_audio_file'],
+        'ai_prompt': LearningItem.content['ai_prompt']
     }
 
     # Áp dụng bộ lọc tìm kiếm với search_field_map đúng định dạng
@@ -402,24 +403,28 @@ def add_quiz_item(set_id):
     
     form = QuizItemForm()
     if form.validate_on_submit():
+        content_dict = {
+            'question': form.question.data,
+            'options': {
+                'A': form.option_a.data, 'B': form.option_b.data,
+                'C': form.option_c.data, 'D': form.option_d.data
+            },
+            'correct_answer': form.correct_answer_text.data,
+            'explanation': form.guidance.data,
+            'pre_question_text': form.pre_question_text.data,
+            'passage_text': form.passage_text.data,
+            'passage_order': form.passage_order.data,
+            # Thêm các trường media từ form vào content
+            'question_image_file': form.question_image_file.data,
+            'question_audio_file': form.question_audio_file.data
+        }
+        if form.ai_prompt.data:
+            content_dict['ai_prompt'] = form.ai_prompt.data
+
         new_item = LearningItem(
             container_id=set_id,
             item_type='QUIZ_MCQ',
-            content={
-                'question': form.question.data,
-                'options': {
-                    'A': form.option_a.data, 'B': form.option_b.data,
-                    'C': form.option_c.data, 'D': form.option_d.data
-                },
-                'correct_answer': form.correct_answer_text.data,
-                'explanation': form.guidance.data,
-                'pre_question_text': form.pre_question_text.data,
-                'passage_text': form.passage_text.data,
-                'passage_order': form.passage_order.data,
-                # Thêm các trường media từ form vào content
-                'question_image_file': form.question_image_file.data,
-                'question_audio_file': form.question_audio_file.data
-            }
+            content=content_dict
         )
         db.session.add(new_item)
         db.session.commit() # Lưu thay đổi
@@ -449,33 +454,41 @@ def edit_quiz_item(set_id, item_id):
     if request.method == 'GET':
         # Populate form với dữ liệu hiện có từ JSON content
         form.question.data = quiz_item.content.get('question')
+        form.pre_question_text.data = quiz_item.content.get('pre_question_text')
         form.option_a.data = quiz_item.content.get('options', {}).get('A')
         form.option_b.data = quiz_item.content.get('options', {}).get('B')
         form.option_c.data = quiz_item.content.get('options', {}).get('C')
         form.option_d.data = quiz_item.content.get('options', {}).get('D')
         form.correct_answer_text.data = quiz_item.content.get('correct_answer')
         form.guidance.data = quiz_item.content.get('explanation')
-        form.pre_question_text.data = quiz_item.content.get('pre_question_text')
-        form.passage_text.data = quiz_item.content.get('passage_text')
-        form.passage_order.data = quiz_item.content.get('passage_order')
         form.question_image_file.data = quiz_item.content.get('question_image_file')
         form.question_audio_file.data = quiz_item.content.get('question_audio_file')
+        form.passage_text.data = quiz_item.content.get('passage_text')
+        form.passage_order.data = quiz_item.content.get('passage_order')
+        form.ai_explanation.data = quiz_item.ai_explanation
+        form.ai_prompt.data = quiz_item.content.get('ai_prompt')
 
     if form.validate_on_submit():
         # Cập nhật nội dung thẻ
         quiz_item.content['question'] = form.question.data
+        quiz_item.content['pre_question_text'] = form.pre_question_text.data
         quiz_item.content['options']['A'] = form.option_a.data
         quiz_item.content['options']['B'] = form.option_b.data
         quiz_item.content['options']['C'] = form.option_c.data
         quiz_item.content['options']['D'] = form.option_d.data
         quiz_item.content['correct_answer'] = form.correct_answer_text.data
         quiz_item.content['explanation'] = form.guidance.data
-        quiz_item.content['pre_question_text'] = form.pre_question_text.data
-        quiz_item.content['passage_text'] = form.passage_text.data
-        quiz_item.content['passage_order'] = form.passage_order.data
         # Cập nhật các trường media
         quiz_item.content['question_image_file'] = form.question_image_file.data
         quiz_item.content['question_audio_file'] = form.question_audio_file.data
+        quiz_item.content['passage_text'] = form.passage_text.data
+        quiz_item.content['passage_order'] = form.passage_order.data
+        quiz_item.ai_explanation = form.ai_explanation.data
+        
+        if form.ai_prompt.data:
+            quiz_item.content['ai_prompt'] = form.ai_prompt.data
+        elif 'ai_prompt' in quiz_item.content:
+            del quiz_item.content['ai_prompt']
 
         # Đánh dấu trường JSON đã thay đổi để SQLAlchemy lưu lại
         flag_modified(quiz_item, "content")
