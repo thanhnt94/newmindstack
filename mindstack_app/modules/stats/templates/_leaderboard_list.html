@@ -1,0 +1,21 @@
+{# File: mindstack_app/modules/stats/templates/_leaderboard_list.html #}
+{# Mục đích: Render danh sách ban đầu cho bảng xếp hạng. #}
+{% if leaderboard_data %}
+    {% for entry in leaderboard_data %}
+        <li class="leaderboard-item">
+            <span class="rank">
+                {% if loop.index == 1 %}<i class="fas fa-medal gold-medal"></i>
+                {% elif loop.index == 2 %}<i class="fas fa-medal silver-medal"></i>
+                {% elif loop.index == 3 %}<i class="fas fa-medal bronze-medal"></i>
+                {% else %}{{ loop.index }}{% endif %}
+            </span>
+            <span class="username">{{ entry.username or 'N/A' }}</span>
+            <span class="score-value">
+                {% if current_sort_by == 'total_score' %}{{ entry.current_period_score }} điểm
+                {% else %}
+                    {{ entry.current_period_score }}
+                {% endif %}
+            </span>
+        </li>
+    {% endfor %}
+{% endif %}

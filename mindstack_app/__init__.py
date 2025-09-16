@@ -73,6 +73,7 @@ def create_app(config_class=Config):
     from .modules.ai_services.routes import ai_services_bp
     from .modules.notes.routes import notes_bp
     from .modules.shared import shared_bp
+    from .modules.stats.routes import stats_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
@@ -85,7 +86,7 @@ def create_app(config_class=Config):
     app.register_blueprint(ai_services_bp)
     app.register_blueprint(notes_bp)
     app.register_blueprint(shared_bp)
-
+    app.register_blueprint(stats_bp, url_prefix='/stats')
 
     with app.app_context():
         db.create_all()

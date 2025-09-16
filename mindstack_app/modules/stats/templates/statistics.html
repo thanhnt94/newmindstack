@@ -1,0 +1,345 @@
+<!-- 
+    mindstack_app/modules/stats/templates/statistics.html
+    Phiên bản: 1.1
+    Mục đích: Sửa lỗi giao diện và bổ sung phần thống kê cho Khoá học.
+-->
+
+{% extends 'base.html' %}
+{% block title %}Bảng điều khiển - Thống kê{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <!-- Cal-Heatmap CSS & JS -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cal-heatmap@4.2.2/dist/cal-heatmap.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cal-heatmap@4.2.2/dist/cal-heatmap.css">
+    
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --background-color: #f9fafb;
+            --card-background: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --cal-heatmap-scrolly-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .dashboard-container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; font-family: 'Inter', sans-serif; }
+        .dashboard-header { font-size: 2.25rem; font-weight: 800; color: var(--text-primary); text-align: center; margin-bottom: 2.5rem; }
+        .stats-section { background-color: var(--card-background); border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); margin-bottom: 2rem; }
+        .section-title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1.5rem; display: flex; align-items: center; }
+        .section-title i { color: var(--primary-color); margin-right: 0.75rem; }
+
+        /* Heatmap */
+        .heatmap-container { min-height: 180px; }
+        .heatmap-legend { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; }
+        .legend-color-box { width: 1rem; height: 1rem; border-radius: 0.125rem; }
+        .legend-color-box[data-level="1"] { background-color: #c6e48b; }
+        .legend-color-box[data-level="2"] { background-color: #7bc96f; }
+        .legend-color-box[data-level="3"] { background-color: #239a3b; }
+        .legend-color-box[data-level="4"] { background-color: #196127; }
+        
+        /* Bảng xếp hạng */
+        .leaderboard-controls { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+        .form-group { display: flex; align-items: center; gap: 0.5rem; }
+        .form-control { padding: 0.5rem 1rem; border: 1px solid var(--border-color); border-radius: 0.375rem; background-color: #f9fafb; }
+        .timeframe-tabs { display: flex; background-color: #f3f4f6; border-radius: 0.5rem; padding: 0.25rem; }
+        .tab-button { padding: 0.5rem 1rem; border: none; background-color: transparent; border-radius: 0.375rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease-in-out; }
+        .tab-button.active { background-color: var(--card-background); color: var(--primary-color); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .leaderboard-list { list-style: none; padding: 0; margin: 0; }
+        .leaderboard-item { display: flex; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-color); }
+        .leaderboard-item:last-child { border-bottom: none; }
+        .rank { font-size: 1.125rem; font-weight: 700; color: var(--text-secondary); width: 3rem; text-align: center; }
+        .rank .fa-medal { font-size: 1.5rem; }
+        .gold-medal { color: #facc15; }
+        .silver-medal { color: #d1d5db; }
+        .bronze-medal { color: #cd7f32; }
+        .username { font-weight: 600; color: var(--text-primary); }
+        .score-value { margin-left: auto; font-weight: 700; color: var(--primary-color); }
+        .empty-message { text-align: center; padding: 2rem; color: var(--text-secondary); }
+        .loader-container { display: flex; justify-content: center; padding: 2rem; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* SỬA LỖI GIAO DIỆN: Đổi tên grid và thêm cột thứ 3 */
+        .stats-main-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+        @media (min-width: 1024px) { .stats-main-grid { grid-template-columns: repeat(3, 1fr); } }
+        
+        .stat-cards-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        .stat-card { display: flex; align-items: center; background-color: #f9fafb; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); }
+        .stat-card-icon { width: 3rem; height: 3rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 1rem; font-size: 1.5rem; flex-shrink: 0; }
+        .stat-card-icon.score { background-color: #fef3c7; color: #f59e0b; }
+        .stat-card-icon.learned { background-color: #dcfce7; color: #22c55e; }
+        .stat-card-icon.sets { background-color: #dbeafe; color: #3b82f6; }
+        .stat-card-value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+        .stat-card-label { font-size: 0.875rem; color: var(--text-secondary); }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1 class="dashboard-header"><i class="fas fa-chart-pie"></i> Thống kê</h1>
+
+    <!-- Lịch sử hoạt động -->
+    <div class="stats-section">
+        <h2 class="section-title">Lịch sử hoạt động</h2>
+        <div id="heatmap-container" class="heatmap-container"></div>
+        <div class="heatmap-legend">
+            <span>Ít</span>
+            <div class="legend-color-box" data-level="1"></div>
+            <div class="legend-color-box" data-level="2"></div>
+            <div class="legend-color-box" data-level="3"></div>
+            <div class="legend-color-box" data-level="4"></div>
+            <span>Nhiều</span>
+        </div>
+    </div>
+
+    <!-- Bảng xếp hạng Người dùng -->
+    <div class="stats-section leaderboard-section">
+        <h2 class="section-title"><i class="fas fa-trophy"></i> Bảng xếp hạng Người dùng</h2>
+        
+        <div class="leaderboard-controls">
+            <div class="form-group sort-by-group">
+                <label for="sort_by">Sắp xếp theo:</label>
+                <select id="sort_by" name="sort_by" class="form-control">
+                    <option value="total_score" {% if current_sort_by == 'total_score' %}selected{% endif %}>Tổng điểm (trong kỳ)</option>
+                    <option value="total_reviews" disabled>Số lượt ôn tập (Flashcard)</option>
+                </select>
+            </div>
+            <div class="form-group timeframe-group">
+                <div class="timeframe-tabs">
+                    <button type="button" class="tab-button" data-timeframe="day">Hôm nay</button>
+                    <button type="button" class="tab-button" data-timeframe="week">Tuần này</button>
+                    <button type="button" class="tab-button" data-timeframe="month">Tháng này</button>
+                    <button type="button" class="tab-button {% if current_timeframe == 'all_time' %}active{% endif %}" data-timeframe="all_time">Toàn bộ</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="leaderboard-content">
+            <ul class="leaderboard-list" id="leaderboard-list-container">
+                {% include '_leaderboard_list.html' %}
+            </ul>
+            <p class="empty-message" id="leaderboard-empty-message" style="display: {% if not leaderboard_data %}block{% else %}none{% endif %};">Không có dữ liệu bảng xếp hạng để hiển thị.</p>
+            <div class="loader-container" id="leaderboard-loader" style="display: none;">
+                <div class="loader"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SỬA LỖI GIAO DIỆN: Bổ sung cột thứ 3 cho Khoá học -->
+    <div class="stats-main-grid">
+        <!-- Cột Flashcard -->
+        <div class="stats-column flashcard-stats-column">
+            <div class="stats-section">
+                <h2 class="section-title">Tổng quan Flashcard</h2>
+                <div class="stat-cards-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-icon score"><i class="fas fa-star"></i></div>
+                        <div>
+                            <span class="stat-card-value">{{ dashboard_data.flashcard_score }}</span>
+                            <span class="stat-card-label">Tổng điểm Flashcard</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon learned"><i class="fas fa-check-circle"></i></div>
+                        <div>
+                            <span class="stat-card-value">{{ dashboard_data.learned_distinct_overall }}</span>
+                            <span class="stat-card-label">Thẻ đã học</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon sets"><i class="fas fa-layer-group"></i></div>
+                        <div>
+                            <span class="stat-card-value">{{ dashboard_data.learned_sets_count }}</span>
+                            <span class="stat-card-label">Bộ đã học</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột Quiz -->
+        <div class="stats-column quiz-stats-column">
+            <div class="stats-section">
+                <h2 class="section-title">Tổng quan Trắc nghiệm</h2>
+                <div class="stat-cards-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-icon score" style="background-color: #fce7f3; color: #db2777;"><i class="fas fa-trophy"></i></div>
+                        <div>
+                            <span class="stat-card-value">{{ dashboard_data.quiz_score }}</span>
+                            <span class="stat-card-label">Tổng điểm Trắc nghiệm</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon learned" style="background-color: #e0e7ff; color: #4f46e5;"><i class="fas fa-question-circle"></i></div>
+                        <div>
+                            <span class="stat-card-value">{{ dashboard_data.questions_answered_count }}</span>
+                            <span class="stat-card-label">Câu đã trả lời</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon sets" style="background-color: #fee2e2; color: #ef4444;"><i class="fas fa-tasks"></i></div>
+                        <div>
+                            <span class="stat-card-value">{{ dashboard_data.quiz_sets_started_count }}</span>
+                            <span class="stat-card-label">Bộ đã làm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT MỚI: Thống kê Khoá học -->
+        <div class="stats-column course-stats-column">
+            <div class="stats-section">
+                <h2 class="section-title">Tổng quan Khoá học</h2>
+                <div class="stat-cards-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-icon learned" style="background-color: #d1fae5; color: #059669;"><i class="fas fa-book-reader"></i></div>
+                        <div>
+                            <span class="stat-card-value">{{ dashboard_data.lessons_completed_count }}</span>
+                            <span class="stat-card-label">Bài học hoàn thành</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon sets" style="background-color: #eef2ff; color: #4338ca;"><i class="fas fa-graduation-cap"></i></div>
+                        <div>
+                            <span class="stat-card-value">{{ dashboard_data.courses_started_count }}</span>
+                            <span class="stat-card-label">Khoá học đã bắt đầu</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template cho một hàng trong bảng xếp hạng (dùng cho JS) -->
+<template id="leaderboard-item-template">
+    <li class="leaderboard-item">
+        <span class="rank"></span>
+        <span class="username"></span>
+        <span class="score-value"></span>
+    </li>
+</template>
+
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Khởi tạo Heatmap
+            const cal = new CalHeatmap();
+            const heatmapContainer = document.getElementById('heatmap-container');
+            if (heatmapContainer) {
+                fetch("{{ url_for('stats.get_heatmap_data_api') }}")
+                    .then(response => response.json())
+                    .then(data => {
+                        cal.paint({
+                            data: {
+                                source: data,
+                                type: 'json',
+                                x: 'timestamp',
+                                y: 'count'
+                            },
+                            date: { start: new Date(new Date().setFullYear(new Date().getFullYear() - 1)) },
+                            range: 12,
+                            scale: {
+                                color: {
+                                    type: 'threshold',
+                                    range: ['#c6e48b', '#7bc96f', '#239a3b', '#196127'],
+                                    domain: [1, 5, 10, 15],
+                                }
+                            },
+                            domain: {
+                                type: 'month',
+                                gutter: 4,
+                                label: { text: 'MMM', textAlign: 'start', position: 'top' }
+                            },
+                            subDomain: { type: 'ghDay', radius: 2, width: 11, height: 11, gutter: 4 },
+                        }, [
+                            [
+                                CalHeatmap.Tooltip,
+                                {
+                                    text: function (date, value, dayjsDate) {
+                                        return (value ? value : 'No') + ' activities on ' + dayjsDate.format('LL');
+                                    },
+                                },
+                            ],
+                        ]);
+                    })
+                    .catch(error => console.error("Lỗi tải dữ liệu heatmap:", error));
+            }
+            
+            // Logic cho Leaderboard động
+            const timeframeTabs = document.querySelector('.timeframe-tabs');
+            const sortBySelect = document.getElementById('sort_by');
+            const listContainer = document.getElementById('leaderboard-list-container');
+            const loader = document.getElementById('leaderboard-loader');
+            const emptyMessage = document.getElementById('leaderboard-empty-message');
+
+            function fetchAndUpdateLeaderboard() {
+                const timeframe = timeframeTabs.querySelector('.tab-button.active').dataset.timeframe;
+                const sortBy = sortBySelect.value;
+
+                loader.style.display = 'flex';
+                listContainer.style.display = 'none';
+                if (emptyMessage) emptyMessage.style.display = 'none';
+
+                const apiUrl = `{{ url_for('stats.get_leaderboard_data_api') }}?sort_by=${sortBy}&timeframe=${timeframe}`;
+
+                fetch(apiUrl)
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            renderLeaderboard(result.data, sortBy);
+                        }
+                    })
+                    .catch(error => console.error('Lỗi fetch leaderboard:', error))
+                    .finally(() => {
+                        loader.style.display = 'none';
+                    });
+            }
+
+            function renderLeaderboard(data, sortBy) {
+                listContainer.innerHTML = ''; 
+                if (data && data.length > 0) {
+                    if (emptyMessage) emptyMessage.style.display = 'none';
+                    listContainer.style.display = 'block';
+
+                    const template = document.getElementById('leaderboard-item-template');
+                    data.forEach((entry, index) => {
+                        const clone = template.content.cloneNode(true);
+                        const rankSpan = clone.querySelector('.rank');
+                        
+                        if (index === 0) rankSpan.innerHTML = '<i class="fas fa-medal gold-medal"></i>';
+                        else if (index === 1) rankSpan.innerHTML = '<i class="fas fa-medal silver-medal"></i>';
+                        else if (index === 2) rankSpan.innerHTML = '<i class="fas fa-medal bronze-medal"></i>';
+                        else rankSpan.textContent = index + 1;
+
+                        clone.querySelector('.username').textContent = entry.username || 'N/A';
+                        clone.querySelector('.score-value').textContent = `${entry.current_period_score} điểm`;
+                        
+                        listContainer.appendChild(clone);
+                    });
+                } else {
+                    listContainer.style.display = 'none';
+                    if (emptyMessage) emptyMessage.style.display = 'block';
+                }
+            }
+
+            timeframeTabs.addEventListener('click', function(event) {
+                if (event.target.tagName === 'BUTTON' && !event.target.classList.contains('active')) {
+                    timeframeTabs.querySelector('.tab-button.active').classList.remove('active');
+                    event.target.classList.add('active');
+                    fetchAndUpdateLeaderboard();
+                }
+            });
+
+            sortBySelect.addEventListener('change', fetchAndUpdateLeaderboard);
+        });
+    </script>
+{% endblock %}
+
