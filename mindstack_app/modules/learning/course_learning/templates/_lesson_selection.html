@@ -1,12 +1,10 @@
-<!-- mindstack_app/modules/learning/course_learning/templates/_lesson_selection.html -->
-<!-- Phiên bản: 1.1 -->
-<!-- MỤC ĐÍCH: Hiển thị thời gian hoàn thành dự tính cho mỗi bài học. -->
-<!-- ĐÃ THÊM: Icon đồng hồ và hiển thị 'estimated_time' cho mỗi bài học. -->
+{% from 'includes/_search_form.html' import render_search_form %}
+{% from 'includes/_pagination.html' import render_pagination %}
 
 <div class="w-full space-y-3">
     {% if lessons %}
         {% for lesson in lessons %}
-            <a href="{{ url_for('learning.course_learning.view_lesson', course_id=course.container_id, lesson_id=lesson.item_id) }}" 
+            <a href="{{ url_for('learning.course_learning.course_session', lesson_id=lesson.item_id) }}" 
                class="lesson-item-link block p-4 rounded-lg border transition-colors duration-200 relative overflow-hidden
                       {% if lesson.completion_percentage == 100 %}
                           border-green-300 bg-green-50 hover:bg-green-100
@@ -16,7 +14,6 @@
                           border-gray-200 bg-white hover:bg-gray-100
                       {% endif %}">
                 
-                <!-- Thanh tiến độ của bài học -->
                 <div class="absolute inset-y-0 left-0" 
                      style="width: {{ lesson.completion_percentage }}%; 
                             background-color: {% if lesson.completion_percentage == 100 %}#A7F3D0{% elif lesson.completion_percentage > 0 %}#BFDBFE{% else %}transparent{% endif %}; 
@@ -50,4 +47,3 @@
         </div>
     {% endif %}
 </div>
-

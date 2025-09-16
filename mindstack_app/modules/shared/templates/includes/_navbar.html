@@ -1,7 +1,9 @@
 {#
     File: mindstack_app/modules/shared/templates/includes/_navbar.html
-    Phiên bản: 2.1
-    Mục đích: Thêm liên kết đến trang học Course trên thanh điều hướng.
+    Phiên bản: 2.2
+    Mục đích: Tinh gọn navbar chỉ còn 3 tab học tập chính và đồng bộ icon.
+    ĐÃ SỬA: Loại bỏ tab "Quản lý".
+    ĐÃ SỬA: Thay đổi icon của tab "Course" thành "fa-graduation-cap".
 #}
 {% macro render_navbar(current_user, request) %}
 <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -32,18 +34,11 @@
             <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
                 {% if request.endpoint.startswith('learning.course_learning') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
                 href="{{ url_for('learning.course_learning.course_learning_dashboard') }}">
-                <i class="fas fa-book mr-1 md:mr-2"></i>
+                <i class="fas fa-graduation-cap mr-1 md:mr-2"></i> {# ĐÃ SỬA ICON #}
                 <span>Course</span>
             </a>
         </li>
-        <li>
-            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2 
-                {% if request.endpoint.startswith('content_management.') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}" 
-                href="{{ url_for('content_management.content_dashboard') }}">
-                <i class="fas fa-boxes mr-1 md:mr-2"></i>
-                <span>Quản lý</span>
-            </a>
-        </li>
+        {# ĐÃ XÓA TAB QUẢN LÝ #}
         {% endif %}
     </ul>
 

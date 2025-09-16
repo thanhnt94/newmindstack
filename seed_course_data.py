@@ -21,7 +21,7 @@ def seed_data():
             return
 
         # 2. Kiểm tra xem khóa học đã tồn tại chưa để tránh tạo trùng lặp
-        course_title = "Khóa học Python cơ bản"
+        course_title = "Khóa học Python cơ bản 2"
         existing_course = LearningContainer.query.filter_by(title=course_title, container_type='COURSE').first()
         if existing_course:
             print(f"Khóa học '{course_title}' đã tồn tại. Bỏ qua.")

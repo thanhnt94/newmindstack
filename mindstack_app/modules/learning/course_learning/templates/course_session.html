@@ -1,7 +1,7 @@
 <!-- mindstack_app/modules/learning/course_learning/templates/course_session.html -->
-<!-- Phiên bản: 2.1 -->
-<!-- Mục đích: Sửa lỗi jinja2.exceptions.UndefinedError: 'lessonId' is undefined. -->
-<!--           Lỗi xảy ra do truyền một biến JavaScript vào hàm url_for của Jinja2. -->
+<!-- Phiên bản: 4.2 -->
+<!-- Mục đích: Sửa lỗi tràn văn bản trong khu vực hiển thị ghi chú. -->
+<!-- ĐÃ SỬA: Thêm 'word-wrap: break-word' vào CSS của .note-content-display. -->
 
 {% extends "base.html" %}
 
@@ -17,46 +17,62 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         /* CSS để định dạng nội dung HTML từ BBCode */
-        .parsed-content b, .parsed-content strong {
-            font-weight: 600;
+        .parsed-content b, .parsed-content strong { font-weight: 600; }
+        .parsed-content i, .parsed-content em { font-style: italic; }
+        .parsed-content u { text-decoration: underline; }
+        .parsed-content ul { list-style-type: disc; padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .parsed-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .parsed-content li { margin-bottom: 0.25rem; }
+        .parsed-content img { max-width: 100%; height: auto; border-radius: 0.5rem; margin-top: 1rem; margin-bottom: 1rem; }
+        .parsed-content pre, .parsed-content code { background-color: #f3f4f6; border-radius: 0.25rem; padding: 0.75rem; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; margin-top: 1rem; margin-bottom: 1rem; }
+        .lesson-toolbar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
         }
-        .parsed-content i, .parsed-content em {
-            font-style: italic;
-        }
-        .parsed-content u {
-            text-decoration: underline;
-        }
-        .parsed-content ul {
-            list-style-type: disc;
-            padding-left: 1.5rem;
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .parsed-content ol {
-            list-style-type: decimal;
-            padding-left: 1.5rem;
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .parsed-content li {
-            margin-bottom: 0.25rem;
-        }
-        .parsed-content img {
-            max-width: 100%;
-            height: auto;
+        .toolbar-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
             border-radius: 0.5rem;
-            margin-top: 1rem;
-            margin-bottom: 1rem;
+            background-color: #f9fafb;
+            color: #374151;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
         }
-        .parsed-content pre, .parsed-content code {
+        .toolbar-btn:hover {
             background-color: #f3f4f6;
-            border-radius: 0.25rem;
+            border-color: #9ca3af;
+        }
+        /* CSS MỚI CHO KHUNG GHI CHÚ */
+        .note-section {
+             margin-top: 2rem;
+             padding-top: 1.5rem;
+             border-top: 1px solid #e5e7eb;
+        }
+        .note-textarea {
+            width: 100%;
+            min-height: 120px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
             padding: 0.75rem;
-            font-family: monospace;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            margin-top: 1rem;
-            margin-bottom: 1rem;
+            resize: vertical;
+        }
+        /* CSS cho nội dung ghi chú tĩnh */
+        .note-content-display {
+            padding: 0.75rem;
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+            min-height: 120px;
+            white-space: pre-wrap; /* Hiển thị xuống dòng */
+            word-wrap: break-word;  /* THÊM MỚI: Tự động ngắt dòng dài */
+            color: #374151;
         }
     </style>
 {% endblock %}
@@ -69,6 +85,16 @@
         </a>
 
         <div class="lesson-content-wrapper">
+            <!-- THANH CÔNG CỤ -->
+            <div class="lesson-toolbar">
+                {% if can_edit %}
+                <a href="{{ url_for('content_management.content_management_courses.edit_lesson', set_id=course.container_id, item_id=lesson.item_id) }}" class="toolbar-btn">
+                    <i class="fas fa-pencil-alt"></i>
+                    <span>Chỉnh sửa bài học</span>
+                </a>
+                {% endif %}
+            </div>
+
             <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ lesson.content.get('title', 'Không có tiêu đề') }}</h1>
             <p class="text-sm text-gray-500 mb-6">Trong khóa học: {{ course.title }}</p>
 
@@ -76,6 +102,35 @@
             
             <div class="prose max-w-none parsed-content">
                 {{ bbcode_to_html(lesson.content.get('bbcode_content', '')) | safe }}
+            </div>
+
+            <!-- VÙNG GHI CHÚ ĐÃ CẬP NHẬT -->
+            <div class="note-section">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-semibold text-gray-700">Ghi chú cá nhân</h3>
+                    <div id="note-view-controls">
+                        <button id="edit-note-btn" class="toolbar-btn">
+                            <i class="fas fa-pencil-alt"></i>
+                            <span>Sửa Ghi chú</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chế độ xem -->
+                <div id="note-display-view">
+                    <div id="note-content-display" class="note-content-display">
+                        {% if note and note.content %}{{ note.content }}{% else %}<span class="text-gray-500 italic">Bạn chưa có ghi chú nào cho bài học này.</span>{% endif %}
+                    </div>
+                </div>
+
+                <!-- Chế độ sửa (ẩn) -->
+                <div id="note-edit-view" style="display: none;">
+                    <textarea id="note-textarea" class="note-textarea" placeholder="Nhập ghi chú của bạn cho bài học này..."></textarea>
+                    <div class="flex justify-end mt-3 space-x-2">
+                        <button id="cancel-edit-note-btn" class="bg-gray-200 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-300 transition duration-300">Hủy</button>
+                        <button id="save-note-btn" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition duration-300">Lưu Ghi chú</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Vùng đánh giá tiến độ -->
@@ -91,6 +146,7 @@
                     </button>
                 </div>
             </div>
+            
         </div>
     </div>
 </div>
@@ -104,26 +160,21 @@
         const progressValue = document.getElementById('progress-value');
         const updateBtn = document.getElementById('update-progress-btn');
         
+        // Logic cho thanh trượt tiến độ (giữ nguyên)
         if (slider && progressValue) {
             slider.addEventListener('input', function() {
                 progressValue.textContent = this.value + '%';
             });
         }
-
         if (updateBtn) {
             updateBtn.addEventListener('click', function() {
                 const percentage = slider.value;
                 updateBtn.textContent = 'Đang cập nhật...';
                 updateBtn.disabled = true;
 
-                // SỬA LỖI: Truyền trực tiếp biến lesson.item_id của Jinja2 vào url_for
-                // thay vì sử dụng biến JavaScript 'lessonId'.
                 fetch(`{{ url_for('learning.course_learning.update_lesson_progress', lesson_id=lesson.item_id) }}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     body: JSON.stringify({ percentage: percentage })
                 })
                 .then(response => response.json())
@@ -143,6 +194,92 @@
                     updateBtn.disabled = false;
                 });
             });
+        }
+
+        // ==========================================================
+        // SCRIPT ĐÃ CẬP NHẬT CHO GHI CHÚ
+        // ==========================================================
+        const displayView = document.getElementById('note-display-view');
+        const editView = document.getElementById('note-edit-view');
+        const editBtn = document.getElementById('edit-note-btn');
+        const cancelBtn = document.getElementById('cancel-edit-note-btn');
+        const noteContentDisplay = document.getElementById('note-content-display');
+        const noteTextarea = document.getElementById('note-textarea');
+        const saveNoteBtn = document.getElementById('save-note-btn');
+        const currentLessonId = {{ lesson.item_id }};
+        const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
+
+        function toggleNoteView(isEditing) {
+            if (isEditing) {
+                displayView.style.display = 'none';
+                editBtn.style.display = 'none';
+                editView.style.display = 'block';
+            } else {
+                displayView.style.display = 'block';
+                editBtn.style.display = 'inline-flex';
+                editView.style.display = 'none';
+            }
+        }
+
+        if (editBtn) {
+            editBtn.addEventListener('click', () => {
+                // Lấy nội dung hiện tại và đưa vào textarea trước khi chuyển view
+                let currentNoteText = noteContentDisplay.textContent.trim();
+                const placeholderText = "Bạn chưa có ghi chú nào cho bài học này.";
+                if(currentNoteText === placeholderText){
+                    noteTextarea.value = "";
+                } else {
+                    // Sử dụng innerHTML để giữ lại các ký tự xuống dòng
+                    noteTextarea.value = `{{ note.content | e if note else '' }}`;
+                }
+                toggleNoteView(true);
+            });
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                toggleNoteView(false);
+            });
+        }
+
+        async function saveNote() {
+            if (!currentLessonId) return;
+
+            const content = noteTextarea.value;
+            saveNoteBtn.disabled = true;
+            saveNoteBtn.textContent = 'Đang lưu...';
+
+            try {
+                const response = await fetch(saveNoteUrl.replace('/0', `/${currentLessonId}`), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content })
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    showFlashMessage(result.message, 'success');
+                    // Cập nhật nội dung hiển thị và chuyển về chế độ xem
+                    if (content) {
+                        noteContentDisplay.innerHTML = ''; // Xóa placeholder nếu có
+                        noteContentDisplay.textContent = content;
+                    } else {
+                        noteContentDisplay.innerHTML = `<span class="text-gray-500 italic">Bạn chưa có ghi chú nào cho bài học này.</span>`;
+                    }
+                    toggleNoteView(false);
+                } else {
+                    showFlashMessage(result.message || 'Lỗi khi lưu ghi chú.', 'danger');
+                }
+            } catch (error) {
+                console.error('Lỗi khi lưu ghi chú:', error);
+                showFlashMessage('Lỗi kết nối khi lưu ghi chú.', 'danger');
+            } finally {
+                saveNoteBtn.disabled = false;
+                saveNoteBtn.textContent = 'Lưu Ghi chú';
+            }
+        }
+
+        if (saveNoteBtn) {
+            saveNoteBtn.addEventListener('click', saveNote);
         }
     });
 </script>

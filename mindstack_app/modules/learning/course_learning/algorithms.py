@@ -1,8 +1,8 @@
 # mindstack_app/modules/learning/course_learning/algorithms.py
-# Phiên bản: 1.2
-# MỤC ĐÍCH: Khắc phục lỗi không hiển thị khoá học ở tab "Đang học".
-# ĐÃ SỬA: Thay đổi logic lọc của tab 'doing' để hiển thị tất cả các khoá học đã tương tác
-#         (có bản ghi trong UserContainerState) và chưa bị archive.
+# Phiên bản: 2.1
+# MỤC ĐÍCH: Sửa lỗi logic không hiển thị các khóa học, đặc biệt là các khóa học mới tạo.
+# ĐÃ SỬA: Thay đổi logic lọc của 'doing' và 'explore' để dựa trên sự tồn tại của CourseProgress,
+#         thay vì UserContainerState, để phân loại chính xác hơn.
 
 from ....models import db, LearningItem, CourseProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
@@ -13,8 +13,8 @@ from ....modules.shared.utils.search import apply_search_filter
 
 def get_filtered_course_sets(user_id, search_query, search_field, current_filter, page, per_page=12):
     """
-    Lấy danh sách các Khoá học đã được lọc và phân trang dựa trên các tiêu chí.
-    Bao gồm tính toán tiến độ hoàn thành và tổng thời gian dự tính.
+    Mô tả: Lấy danh sách các Khoá học đã được lọc và phân trang dựa trên các tiêu chí.
+    Đã sửa lại logic để hiển thị chính xác các khóa học cho từng tab.
     """
     print(f">>> ALGORITHMS: Bắt đầu get_filtered_course_sets cho user_id={user_id}, filter={current_filter} <<<")
 
@@ -23,12 +23,14 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
     # Lọc quyền truy cập
     access_conditions = []
     if current_user.user_role != 'admin':
+        # Người dùng có thể thấy khóa học của chính họ
         access_conditions.append(LearningContainer.creator_user_id == user_id)
+        # Hoặc các khóa học công khai
         access_conditions.append(LearningContainer.is_public == True)
         
+        # Hoặc các khóa học họ được mời làm cộng tác viên
         contributed_sets_ids = db.session.query(ContainerContributor.container_id).filter(
-            ContainerContributor.user_id == user_id,
-            ContainerContributor.permission_level == 'editor'
+            ContainerContributor.user_id == user_id
         ).all()
         
         if contributed_sets_ids:
@@ -46,39 +48,48 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
     # Áp dụng bộ lọc tìm kiếm
     filtered_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
 
-    user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
-        UserContainerState.user_id == user_id
+    # Truy vấn con: Lấy ID của các khóa học mà người dùng đã bắt đầu học (có tiến độ)
+    courses_with_progress_subquery = db.session.query(LearningItem.container_id).join(CourseProgress).filter(
+        CourseProgress.user_id == user_id,
+        LearningItem.item_type == 'LESSON'
+    ).distinct().subquery()
+
+    # Truy vấn con: Lấy ID của các khóa học người dùng đã lưu trữ
+    archived_courses_subquery = db.session.query(UserContainerState.container_id).filter(
+        UserContainerState.user_id == user_id,
+        UserContainerState.is_archived == True
     ).subquery()
     
     if current_filter == 'archive':
-        final_query = filtered_query.join(UserContainerState,
-            and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
-        ).filter(
-            UserContainerState.is_archived == True
-        ).order_by(UserContainerState.last_accessed.desc())
-    elif current_filter == 'doing':
-        # ĐÃ SỬA: Lấy tất cả các khoá học đã tương tác và chưa bị archive
-        final_query = filtered_query.join(UserContainerState,
-            and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
-        ).filter(
-            UserContainerState.is_archived == False
-        ).order_by(UserContainerState.last_accessed.desc())
-        
-    elif current_filter == 'explore':
+        # Tab LƯU TRỮ: chỉ lấy các khóa học có trong danh sách lưu trữ
         final_query = filtered_query.filter(
-            ~LearningContainer.container_id.in_(user_interacted_ids_subquery)
-        ).order_by(LearningContainer.created_at.desc())
-    else: # Mặc định là 'all', bao gồm cả 'doing' và 'explore'
-        final_query = filtered_query.outerjoin(UserContainerState,
-            and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
-        ).filter(
-            or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
-        ).order_by(LearningContainer.created_at.desc())
+            LearningContainer.container_id.in_(archived_courses_subquery)
+        )
+    elif current_filter == 'doing':
+        # Tab ĐANG HỌC: Lấy các khóa học có tiến độ VÀ không bị lưu trữ
+        final_query = filtered_query.filter(
+            LearningContainer.container_id.in_(courses_with_progress_subquery),
+            ~LearningContainer.container_id.in_(archived_courses_subquery)
+        )
+    elif current_filter == 'explore':
+        # Tab KHÁM PHÁ: Lấy các khóa học KHÔNG có tiến độ VÀ không bị lưu trữ
+        final_query = filtered_query.filter(
+            ~LearningContainer.container_id.in_(courses_with_progress_subquery),
+            ~LearningContainer.container_id.in_(archived_courses_subquery)
+        )
+    else: # Mặc định là 'all' hoặc các trường hợp khác
+        # Lấy tất cả các khóa học không bị lưu trữ
+        final_query = filtered_query.filter(
+            ~LearningContainer.container_id.in_(archived_courses_subquery)
+        )
+
+    # Sắp xếp theo ngày tạo mới nhất
+    final_query = final_query.order_by(LearningContainer.created_at.desc())
 
     # Phân trang
     pagination = get_pagination_data(final_query, page, per_page=per_page)
     
-    # Bổ sung thông tin tiến độ và tổng thời gian
+    # Bổ sung thông tin tiến độ và các thông tin khác
     for set_item in pagination.items:
         # Lấy tất cả các bài học thuộc khoá học
         lessons = LearningItem.query.filter_by(container_id=set_item.container_id, item_type='LESSON').all()
@@ -105,11 +116,11 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
                     try:
                         total_estimated_time += int(lesson.content['estimated_time'])
                     except (ValueError, TypeError):
-                        pass # Bỏ qua nếu giá trị không hợp lệ
+                        pass
 
         set_item.total_lessons = total_lessons
         set_item.overall_completion_percentage = (total_completion_percentage / total_lessons) if total_lessons > 0 else 0
-        set_item.total_estimated_time = total_estimated_time # Tổng thời gian tính bằng phút
+        set_item.total_estimated_time = total_estimated_time
 
         # Lấy trạng thái archive và favorite
         user_state = UserContainerState.query.filter_by(
@@ -123,7 +134,7 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
 
 def get_lessons_for_course(user_id, course_id):
     """
-    Lấy danh sách các bài học cho một khoá học cụ thể, kèm theo tiến độ của người dùng.
+    Mô tả: Lấy danh sách các bài học cho một khoá học cụ thể, kèm theo tiến độ của người dùng.
     """
     lessons = LearningItem.query.filter_by(
         container_id=course_id, 
@@ -144,4 +155,3 @@ def get_lessons_for_course(user_id, course_id):
         lesson.completion_percentage = progress_map.get(lesson.item_id, 0)
 
     return lessons
-

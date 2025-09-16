@@ -1,17 +1,14 @@
 # mindstack_app/modules/learning/course_learning/routes.py
-# Phiên bản: 2.2
-# Mục đích: Xóa bỏ context processor đã được chuyển lên cấp toàn cục.
+# Phiên bản: 2.5
+# MỤC ĐÍCH: Lấy dữ liệu ghi chú của người dùng cho bài học hiện tại.
+# ĐÃ THÊM: Truy vấn model UserNote và truyền đối tượng 'note' ra template.
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
-# Bỏ 'from . import course_learning_bp' vì nó không còn cần thiết khi blueprint đã được import ở file khác
 from .algorithms import get_filtered_course_sets, get_lessons_for_course
-from ....models import db, LearningContainer, LearningItem, CourseProgress, UserContainerState
+from ....models import db, LearningContainer, LearningItem, CourseProgress, UserContainerState, ContainerContributor, UserNote
 from sqlalchemy.sql import func
-# Bỏ import bbcode_to_html vì nó đã được xử lý ở __init__.py
-# from ....modules.shared.utils.bbcode_parser import bbcode_to_html
 
-# Tạo blueprint ở đây để các route có thể sử dụng
 course_learning_bp = Blueprint('course_learning', __name__, template_folder='templates')
 
 
@@ -81,7 +78,28 @@ def course_session(lesson_id):
     
     current_percentage = progress.completion_percentage if progress else 0
 
-    return render_template('course_session.html', lesson=lesson, course=course, current_percentage=current_percentage)
+    can_edit = (
+        current_user.user_role == 'admin' or
+        course.creator_user_id == current_user.user_id or
+        ContainerContributor.query.filter_by(
+            container_id=course.container_id,
+            user_id=current_user.user_id,
+            permission_level='editor'
+        ).first() is not None
+    )
+    
+    # THÊM MỚI: Lấy ghi chú của người dùng cho bài học này
+    note = UserNote.query.filter_by(user_id=current_user.user_id, item_id=lesson.item_id).first()
+
+    return render_template(
+        'course_session.html', 
+        lesson=lesson, 
+        course=course, 
+        current_percentage=current_percentage,
+        can_edit=can_edit,
+        note=note  # Truyền đối tượng ghi chú ra template
+    )
+
 
 @course_learning_bp.route('/update_lesson_progress/<int:lesson_id>', methods=['POST'])
 @login_required
