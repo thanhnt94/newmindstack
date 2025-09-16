@@ -1,5 +1,5 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 4.6
+# Phiên bản: 4.8
 # ĐÃ SỬA: Cập nhật các route add và edit flashcard item để xử lý trường ai_prompt.
 # ĐÃ SỬA: Cập nhật template_folder của Blueprint để phản ánh cấu trúc thư mục mới.
 # ĐÃ THÊM: Tích hợp AudioService để tạo và cache file audio từ Text-to-Speech.
@@ -27,6 +27,18 @@ flashcards_bp = Blueprint('content_management_flashcards', __name__,
 
 # Khởi tạo service
 audio_service = AudioService()
+
+def _process_relative_url(url):
+    """
+    Mô tả: Tiền xử lý URL tương đối, thêm 'uploads/' nếu cần.
+    Args:
+        url (str): URL ban đầu.
+    Returns:
+        str: URL đã được tiền xử lý.
+    """
+    if url and not url.startswith(('http://', 'https://', '/')):
+        return f'uploads/{url}'
+    return url
 
 @flashcards_bp.route('/flashcards/process_excel_info', methods=['POST'])
 @login_required
@@ -78,7 +90,7 @@ def list_flashcard_sets():
     """
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
-    search_field = request.args.get('search_field', 'all', type=str)
+    search_field = request.args.get('search_field', 'all', type=str) # Lấy trường tìm kiếm từ request
 
     # Truy vấn cơ sở để lấy các bộ Flashcard
     base_query = LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
@@ -417,11 +429,11 @@ def add_flashcard_item(set_id):
         content_dict = {
             'front': form.front.data, 'back': form.back.data,
             'front_audio_content': form.front_audio_content.data,
-            'front_audio_url': form.front_audio_url.data,
+            'front_audio_url': _process_relative_url(form.front_audio_url.data),
             'back_audio_content': form.back_audio_content.data,
-            'back_audio_url': form.back_audio_url.data,
-            'front_img': form.front_img.data,
-            'back_img': form.back_img.data,
+            'back_audio_url': _process_relative_url(form.back_audio_url.data),
+            'front_img': _process_relative_url(form.front_img.data),
+            'back_img': _process_relative_url(form.back_img.data),
         }
         if form.ai_prompt.data:
             content_dict['ai_prompt'] = form.ai_prompt.data
@@ -474,11 +486,11 @@ def edit_flashcard_item(set_id, item_id):
         flashcard_item.content['front'] = form.front.data
         flashcard_item.content['back'] = form.back.data
         flashcard_item.content['front_audio_content'] = form.front_audio_content.data
-        flashcard_item.content['front_audio_url'] = form.front_audio_url.data
+        flashcard_item.content['front_audio_url'] = _process_relative_url(form.front_audio_url.data)
         flashcard_item.content['back_audio_content'] = form.back_audio_content.data
-        flashcard_item.content['back_audio_url'] = form.back_audio_url.data
-        flashcard_item.content['front_img'] = form.front_img.data
-        flashcard_item.content['back_img'] = form.back_img.data
+        flashcard_item.content['back_audio_url'] = _process_relative_url(form.back_audio_url.data)
+        flashcard_item.content['front_img'] = _process_relative_url(form.front_img.data)
+        flashcard_item.content['back_img'] = _process_relative_url(form.back_img.data)
         
         if form.ai_prompt.data:
             flashcard_item.content['ai_prompt'] = form.ai_prompt.data
@@ -513,7 +525,7 @@ def edit_flashcard_item(set_id, item_id):
         return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Sửa Thẻ')
     return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Sửa Thẻ')
 
-@flashcards_bp.route('/flashcards/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
+@flashcards_bp.route('/flashcards/delete/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
 @login_required
 def delete_flashcard_item(set_id, item_id):
     """

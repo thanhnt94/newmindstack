@@ -1,9 +1,8 @@
-<!-- File: newmindstack/mindstack_app/modules/content_management/templates/courses/add_edit_lesson.html -->
-<!-- Phiên bản: 3.0 -->
+<!-- File: newmindstack/mindstack_app/modules/content_management/courses/templates/add_edit_lesson.html -->
+<!-- Phiên bản: 4.0 -->
 <!-- Mục đích: Hiển thị form để thêm mới hoặc chỉnh sửa một Bài học. -->
-<!--           Đã cập nhật url_for. -->
-<!--           Đã khôi phục cấu trúc form, style, các trường media và tích hợp BBCode Editor từ code gốc. -->
-<!--           Thiết kế responsive. -->
+<!--           ĐÃ THÊM: Trường nhập "Thời gian hoàn thành dự tính". -->
+<!--           ĐÃ XÓA: Loại bỏ phần "Tuỳ chọn Media" không còn sử dụng. -->
 
 {% extends "base.html" %}
 
@@ -42,29 +41,17 @@
                     {% endif %}
                 </div>
 
+                {# THÊM MỚI: Trường nhập thời gian dự tính #}
                 <div class="border-t border-gray-200 pt-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Tùy chọn Media</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            {{ form.lesson_audio_url.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.lesson_audio_url(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL file âm thanh bài học") }}
-                            {% if form.lesson_audio_url.errors %}
-                                <div class="text-red-500 text-xs mt-1">
-                                    {% for error in form.lesson_audio_url.errors %}<p>{{ error }}</p>{% endfor %}
-                                </div>
-                            {% endif %}
+                     {{ form.estimated_time.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.estimated_time(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Ví dụ: 15") }}
+                    {% if form.estimated_time.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.estimated_time.errors %}<p>{{ error }}</p>{% endfor %}
                         </div>
-                        <div>
-                            {{ form.lesson_image_url.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.lesson_image_url(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh bài học") }}
-                            {% if form.lesson_image_url.errors %}
-                                <div class="text-red-500 text-xs mt-1">
-                                    {% for error in form.lesson_image_url.errors %}<p>{{ error }}</p>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
+                    {% endif %}
                 </div>
+
 
                 {# Trường ai_explanation chỉ để hiển thị, không cho sửa trực tiếp #}
                 {% if form.ai_explanation.data %}
@@ -99,7 +86,7 @@
                 // Ví dụ: chỉ hiển thị các nút cần thiết
                 buttons: [
                     ['bold', 'italic', 'underline', 'strike'],
-                    ['link', 'youtube', 'img', 'audio'], // Thêm audio và img
+                    ['link', 'youtube', 'img'],
                     ['list', 'orderedlist'],
                     ['quote', 'code'],
                     ['undo', 'redo']
@@ -109,3 +96,4 @@
     });
 </script>
 {% endblock %}
+

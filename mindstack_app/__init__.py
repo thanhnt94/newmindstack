@@ -1,7 +1,7 @@
 # File: web/mindstack_app/__init__.py
-# Version: 3.2
-# MỤC ĐÍCH: Đăng ký Blueprint cho module ghi chú.
-# ĐÃ THÊM: Import và đăng ký notes_bp.
+# Version: 3.3
+# MỤC ĐÍCH: Đăng ký hàm bbcode_to_html như một context processor toàn cục.
+# ĐÃ THÊM: app.context_processor để inject hàm bbcode_to_html.
 
 from flask import Flask, g
 from .config import Config, BASE_DIR
@@ -40,6 +40,12 @@ def create_app(config_class=Config):
     app.logger.info(f"Đã cấu hình thư mục tĩnh 'uploads' tại URL: {app.static_url_path}")
 
 
+    # Đăng ký các hàm tiện ích toàn cục cho template
+    from .modules.shared.utils.bbcode_parser import bbcode_to_html
+    @app.context_processor
+    def inject_utility_functions():
+        return dict(bbcode_to_html=bbcode_to_html)
+
     from .models import User
     @login_manager.user_loader
     def load_user(user_id):
@@ -66,7 +72,6 @@ def create_app(config_class=Config):
     from .modules.learning.routes import learning_bp
     from .modules.ai_services.routes import ai_services_bp
     from .modules.notes.routes import notes_bp
-    # THÊM MỚI: Import blueprint cho module shared
     from .modules.shared import shared_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -79,12 +84,10 @@ def create_app(config_class=Config):
     app.register_blueprint(learning_bp, url_prefix='/learn')
     app.register_blueprint(ai_services_bp)
     app.register_blueprint(notes_bp)
-    # THÊM MỚI: Đăng ký blueprint cho shared
     app.register_blueprint(shared_bp)
 
 
     with app.app_context():
-        # Thêm dòng này để tự động tạo tất cả các bảng nếu chúng chưa tồn tại.
         db.create_all()
         
         admin_user = User.query.filter_by(username='admin').first()

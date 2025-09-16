@@ -81,7 +81,13 @@
             <p>Tự kiểm tra kiến thức với các bộ câu hỏi trắc nghiệm.</p>
         </a>
 
-        <a href="{{ url_for('content_management.content_dashboard') }}" class="feature-card">
+        <a href="{{ url_for('learning.course_learning.course_learning_dashboard') }}" class="feature-card">
+            <i class="fas fa-graduation-cap text-purple-500"></i>
+            <h2>Học theo Khóa học</h2>
+            <p>Tiếp thu kiến thức một cách có hệ thống qua các bài học.</p>
+        </a>
+
+        <a href="{{ url_for('content_management.content_dashboard') }}" class="feature-card md:col-span-2 lg:col-span-3">
             <i class="fas fa-book text-orange-500"></i>
             <h2>Quản lý nội dung</h2>
             <p>Tạo, chỉnh sửa và quản lý các bộ thẻ, quiz, và khóa học của bạn.</p>

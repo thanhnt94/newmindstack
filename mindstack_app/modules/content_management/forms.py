@@ -1,10 +1,12 @@
-# File: newmindstack/mindstack_app/modules/content_management/forms.py
-# Phiên bản: 3.3
-# ĐÃ SỬA: Thêm trường 'ai_prompt' vào FlashcardItemForm và QuizItemForm.
+# mindstack_app/modules/content_management/forms.py
+# Phiên bản: 4.0
+# MỤC ĐÍCH: Dọn dẹp CourseForm và LessonForm, loại bỏ các trường không cần thiết.
+# ĐÃ SỬA: Xóa bỏ excel_file khỏi CourseForm.
+# ĐÃ SỬA: Xóa bỏ các trường media không dùng khỏi LessonForm.
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, BooleanField, SubmitField, URLField, FileField, SelectField
-from wtforms.validators import DataRequired, Length, Optional, ValidationError, Email
+from wtforms import StringField, TextAreaField, BooleanField, SubmitField, URLField, FileField, SelectField, IntegerField
+from wtforms.validators import DataRequired, Length, Optional, ValidationError, Email, NumberRange
 from flask_wtf.file import FileAllowed
 
 # ==============================================================================
@@ -46,10 +48,12 @@ class LessonForm(FlaskForm):
     """
     title = StringField('Tiêu đề bài học', validators=[DataRequired(message="Tiêu đề bài học không được để trống.")])
     bbcode_content = TextAreaField('Nội dung bài học (BBCode)', validators=[DataRequired(message="Nội dung bài học không được để trống.")])
-    lesson_audio_url = URLField('URL file âm thanh bài học', validators=[Optional()])
-    lesson_image_url = URLField('URL hình ảnh bài học', validators=[Optional()])
+    estimated_time = IntegerField('Thời gian hoàn thành dự tính (phút)', 
+                                validators=[Optional(), 
+                                            NumberRange(min=0, message="Thời gian phải là một số dương.")])
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
     submit = SubmitField('Lưu bài học')
+
 
 # ==============================================================================
 # Forms cho THẺ GHI NHỚ (FLASHCARDS)
@@ -147,3 +151,4 @@ class QuizItemForm(FlaskForm):
             self.correct_answer_text.errors.append('Đáp án đúng D không thể được chọn nếu Lựa chọn D trống.')
             return False
         return True
+

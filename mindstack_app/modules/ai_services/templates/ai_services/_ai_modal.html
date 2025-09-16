@@ -1,8 +1,9 @@
+
 {#
-    File: mindstack_app/templates/includes/_ai_modal.html
-    Phiên bản: 1.4
-    Mục đích: Template cho modal (cửa sổ) chung để tương tác với Trợ lý AI.
-              ĐÃ SỬA: Loại bỏ khai báo biến trùng lặp.
+    # File: mindstack_app/modules/ai_services/templates/ai_services/_ai_modal.html
+    # Phiên bản: 1.5
+    # Mục đích: Template cho modal (cửa sổ) chung để tương tác với Trợ lý AI.
+    # ĐÃ SỬA: Cập nhật hàm openAiModal và closeAiModal để quản lý biến cờ global.
 #}
 <style>
     .ai-modal-overlay {
@@ -123,7 +124,6 @@
             <button id="ai-modal-close-btn" class="close-button">&times;</button>
         </div>
         <div class="ai-modal-body">
-            <p class="text-gray-600 mb-2">Hỏi AI về thẻ này:</p>
             <p class="text-lg font-semibold text-gray-800 mb-4" id="ai-modal-term">Đang tải...</p>
             
             <div class="ai-prompt-buttons">
@@ -142,6 +142,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+    // Khai báo biến isAiModalOpen ở phạm vi toàn cục
+    let isAiModalOpen = false;
+
     const aiModal = document.getElementById('ai-modal');
     const aiModalCloseBtn = document.getElementById('ai-modal-close-btn');
     const aiModalTerm = document.getElementById('ai-modal-term');
@@ -150,8 +153,14 @@
     
     let currentAiItemId = null;
     
-    // Hàm này sẽ được gọi từ trang cha
+    // Hàm mở modal AI
     window.openAiModal = function(itemId, termContent, itemContent) {
+        if (isAiModalOpen) {
+            console.warn("AI modal đã được mở, bỏ qua lệnh gọi.");
+            return;
+        }
+        isAiModalOpen = true;
+
         currentAiItemId = itemId;
         aiModalTerm.textContent = termContent; // Sử dụng dữ liệu từ trang cha
         aiModal.classList.add('open');
@@ -159,11 +168,13 @@
         fetchAiResponse('explanation', itemContent);
     };
 
-    function closeAiModal() {
+    // Hàm đóng modal AI
+    window.closeAiModal = function() {
         aiModal.classList.remove('open');
         currentAiItemId = null;
         aiResponseContainer.innerHTML = `<div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>`; // Reset nội dung
-    }
+        isAiModalOpen = false; // Reset cờ trạng thái khi đóng
+    };
 
     async function fetchAiResponse(promptType, itemContent) {
         if (!currentAiItemId) return;

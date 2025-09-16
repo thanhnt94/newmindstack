@@ -1,7 +1,8 @@
-# File: newmindstack/mindstack_app/modules/content_management/courses/routes.py
-# Phiên bản: 4.1
-# ĐÃ SỬA: Khắc phục lỗi ImportError bằng cách đổi tên import CourseSetForm thành CourseForm.
-# ĐÃ SỬA: Cập nhật template_folder của Blueprint để phản ánh cấu trúc thư mục mới.
+# mindstack_app/modules/content_management/courses/routes.py
+# Phiên bản: 4.3
+# MỤC ĐÍCH: Dọn dẹp logic, loại bỏ các trường media không còn tồn tại.
+# ĐÃ SỬA: Xóa các tham chiếu đến 'lesson_audio_url' và 'lesson_image_url' trong route 'edit_lesson' và 'add_lesson'.
+# ĐÃ SỬA: Cập nhật logic lưu 'estimated_time' cho bài học.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
@@ -109,15 +110,11 @@ def list_course_sets():
 def add_course_set():
     """
     Thêm một bộ Khóa học mới.
-
-    Hàm này xử lý việc tạo bộ Khóa học, bao gồm cả việc nhập dữ liệu từ file Excel
-    và thêm các bài học liên quan.
     """
-    form = CourseForm() # Đã sửa từ CourseSetForm
+    form = CourseForm()
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
-        temp_filepath = None
         try:
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
@@ -129,132 +126,71 @@ def add_course_set():
                 ai_settings={'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
             )
             db.session.add(new_set)
-            db.session.flush()
-            if form.excel_file.data and form.excel_file.data.filename != '':
-                excel_file = form.excel_file.data
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
-                    excel_file.save(tmp_file.name)
-                    temp_filepath = tmp_file.name
-                df = pd.read_excel(temp_filepath, sheet_name='Data')
-                required_cols = ['title', 'content']
-                if not all(col in df.columns for col in required_cols):
-                    raise ValueError(f"File Excel (sheet 'Data') phải có các cột bắt buộc: {', '.join(required_cols)}.")
-                items_added_count = 0
-                for index, row in df.iterrows():
-                    title_content = str(row['title']) if pd.notna(row['title']) else ''
-                    lesson_content = str(row['content']) if pd.notna(row['content']) else ''
-                    if title_content and lesson_content:
-                        item_content = {'title': title_content, 'content': lesson_content}
-                        optional_cols = ['audio_content', 'audio_url', 'image_url', 'ai_explanation']
-                        for col in optional_cols:
-                            if col in df.columns and pd.notna(row[col]):
-                                item_content[col] = str(row[col])
-                        new_item = LearningItem(
-                            container_id=new_set.container_id,
-                            item_type='LESSON',
-                            content=item_content,
-                            order_in_container=index + 1
-                        )
-                        db.session.add(new_item)
-                        items_added_count += 1
-                flash_message = f'Bộ khóa học và {items_added_count} bài học từ Excel đã được tạo thành công!'
-                flash_category = 'success'
-            else:
-                flash_message = 'Bộ khóa học mới đã được tạo thành công!'
-                flash_category = 'success'
             db.session.commit()
+            flash_message = 'Bộ khóa học mới đã được tạo thành công!'
+            flash_category = 'success'
         except Exception as e:
             db.session.rollback()
             flash_message = f'Lỗi khi xử lý: {str(e)}'
             flash_category = 'danger'
-        finally:
-            if temp_filepath and os.path.exists(temp_filepath):
-                os.remove(temp_filepath)
+        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': flash_category == 'success', 'message': flash_message})
         else:
             flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='courses'))
+
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
+    
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_course_set_bare.html', form=form, title='Thêm Bộ khóa học mới')
+    
     return render_template('add_edit_course_set.html', form=form, title='Thêm Bộ khóa học mới')
+
 
 @courses_bp.route('/courses/edit/<int:set_id>', methods=['GET', 'POST'])
 @login_required
 def edit_course_set(set_id):
     """
     Chỉnh sửa một bộ Khóa học hiện có.
-
-    Hàm này cho phép chỉnh sửa thông tin của bộ Khóa học và cập nhật/thêm các bài học
-    từ file Excel.
     """
     course_set = LearningContainer.query.get_or_404(set_id)
     if current_user.user_role != 'admin' and \
        course_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         abort(403)
-    form = CourseForm(obj=course_set) # Đã sửa từ CourseSetForm
+        
+    form = CourseForm(obj=course_set)
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
-        temp_filepath = None
         try:
             course_set.title = form.title.data
             course_set.description = form.description.data
             course_set.tags = form.tags.data
             course_set.is_public = form.is_public.data
             course_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
-            if form.excel_file.data and form.excel_file.data.filename != '':
-                excel_file = form.excel_file.data
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
-                    excel_file.save(tmp_file.name)
-                    temp_filepath = tmp_file.name
-                df = pd.read_excel(temp_filepath, sheet_name='Data')
-                required_cols = ['title', 'content']
-                if not all(col in df.columns for col in required_cols):
-                    raise ValueError(f"File Excel (sheet 'Data') phải có các cột bắt buộc: {', '.join(required_cols)}.")
-                LearningItem.query.filter_by(container_id=set_id, item_type='LESSON').delete()
-                db.session.flush()
-                for index, row in df.iterrows():
-                    title_content = str(row['title']) if pd.notna(row['title']) else ''
-                    lesson_content = str(row['content']) if pd.notna(row['content']) else ''
-                    if title_content and lesson_content:
-                        item_content = {'title': title_content, 'content': lesson_content}
-                        optional_cols = ['audio_content', 'audio_url', 'image_url', 'ai_explanation']
-                        for col in optional_cols:
-                            if col in df.columns and pd.notna(row[col]):
-                                item_content[col] = str(row[col])
-                        new_item = LearningItem(
-                            container_id=set_id,
-                            item_type='LESSON',
-                            content=item_content,
-                            order_in_container=index + 1
-                        )
-                        db.session.add(new_item)
-                flash_message = 'Bộ khóa học và các bài học từ Excel đã được cập nhật!'
-                flash_category = 'success'
-            else:
-                flash_message = 'Bộ khóa học đã được cập nhật!'
-                flash_category = 'success'
             db.session.commit()
+            flash_message = 'Bộ khóa học đã được cập nhật!'
+            flash_category = 'success'
         except Exception as e:
             db.session.rollback()
             flash_message = f'Lỗi khi xử lý: {str(e)}'
             flash_category = 'danger'
-        finally:
-            if temp_filepath and os.path.exists(temp_filepath):
-                os.remove(temp_filepath)
+            
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': flash_category == 'success', 'message': flash_message})
         else:
             flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='courses'))
+
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
+    
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_course_set_bare.html', form=form, title='Chỉnh sửa Bộ khóa học')
+    
     return render_template('add_edit_course_set.html', form=form, title='Chỉnh sửa Bộ khóa học')
 
 @courses_bp.route('/courses/delete/<int:set_id>', methods=['POST'])
@@ -262,9 +198,6 @@ def edit_course_set(set_id):
 def delete_course_set(set_id):
     """
     Xóa một bộ Khóa học.
-
-    Hàm này cho phép xóa một bộ Khóa học và các bài học liên quan.
-    Chỉ người tạo hoặc admin mới có quyền xóa.
     """
     course_set = LearningContainer.query.get_or_404(set_id)
     if current_user.user_role != 'admin' and course_set.creator_user_id != current_user.user_id:
@@ -279,31 +212,26 @@ def delete_course_set(set_id):
 def list_lessons(set_id):
     """
     Hiển thị danh sách các bài học trong một bộ Khóa học cụ thể.
-
-    Hàm này truy xuất các bài học của một bộ Khóa học, áp dụng bộ lọc tìm kiếm
-    trên nội dung bài học và phân trang, sau đó hiển thị chúng.
     """
-    course_set = LearningContainer.query.get_or_404(set_id)
-    if not course_set.is_public and \
+    course = LearningContainer.query.get_or_404(set_id)
+    if not course.is_public and \
        current_user.user_role != 'admin' and \
-       course_set.creator_user_id != current_user.user_id and \
+       course.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id).first():
         abort(403)
+        
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
     search_field = request.args.get('search_field', 'all', type=str)
 
     base_query = LearningItem.query.filter_by(
-        container_id=course_set.container_id,
+        container_id=course.container_id,
         item_type='LESSON'
     )
     
     item_search_field_map = {
         'title': LearningItem.content['title'],
-        'content': LearningItem.content['content'],
-        'audio_content': LearningItem.content['audio_content'],
-        'audio_url': LearningItem.content['audio_url'],
-        'image_url': LearningItem.content['image_url']
+        'content': LearningItem.content['bbcode_content'],
     }
 
     base_query = apply_search_filter(base_query, search_query, item_search_field_map, search_field)
@@ -311,10 +239,11 @@ def list_lessons(set_id):
     pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container), page)
     lessons = pagination.items
     can_edit = (current_user.user_role == 'admin' or \
-       course_set.creator_user_id == current_user.user_id or \
+       course.creator_user_id == current_user.user_id or \
        ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first())
+       
     return render_template('lessons.html', 
-                           course_set=course_set, 
+                           course=course, 
                            lessons=lessons, 
                            can_edit=can_edit, 
                            pagination=pagination, 
@@ -328,14 +257,13 @@ def list_lessons(set_id):
 def add_lesson(set_id):
     """
     Thêm một bài học mới vào một bộ Khóa học cụ thể.
-
-    Hàm này xử lý việc thêm một bài học mới vào một bộ Khóa học hiện có.
     """
     course_set = LearningContainer.query.get_or_404(set_id)
     if current_user.user_role != 'admin' and \
        course_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         abort(403)
+        
     form = LessonForm()
     if form.validate_on_submit():
         max_order = db.session.query(db.func.max(LearningItem.order_in_container)).filter_by(
@@ -343,29 +271,34 @@ def add_lesson(set_id):
             item_type='LESSON'
         ).scalar()
         new_order = (max_order or 0) + 1
+        
+        content_dict = {
+            'title': form.title.data, 
+            'bbcode_content': form.bbcode_content.data,
+            'estimated_time': form.estimated_time.data,
+        }
+
         new_item = LearningItem(
             container_id=set_id,
             item_type='LESSON',
-            content={
-                'title': form.title.data, 
-                'content': form.content.data,
-                'audio_content': form.audio_content.data,
-                'audio_url': form.audio_url.data,
-                'image_url': form.image_url.data,
-            },
+            content=content_dict,
             order_in_container=new_order
         )
         db.session.add(new_item)
         db.session.commit()
+        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': True, 'message': 'Bài học mới đã được thêm!'})
         else:
             flash('Bài học đã được thêm!', 'success')
             return redirect(url_for('.list_lessons', set_id=set_id))
+
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
+        
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
+        
     return render_template('add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
 
 @courses_bp.route('/courses/<int:set_id>/lessons/edit/<int:item_id>', methods=['GET', 'POST'])
@@ -373,8 +306,6 @@ def add_lesson(set_id):
 def edit_lesson(set_id, item_id):
     """
     Chỉnh sửa một bài học hiện có trong một bộ Khóa học cụ thể.
-
-    Hàm này xử lý việc cập nhật nội dung của một bài học.
     """
     course_set = LearningContainer.query.get_or_404(set_id)
     lesson_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id).first_or_404()
@@ -382,28 +313,29 @@ def edit_lesson(set_id, item_id):
        course_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         abort(403)
+        
     form = LessonForm(obj=lesson_item.content)
     if form.validate_on_submit():
         lesson_item.content['title'] = form.title.data
-        lesson_item.content['content'] = form.content.data
-        lesson_item.content['audio_content'] = form.audio_content.data
-        lesson_item.content['audio_url'] = form.audio_url.data
-        lesson_item.content['image_url'] = form.image_url.data
+        lesson_item.content['bbcode_content'] = form.bbcode_content.data
+        lesson_item.content['estimated_time'] = form.estimated_time.data
         flag_modified(lesson_item, "content")
         db.session.commit()
+        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': True, 'message': 'Bài học đã được cập nhật!'})
         else:
             flash('Bài học đã được cập nhật!', 'success')
             return redirect(url_for('.list_lessons', set_id=set_id))
+            
     if request.method == 'GET':
         form.title.data = lesson_item.content.get('title')
-        form.content.data = lesson_item.content.get('content')
-        form.audio_content.data = lesson_item.content.get('audio_content')
-        form.audio_url.data = lesson_item.content.get('audio_url')
-        form.image_url.data = lesson_item.content.get('image_url')
+        form.bbcode_content.data = lesson_item.content.get('bbcode_content')
+        form.estimated_time.data = lesson_item.content.get('estimated_time')
+        
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
+        
     return render_template('add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
 
 @courses_bp.route('/courses/<int:set_id>/lessons/delete/<int:item_id>', methods=['POST'])
@@ -411,8 +343,6 @@ def edit_lesson(set_id, item_id):
 def delete_lesson(set_id, item_id):
     """
     Xóa một bài học khỏi một bộ Khóa học cụ thể.
-
-    Hàm này xử lý việc xóa một bài học.
     """
     course_set = LearningContainer.query.get_or_404(set_id)
     lesson_item = LearningItem.query.get_or_404(item_id)
@@ -420,10 +350,13 @@ def delete_lesson(set_id, item_id):
        course_set.creator_user_id != current_user.user_id and \
        not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
         abort(403)
+        
     db.session.delete(lesson_item)
     db.session.commit()
+    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True, 'message': 'Bài học đã được xóa.'})
     else:
         flash('Bài học đã được xóa.', 'success')
         return redirect(url_for('.list_lessons', set_id=set_id))
+

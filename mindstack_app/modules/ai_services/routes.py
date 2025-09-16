@@ -1,7 +1,8 @@
 # File: mindstack_app/modules/ai_services/routes.py
-# Phiên bản: 2.1
+# Phiên bản: 2.2
 # MỤC ĐÍCH: Nâng cấp endpoint để sử dụng hệ thống prompt động mới và cơ chế cache.
 # ĐÃ SỬA: Thêm logic kiểm tra cache (ai_explanation) và lưu kết quả từ AI.
+# ĐÃ THÊM: Hỗ trợ tham số force_regenerate để bỏ qua cache và tạo lại nội dung.
 
 from flask import request, jsonify, current_app
 from flask_login import login_required
@@ -25,6 +26,7 @@ def get_ai_response():
     prompt_type = data.get('prompt_type', 'explanation') # Mặc định là 'explanation'
     item_id = data.get('item_id')
     custom_question = data.get('custom_question')
+    force_regenerate = data.get('force_regenerate', False)
 
     if not item_id:
         return jsonify({'success': False, 'message': 'Thiếu thông tin item_id.'}), 400
@@ -33,8 +35,8 @@ def get_ai_response():
     if not item:
         return jsonify({'success': False, 'message': 'Không tìm thấy học liệu.'}), 404
 
-    # 1. Kiểm tra cache trước khi gọi AI
-    if prompt_type == 'explanation' and item.ai_explanation:
+    # 1. Kiểm tra cache trước khi gọi AI, trừ khi có yêu cầu tái tạo
+    if prompt_type == 'explanation' and item.ai_explanation and not force_regenerate:
         current_app.logger.info(f"AI Service: Trả về cache cho item {item_id}.")
         return jsonify({'success': True, 'response': item.ai_explanation})
 

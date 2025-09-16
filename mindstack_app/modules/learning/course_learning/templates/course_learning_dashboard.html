@@ -1,0 +1,167 @@
+<!-- mindstack_app/modules/learning/course_learning/templates/course_learning_dashboard.html -->
+<!-- Phiên bản: 2.0 -->
+<!-- Mục đích: Cập nhật giao diện để có 3 tab chức năng. -->
+
+{% extends "base.html" %}
+
+{% block title %}Học theo Khóa học{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .selected-course {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+        .tab-filter-button.active { 
+            border-bottom: 2px solid #3b82f6; 
+            color: #3b82f6; 
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Học theo Khóa học</h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Cột trái: Danh sách khóa học -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg flex flex-col">
+            <h2 class="text-xl font-semibold mb-4">Chọn một khóa học</h2>
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200 mb-4">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button class="tab-filter-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing">
+                        Đang học
+                    </button>
+                    <button class="tab-filter-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore">
+                        Khám phá
+                    </button>
+                    <button class="tab-filter-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap {% if current_filter == 'archive' %}active{% endif %}" data-filter="archive">
+                        Lưu trữ
+                    </button>
+                </nav>
+            </div>
+            <div id="course-list-container" class="flex-grow">
+                <!-- Nội dung danh sách khóa học sẽ được tải vào đây -->
+            </div>
+        </div>
+
+        <!-- Cột phải: Danh sách bài học -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+             <div id="lesson-list-container">
+                <div class="flex flex-col items-center justify-center h-full text-gray-500">
+                    <i class="fas fa-book-open text-5xl mb-4"></i>
+                    <p>Vui lòng chọn một khóa học để xem danh sách bài học.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const courseListContainer = document.getElementById('course-list-container');
+            const lessonListContainer = document.getElementById('lesson-list-container');
+            let currentFilter = '{{ current_filter }}';
+
+            // Hàm tải danh sách khóa học
+            async function loadCourseList(page = 1, searchQuery = '', searchField = 'all', filter = currentFilter) {
+                const url = new URL("{{ url_for('learning.course_learning.get_course_sets_partial') }}", window.location.origin);
+                url.searchParams.append('page', page);
+                url.searchParams.append('q', searchQuery);
+                url.searchParams.append('search_field', searchField);
+                url.searchParams.append('filter', filter);
+                
+                courseListContainer.innerHTML = '<p>Đang tải...</p>';
+                try {
+                    const response = await fetch(url);
+                    courseListContainer.innerHTML = await response.text();
+                } catch (error) {
+                    courseListContainer.innerHTML = '<p class="text-red-500">Lỗi khi tải danh sách khóa học.</p>';
+                }
+            }
+
+            // Hàm tải danh sách bài học
+            async function loadLessonList(courseId) {
+                const url = `{{ url_for('learning.course_learning.get_lesson_list_partial', course_id=0) }}`.replace('0', courseId);
+                lessonListContainer.innerHTML = '<p>Đang tải bài học...</p>';
+                try {
+                    const response = await fetch(url);
+                    lessonListContainer.innerHTML = await response.text();
+                } catch (error) {
+                    lessonListContainer.innerHTML = '<p class="text-red-500">Lỗi khi tải danh sách bài học.</p>';
+                }
+            }
+            
+            // Xử lý sự kiện click tab
+            document.querySelectorAll('.tab-filter-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    currentFilter = this.dataset.filter;
+                    document.querySelectorAll('.tab-filter-button').forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    loadCourseList(1, '', 'all', currentFilter);
+                    lessonListContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500"><i class="fas fa-book-open text-5xl mb-4"></i><p>Vui lòng chọn một khóa học để xem danh sách bài học.</p></div>';
+                });
+            });
+
+            // Xử lý sự kiện click trên danh sách khóa học
+            courseListContainer.addEventListener('click', function(event) {
+                const courseItem = event.target.closest('.course-item');
+                const archiveIcon = event.target.closest('.archive-icon');
+                
+                if (archiveIcon) {
+                    event.stopPropagation();
+                    const courseId = archiveIcon.dataset.courseId;
+                    fetch(`{{ url_for('learning.course_learning.toggle_archive_course', course_id=0) }}`.replace('0', courseId), {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    }).then(res => res.json()).then(data => {
+                        if (data.success) {
+                            showFlashMessage(data.message, 'success');
+                            loadCourseList(1, '', 'all', currentFilter);
+                        }
+                    });
+                    return;
+                }
+
+                if (courseItem) {
+                    const courseId = courseItem.dataset.courseId;
+                    document.querySelectorAll('.course-item').forEach(item => item.classList.remove('selected-course'));
+                    courseItem.classList.add('selected-course');
+                    loadLessonList(courseId);
+                }
+
+                // Xử lý phân trang và tìm kiếm
+                const pageLink = event.target.closest('.pagination a');
+                if (pageLink) {
+                    event.preventDefault();
+                    const url = new URL(pageLink.href);
+                    loadCourseList(url.searchParams.get('page'), url.searchParams.get('q'), url.searchParams.get('search_field'), currentFilter);
+                }
+
+                const searchForm = event.target.closest('form');
+                if (searchForm && event.type === 'submit') {
+                     event.preventDefault();
+                     const formData = new FormData(searchForm);
+                     loadCourseList(1, formData.get('q'), formData.get('search_field'), currentFilter);
+                }
+            });
+            courseListContainer.addEventListener('submit', function(event){
+                const searchForm = event.target.closest('form');
+                 if (searchForm) {
+                     event.preventDefault();
+                     const formData = new FormData(searchForm);
+                     loadCourseList(1, formData.get('q'), formData.get('search_field'), currentFilter);
+                }
+            });
+
+            // Tải danh sách khóa học lần đầu
+            loadCourseList(1, '', 'all', currentFilter);
+        });
+    </script>
+{% endblock %}
+

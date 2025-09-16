@@ -1,11 +1,10 @@
+
+
 {#
-    File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
-    Phiên bản: 68.0
-    MỤC ĐÍCH: Khắc phục triệt để các lỗi hiển thị và xử lý logic trên giao diện Flashcard Session.
-    ĐÃ SỬA: Sửa lỗi 1: Khắc phục lỗi `TypeError: Cannot read properties of null` trong hàm submitFlashcardAnswer.
-    ĐÃ SỬA: Sửa lỗi 2: Chỉnh sửa CSS để nội dung không bị đè lên thanh toolbar trên mobile.
-    ĐÃ SỬA: Sửa lỗi 3: Cấu trúc lại HTML và CSS để nội dung thẻ được căn giữa khi không có cuộn và căn trên khi có cuộn.
-    ĐÃ THÊM: Tích hợp logic bật/tắt ảnh và nút "đóng" ảnh vào media container.
+    # File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
+    # Phiên bản: 68.4
+    # MỤC ĐÍCH: Khắc phục lỗi play audio do sai cú pháp truy cập dataset.
+    # ĐÃ SỬA: Thay đổi `btn.dataset.audio-target` thành `btn.dataset.audioTarget`.
 #}
 
 {% extends "base.html" %}
@@ -967,8 +966,8 @@
         if (!stats) return `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> ${isInitial ? 'Đây là thẻ mới.' : 'Không có dữ liệu thống kê.'}</div>`;
         const totalReviews = stats.times_reviewed || 0;
         const correctCount = stats.correct_count || 0;
-        const incorrectCount = stats.times_incorrect || 0;
-        const vagueCount = stats.times_vague || 0;
+        const incorrectCount = stats.incorrect_count || 0;
+        const vagueCount = stats.vague_count || 0;
         const correctPercentage = totalReviews > 0 ? (correctCount / totalReviews) * 100 : 0;
         const incorrectPercentage = totalReviews > 0 ? (incorrectCount / totalReviews) * 100 : 0;
         const vaguePercentage = totalReviews > 0 ? (vagueCount / totalReviews) * 100 : 0;
@@ -1187,16 +1186,38 @@
     }
 
     // ==============================================================================
-    // LOGIC CHO AI MODAL
+    // LOGIC CHO AI MODAL (ĐÃ SỬA LỖI LOGIC)
     // ==============================================================================
-    // Hàm này được định nghĩa ở đây để giao tiếp với modal
-    function openAiModal(itemId) {
-        const currentCard = currentFlashcardBatch[currentFlashcardIndex];
-        const termContent = currentCard.content.front;
-        const itemContent = currentCard.content;
-        window.openAiModal(itemId, termContent, itemContent);
-    }
     
+    // Ghi đè hàm openAiModal và closeAiModal được định nghĩa trong _ai_modal.html
+    window.openAiModal = function(itemId, termContent, itemContent) {
+        const aiModal = document.getElementById('ai-modal');
+        if (aiModal && aiModal.classList.contains('open')) {
+            console.warn("AI modal đã được mở, bỏ qua lệnh gọi.");
+            return;
+        }
+
+        const aiModalTerm = document.getElementById('ai-modal-term');
+        const aiResponseContainer = document.getElementById('ai-response-container');
+        
+        currentAiItemId = itemId;
+        aiModalTerm.textContent = termContent; 
+        aiModal.classList.add('open');
+        
+        fetchAiResponse('explanation', itemContent);
+    };
+
+    window.closeAiModal = function() {
+        const aiModal = document.getElementById('ai-modal');
+        const aiResponseContainer = document.getElementById('ai-response-container');
+        
+        aiModal.classList.remove('open');
+        currentAiItemId = null;
+        aiResponseContainer.innerHTML = `<div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>`;
+    };
+    
+    // Các listeners trong _ai_modal.html sẽ gọi các hàm global trên
+
     // ==============================================================================
     // LOGIC CHO NOTE PANEL
     // ==============================================================================

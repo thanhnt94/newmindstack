@@ -1,8 +1,8 @@
 # File: web/mindstack_app/models.py
-# Phiên bản: 13.1
-# MỤC ĐÍCH: Khắc phục lỗi AttributeError bằng cách thêm mối quan hệ (relationship)
-#          từ LearningContainer đến LearningItem.
-# ĐÃ SỬA: Thêm dòng db.relationship vào model LearningContainer.
+# Phiên bản: 14.0
+# MỤC ĐÍCH: Thêm model CourseProgress để theo dõi tiến độ học Course.
+# ĐÃ THÊM: Model CourseProgress với trường completion_percentage.
+# ĐÃ THÊM: Mối quan hệ course_progress trong model User.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -16,7 +16,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 class LearningContainer(db.Model):
     """
-    Model đại diện cho một bộ học liệu, ví dụ: một khóa học, một bộ thẻ, hoặc một bộ câu hỏi.
+    Mô tả: Model đại diện cho một bộ học liệu, ví dụ: một khóa học, một bộ thẻ, hoặc một bộ câu hỏi.
     """
     __tablename__ = 'learning_containers'
     container_id = db.Column(db.Integer, primary_key=True)
@@ -33,7 +33,7 @@ class LearningContainer(db.Model):
     # Mối quan hệ với User để dễ dàng truy cập thông tin người tạo
     creator = db.relationship('User', backref='created_containers', foreign_keys=[creator_user_id], lazy=True)
     contributors = db.relationship('ContainerContributor', backref='container', lazy=True, cascade="all, delete-orphan")
-    
+
     # THÊM MỚI: Mối quan hệ một-nhiều với LearningItem
     # Dòng này tạo ra thuộc tính 'container' trong mỗi đối tượng LearningItem
     items = db.relationship('LearningItem', backref='container', lazy=True, cascade="all, delete-orphan")
@@ -41,7 +41,7 @@ class LearningContainer(db.Model):
 
 class LearningGroup(db.Model):
     """
-    Model đại diện cho một nhóm các học liệu (LearningItem), ví dụ: một đoạn văn bản chung cho nhiều câu hỏi Quiz.
+    Mô tả: Model đại diện cho một nhóm các học liệu (LearningItem), ví dụ: một đoạn văn bản chung cho nhiều câu hỏi Quiz.
     """
     __tablename__ = 'learning_groups'
     group_id = db.Column(db.Integer, primary_key=True)
@@ -51,7 +51,7 @@ class LearningGroup(db.Model):
 
 class LearningItem(db.Model):
     """
-    Model đại diện cho một học liệu đơn lẻ, ví dụ: một bài học, một thẻ ghi nhớ, hoặc một câu hỏi Quiz.
+    Mô tả: Model đại diện cho một học liệu đơn lẻ, ví dụ: một bài học, một thẻ ghi nhớ, hoặc một câu hỏi Quiz.
     """
     __tablename__ = 'learning_items'
     item_id = db.Column(db.Integer, primary_key=True)
@@ -68,7 +68,7 @@ class LearningItem(db.Model):
 
 class User(UserMixin, db.Model):
     """
-    Model đại diện cho người dùng của ứng dụng.
+    Mô tả: Model đại diện cho người dùng của ứng dụng.
     """
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
@@ -89,10 +89,12 @@ class User(UserMixin, db.Model):
 
     contributed_containers = db.relationship('ContainerContributor', backref='user', lazy=True)
     container_states = db.relationship('UserContainerState', backref='user', lazy=True, cascade="all, delete-orphan")
-    
+
     # THÊM MỚI: Mối quan hệ với các bảng tiến độ mới
     flashcard_progress = db.relationship('FlashcardProgress', backref='user', lazy=True, cascade="all, delete-orphan")
     quiz_progress = db.relationship('QuizProgress', backref='user', lazy=True, cascade="all, delete-orphan")
+    course_progress = db.relationship('CourseProgress', backref='user', lazy=True, cascade="all, delete-orphan")
+
 
     def get_id(self):
         return str(self.user_id)
@@ -105,13 +107,13 @@ class User(UserMixin, db.Model):
 
 class UserContainerState(db.Model):
     """
-    Model để lưu trữ các trạng thái cá nhân hóa của người dùng đối với các bộ học liệu.
+    Mô tả: Model để lưu trữ các trạng thái cá nhân hóa của người dùng đối với các bộ học liệu.
     """
     __tablename__ = 'user_container_states'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=False)
-    
+
     # Các trường trạng thái đa năng
     is_archived = db.Column(db.Boolean, default=False, nullable=False)
     is_favorite = db.Column(db.Boolean, default=False, nullable=False)
@@ -131,21 +133,21 @@ class UserContainerState(db.Model):
 
 class FlashcardProgress(db.Model):
     """
-    Model để lưu trữ tiến độ học tập cho các thẻ Flashcard.
+    Mô tả: Model để lưu trữ tiến độ học tập cho các thẻ Flashcard.
     Bao gồm các trường dành riêng cho thuật toán lặp lại ngắt quãng (SM-2).
     """
     __tablename__ = 'flashcard_progress'
     progress_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
-    
+
     # Các trường dành riêng cho Flashcard (SM-2)
     due_time = db.Column(db.DateTime(timezone=True))
     easiness_factor = db.Column(db.Float, default=2.5)
     repetitions = db.Column(db.Integer, default=0)
     interval = db.Column(db.Integer, default=0)
     last_reviewed = db.Column(db.DateTime(timezone=True))
-    
+
     # Các trường chung
     status = db.Column(db.String(50), default='new') # 'new', 'learning', 'mastered', 'hard'
     times_correct = db.Column(db.Integer, default=0)
@@ -161,14 +163,14 @@ class FlashcardProgress(db.Model):
 
 class QuizProgress(db.Model):
     """
-    Model để lưu trữ tiến độ học tập cho các câu hỏi Quiz.
+    Mô tả: Model để lưu trữ tiến độ học tập cho các câu hỏi Quiz.
     Chỉ bao gồm các trường cần thiết cho việc thống kê và theo dõi cơ bản.
     """
     __tablename__ = 'quiz_progress'
     progress_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
-    
+
     # Các trường dành riêng cho Quiz
     times_correct = db.Column(db.Integer, default=0)
     times_incorrect = db.Column(db.Integer, default=0)
@@ -178,12 +180,27 @@ class QuizProgress(db.Model):
     status = db.Column(db.String(50), default='new') # 'new', 'learning', 'mastered', 'hard'
     first_seen_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
     review_history = db.Column(JSON)
-    
+
     __table_args__ = (db.UniqueConstraint('user_id', 'item_id', name='_user_quiz_uc'),)
+
+class CourseProgress(db.Model):
+    """
+    Mô tả: Model để lưu trữ tiến độ học tập cho các bài học trong một khoá học (Course).
+    """
+    __tablename__ = 'course_progress'
+    progress_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
+
+    # Trường để lưu % hoàn thành do người dùng tự đánh giá
+    completion_percentage = db.Column(db.Integer, default=0, nullable=False)
+    last_updated = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'item_id', name='_user_course_uc'),)
 
 class ScoreLog(db.Model):
     """
-    Model để ghi lại lịch sử thay đổi điểm của người dùng.
+    Mô tả: Model để ghi lại lịch sử thay đổi điểm của người dùng.
     """
     __tablename__ = 'score_logs'
     log_id = db.Column(db.Integer, primary_key=True)
@@ -198,7 +215,7 @@ class ScoreLog(db.Model):
 
 class UserNote(db.Model):
     """
-    Model để lưu trữ ghi chú cá nhân của người dùng về một học liệu cụ thể.
+    Mô tả: Model để lưu trữ ghi chú cá nhân của người dùng về một học liệu cụ thể.
     """
     __tablename__ = 'user_notes'
     note_id = db.Column(db.Integer, primary_key=True)
@@ -209,7 +226,7 @@ class UserNote(db.Model):
 
 class UserFeedback(db.Model):
     """
-    Model để ghi lại phản hồi của người dùng về một học liệu cụ thể.
+    Mô tả: Model để ghi lại phản hồi của người dùng về một học liệu cụ thể.
     """
     __tablename__ = 'user_feedback'
     feedback_id = db.Column(db.Integer, primary_key=True)
@@ -221,7 +238,7 @@ class UserFeedback(db.Model):
 
 class ContainerContributor(db.Model):
     """
-    Model để quản lý quyền đóng góp của người dùng đối với các bộ học liệu.
+    Mô tả: Model để quản lý quyền đóng góp của người dùng đối với các bộ học liệu.
     """
     __tablename__ = 'container_contributors'
     contributor_id = db.Column(db.Integer, primary_key=True)
@@ -237,7 +254,7 @@ class ContainerContributor(db.Model):
 
 class SystemSetting(db.Model):
     """
-    Model để lưu trữ các cài đặt hệ thống.
+    Mô tả: Model để lưu trữ các cài đặt hệ thống.
     """
     __tablename__ = 'system_settings'
     setting_id = db.Column(db.Integer, primary_key=True)
@@ -247,7 +264,7 @@ class SystemSetting(db.Model):
 
 class BackgroundTask(db.Model):
     """
-    Model để theo dõi các tác vụ nền.
+    Mô tả: Model để theo dõi các tác vụ nền.
     """
     __tablename__ = 'background_tasks'
     task_id = db.Column(db.Integer, primary_key=True)
@@ -259,10 +276,10 @@ class BackgroundTask(db.Model):
     stop_requested = db.Column(db.Boolean, default=False)
     is_enabled = db.Column(db.Boolean, default=False)
     last_updated = db.Column(db.DateTime(timezone=True), onupdate=func.now())
-    
+
 class ApiKey(db.Model):
     """
-    Model để quản lý API key.
+    Mô tả: Model để quản lý API key.
     """
     __tablename__ = 'api_keys'
     key_id = db.Column(db.Integer, primary_key=True)
