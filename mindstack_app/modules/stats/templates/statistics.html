@@ -1,18 +1,8 @@
-<!-- 
-    mindstack_app/modules/stats/templates/statistics.html
-    Phiên bản: 1.1
-    Mục đích: Sửa lỗi giao diện và bổ sung phần thống kê cho Khoá học.
--->
-
 {% extends 'base.html' %}
 {% block title %}Bảng điều khiển - Thống kê{% endblock %}
 
 {% block head %}
     {{ super() }}
-    <!-- Cal-Heatmap CSS & JS -->
-    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cal-heatmap@4.2.2/dist/cal-heatmap.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cal-heatmap@4.2.2/dist/cal-heatmap.css">
     
     <style>
         :root {
@@ -31,14 +21,6 @@
         .section-title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1.5rem; display: flex; align-items: center; }
         .section-title i { color: var(--primary-color); margin-right: 0.75rem; }
 
-        /* Heatmap */
-        .heatmap-container { min-height: 180px; }
-        .heatmap-legend { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; }
-        .legend-color-box { width: 1rem; height: 1rem; border-radius: 0.125rem; }
-        .legend-color-box[data-level="1"] { background-color: #c6e48b; }
-        .legend-color-box[data-level="2"] { background-color: #7bc96f; }
-        .legend-color-box[data-level="3"] { background-color: #239a3b; }
-        .legend-color-box[data-level="4"] { background-color: #196127; }
         
         /* Bảng xếp hạng */
         .leaderboard-controls { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
@@ -62,7 +44,7 @@
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* SỬA LỖI GIAO DIỆN: Đổi tên grid và thêm cột thứ 3 */
+        /* Bổ sung cột thứ 3 cho Khoá học */
         .stats-main-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
         @media (min-width: 1024px) { .stats-main-grid { grid-template-columns: repeat(3, 1fr); } }
         
@@ -81,21 +63,6 @@
 <div class="dashboard-container">
     <h1 class="dashboard-header"><i class="fas fa-chart-pie"></i> Thống kê</h1>
 
-    <!-- Lịch sử hoạt động -->
-    <div class="stats-section">
-        <h2 class="section-title">Lịch sử hoạt động</h2>
-        <div id="heatmap-container" class="heatmap-container"></div>
-        <div class="heatmap-legend">
-            <span>Ít</span>
-            <div class="legend-color-box" data-level="1"></div>
-            <div class="legend-color-box" data-level="2"></div>
-            <div class="legend-color-box" data-level="3"></div>
-            <div class="legend-color-box" data-level="4"></div>
-            <span>Nhiều</span>
-        </div>
-    </div>
-
-    <!-- Bảng xếp hạng Người dùng -->
     <div class="stats-section leaderboard-section">
         <h2 class="section-title"><i class="fas fa-trophy"></i> Bảng xếp hạng Người dùng</h2>
         
@@ -128,9 +95,7 @@
         </div>
     </div>
 
-    <!-- SỬA LỖI GIAO DIỆN: Bổ sung cột thứ 3 cho Khoá học -->
     <div class="stats-main-grid">
-        <!-- Cột Flashcard -->
         <div class="stats-column flashcard-stats-column">
             <div class="stats-section">
                 <h2 class="section-title">Tổng quan Flashcard</h2>
@@ -160,7 +125,6 @@
             </div>
         </div>
 
-        <!-- Cột Quiz -->
         <div class="stats-column quiz-stats-column">
             <div class="stats-section">
                 <h2 class="section-title">Tổng quan Trắc nghiệm</h2>
@@ -190,7 +154,6 @@
             </div>
         </div>
 
-        <!-- CỘT MỚI: Thống kê Khoá học -->
         <div class="stats-column course-stats-column">
             <div class="stats-section">
                 <h2 class="section-title">Tổng quan Khoá học</h2>
@@ -215,7 +178,6 @@
     </div>
 </div>
 
-<!-- Template cho một hàng trong bảng xếp hạng (dùng cho JS) -->
 <template id="leaderboard-item-template">
     <li class="leaderboard-item">
         <span class="rank"></span>
@@ -230,49 +192,6 @@
     {{ super() }}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Khởi tạo Heatmap
-            const cal = new CalHeatmap();
-            const heatmapContainer = document.getElementById('heatmap-container');
-            if (heatmapContainer) {
-                fetch("{{ url_for('stats.get_heatmap_data_api') }}")
-                    .then(response => response.json())
-                    .then(data => {
-                        cal.paint({
-                            data: {
-                                source: data,
-                                type: 'json',
-                                x: 'timestamp',
-                                y: 'count'
-                            },
-                            date: { start: new Date(new Date().setFullYear(new Date().getFullYear() - 1)) },
-                            range: 12,
-                            scale: {
-                                color: {
-                                    type: 'threshold',
-                                    range: ['#c6e48b', '#7bc96f', '#239a3b', '#196127'],
-                                    domain: [1, 5, 10, 15],
-                                }
-                            },
-                            domain: {
-                                type: 'month',
-                                gutter: 4,
-                                label: { text: 'MMM', textAlign: 'start', position: 'top' }
-                            },
-                            subDomain: { type: 'ghDay', radius: 2, width: 11, height: 11, gutter: 4 },
-                        }, [
-                            [
-                                CalHeatmap.Tooltip,
-                                {
-                                    text: function (date, value, dayjsDate) {
-                                        return (value ? value : 'No') + ' activities on ' + dayjsDate.format('LL');
-                                    },
-                                },
-                            ],
-                        ]);
-                    })
-                    .catch(error => console.error("Lỗi tải dữ liệu heatmap:", error));
-            }
-            
             // Logic cho Leaderboard động
             const timeframeTabs = document.querySelector('.timeframe-tabs');
             const sortBySelect = document.getElementById('sort_by');
@@ -342,4 +261,3 @@
         });
     </script>
 {% endblock %}
-

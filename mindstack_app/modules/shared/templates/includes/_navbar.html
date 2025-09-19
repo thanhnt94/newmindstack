@@ -1,31 +1,19 @@
 {#
     File: mindstack_app/modules/shared/templates/includes/_navbar.html
-    Phiên bản: 2.6
-    Mục đích: Sửa lỗi BuildError do sai tên endpoint cho trang Thống kê.
+    Phiên bản: 2.8
+    Mục đích: Cập nhật navbar theo yêu cầu:
+              - Xóa menu thả xuống ở logo Mindstack.
+              - Đặt logo Mindstack thành link trực tiếp về trang chủ.
+              - Thêm link "Thống kê" vào menu thả xuống của người dùng.
+              - Xóa mã JavaScript thừa không còn sử dụng.
 #}
 {% macro render_navbar(current_user, request) %}
 <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
-    <!-- Dropdown Logo -->
-    <div class="relative">
-        <button id="logo-menu-button" class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">
-            <i class="fas fa-brain text-2xl md:text-3xl text-blue-400"></i>
-            <span class="hidden md:inline text-lg md:text-[20px] font-normal">Mindstack</span>
-            <i class="fas fa-chevron-down text-xs ml-1"></i>
-        </button>
-        <div id="logo-menu-dropdown" class="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none z-50 hidden">
-            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('main.dashboard') }}">
-                <i class="fas fa-home mr-3 w-4"></i> Trang chủ
-            </a>
-            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('content_management.content_dashboard') }}">
-                <i class="fas fa-boxes mr-3 w-4"></i> Quản lý học liệu
-            </a>
-            <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('stats.dashboard') }}">
-                <i class="fas fa-chart-line mr-3 w-4"></i> Thống kê
-            </a>
-        </div>
-    </div>
+    <a href="{{ url_for('main.dashboard') }}" class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">
+        <i class="fas fa-brain text-2xl md:text-3xl text-blue-400"></i>
+        <span class="hidden md:inline text-lg md:text-[20px] font-normal">Mindstack</span>
+    </a>
     
-    <!-- Tab chính -->
     <ul class="flex-grow flex justify-center items-center space-x-2 md:space-x-6">
         {% if current_user.is_authenticated %}
         <li>
@@ -55,7 +43,6 @@
         {% endif %}
     </ul>
 
-    <!-- Menu người dùng -->
     <ul class="flex items-center space-x-4">
         {% if current_user.is_authenticated %}
         <li class="relative group">
@@ -70,6 +57,9 @@
                     </a>
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('notes.manage_notes') }}">
                         <i class="fas fa-sticky-note mr-2 w-4"></i> Ghi chú của tôi
+                    </a>
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('stats.dashboard') }}">
+                        <i class="fas fa-chart-line mr-2 w-4"></i> Thống kê
                     </a>
                     {% if current_user.user_role == 'admin' %}
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('admin.admin_dashboard') }}">
@@ -93,24 +83,4 @@
         {% endif %}
     </ul>
 </nav>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const logoButton = document.getElementById('logo-menu-button');
-        const logoDropdown = document.getElementById('logo-menu-dropdown');
-
-        if (logoButton && logoDropdown) {
-            logoButton.addEventListener('click', function(event) {
-                event.stopPropagation();
-                logoDropdown.classList.toggle('hidden');
-            });
-
-            document.addEventListener('click', function(event) {
-                if (!logoDropdown.contains(event.target) && !logoButton.contains(event.target)) {
-                    logoDropdown.classList.add('hidden');
-                }
-            });
-        }
-    });
-</script>
 {% endmacro %}
-
