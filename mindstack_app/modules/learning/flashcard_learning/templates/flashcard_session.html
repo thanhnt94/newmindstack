@@ -1,8 +1,9 @@
 {#
     # File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
-    # Phiên bản: 68.6
-    # MỤC ĐÍCH: Khắc phục triệt để lỗi SyntaxError: Unexpected end of input.
-    # ĐÃ SỬA: Áp dụng hàm escapeJsString cho tất cả các biến dữ liệu nhạy cảm trước khi chèn vào template literal.
+    # Phiên bản: 68.9
+    # MỤC ĐÍCH: Nâng cấp trải nghiệm lật thẻ, thêm nút lật thẻ và sửa lỗi chi tiết thẻ.
+    # ĐÃ SỬA: Khắc phục lỗi không hiển thị chi tiết thẻ cho thẻ hiện tại bằng cách truyền `cardContent` vào hàm render.
+    # ĐÃ SỬA: Cải thiện thiết kế của nút "Lật thẻ".
 #}
 
 {% extends "base.html" %}
@@ -173,7 +174,6 @@
         overflow: hidden;
         transform-style: preserve-3d;
         -webkit-transform-style: preserve-3d;
-        cursor: pointer;
     }
 
     .face {
@@ -287,8 +287,8 @@
 
     /* Cấu trúc mới cho nội dung thẻ */
     ._card-container {
-        justify-content: flex-start;   /* thay vì center */
-        align-items: stretch;          /* kéo rộng vùng text */
+        justify-content: flex-start;
+        align-items: stretch;
         flex: 1 1 auto;
         min-height: 0;
         padding: 0 1rem;
@@ -315,8 +315,8 @@
     
     /* THÊM MỚI: CSS cho trạng thái có cuộn */
     .text-area.has-scroll {
-        justify-content: flex-start;   /* thay vì center */
-        align-items: flex-start;   
+        justify-content: flex-start;
+        align-items: flex-start;
     }
     
     .front .text-area .flashcard-content-text {
@@ -442,6 +442,25 @@
     #flashcard-buttons {
         display: none !important;
     }
+    
+    .flip-card-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        transition: all 0.2s ease-in-out;
+        background-color: #3b82f6;
+        color: white;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    }
+    .flip-card-btn:hover {
+        background-color: #2563eb;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 10px -1px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+
 
     @media (min-width: 1024px) {
         .statistics-card {
@@ -674,22 +693,6 @@
     window.addEventListener('resize', setVh);
     window.addEventListener('DOMContentLoaded', setVh);
 
-    /**
-     * @description Thêm hàm tiện ích để thoát các ký tự đặc biệt trong chuỗi JS.
-     * @param {string} str Chuỗi cần thoát.
-     * @returns {string} Chuỗi đã được thoát.
-     */
-    function escapeJsString(str) {
-        if (typeof str !== 'string') {
-            return str;
-        }
-        return str.replace(/\\/g, '\\\\')
-                  .replace(/`/g, '\\`')
-                  .replace(/\$/g, '\\$')
-                  .replace(/"/g, '\\"');
-    }
-
-    // ĐÃ SỬA: Biến này chỉ được khai báo một lần
     let currentFlashcardBatch = [];
     let currentFlashcardIndex = 0;
     let previousCardStats = null; 
@@ -699,9 +702,6 @@
 
     const flashcardContentDiv = document.getElementById('flashcard-content');
     const endSessionBtn = document.getElementById('end-session-btn');
-    
-    const totalScoreDisplay = document.querySelector('.statistics-card #total-score-display span');
-    const sessionScoreDisplay = document.querySelector('.statistics-card #session-score-display');
     
     const currentCardStatsContainer = document.getElementById('current-card-stats');
     const previousCardStatsContainer = document.getElementById('previous-card-stats');
@@ -731,7 +731,7 @@
       return d.innerHTML.replace(/\r?\n/g,'<br>');
     }
 
-    function updateSessionSummary(correct, incorrect, vague, total){
+    function updateSessionSummary(){
       const desktopTotalScore = document.querySelector('.statistics-card #total-score-display span');
       const desktopSessionScore = document.querySelector('.statistics-card #session-score-display');
       
@@ -745,44 +745,46 @@
     }
 
     /**
-     * @description Tự động điều chỉnh kích thước font và căn chỉnh nội dung mặt sau thẻ.
+     * Tự động điều chỉnh kích thước font và căn chỉnh nội dung mặt sau thẻ.
      * Áp dụng căn giữa khi không có cuộn, và căn trên khi có cuộn.
      */
     function adjustCardLayout() {
-        const card = document.getElementById('flashcard-card');
-        if (!card) return;
+    const card = document.getElementById('flashcard-card');
+    if (!card) return;
 
-        const textAreas = card.querySelectorAll('.text-area');
+    const textAreas = card.querySelectorAll('.text-area');
 
-        textAreas.forEach(scrollArea => {
-            const txt = scrollArea.querySelector('.flashcard-content-text');
-            if (!txt) return;
+    textAreas.forEach(scrollArea => {
+        const txt = scrollArea.querySelector('.flashcard-content-text');
+        if (!txt) return;
 
-            // Reset style
-            txt.style.fontSize = '';
-            scrollArea.classList.remove('has-scroll');
-            scrollArea.parentElement?.classList?.remove('has-scroll');
+        // Reset style
+        txt.style.fontSize = '';
+        scrollArea.classList.remove('has-scroll');
+        scrollArea.parentElement?.classList?.remove('has-scroll');
 
-            // Đợi DOM render xong rồi đo
-            setTimeout(() => {
-                const hasScroll = scrollArea.scrollHeight > scrollArea.clientHeight;
+        // Đợi DOM render xong rồi đo
+        setTimeout(() => {
+        const hasScroll = scrollArea.scrollHeight > scrollArea.clientHeight;
 
-                if (hasScroll) {
-                    // Ghim lên trên: set class cho cả text-area và container
-                    scrollArea.classList.add('has-scroll');
-                    scrollArea.parentElement?.classList?.add('has-scroll');
-                    scrollArea.scrollTop = 0;
-                }
+        if (hasScroll) {
+            // Ghim lên trên: set class cho cả text-area và container
+            scrollArea.classList.add('has-scroll');
+            scrollArea.parentElement?.classList?.add('has-scroll');
 
-                // Thu nhỏ font nếu vẫn tràn
-                let current = parseFloat(getComputedStyle(txt).fontSize) || 22;
-                const min = 18;
-                while (scrollArea.scrollHeight > scrollArea.clientHeight && current > min) {
-                    current -= 1;
-                    txt.style.fontSize = current + 'px';
-                }
-            }, 0);
-        });
+            // Đảm bảo nhìn thấy từ đầu nội dung
+            scrollArea.scrollTop = 0;
+        }
+
+        // Thu nhỏ font nếu vẫn tràn
+        let current = parseFloat(getComputedStyle(txt).fontSize) || 22;
+        const min = 18;
+        while (scrollArea.scrollHeight > scrollArea.clientHeight && current > min) {
+            current -= 1;
+            txt.style.fontSize = current + 'px';
+        }
+        }, 0);
+    });
     }
 
     function generateDynamicButtons(buttonCount) {
@@ -806,16 +808,19 @@
         const noteButtonHtml = `<button class="icon-btn open-note-panel-btn" data-item-id="${itemId}"><i class="fas fa-sticky-note"></i></button>`;
         const editButtonHtml = `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
 
-        const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${escapeJsString(currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || '')}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
-        const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${escapeJsString(currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content || '')}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
+        const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
+        const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
         
+        const flipButtonHtml = `<button id="flip-card-btn" class="flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
+
         const leftToolbarContent = isMobile 
             ? `${menuButtonHtml}${aiButtonHtml}${noteButtonHtml}` 
             : `${aiButtonHtml}${noteButtonHtml}`;
 
         return {
             front: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT TRƯỚC</span><div class="toolbar-right">${editButtonHtml}${audioButtonHtmlFront}</div></div>`,
-            back: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT SAU</span><div class="toolbar-right">${editButtonHtml}${audioButtonHtmlBack}</div></div>`
+            back: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT SAU</span><div class="toolbar-right">${editButtonHtml}${audioButtonHtmlBack}</div></div>`,
+            flipButton: flipButtonHtml
         };
     }
 
@@ -840,6 +845,9 @@
               ${c.front_img ? `<div class="media-container"><img src="${c.front_img}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"><button class="close-media-btn">&times;</button></div>` : ''}
               <audio id="front-audio" class="hidden" src="${c.front_audio_url || ''}"></audio>
             </div>
+            <div class="flex justify-center p-4">
+              ${toolbars.flipButton}
+            </div>
           </div>
           <div class="face back">
             ${toolbars.back}
@@ -855,15 +863,18 @@
       flashcardContentDiv.innerHTML = html;
       const card = document.getElementById('flashcard-card');
       const actions = document.getElementById('internal-actions');
+      const flipBtn = document.getElementById('flip-card-btn');
       
-      card.addEventListener('click', () => {
-        card.classList.toggle('flipped');
-        actions?.classList.toggle('visible', card.classList.contains('flipped'));
-        // SỬA LỖI 3: Gọi hàm mới đã được cập nhật
-        setTimeout(adjustCardLayout, 0);
-      });
+      if (flipBtn) {
+        flipBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            card.classList.add('flipped');
+            actions?.classList.add('visible');
+            flipBtn.style.display = 'none';
+            setTimeout(adjustCardLayout, 0);
+        });
+      }
       
-      // ĐÃ SỬA: Ngăn sự kiện click từ các nút lan ra thẻ
       document.querySelectorAll('.card-toolbar .icon-btn').forEach(btn => {
           btn.addEventListener('click', ev => {
               ev.stopPropagation();
@@ -875,7 +886,6 @@
         submitFlashcardAnswer(data.item_id, b.dataset.answer);
       }));
       
-      // Gán lại sự kiện cho các nút chức năng sau khi render
       document.querySelectorAll('.play-audio-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const audioPlayer = document.querySelector(btn.dataset.audioTarget);
@@ -893,8 +903,7 @@
       document.querySelectorAll('.open-ai-modal-btn').forEach(btn => btn.addEventListener('click', () => {
           const itemId = btn.dataset.itemId;
           const currentCard = currentFlashcardBatch[currentFlashcardIndex];
-          // ĐÃ SỬA: Thoát chuỗi termContent
-          const termContent = escapeJsString(currentCard.content.front);
+          const termContent = currentCard.content.front;
           const itemContent = currentCard.content;
           window.openAiModal(itemId, termContent, itemContent);
       }));
@@ -903,19 +912,17 @@
           openNotePanel(itemId);
       }));
       
-      // THÊM MỚI: Logic cho nút đóng ảnh
       document.querySelectorAll('.close-media-btn').forEach(btn => {
         btn.addEventListener('click', ev => {
             ev.stopPropagation();
             const mediaContainer = btn.closest('.media-container');
             if (mediaContainer) {
                 mediaContainer.classList.add('hidden');
-                setTimeout(adjustCardLayout, 0); // Điều chỉnh layout sau khi ẩn ảnh
+                setTimeout(adjustCardLayout, 0);
             }
         });
       });
       
-      // SỬA LỖI 3: Gọi hàm mới khi render thẻ lần đầu
       setTimeout(adjustCardLayout, 0);
     }
 
@@ -969,7 +976,7 @@
         if (remainingMinutes > 0) result.push(`${remainingMinutes} phút`);
         return result.join(' ');
     }
-
+    
     function renderCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isInitial = false) {
         if (!stats) return `<div class="text-center text-gray-500"><i class="fas fa-info-circle mr-2"></i> ${isInitial ? 'Đây là thẻ mới.' : 'Không có dữ liệu thống kê.'}</div>`;
         const totalReviews = stats.times_reviewed || 0;
@@ -985,17 +992,22 @@
         const formattedInterval = formatMinutesAsDuration(stats.interval);
         const formattedIntervalDisplay = formattedInterval || 'Chưa có';
 
-        // ĐÃ SỬA: Áp dụng escapeJsString cho các chuỗi nội dung
-        const frontContentEscaped = escapeJsString(cardContent.front || '');
-        const backContentEscaped = escapeJsString(cardContent.back || '');
-
         return `
             <div class="space-y-4">
                 <div class="progress-bar-group"><div class="progress-bar-label"><span>Nhớ (${correctCount})</span><span>${Math.round(correctPercentage)}%</span></div><div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-correct" style="width: ${correctPercentage}%;"></div></div></div>
                 <div class="progress-bar-group"><div class="progress-bar-label"><span>Mơ hồ (${vagueCount})</span><span>${Math.round(vaguePercentage)}%</span></div><div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-vague" style="width: ${vaguePercentage}%;"></div></div></div>
                 <div class="progress-bar-group"><div class="progress-bar-label"><span>Quên (${incorrectCount})</span><span>${Math.round(incorrectPercentage)}%</span></div><div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-incorrect" style="width: ${incorrectPercentage}%;"></div></div></div>
             </div>
-            ${cardContent.front ? `<div class="card-info-section"><div class="card-info-title collapsed" data-toggle="card-details-content"><i class="fas fa-caret-right"></i><span>Chi tiết thẻ</span></div><div class="card-info-content"><p><span class="label">Mặt trước:</span> ${formatTextForHtml(frontContentEscaped)}</p><p><span class="label">Mặt sau:</span> ${formatTextForHtml(backContentEscaped)}</p></div></div>` : ''}
+            ${cardContent.front ? `
+            <div class="card-info-section">
+                <div class="card-info-title collapsed" data-toggle="card-details-content">
+                    <i class="fas fa-caret-right"></i><span>Chi tiết thẻ</span>
+                </div>
+                <div class="card-info-content">
+                    <p><span class="label">Mặt trước:</span> ${formatTextForHtml(cardContent.front)}</p>
+                    <p><span class="label">Mặt sau:</span> ${formatTextForHtml(cardContent.back)}</p>
+                </div>
+            </div>` : ''}
             <div class="stats-grid">
                 ${!isInitial ? `<div class="stat-box"><i class="fas fa-star icon"></i><span class="value ${scoreChangeColor}">${scoreChangeSign}${scoreChange}</span><span class="label">Điểm</span></div>` : ''}
                 <div class="stat-box status"><i class="fas fa-signal icon"></i><span class="value">${stats.status}</span><span class="label">Trạng thái</span></div>
@@ -1011,9 +1023,15 @@
         container.innerHTML = html;
         container.querySelectorAll('[data-toggle]').forEach(toggleBtn => {
             toggleBtn.addEventListener('click', function() {
-                const content = this.parentElement.nextElementSibling;
+                const content = this.nextElementSibling;
                 this.classList.toggle('collapsed');
                 content.classList.toggle('open');
+                
+                if (content.classList.contains('open')) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                } else {
+                    content.style.maxHeight = null;
+                }
             });
         });
     }
@@ -1036,11 +1054,11 @@
         currentFlashcardIndex = 0;
         const currentCardData = currentFlashcardBatch[currentFlashcardIndex];
         
-        const initialStatsHtml = renderCardStatsHtml(currentCardData.initial_stats, 0, {}, true);
+        const initialStatsHtml = renderCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
         displayCardStats(currentCardStatsContainer, initialStatsHtml);
         
         renderCard(currentCardData);
-        updateSessionSummary(batch.session_correct_answers, batch.session_incorrect_answers, batch.session_vague_answers, batch.session_total_answered);
+        updateSessionSummary();
 
       } catch (e) {
         console.error('Lỗi khi tải nhóm thẻ:', e);
@@ -1073,7 +1091,7 @@
         const previousStatsHtml = renderCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
         displayCardStats(previousCardStatsContainer, previousStatsHtml);
 
-        const prevTabButton = document.querySelector('.stats-tab-button[data-target="modal-previous-card-pane"]');
+        const prevTabButton = document.querySelector('.stats-tab-button[data-target="previous-card-stats-pane"]');
         if (prevTabButton) {
             prevTabButton.click();
         }
@@ -1117,7 +1135,7 @@
             const currentCardData = currentFlashcardBatch.length > 0 ? currentFlashcardBatch[currentFlashcardIndex] : null;
             let initialStatsHtml;
             if (currentCardData && currentCardData.initial_stats) {
-                initialStatsHtml = renderCardStatsHtml(currentCardData.initial_stats, 0, {}, true);
+                initialStatsHtml = renderCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
             } else {
                 initialStatsHtml = '<div class="text-center text-gray-500">Chưa có thẻ nào.</div>';
             }
@@ -1125,8 +1143,8 @@
             const previousStatsHtml = previousCardStats ? renderCardStatsHtml(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent, false) : '<div class="text-center text-gray-500">Chưa trả lời thẻ nào.</div>';
             
             const tabsHtml = `
-                <div id="modal-current-pane" class="stats-tab-pane active">${initialStatsHtml}</div>
-                <div id="modal-previous-pane" class="stats-tab-pane">${previousStatsHtml}</div>
+                <div id="current-card-stats-pane" class="stats-tab-pane active">${initialStatsHtml}</div>
+                <div id="previous-card-stats-pane" class="stats-tab-pane">${previousStatsHtml}</div>
             `;
             
             const statsHtml = `
@@ -1154,8 +1172,8 @@
                             </div>
                         </div>
                         <div class="stats-tab-nav">
-                            <button class="stats-tab-button active" data-target="modal-current-pane">Thẻ hiện tại</button>
-                            <button class="stats-tab-button" data-target="modal-previous-pane">Thẻ trước đó</button>
+                            <button class="stats-tab-button active" data-target="current-card-stats-pane">Thẻ hiện tại</button>
+                            <button class="stats-tab-button" data-target="previous-card-stats-pane">Thẻ trước đó</button>
                         </div>
                         <div>
                             ${tabsHtml}
@@ -1166,17 +1184,15 @@
                 </div>
             `;
 
-            // Thay thế nội dung cũ bằng nội dung đã được tạo mới
             document.getElementById('statsModalContent').innerHTML = statsHtml;
             
-            // Cần gán lại event listener cho nút đóng modal
             document.getElementById('closeStatsModalBtn').addEventListener('click', () => toggleStatsModal(false));
             
             document.querySelectorAll('.stats-tab-button').forEach(btn => btn.addEventListener('click', handleTabClick));
             document.getElementById('end-session-modal-btn')?.addEventListener('click', () => endSessionBtn.click());
 
             if (previousCardStats) {
-                document.querySelector('button[data-target="modal-previous-pane"]').click();
+                document.querySelector('button[data-target="previous-card-stats-pane"]').click();
             }
             
         } else {
@@ -1194,6 +1210,20 @@
         event.target.classList.add('active');
         parentContainer.querySelectorAll('.stats-tab-pane').forEach(pane => {
             pane.classList.toggle('active', pane.id === targetPaneId);
+        });
+        
+        document.querySelectorAll('.statistics-card [data-toggle]').forEach(toggleBtn => {
+            toggleBtn.addEventListener('click', function() {
+                const content = this.nextElementSibling;
+                this.classList.toggle('collapsed');
+                content.classList.toggle('open');
+                
+                if (content.classList.contains('open')) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                } else {
+                    content.style.maxHeight = null;
+                }
+            });
         });
     }
 
@@ -1305,14 +1335,14 @@
     document.addEventListener('DOMContentLoaded', () => {
       setVh();
       document.body.classList.add('flashcard-session-active');
+      
       document.querySelectorAll('.statistics-card .stats-tab-button').forEach(btn => btn.addEventListener('click', handleTabClick));
-      updateSessionSummary(0, 0, 0, 0);
+      updateSessionSummary();
       getNextFlashcardBatch();
     });
 
     window.addEventListener('resize', () => {
     setVh();
-    // NEW: căn chỉnh lại bố cục thẻ sau khi viewport đổi
     setTimeout(adjustCardLayout, 0);
     });
 

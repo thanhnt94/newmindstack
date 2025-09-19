@@ -1,7 +1,7 @@
 # File: mindstack_app/modules/learning/flashcard_learning/flashcard_logic.py
-# Phiên bản: 3.3
-# MỤC ĐÍCH: Sửa lỗi logic xử lý câu trả lời "Mơ hồ".
-# ĐÃ SỬA: Thay đổi giá trị trả về để phân biệt rõ ràng các loại câu trả lời.
+# Phiên bản: 3.6
+# MỤC ĐÍCH: Nâng cấp logic để xử lý việc ôn tập sớm và sửa lỗi TypeError.
+# ĐÃ SỬA: Khắc phục lỗi so sánh datetime bằng cách đảm bảo cả hai đối tượng đều là timezone-aware.
 
 from ....models import db, User, LearningItem, FlashcardProgress, ScoreLog
 from sqlalchemy.sql import func
@@ -75,6 +75,57 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         db.session.add(progress)
         progress.first_seen_timestamp = func.now()
 
+    # Khắc phục lỗi so sánh timezone-aware và timezone-naive
+    now = datetime.datetime.now(datetime.timezone.utc)
+    # Gán múi giờ cho due_time nếu nó tồn tại và chưa có múi giờ
+    due_time_aware = progress.due_time
+    if due_time_aware and due_time_aware.tzinfo is None:
+        due_time_aware = due_time_aware.replace(tzinfo=datetime.timezone.utc)
+
+    # Kiểm tra nếu thẻ được ôn tập trước thời hạn
+    if due_time_aware and now < due_time_aware:
+        current_app.logger.info(f"Thẻ {item_id} được ôn tập sớm. Chỉ cập nhật điểm và lịch sử.")
+        
+        if user_answer_quality >= 4:
+            score_change = 10
+        elif user_answer_quality >= 2:
+            score_change = 5
+        else:
+            score_change = 0
+
+        review_entry = {'timestamp': now.isoformat(), 'user_answer_quality': user_answer_quality}
+        if progress.review_history is None:
+            progress.review_history = []
+        progress.review_history.append(review_entry)
+        flag_modified(progress, "review_history")
+        progress.last_reviewed = now
+
+        user = User.query.get(user_id)
+        if user:
+            user.total_score = (user.total_score or 0) + score_change
+        updated_total_score = user.total_score if user else current_user_total_score + score_change
+
+        new_score_log = ScoreLog(
+            user_id=user_id, item_id=item_id, score_change=score_change,
+            reason=f"Flashcard Early Review (Quality: {user_answer_quality})", item_type='FLASHCARD'
+        )
+        db.session.add(new_score_log)
+        db.session.commit()
+
+        if user_answer_quality >= 4:
+            answer_result_type = 'correct'
+        elif user_answer_quality >= 2:
+            answer_result_type = 'vague'
+        else:
+            answer_result_type = 'incorrect'
+
+        from .flashcard_stats_logic import get_flashcard_item_statistics
+        item_stats = get_flashcard_item_statistics(user_id, item_id)
+
+        return score_change, updated_total_score, answer_result_type, progress.status, item_stats
+
+
+    # Logic cũ (khi thẻ đến hạn hoặc là thẻ mới)
     if progress.status == 'new':
         progress.status = 'learning'
 
@@ -82,11 +133,10 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     if progress.review_history is None:
         progress.review_history = []
     
-    review_entry = {'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'user_answer_quality': user_answer_quality}
+    review_entry = {'timestamp': now.isoformat(), 'user_answer_quality': user_answer_quality}
     progress.review_history.append(review_entry)
     flag_modified(progress, "review_history")
 
-    # ĐÃ SỬA: Đặt một biến kết quả rõ ràng
     answer_result_type = ''
     if user_answer_quality >= 4:
         progress.times_correct = (progress.times_correct or 0) + 1
@@ -149,5 +199,4 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     from .flashcard_stats_logic import get_flashcard_item_statistics
     item_stats = get_flashcard_item_statistics(user_id, item_id)
 
-    # ĐÃ SỬA: Trả về chuỗi kết quả rõ ràng
     return score_change, updated_total_score, answer_result_type, progress.status, item_stats
