@@ -1019,21 +1019,34 @@
         `;
     }
 
-    function displayCardStats(container, html) {
-        container.innerHTML = html;
-        container.querySelectorAll('[data-toggle]').forEach(toggleBtn => {
+    function initializeStatsToggleListeners(rootElement) {
+        if (!rootElement) return;
+
+        rootElement.querySelectorAll('[data-toggle]').forEach(toggleBtn => {
+            if (toggleBtn.dataset.toggleListenerAttached === 'true') return;
+
             toggleBtn.addEventListener('click', function() {
                 const content = this.nextElementSibling;
                 this.classList.toggle('collapsed');
+
+                if (!content) return;
+
                 content.classList.toggle('open');
-                
+
                 if (content.classList.contains('open')) {
                     content.style.maxHeight = content.scrollHeight + 'px';
                 } else {
                     content.style.maxHeight = null;
                 }
             });
+
+            toggleBtn.dataset.toggleListenerAttached = 'true';
         });
+    }
+
+    function displayCardStats(container, html) {
+        container.innerHTML = html;
+        initializeStatsToggleListeners(container);
     }
 
     async function getNextFlashcardBatch(){
@@ -1184,12 +1197,14 @@
                 </div>
             `;
 
-            document.getElementById('statsModalContent').innerHTML = statsHtml;
-            
+            statsModalContent.innerHTML = statsHtml;
+
             document.getElementById('closeStatsModalBtn').addEventListener('click', () => toggleStatsModal(false));
-            
+
             document.querySelectorAll('.stats-tab-button').forEach(btn => btn.addEventListener('click', handleTabClick));
             document.getElementById('end-session-modal-btn')?.addEventListener('click', () => endSessionBtn.click());
+
+            initializeStatsToggleListeners(statsModalContent);
 
             if (previousCardStats) {
                 document.querySelector('button[data-target="previous-card-stats-pane"]').click();
@@ -1212,19 +1227,7 @@
             pane.classList.toggle('active', pane.id === targetPaneId);
         });
         
-        document.querySelectorAll('.statistics-card [data-toggle]').forEach(toggleBtn => {
-            toggleBtn.addEventListener('click', function() {
-                const content = this.nextElementSibling;
-                this.classList.toggle('collapsed');
-                content.classList.toggle('open');
-                
-                if (content.classList.contains('open')) {
-                    content.style.maxHeight = content.scrollHeight + 'px';
-                } else {
-                    content.style.maxHeight = null;
-                }
-            });
-        });
+        initializeStatsToggleListeners(parentContainer);
     }
 
     // ==============================================================================
