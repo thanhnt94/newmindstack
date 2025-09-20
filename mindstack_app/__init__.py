@@ -1,9 +1,7 @@
 # File: web/mindstack_app/__init__.py
-# Version: 3.4
+# Version: 3.5
 # MỤC ĐÍCH: Đăng ký hàm bbcode_to_html như một context processor toàn cục.
-# ĐÃ THÊM: app.context_processor để inject hàm bbcode_to_html.
-# ĐÃ THÊM: Import AudioService và tạo một instance của nó để sử dụng cho các tác vụ nền.
-# ĐÃ THÊM: Tạo các tác vụ nền mặc định nếu chúng chưa tồn tại.
+# ĐÃ SỬA: Đã bỏ đăng ký feedback_bp ở cấp ứng dụng để nó có thể được đăng ký ở cấp admin.
 
 from flask import Flask, g
 from .config import Config, BASE_DIR
@@ -91,7 +89,7 @@ def create_app(config_class=Config):
     app.register_blueprint(notes_bp)
     app.register_blueprint(shared_bp)
     app.register_blueprint(stats_bp, url_prefix='/stats')
-
+    
     with app.app_context():
         db.create_all()
         

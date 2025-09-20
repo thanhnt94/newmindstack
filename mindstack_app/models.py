@@ -1,13 +1,15 @@
 # File: web/mindstack_app/models.py
 # Phiên bản: 14.1
-# MỤC ĐÍCH: Thêm các trường cần thiết vào model BackgroundTask để quản lý trạng thái, tiến độ và kiểm soát tác vụ.
-# ĐÃ THÊM: Các trường status, progress, total, message, stop_requested và is_enabled.
+# MỤC ĐÍCH: Thêm model CourseProgress để theo dõi tiến độ học Course.
+# ĐÃ THÊM: Model CourseProgress với trường completion_percentage.
+# ĐÃ THÊM: Mối quan hệ course_progress trong model User.
 
 from .db_instance import db
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
 
 # ==============================================================================
 # I. LÕI HỌC TẬP (LEARNING CORE)
@@ -93,6 +95,10 @@ class User(UserMixin, db.Model):
     flashcard_progress = db.relationship('FlashcardProgress', backref='user', lazy=True, cascade="all, delete-orphan")
     quiz_progress = db.relationship('QuizProgress', backref='user', lazy=True, cascade="all, delete-orphan")
     course_progress = db.relationship('CourseProgress', backref='user', lazy=True, cascade="all, delete-orphan")
+    
+    # THÊM MỚI: Mối quan hệ với các phản hồi
+    feedbacks = db.relationship('UserFeedback', foreign_keys='UserFeedback.user_id', backref='reporter', lazy=True)
+    resolved_feedbacks = db.relationship('UserFeedback', foreign_keys='UserFeedback.resolved_by_id', backref='resolver', lazy=True)
 
 
     def get_id(self):
@@ -234,6 +240,11 @@ class UserFeedback(db.Model):
     content = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(50), default='new') # 'new', 'resolved', 'wont_fix'
     timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    
+    # Người gửi và người xử lý
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    resolved_by_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
+
 
 class ContainerContributor(db.Model):
     """
@@ -268,7 +279,6 @@ class BackgroundTask(db.Model):
     __tablename__ = 'background_tasks'
     task_id = db.Column(db.Integer, primary_key=True)
     task_name = db.Column(db.String(100), unique=True, nullable=False)
-    # THÊM MỚI: Cập nhật các trường để theo dõi trạng thái tác vụ
     status = db.Column(db.String(50), default='idle') # 'idle', 'running', 'error', 'completed'
     progress = db.Column(db.Integer, default=0)
     total = db.Column(db.Integer, default=0)
