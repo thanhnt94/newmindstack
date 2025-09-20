@@ -1,8 +1,7 @@
 # File: web/mindstack_app/models.py
-# Phiên bản: 14.0
-# MỤC ĐÍCH: Thêm model CourseProgress để theo dõi tiến độ học Course.
-# ĐÃ THÊM: Model CourseProgress với trường completion_percentage.
-# ĐÃ THÊM: Mối quan hệ course_progress trong model User.
+# Phiên bản: 14.1
+# MỤC ĐÍCH: Thêm các trường cần thiết vào model BackgroundTask để quản lý trạng thái, tiến độ và kiểm soát tác vụ.
+# ĐÃ THÊM: Các trường status, progress, total, message, stop_requested và is_enabled.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -269,6 +268,7 @@ class BackgroundTask(db.Model):
     __tablename__ = 'background_tasks'
     task_id = db.Column(db.Integer, primary_key=True)
     task_name = db.Column(db.String(100), unique=True, nullable=False)
+    # THÊM MỚI: Cập nhật các trường để theo dõi trạng thái tác vụ
     status = db.Column(db.String(50), default='idle') # 'idle', 'running', 'error', 'completed'
     progress = db.Column(db.Integer, default=0)
     total = db.Column(db.Integer, default=0)

@@ -2,34 +2,146 @@
 
 {% block title %}Admin Dashboard{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+        }
+        .feature-card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2.5rem;
+        }
+        .feature-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-5px);
+        }
+        .feature-card i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #4f46e5;
+        }
+        .feature-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        .feature-card p {
+            font-size: 1rem;
+            color: #6b7280;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 639px) {
+            .feature-card {
+                padding: 1.5rem;
+            }
+            .feature-card i {
+                font-size: 3rem;
+            }
+            .feature-card h2 {
+                font-size: 1.25rem;
+            }
+            .feature-card p {
+                font-size: 0.875rem;
+            }
+        }
+        
+        .stat-card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .stat-card .label {
+            font-size: 1rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        .stat-card.users .value { color: #3b82f6; }
+        .stat-card.content .value { color: #f59e0b; }
+        .stat-card.items .value { color: #10b981; }
+        .stat-card.keys { background-color: #fff1f2; }
+        .stat-card.keys .value { color: #dc2626; }
+        .stat-card.keys .label { color: #b91c1c; }
+    </style>
+{% endblock %}
+
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-semibold text-gray-800 mb-6">Bảng điều khiển quản trị</h1>
-    <p class="text-gray-600">Chào mừng bạn đến với khu vực quản trị. Tại đây bạn có thể quản lý người dùng, cài đặt hệ thống và nhiều hơn nữa.</p>
+<div class="container mx-auto p-4 sm:p-6 lg:p-8 text-center">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-8">
+        Bảng điều khiển quản trị
+    </h1>
+    <p class="text-lg text-gray-600 mb-12">
+        Chào mừng, {{ current_user.username }}! Đây là tổng quan về hệ thống.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div class="stat-card">
+            <div class="value">{{ stats_data.total_users }}</div>
+            <div class="label">Tổng số người dùng</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ stats_data.total_containers }}</div>
+            <div class="label">Tổng số bộ học liệu</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ stats_data.total_items }}</div>
+            <div class="label">Tổng số học liệu con</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ stats_data.active_api_keys }}</div>
+            <div class="label">API Keys đang hoạt động</div>
+        </div>
+        <div class="stat-card lg:col-span-4" style="background-color: #fff1f2;">
+             <div class="value text-red-600">{{ stats_data.exhausted_api_keys }}</div>
+             <div class="label text-red-800">API Keys đã cạn kiệt</div>
+        </div>
+    </div>
     
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <a href="{{ url_for('user_management.manage_users') }}" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
-            <i class="fas fa-users text-blue-500 text-5xl mb-4"></i>
-            <h2 class="text-xl font-semibold text-gray-800 mb-2">Quản lý Người dùng</h2>
-            <p class="text-gray-600">Thêm, sửa, xóa và xem thông tin người dùng.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <a href="{{ url_for('user_management.manage_users') }}" class="feature-card">
+            <i class="fas fa-users text-blue-500"></i>
+            <h2>Quản lý Người dùng</h2>
+            <p>Thêm, sửa, xóa và xem thông tin người dùng.</p>
         </a>
 
-        <a href="{{ url_for('content_management.content_dashboard') }}" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
-            <i class="fas fa-boxes text-orange-500 text-5xl mb-4"></i>
-            <h2 class="text-xl font-semibold text-gray-800 mb-2">Quản lý Nội dung</h2>
-            <p class="text-gray-600">Quản lý tất cả các bộ thẻ, quiz, khóa học trên hệ thống.</p>
+        <a href="{{ url_for('content_management.content_dashboard') }}" class="feature-card">
+            <i class="fas fa-boxes text-orange-500"></i>
+            <h2>Quản lý Nội dung</h2>
+            <p>Quản lý tất cả các bộ thẻ, quiz, và khóa học trên hệ thống.</p>
         </a>
 
-        <a href="{{ url_for('api_key_management.list_api_keys') }}" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center">
-            <i class="fas fa-key text-purple-500 text-5xl mb-4"></i>
-            <h2 class="text-xl font-semibold text-gray-800 mb-2">Quản lý API Keys</h2>
-            <p class="text-gray-600">Thêm, sửa, và theo dõi trạng thái các API key của Google Gemini.</p>
+        <a href="{{ url_for('api_key_management.list_api_keys') }}" class="feature-card">
+            <i class="fas fa-key text-purple-500"></i>
+            <h2>Quản lý API Keys</h2>
+            <p>Thêm, sửa, và theo dõi trạng thái các API key của Google Gemini.</p>
         </a>
 
-        <a href="#" class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col items-center text-center opacity-50 cursor-not-allowed">
-            <i class="fas fa-cogs text-green-500 text-5xl mb-4"></i>
-            <h2 class="text-xl font-semibold text-gray-800 mb-2">Cài đặt Hệ thống</h2>
-            <p class="text-gray-600">Cấu hình các thiết lập của ứng dụng (sắp có).</p>
+        <a href="#" class="feature-card md:col-span-2 lg:col-span-3 opacity-50 cursor-not-allowed">
+            <i class="fas fa-cogs text-green-500"></i>
+            <h2>Cài đặt Hệ thống</h2>
+            <p>Cấu hình các thiết lập của ứng dụng (sắp có).</p>
         </a>
     </div>
 </div>

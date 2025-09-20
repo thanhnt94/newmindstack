@@ -1,7 +1,9 @@
 # File: web/mindstack_app/__init__.py
-# Version: 3.3
+# Version: 3.4
 # MỤC ĐÍCH: Đăng ký hàm bbcode_to_html như một context processor toàn cục.
 # ĐÃ THÊM: app.context_processor để inject hàm bbcode_to_html.
+# ĐÃ THÊM: Import AudioService và tạo một instance của nó để sử dụng cho các tác vụ nền.
+# ĐÃ THÊM: Tạo các tác vụ nền mặc định nếu chúng chưa tồn tại.
 
 from flask import Flask, g
 from .config import Config, BASE_DIR
@@ -9,6 +11,8 @@ from .db_instance import db
 from flask_login import LoginManager, current_user
 import logging
 import os
+from .modules.learning.flashcard_learning.audio_service import AudioService
+from .models import BackgroundTask
 
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
@@ -98,6 +102,13 @@ def create_app(config_class=Config):
             db.session.add(admin)
             db.session.commit()
             app.logger.info("Đã tạo user admin mặc định.")
+        
+        # THÊM MỚI: Khởi tạo các tác vụ nền nếu chưa có
+        for task_name in ['generate_audio_cache', 'clean_audio_cache']:
+            if not BackgroundTask.query.filter_by(task_name=task_name).first():
+                task = BackgroundTask(task_name=task_name, message='Sẵn sàng', is_enabled=True)
+                db.session.add(task)
+        db.session.commit()
             
     return app
 
