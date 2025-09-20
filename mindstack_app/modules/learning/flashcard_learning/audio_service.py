@@ -1,7 +1,9 @@
 # File: newmindstack/mindstack_app/modules/learning/flashcard_learning/audio_service.py
-# Phiên bản: 1.0
+# Phiên bản: 1.1
 # Mục đích: Cung cấp dịch vụ tạo và cache file âm thanh từ văn bản (Text-to-Speech)
 #           cho các thẻ ghi nhớ (flashcards).
+# ĐÃ SỬA: Cập nhật hàm generate_cache_for_all_cards để phản ánh trạng thái tác vụ nền
+#         và xử lý yêu cầu dừng từ admin.
 
 import os
 import logging
@@ -10,6 +12,7 @@ import hashlib
 import shutil
 import asyncio
 import random
+import time
 
 from gtts import gTTS
 from pydub import AudioSegment
@@ -255,6 +258,7 @@ class AudioService:
 
             task.total = len(contents_to_generate)
             task.progress = 0
+            task.status = 'running'
             db.session.commit()
             logger.info(f"{log_prefix} Tìm thấy {task.total} nội dung audio mới cần tạo cache.")
 
@@ -269,6 +273,7 @@ class AudioService:
                 db.session.refresh(task)
                 if task.stop_requested:
                     task.message = f"Đã dừng. Xử lý được {created_count}/{task.total} file."
+                    task.status = 'completed'
                     logger.info(f"{log_prefix} Nhận được yêu cầu dừng.")
                     break
                 
@@ -281,8 +286,16 @@ class AudioService:
                         created_count += 1
                     else:
                         logger.error(f"{log_prefix} Lỗi khi xử lý nội dung: '{content[:50]}...': {message}")
+                        task.message = f"Lỗi: {message} ({task.progress + 1}/{task.total})"
+                        task.status = 'error'
+                        db.session.commit()
+                        return # Dừng tác vụ nếu gặp lỗi nghiêm trọng
                 except Exception as e:
                     logger.error(f"{log_prefix} Lỗi không mong muốn khi xử lý: '{content[:50]}...': {e}", exc_info=True)
+                    task.message = f"Lỗi không mong muốn: {str(e)} ({task.progress + 1}/{task.total})"
+                    task.status = 'error'
+                    db.session.commit()
+                    return # Dừng tác vụ nếu gặp lỗi nghiêm trọng
                 finally:
                     task.progress += 1
                     db.session.commit()
@@ -304,15 +317,19 @@ class AudioService:
             task.stop_requested = False
             db.session.commit()
 
-    def clean_orphan_audio_cache(self):
+    def clean_orphan_audio_cache(self, task):
         """
         Mô tả: Dọn dẹp các file audio trong cache không còn được liên kết với bất kỳ flashcard nào.
-        Returns:
-            int: Số lượng file đã bị xóa.
         """
-        log_prefix = "[AUDIO_SERVICE|CleanCache]"
+        log_prefix = f"[{task.task_name}]"
         logger.info(f"{log_prefix} Bắt đầu quá trình dọn dẹp cache audio.")
         
+        task.status = 'running'
+        task.message = 'Đang quét và dọn dẹp cache...'
+        task.progress = 0
+        task.total = 0 # Không thể biết trước tổng số file, nên sẽ cập nhật sau
+        db.session.commit()
+
         try:
             active_audio_contents = set()
             cards_with_audio = LearningItem.query.filter(
@@ -322,6 +339,7 @@ class AudioService:
             ).all()
 
             for card in cards_with_audio:
+                if task.stop_requested: break
                 if card.content.get('front_audio_content'):
                     active_audio_contents.add(card.content.get('front_audio_content').strip())
                 if card.content.get('back_audio_content'):
@@ -337,9 +355,21 @@ class AudioService:
             deleted_count = 0
             if not os.path.exists(Config.FLASHCARD_AUDIO_CACHE_DIR):
                 logger.warning(f"{log_prefix} Thư mục cache không tồn tại: {Config.FLASHCARD_AUDIO_CACHE_DIR}")
-                return 0
+                task.message = f"Thư mục cache không tồn tại. Hoàn tất."
+                task.status = 'completed'
+                db.session.commit()
+                return
 
-            for filename in os.listdir(Config.FLASHCARD_AUDIO_CACHE_DIR):
+            all_files = os.listdir(Config.FLASHCARD_AUDIO_CACHE_DIR)
+            task.total = len(all_files)
+            db.session.commit()
+
+            for filename in all_files:
+                if task.stop_requested:
+                    task.message = f"Đã dừng. Dọn dẹp được {deleted_count} file."
+                    task.status = 'completed'
+                    break
+
                 if filename.endswith('.mp3') and filename not in valid_cache_files:
                     try:
                         file_path = os.path.join(Config.FLASHCARD_AUDIO_CACHE_DIR, filename)
@@ -348,12 +378,26 @@ class AudioService:
                         logger.info(f"{log_prefix} Đã xóa file cache mồ côi: {filename}")
                     except OSError as e:
                         logger.error(f"{log_prefix} Lỗi khi xóa file {filename}: {e}")
+                
+                task.progress += 1
+                db.session.commit()
             
-            logger.info(f"{log_prefix} Hoàn tất. Đã xóa {deleted_count} file cache không hợp lệ.")
-            return deleted_count
+            if not task.stop_requested:
+                task.message = f"Hoàn tất. Đã xóa {deleted_count} file cache không hợp lệ."
+                task.status = 'completed'
+                logger.info(f"{log_prefix} {task.message}")
+
         except Exception as e:
-            logger.error(f"{log_prefix} Lỗi nghiêm trọng trong quá trình dọn dẹp cache: {e}", exc_info=True)
-            return -1
+            task.message = f"Lỗi nghiêm trọng: {e}"
+            task.status = 'error'
+            logger.error(f"{log_prefix} {task.message}", exc_info=True)
+        
+        finally:
+            if task.status == 'running':
+                task.status = 'idle'
+            task.is_enabled = False
+            task.stop_requested = False
+            db.session.commit()
 
     async def regenerate_audio_for_card(self, flashcard_id, side):
         """

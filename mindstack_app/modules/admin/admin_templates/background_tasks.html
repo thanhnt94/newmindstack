@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Tác vụ nền{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+            height: 1.25rem;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #3b82f6;
+            transition: width 0.3s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+        .task-status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-idle { background-color: #e5e7eb; color: #4b5563; }
+        .status-running { background-color: #dbeafe; color: #1e40af; }
+        .status-completed { background-color: #dcfce7; color: #16a34a; }
+        .status-error { background-color: #fee2e2; color: #dc2626; }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <h1 class="text-3xl font-semibold text-gray-800 flex items-center">
+             <a href="{{ url_for('admin.admin_dashboard') }}" class="text-blue-500 hover:text-blue-700 mr-3" title="Quay lại Admin Dashboard">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            Quản lý Tác vụ nền
+        </h1>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full leading-normal">
+            <thead>
+                <tr>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tên tác vụ</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tiến độ</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Thông điệp</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Bật/Tắt</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="tasks-table-body">
+                {% for task in tasks %}
+                <tr class="hover:bg-gray-50" data-task-id="{{ task.task_id }}" data-task-name="{{ task.task_name }}">
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">{{ task.task_name }}</td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
+                        <span class="task-status-badge status-{{ task.status }}">
+                            {{ task.status }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
+                        {% set progress_percentage = (task.progress / task.total * 100) if task.total > 0 else 0 %}
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: {{ progress_percentage }}%;">{{ progress_percentage|int }}%</div>
+                        </div>
+                    </td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">{{ task.message }}</td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" value="" class="sr-only peer toggle-task-checkbox" {% if task.is_enabled %}checked{% endif %} {% if task.status == 'running' %}disabled{% endif %}>
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </td>
+                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
+                        <div class="flex space-x-3">
+                            <button type="button" class="bg-green-100 text-green-600 px-3 py-1 rounded-md hover:bg-green-200 transition duration-300 text-sm start-task-btn" {% if task.status == 'running' or not task.is_enabled %}disabled{% endif %}>
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button type="button" class="bg-red-100 text-red-600 px-3 py-1 rounded-md hover:bg-red-200 transition duration-300 text-sm stop-task-btn" {% if task.status != 'running' %}disabled{% endif %}>
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-10 text-gray-500">Chưa có tác vụ nền nào được tạo.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tableBody = document.getElementById('tasks-table-body');
+
+    function updateTaskRow(row, taskData) {
+        const statusBadge = row.querySelector('.task-status-badge');
+        const progressBarFill = row.querySelector('.progress-bar-fill');
+        const startBtn = row.querySelector('.start-task-btn');
+        const stopBtn = row.querySelector('.stop-task-btn');
+        const toggleCheckbox = row.querySelector('.toggle-task-checkbox');
+        const progressPercentage = taskData.total > 0 ? Math.round((taskData.progress / taskData.total) * 100) : 0;
+        
+        statusBadge.textContent = taskData.status;
+        statusBadge.className = `task-status-badge status-${taskData.status}`;
+        row.querySelector('td:nth-child(4)').textContent = taskData.message;
+        
+        progressBarFill.style.width = `${progressPercentage}%`;
+        progressBarFill.textContent = `${progressPercentage}%`;
+        
+        startBtn.disabled = taskData.status === 'running' || !taskData.is_enabled;
+        stopBtn.disabled = taskData.status !== 'running';
+        toggleCheckbox.disabled = taskData.status === 'running';
+        toggleCheckbox.checked = taskData.is_enabled;
+    }
+
+    tableBody.addEventListener('change', async function(event) {
+        if (event.target.classList.contains('toggle-task-checkbox')) {
+            const row = event.target.closest('tr');
+            const taskId = row.dataset.taskId;
+            try {
+                const response = await axios.post(`/admin/tasks/toggle/${taskId}`);
+                if (response.data.success) {
+                    showFlashMessage(`Tác vụ đã được ${response.data.is_enabled ? 'bật' : 'tắt'}.`, 'success');
+                    row.querySelector('.start-task-btn').disabled = !response.data.is_enabled || response.data.status === 'running';
+                }
+            } catch (error) {
+                console.error('Error toggling task:', error);
+                showFlashMessage('Lỗi khi thay đổi trạng thái tác vụ.', 'danger');
+            }
+        }
+    });
+
+    tableBody.addEventListener('click', async function(event) {
+        const startBtn = event.target.closest('.start-task-btn');
+        const stopBtn = event.target.closest('.stop-task-btn');
+        const row = event.target.closest('tr');
+        const taskId = row.dataset.taskId;
+
+        if (startBtn && !startBtn.disabled) {
+            try {
+                const response = await axios.post(`/admin/tasks/start/${taskId}`);
+                if (response.data.success) {
+                    showFlashMessage('Tác vụ đã được khởi chạy.', 'success');
+                    // Cập nhật trạng thái ngay lập tức trên UI
+                    updateTaskRow(row, {
+                        status: 'running',
+                        message: 'Đang khởi chạy...',
+                        progress: 0,
+                        total: 0,
+                        is_enabled: true
+                    });
+                }
+            } catch (error) {
+                console.error('Error starting task:', error);
+                showFlashMessage('Lỗi khi khởi chạy tác vụ.', 'danger');
+            }
+        }
+        
+        if (stopBtn && !stopBtn.disabled) {
+             try {
+                const response = await axios.post(`/admin/tasks/stop/${taskId}`);
+                if (response.data.success) {
+                    showFlashMessage('Yêu cầu dừng đã được gửi.', 'info');
+                    // Cập nhật trạng thái ngay lập tức trên UI
+                    updateTaskRow(row, {
+                        status: 'running',
+                        message: 'Yêu cầu dừng đã được gửi...',
+                        progress: row.dataset.progress,
+                        total: row.dataset.total,
+                        is_enabled: true
+                    });
+                }
+            } catch (error) {
+                console.error('Error stopping task:', error);
+                showFlashMessage('Lỗi khi gửi yêu cầu dừng.', 'danger');
+            }
+        }
+    });
+
+});
+</script>
+{% endblock %}

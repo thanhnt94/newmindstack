@@ -137,11 +137,23 @@
             <h2>Quản lý API Keys</h2>
             <p>Thêm, sửa, và theo dõi trạng thái các API key của Google Gemini.</p>
         </a>
+        
+        <a href="{{ url_for('admin.manage_background_tasks') }}" class="feature-card">
+            <i class="fas fa-tasks text-teal-500"></i>
+            <h2>Tác vụ nền</h2>
+            <p>Quản lý các tác vụ hệ thống như tạo cache, dọn dẹp...</p>
+        </a>
 
-        <a href="#" class="feature-card md:col-span-2 lg:col-span-3 opacity-50 cursor-not-allowed">
+        <a href="{{ url_for('admin.manage_system_settings') }}" class="feature-card">
             <i class="fas fa-cogs text-green-500"></i>
             <h2>Cài đặt Hệ thống</h2>
             <p>Cấu hình các thiết lập của ứng dụng (sắp có).</p>
+        </a>
+
+        <a href="{{ url_for('admin.manage_backup_restore') }}" class="feature-card">
+            <i class="fas fa-hdd text-red-500"></i>
+            <h2>Sao lưu & Khôi phục</h2>
+            <p>Tạo bản sao lưu và khôi phục toàn bộ dữ liệu hệ thống.</p>
         </a>
     </div>
 </div>

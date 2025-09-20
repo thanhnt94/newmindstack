@@ -1,16 +1,19 @@
 # File: Mindstack/web/mindstack_app/modules/admin/routes.py
-# Version: 2.2
+# Version: 2.5
 # Mục đích: Chứa các route và logic cho bảng điều khiển admin tổng quan.
-# ĐÃ THÊM: Route mới để quản lý các tác vụ nền.
+# ĐÃ THÊM: Route và logic để quản lý việc sao lưu và khôi phục dữ liệu.
 
-from flask import render_template, redirect, url_for, flash, abort, jsonify, request
+from flask import render_template, redirect, url_for, flash, abort, jsonify, request, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import or_
-from ...models import db, User, LearningContainer, LearningItem, ApiKey, BackgroundTask
+from ...models import db, User, LearningContainer, LearningItem, ApiKey, BackgroundTask, SystemSetting
 from datetime import datetime, timedelta
 import asyncio
+from sqlalchemy.orm.attributes import flag_modified
+import shutil
+import os
+import zipfile
 
-# THÊM MỚI: Import AudioService
 from ..learning.flashcard_learning.audio_service import AudioService
 audio_service = AudioService()
 
@@ -109,3 +112,107 @@ def stop_task(task_id):
         db.session.commit()
         return jsonify({'success': True, 'message': 'Yêu cầu dừng đã được gửi.'})
     return jsonify({'success': False, 'message': 'Tác vụ không chạy.'})
+
+@admin_bp.route('/settings', methods=['GET', 'POST'])
+def manage_system_settings():
+    """
+    Mô tả: Quản lý các cài đặt hệ thống.
+    """
+    if request.method == 'POST':
+        maintenance_mode = 'maintenance_mode' in request.form
+        
+        setting = SystemSetting.query.filter_by(key='system_status').first()
+        if setting:
+            setting.value['maintenance_mode'] = maintenance_mode
+            flag_modified(setting, 'value')
+        else:
+            setting = SystemSetting(key='system_status', value={'maintenance_mode': maintenance_mode})
+            db.session.add(setting)
+        
+        db.session.commit()
+        flash('Cài đặt hệ thống đã được cập nhật thành công!', 'success')
+        return redirect(url_for('admin.manage_system_settings'))
+
+    system_status_setting = SystemSetting.query.filter_by(key='system_status').first()
+    maintenance_mode = False
+    if system_status_setting and isinstance(system_status_setting.value, dict):
+        maintenance_mode = system_status_setting.value.get('maintenance_mode', False)
+        
+    return render_template('system_settings.html', maintenance_mode=maintenance_mode)
+    
+@admin_bp.route('/backup-restore')
+def manage_backup_restore():
+    """
+    Mô tả: Hiển thị trang quản lý sao lưu và khôi phục dữ liệu.
+    """
+    # Lấy danh sách các file sao lưu hiện có
+    backup_folder = os.path.join(current_app.root_path, 'backups')
+    backup_files = [f for f in os.listdir(backup_folder) if f.endswith('.zip')] if os.path.exists(backup_folder) else []
+    
+    # Sắp xếp theo ngày tạo mới nhất
+    backup_files.sort(key=lambda x: os.path.getmtime(os.path.join(backup_folder, x)), reverse=True)
+    
+    return render_template('backup_restore.html', backup_files=backup_files)
+
+@admin_bp.route('/backup', methods=['POST'])
+def create_backup():
+    """
+    Mô tả: Tạo một bản sao lưu mới.
+    """
+    try:
+        backup_folder = os.path.join(current_app.root_path, 'backups')
+        os.makedirs(backup_folder, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"mindstack_backup_{timestamp}.zip"
+        backup_path = os.path.join(backup_folder, backup_filename)
+        
+        # Tạo file zip
+        with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # Sao lưu database
+            db_path = current_app.config.get('SQLALCHEMY_DATABASE_URI').replace('sqlite:///', '')
+            if os.path.exists(db_path):
+                zipf.write(db_path, os.path.basename(db_path))
+            
+            # Sao lưu thư mục uploads
+            uploads_folder = current_app.config.get('UPLOAD_FOLDER')
+            if os.path.exists(uploads_folder):
+                for foldername, subfolders, filenames in os.walk(uploads_folder):
+                    for filename in filenames:
+                        file_path = os.path.join(foldername, filename)
+                        zipf.write(file_path, os.path.relpath(file_path, os.path.dirname(uploads_folder)))
+        
+        flash('Đã tạo bản sao lưu thành công!', 'success')
+    except Exception as e:
+        current_app.logger.error(f"Lỗi khi tạo bản sao lưu: {e}")
+        flash(f'Lỗi khi tạo bản sao lưu: {e}', 'danger')
+        
+    return redirect(url_for('admin.manage_backup_restore'))
+
+@admin_bp.route('/restore/<string:filename>', methods=['POST'])
+def restore_backup(filename):
+    """
+    Mô tả: Khôi phục dữ liệu từ một bản sao lưu đã chọn.
+    """
+    try:
+        backup_folder = os.path.join(current_app.root_path, 'backups')
+        backup_path = os.path.join(backup_folder, filename)
+        
+        if not os.path.exists(backup_path):
+            flash('File sao lưu không tồn tại.', 'danger')
+            return redirect(url_for('admin.manage_backup_restore'))
+        
+        # Đóng database connection để có thể ghi đè file
+        db.session.close()
+        db.engine.dispose()
+        
+        # Giải nén file sao lưu
+        with zipfile.ZipFile(backup_path, 'r') as zipf:
+            zipf.extractall(current_app.root_path)
+            
+        flash('Đã khôi phục dữ liệu thành công!', 'success')
+    except Exception as e:
+        current_app.logger.error(f"Lỗi khi khôi phục dữ liệu: {e}")
+        flash(f'Lỗi khi khôi phục dữ liệu: {e}', 'danger')
+    
+    return redirect(url_for('admin.manage_backup_restore'))

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Cài đặt Hệ thống{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <h1 class="text-3xl font-semibold text-gray-800 flex items-center">
+             <a href="{{ url_for('admin.admin_dashboard') }}" class="text-blue-500 hover:text-blue-700 mr-3" title="Quay lại Admin Dashboard">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            Cài đặt Hệ thống
+        </h1>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden p-6">
+        <form action="{{ url_for('admin.manage_system_settings') }}" method="post" class="space-y-6">
+            {{ csrf_token }}
+
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Trạng thái hệ thống</h2>
+                <div class="flex items-center space-x-2">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="maintenance_mode" class="sr-only peer" {% if maintenance_mode %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                    <span class="text-sm font-medium text-gray-900">Chế độ bảo trì</span>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">
+                    Khi bật chế độ này, người dùng sẽ không thể truy cập các chức năng học tập. Chỉ quản trị viên mới có thể truy cập hệ thống.
+                </p>
+            </div>
+            
+            <div class="flex justify-end pt-4">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
+                    <i class="fas fa-save mr-2"></i> Lưu cài đặt
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
