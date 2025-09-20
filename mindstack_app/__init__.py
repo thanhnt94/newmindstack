@@ -1,7 +1,7 @@
 # File: web/mindstack_app/__init__.py
-# Version: 3.5
-# MỤC ĐÍCH: Đăng ký hàm bbcode_to_html như một context processor toàn cục.
-# ĐÃ SỬA: Đã bỏ đăng ký feedback_bp ở cấp ứng dụng để nó có thể được đăng ký ở cấp admin.
+# Version: 3.6
+# MỤC ĐÍCH: Đăng ký hàm bbcode_to_html như một context processor toàn cục và đăng ký lại blueprint feedback.
+# ĐÃ SỬA: Đã đăng ký lại blueprint feedback_bp ở cấp ứng dụng để khắc phục BuildError.
 
 from flask import Flask, g
 from .config import Config, BASE_DIR
@@ -23,7 +23,7 @@ def create_app(config_class=Config):
     """
     app = Flask(__name__)
     app.config.from_object(config_class)
-    
+
     if not app.logger.handlers:
         app.logger.setLevel(logging.DEBUG)
         handler = logging.StreamHandler()
@@ -66,33 +66,35 @@ def create_app(config_class=Config):
     # Đăng ký các Blueprint
     from .modules.auth.routes import auth_bp
     from .modules.main.routes import main_bp
-    from .modules.admin import admin_bp 
+    from .modules.admin import admin_bp
     from .modules.admin.user_management.user_routes import user_management_bp
     from .modules.admin.api_key_management.routes import api_key_management_bp
-    from .modules.user_profile import user_profile_bp 
+    from .modules.user_profile import user_profile_bp
     from .modules.content_management.routes import content_management_bp
     from .modules.learning.routes import learning_bp
     from .modules.ai_services.routes import ai_services_bp
     from .modules.notes.routes import notes_bp
     from .modules.shared import shared_bp
     from .modules.stats.routes import stats_bp
+    from .modules.feedback import feedback_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
-    app.register_blueprint(user_management_bp, url_prefix='/admin/users') 
+    app.register_blueprint(user_management_bp, url_prefix='/admin/users')
     app.register_blueprint(api_key_management_bp, url_prefix='/admin/api-keys')
-    app.register_blueprint(user_profile_bp, url_prefix='/profile') 
+    app.register_blueprint(user_profile_bp, url_prefix='/profile')
     app.register_blueprint(content_management_bp, url_prefix='/content')
     app.register_blueprint(learning_bp, url_prefix='/learn')
     app.register_blueprint(ai_services_bp)
     app.register_blueprint(notes_bp)
     app.register_blueprint(shared_bp)
     app.register_blueprint(stats_bp, url_prefix='/stats')
-    
+    app.register_blueprint(feedback_bp, url_prefix='/feedback')
+
     with app.app_context():
         db.create_all()
-        
+
         admin_user = User.query.filter_by(username='admin').first()
         if admin_user is None:
             admin = User(username='admin', email='admin@example.com', user_role='admin')
@@ -100,14 +102,14 @@ def create_app(config_class=Config):
             db.session.add(admin)
             db.session.commit()
             app.logger.info("Đã tạo user admin mặc định.")
-        
+
         # THÊM MỚI: Khởi tạo các tác vụ nền nếu chưa có
         for task_name in ['generate_audio_cache', 'clean_audio_cache']:
             if not BackgroundTask.query.filter_by(task_name=task_name).first():
                 task = BackgroundTask(task_name=task_name, message='Sẵn sàng', is_enabled=True)
                 db.session.add(task)
         db.session.commit()
-            
+
     return app
 
 app = create_app()
