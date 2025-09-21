@@ -19,7 +19,17 @@
                         </div>
                     {% endif %}
                 </div>
-                
+
+                <div>
+                    {{ form.email.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.email(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Email") }}
+                    {% if form.email.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.email.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
                 <div>
                     {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
                     {{ form.password(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Mật khẩu (để trống nếu không muốn đổi)") }}
