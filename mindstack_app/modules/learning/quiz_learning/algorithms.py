@@ -44,7 +44,7 @@ def _get_base_items_query(user_id, container_id):
                 ContainerContributor.user_id == user_id,
                 ContainerContributor.permission_level == 'editor'
             ).subquery()
-            access_conditions.append(LearningContainer.container_id.in_([c.container_id for c in contributed_ids_subquery]))
+            access_conditions.append(LearningContainer.container_id.in_(contributed_ids_subquery))
 
             accessible_containers = LearningContainer.query.filter(
                 LearningContainer.container_type == 'QUIZ_SET',
@@ -220,12 +220,21 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
             UserContainerState.is_archived == True
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'doing':
-        # THAY ĐỔI: Thay thế logic lọc phức tạp bằng cách lấy tất cả các bộ quiz có tương tác nhưng không lưu trữ
         final_query = filtered_query.join(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
             UserContainerState.is_archived == False
         ).order_by(UserContainerState.last_accessed.desc())
+        
+        # SỬA: Áp dụng bộ lọc 'doing' để chỉ lấy các bộ có tiến độ từ bảng QuizProgress
+        final_query = final_query.filter(
+            LearningContainer.container_id.in_(
+                db.session.query(LearningItem.container_id).join(QuizProgress).filter(
+                    QuizProgress.user_id == user_id,
+                    LearningItem.item_type == 'QUIZ_MCQ'
+                ).distinct()
+            )
+        )
     elif current_filter == 'explore':
         # SỬA LỖI: Chỉ lấy các bộ quiz CHƯA TỪNG được tương tác (không có bản ghi nào trong UserContainerState)
         final_query = filtered_query.filter(
@@ -285,3 +294,32 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
 
     print(f">>> ALGORITHMS: Kết thúc get_filtered_quiz_sets. Tổng số bộ: {pagination.total} <<<")
     return pagination
+
+def get_quiz_mode_counts(user_id, set_identifier):
+    """
+    Tính toán số lượng câu hỏi cho các chế độ học Quiz.
+    Hàm này sẽ loại trừ các bộ quiz đã được archive.
+    """
+    print(f">>> ALGORITHMS: Bắt đầu get_quiz_mode_counts cho user_id={user_id}, set_identifier={set_identifier} <<<")
+    
+    modes_with_counts = []
+    mode_function_map = {
+        'new_only': get_new_only_items,
+        'due_only': get_reviewed_items,
+        'hard_only': get_hard_items,
+    }
+
+    for mode_config in QuizLearningConfig.QUIZ_MODES:
+        mode_id = mode_config['id']
+        mode_name = mode_config['name']
+        algorithm_func = mode_function_map.get(mode_id)
+
+        if algorithm_func:
+            count = algorithm_func(user_id, set_identifier, None).count()
+            modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
+        else:
+            current_app.logger.warning(f"Không tìm thấy hàm thuật toán cho chế độ Quiz: {mode_id}")
+            modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': 0})
+
+    print(f">>> ALGORITHMS: Kết thúc get_quiz_mode_counts. Modes: {modes_with_counts} <<<")
+    return modes_with_counts
