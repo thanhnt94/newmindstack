@@ -9,7 +9,13 @@
                 {% elif loop.index == 3 %}<i class="fas fa-medal bronze-medal"></i>
                 {% else %}{{ loop.index }}{% endif %}
             </span>
-            <span class="username">{{ entry.username or 'N/A' }}</span>
+            <span class="username">
+                {% if entry.is_username_masked %}
+                    {{ entry.display_username or 'Người dùng ẩn danh' }}
+                {% else %}
+                    {{ entry.display_username or entry.username or 'N/A' }}
+                {% endif %}
+            </span>
             <span class="score-value">
                 {% if current_sort_by == 'total_score' %}{{ entry.current_period_score }} điểm
                 {% else %}
