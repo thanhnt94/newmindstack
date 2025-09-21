@@ -72,7 +72,11 @@ def list_quiz_sets():
 
     base_query = LearningContainer.query.filter_by(container_type='QUIZ_SET')
     
-    if current_user.user_role != 'admin':
+    if current_user.user_role == User.ROLE_ADMIN:
+        pass
+    elif current_user.user_role == User.ROLE_FREE:
+        base_query = base_query.filter_by(creator_user_id=current_user.user_id)
+    else:
         user_id = current_user.user_id
         created_sets_query = base_query.filter_by(creator_user_id=user_id)
         contributed_sets_query = base_query.join(ContainerContributor).filter(

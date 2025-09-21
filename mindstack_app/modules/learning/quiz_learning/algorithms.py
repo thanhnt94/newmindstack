@@ -3,13 +3,53 @@
 # MỤC ĐÍCH: Sửa lỗi logic hiển thị bộ quiz ở tab 'Đang học' và 'Khám phá'.
 # ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.
 
-from ....models import db, LearningItem, QuizProgress, LearningContainer, ContainerContributor, UserContainerState
+from ....models import (
+    db,
+    LearningItem,
+    QuizProgress,
+    LearningContainer,
+    ContainerContributor,
+    UserContainerState,
+    User,
+)
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
 from .config import QuizLearningConfig
+
+
+def get_accessible_quiz_set_ids(user_id):
+    base_query = LearningContainer.query.filter(
+        LearningContainer.container_type == 'QUIZ_SET'
+    )
+
+    if current_user.user_role == User.ROLE_ADMIN:
+        return [container.container_id for container in base_query.all()]
+
+    if current_user.user_role == User.ROLE_FREE:
+        return [
+            container.container_id
+            for container in base_query.filter(
+                LearningContainer.creator_user_id == user_id
+            ).all()
+        ]
+
+    contributed_ids_subquery = db.session.query(ContainerContributor.container_id).filter(
+        ContainerContributor.user_id == user_id,
+        ContainerContributor.permission_level == 'editor'
+    ).subquery()
+
+    accessible_query = base_query.filter(
+        or_(
+            LearningContainer.creator_user_id == user_id,
+            LearningContainer.is_public == True,
+            LearningContainer.container_id.in_(contributed_ids_subquery)
+        )
+    )
+
+    return [container.container_id for container in accessible_query.all()]
 
 
 def _get_base_items_query(user_id, container_id):
@@ -28,43 +68,40 @@ def _get_base_items_query(user_id, container_id):
     print(f">>> ALGORITHMS: Bắt đầu _get_base_items_query cho user_id={user_id}, container_id={container_id} <<<")
     items_query = LearningItem.query.filter(LearningItem.item_type == 'QUIZ_MCQ')
     
-    if isinstance(container_id, list):
-        # THÊM MỚI: Xử lý khi nhận một danh sách các ID bộ quiz
-        print(f">>> ALGORITHMS: Chế độ Multi-selection, IDs: {container_id} <<<")
-        items_query = items_query.filter(LearningItem.container_id.in_(container_id))
-    elif container_id == 'all':
-        access_conditions = []
-        if current_user.user_role != 'admin':
-            access_conditions.append(LearningContainer.creator_user_id == user_id)
-            access_conditions.append(LearningContainer.is_public == True)
-            
-            contributed_ids_subquery = db.session.query(ContainerContributor.container_id).filter(
-                ContainerContributor.user_id == user_id,
-                ContainerContributor.permission_level == 'editor'
-            ).subquery()
-            access_conditions.append(LearningContainer.container_id.in_(contributed_ids_subquery))
+    accessible_set_ids = set(get_accessible_quiz_set_ids(user_id))
 
-            accessible_containers = LearningContainer.query.filter(
-                LearningContainer.container_type == 'QUIZ_SET',
-                or_(*access_conditions)
-            ).all()
-            all_accessible_quiz_set_ids = [c.container_id for c in accessible_containers]
-            print(f">>> ALGORITHMS: 'all' mode (User), Accessible Quiz Set IDs: {all_accessible_quiz_set_ids} <<<")
-        else:
-            all_accessible_quiz_set_ids = [s.container_id for s in LearningContainer.query.filter_by(container_type='QUIZ_SET').all()]
-            print(f">>> ALGORITHMS: 'all' mode (Admin), All Quiz Set IDs: {all_accessible_quiz_set_ids} <<<")
-        
-        if not all_accessible_quiz_set_ids:
+    if isinstance(container_id, list):
+        print(f">>> ALGORITHMS: Chế độ Multi-selection, IDs: {container_id} <<<")
+        normalized_ids = []
+        for set_id in container_id:
+            try:
+                set_id_int = int(set_id)
+            except (TypeError, ValueError):
+                continue
+            if set_id_int in accessible_set_ids:
+                normalized_ids.append(set_id_int)
+
+        if not normalized_ids:
             items_query = items_query.filter(False)
-            print(">>> ALGORITHMS: Không có bộ quiz nào có thể truy cập, truy vấn trả về rỗng. <<<")
+            print(">>> ALGORITHMS: Không có bộ quiz khả dụng sau khi lọc multi-selection. <<<")
         else:
-            items_query = items_query.filter(LearningItem.container_id.in_(all_accessible_quiz_set_ids))
+            items_query = items_query.filter(LearningItem.container_id.in_(normalized_ids))
+    elif container_id == 'all':
+        if not accessible_set_ids:
+            items_query = items_query.filter(False)
+            print(">>> ALGORITHMS: Không có bộ quiz nào có thể truy cập ở chế độ 'all'. <<<")
+        else:
+            items_query = items_query.filter(LearningItem.container_id.in_(accessible_set_ids))
             print(f">>> ALGORITHMS: 'all' mode, items_query after filtering by accessible sets: {items_query} <<<")
     else:
         try:
             set_id_int = int(container_id)
-            items_query = items_query.filter_by(container_id=set_id_int)
-            print(f">>> ALGORITHMS: Cụ thể container_id={set_id_int}, items_query: {items_query} <<<")
+            if set_id_int in accessible_set_ids:
+                items_query = items_query.filter_by(container_id=set_id_int)
+                print(f">>> ALGORITHMS: Cụ thể container_id={set_id_int}, items_query: {items_query} <<<")
+            else:
+                items_query = items_query.filter(False)
+                print(f">>> ALGORITHMS: Người dùng không có quyền với container_id={set_id_int}, truy vấn trả về rỗng. <<<")
         except ValueError:
             items_query = items_query.filter(False)
             print(f">>> ALGORITHMS: container_id '{container_id}' không hợp lệ, truy vấn trả về rỗng. <<<")
@@ -180,16 +217,21 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
     base_query = LearningContainer.query.filter_by(container_type='QUIZ_SET')
     
     # Lọc quyền truy cập
-    access_conditions = []
-    if current_user.user_role != 'admin':
-        access_conditions.append(LearningContainer.creator_user_id == user_id)
-        access_conditions.append(LearningContainer.is_public == True)
-        
+    if current_user.user_role == User.ROLE_ADMIN:
+        pass
+    elif current_user.user_role == User.ROLE_FREE:
+        base_query = base_query.filter(LearningContainer.creator_user_id == user_id)
+    else:
+        access_conditions = [
+            LearningContainer.creator_user_id == user_id,
+            LearningContainer.is_public == True
+        ]
+
         contributed_sets_ids = db.session.query(ContainerContributor.container_id).filter(
             ContainerContributor.user_id == user_id,
             ContainerContributor.permission_level == 'editor'
         ).all()
-        
+
         if contributed_sets_ids:
             access_conditions.append(LearningContainer.container_id.in_([c.container_id for c in contributed_sets_ids]))
 

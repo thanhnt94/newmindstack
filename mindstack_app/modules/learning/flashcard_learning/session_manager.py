@@ -6,7 +6,13 @@
 from flask import session, current_app, url_for
 from flask_login import current_user
 from ....models import db, LearningItem, FlashcardProgress, LearningGroup, User
-from .algorithms import get_new_only_items, get_due_items, get_hard_items, get_mixed_items
+from .algorithms import (
+    get_new_only_items,
+    get_due_items,
+    get_hard_items,
+    get_mixed_items,
+    get_accessible_flashcard_set_ids,
+)
 from .flashcard_logic import process_flashcard_answer
 from .flashcard_stats_logic import get_flashcard_item_statistics
 from .config import FlashcardLearningConfig
@@ -73,15 +79,58 @@ class FlashcardSessionManager:
         cls.end_flashcard_session()
         mode_config = next((m for m in FlashcardLearningConfig.FLASHCARD_MODES if m['id'] == mode), None)
         if not mode_config: return False
-        
+
         algorithm_func = {'new_only': get_new_only_items, 'due_only': get_due_items, 'hard_only': get_hard_items, 'mixed_srs': get_mixed_items}.get(mode)
         if not algorithm_func: return False
-        
-        total_items_in_session = algorithm_func(user_id, set_id, None).count()
+
+        accessible_ids = set(get_accessible_flashcard_set_ids(user_id))
+        normalized_set_id = set_id
+
+        if set_id == 'all':
+            if not accessible_ids:
+                current_app.logger.info(
+                    "FlashcardSessionManager: Người dùng không có bộ thẻ nào khả dụng cho chế độ 'all'."
+                )
+                return False
+        elif isinstance(set_id, list):
+            filtered_ids = []
+            for set_value in set_id:
+                try:
+                    set_int = int(set_value)
+                except (TypeError, ValueError):
+                    continue
+                if set_int in accessible_ids:
+                    filtered_ids.append(set_int)
+
+            if not filtered_ids:
+                current_app.logger.info(
+                    "FlashcardSessionManager: Không có bộ thẻ nào khả dụng sau khi lọc chế độ multi-selection."
+                )
+                return False
+
+            normalized_set_id = filtered_ids
+        else:
+            try:
+                set_id_int = int(set_id)
+            except (TypeError, ValueError):
+                current_app.logger.warning(
+                    "FlashcardSessionManager: ID bộ thẻ không hợp lệ khi khởi tạo phiên học."
+                )
+                return False
+
+            if set_id_int not in accessible_ids:
+                current_app.logger.info(
+                    "FlashcardSessionManager: Người dùng không có quyền truy cập bộ thẻ đã chọn."
+                )
+                return False
+
+            normalized_set_id = set_id_int
+
+        total_items_in_session = algorithm_func(user_id, normalized_set_id, None).count()
         if total_items_in_session == 0: return False
 
         new_session_manager = cls(
-            user_id=user_id, set_id=set_id, mode=mode,
+            user_id=user_id, set_id=normalized_set_id, mode=mode,
             total_items_in_session=total_items_in_session,
             processed_item_ids=[], correct_answers=0,
             incorrect_answers=0, vague_answers=0,
