@@ -1,7 +1,7 @@
 # File: mindstack_app/modules/learning/flashcard_learning/algorithms.py
-# Phiên bản: 2.3 (Corrected)
-# MỤC ĐÍCH: Khắc phục lỗi TypeError: '<' not supported between instances of 'int' and 'NoneType'.
-# ĐÃ SỬA: Cập nhật hàm get_mixed_items để xử lý chính xác trường hợp session_size là None, trả về một query hợp nhất để đếm.
+# Phiên bản: 3.8
+# MỤC ĐÍCH: Sửa lỗi logic hiển thị bộ thẻ ở tab 'Đang học' và 'Khám phá'.
+# ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.
 
 from ....models import db, LearningItem, FlashcardProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
@@ -223,6 +223,8 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
     
     filtered_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
 
+    # THAY ĐỔI LỚN: Áp dụng bộ lọc archive và sắp xếp theo last_accessed
+    # Tạo một truy vấn con để lấy ID của các bộ mà người dùng đã tương tác (có bản ghi trong UserContainerState)
     user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
         UserContainerState.user_id == user_id
     ).subquery()
@@ -234,26 +236,19 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
             UserContainerState.is_archived == True
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'doing':
-        # SỬA: Truy vấn để lấy các bộ thẻ có tiến độ học từ bảng FlashcardProgress
-        final_query = filtered_query.join(LearningItem,
-            LearningContainer.container_id == LearningItem.container_id
-        ).join(FlashcardProgress,
-            and_(LearningItem.item_id == FlashcardProgress.item_id, FlashcardProgress.user_id == user_id)
-        ).distinct().outerjoin(UserContainerState,
+        # SỬA: Lấy các bộ mà người dùng ĐÃ TƯƠNG TÁC và KHÔNG bị lưu trữ
+        final_query = filtered_query.join(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
-            or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
-        ).order_by(
-            db.case(
-                (UserContainerState.last_accessed.isnot(None), UserContainerState.last_accessed),
-                else_=LearningContainer.created_at
-            ).desc()
-        )
+            UserContainerState.is_archived == False
+        ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'explore':
+        # SỬA LỖI: Chỉ lấy các bộ thẻ CHƯA TỪNG được tương tác
         final_query = filtered_query.filter(
             ~LearningContainer.container_id.in_(user_interacted_ids_subquery)
         ).order_by(LearningContainer.created_at.desc())
     else:
+        # Trường hợp mặc định hoặc không hợp lệ, trả về tất cả (loại trừ archive)
         final_query = filtered_query.outerjoin(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(

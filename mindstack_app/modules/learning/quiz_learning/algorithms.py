@@ -1,9 +1,7 @@
 # File: mindstack_app/modules/learning/quiz_learning/algorithms.py
-# Phiên bản: 2.0
-# MỤC ĐÍCH: Cập nhật logic truy vấn để sử dụng model QuizProgress mới thay cho UserProgress.
-# ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress.
-# ĐÃ SỬA: Cập nhật các hàm lấy câu hỏi (get_new_only_items, get_reviewed_items, get_hard_items)
-#         và hàm lấy danh sách bộ quiz (get_filtered_quiz_sets) để truy vấn bảng mới.
+# Phiên bản: 2.1
+# MỤC ĐÍCH: Sửa lỗi logic hiển thị bộ quiz ở tab 'Đang học' và 'Khám phá'.
+# ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.
 
 from ....models import db, LearningItem, QuizProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
@@ -208,7 +206,7 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
     filtered_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
 
     # THAY ĐỔI LỚN: Áp dụng bộ lọc archive và sắp xếp theo last_accessed
-    # SỬA: Sẽ sử dụng truy vấn con để loại trừ các bộ đã có bản ghi trong UserContainerState
+    # Tạo một truy vấn con để lấy ID của các bộ mà người dùng đã tương tác (có bản ghi trong UserContainerState)
     user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
         UserContainerState.user_id == user_id
     ).subquery()
@@ -220,23 +218,14 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
             UserContainerState.is_archived == True
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'doing':
+        # SỬA: Lấy các bộ mà người dùng ĐÃ TƯƠNG TÁC và KHÔNG bị lưu trữ
         final_query = filtered_query.join(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
             UserContainerState.is_archived == False
         ).order_by(UserContainerState.last_accessed.desc())
-        
-        # SỬA: Áp dụng bộ lọc 'doing' để chỉ lấy các bộ có tiến độ từ bảng QuizProgress
-        final_query = final_query.filter(
-            LearningContainer.container_id.in_(
-                db.session.query(LearningItem.container_id).join(QuizProgress).filter(
-                    QuizProgress.user_id == user_id,
-                    LearningItem.item_type == 'QUIZ_MCQ'
-                ).distinct()
-            )
-        )
     elif current_filter == 'explore':
-        # SỬA LỖI: Chỉ lấy các bộ quiz CHƯA TỪNG được tương tác (không có bản ghi nào trong UserContainerState)
+        # SỬA LỖI: Chỉ lấy các bộ quiz CHƯA TỪNG được tương tác
         final_query = filtered_query.filter(
             ~LearningContainer.container_id.in_(user_interacted_ids_subquery)
         ).order_by(LearningContainer.created_at.desc())

@@ -1,8 +1,7 @@
 # mindstack_app/modules/learning/course_learning/algorithms.py
-# Phiên bản: 2.1
-# MỤC ĐÍCH: Sửa lỗi logic không hiển thị các khóa học, đặc biệt là các khóa học mới tạo.
-# ĐÃ SỬA: Thay đổi logic lọc của 'doing' và 'explore' để dựa trên sự tồn tại của CourseProgress,
-#         thay vì UserContainerState, để phân loại chính xác hơn.
+# Phiên bản: 2.2
+# MỤC ĐÍCH: Sửa lỗi logic hiển thị các khóa học ở tab 'Đang học' và 'Khám phá'.
+# ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.
 
 from ....models import db, LearningItem, CourseProgress, LearningContainer, ContainerContributor, UserContainerState
 from flask_login import current_user
@@ -48,39 +47,36 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
     # Áp dụng bộ lọc tìm kiếm
     filtered_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
 
-    # Truy vấn con: Lấy ID của các khóa học mà người dùng đã bắt đầu học (có tiến độ)
-    courses_with_progress_subquery = db.session.query(LearningItem.container_id).join(CourseProgress).filter(
-        CourseProgress.user_id == user_id,
-        LearningItem.item_type == 'LESSON'
-    ).distinct().subquery()
-
-    # Truy vấn con: Lấy ID của các khóa học người dùng đã lưu trữ
-    archived_courses_subquery = db.session.query(UserContainerState.container_id).filter(
-        UserContainerState.user_id == user_id,
-        UserContainerState.is_archived == True
+    # Truy vấn con: Lấy ID của các khóa học mà người dùng đã tương tác (có bản ghi trong UserContainerState)
+    user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
+        UserContainerState.user_id == user_id
     ).subquery()
     
     if current_filter == 'archive':
         # Tab LƯU TRỮ: chỉ lấy các khóa học có trong danh sách lưu trữ
-        final_query = filtered_query.filter(
-            LearningContainer.container_id.in_(archived_courses_subquery)
+        final_query = filtered_query.join(UserContainerState,
+            and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
+        ).filter(
+            UserContainerState.is_archived == True
         )
     elif current_filter == 'doing':
-        # Tab ĐANG HỌC: Lấy các khóa học có tiến độ VÀ không bị lưu trữ
-        final_query = filtered_query.filter(
-            LearningContainer.container_id.in_(courses_with_progress_subquery),
-            ~LearningContainer.container_id.in_(archived_courses_subquery)
+        # SỬA: Lấy các khóa học mà người dùng ĐÃ TƯƠNG TÁC và KHÔNG bị lưu trữ
+        final_query = filtered_query.join(UserContainerState,
+            and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
+        ).filter(
+            UserContainerState.is_archived == False
         )
     elif current_filter == 'explore':
-        # Tab KHÁM PHÁ: Lấy các khóa học KHÔNG có tiến độ VÀ không bị lưu trữ
+        # SỬA LỖI: Lấy các khóa học CHƯA TỪNG được tương tác
         final_query = filtered_query.filter(
-            ~LearningContainer.container_id.in_(courses_with_progress_subquery),
-            ~LearningContainer.container_id.in_(archived_courses_subquery)
+            ~LearningContainer.container_id.in_(user_interacted_ids_subquery)
         )
     else: # Mặc định là 'all' hoặc các trường hợp khác
         # Lấy tất cả các khóa học không bị lưu trữ
-        final_query = filtered_query.filter(
-            ~LearningContainer.container_id.in_(archived_courses_subquery)
+        final_query = filtered_query.outerjoin(UserContainerState,
+            and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
+        ).filter(
+            or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
         )
 
     # Sắp xếp theo ngày tạo mới nhất
