@@ -1,5 +1,5 @@
 # File: Mindstack/web/mindstack_app/modules/admin/user_management/user_routes.py
-# Version: 1.0 - Module con quản lý người dùng
+# Version: 1.1 - Đã thêm logic xử lý trường email vào các route add_user và edit_user.
 # Mục đích: Chứa các route và logic cho việc quản lý người dùng trong khu vực admin.
 
 from flask import render_template, redirect, url_for, flash, request, abort
@@ -40,7 +40,8 @@ def add_user():
             form.password2.errors.append('Mật khẩu không khớp.')
             return render_template('add_edit_user.html', form=form, title='Thêm Người Dùng Mới')
 
-        user = User(username=form.username.data, user_role=form.user_role.data)
+        # THAY ĐỔI: Thêm trường email khi khởi tạo đối tượng User
+        user = User(username=form.username.data, email=form.email.data, user_role=form.user_role.data)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
@@ -57,6 +58,8 @@ def edit_user(user_id):
     
     if form.validate_on_submit():
         user.username = form.username.data
+        # THAY ĐỔI: Cập nhật trường email
+        user.email = form.email.data
         user.user_role = form.user_role.data
         
         if form.password.data:

@@ -19,6 +19,16 @@
                         </div>
                     {% endif %}
                 </div>
+
+                <div>
+                    {{ form.email.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.email(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Địa chỉ email") }}
+                    {% if form.email.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.email.errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
                 
                 <div>
                     {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
@@ -62,13 +72,13 @@
                     {% endif %}
                 </div>
 
-                <div>
-                    {{ form.submit(class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500") }}
+                <div class="flex justify-end space-x-4 pt-4">
+                     <a href="{{ url_for('user_management.manage_users') }}" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-400 transition duration-300 flex items-center">
+                        <i class="fas fa-arrow-left mr-2"></i> Quay lại
+                    </a>
+                    {{ form.submit(class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center") }}
                 </div>
             </form>
-            <div class="text-center mt-6">
-                <a href="{{ url_for('user_management.manage_users') }}" class="font-medium text-gray-600 hover:text-gray-500">Quay lại danh sách người dùng</a>
-            </div>
         </div>
     </div>
 </div>

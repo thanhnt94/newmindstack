@@ -1,10 +1,10 @@
 # File: Mindstack/web/mindstack_app/modules/auth/forms.py
-# Version: 1.3 - Đã sửa UserForm để tách biệt rõ ràng logic Add/Edit
+# Version: 1.4 - Đã thêm trường email vào UserForm để khắc phục lỗi NOT NULL constraint failed.
 # Mục đích: Định nghĩa các lớp form cho Đăng nhập, Đăng ký và quản lý Người dùng.
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField
-from wtforms.validators import DataRequired, EqualTo, ValidationError, Optional
+from wtforms.validators import DataRequired, EqualTo, ValidationError, Optional, Email
 from ...models import User 
 
 class LoginForm(FlaskForm):
@@ -40,6 +40,7 @@ class UserForm(FlaskForm):
     Mật khẩu sẽ được xử lý riêng trong view function tùy thuộc vào là Thêm hay Sửa.
     """
     username = StringField('Tên đăng nhập', validators=[DataRequired(message="Vui lòng nhập tên đăng nhập.")])
+    email = StringField('Email', validators=[DataRequired(message="Vui lòng nhập email."), Email(message="Email không hợp lệ.")])
     password = PasswordField('Mật khẩu', validators=[Optional()]) # Luôn Optional trong form
     password2 = PasswordField('Nhập lại mật khẩu', validators=[Optional(), EqualTo('password', message='Mật khẩu không khớp.')]) # Luôn Optional
     user_role = SelectField('Quyền người dùng', choices=[('user', 'Người dùng'), ('admin', 'Quản trị viên')], validators=[DataRequired()])
@@ -60,4 +61,3 @@ class UserForm(FlaskForm):
         existing_user = User.query.filter(User.username == username_field.data).first()
         if existing_user and (existing_user.user_id != user_id_to_exclude):
             raise ValidationError('Tên đăng nhập này đã được sử dụng.')
-
