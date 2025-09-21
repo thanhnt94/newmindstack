@@ -85,7 +85,6 @@
         </a>
 
         <div class="lesson-content-wrapper">
-            <!-- THANH CÔNG CỤ -->
             <div class="lesson-toolbar">
                 {% if can_edit %}
                 <a href="{{ url_for('content_management.content_management_courses.edit_lesson', set_id=course.container_id, item_id=lesson.item_id) }}" class="toolbar-btn">
@@ -93,6 +92,10 @@
                     <span>Chỉnh sửa bài học</span>
                 </a>
                 {% endif %}
+                <button id="open-feedback-modal-btn" class="toolbar-btn" data-item-id="{{ lesson.item_id }}" data-item-title="{{ lesson.content.get('title', 'Không có tiêu đề') }}">
+                    <i class="fas fa-flag"></i>
+                    <span>Phản hồi</span>
+                </button>
             </div>
 
             <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ lesson.content.get('title', 'Không có tiêu đề') }}</h1>
@@ -104,7 +107,6 @@
                 {{ bbcode_to_html(lesson.content.get('bbcode_content', '')) | safe }}
             </div>
 
-            <!-- VÙNG GHI CHÚ ĐÃ CẬP NHẬT -->
             <div class="note-section">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-lg font-semibold text-gray-700">Ghi chú cá nhân</h3>
@@ -116,14 +118,12 @@
                     </div>
                 </div>
 
-                <!-- Chế độ xem -->
                 <div id="note-display-view">
                     <div id="note-content-display" class="note-content-display">
                         {% if note and note.content %}{{ note.content }}{% else %}<span class="text-gray-500 italic">Bạn chưa có ghi chú nào cho bài học này.</span>{% endif %}
                     </div>
                 </div>
 
-                <!-- Chế độ sửa (ẩn) -->
                 <div id="note-edit-view" style="display: none;">
                     <textarea id="note-textarea" class="note-textarea" placeholder="Nhập ghi chú của bạn cho bài học này..."></textarea>
                     <div class="flex justify-end mt-3 space-x-2">
@@ -133,7 +133,6 @@
                 </div>
             </div>
 
-            <!-- Vùng đánh giá tiến độ -->
             <div class="mt-8 border-t pt-6">
                 <h3 class="text-lg font-semibold text-gray-700 mb-3">Đánh giá tiến độ của bạn</h3>
                 <div class="flex items-center space-x-4">
@@ -159,6 +158,7 @@
         const slider = document.getElementById('progress-slider');
         const progressValue = document.getElementById('progress-value');
         const updateBtn = document.getElementById('update-progress-btn');
+        const feedbackBtn = document.getElementById('open-feedback-modal-btn');
         
         // Logic cho thanh trượt tiến độ (giữ nguyên)
         if (slider && progressValue) {
@@ -281,7 +281,21 @@
         if (saveNoteBtn) {
             saveNoteBtn.addEventListener('click', saveNote);
         }
+        
+        // ==========================================================
+        // SCRIPT ĐÃ CẬP NHẬT CHO PHẢN HỒI
+        // ==========================================================
+        if (feedbackBtn) {
+            feedbackBtn.addEventListener('click', function() {
+                const itemId = this.dataset.itemId;
+                const itemTitle = this.dataset.itemTitle;
+                // Gọi hàm mở modal từ partial _feedback_modal.html
+                if (window.openFeedbackModal) {
+                    window.openFeedbackModal(itemId, itemTitle);
+                }
+            });
+        }
     });
 </script>
 {% endblock %}
-
+{% include 'feedback/_feedback_modal.html' %}

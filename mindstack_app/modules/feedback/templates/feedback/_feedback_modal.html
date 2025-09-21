@@ -1,9 +1,34 @@
 {#
     # File: mindstack_app/modules/feedback/templates/feedback/_feedback_modal.html
-    # Phiên bản: 1.1
-    # TÍNH NĂNG: Cung cấp một modal riêng biệt để người dùng gửi phản hồi (feedback).
-    # ĐÃ SỬA: Thêm một khoảng trễ ngắn (setTimeout) sau khi gửi feedback thành công, đảm bảo người dùng có thể thấy thông báo trước khi modal đóng lại.
+    # Phiên bản: 1.3
+    # MỤC ĐÍCH: Sửa lỗi hiển thị modal phản hồi sai vị trí.
+    # ĐÃ SỬA: Đưa CSS ra khỏi script và thêm vào một khối <style> riêng.
 #}
+<style>
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: none; /* THAY ĐỔI: Thêm display: none để ẩn modal theo mặc định */
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    .custom-modal-overlay.open {
+        display: flex; /* THAY ĐỔI: Chỉ hiển thị khi có class 'open' */
+    }
+    .custom-modal-content {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        max-width: 400px;
+    }
+</style>
+
 <div id="feedback-modal" class="custom-modal-overlay">
     <div class="custom-modal-content !max-w-lg w-full">
         <div class="flex justify-between items-center mb-4">
@@ -48,7 +73,8 @@ function openFeedbackModal(itemId, termContent) {
         feedbackTextarea.value = '' // Xóa nội dung cũ
     }
 
-    feedbackModal.style.display = 'flex'
+    // THAY ĐỔI: Sử dụng class 'open' để hiển thị modal
+    feedbackModal.classList.add('open');
 }
 
 /**
@@ -57,7 +83,8 @@ function openFeedbackModal(itemId, termContent) {
 function closeFeedbackModal() {
     const feedbackModal = document.getElementById('feedback-modal')
     if (feedbackModal) {
-        feedbackModal.style.display = 'none'
+        // THAY ĐỔI: Xóa class 'open' để ẩn modal
+        feedbackModal.classList.remove('open');
     }
     currentFeedbackItemId = null
 }
