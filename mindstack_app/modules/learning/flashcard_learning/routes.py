@@ -95,7 +95,7 @@ def start_flashcard_session_all(mode):
     if FlashcardSessionManager.start_new_flashcard_session(set_ids, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
-        flash('Không có thẻ nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
+        flash('Không có bộ thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
         return redirect(url_for('learning.flashcard_learning.flashcard_learning_dashboard'))
 
 
@@ -120,7 +120,7 @@ def start_flashcard_session_multi(mode):
     if FlashcardSessionManager.start_new_flashcard_session(set_ids, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
-        flash('Không có thẻ nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
+        flash('Không có bộ thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
         return redirect(url_for('learning.flashcard_learning.flashcard_learning_dashboard'))
 
 
@@ -133,7 +133,7 @@ def start_flashcard_session_by_id(set_id, mode):
     if FlashcardSessionManager.start_new_flashcard_session(set_id, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
-        flash('Không có thẻ nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
+        flash('Không có bộ thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
         return redirect(url_for('learning.flashcard_learning.flashcard_learning_dashboard'))
 
 

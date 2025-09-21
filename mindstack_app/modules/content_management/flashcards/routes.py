@@ -47,6 +47,16 @@ def _process_relative_url(url):
         return f'uploads/{url}'
     return url
 
+
+def _has_editor_access(container_id):
+    if current_user.user_role == User.ROLE_FREE:
+        return False
+    return ContainerContributor.query.filter_by(
+        container_id=container_id,
+        user_id=current_user.user_id,
+        permission_level='editor'
+    ).first() is not None
+
 @flashcards_bp.route('/flashcards/process_excel_info', methods=['POST'])
 @login_required
 def process_excel_info():
@@ -103,7 +113,11 @@ def list_flashcard_sets():
     base_query = LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
 
     # Lọc theo quyền sở hữu/đóng góp nếu không phải admin
-    if current_user.user_role != 'admin':
+    if current_user.user_role == User.ROLE_ADMIN:
+        pass
+    elif current_user.user_role == User.ROLE_FREE:
+        base_query = base_query.filter_by(creator_user_id=current_user.user_id)
+    else:
         user_id = current_user.user_id
         created_sets_query = base_query.filter_by(creator_user_id=user_id)
         contributed_sets_query = base_query.join(ContainerContributor).filter(
@@ -249,10 +263,11 @@ def edit_flashcard_set(set_id):
     """
     flashcard_set = LearningContainer.query.get_or_404(set_id)
     # Kiểm tra quyền chỉnh sửa
-    if current_user.user_role != 'admin' and \
-       flashcard_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Không có quyền
+    if flashcard_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)  # Không có quyền
     
     form = FlashcardSetForm(obj=flashcard_set)
     _apply_is_public_restrictions(form)
@@ -361,11 +376,11 @@ def list_flashcard_items(set_id):
     """
     flashcard_set = LearningContainer.query.get_or_404(set_id)
     # Kiểm tra quyền xem
-    if not flashcard_set.is_public and \
-       current_user.user_role != 'admin' and \
-       flashcard_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Không có quyền
+    if not flashcard_set.is_public and flashcard_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_ADMIN:
+            pass
+        elif current_user.user_role == User.ROLE_FREE or not _has_editor_access(set_id):
+            abort(403)  # Không có quyền
 
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
@@ -397,9 +412,11 @@ def list_flashcard_items(set_id):
     flashcard_items = pagination.items
 
     # Kiểm tra quyền chỉnh sửa
-    can_edit = (current_user.user_role == 'admin' or \
-       flashcard_set.creator_user_id == current_user.user_id or \
-       ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first())
+    can_edit = (
+        current_user.user_role == User.ROLE_ADMIN or
+        flashcard_set.creator_user_id == current_user.user_id or
+        _has_editor_access(set_id)
+    )
     
     return render_template('flashcard_items.html', 
                            flashcard_set=flashcard_set, 
@@ -421,10 +438,11 @@ def add_flashcard_item(set_id):
     """
     flashcard_set = LearningContainer.query.get_or_404(set_id)
     # Kiểm tra quyền thêm thẻ
-    if current_user.user_role != 'admin' and \
-       flashcard_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Không có quyền
+    if flashcard_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)  # Không có quyền
     
     form = FlashcardItemForm()
     if form.validate_on_submit():
@@ -497,10 +515,11 @@ def edit_flashcard_item(set_id, item_id):
     flashcard_set = LearningContainer.query.get_or_404(set_id)
     flashcard_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id).first_or_404()
     # Kiểm tra quyền chỉnh sửa
-    if current_user.user_role != 'admin' and \
-       flashcard_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Không có quyền
+    if flashcard_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)  # Không có quyền
     
     # Khởi tạo form với dữ liệu hiện có
     form = FlashcardItemForm(obj=flashcard_item.content)
@@ -586,10 +605,11 @@ def delete_flashcard_item(set_id, item_id):
     """
     flashcard_set = LearningContainer.query.get_or_404(set_id)
     flashcard_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id).first_or_404()
-    if current_user.user_role != 'admin' and \
-       flashcard_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403) # Không có quyền
+    if flashcard_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)  # Không có quyền
     
     db.session.delete(flashcard_item)
     db.session.commit() # Lưu thay đổi

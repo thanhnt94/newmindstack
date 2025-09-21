@@ -6,7 +6,7 @@ from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from . import notes_bp
 from .forms import NoteForm
-from ...models import db, UserNote, LearningItem
+from ...models import db, UserNote, LearningItem, User
 
 @notes_bp.route('/notes/get/<int:item_id>', methods=['GET'])
 @login_required
@@ -36,6 +36,11 @@ def save_note(item_id):
     item = LearningItem.query.get(item_id)
     if not item:
         return jsonify({'success': False, 'message': 'Học liệu không tồn tại.'}), 404
+
+    if current_user.user_role == User.ROLE_FREE and (
+        not item.container or item.container.creator_user_id != current_user.user_id
+    ):
+        return jsonify({'success': False, 'message': 'Bạn không có quyền tạo ghi chú cho nội dung này.'}), 403
 
     note = UserNote.query.filter_by(user_id=current_user.user_id, item_id=item_id).first()
 

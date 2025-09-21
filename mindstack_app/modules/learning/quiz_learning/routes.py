@@ -115,7 +115,7 @@ def start_quiz_session_all(mode):
     if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
-        flash('Không có câu hỏi nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
+        flash('Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
         return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
 
 @quiz_learning_bp.route('/start_quiz_session/multi/<string:mode>', methods=['GET'])
@@ -140,7 +140,7 @@ def start_quiz_session_multi(mode):
     if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
-        flash('Không có câu hỏi nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
+        flash('Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
         return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
 
 @quiz_learning_bp.route('/start_quiz_session/<int:set_id>/<string:mode>', methods=['GET'])

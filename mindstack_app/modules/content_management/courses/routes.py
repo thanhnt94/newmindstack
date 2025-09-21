@@ -21,6 +21,16 @@ courses_bp = Blueprint('content_management_courses', __name__,
                        template_folder='templates') # Đã cập nhật đường dẫn template
 
 
+
+def _has_editor_access(container_id):
+    if current_user.user_role == User.ROLE_FREE:
+        return False
+    return ContainerContributor.query.filter_by(
+        container_id=container_id,
+        user_id=current_user.user_id,
+        permission_level='editor'
+    ).first() is not None
+
 def _apply_is_public_restrictions(form):
     """Disable public toggle for free users and ensure value stays False."""
     if hasattr(form, 'is_public') and current_user.user_role == 'free':
@@ -28,6 +38,7 @@ def _apply_is_public_restrictions(form):
         existing_render_kw = dict(form.is_public.render_kw or {})
         existing_render_kw['disabled'] = True
         form.is_public.render_kw = existing_render_kw
+
 
 @courses_bp.route('/courses/process_excel_info', methods=['POST'])
 @login_required
@@ -77,7 +88,11 @@ def list_course_sets():
 
     base_query = LearningContainer.query.filter_by(container_type='COURSE')
 
-    if current_user.user_role != 'admin':
+    if current_user.user_role == User.ROLE_ADMIN:
+        pass
+    elif current_user.user_role == User.ROLE_FREE:
+        base_query = base_query.filter_by(creator_user_id=current_user.user_id)
+    else:
         user_id = current_user.user_id
         created_sets_query = base_query.filter_by(creator_user_id=user_id)
         contributed_sets_query = base_query.join(ContainerContributor).filter(
@@ -167,10 +182,11 @@ def edit_course_set(set_id):
     Chỉnh sửa một bộ Khóa học hiện có.
     """
     course_set = LearningContainer.query.get_or_404(set_id)
-    if current_user.user_role != 'admin' and \
-       course_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403)
+    if course_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)
         
     form = CourseForm(obj=course_set)
     _apply_is_public_restrictions(form)
@@ -226,11 +242,11 @@ def list_lessons(set_id):
     Hiển thị danh sách các bài học trong một bộ Khóa học cụ thể.
     """
     course = LearningContainer.query.get_or_404(set_id)
-    if not course.is_public and \
-       current_user.user_role != 'admin' and \
-       course.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id).first():
-        abort(403)
+    if not course.is_public and course.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_ADMIN:
+            pass
+        elif current_user.user_role == User.ROLE_FREE or not _has_editor_access(set_id):
+            abort(403)
         
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
@@ -251,9 +267,11 @@ def list_lessons(set_id):
     # ĐÃ SỬA: Sắp xếp theo `order_in_container` thay vì ID
     pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container), page)
     lessons = pagination.items
-    can_edit = (current_user.user_role == 'admin' or \
-       course.creator_user_id == current_user.user_id or \
-       ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first())
+    can_edit = (
+        current_user.user_role == User.ROLE_ADMIN or
+        course.creator_user_id == current_user.user_id or
+        _has_editor_access(set_id)
+    )
        
     return render_template('lessons.html', 
                            course=course, 
@@ -272,10 +290,11 @@ def add_lesson(set_id):
     Thêm một bài học mới vào một bộ Khóa học cụ thể.
     """
     course_set = LearningContainer.query.get_or_404(set_id)
-    if current_user.user_role != 'admin' and \
-       course_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403)
+    if course_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)
         
     form = LessonForm()
     if form.validate_on_submit():
@@ -336,10 +355,11 @@ def edit_lesson(set_id, item_id):
     """
     course_set = LearningContainer.query.get_or_404(set_id)
     lesson_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id).first_or_404()
-    if current_user.user_role != 'admin' and \
-       course_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403)
+    if course_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)
         
     form = LessonForm(obj=lesson_item.content)
     if form.validate_on_submit():
@@ -400,10 +420,11 @@ def delete_lesson(set_id, item_id):
     """
     course_set = LearningContainer.query.get_or_404(set_id)
     lesson_item = LearningItem.query.get_or_404(item_id)
-    if current_user.user_role != 'admin' and \
-       course_set.creator_user_id != current_user.user_id and \
-       not ContainerContributor.query.filter_by(container_id=set_id, user_id=current_user.user_id, permission_level='editor').first():
-        abort(403)
+    if course_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)
         
     db.session.delete(lesson_item)
     db.session.commit()

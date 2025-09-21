@@ -3,7 +3,15 @@
 # MỤC ĐÍCH: Sửa lỗi logic hiển thị các khóa học ở tab 'Đang học' và 'Khám phá'.
 # ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.
 
-from ....models import db, LearningItem, CourseProgress, LearningContainer, ContainerContributor, UserContainerState
+from ....models import (
+    db,
+    LearningItem,
+    CourseProgress,
+    LearningContainer,
+    ContainerContributor,
+    UserContainerState,
+    User,
+)
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
@@ -18,20 +26,23 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
     print(f">>> ALGORITHMS: Bắt đầu get_filtered_course_sets cho user_id={user_id}, filter={current_filter} <<<")
 
     base_query = LearningContainer.query.filter_by(container_type='COURSE')
-    
+
     # Lọc quyền truy cập
-    access_conditions = []
-    if current_user.user_role != 'admin':
-        # Người dùng có thể thấy khóa học của chính họ
-        access_conditions.append(LearningContainer.creator_user_id == user_id)
-        # Hoặc các khóa học công khai
-        access_conditions.append(LearningContainer.is_public == True)
-        
+    if current_user.user_role == User.ROLE_ADMIN:
+        pass
+    elif current_user.user_role == User.ROLE_FREE:
+        base_query = base_query.filter(LearningContainer.creator_user_id == user_id)
+    else:
+        access_conditions = [
+            LearningContainer.creator_user_id == user_id,
+            LearningContainer.is_public == True
+        ]
+
         # Hoặc các khóa học họ được mời làm cộng tác viên
         contributed_sets_ids = db.session.query(ContainerContributor.container_id).filter(
             ContainerContributor.user_id == user_id
         ).all()
-        
+
         if contributed_sets_ids:
             access_conditions.append(LearningContainer.container_id.in_([c.container_id for c in contributed_sets_ids]))
 

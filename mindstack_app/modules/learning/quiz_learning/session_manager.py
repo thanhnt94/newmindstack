@@ -5,7 +5,12 @@
 from flask import session, current_app, url_for
 from flask_login import current_user
 from ....models import db, LearningItem, QuizProgress, LearningGroup, User, UserNote
-from .algorithms import get_new_only_items, get_reviewed_items, get_hard_items
+from .algorithms import (
+    get_new_only_items,
+    get_reviewed_items,
+    get_hard_items,
+    get_accessible_quiz_set_ids,
+)
 from .quiz_logic import process_quiz_answer
 from .quiz_stats_logic import get_quiz_item_statistics
 from .config import QuizLearningConfig
@@ -106,7 +111,50 @@ class QuizSessionManager:
             current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {mode}")
             return False
         
-        total_items_in_session_query = algorithm_func(user_id, set_id, None)
+        accessible_ids = set(get_accessible_quiz_set_ids(user_id))
+        normalized_set_id = set_id
+
+        if set_id == 'all':
+            if not accessible_ids:
+                current_app.logger.info(
+                    "QuizSessionManager: Người dùng không có bộ quiz nào khả dụng cho chế độ 'all'."
+                )
+                return False
+        elif isinstance(set_id, list):
+            filtered_ids = []
+            for set_value in set_id:
+                try:
+                    set_int = int(set_value)
+                except (TypeError, ValueError):
+                    continue
+                if set_int in accessible_ids:
+                    filtered_ids.append(set_int)
+
+            if not filtered_ids:
+                current_app.logger.info(
+                    "QuizSessionManager: Không có bộ quiz nào khả dụng sau khi lọc chế độ multi-selection."
+                )
+                return False
+
+            normalized_set_id = filtered_ids
+        else:
+            try:
+                set_id_int = int(set_id)
+            except (TypeError, ValueError):
+                current_app.logger.warning(
+                    "QuizSessionManager: ID bộ quiz không hợp lệ khi khởi tạo phiên học."
+                )
+                return False
+
+            if set_id_int not in accessible_ids:
+                current_app.logger.info(
+                    "QuizSessionManager: Người dùng không có quyền truy cập bộ quiz đã chọn."
+                )
+                return False
+
+            normalized_set_id = set_id_int
+
+        total_items_in_session_query = algorithm_func(user_id, normalized_set_id, None)
         total_items_in_session = total_items_in_session_query.count()
 
         if total_items_in_session == 0:
@@ -129,7 +177,7 @@ class QuizSessionManager:
 
         new_session_manager = cls(
             user_id=user_id,
-            set_id=set_id,
+            set_id=normalized_set_id,
             mode=mode,
             batch_size=batch_size,
             total_items_in_session=total_items_in_session,

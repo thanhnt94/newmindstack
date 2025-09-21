@@ -8,7 +8,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 
 from . import feedback_bp
-from ...models import db, UserFeedback, LearningItem, LearningContainer
+from ...models import db, UserFeedback, LearningItem, LearningContainer, User
 from datetime import datetime
 
 # Route để hiển thị trang quản lý feedback (dành cho admin hoặc chủ sở hữu)
@@ -60,6 +60,15 @@ def submit_feedback():
     if not feedback_text:
         return jsonify({'success': False, 'message': 'Nội dung feedback không được để trống.'}), 400
         
+    item = LearningItem.query.get(item_id)
+    if not item:
+        return jsonify({'success': False, 'message': 'Học liệu không tồn tại.'}), 404
+
+    if current_user.user_role == User.ROLE_FREE and (
+        not item.container or item.container.creator_user_id != current_user.user_id
+    ):
+        return jsonify({'success': False, 'message': 'Bạn không có quyền gửi phản hồi cho nội dung này.'}), 403
+
     feedback = UserFeedback(
         user_id=current_user.user_id,
         item_id=item_id,

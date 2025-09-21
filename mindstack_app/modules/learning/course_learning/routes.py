@@ -3,10 +3,10 @@
 # MỤC ĐÍCH: Lấy dữ liệu ghi chú của người dùng cho bài học hiện tại.
 # ĐÃ THÊM: Truy vấn model UserNote và truyền đối tượng 'note' ra template.
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 from .algorithms import get_filtered_course_sets, get_lessons_for_course
-from ....models import db, LearningContainer, LearningItem, CourseProgress, UserContainerState, ContainerContributor, UserNote
+from ....models import db, LearningContainer, LearningItem, CourseProgress, UserContainerState, ContainerContributor, UserNote, User
 from sqlalchemy.sql import func
 
 course_learning_bp = Blueprint('course_learning', __name__, template_folder='templates')
@@ -54,6 +54,8 @@ def get_lesson_list_partial(course_id):
     Mô tả: API endpoint để lấy danh sách bài học của một khoá học.
     """
     course = LearningContainer.query.get_or_404(course_id)
+    if current_user.user_role == User.ROLE_FREE and course.creator_user_id != current_user.user_id:
+        abort(403)
     lessons = get_lessons_for_course(current_user.user_id, course_id)
     
     return render_template('_lesson_selection.html', lessons=lessons, course=course)
@@ -70,6 +72,9 @@ def course_session(lesson_id):
         return redirect(url_for('.course_learning_dashboard'))
 
     course = LearningContainer.query.get_or_404(lesson.container_id)
+    if current_user.user_role == User.ROLE_FREE and course.creator_user_id != current_user.user_id:
+        flash('Bạn không có quyền truy cập khóa học này.', 'danger')
+        return redirect(url_for('.course_learning_dashboard'))
     
     progress = CourseProgress.query.filter_by(
         user_id=current_user.user_id,
@@ -114,7 +119,10 @@ def update_lesson_progress(lesson_id):
         return jsonify({'success': False, 'message': 'Giá trị phần trăm không hợp lệ.'}), 400
 
     lesson = LearningItem.query.get_or_404(lesson_id)
-    
+    container = LearningContainer.query.get_or_404(lesson.container_id)
+
+    if current_user.user_role == User.ROLE_FREE and container.creator_user_id != current_user.user_id:
+        return jsonify({'success': False, 'message': 'Bạn không có quyền cập nhật khóa học này.'}), 403
     # Cập nhật last_accessed cho UserContainerState khi có tương tác
     user_container_state = UserContainerState.query.filter_by(
         user_id=current_user.user_id,
@@ -150,6 +158,10 @@ def toggle_archive_course(course_id):
     """
     Mô tả: API endpoint để lưu trữ hoặc bỏ lưu trữ một khoá học.
     """
+    course = LearningContainer.query.get_or_404(course_id)
+    if current_user.user_role == User.ROLE_FREE and course.creator_user_id != current_user.user_id:
+        return jsonify({'success': False, 'message': 'Bạn không có quyền cập nhật khóa học này.'}), 403
+
     state = UserContainerState.query.filter_by(
         user_id=current_user.user_id,
         container_id=course_id
