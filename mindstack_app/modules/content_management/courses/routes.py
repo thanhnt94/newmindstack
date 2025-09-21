@@ -1,8 +1,9 @@
 # mindstack_app/modules/content_management/courses/routes.py
-# Phiên bản: 4.3
-# MỤC ĐÍCH: Dọn dẹp logic, loại bỏ các trường media không còn tồn tại.
-# ĐÃ SỬA: Xóa các tham chiếu đến 'lesson_audio_url' và 'lesson_image_url' trong route 'edit_lesson' và 'add_lesson'.
-# ĐÃ SỬA: Cập nhật logic lưu 'estimated_time' cho bài học.
+# Phiên bản: 4.4
+# MỤC ĐÍCH: Hỗ trợ sắp xếp lại thứ tự bài học (lesson) trong một khóa học.
+# ĐÃ SỬA: Bổ sung logic vào add_lesson để chèn bài học vào vị trí cụ thể.
+# ĐÃ SỬA: Bổ sung logic vào edit_lesson để thay đổi vị trí bài học và cập nhật lại thứ tự các bài học khác.
+# ĐÃ SỬA: Cập nhật route list_lessons để sắp xếp theo order_in_container.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
@@ -236,6 +237,7 @@ def list_lessons(set_id):
 
     base_query = apply_search_filter(base_query, search_query, item_search_field_map, search_field)
 
+    # ĐÃ SỬA: Sắp xếp theo `order_in_container` thay vì ID
     pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container), page)
     lessons = pagination.items
     can_edit = (current_user.user_role == 'admin' or \
@@ -266,11 +268,25 @@ def add_lesson(set_id):
         
     form = LessonForm()
     if form.validate_on_submit():
-        max_order = db.session.query(db.func.max(LearningItem.order_in_container)).filter_by(
-            container_id=set_id,
-            item_type='LESSON'
-        ).scalar()
-        new_order = (max_order or 0) + 1
+        # THÊM MỚI: Xử lý logic chèn bài học
+        new_order = form.order_in_container.data
+        
+        if new_order is not None:
+            # Cập nhật lại thứ tự của các bài học cũ
+            db.session.query(LearningItem).filter(
+                LearningItem.container_id == set_id,
+                LearningItem.item_type == 'LESSON',
+                LearningItem.order_in_container >= new_order
+            ).update({
+                LearningItem.order_in_container: LearningItem.order_in_container + 1
+            })
+        else:
+            # Nếu không có thứ tự cụ thể, thêm vào cuối
+            max_order = db.session.query(db.func.max(LearningItem.order_in_container)).filter_by(
+                container_id=set_id,
+                item_type='LESSON'
+            ).scalar()
+            new_order = (max_order or 0) + 1
         
         content_dict = {
             'title': form.title.data, 
@@ -316,6 +332,32 @@ def edit_lesson(set_id, item_id):
         
     form = LessonForm(obj=lesson_item.content)
     if form.validate_on_submit():
+        # Lấy thứ tự cũ và mới
+        old_order = lesson_item.order_in_container
+        new_order = form.order_in_container.data
+        
+        # Nếu thứ tự thay đổi, cập nhật lại các bài học khác
+        if new_order is not None and new_order != old_order:
+            if new_order > old_order:
+                db.session.query(LearningItem).filter(
+                    LearningItem.container_id == set_id,
+                    LearningItem.item_type == 'LESSON',
+                    LearningItem.order_in_container > old_order,
+                    LearningItem.order_in_container <= new_order
+                ).update({
+                    LearningItem.order_in_container: LearningItem.order_in_container - 1
+                })
+            else: # new_order < old_order
+                db.session.query(LearningItem).filter(
+                    LearningItem.container_id == set_id,
+                    LearningItem.item_type == 'LESSON',
+                    LearningItem.order_in_container >= new_order,
+                    LearningItem.order_in_container < old_order
+                ).update({
+                    LearningItem.order_in_container: LearningItem.order_in_container + 1
+                })
+            lesson_item.order_in_container = new_order
+        
         lesson_item.content['title'] = form.title.data
         lesson_item.content['bbcode_content'] = form.bbcode_content.data
         lesson_item.content['estimated_time'] = form.estimated_time.data
@@ -332,6 +374,7 @@ def edit_lesson(set_id, item_id):
         form.title.data = lesson_item.content.get('title')
         form.bbcode_content.data = lesson_item.content.get('bbcode_content')
         form.estimated_time.data = lesson_item.content.get('estimated_time')
+        form.order_in_container.data = lesson_item.order_in_container
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
@@ -359,4 +402,3 @@ def delete_lesson(set_id, item_id):
     else:
         flash('Bài học đã được xóa.', 'success')
         return redirect(url_for('.list_lessons', set_id=set_id))
-

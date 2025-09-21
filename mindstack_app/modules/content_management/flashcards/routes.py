@@ -1,11 +1,9 @@
 # File: newmindstack/mindstack_app/modules/content_management/flashcards/routes.py
-# Phiên bản: 4.8
-# ĐÃ SỬA: Cập nhật các route add và edit flashcard item để xử lý trường ai_prompt.
-# ĐÃ SỬA: Cập nhật template_folder của Blueprint để phản ánh cấu trúc thư mục mới.
-# ĐÃ THÊM: Tích hợp AudioService để tạo và cache file audio từ Text-to-Speech.
-# ĐÃ THÊM: Route mới để tái tạo audio cho một thẻ cụ thể.
-# ĐÃ SỬA: Cập nhật các route add và edit flashcard item để gọi AudioService.
-# ĐÃ SỬA: Điều chỉnh route list_flashcard_items để hiển thị URL audio đã được cache nếu có.
+# Phiên bản: 4.9
+# MỤC ĐÍCH: Hỗ trợ sắp xếp lại thứ tự thẻ (flashcard) trong một bộ bằng trường order_in_container.
+# ĐÃ SỬA: Sửa đổi route list_flashcard_items để sắp xếp theo order_in_container.
+# ĐÃ SỬA: Bổ sung logic vào add_flashcard_item để chèn thẻ vào vị trí cụ thể.
+# ĐÃ SỬA: Bổ sung logic vào edit_flashcard_item để thay đổi vị trí thẻ và cập nhật lại thứ tự các thẻ khác.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
@@ -383,6 +381,7 @@ def list_flashcard_items(set_id):
     base_query = apply_search_filter(base_query, search_query, item_search_field_map, search_field)
     
     # Lấy dữ liệu phân trang
+    # ĐÃ SỬA: Sắp xếp theo `order_in_container` thay vì ID
     pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container), page)
     flashcard_items = pagination.items
 
@@ -418,12 +417,25 @@ def add_flashcard_item(set_id):
     
     form = FlashcardItemForm()
     if form.validate_on_submit():
-        # Tìm thứ tự hiển thị lớn nhất và đặt thứ tự mới
-        max_order = db.session.query(db.func.max(LearningItem.order_in_container)).filter_by(
-            container_id=set_id,
-            item_type='FLASHCARD'
-        ).scalar()
-        new_order = (max_order or 0) + 1
+        # THÊM MỚI: Xử lý logic chèn thẻ
+        new_order = form.order_in_container.data
+        
+        if new_order is not None:
+            # Cập nhật lại thứ tự của các thẻ cũ
+            db.session.query(LearningItem).filter(
+                LearningItem.container_id == set_id,
+                LearningItem.item_type == 'FLASHCARD',
+                LearningItem.order_in_container >= new_order
+            ).update({
+                LearningItem.order_in_container: LearningItem.order_in_container + 1
+            })
+        else:
+            # Nếu không có thứ tự cụ thể, thêm vào cuối
+            max_order = db.session.query(db.func.max(LearningItem.order_in_container)).filter_by(
+                container_id=set_id,
+                item_type='FLASHCARD'
+            ).scalar()
+            new_order = (max_order or 0) + 1
         
         # Tạo thẻ Flashcard mới
         content_dict = {
@@ -482,6 +494,32 @@ def edit_flashcard_item(set_id, item_id):
     # Khởi tạo form với dữ liệu hiện có
     form = FlashcardItemForm(obj=flashcard_item.content)
     if form.validate_on_submit():
+        # Lấy thứ tự cũ và mới
+        old_order = flashcard_item.order_in_container
+        new_order = form.order_in_container.data
+        
+        # Nếu thứ tự thay đổi, cập nhật lại các thẻ khác
+        if new_order is not None and new_order != old_order:
+            if new_order > old_order:
+                db.session.query(LearningItem).filter(
+                    LearningItem.container_id == set_id,
+                    LearningItem.item_type == 'FLASHCARD',
+                    LearningItem.order_in_container > old_order,
+                    LearningItem.order_in_container <= new_order
+                ).update({
+                    LearningItem.order_in_container: LearningItem.order_in_container - 1
+                })
+            else: # new_order < old_order
+                db.session.query(LearningItem).filter(
+                    LearningItem.container_id == set_id,
+                    LearningItem.item_type == 'FLASHCARD',
+                    LearningItem.order_in_container >= new_order,
+                    LearningItem.order_in_container < old_order
+                ).update({
+                    LearningItem.order_in_container: LearningItem.order_in_container + 1
+                })
+            flashcard_item.order_in_container = new_order
+        
         # Cập nhật nội dung thẻ
         flashcard_item.content['front'] = form.front.data
         flashcard_item.content['back'] = form.back.data
@@ -519,6 +557,8 @@ def edit_flashcard_item(set_id, item_id):
         form.front_img.data = flashcard_item.content.get('front_img')
         form.back_img.data = flashcard_item.content.get('back_img')
         form.ai_prompt.data = flashcard_item.content.get('ai_prompt')
+        # Gán giá trị `order_in_container` vào form
+        form.order_in_container.data = flashcard_item.order_in_container
     
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':

@@ -1,13 +1,13 @@
 # mindstack_app/modules/content_management/forms.py
-# Phiên bản: 4.0
-# MỤC ĐÍCH: Dọn dẹp CourseForm và LessonForm, loại bỏ các trường không cần thiết.
-# ĐÃ SỬA: Xóa bỏ excel_file khỏi CourseForm.
-# ĐÃ SỬA: Xóa bỏ các trường media không dùng khỏi LessonForm.
+# Phiên bản: 4.6
+# MỤC ĐÍCH: Bổ sung trường order_in_container vào LessonForm để hỗ trợ sắp xếp bài học.
+# ĐÃ SỬA: Thêm IntegerField cho order_in_container vào LessonForm.
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, BooleanField, SubmitField, URLField, FileField, SelectField, IntegerField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError, Email, NumberRange
 from flask_wtf.file import FileAllowed
+import re
 
 # ==============================================================================
 # Form MỚI cho QUẢN LÝ QUYỀN (CONTRIBUTORS)
@@ -52,8 +52,27 @@ class LessonForm(FlaskForm):
                                 validators=[Optional(), 
                                             NumberRange(min=0, message="Thời gian phải là một số dương.")])
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
+    order_in_container = IntegerField('Thứ tự hiển thị', validators=[
+        Optional(),
+        NumberRange(min=1, message="Thứ tự phải là một số nguyên dương.")
+    ], description="Nhập một số để thay đổi vị trí của bài học. Nếu để trống, bài học sẽ được thêm vào cuối.")
     submit = SubmitField('Lưu bài học')
-
+    
+    def validate_url_fields(self):
+        """
+        Mô tả: Validator tùy chỉnh để chấp nhận cả URL đầy đủ và đường dẫn tương đối cho các trường media.
+        """
+        def is_valid_url_or_path(value):
+            if value.startswith(('http://', 'https://')):
+                url_pattern = re.compile(
+                    r'^(?:http)s?://' 
+                    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+                    r'localhost|'
+                    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+                    r'(?::\d+)?'
+                    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+                return re.match(url_pattern, value) is not None
+            return True
 
 # ==============================================================================
 # Forms cho THẺ GHI NHỚ (FLASHCARDS)
@@ -86,13 +105,47 @@ class FlashcardItemForm(FlaskForm):
     front_audio_url = URLField('URL file âm thanh mặt trước', validators=[Optional()])
     back_audio_content = TextAreaField('Văn bản tạo âm thanh mặt sau (TTS)', validators=[Optional()])
     back_audio_url = URLField('URL file âm thanh mặt sau', validators=[Optional()])
-    front_img = URLField('URL hình ảnh mặt trước', validators=[Optional()])
-    back_img = URLField('URL hình ảnh mặt sau', validators=[Optional()])
+    front_img = StringField('URL hình ảnh mặt trước', validators=[Optional()])
+    back_img = StringField('URL hình ảnh mặt sau', validators=[Optional()])
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
     ai_prompt = TextAreaField('AI Prompt tùy chỉnh (cho thẻ này)', 
                               description='Nhập prompt tùy chỉnh để ghi đè prompt của bộ thẻ hoặc mặc định hệ thống. Nếu để trống, hệ thống sẽ tự động sử dụng prompt cấp trên.',
                               validators=[Optional()])
+    order_in_container = IntegerField('Thứ tự hiển thị', validators=[
+        Optional(),
+        NumberRange(min=1, message="Thứ tự phải là một số nguyên dương.")
+    ], description="Nhập một số để thay đổi vị trí của thẻ. Nếu để trống, thẻ sẽ được thêm vào cuối.")
     submit = SubmitField('Lưu thẻ')
+
+    def validate_front_img(self, field):
+        """
+        Mô tả: Validator tùy chỉnh để chấp nhận cả URL đầy đủ và đường dẫn tương đối.
+        """
+        if field.data and not self._is_valid_url_or_path(field.data):
+            raise ValidationError('Đường dẫn hình ảnh không hợp lệ. Vui lòng nhập URL đầy đủ hoặc đường dẫn tương đối.')
+
+    def validate_back_img(self, field):
+        """
+        Mô tả: Validator tùy chỉnh để chấp nhận cả URL đầy đủ và đường dẫn tương đối.
+        """
+        if field.data and not self._is_valid_url_or_path(field.data):
+            raise ValidationError('Đường dẫn hình ảnh không hợp lệ. Vui lòng nhập URL đầy đủ hoặc đường dẫn tương đối.')
+            
+    def _is_valid_url_or_path(self, value):
+        """
+        Mô tả: Hàm kiểm tra nội bộ để xác định xem một chuỗi có phải là URL hợp lệ hay đường dẫn tương đối.
+        """
+        if value.startswith(('http://', 'https://')):
+            url_pattern = re.compile(
+                r'^(?:http)s?://' 
+                r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+                r'localhost|'
+                r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+                r'(?::\d+)?'
+                r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+            return re.match(url_pattern, value) is not None
+        
+        return True
 
 # ==============================================================================
 # Forms cho BỘ CÂU HỎI (QUIZZES)
@@ -121,23 +174,57 @@ class QuizItemForm(FlaskForm):
     """
     question = TextAreaField('Câu hỏi', validators=[DataRequired(message="Câu hỏi không được để trống.")])
     pre_question_text = TextAreaField('Văn bản trước câu hỏi', validators=[Optional()])
-    option_a = StringField('Lựa chọn A', validators=[DataRequired(message="Lựa chọn A không được để trống.")])
-    option_b = StringField('Lựa chọn B', validators=[DataRequired(message="Lựa chọn B không được để trống.")])
+    option_a = StringField('Lựa chọn A', validators=[DataRequired(message="Vui lòng nhập lựa chọn A.")])
+    option_b = StringField('Lựa chọn B', validators=[DataRequired(message="Vui lòng nhập lựa chọn B.")])
     option_c = StringField('Lựa chọn C', validators=[Optional()])
     option_d = StringField('Lựa chọn D', validators=[Optional()])
     correct_answer_text = SelectField('Đáp án đúng', choices=[
         ('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')
     ], validators=[DataRequired(message="Vui lòng chọn đáp án đúng.")])
     guidance = TextAreaField('Giải thích/Gợi ý', validators=[Optional()])
-    question_image_file = URLField('URL hình ảnh câu hỏi', validators=[Optional()])
-    question_audio_file = URLField('URL file âm thanh câu hỏi', validators=[Optional()])
+    question_image_file = StringField('URL hình ảnh câu hỏi', validators=[Optional()])
+    question_audio_file = StringField('URL file âm thanh câu hỏi', validators=[Optional()])
     passage_text = TextAreaField('Đoạn văn liên quan', validators=[Optional()])
     passage_order = StringField('Thứ tự đoạn văn (ví dụ: 1, 2)', validators=[Optional()])
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
     ai_prompt = TextAreaField('AI Prompt tùy chỉnh (cho câu hỏi này)', 
                               description='Nhập prompt tùy chỉnh để ghi đè prompt của bộ quiz hoặc mặc định hệ thống. Nếu để trống, hệ thống sẽ tự động sử dụng prompt cấp trên.',
                               validators=[Optional()])
+    order_in_container = IntegerField('Thứ tự hiển thị', validators=[
+        Optional(),
+        NumberRange(min=1, message="Thứ tự phải là một số nguyên dương.")
+    ], description="Nhập một số để thay đổi vị trí của câu hỏi. Nếu để trống, câu hỏi sẽ được thêm vào cuối.")
     submit = SubmitField('Lưu câu hỏi')
+    
+    def validate_question_image_file(self, field):
+        """
+        Mô tả: Validator tùy chỉnh để chấp nhận cả URL đầy đủ và đường dẫn tương đối.
+        """
+        if field.data and not self._is_valid_url_or_path(field.data):
+            raise ValidationError('Đường dẫn hình ảnh câu hỏi không hợp lệ. Vui lòng nhập URL đầy đủ hoặc đường dẫn tương đối.')
+            
+    def validate_question_audio_file(self, field):
+        """
+        Mô tả: Validator tùy chỉnh để chấp nhận cả URL đầy đủ và đường dẫn tương đối.
+        """
+        if field.data and not self._is_valid_url_or_path(field.data):
+            raise ValidationError('Đường dẫn file âm thanh câu hỏi không hợp lệ. Vui lòng nhập URL đầy đủ hoặc đường dẫn tương đối.')
+
+    def _is_valid_url_or_path(self, value):
+        """
+        Mô tả: Hàm kiểm tra nội bộ để xác định xem một chuỗi có phải là URL hợp lệ hay đường dẫn tương đối.
+        """
+        if value.startswith(('http://', 'https://')):
+            url_pattern = re.compile(
+                r'^(?:http)s?://' 
+                r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+                r'localhost|'
+                r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+                r'(?::\d+)?'
+                r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+            return re.match(url_pattern, value) is not None
+        
+        return True
 
     def validate(self, extra_validators=None):
         initial_validation = super().validate(extra_validators)
@@ -151,4 +238,3 @@ class QuizItemForm(FlaskForm):
             self.correct_answer_text.errors.append('Đáp án đúng D không thể được chọn nếu Lựa chọn D trống.')
             return False
         return True
-

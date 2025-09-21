@@ -1,7 +1,7 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/quiz_items.html -->
-<!-- Phiên bản: 5.0 -->
-<!-- ĐÃ SỬA: Truyền set_id vào các macro để khắc phục BuildError. -->
-<!-- ĐÃ THÊM: Truyền search_field và search_options (search_field_map) vào render_search_form để hỗ trợ lọc theo trường. -->
+<!-- Phiên bản: 5.1 -->
+<!-- MỤC ĐÍCH: Hiển thị thứ tự của câu hỏi trên giao diện danh sách. -->
+<!-- ĐÃ SỬA: Thêm hiển thị `order_in_container` vào mỗi câu hỏi. -->
 
 {% extends "base.html" %}
 {% from 'includes/_search_form.html' import render_search_form %}
@@ -51,7 +51,9 @@
         {% for item in quiz_items %}
         <div class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden flex flex-col">
             <div class="p-4 flex-grow">
-                <p class="text-xs text-gray-500 mb-1">ID: {{ item.item_id }}</p>
+                <p class="text-xs text-gray-500 mb-1">
+                    ID: {{ item.item_id }} | Vị trí: {{ item.order_in_container }}
+                </p>
                 <h3 class="font-semibold text-gray-800 mb-2">Câu hỏi</h3>
                 <p class="text-gray-700 text-sm mb-3">{{ item.content.question }}</p>
                 

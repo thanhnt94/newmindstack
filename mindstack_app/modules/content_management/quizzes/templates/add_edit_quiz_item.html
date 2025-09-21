@@ -1,9 +1,7 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/add_edit_quiz_item.html -->
-<!-- Phiên bản: 3.0 -->
-<!-- Mục đích: Hiển thị form để thêm mới hoặc chỉnh sửa một Câu hỏi. -->
-<!--           Đã cập nhật url_for. -->
-<!--           Đã khôi phục cấu trúc form, style, các trường media, passage và AI explanation từ code gốc. -->
-<!--           Thiết kế responsive. -->
+<!-- Phiên bản: 3.1 -->
+<!-- MỤC ĐÍCH: Cập nhật template form để hỗ trợ các trường StringField thay vì URLField cho media. -->
+<!-- ĐÃ SỬA: Sửa các trường `question_image_file` và `question_audio_file` để hiển thị đúng. -->
 
 {% extends "base.html" %}
 
@@ -105,7 +103,7 @@
                     <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             {{ form.question_image_file.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.question_image_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh câu hỏi") }}
+                            {{ form.question_image_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh câu hỏi hoặc đường dẫn tương đối") }}
                             {% if form.question_image_file.errors %}
                                 <div class="text-red-500 text-xs mt-1">
                                     {% for error in form.question_image_file.errors %}<p>{{ error }}</p>{% endfor %}
@@ -114,7 +112,7 @@
                         </div>
                         <div>
                             {{ form.question_audio_file.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.question_audio_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL file âm thanh câu hỏi") }}
+                            {{ form.question_audio_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL file âm thanh câu hỏi hoặc đường dẫn tương đối") }}
                             {% if form.question_audio_file.errors %}
                                 <div class="text-red-500 text-xs mt-1">
                                     {% for error in form.question_audio_file.errors %}<p>{{ error }}</p>{% endfor %}

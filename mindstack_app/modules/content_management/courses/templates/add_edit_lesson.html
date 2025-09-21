@@ -1,8 +1,7 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/courses/templates/add_edit_lesson.html -->
-<!-- Phiên bản: 4.0 -->
-<!-- Mục đích: Hiển thị form để thêm mới hoặc chỉnh sửa một Bài học. -->
-<!--           ĐÃ THÊM: Trường nhập "Thời gian hoàn thành dự tính". -->
-<!--           ĐÃ XÓA: Loại bỏ phần "Tuỳ chọn Media" không còn sử dụng. -->
+<!-- Phiên bản: 4.1 -->
+<!-- MỤC ĐÍCH: Bổ sung trường order_in_container vào form để cho phép người dùng sắp xếp lại thứ tự bài học. -->
+<!-- ĐÃ SỬA: Thêm IntegerField cho order_in_container vào form. -->
 
 {% extends "base.html" %}
 
@@ -41,15 +40,27 @@
                     {% endif %}
                 </div>
 
-                {# THÊM MỚI: Trường nhập thời gian dự tính #}
-                <div class="border-t border-gray-200 pt-6">
-                     {{ form.estimated_time.label(class="block text-sm font-medium text-gray-700") }}
-                    {{ form.estimated_time(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Ví dụ: 15") }}
-                    {% if form.estimated_time.errors %}
-                        <div class="text-red-500 text-xs mt-1">
-                            {% for error in form.estimated_time.errors %}<p>{{ error }}</p>{% endfor %}
-                        </div>
-                    {% endif %}
+                {# THÊM MỚI: Trường nhập thời gian dự tính và thứ tự hiển thị #}
+                <div class="border-t border-gray-200 pt-6 space-y-4">
+                     <div>
+                         {{ form.estimated_time.label(class="block text-sm font-medium text-gray-700") }}
+                        {{ form.estimated_time(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Ví dụ: 15") }}
+                        {% if form.estimated_time.errors %}
+                            <div class="text-red-500 text-xs mt-1">
+                                {% for error in form.estimated_time.errors %}<p>{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                         {{ form.order_in_container.label(class="block text-sm font-medium text-gray-700") }}
+                        {{ form.order_in_container(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Nhập một số để thay đổi vị trí của bài học") }}
+                        <p class="text-xs text-gray-500 mt-1">{{ form.order_in_container.description }}</p>
+                        {% if form.order_in_container.errors %}
+                            <div class="text-red-500 text-xs mt-1">
+                                {% for error in form.order_in_container.errors %}<p>{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
 
 
@@ -96,4 +107,3 @@
     });
 </script>
 {% endblock %}
-
