@@ -16,9 +16,9 @@ from ....modules.auth.forms import UserForm
 @user_management_bp.before_request 
 @login_required 
 def admin_required():
-    if not current_user.is_authenticated or current_user.user_role != 'admin':
+    if not current_user.is_authenticated or current_user.user_role != User.ROLE_ADMIN:
         flash('Bạn không có quyền truy cập trang quản trị người dùng.', 'danger')
-        abort(403) 
+        abort(403)
 
 # Route để hiển thị danh sách người dùng
 @user_management_bp.route('/') # Đường dẫn gốc của Blueprint user_management

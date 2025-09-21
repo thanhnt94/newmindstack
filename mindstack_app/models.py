@@ -69,13 +69,28 @@ class LearningItem(db.Model):
 class User(UserMixin, db.Model):
     """
     Mô tả: Model đại diện cho người dùng của ứng dụng.
+
+    Các hằng số ROLE_* giúp quản lý tập trung các quyền người dùng trong toàn bộ
+    ứng dụng và tránh việc hard-code chuỗi ở nhiều nơi.
     """
     __tablename__ = 'users'
+    ROLE_ADMIN = 'admin'
+    ROLE_USER = 'user'
+    ROLE_FREE = 'free'
+    ROLE_ANONYMOUS = 'anonymous'
+    ROLE_LABELS = {
+        ROLE_ADMIN: 'Quản trị viên',
+        ROLE_USER: 'Người dùng chuẩn',
+        ROLE_FREE: 'Tài khoản miễn phí',
+        ROLE_ANONYMOUS: 'Ẩn danh',
+    }
+
     user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    user_role = db.Column(db.String(50), default='user', nullable=False) # 'user', 'admin'
+    # user_role sử dụng các hằng ROLE_* ở trên (ví dụ: ROLE_FREE, ROLE_USER, ROLE_ADMIN, ROLE_ANONYMOUS)
+    user_role = db.Column(db.String(50), default=ROLE_FREE, nullable=False)
     total_score = db.Column(db.Integer, default=0)
     last_seen = db.Column(db.DateTime(timezone=True))
 
