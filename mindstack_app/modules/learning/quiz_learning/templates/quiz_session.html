@@ -29,14 +29,14 @@
             margin-bottom: 1.5rem;
         }
         .option-button {
-            display: flex; 
-            align-items: center; 
-            width: 100%; 
+            display: flex;
+            align-items: center;
+            width: 100%;
             padding: 1rem;
             border-width: 1px;
             border-color: #d1d5db;
             border-radius: 0.5rem;
-            text-align: left; 
+            text-align: left;
             color: #1f2937;
             transition-property: all;
             transition-duration: 200ms;
@@ -107,7 +107,7 @@
             cursor: zoom-in;
         }
         
-        /* CSS CHO THANH CÔNG CỤ VÀ KHU VỰC THÔNG TIN THÊM */
+        /* Cập nhật CSS cho thanh công cụ */
         .question-toolbar {
             display: none; /* Ẩn mặc định */
             justify-content: flex-end;
@@ -170,6 +170,37 @@
             padding: 0.75rem;
             resize: vertical;
         }
+        /* CSS để gộp và căn chỉnh các nút công cụ */
+        .quiz-action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .quiz-action-buttons .toolbar-btn {
+            flex-shrink: 0;
+        }
+        /* THÊM MỚI: CSS để ẩn modal feedback theo mặc định */
+        .custom-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .custom-modal-overlay.open {
+            display: flex;
+        }
+        .custom-modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            max-width: 400px;
+        }
     </style>
 {% endblock %}
 
@@ -202,8 +233,6 @@
     </div>
 </div>
 
-{# LOẠI BỎ panel ghi chú trượt #}
-{# {% include 'notes/_note_panel.html' %} #}
 {% endblock %}
 
 {% block scripts %}
@@ -224,6 +253,7 @@
         const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
         const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
         const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}"; // URL mới cho AI
+        const editQuizItemUrl = "{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=0, item_id=0) }}";
 
         function formatTextForHtml(text) {
             if (text === null || text === undefined) return '';
@@ -251,7 +281,6 @@
                     }
                 });
                 
-                // ĐÃ SỬA: Bổ sung logic hiển thị media
                 let mediaHtml = '';
                 if (questionData.content.question_image_file) {
                     mediaHtml += `<img src="${formatTextForHtml(questionData.content.question_image_file)}" alt="Hình ảnh câu hỏi" class="quiz-image my-4">`;
@@ -259,7 +288,7 @@
                 if (questionData.content.question_audio_file) {
                     mediaHtml += `<audio controls src="${formatTextForHtml(questionData.content.question_audio_file)}" class="w-full mb-4"></audio>`;
                 }
-
+                
                 fullBatchContentHtml += `
                     <div class="question-card" data-item-id="${questionData.item_id}">
                         <p class="text-gray-500 text-sm mb-2">Câu ${batchData.start_index + index + 1} / ${batchData.total_items_in_session}</p>
@@ -268,16 +297,8 @@
                         <div class="options-container space-y-3">${optionsHtml}</div>
                         <div class="feedback-area mt-4"></div>
                         
-                        <div class="question-toolbar">
-                            <button class="toolbar-btn toggle-ai-btn"><i class="fas fa-robot"></i> <span>Giải thích AI</span></button>
-                        </div>
-                        
                         <div class="extra-info-area">
-                            <div class="ai-explanation-section info-section" style="display: none;">
-                                <h4><i class="fas fa-robot text-blue-500"></i> Giải thích của AI</h4>
-                                <div class="content-display">${questionData.ai_explanation ? formatTextForHtml(questionData.ai_explanation) : '<span class="italic text-gray-500">Chưa có giải thích từ AI.</span>'}</div>
-                            </div>
-                            <div class="user-note-section info-section" style="display: none;">
+                            <div class="user-note-section info-section mb-4" style="display: none;">
                                 <h4>
                                     <span><i class="fas fa-sticky-note text-yellow-500"></i> Ghi chú của bạn</span>
                                     <button class="toolbar-btn edit-note-btn"><i class="fas fa-pencil-alt"></i> Sửa</button>
@@ -293,6 +314,16 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="ai-explanation-section info-section" style="display: none;">
+                                <h4><i class="fas fa-robot text-blue-500"></i> Giải thích của AI</h4>
+                                <div class="content-display">${questionData.ai_explanation ? formatTextForHtml(questionData.ai_explanation) : '<span class="italic text-gray-500">Chưa có giải thích từ AI.</span>'}</div>
+                            </div>
+                        </div>
+
+                        <div class="question-toolbar flex justify-end gap-2">
+                            <button class="toolbar-btn toggle-ai-btn"><i class="fas fa-robot"></i> <span>Giải thích AI</span></button>
+                            <button class="toolbar-btn open-feedback-modal-btn" data-item-id="${questionData.item_id}" data-item-title="${questionData.content.question}"><i class="fas fa-flag"></i> <span>Phản hồi</span></button>
+                            <button class="toolbar-btn edit-quiz-btn" data-item-id="${questionData.item_id}" data-set-id="${questionData.container_id}"><i class="fas fa-pencil-alt"></i> <span>Sửa</span></button>
                         </div>
                     </div>
                 `;
@@ -349,7 +380,7 @@
                         feedbackArea.innerHTML = feedbackHtml;
 
                         questionCard.querySelectorAll('.option-button').forEach(button => {
-                            button.classList.remove('selected'); 
+                            button.classList.remove('selected');
                             if (button.dataset.option === result.correct_answer) button.classList.add('correct');
                             else if (button.dataset.option === userAnswers[result.item_id] && !result.is_correct) button.classList.add('incorrect');
                             button.disabled = true;
@@ -453,6 +484,26 @@
                     aiSection.style.display = 'none';
                 }
             }
+            
+            // THÊM MỚI: Xử lý nút mở modal Feedback
+            if (event.target.closest('.open-feedback-modal-btn')) {
+                const itemId = event.target.closest('.open-feedback-modal-btn').dataset.itemId;
+                const itemTitle = event.target.closest('.open-feedback-modal-btn').dataset.itemTitle;
+                if (window.openFeedbackModal) {
+                    window.openFeedbackModal(itemId, itemTitle);
+                }
+            }
+
+            // THÊM MỚI: Xử lý nút Sửa nhanh
+            if (event.target.closest('.edit-quiz-btn')) {
+                const editBtn = event.target.closest('.edit-quiz-btn');
+                const itemId = editBtn.dataset.itemId;
+                const setId = editBtn.dataset.setId;
+                if (window.parent && window.parent.openModal) {
+                    const url = editQuizItemUrl.replace('/0', `/${setId}`).replace('/0', `/${itemId}`);
+                    window.parent.openModal(url);
+                }
+            }
 
             // Xử lý nút Sửa ghi chú
             if (event.target.closest('.edit-note-btn')) {
@@ -506,7 +557,7 @@
                 }
             }
         });
-
     </script>
+    {# THÊM MỚI: Nhúng modal feedback vào trang này #}
+    {% include 'feedback/_feedback_modal.html' %}
 {% endblock %}
-

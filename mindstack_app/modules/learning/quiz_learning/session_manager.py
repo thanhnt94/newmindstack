@@ -1,7 +1,6 @@
 # File: mindstack_app/modules/learning/quiz_learning/session_manager.py
-# Phiên bản: 2.1
-# MỤC ĐÍCH: Tích hợp lấy dữ liệu ghi chú và AI cho từng câu hỏi Quiz.
-# ĐÃ SỬA: Cập nhật hàm get_next_batch để lấy thêm `note_content` cho mỗi câu hỏi.
+# Phiên bản: 2.2
+# MỤC ĐÍCH: Sửa lỗi không tìm thấy URL chỉnh sửa bằng cách thêm container_id vào dữ liệu câu hỏi.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
@@ -22,8 +21,8 @@ class QuizSessionManager:
     """
     SESSION_KEY = 'quiz_session'
 
-    def __init__(self, user_id, set_id, mode, batch_size, 
-                 total_items_in_session, processed_item_ids, 
+    def __init__(self, user_id, set_id, mode, batch_size,
+                 total_items_in_session, processed_item_ids,
                  correct_answers, incorrect_answers, start_time, common_pre_question_text_global):
         """
         Khởi tạo một phiên QuizSessionManager.
@@ -204,14 +203,16 @@ class QuizSessionManager:
         newly_processed_item_ids = []
 
         for item in new_items_to_add_to_session:
-            # THÊM MỚI: Lấy ghi chú cho câu hỏi này
+            # Lấy ghi chú cho câu hỏi này
             note = UserNote.query.filter_by(user_id=self.user_id, item_id=item.item_id).first()
 
             item_dict = {
                 'item_id': item.item_id,
+                # THAY ĐỔI: Thêm container_id để có thể tạo URL chỉnh sửa
+                'container_id': item.container_id,
                 'content': item.content,
                 'ai_explanation': item.ai_explanation,
-                'note_content': note.content if note else '', # Thêm nội dung ghi chú vào dữ liệu
+                'note_content': note.content if note else '',
                 'group_id': item.group_id,
                 'group_details': None
             }
