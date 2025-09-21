@@ -26,6 +26,15 @@ flashcards_bp = Blueprint('content_management_flashcards', __name__,
 # Khởi tạo service
 audio_service = AudioService()
 
+
+def _apply_is_public_restrictions(form):
+    """Disable public toggle for free users and ensure value stays False."""
+    if hasattr(form, 'is_public') and current_user.user_role == 'free':
+        form.is_public.data = False
+        existing_render_kw = dict(form.is_public.render_kw or {})
+        existing_render_kw['disabled'] = True
+        form.is_public.render_kw = existing_render_kw
+
 def _process_relative_url(url):
     """
     Mô tả: Tiền xử lý URL tương đối, thêm 'uploads/' nếu cần.
@@ -149,6 +158,7 @@ def add_flashcard_set():
     và thêm các thẻ Flashcard liên quan.
     """
     form = FlashcardSetForm()
+    _apply_is_public_restrictions(form)
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
@@ -161,7 +171,7 @@ def add_flashcard_set():
                 title=form.title.data,
                 description=form.description.data,
                 tags=form.tags.data,
-                is_public=form.is_public.data,
+                is_public=False if current_user.user_role == 'free' else form.is_public.data,
                 ai_settings={'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
             )
             db.session.add(new_set)
@@ -245,6 +255,7 @@ def edit_flashcard_set(set_id):
         abort(403) # Không có quyền
     
     form = FlashcardSetForm(obj=flashcard_set)
+    _apply_is_public_restrictions(form)
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
@@ -254,7 +265,7 @@ def edit_flashcard_set(set_id):
             flashcard_set.title = form.title.data
             flashcard_set.description = form.description.data
             flashcard_set.tags = form.tags.data
-            flashcard_set.is_public = form.is_public.data
+            flashcard_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
             flashcard_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
             
             # Xử lý file Excel nếu có để cập nhật các thẻ

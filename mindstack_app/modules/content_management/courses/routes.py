@@ -20,6 +20,15 @@ from ....modules.shared.utils.search import apply_search_filter
 courses_bp = Blueprint('content_management_courses', __name__,
                        template_folder='templates') # Đã cập nhật đường dẫn template
 
+
+def _apply_is_public_restrictions(form):
+    """Disable public toggle for free users and ensure value stays False."""
+    if hasattr(form, 'is_public') and current_user.user_role == 'free':
+        form.is_public.data = False
+        existing_render_kw = dict(form.is_public.render_kw or {})
+        existing_render_kw['disabled'] = True
+        form.is_public.render_kw = existing_render_kw
+
 @courses_bp.route('/courses/process_excel_info', methods=['POST'])
 @login_required
 def process_excel_info():
@@ -113,6 +122,7 @@ def add_course_set():
     Thêm một bộ Khóa học mới.
     """
     form = CourseForm()
+    _apply_is_public_restrictions(form)
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
@@ -123,7 +133,7 @@ def add_course_set():
                 title=form.title.data,
                 description=form.description.data,
                 tags=form.tags.data,
-                is_public=form.is_public.data,
+                is_public=False if current_user.user_role == 'free' else form.is_public.data,
                 ai_settings={'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
             )
             db.session.add(new_set)
@@ -163,6 +173,7 @@ def edit_course_set(set_id):
         abort(403)
         
     form = CourseForm(obj=course_set)
+    _apply_is_public_restrictions(form)
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
@@ -170,7 +181,7 @@ def edit_course_set(set_id):
             course_set.title = form.title.data
             course_set.description = form.description.data
             course_set.tags = form.tags.data
-            course_set.is_public = form.is_public.data
+            course_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
             course_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
             db.session.commit()
             flash_message = 'Bộ khóa học đã được cập nhật!'
