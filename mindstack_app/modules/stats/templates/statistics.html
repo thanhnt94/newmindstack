@@ -238,7 +238,9 @@
                         else if (index === 2) rankSpan.innerHTML = '<i class="fas fa-medal bronze-medal"></i>';
                         else rankSpan.textContent = index + 1;
 
-                        clone.querySelector('.username').textContent = entry.username || 'N/A';
+                        const usernameText = entry.display_username || entry.username || 'N/A';
+                        const usernameElement = clone.querySelector('.username');
+                        usernameElement.textContent = usernameText;
                         clone.querySelector('.score-value').textContent = `${entry.current_period_score} điểm`;
                         
                         listContainer.appendChild(clone);

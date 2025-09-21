@@ -18,6 +18,15 @@ from ....modules.shared.utils.search import apply_search_filter
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
                         template_folder='templates') # Đã cập nhật đường dẫn template
 
+
+def _apply_is_public_restrictions(form):
+    """Disable public toggle for free users and ensure value stays False."""
+    if hasattr(form, 'is_public') and current_user.user_role == 'free':
+        form.is_public.data = False
+        existing_render_kw = dict(form.is_public.render_kw or {})
+        existing_render_kw['disabled'] = True
+        form.is_public.render_kw = existing_render_kw
+
 def _process_relative_url(url):
     """
     Mô tả: Tiền xử lý URL tương đối, thêm 'uploads/' nếu cần.
@@ -122,6 +131,7 @@ def add_quiz_set():
     Thêm một bộ Quiz mới.
     """
     form = QuizSetForm()
+    _apply_is_public_restrictions(form)
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
@@ -133,7 +143,7 @@ def add_quiz_set():
                 title=form.title.data,
                 description=form.description.data,
                 tags=form.tags.data,
-                is_public=form.is_public.data,
+                is_public=False if current_user.user_role == 'free' else form.is_public.data,
                 ai_settings={'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
             )
             db.session.add(new_set)
@@ -274,11 +284,12 @@ def edit_quiz_set(set_id):
         abort(403)
     
     form = QuizSetForm(obj=quiz_set)
+    _apply_is_public_restrictions(form)
     if form.validate_on_submit():
         quiz_set.title = form.title.data
         quiz_set.description = form.description.data
         quiz_set.tags = form.tags.data
-        quiz_set.is_public = form.is_public.data
+        quiz_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
         quiz_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
         db.session.commit()
         flash('Bộ câu hỏi đã được cập nhật!', 'success')

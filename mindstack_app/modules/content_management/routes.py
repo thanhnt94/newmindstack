@@ -38,6 +38,9 @@ def manage_contributors(container_id):
     Quản lý người đóng góp cho một LearningContainer cụ thể.
     """
     container = LearningContainer.query.get_or_404(container_id)
+    creator = container.creator
+    if creator and creator.user_role == User.ROLE_FREE:
+        abort(403)
 
     if current_user.user_role != 'admin' and container.creator_user_id != current_user.user_id:
         abort(403)
@@ -54,6 +57,8 @@ def manage_contributors(container_id):
             flash(f'Không tìm thấy người dùng với email: {email_to_add}.', 'danger')
         elif user_to_add.user_id == container.creator_user_id:
             flash('Không thể thêm chính người tạo làm người đóng góp.', 'warning')
+        elif user_to_add.user_role in {User.ROLE_FREE, User.ROLE_ANONYMOUS}:
+            flash('Không thể thêm tài khoản miễn phí hoặc ẩn danh làm người đóng góp.', 'danger')
         else:
             existing_contributor = ContainerContributor.query.filter_by(
                 container_id=container_id,
