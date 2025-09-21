@@ -19,19 +19,48 @@
         #tab-content {
             width: 100%;
         }
+        
+        /* CSS tùy chỉnh để tối ưu giao diện di động */
+        @media (max-width: 640px) {
+            .container.mx-auto.p-4 {
+                padding: 0 !important; /* ĐÃ SỬA: Loại bỏ padding ngoài cùng */
+            }
+            .content-dashboard-title {
+                font-size: 1.5rem !important; /* ĐÃ SỬA: font-size nhỏ hơn */
+                padding: 0.5rem !important;
+            }
+            .tab-nav-wrapper {
+                flex-wrap: nowrap; /* ĐÃ SỬA: Chặn tab xuống dòng */
+                min-width: 0;
+            }
+            .tab-button {
+                font-size: 0.875rem !important; /* ĐÃ SỬA: Tăng font-size lên mức dễ đọc */
+                padding: 0.5rem 0.25rem !important;
+                flex-grow: 1 !important;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis; /* Bật lại để tránh tràn trên màn hình quá bé */
+            }
+            /* ĐÃ SỬA: Hiển thị lại icon trên di động */
+            .tab-button i {
+                display: inline-block !important; 
+            }
+            .tab-content-container {
+                padding: 0.5rem !important;
+            }
+        }
     </style>
 {% endblock %}
 
 {% block content %}
 <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 sm:mb-8 text-center content-dashboard-title">
         Quản lý nội dung
     </h1>
 
     <div class="bg-white rounded-xl shadow-lg">
-        <!-- Tab Navigation -->
         <div class="px-4 sm:px-6 lg:px-8 border-b border-gray-200">
-            <div class="flex flex-wrap justify-center sm:justify-start -mb-px">
+            <div class="flex justify-center sm:justify-start -mb-px tab-nav-wrapper">
                 <button id="tab-courses" class="tab-button py-4 px-4 sm:px-6 text-lg font-medium text-gray-500 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out" data-target="courses">
                     <i class="fas fa-book mr-2"></i> Khóa học
                 </button>
@@ -44,17 +73,14 @@
             </div>
         </div>
 
-        <!-- Content Area -->
-        <div id="tab-content" class="min-h-[400px] p-4 sm:p-6 lg:p-8">
-            <!-- Content will be loaded here via AJAX -->
+        <div id="tab-content" class="min-h-[400px] p-4 sm:p-6 lg:p-8 tab-content-container">
             <div class="flex items-center justify-center h-full text-gray-500">
                 <p>Đang tải nội dung...</p>
             </div>
         </div>
     </div>
 
-    <!-- NÚT QUAY LẠI TRANG CHỦ ĐÃ ĐƯỢC XÓA -->
-</div>
+    </div>
 {% endblock %}
 
 {% block scripts %}

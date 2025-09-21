@@ -109,7 +109,7 @@
         
         /* Cập nhật CSS cho thanh công cụ */
         .question-toolbar {
-            display: none; /* Ẩn mặc định */
+            display: flex; /* Sửa: Luôn hiển thị thanh toolbar */
             justify-content: flex-end;
             gap: 0.5rem;
             padding-top: 1rem;
@@ -201,6 +201,64 @@
             text-align: center;
             max-width: 400px;
         }
+
+        /* Thêm Media Query để tối ưu cho di động */
+        @media (max-width: 640px) {
+            .main-quiz-container {
+                padding: 0 !important; /* Đã sửa: Giảm padding ra sát màn hình */
+            }
+            .quiz-card {
+                padding: 0.25rem !important;
+                border-radius: 0 !important; /* Đã sửa: Xóa bo tròn để sát viền hơn */
+            }
+            .question-card {
+                padding: 0.5rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            h1.text-3xl {
+                font-size: 1.5rem !important;
+            }
+            #quiz-progress.text-xl {
+                font-size: 1rem !important;
+            }
+            .question-card h2.text-xl {
+                font-size: 1rem !important;
+            }
+            .option-button {
+                padding: 0.5rem !important;
+                font-size: 0.875rem !important;
+            }
+            .option-button span {
+                white-space: normal !important;
+            }
+            .feedback-box {
+                padding: 0.5rem !important;
+            }
+            .feedback-explanation {
+                padding: 0.5rem !important;
+            }
+            .quiz-controls {
+                gap: 0.25rem !important;
+            }
+            .control-button {
+                padding: 0.75rem 1rem !important; /* Tăng padding để nút to hơn */
+                font-size: 0.875rem !important; /* Tăng font size */
+                flex-grow: 1 !important; /* Mở rộng nút để chiếm hết không gian */
+            }
+            .control-button-text {
+                display: inline !important; /* Hiển thị lại chữ */
+            }
+            .question-toolbar {
+                gap: 0.25rem !important;
+            }
+            .toolbar-btn {
+                font-size: 0.75rem !important;
+                padding: 0.25rem 0.5rem !important;
+            }
+            .toolbar-btn span {
+                display: none;
+            }
+        }
     </style>
 {% endblock %}
 
@@ -219,7 +277,7 @@
             </div>
         </div>
 
-        <div id="quiz-controls" class="mt-6 flex justify-between items-center">
+        <div id="quiz-controls" class="mt-6 flex justify-between items-center quiz-controls">
             <button id="end-session-btn" class="control-button bg-gray-300 text-gray-800 hover:bg-gray-400">
                 <i class="fas fa-times-circle mr-2"></i> <span class="control-button-text">Kết thúc</span>
             </button>
@@ -321,7 +379,7 @@
                         </div>
 
                         <div class="question-toolbar flex justify-end gap-2">
-                            <button class="toolbar-btn toggle-ai-btn"><i class="fas fa-robot"></i> <span>Giải thích AI</span></button>
+                            <button class="toolbar-btn toggle-ai-btn" style="display: none;"><i class="fas fa-robot"></i> <span>Giải thích AI</span></button>
                             <button class="toolbar-btn open-feedback-modal-btn" data-item-id="${questionData.item_id}" data-item-title="${questionData.content.question}"><i class="fas fa-flag"></i> <span>Phản hồi</span></button>
                             <button class="toolbar-btn edit-quiz-btn" data-item-id="${questionData.item_id}" data-set-id="${questionData.container_id}"><i class="fas fa-pencil-alt"></i> <span>Sửa</span></button>
                         </div>
@@ -389,6 +447,7 @@
                         questionCard.querySelector('.question-toolbar').style.display = 'flex';
                         questionCard.querySelector('.extra-info-area').style.display = 'block';
                         questionCard.querySelector('.user-note-section').style.display = 'block';
+                        questionCard.querySelector('.toggle-ai-btn').style.display = 'inline-flex';
                     }
                 });
 

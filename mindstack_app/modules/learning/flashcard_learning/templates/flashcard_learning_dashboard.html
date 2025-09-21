@@ -1,7 +1,8 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_learning_dashboard.html #}
-{# Phiên bản: 2.5 #}
+{# Phiên bản: 2.6 #}
 {# Mục đích: Khắc phục lỗi font size và padding quá lớn trên di động. #}
+{# ĐÃ SỬA: Tối ưu CSS cho tab, đảm bảo hiển thị trên một hàng và chữ to hơn. #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -111,6 +112,7 @@
             flex-grow: 1;
             min-width: 0;
             overflow: hidden;
+            flex-wrap: nowrap; /* ĐÃ SỬA */
         }
         .tab-filter-button {
             flex-grow: 1;
@@ -119,6 +121,8 @@
             text-align: center;
             white-space: nowrap;
             font-size: 0.875rem;
+            overflow: hidden; /* THÊM MỚI */
+            text-overflow: ellipsis; /* THÊM MỚI */
         }
         .tab-filter-button i {
             margin-right: 0.5rem;
@@ -130,8 +134,8 @@
         }
         @media (max-width: 639px) {
             .tab-filter-button {
-                font-size: 0.75rem;
-                padding: 0.5rem 0.25rem;
+                font-size: 0.875rem !important; /* ĐÃ SỬA: Tăng font size */
+                padding: 0.5rem 0.25rem !important;
             }
         }
         @media (min-width: 640px) {
