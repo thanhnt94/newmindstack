@@ -48,13 +48,15 @@
                     {{ form.tags(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="ví dụ: Kanji, N5, Tiếng Nhật") }}
                 </div>
 
+                {% if current_user.user_role != 'free' %}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Trạng thái:</label>
+                    <label class="block text-sm font-medium text-gray-700">Trạng thái công khai:</label>
                     <div class="flex items-center mt-2">
                         {{ form.is_public(class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500") }}
                         {{ form.is_public.label(class="ml-2 block text-sm text-gray-900") }}
                     </div>
                 </div>
+                {% endif %}
 
                 <div class="border-t border-gray-200 pt-6">
                     {{ form.ai_prompt.label(class="block text-sm font-medium text-gray-700") }}
@@ -116,11 +118,13 @@
                     if (data.ai_prompt) form.querySelector('[name="ai_prompt"]').value = data.ai_prompt;
                     
                     const isPublicCheckbox = form.querySelector('[name="is_public"]');
-                    if (data.is_public) {
-                        const isPublicValue = String(data.is_public).toLowerCase();
-                        isPublicCheckbox.checked = isPublicValue === 'true' || isPublicValue === '1';
-                    } else {
-                        isPublicCheckbox.checked = false;
+                    if (isPublicCheckbox) {
+                        if (data.is_public) {
+                            const isPublicValue = String(data.is_public).toLowerCase();
+                            isPublicCheckbox.checked = isPublicValue === 'true' || isPublicValue === '1';
+                        } else {
+                            isPublicCheckbox.checked = false;
+                        }
                     }
                 } else {
                     console.warn(result.message || 'Không thể đọc sheet Info từ file.');
