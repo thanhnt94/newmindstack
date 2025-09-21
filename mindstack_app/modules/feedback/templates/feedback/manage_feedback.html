@@ -1,240 +1,85 @@
 {#
-    File: mindstack_app/modules/feedback/templates/feedback/manage_feedback.html
-    Phiên bản: 1.1
-    Mục đích: Hiển thị danh sách phản hồi đã nhận và phản hồi đã gửi.
+    # File: mindstack_app/modules/feedback/templates/feedback/manage_feedback.html
+    # Phiên bản: 2.6
+    # TÍNH NĂNG: Sửa lỗi hiển thị thừa navbar.
+    # ĐÃ SỬA: Xóa bỏ thẻ <header> và lệnh gọi render_navbar() bị lặp lại.
 #}
 {% extends "base.html" %}
+{% from 'includes/_navbar.html' import render_navbar %}
 
 {% block title %}Quản lý Phản hồi{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <h1 class="text-3xl font-semibold text-gray-800 flex items-center">
-            <i class="fas fa-comment-dots mr-2 text-blue-500"></i> Quản lý Phản hồi
-        </h1>
-        {% if current_user.user_role == 'admin' %}
-        <a href="{{ url_for('admin.admin_dashboard') }}" class="text-blue-500 hover:text-blue-700">
-            <i class="fas fa-arrow-left mr-1"></i> Quay lại Admin Dashboard
-        </a>
-        {% endif %}
-    </div>
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Quản lý Phản hồi</h1>
 
-    <div class="bg-white shadow-md rounded-lg overflow-hidden p-6">
         <div class="border-b border-gray-200">
-            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="feedbackTabs" role="tablist">
-                <li class="mr-2" role="presentation">
-                    <button class="inline-block p-4 border-b-2 rounded-t-lg" id="received-tab" data-tabs-target="#received-feedback" type="button" role="tab" aria-controls="received-feedback" aria-selected="true">
-                        Phản hồi đã nhận
-                    </button>
-                </li>
-                <li class="mr-2" role="presentation">
-                    <button class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="sent-tab" data-tabs-target="#sent-feedback" type="button" role="tab" aria-controls="sent-feedback" aria-selected="false">
-                        Phản hồi đã gửi
-                    </button>
-                </li>
-            </ul>
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button id="tab-received" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600">
+                    Phản hồi đã nhận
+                </button>
+                <button id="tab-sent" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    Phản hồi đã gửi
+                </button>
+            </nav>
         </div>
 
-        <div id="feedbackTabContent">
-            <div class="p-4 rounded-lg bg-gray-50" id="received-feedback" role="tabpanel" aria-labelledby="received-tab">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Danh sách các phản hồi đã nhận</h2>
+        <div class="mt-6">
+            <div id="pane-received" class="tab-pane">
                 {% if received_feedbacks %}
-                <div class="overflow-x-auto">
-                    <table class="min-w-full leading-normal">
-                        <thead>
-                            <tr>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    ID
-                                </th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Phản hồi
-                                </th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Người gửi
-                                </th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Nội dung
-                                </th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Trạng thái
-                                </th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Hành động
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for feedback in received_feedbacks %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    {{ feedback.feedback_id }}
-                                </td>
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    <div class="truncate w-64">{{ feedback.content }}</div>
-                                </td>
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    {{ feedback.reporter.username }}
-                                </td>
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    {% if feedback.item %}
-                                        {% set item = feedback.item %}
-                                        {% if item.item_type == 'FLASHCARD' %}
-                                            <a href="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=item.container_id, item_id=item.item_id) }}" class="text-blue-500 hover:underline">
-                                                Thẻ Flashcard #{{ item.item_id }}
-                                            </a>
-                                        {% elif item.item_type == 'QUIZ_MCQ' %}
-                                            <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=item.container_id, item_id=item.item_id) }}" class="text-blue-500 hover:underline">
-                                                Câu hỏi Quiz #{{ item.item_id }}
-                                            </a>
-                                        {% elif item.item_type == 'LESSON' %}
-                                            <a href="{{ url_for('content_management.content_management_courses.edit_lesson', set_id=item.container_id, item_id=item.item_id) }}" class="text-blue-500 hover:underline">
-                                                Bài học #{{ item.item_id }}
-                                            </a>
-                                        {% else %}
-                                            N/A
-                                        {% endif %}
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </td>
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    <span class="px-2 py-1 rounded-full text-xs font-semibold
-                                        {% if feedback.status == 'new' %}bg-yellow-100 text-yellow-800
-                                        {% elif feedback.status == 'resolved' %}bg-green-100 text-green-800
-                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                        {{ feedback.status }}
-                                    </span>
-                                </td>
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    {% if feedback.status == 'new' %}
-                                    <form action="{{ url_for('feedback.resolve_feedback', feedback_id=feedback.feedback_id) }}" method="post" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn đánh dấu phản hồi này là đã giải quyết không?');">
-                                        <button type="submit" class="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 transition duration-300 text-xs">Giải quyết</button>
-                                    </form>
-                                    <form action="{{ url_for('feedback.ignore_feedback', feedback_id=feedback.feedback_id) }}" method="post" class="inline ml-2" onsubmit="return confirm('Bạn có chắc chắn muốn bỏ qua phản hồi này không?');">
-                                        <button type="submit" class="bg-gray-500 text-white px-3 py-1 rounded-md hover:bg-gray-600 transition duration-300 text-xs">Bỏ qua</button>
-                                    </form>
-                                    {% else %}
-                                    Đã xử lý bởi {{ feedback.resolver.username }}
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                    {% with feedbacks=received_feedbacks, table_id='received', is_owner=True %}
+                        {% include 'feedback/_feedback_table.html' %}
+                    {% endwith %}
                 {% else %}
-                <p class="text-gray-500">Không có phản hồi nào được tìm thấy.</p>
+                    <p class="text-gray-500">Bạn chưa nhận được phản hồi nào.</p>
                 {% endif %}
             </div>
 
-            <div class="hidden p-4 rounded-lg bg-gray-50" id="sent-feedback" role="tabpanel" aria-labelledby="sent-tab">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Danh sách các phản hồi đã gửi</h2>
+            <div id="pane-sent" class="tab-pane hidden">
                 {% if sent_feedbacks %}
-                <div class="overflow-x-auto">
-                    <table class="min-w-full leading-normal">
-                        <thead>
-                            <tr>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    ID
-                                </th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Phản hồi
-                                </th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Nội dung
-                                </th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Trạng thái
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for feedback in sent_feedbacks %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    {{ feedback.feedback_id }}
-                                </td>
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    <div class="truncate w-64">{{ feedback.content }}</div>
-                                </td>
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    {% if feedback.item %}
-                                        {% set item = feedback.item %}
-                                        {% if item.item_type == 'FLASHCARD' %}
-                                            <a href="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=item.container_id, item_id=item.item_id) }}" class="text-blue-500 hover:underline">
-                                                Thẻ Flashcard #{{ item.item_id }}
-                                            </a>
-                                        {% elif item.item_type == 'QUIZ_MCQ' %}
-                                            <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=item.container_id, item_id=item.item_id) }}" class="text-blue-500 hover:underline">
-                                                Câu hỏi Quiz #{{ item.item_id }}
-                                            </a>
-                                        {% elif item.item_type == 'LESSON' %}
-                                            <a href="{{ url_for('content_management.content_management_courses.edit_lesson', set_id=item.container_id, item_id=item.item_id) }}" class="text-blue-500 hover:underline">
-                                                Bài học #{{ item.item_id }}
-                                            </a>
-                                        {% else %}
-                                            N/A
-                                        {% endif %}
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </td>
-                                <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                                    <span class="px-2 py-1 rounded-full text-xs font-semibold
-                                        {% if feedback.status == 'new' %}bg-yellow-100 text-yellow-800
-                                        {% elif feedback.status == 'resolved' %}bg-green-100 text-green-800
-                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                        {{ feedback.status }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                    {% with feedbacks=sent_feedbacks, table_id='sent', is_owner=False %}
+                        {% include 'feedback/_feedback_table.html' %}
+                    {% endwith %}
                 {% else %}
-                <p class="text-gray-500">Bạn chưa gửi phản hồi nào.</p>
+                    <p class="text-gray-500">Bạn chưa gửi phản hồi nào.</p>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
+{{ super() }}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const tabs = document.querySelectorAll('#feedbackTabs button');
-        const tabContents = document.querySelectorAll('#feedbackTabContent > div');
+document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
 
-        function showTab(tabId) {
-            tabContents.forEach(content => {
-                content.classList.add('hidden');
-                content.classList.remove('p-4', 'rounded-lg', 'bg-gray-50');
-            });
-            tabs.forEach(tab => {
-                tab.classList.remove('border-blue-600', 'text-blue-600');
-                tab.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
-                tab.setAttribute('aria-selected', 'false');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Deactivate all buttons
+            tabButtons.forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
             });
 
-            const activeContent = document.getElementById(tabId.replace('-tab', '-feedback'));
-            activeContent.classList.remove('hidden');
-            activeContent.classList.add('p-4', 'rounded-lg', 'bg-gray-50');
-            
-            const activeTab = document.getElementById(tabId);
-            activeTab.classList.remove('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
-            activeTab.classList.add('border-blue-600', 'text-blue-600');
-            activeTab.setAttribute('aria-selected', 'true');
-        }
+            // Activate the clicked button
+            this.classList.add('border-blue-500', 'text-blue-600');
+            this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
 
-        tabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                showTab(e.currentTarget.id);
+            // Hide all panes
+            const targetPaneId = this.id.replace('tab-', 'pane-');
+            tabPanes.forEach(pane => {
+                if (pane.id === targetPaneId) {
+                    pane.classList.remove('hidden');
+                } else {
+                    pane.classList.add('hidden');
+                }
             });
         });
-
-        // Show the first tab by default
-        showTab('received-tab');
     });
+});
 </script>
 {% endblock %}

@@ -1,0 +1,139 @@
+{#
+    # File: mindstack_app/modules/feedback/templates/feedback/_feedback_modal.html
+    # Phiên bản: 1.1
+    # TÍNH NĂNG: Cung cấp một modal riêng biệt để người dùng gửi phản hồi (feedback).
+    # ĐÃ SỬA: Thêm một khoảng trễ ngắn (setTimeout) sau khi gửi feedback thành công, đảm bảo người dùng có thể thấy thông báo trước khi modal đóng lại.
+#}
+<div id="feedback-modal" class="custom-modal-overlay">
+    <div class="custom-modal-content !max-w-lg w-full">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">Gửi Phản Hồi</h3>
+            <button id="close-feedback-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+        </div>
+        <div class="text-left">
+            <p class="text-sm text-gray-600 mb-1">Bạn đang phản hồi về thẻ:</p>
+            <p id="feedback-modal-term" class="font-semibold text-blue-600 bg-blue-50 p-2 rounded-md mb-4 truncate"></p>
+            <form id="feedback-form">
+                <textarea id="feedback-textarea" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" rows="5" placeholder="Nhập nội dung phản hồi của bạn ở đây... (ví dụ: sai chính tả, nội dung khó hiểu,...)"></textarea>
+                <div class="mt-4 flex justify-end space-x-3">
+                    <button type="button" id="cancel-feedback-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">Hủy</button>
+                    <button type="submit" id="submit-feedback-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Gửi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Biến toàn cục để lưu trữ thông tin cần thiết cho modal
+let currentFeedbackItemId = null
+
+/**
+ * Mô tả: Mở modal feedback và thiết lập các thông tin cần thiết.
+ * @param {string} itemId - ID của học liệu đang được phản hồi.
+ * @param {string} termContent - Nội dung mặt trước của thẻ để hiển thị cho người dùng.
+ */
+function openFeedbackModal(itemId, termContent) {
+    const feedbackModal = document.getElementById('feedback-modal')
+    if (!feedbackModal) return
+
+    const feedbackModalTerm = document.getElementById('feedback-modal-term')
+    const feedbackTextarea = document.getElementById('feedback-textarea')
+    
+    currentFeedbackItemId = itemId
+    if (feedbackModalTerm) {
+        feedbackModalTerm.textContent = termContent
+    }
+    if (feedbackTextarea) {
+        feedbackTextarea.value = '' // Xóa nội dung cũ
+    }
+
+    feedbackModal.style.display = 'flex'
+}
+
+/**
+ * Mô tả: Đóng modal feedback và reset trạng thái.
+ */
+function closeFeedbackModal() {
+    const feedbackModal = document.getElementById('feedback-modal')
+    if (feedbackModal) {
+        feedbackModal.style.display = 'none'
+    }
+    currentFeedbackItemId = null
+}
+
+/**
+ * Mô tả: Gửi dữ liệu feedback lên server.
+ * Hàm này sẽ được gọi khi người dùng nhấn nút "Gửi" trong form.
+ */
+async function handleFeedbackSubmit(event) {
+    event.preventDefault() // Ngăn form reload lại trang
+
+    const feedbackTextarea = document.getElementById('feedback-textarea')
+    const submitBtn = document.getElementById('submit-feedback-btn')
+    const feedbackText = feedbackTextarea.value.trim()
+
+    if (!feedbackText) {
+        window.showFlashMessage('Vui lòng nhập nội dung phản hồi.', 'warning')
+        return
+    }
+
+    if (!currentFeedbackItemId) {
+        window.showFlashMessage('Lỗi: Không tìm thấy ID của thẻ.', 'danger')
+        return
+    }
+
+    // Vô hiệu hóa nút gửi để tránh spam
+    submitBtn.disabled = true
+    submitBtn.textContent = 'Đang gửi...'
+
+    try {
+        const response = await fetch("{{ url_for('feedback.submit_feedback') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                item_id: currentFeedbackItemId,
+                feedback_text: feedbackText 
+            })
+        })
+
+        const result = await response.json()
+
+        if (response.ok && result.success) {
+            window.showFlashMessage(result.message, 'success')
+            // SỬA LỖI: Thêm độ trễ 500ms trước khi đóng modal
+            setTimeout(closeFeedbackModal, 500)
+        } else {
+            window.showFlashMessage(result.message || 'Có lỗi xảy ra khi gửi phản hồi.', 'danger')
+        }
+
+    } catch (error) {
+        console.error('Lỗi khi gửi feedback:', error)
+        window.showFlashMessage('Lỗi kết nối. Không thể gửi phản hồi.', 'danger')
+    } finally {
+        // Kích hoạt lại nút gửi
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Gửi'
+    }
+}
+
+// Gắn các event listener khi DOM đã sẵn sàng
+document.addEventListener('DOMContentLoaded', function() {
+    const feedbackForm = document.getElementById('feedback-form')
+    const closeBtn = document.getElementById('close-feedback-modal-btn')
+    const cancelBtn = document.getElementById('cancel-feedback-btn')
+
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', handleFeedbackSubmit)
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeFeedbackModal)
+    }
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeFeedbackModal)
+    }
+})
+</script>

@@ -1,8 +1,10 @@
 {#
     File: mindstack_app/modules/shared/templates/includes/_navbar.html
-    Phiên bản: 2.9
+    Phiên bản: 3.1
     Mục đích: Cập nhật navbar theo yêu cầu:
               - Thêm link "Quản lý Phản hồi" vào menu thả xuống của người dùng.
+              - Thêm link "Quản lý nội dung" vào menu thả xuống của người dùng.
+              - Sửa lỗi `BuildError` bằng cách đổi endpoint từ 'content_management.dashboard' sang 'content_management.content_dashboard'.
 #}
 {% macro render_navbar(current_user, request) %}
 <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -57,6 +59,10 @@
                     </a>
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('stats.dashboard') }}">
                         <i class="fas fa-chart-line mr-2 w-4"></i> Thống kê
+                    </a>
+                    {# Thêm menu item Quản lý nội dung #}
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('content_management.content_dashboard') }}">
+                        <i class="fas fa-folder-open mr-2 w-4"></i> Quản lý nội dung
                     </a>
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('feedback.manage_feedback') }}">
                         <i class="fas fa-comment-dots mr-2 w-4"></i> Quản lý Phản hồi

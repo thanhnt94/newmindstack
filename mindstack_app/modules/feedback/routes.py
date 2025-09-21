@@ -1,7 +1,7 @@
 # File: Mindstack/web/mindstack_app/modules/feedback/routes.py
-# Version: 1.1
-# Mục đích: Chứa các route và logic cho việc quản lý feedback,
-#           phân biệt feedback đã nhận và đã gửi.
+# Version: 1.3
+# MỤC ĐÍCH: Khắc phục lỗi lưu nội dung feedback trống.
+# ĐÃ SỬA: Thêm logic .strip() để loại bỏ khoảng trắng ở đầu và cuối chuỗi feedback trước khi kiểm tra và lưu vào database.
 
 from flask import render_template, request, jsonify, flash, redirect, url_for, abort
 from flask_login import login_required, current_user
@@ -48,17 +48,22 @@ def submit_feedback():
     Mô tả:
         Endpoint API để người dùng gửi phản hồi.
     """
-    data = request.json
-    item_id = data.get('item_id')
-    feedback_text = data.get('feedback_text')
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Dữ liệu gửi lên không hợp lệ.'}), 400
 
+    item_id = data.get('item_id')
+    # SỬA LỖI: Lấy nội dung và dùng .strip() để loại bỏ khoảng trắng thừa
+    feedback_text = data.get('feedback_text', '').strip()
+
+    # Kiểm tra lại sau khi đã strip()
     if not feedback_text:
         return jsonify({'success': False, 'message': 'Nội dung feedback không được để trống.'}), 400
         
     feedback = UserFeedback(
         user_id=current_user.user_id,
         item_id=item_id,
-        content=feedback_text,
+        content=feedback_text, # Lưu nội dung đã được làm sạch
         timestamp=datetime.utcnow()
     )
     db.session.add(feedback)

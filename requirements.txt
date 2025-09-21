@@ -9,7 +9,6 @@ Werkzeug>=2.0 # Thư viện WSGI cốt lõi cho Flask
 # --- Cơ sở dữ liệu & ORM ---
 Flask-SQLAlchemy>=3.0
 SQLAlchemy>=1.4
-alembic>=1.7 # Dành cho việc di trú (migration) cơ sở dữ liệu
 
 # --- Xác thực & Form ---
 Flask-Login>=0.5

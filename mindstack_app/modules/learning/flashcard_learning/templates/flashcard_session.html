@@ -1,9 +1,8 @@
 {#
     # File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
-    # Phiên bản: 68.9
-    # MỤC ĐÍCH: Nâng cấp trải nghiệm lật thẻ, thêm nút lật thẻ và sửa lỗi chi tiết thẻ.
-    # ĐÃ SỬA: Khắc phục lỗi không hiển thị chi tiết thẻ cho thẻ hiện tại bằng cách truyền `cardContent` vào hàm render.
-    # ĐÃ SỬA: Cải thiện thiết kế của nút "Lật thẻ".
+    # Phiên bản: 69.1
+    # MỤC ĐÍCH: Thay đổi vị trí nút Feedback.
+    # ĐÃ SỬA: Di chuyển nút Feedback từ toolbar bên trái sang bên phải, đặt cạnh nút Sửa thẻ.
 #}
 
 {% extends "base.html" %}
@@ -680,6 +679,9 @@
 {# Nhúng modal AI #}
 {% include 'ai_services/_ai_modal.html' %}
 
+{# Nhúng modal Feedback #}
+{% include 'feedback/_feedback_modal.html' %}
+
 {% endblock %}
 
 {% block scripts %}
@@ -806,6 +808,7 @@
         const menuButtonHtml = isMobile ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-bars"></i></button>` : '';
         const aiButtonHtml = `<button class="icon-btn open-ai-modal-btn" data-item-id="${itemId}"><i class="fas fa-robot"></i></button>`;
         const noteButtonHtml = `<button class="icon-btn open-note-panel-btn" data-item-id="${itemId}"><i class="fas fa-sticky-note"></i></button>`;
+        const feedbackButtonHtml = `<button class="icon-btn open-feedback-modal-btn" data-item-id="${itemId}"><i class="fas fa-flag"></i></button>`;
         const editButtonHtml = `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
 
         const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
@@ -816,10 +819,13 @@
         const leftToolbarContent = isMobile 
             ? `${menuButtonHtml}${aiButtonHtml}${noteButtonHtml}` 
             : `${aiButtonHtml}${noteButtonHtml}`;
+        
+        // THAY ĐỔI: Di chuyển nút feedback sang phải
+        const rightToolbarContent = `${feedbackButtonHtml}${editButtonHtml}`;
 
         return {
-            front: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT TRƯỚC</span><div class="toolbar-right">${editButtonHtml}${audioButtonHtmlFront}</div></div>`,
-            back: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT SAU</span><div class="toolbar-right">${editButtonHtml}${audioButtonHtmlBack}</div></div>`,
+            front: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT TRƯỚC</span><div class="toolbar-right">${rightToolbarContent}${audioButtonHtmlFront}</div></div>`,
+            back: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT SAU</span><div class="toolbar-right">${rightToolbarContent}${audioButtonHtmlBack}</div></div>`,
             flipButton: flipButtonHtml
         };
     }
@@ -910,6 +916,15 @@
       document.querySelectorAll('.open-note-panel-btn').forEach(btn => btn.addEventListener('click', () => {
           const itemId = btn.dataset.itemId;
           openNotePanel(itemId);
+      }));
+
+      // Gắn listener cho nút feedback
+      document.querySelectorAll('.open-feedback-modal-btn').forEach(btn => btn.addEventListener('click', () => {
+          const itemId = btn.dataset.itemId;
+          const currentCard = currentFlashcardBatch[currentFlashcardIndex];
+          const termContent = currentCard.content.front;
+          // Gọi hàm từ _feedback_modal.html
+          openFeedbackModal(itemId, termContent); 
       }));
       
       document.querySelectorAll('.close-media-btn').forEach(btn => {

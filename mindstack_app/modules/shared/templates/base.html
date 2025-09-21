@@ -1,15 +1,13 @@
 {#
     File: mindstack_app/modules/shared/templates/base.html
     Phiên bản: 6.0
-    Mục đích: Cập nhật để sử dụng macro _navbar.html cho thanh điều hướng.
-              Điều này giúp tái sử dụng mã và đảm bảo tính nhất quán.
+    Mục đích: Đã khôi phục trạng thái ban đầu để tránh ảnh hưởng đến các trang khác.
 #}
 {% from 'includes/_navbar.html' import render_navbar %}
 <!doctype html>
 <html lang="vi">
 <head>
     <meta charset="utf-8">
-    {# SỬA: Thêm viewport-fit=cover để hỗ trợ safe-area insets trên mobile #}
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>{% block title %}Mindstack App{% endblock %}</title>
 

@@ -1,8 +1,7 @@
 # File: web/mindstack_app/models.py
-# Phiên bản: 14.1
-# MỤC ĐÍCH: Thêm model CourseProgress để theo dõi tiến độ học Course.
-# ĐÃ THÊM: Model CourseProgress với trường completion_percentage.
-# ĐÃ THÊM: Mối quan hệ course_progress trong model User.
+# Phiên bản: 14.3
+# MỤC ĐÍCH: Sửa lỗi UndefinedError nghiêm trọng.
+# ĐÃ SỬA: Thêm một db.relationship vào model UserFeedback để tạo ra thuộc tính 'item', liên kết một feedback tới LearningItem tương ứng. Đây là nguyên nhân gốc rễ gây ra lỗi 'has no attribute item'.
 
 from .db_instance import db
 from sqlalchemy.sql import func
@@ -240,10 +239,10 @@ class UserFeedback(db.Model):
     content = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(50), default='new') # 'new', 'resolved', 'wont_fix'
     timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    
-    # Người gửi và người xử lý
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     resolved_by_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
+
+    # SỬA LỖI: Thêm relationship để tạo thuộc tính `item`
+    item = db.relationship('LearningItem', backref='feedbacks', lazy=True)
 
 
 class ContainerContributor(db.Model):
