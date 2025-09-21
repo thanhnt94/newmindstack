@@ -91,13 +91,9 @@ def start_task(task_id):
         
         # Chạy tác vụ trong một thread hoặc process riêng
         if task.task_name == 'generate_audio_cache':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(audio_service.generate_cache_for_all_cards(task))
+            asyncio.run(audio_service.generate_cache_for_all_cards(task))
         elif task.task_name == 'clean_audio_cache':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(audio_service.clean_orphan_audio_cache(task))
+            audio_service.clean_orphan_audio_cache(task)
             
     return jsonify({'success': True})
 
