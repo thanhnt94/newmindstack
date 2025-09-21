@@ -41,7 +41,7 @@ def _get_base_items_query(user_id, container_id):
                 ContainerContributor.user_id == user_id,
                 ContainerContributor.permission_level == 'editor'
             ).subquery()
-            access_conditions.append(LearningContainer.container_id.in_(contributed_ids_subquery))
+            access_conditions.append(LearningContainer.container_id.in_([c.container_id for c in contributed_ids_subquery]))
 
             accessible_containers = LearningContainer.query.filter(
                 LearningContainer.container_type == 'FLASHCARD_SET',
@@ -234,14 +234,12 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
             UserContainerState.is_archived == True
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'doing':
-        # SỬA: Truy vấn để lấy các bộ thẻ có tiến độ học từ bảng FlashcardProgress
-        final_query = filtered_query.join(LearningItem,
-            LearningContainer.container_id == LearningItem.container_id
-        ).join(FlashcardProgress,
-            and_(LearningItem.item_id == FlashcardProgress.item_id, FlashcardProgress.user_id == user_id)
-        ).distinct().outerjoin(UserContainerState,
+        # SỬA: Lấy các bộ thẻ có trong UserContainerState (tức là đã từng tương tác)
+        # và không bị lưu trữ
+        final_query = filtered_query.outerjoin(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
+            LearningContainer.container_id.in_(user_interacted_ids_subquery),
             or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
         ).order_by(
             db.case(
@@ -275,7 +273,6 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
             item_type='FLASHCARD'
         ).count()
         
-        # SỬA: Truy vấn số lượng thẻ đã học từ bảng FlashcardProgress
         learned_items = db.session.query(FlashcardProgress).filter(
             FlashcardProgress.user_id == user_id,
             FlashcardProgress.item_id.in_(
@@ -300,42 +297,3 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
 
     print(f">>> ALGORITHMS: Kết thúc get_filtered_flashcard_sets. Tổng số bộ: {pagination.total} <<<")
     return pagination
-
-def get_flashcard_mode_counts(user_id, set_identifier):
-    """
-    Tính toán số lượng thẻ cho các chế độ học Flashcard.
-    Hàm này sẽ loại trừ các bộ thẻ đã được archive.
-    """
-    print(f">>> ALGORITHMS: Bắt đầu get_flashcard_mode_counts cho user_id={user_id}, set_identifier={set_identifier} <<<")
-    
-    modes_with_counts = []
-    mode_function_map = {
-        'mixed_srs': get_mixed_items,
-        'new_only': get_new_only_items,
-        'due_only': get_due_items,
-        'hard_only': get_hard_items,
-    }
-
-    for mode_config in FlashcardLearningConfig.FLASHCARD_MODES:
-        mode_id = mode_config['id']
-        mode_name = mode_config['name']
-        algorithm_func = mode_function_map.get(mode_id)
-
-        if algorithm_func:
-            # SỬA LỖI: Sử dụng .count() trên đối tượng truy vấn để lấy số lượng
-            # Thay vì gọi hàm với session_size=None và sau đó dùng len()
-            if mode_id == 'mixed_srs':
-                # Chế độ mixed_srs cần phải chạy logic để lấy số lượng thẻ
-                due_count = get_due_items(user_id, set_identifier, None).count()
-                new_count = get_new_only_items(user_id, set_identifier, None).count()
-                count = due_count + new_count
-            else:
-                count = algorithm_func(user_id, set_identifier, None).count()
-            
-            modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
-        else:
-            current_app.logger.warning(f"Không tìm thấy hàm thuật toán cho chế độ Flashcard: {mode_id}")
-            modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': 0})
-
-    print(f">>> ALGORITHMS: Kết thúc get_flashcard_mode_counts. Modes: {modes_with_counts} <<<")
-    return modes_with_counts
