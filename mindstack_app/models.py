@@ -124,7 +124,11 @@ class UserContainerState(db.Model):
     last_accessed = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Mối quan hệ với LearningContainer
-    container = db.relationship('LearningContainer', backref='user_states', lazy=True)
+    container = db.relationship(
+        'LearningContainer',
+        backref=db.backref('user_states', cascade='all, delete-orphan'),
+        lazy=True,
+    )
 
     __table_args__ = (db.UniqueConstraint('user_id', 'container_id', name='_user_container_uc'),)
 
