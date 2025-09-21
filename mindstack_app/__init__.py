@@ -97,7 +97,7 @@ def create_app(config_class=Config):
 
         admin_user = User.query.filter_by(username='admin').first()
         if admin_user is None:
-            admin = User(username='admin', email='admin@example.com', user_role='admin')
+            admin = User(username='admin', email='admin@example.com', user_role=User.ROLE_ADMIN)
             admin.set_password('admin')
             db.session.add(admin)
             db.session.commit()

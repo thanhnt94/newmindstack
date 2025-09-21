@@ -23,7 +23,7 @@ from . import admin_bp # Vẫn cần dòng này để các decorator như @admin
 @admin_bp.before_request 
 @login_required 
 def admin_required():
-    if not current_user.is_authenticated or current_user.user_role != 'admin':
+    if not current_user.is_authenticated or current_user.user_role != User.ROLE_ADMIN:
         flash('Bạn không có quyền truy cập khu vực quản trị.', 'danger')
         abort(403) 
 
