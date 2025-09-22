@@ -74,11 +74,24 @@
             word-wrap: break-word;  /* THÊM MỚI: Tự động ngắt dòng dài */
             color: #374151;
         }
+
+        @media (max-width: 640px) {
+            .course-session-container {
+                padding-left: 0;
+                padding-right: 0;
+            }
+
+            .course-session-container .lesson-content-wrapper {
+                padding: 0.75rem;
+                border-radius: 0;
+                box-shadow: none;
+            }
+        }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
+<div class="container course-session-container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">
         <a href="{{ url_for('learning.course_learning.course_learning_dashboard') }}" class="text-blue-600 hover:text-blue-800 mb-6 inline-block">
             <i class="fas fa-arrow-left mr-2"></i>Quay lại danh sách khóa học
