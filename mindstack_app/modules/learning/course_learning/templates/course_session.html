@@ -133,7 +133,7 @@
 
                 <div id="note-display-view">
                     <div id="note-content-display" class="note-content-display">
-                        {% if note and note.content %}{{ note.content }}{% else %}<span class="text-gray-500 italic">Bạn chưa có ghi chú nào cho bài học này.</span>{% endif %}
+                        {% if note and note.content -%}{{ note.content }}{%- else -%}<span class="text-gray-500 italic">Bạn chưa có ghi chú nào cho bài học này.</span>{%- endif %}
                     </div>
                 </div>
 
