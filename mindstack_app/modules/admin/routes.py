@@ -65,8 +65,10 @@ def manage_background_tasks():
         db.session.add_all([task1, task2])
         db.session.commit()
         tasks = BackgroundTask.query.all()
-        
-    return render_template('background_tasks.html', tasks=tasks)
+
+    flashcard_containers = LearningContainer.query.filter_by(container_type='FLASHCARD_SET').order_by(LearningContainer.title.asc()).all()
+
+    return render_template('background_tasks.html', tasks=tasks, flashcard_containers=flashcard_containers)
 
 @admin_bp.route('/tasks/toggle/<int:task_id>', methods=['POST'])
 def toggle_task(task_id):
@@ -85,17 +87,37 @@ def start_task(task_id):
     """
     task = BackgroundTask.query.get_or_404(task_id)
     if task.status != 'running' and task.is_enabled:
+        data = request.get_json(silent=True) or {}
+        container_id = data.get('container_id') if isinstance(data, dict) else None
+        container_scope_ids = None
+        scope_label = 'tất cả bộ thẻ Flashcard'
+
+        if container_id not in (None, ''):
+            try:
+                container_id_int = int(container_id)
+            except (TypeError, ValueError):
+                return jsonify({'success': False, 'message': 'Giá trị container_id không hợp lệ.'}), 400
+
+            selected_container = LearningContainer.query.filter_by(container_id=container_id_int, container_type='FLASHCARD_SET').first()
+            if not selected_container:
+                return jsonify({'success': False, 'message': 'Không tìm thấy bộ thẻ Flashcard được chọn.'}), 404
+
+            container_scope_ids = [selected_container.container_id]
+            scope_label = f"bộ thẻ \"{selected_container.title}\" (ID {selected_container.container_id})"
+
         task.status = 'running'
-        task.message = 'Đang khởi chạy...'
+        task.message = f"Đang khởi chạy cho {scope_label}..."
         db.session.commit()
-        
+
         # Chạy tác vụ trong một thread hoặc process riêng
         if task.task_name == 'generate_audio_cache':
-            asyncio.run(audio_service.generate_cache_for_all_cards(task))
+            asyncio.run(audio_service.generate_cache_for_all_cards(task, container_ids=container_scope_ids))
         elif task.task_name == 'clean_audio_cache':
             audio_service.clean_orphan_audio_cache(task)
-            
-    return jsonify({'success': True})
+
+        return jsonify({'success': True, 'scope_label': scope_label})
+
+    return jsonify({'success': False, 'message': 'Tác vụ đang chạy hoặc đã bị vô hiệu hóa.'}), 400
 
 @admin_bp.route('/tasks/stop/<int:task_id>', methods=['POST'])
 def stop_task(task_id):

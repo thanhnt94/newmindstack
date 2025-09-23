@@ -82,13 +82,27 @@
                         </label>
                     </td>
                     <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                        <div class="flex space-x-3">
-                            <button type="button" class="bg-green-100 text-green-600 px-3 py-1 rounded-md hover:bg-green-200 transition duration-300 text-sm start-task-btn" {% if task.status == 'running' or not task.is_enabled %}disabled{% endif %}>
-                                <i class="fas fa-play"></i>
-                            </button>
-                            <button type="button" class="bg-red-100 text-red-600 px-3 py-1 rounded-md hover:bg-red-200 transition duration-300 text-sm stop-task-btn" {% if task.status != 'running' %}disabled{% endif %}>
-                                <i class="fas fa-stop"></i>
-                            </button>
+                        <div class="flex flex-col space-y-3">
+                            {% if task.task_name == 'generate_audio_cache' %}
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Phạm vi tạo cache</label>
+                                <select class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 flashcard-scope-select" data-default-label="tất cả bộ thẻ Flashcard" {% if task.status == 'running' %}disabled{% endif %}>
+                                    <option value="">Tất cả bộ thẻ Flashcard</option>
+                                    {% for container in flashcard_containers %}
+                                    <option value="{{ container.container_id }}">{{ container.title }}</option>
+                                    {% endfor %}
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Chọn một bộ thẻ cụ thể để giới hạn phạm vi xử lý.</p>
+                            </div>
+                            {% endif %}
+                            <div class="flex space-x-3">
+                                <button type="button" class="bg-green-100 text-green-600 px-3 py-1 rounded-md hover:bg-green-200 transition duration-300 text-sm start-task-btn" {% if task.status == 'running' or not task.is_enabled %}disabled{% endif %}>
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button type="button" class="bg-red-100 text-red-600 px-3 py-1 rounded-md hover:bg-red-200 transition duration-300 text-sm stop-task-btn" {% if task.status != 'running' %}disabled{% endif %}>
+                                    <i class="fas fa-stop"></i>
+                                </button>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -114,18 +128,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const stopBtn = row.querySelector('.stop-task-btn');
         const toggleCheckbox = row.querySelector('.toggle-task-checkbox');
         const progressPercentage = taskData.total > 0 ? Math.round((taskData.progress / taskData.total) * 100) : 0;
-        
+
         statusBadge.textContent = taskData.status;
         statusBadge.className = `task-status-badge status-${taskData.status}`;
         row.querySelector('td:nth-child(4)').textContent = taskData.message;
-        
+
         progressBarFill.style.width = `${progressPercentage}%`;
         progressBarFill.textContent = `${progressPercentage}%`;
-        
+
         startBtn.disabled = taskData.status === 'running' || !taskData.is_enabled;
         stopBtn.disabled = taskData.status !== 'running';
         toggleCheckbox.disabled = taskData.status === 'running';
         toggleCheckbox.checked = taskData.is_enabled;
+
+        const scopeSelect = row.querySelector('.flashcard-scope-select');
+        if (scopeSelect) {
+            scopeSelect.disabled = taskData.status === 'running';
+        }
+
+        if (typeof taskData.progress === 'number') {
+            row.dataset.progress = taskData.progress;
+        } else if (!row.dataset.progress) {
+            row.dataset.progress = 0;
+        }
+
+        if (typeof taskData.total === 'number') {
+            row.dataset.total = taskData.total;
+        } else if (!row.dataset.total) {
+            row.dataset.total = 0;
+        }
     }
 
     tableBody.addEventListener('change', async function(event) {
@@ -152,25 +183,63 @@ document.addEventListener('DOMContentLoaded', function() {
         const taskId = row.dataset.taskId;
 
         if (startBtn && !startBtn.disabled) {
+            const scopeSelect = row.querySelector('.flashcard-scope-select');
+            const defaultScopeLabel = scopeSelect ? scopeSelect.dataset.defaultLabel || 'tất cả bộ thẻ Flashcard' : 'tất cả tác vụ';
+            let containerId = null;
+            let scopeLabel = defaultScopeLabel;
+
+            if (scopeSelect) {
+                const rawValue = scopeSelect.value;
+                if (rawValue) {
+                    const parsed = parseInt(rawValue, 10);
+                    if (!Number.isNaN(parsed)) {
+                        containerId = parsed;
+                        scopeLabel = scopeSelect.options[scopeSelect.selectedIndex]?.text || scopeLabel;
+                    }
+                } else {
+                    scopeLabel = defaultScopeLabel;
+                }
+            }
+
+            startBtn.disabled = true;
+            if (scopeSelect) {
+                scopeSelect.disabled = true;
+            }
             try {
-                const response = await axios.post(`/admin/tasks/start/${taskId}`);
+                const response = await axios.post(`/admin/tasks/start/${taskId}`, {
+                    container_id: containerId
+                });
                 if (response.data.success) {
-                    showFlashMessage('Tác vụ đã được khởi chạy.', 'success');
+                    const responseScopeLabel = response.data.scope_label || scopeLabel;
+                    showFlashMessage(`Tác vụ đã được khởi chạy cho ${responseScopeLabel}.`, 'success');
                     // Cập nhật trạng thái ngay lập tức trên UI
                     updateTaskRow(row, {
                         status: 'running',
-                        message: 'Đang khởi chạy...',
+                        message: `Đang khởi chạy cho ${responseScopeLabel}...`,
                         progress: 0,
                         total: 0,
                         is_enabled: true
                     });
+                } else {
+                    const infoMessage = response.data.message || 'Không thể khởi chạy tác vụ.';
+                    showFlashMessage(infoMessage, 'warning');
+                    startBtn.disabled = false;
+                    if (scopeSelect) {
+                        scopeSelect.disabled = false;
+                    }
                 }
             } catch (error) {
                 console.error('Error starting task:', error);
-                showFlashMessage('Lỗi khi khởi chạy tác vụ.', 'danger');
+                const errorMessage = error.response?.data?.message || 'Lỗi khi khởi chạy tác vụ.';
+                showFlashMessage(errorMessage, 'danger');
+                startBtn.disabled = false;
+                if (scopeSelect) {
+                    scopeSelect.disabled = false;
+                }
             }
+            return;
         }
-        
+
         if (stopBtn && !stopBtn.disabled) {
              try {
                 const response = await axios.post(`/admin/tasks/stop/${taskId}`);

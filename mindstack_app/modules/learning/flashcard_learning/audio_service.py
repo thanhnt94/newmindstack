@@ -18,7 +18,7 @@ from gtts import gTTS
 from pydub import AudioSegment
 
 from ....db_instance import db
-from ....models import LearningItem, User, BackgroundTask
+from ....models import LearningContainer, LearningItem, User, BackgroundTask
 from ....config import Config
 
 logger = logging.getLogger(__name__)
@@ -228,20 +228,54 @@ class AudioService:
             logger.critical(f"{log_prefix} {error_message}", exc_info=True)
             return None, False, error_message
 
-    async def generate_cache_for_all_cards(self, task):
+    async def generate_cache_for_all_cards(self, task, container_ids=None):
         """
-        Mô tả: Quét toàn bộ database, tạo các file audio còn thiếu và cập nhật trạng thái vào DB.
+        Mô tả: Quét database theo phạm vi đã chọn, tạo các file audio còn thiếu và cập nhật trạng thái vào DB.
         """
         log_prefix = f"[{task.task_name}]"
         logger.info(f"{log_prefix} Bắt đầu tác vụ tạo cache audio.")
-        
+
         try:
+            normalized_container_ids = None
+            scope_label = "tất cả bộ thẻ Flashcard"
+
+            if container_ids:
+                if not isinstance(container_ids, (list, tuple, set)):
+                    container_ids = [container_ids]
+
+                try:
+                    normalized_container_ids = [int(cid) for cid in container_ids if cid is not None]
+                except (TypeError, ValueError):
+                    logger.warning(f"{log_prefix} Nhận được container_ids không hợp lệ: {container_ids}")
+                    normalized_container_ids = None
+
+            containers_in_scope = []
+            if normalized_container_ids:
+                containers_in_scope = LearningContainer.query.filter(LearningContainer.container_id.in_(normalized_container_ids)).all()
+                if containers_in_scope:
+                    if len(containers_in_scope) == 1:
+                        c = containers_in_scope[0]
+                        scope_label = f"bộ thẻ \"{c.title}\" (ID {c.container_id})"
+                    else:
+                        joined_titles = ", ".join([f"\"{c.title}\" (ID {c.container_id})" for c in containers_in_scope])
+                        scope_label = f"{len(containers_in_scope)} bộ thẻ đã chọn: {joined_titles}"
+                else:
+                    scope_label = "các bộ thẻ đã chọn"
+
+            task.message = f"Đang quét dữ liệu cho {scope_label}..."
+            db.session.commit()
+
             all_audio_contents = set()
-            cards_with_audio = LearningItem.query.filter(
+            cards_query = LearningItem.query.filter(
                 LearningItem.item_type == 'FLASHCARD',
                 (LearningItem.content['front_audio_content'] != None) & (LearningItem.content['front_audio_content'] != '') |
                 (LearningItem.content['back_audio_content'] != None) & (LearningItem.content['back_audio_content'] != '')
-            ).all()
+            )
+
+            if normalized_container_ids:
+                cards_query = cards_query.filter(LearningItem.container_id.in_(normalized_container_ids))
+
+            cards_with_audio = cards_query.all()
 
             for card in cards_with_audio:
                 if card.content.get('front_audio_content'):
@@ -260,10 +294,10 @@ class AudioService:
             task.progress = 0
             task.status = 'running'
             db.session.commit()
-            logger.info(f"{log_prefix} Tìm thấy {task.total} nội dung audio mới cần tạo cache.")
+            logger.info(f"{log_prefix} Tìm thấy {task.total} nội dung audio mới cần tạo cache trong {scope_label}.")
 
             if task.total == 0:
-                task.message = "Hoàn tất! Không có audio mới nào cần tạo."
+                task.message = f"Hoàn tất! Không có audio mới nào cần tạo trong {scope_label}."
                 task.status = 'completed'
                 db.session.commit()
                 return
@@ -272,12 +306,12 @@ class AudioService:
             for content in contents_to_generate:
                 db.session.refresh(task)
                 if task.stop_requested:
-                    task.message = f"Đã dừng. Xử lý được {created_count}/{task.total} file."
+                    task.message = f"Đã dừng. Xử lý được {created_count}/{task.total} file trong {scope_label}."
                     task.status = 'completed'
                     logger.info(f"{log_prefix} Nhận được yêu cầu dừng.")
                     break
-                
-                task.message = f"Đang xử lý '{content[:40]}...' ({task.progress + 1}/{task.total})"
+
+                task.message = f"Đang xử lý '{content[:40]}...' ({task.progress + 1}/{task.total}) trong {scope_label}"
                 db.session.commit()
 
                 try:
@@ -286,13 +320,13 @@ class AudioService:
                         created_count += 1
                     else:
                         logger.error(f"{log_prefix} Lỗi khi xử lý nội dung: '{content[:50]}...': {message}")
-                        task.message = f"Lỗi: {message} ({task.progress + 1}/{task.total})"
+                        task.message = f"Lỗi: {message} ({task.progress + 1}/{task.total}) trong {scope_label}"
                         task.status = 'error'
                         db.session.commit()
                         return # Dừng tác vụ nếu gặp lỗi nghiêm trọng
                 except Exception as e:
                     logger.error(f"{log_prefix} Lỗi không mong muốn khi xử lý: '{content[:50]}...': {e}", exc_info=True)
-                    task.message = f"Lỗi không mong muốn: {str(e)} ({task.progress + 1}/{task.total})"
+                    task.message = f"Lỗi không mong muốn: {str(e)} ({task.progress + 1}/{task.total}) trong {scope_label}"
                     task.status = 'error'
                     db.session.commit()
                     return # Dừng tác vụ nếu gặp lỗi nghiêm trọng
@@ -301,12 +335,12 @@ class AudioService:
                     db.session.commit()
 
             if not task.stop_requested:
-                task.message = f"Hoàn tất! Đã tạo thành công {created_count}/{task.total} file audio mới."
+                task.message = f"Hoàn tất! Đã tạo thành công {created_count}/{task.total} file audio mới trong {scope_label}."
                 task.status = 'completed'
                 logger.info(f"{log_prefix} {task.message}")
 
         except Exception as e:
-            task.message = f"Lỗi nghiêm trọng: {e}"
+            task.message = f"Lỗi nghiêm trọng trong {scope_label}: {e}"
             task.status = 'error'
             logger.error(f"{log_prefix} {task.message}", exc_info=True)
         
