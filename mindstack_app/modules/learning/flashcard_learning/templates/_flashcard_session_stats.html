@@ -1,129 +1,676 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard_learning/templates/_flashcard_session_stats.html #}
-{# Phiên bản: 2.2 #}
-{# MỤC ĐÍCH: Tối ưu hóa giao diện cột thống kê để co nhỏ nội dung, tránh cuộn trên màn hình lớn. #}
-{# ĐÃ SỬA: Giảm padding, margin, kích thước font và chiều cao các thành phần. #}
-{# ĐÃ SỬA: Điều chỉnh lại grid layout của các ô stat-box để gọn hơn. #}
+{# Phiên bản: 3.0 #}
+{# MỤC ĐÍCH: Thiết kế lại bảng thống kê phiên Flashcard với giao diện hiện đại, giàu thông tin và hạn chế phải cuộn. #}
 {# =============================== #}
 
 <style>
-    /* Styles cho khung thống kê chính - ĐÃ ĐIỀU CHỈNH */
     .statistics-card {
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
-        padding: 1rem; /* SỬA: Giảm padding từ 1.5rem */
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%);
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+        padding: 1.5rem;
         display: flex;
         flex-direction: column;
-        height: 100%;
-        min-height: 0;
-        overflow-y: auto;
+        gap: 1.5rem;
+        color: #0f172a;
+        max-width: 540px;
         width: 100%;
-        max-width: 500px;
+        overflow-y: auto;
+        max-height: 100%;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(37, 99, 235, 0.35) transparent;
     }
 
-    /* Styles cho Tab Navigation - ĐÃ ĐIỀU CHỈNH */
+    .statistics-card::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .statistics-card::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .statistics-card::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #c7d2fe, #60a5fa);
+        border-radius: 999px;
+    }
+
+    .statistics-card__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .statistics-card__subtitle {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .statistics-card__title {
+        margin: 0.35rem 0 0;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .statistics-card__badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.15);
+        color: #1d4ed8;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .statistics-card__badge i {
+        font-size: 0.8rem;
+    }
+
+    .session-overview {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+    }
+
+    .summary-card {
+        position: relative;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1rem 1.25rem;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.07);
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .summary-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0));
+        opacity: 0.08;
+        pointer-events: none;
+    }
+
+    .summary-card--session::after {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.4), rgba(16, 185, 129, 0));
+    }
+
+    .summary-card__label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .summary-card__value {
+        font-size: 1.85rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #0f172a;
+        font-feature-settings: "tnum";
+    }
+
+    .summary-card__value i {
+        color: #facc15;
+        font-size: 1.2rem;
+    }
+
+    .summary-card__value--accent {
+        color: #047857;
+    }
+
+    .summary-card__hint {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin: 0;
+    }
+
     .stats-tab-nav {
         display: flex;
-        border-bottom: 2px solid #e5e7eb;
-        margin-bottom: 1rem; /* SỬA: Giảm margin từ 1.5rem */
+        gap: 0.4rem;
+        background: #eef2ff;
+        border-radius: 999px;
+        padding: 0.4rem;
     }
+
     .stats-tab-button {
         flex: 1;
-        padding: 0.6rem 0.5rem; /* SỬA: Giảm padding */
-        text-align: center;
+        border: none;
+        background: transparent;
+        border-radius: 999px;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.85rem;
         font-weight: 600;
-        font-size: 0.9rem; /* SỬA: Giảm font size */
-        color: #6b7280;
-        border-bottom: 2px solid transparent;
-        margin-bottom: -2px;
+        color: #64748b;
         cursor: pointer;
-        transition: color 0.2s ease, border-color 0.2s ease;
-    }
-    .stats-tab-button.active {
-        color: #3b82f6;
-        border-color: #3b82f6;
-    }
-    .stats-tab-button:hover {
-        color: #3b82f6;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
     }
 
-    /* Styles cho các Tab Content Pane */
+    .stats-tab-button i {
+        font-size: 0.85rem;
+    }
+
+    .stats-tab-button:hover {
+        color: #1d4ed8;
+    }
+
+    .stats-tab-button.active {
+        background: #ffffff;
+        color: #2563eb;
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+    }
+
+    .stats-tab-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
     .stats-tab-pane {
         display: none;
+        flex-direction: column;
+        gap: 1.25rem;
+        flex: 1;
     }
+
     .stats-tab-pane.active {
-        display: block;
+        display: flex;
     }
 
-    /* Styles cho Progress Bar - ĐÃ ĐIỀU CHỈNH */
-    .progress-bar-group { margin-bottom: 0.75rem; } /* SỬA: Giảm margin */
-    .progress-bar-label { font-size: 0.8rem; font-weight: 600; color: #374151; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
-    .progress-bar-container { width: 100%; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; height: 1rem; } /* SỬA: Giảm chiều cao */
-    .progress-bar-fill { height: 100%; width: 0%; transition: width 0.5s ease-in-out; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
-    .progress-bar-fill-correct { background-color: #10b981; }
-    .progress-bar-fill-vague { background-color: #f59e0b; }
-    .progress-bar-fill-incorrect { background-color: #ef4444; }
+    .stats-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+    }
 
-    /* Styles cho các phần còn lại - ĐÃ ĐIỀU CHỈNH */
-    .card-info-section { border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem; }
-    .card-info-title { font-size: 0.9rem; } /* SỬA: Giảm font size */
-    .card-info-content p { font-size: 0.8rem; } /* SỬA: Giảm font size */
-    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-top: 1rem; } /* SỬA: Giảm gap */
-    .stat-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; background-color: #f9fafb; } /* SỬA: Giảm padding */
-    .stat-box .icon { font-size: 1.1rem; color: #3b82f6; margin-bottom: 0.25rem; } /* SỬA: Giảm font size và margin */
-    .stat-box .value { font-size: 0.9rem; font-weight: 700; color: #1f2937; } /* SỬA: Giảm font size */
-    .stat-box .label { font-size: 0.7rem; color: #6b7280; } /* SỬA: Giảm font size */
-    .stat-box.status .value { text-transform: capitalize; }
-    .stat-box.full-width { grid-column: span 2 / span 2; } /* THÊM: Class để ô chiếm 2 cột */
+    .stats-section__header {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .stats-section__header h4 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stats-section__header p {
+        margin: 0.15rem 0 0;
+        font-size: 0.8rem;
+        color: #94a3b8;
+    }
+
+    .icon-bubble {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        box-shadow: 0 12px 22px rgba(14, 165, 233, 0.18);
+    }
+
+    .stats-section--performance .icon-bubble {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .stats-section--insight .icon-bubble {
+        background: #e0f2fe;
+        color: #0284c7;
+        box-shadow: 0 12px 22px rgba(2, 132, 199, 0.18);
+    }
+
+    .stats-section--timeline .icon-bubble {
+        background: #ede9fe;
+        color: #7c3aed;
+        box-shadow: 0 12px 22px rgba(124, 58, 237, 0.18);
+    }
+
+    .insight-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.8rem 1rem;
+        border-radius: 14px;
+        background: rgba(14, 165, 233, 0.12);
+        border: 1px solid rgba(14, 165, 233, 0.35);
+        color: #0ea5e9;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .progress-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .progress-bar-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .progress-bar-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .progress-bar-label .label-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .progress-bar-label .progress-bar-stat {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #94a3b8;
+    }
+
+    .progress-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #22c55e;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.16);
+    }
+
+    .progress-dot.vague {
+        background: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.16);
+    }
+
+    .progress-dot.incorrect {
+        background: #ef4444;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.16);
+    }
+
+    .progress-bar-container {
+        position: relative;
+        width: 100%;
+        height: 0.85rem;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        width: var(--progress, 0%);
+        border-radius: inherit;
+        transition: width 0.5s ease-in-out;
+    }
+
+    .progress-bar-fill-correct {
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+    }
+
+    .progress-bar-fill-vague {
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+    }
+
+    .progress-bar-fill-incorrect {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+
+    .insight-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.9rem;
+    }
+
+    .insight-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 0.85rem 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .insight-card--highlight {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0));
+        border-color: rgba(59, 130, 246, 0.35);
+    }
+
+    .insight-card__label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .insight-card__value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .insight-card__value.positive {
+        color: #16a34a;
+    }
+
+    .insight-card__value.negative {
+        color: #dc2626;
+    }
+
+    .insight-card__muted {
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
+
+    .status-chip i {
+        font-size: 0.7rem;
+    }
+
+    .status-chip.status-new {
+        background: rgba(37, 99, 235, 0.15);
+        color: #1d4ed8;
+    }
+
+    .status-chip.status-learning {
+        background: rgba(234, 179, 8, 0.2);
+        color: #b45309;
+    }
+
+    .status-chip.status-review {
+        background: rgba(34, 197, 94, 0.2);
+        color: #047857;
+    }
+
+    .status-chip.status-relearning {
+        background: rgba(168, 85, 247, 0.2);
+        color: #6d28d9;
+    }
+
+    .status-chip.status-hard {
+        background: rgba(239, 68, 68, 0.2);
+        color: #b91c1c;
+    }
+
+    .status-chip.status-easy {
+        background: rgba(14, 165, 233, 0.2);
+        color: #0369a1;
+    }
+
+    .status-chip.status-suspended {
+        background: rgba(100, 116, 139, 0.25);
+        color: #1e293b;
+    }
+
+    .timeline-card {
+        background: #ffffff;
+        border: 1px dashed #cbd5f5;
+        border-radius: 16px;
+        padding: 1rem 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .timeline-item {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .timeline-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: #eff6ff;
+        color: #2563eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .timeline-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .timeline-value {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .timeline-subtle {
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .card-info-section {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .card-info-title {
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        color: #2563eb;
+        cursor: pointer;
+        user-select: none;
+        font-size: 0.9rem;
+    }
+
+    .card-info-title i {
+        margin-right: 0.5rem;
+        transition: transform 0.2s ease;
+    }
+
+    .card-info-title.collapsed i {
+        transform: rotate(-90deg);
+    }
+
+    .card-info-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease, padding 0.3s ease;
+        padding-top: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .card-info-content.open {
+        padding-top: 0.6rem;
+    }
+
+    .card-info-content p {
+        font-size: 0.85rem;
+        line-height: 1.5;
+        color: #475569;
+        margin: 0;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 0.75rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .card-info-content .label {
+        display: block;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 1rem;
+        border-radius: 14px;
+        border: 1px dashed #cbd5f5;
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    .empty-state i {
+        color: #3b82f6;
+    }
+
+    .statistics-card__footer {
+        margin-top: auto;
+        display: flex;
+        justify-content: center;
+    }
+
+    .session-end-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.75rem;
+        border-radius: 999px;
+        border: 1px solid #cbd5f5;
+        background: #f1f5f9;
+        color: #1e293b;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .session-end-btn:hover {
+        background: #e0e7ff;
+        border-color: #a5b4fc;
+        color: #1d4ed8;
+        box-shadow: 0 12px 24px rgba(165, 180, 252, 0.35);
+    }
+
+    .statistics-card--modal {
+        max-height: none;
+        overflow: visible;
+    }
+
+    @media (max-width: 1280px) {
+        .statistics-card {
+            max-width: none;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .session-overview {
+            grid-template-columns: 1fr;
+        }
+        .stats-tab-nav {
+            flex-direction: column;
+        }
+        .stats-tab-button {
+            width: 100%;
+        }
+        .insight-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .insight-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 <div class="statistics-card">
-    <h3 class="text-md font-semibold text-center text-gray-800 mb-3">Thống kê phiên học</h3>
-    
-    <div class="bg-gray-50 p-3 rounded-lg mb-4">
-        <div class="grid grid-cols-2 gap-2 text-center">
-            <div>
-                <span class="text-xs font-medium text-gray-500">Tổng điểm</span>
-                <div id="total-score-display" class="text-xl font-bold text-gray-800 flex items-center justify-center">
-                    <i class="fas fa-star text-yellow-400 mr-1"></i>
-                    <span>-</span>
-                </div>
-            </div>
-            <div>
-                <span class="text-xs font-medium text-gray-500">Điểm phiên này</span>
-                <div id="session-score-display" class="text-xl font-bold text-green-600">
-                    +0
-                </div>
-            </div>
+    <div class="statistics-card__header">
+        <div>
+            <span class="statistics-card__subtitle">Phiên học Flashcard</span>
+            <h3 class="statistics-card__title">Thống kê thời gian thực</h3>
         </div>
-    </div>
-    
-    <div class="stats-tab-nav">
-        <button class="stats-tab-button active" data-target="current-card-stats-pane">Thẻ hiện tại</button>
-        <button class="stats-tab-button" data-target="previous-card-stats-pane">Thẻ trước đó</button>
+        <span class="statistics-card__badge"><i class="fas fa-bolt"></i> Đang cập nhật</span>
     </div>
 
-    <div class="flex-grow">
+    <div class="session-overview">
+        <div class="summary-card summary-card--total">
+            <span class="summary-card__label">Tổng điểm</span>
+            <div id="total-score-display" class="summary-card__value">
+                <i class="fas fa-star"></i>
+                <span>-</span>
+            </div>
+            <p class="summary-card__hint">Cộng dồn toàn bộ điểm Flashcard</p>
+        </div>
+        <div class="summary-card summary-card--session">
+            <span class="summary-card__label">Điểm phiên này</span>
+            <div id="session-score-display" class="summary-card__value summary-card__value--accent">+0</div>
+            <p class="summary-card__hint">Cập nhật sau mỗi câu trả lời</p>
+        </div>
+    </div>
+
+    <div class="stats-tab-nav">
+        <button class="stats-tab-button active" data-target="current-card-stats-pane"><i class="fas fa-dot-circle"></i> Thẻ hiện tại</button>
+        <button class="stats-tab-button" data-target="previous-card-stats-pane"><i class="fas fa-history"></i> Thẻ trước đó</button>
+    </div>
+
+    <div class="stats-tab-content">
         <div id="current-card-stats-pane" class="stats-tab-pane active">
-            <div id="current-card-stats" class="flex-grow space-y-4">
-                <div class="text-center text-gray-500 text-sm">
-                    <i class="fas fa-info-circle mr-2"></i> Đang tải thông tin thẻ...
-                </div>
+            <div id="current-card-stats" class="stats-stack">
+                <div class="empty-state"><i class="fas fa-circle-notch fa-spin"></i> Đang tải thông tin thẻ...</div>
             </div>
         </div>
         <div id="previous-card-stats-pane" class="stats-tab-pane">
-            <div id="previous-card-stats" class="flex-grow space-y-4">
-                <div class="text-center text-gray-500 text-sm">
-                    <i class="fas fa-info-circle mr-2"></i> Trả lời thẻ để xem thống kê.
-                </div>
+            <div id="previous-card-stats" class="stats-stack">
+                <div class="empty-state"><i class="fas fa-info-circle"></i> Trả lời thẻ để xem thống kê gần nhất.</div>
             </div>
         </div>
     </div>
 
-    <hr class="my-4">
-    <div class="mt-auto flex justify-center">
-        <button id="end-session-btn" class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 shadow-sm text-sm">Kết thúc phiên</button>
+    <div class="statistics-card__footer">
+        <button id="end-session-btn" class="session-end-btn"><i class="fas fa-flag-checkered"></i> <span>Kết thúc phiên</span></button>
     </div>
 </div>
