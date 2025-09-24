@@ -3,8 +3,8 @@
 # MỤC ĐÍCH: Cập nhật logic thống kê để phản ánh đầy đủ các chỉ số của SM-2.
 # ĐÃ SỬA: Thay đổi cách tính correct_rate, hard_count và thêm các chỉ số SM-2.
 
-from ....models import db, FlashcardProgress
-import datetime
+from ....models import FlashcardProgress
+
 
 def get_flashcard_item_statistics(user_id, item_id):
     """
@@ -19,37 +19,78 @@ def get_flashcard_item_statistics(user_id, item_id):
     """
     progress = FlashcardProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
 
-    if not progress or not progress.review_history:
-        return {
-            'times_reviewed': 0,
-            'correct_count': 0,
-            'incorrect_count': 0,
-            'vague_count': 0, # ĐÃ SỬA: Đổi hard_count thành vague_count
-            'correct_rate': 0.0,
-            'current_streak': 0,
-            'longest_streak': 0,
-            'first_seen': None,
-            'last_reviewed': None,
-            'next_review': None,
-            'easiness_factor': 2.5,
-            'repetitions': 0,
-            'interval': 0,
-            'status': 'new'
-        }
+    base_stats = {
+        'times_reviewed': 0,
+        'correct_count': 0,
+        'incorrect_count': 0,
+        'vague_count': 0,
+        'correct_rate': 0.0,
+        'current_streak': 0,
+        'longest_streak': 0,
+        'first_seen': None,
+        'last_reviewed': None,
+        'next_review': None,
+        'easiness_factor': 2.5,
+        'repetitions': 0,
+        'interval': 0,
+        'status': 'new',
+        'preview_count': 0,
+        'has_real_reviews': False,
+        'has_preview_history': False,
+        'has_preview_only': False,
+    }
 
-    total_reviews = len(progress.review_history)
+    if not progress:
+        return base_stats
+
+    stats = base_stats.copy()
+    stats.update({
+        'first_seen': progress.first_seen_timestamp.isoformat() if progress.first_seen_timestamp else None,
+        'last_reviewed': progress.last_reviewed.isoformat() if progress.last_reviewed else None,
+        'next_review': progress.due_time.isoformat() if progress.due_time else None,
+        'easiness_factor': round(progress.easiness_factor, 2),
+        'repetitions': progress.repetitions,
+        'interval': progress.interval,
+        'status': progress.status,
+    })
+
+    history = progress.review_history or []
+    if not history:
+        return stats
+
+    preview_entries = []
+    review_qualities = []
+    for entry in history:
+        quality = entry.get('user_answer_quality')
+        if quality is None:
+            preview_entries.append(entry)
+            continue
+
+        try:
+            quality_value = int(quality)
+        except (TypeError, ValueError):
+            try:
+                quality_value = float(quality)
+            except (TypeError, ValueError):
+                quality_value = 0
+
+        review_qualities.append(quality_value)
+
+    stats['preview_count'] = len(preview_entries)
+    stats['has_preview_history'] = stats['preview_count'] > 0
+
+    if not review_qualities:
+        stats['has_preview_only'] = stats['has_preview_history']
+        return stats
+
+    total_reviews = len(review_qualities)
     correct_count = 0
     incorrect_count = 0
-    vague_count = 0 # ĐÃ SỬA: Đổi hard_count thành vague_count
+    vague_count = 0
     current_streak = 0
     longest_streak = 0
-    
-    # Tính toán các thống kê dựa trên review_history
-    for review in progress.review_history:
-        quality = review.get('user_answer_quality', 0)
-        
-        # SỬA: Logic tính các chỉ số dựa trên SM-2
-        # Quality 3, 4, 5 được coi là đúng
+
+    for quality in review_qualities:
         if quality >= 3:
             correct_count += 1
             current_streak += 1
@@ -58,32 +99,25 @@ def get_flashcard_item_statistics(user_id, item_id):
             if current_streak > longest_streak:
                 longest_streak = current_streak
             current_streak = 0
-        
-        # Quality 2 được coi là mơ hồ
-        if quality == 2:
-            vague_count += 1 # ĐÃ SỬA: Đếm số lần trả lời mơ hồ
 
-    # Cập nhật longest_streak cuối cùng
+        if quality == 2:
+            vague_count += 1
+
     if current_streak > longest_streak:
         longest_streak = current_streak
 
-    # SỬA: Tỉ lệ đúng được tính dựa trên số lần đúng so với tổng số lần trả lời
     correct_rate = (correct_count / total_reviews) * 100 if total_reviews > 0 else 0.0
 
-    stats = {
+    stats.update({
         'times_reviewed': total_reviews,
         'correct_count': correct_count,
         'incorrect_count': incorrect_count,
-        'vague_count': vague_count, # ĐÃ SỬA: Trả về vague_count
+        'vague_count': vague_count,
         'correct_rate': round(correct_rate, 2),
         'current_streak': current_streak,
         'longest_streak': longest_streak,
-        'first_seen': progress.first_seen_timestamp.isoformat() if progress.first_seen_timestamp else None,
-        'last_reviewed': progress.last_reviewed.isoformat() if progress.last_reviewed else None,
-        'next_review': progress.due_time.isoformat() if progress.due_time else None,
-        'easiness_factor': round(progress.easiness_factor, 2),
-        'repetitions': progress.repetitions,
-        'interval': progress.interval,
-        'status': progress.status
-    }
+        'has_real_reviews': True,
+        'has_preview_only': stats['has_preview_history'] and total_reviews == 0,
+    })
+
     return stats

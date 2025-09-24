@@ -167,12 +167,28 @@
         height: 100%;
         position: relative;
         background: #fff;
-        border: 1px solid #e5e7eb;
+        border: 2px solid #e5e7eb;
         border-radius: 12px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
         overflow: hidden;
         transform-style: preserve-3d;
         -webkit-transform-style: preserve-3d;
+        transition: box-shadow .3s ease, border-color .3s ease;
+    }
+
+    .flashcard-card.flashcard-card--new {
+        border-color: #22c55e;
+        box-shadow: 0 12px 32px rgba(34, 197, 94, 0.25);
+    }
+
+    .flashcard-card.flashcard-card--due {
+        border-color: #f97316;
+        box-shadow: 0 12px 32px rgba(249, 115, 22, 0.25);
+    }
+
+    .flashcard-card.flashcard-card--hard {
+        border-color: #ef4444;
+        box-shadow: 0 12px 32px rgba(239, 68, 68, 0.28);
     }
 
     .face {
@@ -403,10 +419,30 @@
         box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
         cursor: pointer;
         font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        transition: transform .2s ease, box-shadow .2s ease;
         flex-grow: 1;
         flex-shrink: 1;
         flex-basis: 0;
         white-space: nowrap;
+    }
+
+    .btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+    }
+
+    .btn-continue {
+        background: linear-gradient(135deg, #2563eb, #16a34a);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-continue:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.3);
     }
 
     .btn-red-dark { background-color: #dc2626; }
@@ -415,6 +451,19 @@
     .btn-yellow-light { background-color: #facc15; }
     .btn-green-light { background-color: #10b981; }
     .btn-green-dark { background-color: #059669; }
+
+    .actions[data-button-count="1"] {
+        display: flex !important;
+        justify-content: center;
+    }
+
+    .actions[data-button-count="1"] .btn {
+        flex-basis: auto;
+        flex-grow: 0;
+        min-width: 180px;
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
 
     @media (max-width: 768px) {
         .btn {
@@ -435,6 +484,13 @@
             display: grid !important;
             grid-template-columns: repeat(3, 1fr);
             gap: 0.5rem;
+        }
+        .actions[data-button-count="1"] {
+            display: flex !important;
+            justify-content: center;
+        }
+        .actions[data-button-count="1"] .btn {
+            min-width: 140px;
         }
     }
 
@@ -629,6 +685,32 @@
     .stat-box.status .value {
         text-transform: capitalize;
     }
+
+    .flashcard-status-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    .flashcard-status-banner i {
+        font-size: 1rem;
+    }
+
+    .flashcard-status-banner--new {
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.35);
+        color: #047857;
+    }
+
+    .flashcard-status-banner--preview {
+        background: rgba(37, 99, 235, 0.12);
+        border: 1px solid rgba(37, 99, 235, 0.35);
+        color: #1d4ed8;
+    }
   </style>
 {% endblock %}
 
@@ -731,6 +813,53 @@
       const d = document.createElement('div');
       d.textContent = text;
       return d.innerHTML.replace(/\r?\n/g,'<br>');
+    }
+
+    function shouldShowPreviewOnly(initialStats = {}) {
+      const hasRealReviews = Boolean(initialStats.has_real_reviews);
+      if (hasRealReviews) return false;
+
+      const previewCount = initialStats.preview_count ?? 0;
+      const hasPreviewHistory = Boolean(initialStats.has_preview_history);
+
+      if (hasPreviewHistory && previewCount > 0) {
+        return false;
+      }
+
+      return previewCount === 0;
+    }
+
+    function determineCardCategory(cardData) {
+      if (!cardData) return '';
+
+      const stats = cardData.initial_stats || {};
+      const hasPreviewHistory = Boolean(stats.has_preview_history);
+      const hasRealReviews = Boolean(stats.has_real_reviews);
+
+      if (!hasPreviewHistory && !hasRealReviews) {
+        return 'new';
+      }
+
+      if (stats.status === 'hard') {
+        return 'hard';
+      }
+
+      if (stats.has_preview_only) {
+        return 'due';
+      }
+
+      if (stats.next_review) {
+        const dueDate = new Date(stats.next_review);
+        if (!Number.isNaN(dueDate.getTime()) && dueDate <= new Date()) {
+          return 'due';
+        }
+      }
+
+      return '';
+    }
+
+    function getPreviewButtonHtml() {
+      return '<button class="btn btn-continue" data-answer="continue"><i class="fas fa-arrow-right"></i>Tiếp tục</button>';
     }
 
     function updateSessionSummary(){
@@ -836,14 +965,23 @@
       const setId = data.container_id;
       const fTxt = c.front || '';
       const bTxt = c.back || '';
-      const buttonsHtml = generateDynamicButtons(userButtonCount);
+      const initialStats = data.initial_stats || {};
+      const cardCategory = determineCardCategory(data);
+      const showPreviewOnly = shouldShowPreviewOnly(initialStats);
+      const buttonsHtml = showPreviewOnly ? getPreviewButtonHtml() : generateDynamicButtons(userButtonCount);
+      const buttonCount = showPreviewOnly ? 1 : userButtonCount;
       const isMobile = window.innerWidth < 1024;
-      
+
       const toolbars = getCardToolbar(isMobile, itemId, setId);
+
+      const cardClassNames = ['flashcard-card'];
+      if (cardCategory) {
+        cardClassNames.push(`flashcard-card--${cardCategory}`);
+      }
 
       const html = `
       <div class="flashcard-card-container">
-        <div id="flashcard-card" class="flashcard-card">
+        <div id="flashcard-card" class="${cardClassNames.join(' ')}" data-card-category="${cardCategory || 'default'}">
           <div class="face front">
             ${toolbars.front}
             <div class="_card-container">
@@ -861,16 +999,23 @@
               <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div></div>
               ${c.back_img ? `<div class="media-container"><img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"><button class="close-media-btn">&times;</button></div>` : ''}
             </div>
-            <div class="actions" id="internal-actions" data-button-count="${userButtonCount}">${buttonsHtml}</div>
+            <div class="actions" id="internal-actions" data-button-count="${buttonCount}">${buttonsHtml}</div>
             <audio id="back-audio" class="hidden" src="${c.back_audio_url || ''}"></audio>
           </div>
         </div>
       </div>`;
       flashcardContentDiv.innerHTML = html;
+      if (Array.isArray(currentFlashcardBatch) && currentFlashcardBatch[currentFlashcardIndex]) {
+        currentFlashcardBatch[currentFlashcardIndex].card_category = cardCategory;
+      }
       const card = document.getElementById('flashcard-card');
       const actions = document.getElementById('internal-actions');
       const flipBtn = document.getElementById('flip-card-btn');
-      
+
+      if (card) {
+        card.dataset.cardCategory = cardCategory || 'default';
+      }
+
       if (flipBtn) {
         flipBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -1006,8 +1151,16 @@
         const scoreChangeSign = scoreChange > 0 ? '+' : '';
         const formattedInterval = formatMinutesAsDuration(stats.interval);
         const formattedIntervalDisplay = formattedInterval || 'Chưa có';
+        const isBrandNew = !stats.has_preview_history && !stats.has_real_reviews;
+        const isPreviewStage = stats.has_preview_history && !stats.has_real_reviews;
+        const introNotice = isBrandNew
+            ? `<div class="flashcard-status-banner flashcard-status-banner--new"><i class="fas fa-seedling"></i><span>Thẻ mới - hãy khám phá nội dung trước khi đánh giá.</span></div>`
+            : (isPreviewStage
+                ? `<div class="flashcard-status-banner flashcard-status-banner--preview"><i class="fas fa-hourglass-half"></i><span>Thẻ đang ở bước giới thiệu. Nhấn "Tiếp tục" để chuyển sang bước đánh giá.</span></div>`
+                : '');
 
         return `
+            ${introNotice}
             <div class="space-y-4">
                 <div class="progress-bar-group"><div class="progress-bar-label"><span>Nhớ (${correctCount})</span><span>${Math.round(correctPercentage)}%</span></div><div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-correct" style="width: ${correctPercentage}%;"></div></div></div>
                 <div class="progress-bar-group"><div class="progress-bar-label"><span>Mơ hồ (${vagueCount})</span><span>${Math.round(vaguePercentage)}%</span></div><div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-vague" style="width: ${vaguePercentage}%;"></div></div></div>
