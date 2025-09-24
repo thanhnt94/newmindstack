@@ -230,8 +230,10 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         progress.due_time = calculate_next_review_time(progress, user_answer_quality)
 
     if progress.status == 'learning':
-        total_reviews = len(progress.review_history)
-        total_quality_score = sum(entry.get('user_answer_quality', 0) for entry in progress.review_history)
+        review_history = progress.review_history or []
+        filtered_history = [entry for entry in review_history if isinstance(entry, dict)]
+        total_reviews = len(filtered_history)
+        total_quality_score = sum((entry.get('user_answer_quality') or 0) for entry in filtered_history)
         average_quality = total_quality_score / total_reviews if total_reviews > 0 else 0
         
         if total_reviews >= 7 and average_quality > 3.0:
