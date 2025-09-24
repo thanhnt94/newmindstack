@@ -927,10 +927,18 @@
       return generateAndPlayAudio(button, audioPlayer, { awaitCompletion, suppressLoadingUi, restart });
     }
 
+    function autoPlaySide(side) {
+      const button = document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+      if (!button) return;
+      playAudioForButton(button, { suppressLoadingUi: true }).catch(() => {});
+    }
+
     function autoPlayFrontSide() {
-      const frontButton = document.querySelector('.play-audio-btn[data-side="front"]');
-      if (!frontButton) return;
-      playAudioForButton(frontButton, { suppressLoadingUi: true }).catch(() => {});
+      autoPlaySide('front');
+    }
+
+    function autoPlayBackSide() {
+      autoPlaySide('back');
     }
 
     function cancelAutoplaySequence() {
@@ -1215,6 +1223,9 @@
             actions?.classList.add('visible');
             flipBtn.style.display = 'none';
             setTimeout(adjustCardLayout, 0);
+            if (!isAutoplaySession) {
+                autoPlayBackSide();
+            }
         });
       }
       
