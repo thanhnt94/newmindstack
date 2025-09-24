@@ -209,12 +209,18 @@ class FlashcardSessionManager:
                 current_user_total_score=current_user_total_score
             )
             
-            if answer_result_type == 'correct': self.correct_answers += 1
-            elif answer_result_type == 'vague': self.vague_answers += 1
-            elif answer_result_type == 'incorrect': self.incorrect_answers += 1
+            if answer_result_type == 'correct':
+                self.correct_answers += 1
+            elif answer_result_type == 'vague':
+                self.vague_answers += 1
+            elif answer_result_type == 'incorrect':
+                self.incorrect_answers += 1
+            elif answer_result_type == 'preview':
+                if item_id in self.processed_item_ids:
+                    self.processed_item_ids.remove(item_id)
 
             session[self.SESSION_KEY] = self.to_dict()
-            session.modified = True 
+            session.modified = True
             
             return {
                 'success': True,

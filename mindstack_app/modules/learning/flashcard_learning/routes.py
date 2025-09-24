@@ -245,18 +245,23 @@ def submit_flashcard_answer():
                 current_app.logger.error(f"Lỗi khi cập nhật last_accessed cho bộ thẻ {s_id}: {e}", exc_info=True)
                 
     user_button_count = current_user.flashcard_button_count or 3
-    quality_map = {}
-    
-    # SỬA ĐỔI: Ánh xạ các nút về thang điểm 0-5
-    if user_button_count == 3:
-        quality_map = {'quên': 0, 'mơ_hồ': 3, 'nhớ': 5}
-    elif user_button_count == 4:
-        quality_map = {'again': 0, 'hard': 1, 'good': 3, 'easy': 5}
-    elif user_button_count == 6:
-        quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 4, 'very_easy': 5}
+    normalized_answer = str(user_answer).lower()
 
-    user_answer_quality = quality_map.get(str(user_answer).lower(), 0)
-    
+    if normalized_answer == 'continue':
+        user_answer_quality = None
+    else:
+        quality_map = {}
+
+        # SỬA ĐỔI: Ánh xạ các nút về thang điểm 0-5
+        if user_button_count == 3:
+            quality_map = {'quên': 0, 'mơ_hồ': 3, 'nhớ': 5}
+        elif user_button_count == 4:
+            quality_map = {'again': 0, 'hard': 1, 'good': 3, 'easy': 5}
+        elif user_button_count == 6:
+            quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 4, 'very_easy': 5}
+
+        user_answer_quality = quality_map.get(normalized_answer, 0)
+
     result = session_manager.process_flashcard_answer(item_id, user_answer_quality)
     if 'error' in result:
         current_app.logger.error(f"Lỗi trong quá trình process_flashcard_answer: {result.get('error')}")

@@ -75,6 +75,34 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         db.session.add(progress)
         progress.first_seen_timestamp = func.now()
 
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    if user_answer_quality is None:
+        if progress.review_history is None:
+            progress.review_history = []
+
+        preview_entry = {
+            'timestamp': now.isoformat(),
+            'user_answer_quality': None,
+            'type': 'preview'
+        }
+        progress.review_history.append(preview_entry)
+        flag_modified(progress, "review_history")
+
+        if not progress.first_seen_timestamp:
+            progress.first_seen_timestamp = now
+
+        progress.due_time = now
+        db.session.commit()
+
+        user = User.query.get(user_id)
+        updated_total_score = user.total_score if user else current_user_total_score
+
+        from .flashcard_stats_logic import get_flashcard_item_statistics
+        item_stats = get_flashcard_item_statistics(user_id, item_id)
+
+        return 0, updated_total_score, 'preview', progress.status, item_stats
+
     # Khắc phục lỗi so sánh timezone-aware và timezone-naive
     now = datetime.datetime.now(datetime.timezone.utc)
     # Gán múi giờ cho due_time nếu nó tồn tại và chưa có múi giờ
