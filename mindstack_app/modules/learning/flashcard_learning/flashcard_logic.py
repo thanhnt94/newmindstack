@@ -4,7 +4,6 @@
 # ĐÃ SỬA: Khắc phục lỗi so sánh datetime bằng cách đảm bảo cả hai đối tượng đều là timezone-aware.
 
 from ....models import db, User, LearningItem, FlashcardProgress, ScoreLog
-from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
 import datetime
 import math
@@ -56,7 +55,7 @@ def calculate_next_review_time(progress, quality):
 # III. HÀM XỬ LÝ CHÍNH
 # ==============================================================================
 
-def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user_total_score):
+def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user_total_score, mode=None):
     """
     Mô tả: Xử lý một câu trả lời Flashcard, cập nhật tiến trình, tính điểm và ghi log.
     """
@@ -66,16 +65,21 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     if not item:
         return 0, current_user_total_score, 'error', "Lỗi: Không tìm thấy thẻ.", None
 
+    is_all_review_mode = mode == 'all_review'
+
     progress = FlashcardProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
+    now = datetime.datetime.now(datetime.timezone.utc)
     if not progress:
         progress = FlashcardProgress(
             user_id=user_id, item_id=item_id, status='new',
             easiness_factor=2.5, repetitions=0, interval=0
         )
         db.session.add(progress)
-        progress.first_seen_timestamp = func.now()
-
-    now = datetime.datetime.now(datetime.timezone.utc)
+        progress.first_seen_timestamp = now
+    elif progress.first_seen_timestamp is None:
+        progress.first_seen_timestamp = now
+    elif progress.first_seen_timestamp.tzinfo is None:
+        progress.first_seen_timestamp = progress.first_seen_timestamp.replace(tzinfo=datetime.timezone.utc)
 
     if user_answer_quality is None:
         if progress.review_history is None:
@@ -89,10 +93,18 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         progress.review_history.append(preview_entry)
         flag_modified(progress, "review_history")
 
-        if not progress.first_seen_timestamp:
-            progress.first_seen_timestamp = now
+        if progress.status == 'new':
+            progress.status = 'learning'
+            progress.repetitions = 1
+            preview_interval_minutes = _get_next_learning_interval(progress.repetitions)
+        else:
+            progress.repetitions = progress.repetitions or 1
+            preview_interval_minutes = progress.interval or _get_next_learning_interval(progress.repetitions)
 
-        progress.due_time = now
+        progress.interval = preview_interval_minutes
+        progress.due_time = now + datetime.timedelta(minutes=preview_interval_minutes)
+        progress.last_reviewed = now
+
         db.session.commit()
 
         user = User.query.get(user_id)
@@ -157,7 +169,7 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     if progress.status == 'new':
         progress.status = 'learning'
 
-    progress.last_reviewed = func.now()
+    progress.last_reviewed = now
     if progress.review_history is None:
         progress.review_history = []
     
@@ -179,22 +191,23 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
     is_correct_response = user_answer_quality >= 4
     is_incorrect_response = user_answer_quality < 2
 
-    if progress.status == 'reviewing':
-        if is_incorrect_response:
-            progress.status = 'learning'
-            progress.repetitions = 0
-            progress.easiness_factor = max(1.3, progress.easiness_factor - 0.2)
+    if not is_all_review_mode:
+        if progress.status == 'reviewing':
+            if is_incorrect_response:
+                progress.status = 'learning'
+                progress.repetitions = 0
+                progress.easiness_factor = max(1.3, progress.easiness_factor - 0.2)
+            else:
+                progress.repetitions = (progress.repetitions or 0) + 1
+                progress.easiness_factor += (0.1 - (5 - user_answer_quality) * (0.08 + (5 - user_answer_quality) * 0.02))
+                if progress.easiness_factor < 1.3: progress.easiness_factor = 1.3
         else:
-            progress.repetitions = (progress.repetitions or 0) + 1
-            progress.easiness_factor += (0.1 - (5 - user_answer_quality) * (0.08 + (5 - user_answer_quality) * 0.02))
-            if progress.easiness_factor < 1.3: progress.easiness_factor = 1.3
-    else:
-        if is_correct_response:
-            progress.repetitions = (progress.repetitions or 0) + 1
-        elif is_incorrect_response:
-            progress.repetitions = 0
-            
-    progress.due_time = calculate_next_review_time(progress, user_answer_quality)
+            if is_correct_response:
+                progress.repetitions = (progress.repetitions or 0) + 1
+            elif is_incorrect_response:
+                progress.repetitions = 0
+
+        progress.due_time = calculate_next_review_time(progress, user_answer_quality)
 
     if progress.status == 'learning':
         total_reviews = len(progress.review_history)

@@ -11,6 +11,7 @@ from .algorithms import (
     get_due_items,
     get_hard_items,
     get_mixed_items,
+    get_all_review_items,
     get_accessible_flashcard_set_ids,
 )
 from .flashcard_logic import process_flashcard_answer
@@ -80,7 +81,13 @@ class FlashcardSessionManager:
         mode_config = next((m for m in FlashcardLearningConfig.FLASHCARD_MODES if m['id'] == mode), None)
         if not mode_config: return False
 
-        algorithm_func = {'new_only': get_new_only_items, 'due_only': get_due_items, 'hard_only': get_hard_items, 'mixed_srs': get_mixed_items}.get(mode)
+        algorithm_func = {
+            'new_only': get_new_only_items,
+            'due_only': get_due_items,
+            'hard_only': get_hard_items,
+            'mixed_srs': get_mixed_items,
+            'all_review': get_all_review_items,
+        }.get(mode)
         if not algorithm_func: return False
 
         accessible_ids = set(get_accessible_flashcard_set_ids(user_id))
@@ -149,19 +156,48 @@ class FlashcardSessionManager:
 
     def get_next_batch(self):
         next_item = None
-        due_item = get_due_items(self.user_id, self.set_id, None).filter(
-            LearningItem.item_id.notin_(self.processed_item_ids)
-        ).order_by(FlashcardProgress.due_time.asc()).first()
-        
-        if due_item:
-            next_item = due_item
-        else:
-            new_item = get_new_only_items(self.user_id, self.set_id, None).filter(
-                LearningItem.item_id.notin_(self.processed_item_ids)
-            ).order_by(LearningItem.order_in_container.asc()).first()
-            if new_item: next_item = new_item
+        exclusion_condition = None
+        if self.processed_item_ids:
+            exclusion_condition = LearningItem.item_id.notin_(self.processed_item_ids)
 
-        if not next_item: return None
+        def apply_exclusion(query):
+            if exclusion_condition is not None:
+                return query.filter(exclusion_condition)
+            return query
+
+        if self.mode == 'new_only':
+            query = apply_exclusion(
+                get_new_only_items(self.user_id, self.set_id, None)
+            ).order_by(LearningItem.order_in_container.asc())
+            next_item = query.first()
+        elif self.mode == 'due_only':
+            query = apply_exclusion(
+                get_due_items(self.user_id, self.set_id, None)
+            ).order_by(FlashcardProgress.due_time.asc())
+            next_item = query.first()
+        elif self.mode == 'hard_only':
+            query = apply_exclusion(
+                get_hard_items(self.user_id, self.set_id, None)
+            ).order_by(FlashcardProgress.due_time.asc(), LearningItem.item_id.asc())
+            next_item = query.first()
+        elif self.mode == 'all_review':
+            query = apply_exclusion(
+                get_all_review_items(self.user_id, self.set_id, None)
+            ).order_by(FlashcardProgress.due_time.asc(), LearningItem.item_id.asc())
+            next_item = query.first()
+        else:
+            due_query = apply_exclusion(
+                get_due_items(self.user_id, self.set_id, None)
+            ).order_by(FlashcardProgress.due_time.asc())
+            next_item = due_query.first()
+            if not next_item:
+                new_query = apply_exclusion(
+                    get_new_only_items(self.user_id, self.set_id, None)
+                ).order_by(LearningItem.order_in_container.asc())
+                next_item = new_query.first()
+
+        if not next_item:
+            return None
 
         # ĐÃ THÊM: Lấy thống kê ban đầu cho thẻ sắp hiển thị
         initial_stats = get_flashcard_item_statistics(self.user_id, next_item.item_id)
@@ -206,7 +242,8 @@ class FlashcardSessionManager:
                 user_id=self.user_id,
                 item_id=item_id,
                 user_answer_quality=user_answer_quality,
-                current_user_total_score=current_user_total_score
+                current_user_total_score=current_user_total_score,
+                mode=self.mode
             )
             
             if answer_result_type == 'correct':
