@@ -388,6 +388,7 @@ def get_flashcard_mode_counts(user_id, set_identifier):
         'mixed_srs': get_mixed_items,
         'new_only': get_new_only_items,
         'due_only': get_due_items,
+        'all_review': get_all_review_items,
         'hard_only': get_hard_items,
     }
 

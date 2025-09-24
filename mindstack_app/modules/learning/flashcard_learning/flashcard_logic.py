@@ -85,6 +85,9 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         if progress.review_history is None:
             progress.review_history = []
 
+        is_first_preview = len(progress.review_history) == 0
+        was_new_card = progress.status == 'new'
+
         preview_entry = {
             'timestamp': now.isoformat(),
             'user_answer_quality': None,
@@ -93,7 +96,7 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         progress.review_history.append(preview_entry)
         flag_modified(progress, "review_history")
 
-        if progress.status == 'new':
+        if was_new_card:
             progress.status = 'learning'
             progress.repetitions = 1
             preview_interval_minutes = _get_next_learning_interval(progress.repetitions)
@@ -105,15 +108,32 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         progress.due_time = now + datetime.timedelta(minutes=preview_interval_minutes)
         progress.last_reviewed = now
 
+        user = User.query.get(user_id)
+        score_change = 0
+        if is_first_preview and was_new_card:
+            score_change = 10
+            if user:
+                user.total_score = (user.total_score or 0) + score_change
+            new_score_log = ScoreLog(
+                user_id=user_id,
+                item_id=item_id,
+                score_change=score_change,
+                reason="Flashcard New Card Preview Bonus",
+                item_type='FLASHCARD'
+            )
+            db.session.add(new_score_log)
+
         db.session.commit()
 
-        user = User.query.get(user_id)
-        updated_total_score = user.total_score if user else current_user_total_score
+        if user:
+            updated_total_score = user.total_score
+        else:
+            updated_total_score = current_user_total_score + score_change
 
         from .flashcard_stats_logic import get_flashcard_item_statistics
         item_stats = get_flashcard_item_statistics(user_id, item_id)
 
-        return 0, updated_total_score, 'preview', progress.status, item_stats
+        return score_change, updated_total_score, 'preview', progress.status, item_stats
 
     # Khắc phục lỗi so sánh timezone-aware và timezone-naive
     now = datetime.datetime.now(datetime.timezone.utc)
