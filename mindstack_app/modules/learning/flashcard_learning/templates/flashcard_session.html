@@ -807,6 +807,27 @@
     const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
     const regenerateAudioUrl = "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}";
     const userButtonCount = {{ user_button_count }};
+    const isAutoplaySession = {{ 'true' if is_autoplay_session else 'false' }};
+    const autoplayMode = "{{ autoplay_mode }}";
+    let autoplayDelaySeconds = 2;
+    let currentAutoplayToken = 0;
+    let currentAutoplayTimeouts = [];
+    let currentCardElements = { card: null, actions: null, flipBtn: null };
+
+    if (isAutoplaySession) {
+      try {
+        const storedSettings = localStorage.getItem('flashcardAutoplaySettings');
+        if (storedSettings) {
+          const parsedSettings = JSON.parse(storedSettings);
+          if (parsedSettings && typeof parsedSettings.delaySeconds === 'number' && parsedSettings.delaySeconds >= 0) {
+            autoplayDelaySeconds = parsedSettings.delaySeconds;
+          }
+        }
+      } catch (err) {
+        console.warn('Không thể đọc cấu hình AutoPlay:', err);
+      }
+      document.body.classList.add('flashcard-autoplay-active');
+    }
     
     const getNoteUrl = "{{ url_for('notes.get_note', item_id=0) }}";
     const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
@@ -816,6 +837,169 @@
       const d = document.createElement('div');
       d.textContent = text;
       return d.innerHTML.replace(/\r?\n/g,'<br>');
+    }
+
+    function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = false } = {}) {
+      return new Promise(resolve => {
+        if (!audioPlayer) {
+          resolve();
+          return;
+        }
+
+        const cleanup = () => {
+          audioPlayer.removeEventListener('canplay', onCanPlay);
+          if (awaitCompletion) {
+            audioPlayer.removeEventListener('ended', onEnded);
+            audioPlayer.removeEventListener('error', onError);
+          }
+        };
+
+        const onEnded = () => {
+          cleanup();
+          resolve();
+        };
+
+        const onError = () => {
+          cleanup();
+          resolve();
+        };
+
+        const onCanPlay = () => {
+          audioPlayer.removeEventListener('canplay', onCanPlay);
+          if (restart) {
+            try {
+              audioPlayer.pause();
+              audioPlayer.currentTime = 0;
+            } catch (err) {
+              console.warn('Không thể đặt lại audio:', err);
+            }
+          }
+          const playPromise = audioPlayer.play();
+          if (!awaitCompletion) {
+            cleanup();
+            if (playPromise && typeof playPromise.catch === 'function') {
+              playPromise.catch(() => {});
+            }
+            resolve();
+          } else if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => {
+              cleanup();
+              resolve();
+            });
+          }
+        };
+
+        if (awaitCompletion) {
+          audioPlayer.addEventListener('ended', onEnded, { once: true });
+          audioPlayer.addEventListener('error', onError, { once: true });
+        }
+
+        if (audioPlayer.readyState >= 2) {
+          onCanPlay();
+        } else {
+          audioPlayer.addEventListener('canplay', onCanPlay);
+          try {
+            audioPlayer.load();
+          } catch (err) {
+            cleanup();
+            resolve();
+          }
+        }
+      });
+    }
+
+    function playAudioForButton(button, options = {}) {
+      if (!button) return Promise.resolve();
+      const audioPlayer = document.querySelector(button.dataset.audioTarget);
+      if (!audioPlayer || button.classList.contains('is-disabled')) {
+        return Promise.resolve();
+      }
+
+      const awaitCompletion = options.await === true;
+      const restart = options.restart !== false;
+      const suppressLoadingUi = options.suppressLoadingUi === true;
+      const hasAudioSource = audioPlayer.src && audioPlayer.src !== window.location.href;
+
+      if (hasAudioSource) {
+        return playAudioAfterLoad(audioPlayer, { restart, awaitCompletion });
+      }
+
+      return generateAndPlayAudio(button, audioPlayer, { awaitCompletion, suppressLoadingUi, restart });
+    }
+
+    function autoPlayFrontSide() {
+      const frontButton = document.querySelector('.play-audio-btn[data-side="front"]');
+      if (!frontButton) return;
+      playAudioForButton(frontButton, { suppressLoadingUi: true }).catch(() => {});
+    }
+
+    function cancelAutoplaySequence() {
+      currentAutoplayToken += 1;
+      currentAutoplayTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+      currentAutoplayTimeouts = [];
+    }
+
+    function waitForAutoplayDelay(token) {
+      return new Promise(resolve => {
+        const delayMs = Math.max(0, autoplayDelaySeconds) * 1000;
+        if (delayMs === 0) {
+          resolve();
+          return;
+        }
+        const timeoutId = setTimeout(() => {
+          currentAutoplayTimeouts = currentAutoplayTimeouts.filter(id => id !== timeoutId);
+          if (token === currentAutoplayToken) {
+            resolve();
+          }
+        }, delayMs);
+        currentAutoplayTimeouts.push(timeoutId);
+      });
+    }
+
+    async function playAutoplayAudioForSide(side, token) {
+      if (token !== currentAutoplayToken) return;
+      const button = document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+      if (!button) return;
+      try {
+        await playAudioForButton(button, { await: true, suppressLoadingUi: true });
+      } catch (err) {
+        console.warn('Không thể phát audio tự động:', err);
+      }
+    }
+
+    function revealBackSideForAutoplay(token) {
+      if (token !== currentAutoplayToken) return;
+      const { card, actions, flipBtn } = currentCardElements;
+      if (!card) return;
+      if (!card.classList.contains('flipped')) {
+        card.classList.add('flipped');
+        actions?.classList.add('visible');
+        if (flipBtn) {
+          flipBtn.style.display = 'none';
+        }
+        setTimeout(adjustCardLayout, 0);
+      } else if (actions) {
+        actions.classList.add('visible');
+      }
+    }
+
+    async function startAutoplaySequence() {
+      cancelAutoplaySequence();
+      const token = currentAutoplayToken;
+      try {
+        await playAutoplayAudioForSide('front', token);
+        if (token !== currentAutoplayToken) return;
+        await waitForAutoplayDelay(token);
+        if (token !== currentAutoplayToken) return;
+        revealBackSideForAutoplay(token);
+        await playAutoplayAudioForSide('back', token);
+        if (token !== currentAutoplayToken) return;
+        await waitForAutoplayDelay(token);
+        if (token !== currentAutoplayToken) return;
+        getNextFlashcardBatch();
+      } catch (err) {
+        console.warn('AutoPlay gặp lỗi:', err);
+      }
     }
 
     function shouldShowPreviewOnly(initialStats = {}) {
@@ -963,6 +1147,9 @@
     }
 
     function renderCard(data){
+      if (isAutoplaySession) {
+        cancelAutoplaySequence();
+      }
       const c = data.content;
       const itemId = data.item_id;
       const setId = data.container_id;
@@ -971,8 +1158,9 @@
       const initialStats = data.initial_stats || {};
       const cardCategory = determineCardCategory(data);
       const showPreviewOnly = shouldShowPreviewOnly(initialStats);
-      const buttonsHtml = showPreviewOnly ? getPreviewButtonHtml() : generateDynamicButtons(userButtonCount);
-      const buttonCount = showPreviewOnly ? 1 : userButtonCount;
+      const shouldRenderButtons = !isAutoplaySession && !showPreviewOnly;
+      const buttonsHtml = showPreviewOnly ? getPreviewButtonHtml() : (shouldRenderButtons ? generateDynamicButtons(userButtonCount) : '');
+      const buttonCount = showPreviewOnly ? 1 : (shouldRenderButtons ? userButtonCount : 0);
       const isMobile = window.innerWidth < 1024;
 
       const toolbars = getCardToolbar(isMobile, itemId, setId);
@@ -1014,6 +1202,7 @@
       const card = document.getElementById('flashcard-card');
       const actions = document.getElementById('internal-actions');
       const flipBtn = document.getElementById('flip-card-btn');
+      currentCardElements = { card, actions, flipBtn };
 
       if (card) {
         card.dataset.cardCategory = cardCategory || 'default';
@@ -1034,21 +1223,24 @@
               ev.stopPropagation();
           });
       });
-      
-      document.querySelectorAll('.btn').forEach(b => b.addEventListener('click', ev => {
-        ev.stopPropagation();
-        submitFlashcardAnswer(data.item_id, b.dataset.answer);
-      }));
-      
+
+      if (!isAutoplaySession) {
+        document.querySelectorAll('.actions .btn').forEach(b => b.addEventListener('click', ev => {
+          ev.stopPropagation();
+          submitFlashcardAnswer(data.item_id, b.dataset.answer);
+        }));
+      }
+
       document.querySelectorAll('.play-audio-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const audioPlayer = document.querySelector(btn.dataset.audioTarget);
-          if (btn.classList.contains('is-disabled')) return;
-          if (audioPlayer.src && audioPlayer.src !== window.location.href) {
-            audioPlayer.paused ? audioPlayer.play() : (audioPlayer.pause(), audioPlayer.currentTime = 0);
-          } else {
-            generateAndPlayAudio(btn, audioPlayer);
+          if (!audioPlayer || btn.classList.contains('is-disabled')) return;
+          if (!audioPlayer.paused && audioPlayer.currentTime > 0) {
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            return;
           }
+          playAudioForButton(btn).catch(() => {});
         });
       });
       document.querySelectorAll('.open-stats-modal-btn').forEach(btn => btn.addEventListener('click', () => {
@@ -1085,16 +1277,36 @@
             }
         });
       });
-      
+
       setTimeout(adjustCardLayout, 0);
+
+      if (isAutoplaySession) {
+        startAutoplaySequence();
+      } else {
+        autoPlayFrontSide();
+      }
     }
 
-    async function generateAndPlayAudio(button, audioPlayer) {
+    async function generateAndPlayAudio(button, audioPlayer, options = {}) {
       const itemId = button.dataset.itemId;
       const side = button.dataset.side;
       const contentToRead = button.dataset.contentToRead;
+      const awaitCompletion = options.awaitCompletion === true;
+      const suppressLoadingUi = options.suppressLoadingUi === true;
+      const restart = options.restart !== false;
+
+      const originalHtml = button.dataset.originalHtml || button.innerHTML;
+      if (!button.dataset.originalHtml) {
+        button.dataset.originalHtml = originalHtml;
+      }
+
+      if (!suppressLoadingUi) {
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      }
+
       button.classList.add('is-disabled');
-      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      let playbackPromise = Promise.resolve();
+
       try {
         const response = await fetch(regenerateAudioUrl, {
           method: 'POST',
@@ -1104,28 +1316,24 @@
         const result = await response.json();
         if (result.success && result.audio_url) {
           audioPlayer.src = result.audio_url;
-          audioPlayer.load();
-          audioPlayer.oncanplay = () => {
-            audioPlayer.play();
-            button.classList.remove('is-disabled');
-            button.innerHTML = '<i class="fas fa-volume-up"></i>';
-          };
-          audioPlayer.onerror = () => {
-             showCustomAlert('Không thể phát file âm thanh. Vui lòng thử lại.');
-             button.classList.remove('is-disabled');
-             button.innerHTML = '<i class="fas fa-volume-up"></i>';
-          };
+          playbackPromise = playAudioAfterLoad(audioPlayer, { restart, awaitCompletion });
+          if (awaitCompletion) {
+            await playbackPromise;
+          }
         } else {
           showCustomAlert(result.message || 'Lỗi khi tạo audio.');
-          button.classList.remove('is-disabled');
-          button.innerHTML = '<i class="fas fa-volume-up"></i>';
         }
       } catch (error) {
         console.error('Lỗi khi tạo audio:', error);
         showCustomAlert('Không thể kết nối đến máy chủ để tạo audio.');
+      } finally {
         button.classList.remove('is-disabled');
-        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        if (!suppressLoadingUi) {
+          button.innerHTML = button.dataset.originalHtml || '<i class="fas fa-volume-up"></i>';
+        }
       }
+
+      return playbackPromise;
     }
 
     function formatMinutesAsDuration(minutes) {
@@ -1227,6 +1435,9 @@
         if (!res.ok) {
           if (res.status === 404) {
             const end = await res.json();
+            if (isAutoplaySession) {
+              cancelAutoplaySequence();
+            }
             flashcardContentDiv.innerHTML = `<div class="text-center py-12 text-gray-600"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-semibold text-gray-700 mb-2">Hoàn thành phiên học!</h3><p class="text-gray-500">${formatTextForHtml(end.message)}</p><button id="return-to-dashboard-btn" class="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 shadow-sm"><i class="fas fa-home mr-2"></i> Quay lại Dashboard</button></div>`;
             document.getElementById('return-to-dashboard-btn').addEventListener('click', () => { window.location.href = "{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}"; });
             return;
@@ -1290,6 +1501,9 @@
 
     endSessionBtn.addEventListener('click', () => endSessionModal.style.display = 'flex');
     confirmEndSessionBtn.addEventListener('click', async () => {
+      if (isAutoplaySession) {
+        cancelAutoplaySequence();
+      }
       try {
         const res = await fetch(endSessionUrl, { method: 'POST' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
