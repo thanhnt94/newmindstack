@@ -287,6 +287,11 @@
     let currentSearchField = "{{ search_field | default('all') }}";
     let isMultiSelectMode = true;
     let selectedButtonCount = parseInt("{{ user_button_count | default(3) }}");
+    let selectedAutoplayMode = localStorage.getItem('flashcardAutoplayScope') || 'autoplay_learned';
+    let autoplayDelaySeconds = parseInt(localStorage.getItem('flashcardAutoplayDelay') || '2', 10);
+    if (Number.isNaN(autoplayDelaySeconds) || autoplayDelaySeconds < 0) {
+        autoplayDelaySeconds = 2;
+    }
 
     const flashcardSetsContainer = document.getElementById('flashcard-sets-container');
     const flashcardOptionsContainer = document.getElementById('flashcard-options-container');
@@ -326,6 +331,117 @@
             } catch (err) { console.error('AJAX lưu button_count lỗi:', err); }
         }
     });
+
+    function saveAutoplaySettingsToStorage() {
+        const settings = { scope: selectedAutoplayMode, delaySeconds: autoplayDelaySeconds };
+        try {
+            localStorage.setItem('flashcardAutoplaySettings', JSON.stringify(settings));
+        } catch (e) {
+            console.warn('Không thể lưu cấu hình AutoPlay vào localStorage:', e);
+        }
+        if (selectedAutoplayMode) {
+            localStorage.setItem('flashcardAutoplayScope', selectedAutoplayMode);
+        } else {
+            localStorage.removeItem('flashcardAutoplayScope');
+        }
+        localStorage.setItem('flashcardAutoplayDelay', String(autoplayDelaySeconds));
+    }
+
+    function toggleAutoplaySettingsVisibility(isAutoplaySelected) {
+        const autoplayContainer = document.getElementById('autoplay-settings-container');
+        const buttonCountContainer = document.getElementById('button-count-container');
+        if (autoplayContainer) {
+            if (isAutoplaySelected) {
+                autoplayContainer.classList.remove('hidden');
+            } else {
+                autoplayContainer.classList.add('hidden');
+            }
+        }
+        if (buttonCountContainer) {
+            if (isAutoplaySelected) {
+                buttonCountContainer.classList.add('hidden');
+            } else {
+                buttonCountContainer.classList.remove('hidden');
+            }
+        }
+    }
+
+    function initializeAutoplaySettings() {
+        const autoplayContainer = document.getElementById('autoplay-settings-container');
+        if (!autoplayContainer) return;
+
+        const delaySelect = document.getElementById('autoplay-delay-select');
+        if (delaySelect) {
+            const availableValues = Array.from(delaySelect.options).map(opt => opt.value);
+            if (!availableValues.includes(String(autoplayDelaySeconds))) {
+                autoplayDelaySeconds = parseInt(availableValues[0], 10) || 2;
+            }
+            delaySelect.value = String(autoplayDelaySeconds);
+            if (delaySelect.dataset.listenerAttached !== 'true') {
+                delaySelect.addEventListener('change', () => {
+                    autoplayDelaySeconds = parseInt(delaySelect.value, 10);
+                    if (Number.isNaN(autoplayDelaySeconds) || autoplayDelaySeconds < 0) {
+                        autoplayDelaySeconds = 2;
+                    }
+                    saveAutoplaySettingsToStorage();
+                });
+                delaySelect.dataset.listenerAttached = 'true';
+            }
+        }
+
+        const scopeInputs = autoplayContainer.querySelectorAll('input[name="autoplay-scope"]');
+        let matchedScope = null;
+        let fallbackScope = null;
+
+        scopeInputs.forEach(input => {
+            const count = parseInt(input.dataset.count || '0', 10);
+            const parentLabel = input.closest('label');
+
+            if (count <= 0) {
+                input.disabled = true;
+                if (parentLabel) {
+                    parentLabel.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                }
+            } else {
+                input.disabled = false;
+                if (!fallbackScope) fallbackScope = input;
+                if (parentLabel) {
+                    parentLabel.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                }
+                if (selectedAutoplayMode === input.value) {
+                    matchedScope = input;
+                }
+            }
+
+            if (input.dataset.listenerAttached !== 'true') {
+                input.addEventListener('change', () => {
+                    if (input.disabled) return;
+                    selectedAutoplayMode = input.value;
+                    saveAutoplaySettingsToStorage();
+                    if (selectedFlashcardMode && selectedFlashcardMode.startsWith('autoplay_')) {
+                        selectedFlashcardMode = selectedAutoplayMode;
+                        updateActionButtons();
+                    }
+                });
+                input.dataset.listenerAttached = 'true';
+            }
+        });
+
+        if (matchedScope) {
+            matchedScope.checked = true;
+        } else if (fallbackScope) {
+            fallbackScope.checked = true;
+            selectedAutoplayMode = fallbackScope.value;
+        } else {
+            selectedAutoplayMode = null;
+        }
+
+        saveAutoplaySettingsToStorage();
+        if (selectedFlashcardMode && selectedFlashcardMode.startsWith('autoplay_')) {
+            selectedFlashcardMode = selectedAutoplayMode;
+            updateActionButtons();
+        }
+    }
 
     function toggleAllSetsButtonVisibility() {
         if (!allSetsButton) {
@@ -395,21 +511,47 @@
             const html = await response.text();
             flashcardOptionsContainer.innerHTML = html;
             addFlashcardModeClickListeners();
-            
+            initializeAutoplaySettings();
+
             const firstAvailableMode = flashcardOptionsContainer.querySelector('.flashcard-mode-item[data-count="0"]');
             if (firstAvailableMode) { firstAvailableMode.classList.add('opacity-50', 'cursor-not-allowed'); }
 
-            if (!selectedFlashcardMode) {
-                const available = Array.from(flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
-                if (available.length > 0) { available[0].click(); }
-                else { selectedFlashcardMode = null; updateActionButtons(); }
+            const isAutoplaySelection = selectedFlashcardMode && selectedFlashcardMode.startsWith('autoplay_');
+            toggleAutoplaySettingsVisibility(isAutoplaySelection);
+
+            const availableModes = Array.from(flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item')).filter(function(x){
+                const modeId = x.dataset.modeId;
+                if (modeId === 'autoplay') {
+                    const learned = parseInt(x.dataset.autoplayLearned || '0', 10);
+                    const all = parseInt(x.dataset.autoplayAll || '0', 10);
+                    return learned > 0 || all > 0;
+                }
+                return parseInt(x.dataset.count || '0', 10) > 0;
+            });
+
+            if (!selectedFlashcardMode || (isAutoplaySelection && !selectedAutoplayMode)) {
+                if (availableModes.length > 0) {
+                    availableModes[0].click();
+                } else {
+                    selectedFlashcardMode = null;
+                    toggleAutoplaySettingsVisibility(false);
+                    updateActionButtons();
+                }
             } else {
-                const prev = flashcardOptionsContainer.querySelector('[data-mode-id="' + selectedFlashcardMode + '"]');
-                if (prev && parseInt(prev.dataset.count) > 0) { prev.click(); }
-                else {
-                    selectedFlashcardMode = null; updateActionButtons();
-                    const available2 = Array.from(flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item')).filter(function(x){ return parseInt(x.dataset.count) > 0; });
-                    if (available2.length > 0) { available2[0].click(); }
+                const selector = isAutoplaySelection ? '.flashcard-mode-item[data-mode-id="autoplay"]' : `[data-mode-id="${selectedFlashcardMode}"]`;
+                const prev = flashcardOptionsContainer.querySelector(selector);
+                const prevIsAvailable = prev && (prev.dataset.modeId === 'autoplay'
+                    ? (parseInt(prev.dataset.autoplayLearned || '0', 10) > 0 || parseInt(prev.dataset.autoplayAll || '0', 10) > 0)
+                    : parseInt(prev.dataset.count || '0', 10) > 0);
+
+                if (prev && prevIsAvailable) {
+                    prev.click();
+                } else if (availableModes.length > 0) {
+                    availableModes[0].click();
+                } else {
+                    selectedFlashcardMode = null;
+                    toggleAutoplaySettingsVisibility(false);
+                    updateActionButtons();
                 }
             }
         } catch (e) {
@@ -551,15 +693,46 @@
     function addFlashcardModeClickListeners() {
         document.querySelectorAll('.flashcard-mode-item').forEach(function(item){
             item.addEventListener('click', function(ev){
-                const modeCount = parseInt(this.dataset.count);
-                if (modeCount === 0) {
+                const modeId = this.dataset.modeId;
+                const modeCount = parseInt(this.dataset.count || '0', 10);
+
+                if (modeId === 'autoplay') {
+                    const learnedCount = parseInt(this.dataset.autoplayLearned || '0', 10);
+                    const allCount = parseInt(this.dataset.autoplayAll || '0', 10);
+                    if (learnedCount <= 0 && allCount <= 0) {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        return;
+                    }
+                } else if (modeCount === 0) {
                     ev.preventDefault();
                     ev.stopPropagation();
                     return;
                 }
+
                 document.querySelectorAll('.flashcard-mode-item').forEach(function(el){ el.classList.remove('selected-mode'); });
                 this.classList.add('selected-mode');
-                selectedFlashcardMode = this.dataset.modeId;
+
+                if (modeId === 'autoplay') {
+                    toggleAutoplaySettingsVisibility(true);
+                    initializeAutoplaySettings();
+
+                    if (!selectedAutoplayMode) {
+                        const autoplayContainer = document.getElementById('autoplay-settings-container');
+                        const availableScope = autoplayContainer ? Array.from(autoplayContainer.querySelectorAll('input[name="autoplay-scope"]')).find(input => !input.disabled) : null;
+                        if (availableScope) {
+                            availableScope.checked = true;
+                            selectedAutoplayMode = availableScope.value;
+                            saveAutoplaySettingsToStorage();
+                        }
+                    }
+
+                    selectedFlashcardMode = selectedAutoplayMode || null;
+                } else {
+                    toggleAutoplaySettingsVisibility(false);
+                    selectedFlashcardMode = modeId;
+                }
+
                 updateActionButtons();
             });
         });
@@ -700,6 +873,9 @@
             } else {
                 startUrl = new URL(startFlashcardSessionBaseUrlMultiTemplate.replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
                 startUrl.searchParams.append('set_ids', setIdsStr);
+            }
+            if (selectedFlashcardMode.startsWith('autoplay_')) {
+                saveAutoplaySettingsToStorage();
             }
             window.location.href = startUrl.toString();
         }

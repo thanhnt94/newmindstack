@@ -12,6 +12,7 @@ from .algorithms import (
     get_hard_items,
     get_mixed_items,
     get_all_review_items,
+    get_all_items_for_autoplay,
     get_accessible_flashcard_set_ids,
 )
 from .flashcard_logic import process_flashcard_answer
@@ -79,7 +80,10 @@ class FlashcardSessionManager:
         user_id = current_user.user_id
         cls.end_flashcard_session()
         mode_config = next((m for m in FlashcardLearningConfig.FLASHCARD_MODES if m['id'] == mode), None)
-        if not mode_config: return False
+        if not mode_config and mode in ('autoplay_all', 'autoplay_learned'):
+            mode_config = {'id': mode}
+        if not mode_config:
+            return False
 
         algorithm_func = {
             'new_only': get_new_only_items,
@@ -87,6 +91,8 @@ class FlashcardSessionManager:
             'hard_only': get_hard_items,
             'mixed_srs': get_mixed_items,
             'all_review': get_all_review_items,
+            'autoplay_all': get_all_items_for_autoplay,
+            'autoplay_learned': get_all_review_items,
         }.get(mode)
         if not algorithm_func: return False
 
@@ -184,6 +190,16 @@ class FlashcardSessionManager:
             query = apply_exclusion(
                 get_all_review_items(self.user_id, self.set_id, None)
             ).order_by(FlashcardProgress.due_time.asc(), LearningItem.item_id.asc())
+            next_item = query.first()
+        elif self.mode == 'autoplay_learned':
+            query = apply_exclusion(
+                get_all_review_items(self.user_id, self.set_id, None)
+            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+            next_item = query.first()
+        elif self.mode == 'autoplay_all':
+            query = apply_exclusion(
+                get_all_items_for_autoplay(self.user_id, self.set_id, None)
+            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
             next_item = query.first()
         else:
             due_query = apply_exclusion(

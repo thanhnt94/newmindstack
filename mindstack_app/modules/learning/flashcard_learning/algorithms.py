@@ -209,6 +209,39 @@ def get_all_review_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: get_all_review_items tìm thấy {len(items)} thẻ. <<<")
     return items
 
+
+def get_all_items_for_autoplay(user_id, container_id, session_size):
+    """
+    Lấy toàn bộ thẻ (bao gồm thẻ mới) phục vụ cho chế độ AutoPlay.
+    Hàm này vẫn loại trừ các bộ thẻ đã được archive.
+    """
+    print(
+        f">>> ALGORITHMS: Bắt đầu get_all_items_for_autoplay cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<"
+    )
+    base_items_query = _get_base_items_query(user_id, container_id)
+
+    autoplay_items_query = base_items_query.outerjoin(
+        UserContainerState,
+        and_(
+            UserContainerState.container_id == LearningItem.container_id,
+            UserContainerState.user_id == user_id
+        )
+    ).filter(
+        or_(
+            UserContainerState.is_archived == False,
+            UserContainerState.is_archived == None
+        )
+    )
+
+    print(f">>> ALGORITHMS: autoplay_items_query (tất cả thẻ): {autoplay_items_query} <<<")
+
+    if session_size is None or session_size == 999999:
+        return autoplay_items_query
+
+    items = autoplay_items_query.order_by(LearningItem.order_in_container.asc()).limit(session_size).all()
+    print(f">>> ALGORITHMS: get_all_items_for_autoplay tìm thấy {len(items)} thẻ. <<<")
+    return items
+
 def get_hard_items(user_id, container_id, session_size):
     """
     Lấy danh sách các thẻ khó (incorrect_streak > 0 hoặc memory_score thấp) cho một phiên học.
@@ -412,6 +445,20 @@ def get_flashcard_mode_counts(user_id, set_identifier):
         else:
             current_app.logger.warning(f"Không tìm thấy hàm thuật toán cho chế độ Flashcard: {mode_id}")
             modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': 0})
+
+    autoplay_learned_count = get_all_review_items(user_id, set_identifier, None).count()
+    autoplay_all_count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
+    autoplay_total_count = max(autoplay_learned_count, autoplay_all_count)
+
+    modes_with_counts.append({
+        'id': 'autoplay',
+        'name': FlashcardLearningConfig.AUTOPLAY_MODE_NAME,
+        'count': autoplay_total_count,
+        'autoplay_counts': {
+            'autoplay_learned': autoplay_learned_count,
+            'autoplay_all': autoplay_all_count,
+        }
+    })
 
     print(f">>> ALGORITHMS: Kết thúc get_flashcard_mode_counts. Modes: {modes_with_counts} <<<")
     return modes_with_counts

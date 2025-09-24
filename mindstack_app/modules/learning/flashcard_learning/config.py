@@ -8,6 +8,7 @@ class FlashcardLearningConfig:
     Cấu hình cho module học Flashcard.
     """
     DEFAULT_ITEMS_PER_PAGE = 12 # Số mục mặc định trên mỗi trang cho Flashcard
+    AUTOPLAY_MODE_NAME = 'Chế độ AutoPlay'
 
     # Định nghĩa các chế độ học Flashcard
     # THAY ĐỔI: Thêm chế độ học "Học và ôn tập" lên đầu danh sách

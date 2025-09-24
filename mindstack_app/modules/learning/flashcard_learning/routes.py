@@ -146,10 +146,19 @@ def flashcard_session():
     if 'flashcard_session' not in session:
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
         return redirect(url_for('learning.flashcard_learning.flashcard_learning_dashboard'))
-    
+
     user_button_count = current_user.flashcard_button_count if current_user.flashcard_button_count else 3
-    
-    return render_template('flashcard_session.html', user_button_count=user_button_count)
+    session_data = session.get('flashcard_session', {})
+    session_mode = session_data.get('mode')
+    is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
+    autoplay_mode = session_mode if is_autoplay_session else ''
+
+    return render_template(
+        'flashcard_session.html',
+        user_button_count=user_button_count,
+        is_autoplay_session=is_autoplay_session,
+        autoplay_mode=autoplay_mode
+    )
 
 
 @flashcard_learning_bp.route('/get_flashcard_batch', methods=['GET'])
