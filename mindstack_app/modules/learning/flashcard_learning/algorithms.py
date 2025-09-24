@@ -175,6 +175,40 @@ def get_due_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: get_due_items tìm thấy {len(items)} thẻ. <<<")
     return items
 
+def get_all_review_items(user_id, container_id, session_size):
+    """
+    Lấy danh sách tất cả các thẻ đã học (đã có tiến độ) để phục vụ chế độ ôn tập toàn bộ.
+    Hàm này bỏ qua hạn ôn tập và chỉ loại trừ các bộ thẻ đã bị archive.
+    """
+    print(f">>> ALGORITHMS: Bắt đầu get_all_review_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
+    base_items_query = _get_base_items_query(user_id, container_id)
+
+    review_items_query = base_items_query.join(
+        FlashcardProgress,
+        and_(FlashcardProgress.item_id == LearningItem.item_id, FlashcardProgress.user_id == user_id)
+    ).filter(
+        or_(FlashcardProgress.status != 'new', FlashcardProgress.status.is_(None))
+    )
+
+    review_items_query = review_items_query.outerjoin(UserContainerState,
+        and_(UserContainerState.container_id == LearningItem.container_id, UserContainerState.user_id == user_id)
+    ).filter(
+        or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
+    )
+
+    print(f">>> ALGORITHMS: review_items_query (ôn tập toàn bộ): {review_items_query} <<<")
+
+    if session_size is None or session_size == 999999:
+        return review_items_query
+    else:
+        items = review_items_query.order_by(
+            FlashcardProgress.due_time.asc(),
+            LearningItem.item_id.asc()
+        ).limit(session_size).all()
+
+    print(f">>> ALGORITHMS: get_all_review_items tìm thấy {len(items)} thẻ. <<<")
+    return items
+
 def get_hard_items(user_id, container_id, session_size):
     """
     Lấy danh sách các thẻ khó (incorrect_streak > 0 hoặc memory_score thấp) cho một phiên học.
