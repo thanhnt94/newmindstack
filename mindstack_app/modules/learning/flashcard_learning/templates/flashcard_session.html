@@ -1643,19 +1643,20 @@
                         <div class="icon-bubble"><i class="fas fa-history"></i></div>
                         <div>
                             <h4>Lượt trả lời gần đây</h4>
-                            <p>Theo dõi tối đa 10 lượt mới nhất và trạng thái ghi nhớ.</p>
+                            <p>Theo dõi tối đa 10 lượt mới nhất bằng biểu tượng màu sắc.</p>
                         </div>
                     </div>
-                    <div class="recent-answers-track">
+                    <div class="recent-answers-track" role="list">
                         ${recentReviews.map(entry => {
                             const resultKey = (entry.result || '').toLowerCase();
                             const config = recentReviewConfig[resultKey] || recentReviewConfig.preview;
                             const timestampDisplay = formatRecentTimestamp(entry.timestamp);
                             const qualityScore = typeof entry.user_answer_quality === 'number' ? entry.user_answer_quality : '—';
+                            const tooltip = `${config.label} · ${timestampDisplay} · Điểm: ${qualityScore}`;
                             return `
-                                <div class="recent-answer-pill recent-answer-pill--${resultKey || 'preview'}" title="Điểm chất lượng: ${qualityScore}">
-                                    <span class="recent-answer-pill__status"><i class="${config.icon}"></i> ${config.label}</span>
-                                    <span class="recent-answer-pill__time">${timestampDisplay}</span>
+                                <div class="recent-answer-dot recent-answer-dot--${resultKey || 'preview'}" role="listitem" title="${tooltip}">
+                                    <i class="${config.icon}" aria-hidden="true"></i>
+                                    <span class="sr-only">${tooltip}</span>
                                 </div>
                             `;
                         }).join('')}
