@@ -6,21 +6,33 @@
 
 <style>
     .statistics-card {
-        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%);
-        border: 1px solid #e2e8f0;
-        border-radius: 20px;
-        box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
-        padding: 1.25rem;
+        background: #ffffff;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        padding: 1.25rem 1.5rem;
         display: flex;
         flex-direction: column;
-        gap: 1.25rem;
+        gap: 1rem;
         color: #0f172a;
         max-width: 520px;
         width: 100%;
         overflow-y: auto;
         max-height: 100%;
         scrollbar-width: thin;
-        scrollbar-color: rgba(37, 99, 235, 0.35) transparent;
+        scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+    }
+
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 
     .statistics-card::-webkit-scrollbar {
@@ -62,9 +74,9 @@
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        padding: 0.3rem 0.65rem;
+        padding: 0.28rem 0.6rem;
         border-radius: 999px;
-        background: rgba(59, 130, 246, 0.15);
+        background: rgba(37, 99, 235, 0.08);
         color: #1d4ed8;
         font-size: 0.72rem;
         font-weight: 600;
@@ -96,23 +108,23 @@
 
     .summary-card {
         position: relative;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 0.9rem 1.1rem;
+        background: #f8fafc;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 14px;
+        padding: 0.85rem 1rem;
         overflow: hidden;
-        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.07);
+        box-shadow: none;
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.45rem;
     }
 
     .summary-card::after {
         content: "";
         position: absolute;
         inset: 0;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0));
-        opacity: 0.08;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0));
+        opacity: 0.06;
         pointer-events: none;
     }
 
@@ -159,7 +171,7 @@
         display: flex;
         gap: 0.35rem;
         background: #eef2ff;
-        border-radius: 14px;
+        border-radius: 12px;
         padding: 0.35rem;
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -201,7 +213,7 @@
     .stats-tab-button.active {
         background: #ffffff;
         color: #2563eb;
-        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.14);
     }
 
     .stats-tab-content {
@@ -254,7 +266,7 @@
         align-items: center;
         justify-content: center;
         font-size: 0.9rem;
-        box-shadow: 0 12px 22px rgba(14, 165, 233, 0.18);
+        box-shadow: 0 8px 18px rgba(14, 165, 233, 0.16);
     }
 
     .stats-section--performance .icon-bubble {
@@ -374,13 +386,13 @@
 
     .insight-card {
         background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 0.75rem 0.9rem;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 12px;
+        padding: 0.7rem 0.85rem;
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
-        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+        gap: 0.3rem;
+        box-shadow: none;
     }
 
     .insight-card--highlight {
@@ -468,76 +480,74 @@
     .stats-section--recent .icon-bubble {
         background: #fef3c7;
         color: #b45309;
-        box-shadow: 0 12px 22px rgba(244, 158, 11, 0.18);
+        box-shadow: 0 8px 16px rgba(244, 158, 11, 0.16);
     }
 
     .recent-answers-track {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 0.5rem;
-    }
-
-    .recent-answer-pill {
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        background: #f8fafc;
-        padding: 0.55rem 0.75rem;
         display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-        min-width: 0;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.25rem 0;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(226, 232, 240, 0.8) transparent;
     }
 
-    .recent-answer-pill__status {
-        font-size: 0.8rem;
-        font-weight: 600;
+    .recent-answers-track::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .recent-answers-track::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.4);
+        border-radius: 999px;
+    }
+
+    .recent-answer-dot {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
         display: inline-flex;
         align-items: center;
-        gap: 0.35rem;
+        justify-content: center;
+        font-size: 0.85rem;
+        background: #e2e8f0;
+        color: #334155;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+        flex-shrink: 0;
+        transition: transform 0.15s ease;
     }
 
-    .recent-answer-pill__status i {
-        font-size: 0.8rem;
+    .recent-answer-dot:hover {
+        transform: translateY(-1px);
     }
 
-    .recent-answer-pill__time {
-        font-size: 0.75rem;
-        color: #94a3b8;
+    .recent-answer-dot i {
+        font-size: 0.85rem;
     }
 
-    .recent-answer-pill--correct {
-        background: rgba(34, 197, 94, 0.1);
-        border-color: rgba(34, 197, 94, 0.35);
-    }
-
-    .recent-answer-pill--correct .recent-answer-pill__status {
+    .recent-answer-dot--correct {
+        background: #dcfce7;
+        border-color: rgba(22, 101, 52, 0.25);
         color: #166534;
     }
 
-    .recent-answer-pill--vague {
-        background: rgba(245, 158, 11, 0.12);
-        border-color: rgba(245, 158, 11, 0.35);
-    }
-
-    .recent-answer-pill--vague .recent-answer-pill__status {
+    .recent-answer-dot--vague {
+        background: #fef3c7;
+        border-color: rgba(180, 83, 9, 0.25);
         color: #b45309;
     }
 
-    .recent-answer-pill--incorrect {
-        background: rgba(239, 68, 68, 0.12);
-        border-color: rgba(239, 68, 68, 0.35);
-    }
-
-    .recent-answer-pill--incorrect .recent-answer-pill__status {
+    .recent-answer-dot--incorrect {
+        background: #fee2e2;
+        border-color: rgba(185, 28, 28, 0.25);
         color: #b91c1c;
     }
 
-    .recent-answer-pill--preview {
-        background: rgba(59, 130, 246, 0.12);
-        border-color: rgba(59, 130, 246, 0.35);
-    }
-
-    .recent-answer-pill--preview .recent-answer-pill__status {
+    .recent-answer-dot--preview {
+        background: #dbeafe;
+        border-color: rgba(37, 99, 235, 0.25);
         color: #1d4ed8;
     }
 
@@ -606,14 +616,13 @@
         display: flex;
         align-items: center;
         font-weight: 600;
-        color: #2563eb;
+        color: #1f2937;
         cursor: pointer;
         user-select: none;
         font-size: 0.9rem;
-        background: rgba(37, 99, 235, 0.08);
-        padding: 0.65rem 0.85rem;
-        border-radius: 12px;
-        transition: background 0.2s ease, color 0.2s ease;
+        padding: 0.4rem 0;
+        border-radius: 8px;
+        transition: color 0.2s ease;
     }
 
     .card-info-title i {
@@ -622,8 +631,7 @@
     }
 
     .card-info-title:hover {
-        background: rgba(37, 99, 235, 0.15);
-        color: #1d4ed8;
+        color: #2563eb;
     }
 
     .card-info-title.collapsed i {
@@ -742,7 +750,7 @@
 
     @media (max-width: 520px) {
         .recent-answers-track {
-            grid-template-columns: 1fr;
+            justify-content: flex-start;
         }
     }
 
