@@ -76,10 +76,22 @@
     }
 
     .session-overview {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        display: flex;
         gap: 0.75rem;
         align-items: stretch;
+        width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .session-overview > * {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .session-overview::-webkit-scrollbar {
+        display: none;
     }
 
     .summary-card {
@@ -152,6 +164,7 @@
         flex-wrap: nowrap;
         overflow-x: auto;
         scrollbar-width: none;
+        width: 100%;
     }
 
     .stats-tab-nav::-webkit-scrollbar {
@@ -159,7 +172,7 @@
     }
 
     .stats-tab-button {
-        flex: 1 1 auto;
+        flex: 1 1 0;
         border: none;
         background: transparent;
         border-radius: 999px;
@@ -580,6 +593,13 @@
         border-top: 1px solid #e2e8f0;
         padding-top: 1rem;
         margin-top: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .card-info-section:first-child {
+        border-top: none;
+        padding-top: 0;
+        margin-top: 0;
     }
 
     .card-info-title {
@@ -590,11 +610,20 @@
         cursor: pointer;
         user-select: none;
         font-size: 0.9rem;
+        background: rgba(37, 99, 235, 0.08);
+        padding: 0.65rem 0.85rem;
+        border-radius: 12px;
+        transition: background 0.2s ease, color 0.2s ease;
     }
 
     .card-info-title i {
         margin-right: 0.5rem;
         transition: transform 0.2s ease;
+    }
+
+    .card-info-title:hover {
+        background: rgba(37, 99, 235, 0.15);
+        color: #1d4ed8;
     }
 
     .card-info-title.collapsed i {
@@ -695,14 +724,14 @@
 
     @media (max-width: 640px) {
         .session-overview {
-            grid-template-columns: 1fr;
+            flex-wrap: nowrap;
         }
         .stats-tab-nav {
             padding: 0.3rem;
             justify-content: space-between;
         }
         .stats-tab-button {
-            flex: 0 0 auto;
+            flex: 1 1 0;
             font-size: 0.8rem;
             padding: 0.45rem 0.65rem;
         }

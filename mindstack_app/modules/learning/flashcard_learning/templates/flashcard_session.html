@@ -1712,16 +1712,16 @@
                     <p><span class="label">Mặt sau</span>${formatTextForHtml(cardContent.back)}</p>
                 </div>
             </div>
-        ` : '';
+        `.trim() : '';
 
-        return `
-            ${introNotice}
-            ${progressSection}
-            ${insightSection}
-            ${recentSection}
-            ${timelineSection}
-            ${cardDetails}
-        `;
+        return [
+            cardDetails,
+            introNotice,
+            progressSection,
+            insightSection,
+            recentSection,
+            timelineSection
+        ].join('');
     }
 
     function initializeStatsToggleListeners(rootElement) {
