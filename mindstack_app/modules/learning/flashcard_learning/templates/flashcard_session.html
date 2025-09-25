@@ -456,16 +456,19 @@
     /* Nút đánh giá trong thẻ */
     .actions {
         display: none;
-        gap: .75rem;
+        flex-wrap: wrap;
+        gap: 1rem;
         justify-content: center;
-        padding: 1rem 1.5rem;
+        padding: 1.25rem 1.5rem;
         position: relative;
         width: 100%;
         bottom: 0;
         left: 0;
-        background: #fff;
-        border-top: 1px solid #e5e7eb;
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%);
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.08);
         flex-shrink: 0;
+        z-index: 2;
     }
 
     .actions.visible {
@@ -474,45 +477,131 @@
 
     .btn {
         border: none;
-        color: #fff;
-        font-weight: 700;
-        padding: .75rem 1.2rem;
-        border-radius: 9999px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
-        cursor: pointer;
-        font-size: 1rem;
+        font-weight: 600;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0.4rem;
-        transition: transform .2s ease, box-shadow .2s ease;
-        flex-grow: 1;
-        flex-shrink: 1;
-        flex-basis: 0;
-        white-space: nowrap;
+        gap: 0.6rem;
+        border-radius: 0.9rem;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+        text-decoration: none;
     }
 
     .btn:focus {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
     }
 
-    .btn-continue {
-        background: linear-gradient(135deg, #2563eb, #16a34a);
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    .actions .btn {
+        flex: 1 1 180px;
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
+        padding: 0.9rem 1.25rem;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
     }
 
-    .btn-continue:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.3);
+    .actions .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
     }
 
-    .btn-red-dark { background-color: #dc2626; }
-    .btn-red-light { background-color: #ef4444; }
-    .btn-yellow-dark { background-color: #f59e0b; }
-    .btn-yellow-light { background-color: #facc15; }
-    .btn-green-light { background-color: #10b981; }
-    .btn-green-dark { background-color: #059669; }
+    .actions .btn:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28);
+    }
+
+    .actions .btn:active {
+        transform: translateY(0);
+        filter: saturate(1.08);
+    }
+
+    .rating-btn {
+        color: #fff;
+        border-radius: 1rem;
+        padding: 1rem 1.3rem;
+        justify-content: flex-start;
+        position: relative;
+        overflow: hidden;
+        gap: 0.9rem;
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+    }
+
+    .rating-btn .rating-btn__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        font-size: 1.15rem;
+    }
+
+    .rating-btn .rating-btn__text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        line-height: 1.2;
+    }
+
+    .rating-btn .rating-btn__title {
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    .rating-btn .rating-btn__caption {
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        color: rgba(255, 255, 255, 0.82);
+    }
+
+    .rating-btn--again,
+    .rating-btn--fail {
+        background: linear-gradient(135deg, #f87171, #dc2626);
+        box-shadow: 0 18px 36px rgba(220, 38, 38, 0.32);
+    }
+
+    .rating-btn--very-hard {
+        background: linear-gradient(135deg, #fb923c, #ea580c);
+        box-shadow: 0 18px 36px rgba(234, 88, 12, 0.28);
+    }
+
+    .rating-btn--hard {
+        background: linear-gradient(135deg, #f59e0b, #b45309);
+        color: #1f2937;
+    }
+
+    .rating-btn--hard .rating-btn__icon {
+        background: rgba(15, 23, 42, 0.12);
+        color: #1f2937;
+    }
+
+    .rating-btn--hard .rating-btn__caption {
+        color: rgba(30, 41, 59, 0.75);
+    }
+
+    .rating-btn--medium {
+        background: linear-gradient(135deg, #38bdf8, #2563eb);
+        box-shadow: 0 18px 36px rgba(37, 99, 235, 0.28);
+    }
+
+    .rating-btn--good {
+        background: linear-gradient(135deg, #34d399, #059669);
+        box-shadow: 0 18px 36px rgba(5, 150, 105, 0.28);
+    }
+
+    .rating-btn--easy {
+        background: linear-gradient(135deg, #4ade80, #16a34a);
+        box-shadow: 0 18px 36px rgba(22, 163, 74, 0.28);
+    }
+
+    .rating-btn--very-easy {
+        background: linear-gradient(135deg, #6ee7b7, #0d9488);
+        box-shadow: 0 18px 36px rgba(13, 148, 136, 0.26);
+    }
 
     .actions[data-button-count="1"] {
         display: flex !important;
@@ -520,40 +609,42 @@
     }
 
     .actions[data-button-count="1"] .btn {
-        flex-basis: auto;
-        flex-grow: 0;
-        min-width: 180px;
-        padding-left: 2rem;
-        padding-right: 2rem;
+        flex: 0 0 auto;
+        min-width: 200px;
+        justify-content: center;
+        text-align: center;
     }
 
-    @media (max-width: 768px) {
-        .btn {
-            font-size: 0.8rem;
-            padding: 0.6rem 0.8rem;
+    @media (max-width: 1024px) {
+        .actions {
+            padding: 1rem 1.25rem;
+            gap: 0.75rem;
         }
-        .actions[data-button-count="3"] {
-            display: flex !important;
-            flex-wrap: nowrap;
-            justify-content: space-around;
+
+        .actions .btn {
+            flex: 1 1 calc(50% - 0.75rem);
         }
-        .actions[data-button-count="4"] {
-            display: flex !important;
-            flex-wrap: nowrap;
-            justify-content: space-around;
+    }
+
+    @media (max-width: 640px) {
+        .actions .btn {
+            flex: 1 1 100%;
         }
-        .actions[data-button-count="6"] {
-            display: grid !important;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.5rem;
+
+        .rating-btn {
+            align-items: flex-start;
         }
-        .actions[data-button-count="1"] {
-            display: flex !important;
-            justify-content: center;
-        }
-        .actions[data-button-count="1"] .btn {
-            min-width: 140px;
-        }
+    }
+
+    .btn-continue {
+        background: linear-gradient(135deg, #2563eb, #16a34a);
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-continue:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.3);
     }
 
     #flashcard-buttons {
@@ -968,6 +1059,7 @@
       const { card, actions, flipBtn } = currentCardElements;
       if (!card) return;
       if (!card.classList.contains('flipped')) {
+        stopAllFlashcardAudio();
         card.classList.add('flipped');
         actions?.classList.add('visible');
         if (flipBtn) {
@@ -1102,15 +1194,33 @@
     }
 
     function generateDynamicButtons(buttonCount) {
-        let buttonsHtml = '';
         const buttonSets = {
-            3: [{ class: 'btn-red-dark', text: 'Quên', value: 'quên' }, { class: 'btn-yellow-dark', text: 'Mơ hồ', value: 'mơ_hồ' }, { class: 'btn-green-dark', text: 'Nhớ', value: 'nhớ' }],
-            4: [{ class: 'btn-red-dark', text: 'Học lại', value: 'again' }, { class: 'btn-red-light', text: 'Khó', value: 'hard' }, { class: 'btn-yellow-dark', text: 'Bình thường', value: 'good' }, { class: 'btn-green-dark', text: 'Dễ', value: 'easy' }],
-            6: [{ class: 'btn-red-dark', text: 'Rất khó', value: 'fail' }, { class: 'btn-red-light', text: 'Khó', value: 'very_hard' }, { class: 'btn-yellow-dark', text: 'Trung bình', value: 'hard' }, { class: 'btn-yellow-light', text: 'Dễ', value: 'medium' }, { class: 'btn-green-light', text: 'Rất dễ', value: 'good' }, { class: 'btn-green-dark', text: 'Dễ dàng', value: 'very_easy' }]
+            3: [
+                { variant: 'again', value: 'quên', title: 'Quên', caption: 'Ôn lại ngay', icon: 'fas fa-redo-alt' },
+                { variant: 'hard', value: 'mơ_hồ', title: 'Mơ hồ', caption: 'Cần xem lại sớm', icon: 'fas fa-question-circle' },
+                { variant: 'easy', value: 'nhớ', title: 'Nhớ', caption: 'Đã nắm chắc', icon: 'fas fa-check-circle' }
+            ],
+            4: [
+                { variant: 'again', value: 'again', title: 'Học lại', caption: 'Đặt lịch ôn ngay', icon: 'fas fa-undo' },
+                { variant: 'very-hard', value: 'hard', title: 'Khó', caption: 'Cần luyện thêm', icon: 'fas fa-fire' },
+                { variant: 'good', value: 'good', title: 'Bình thường', caption: 'Nhớ được kha khá', icon: 'fas fa-thumbs-up' },
+                { variant: 'easy', value: 'easy', title: 'Dễ', caption: 'Rất tự tin', icon: 'fas fa-smile' }
+            ],
+            6: [
+                { variant: 'fail', value: 'fail', title: 'Rất khó', caption: 'Ôn lại ngay', icon: 'fas fa-exclamation-circle' },
+                { variant: 'very-hard', value: 'very_hard', title: 'Khó', caption: 'Chưa ổn định', icon: 'fas fa-fire' },
+                { variant: 'hard', value: 'hard', title: 'Trung bình', caption: 'Cần luyện thêm', icon: 'fas fa-adjust' },
+                { variant: 'medium', value: 'medium', title: 'Dễ', caption: 'Nhớ tương đối tốt', icon: 'fas fa-leaf' },
+                { variant: 'good', value: 'good', title: 'Rất dễ', caption: 'Tự tin trả lời', icon: 'fas fa-thumbs-up' },
+                { variant: 'very-easy', value: 'very_easy', title: 'Dễ dàng', caption: 'Thuộc lòng', icon: 'fas fa-star' }
+            ]
         };
         const buttons = buttonSets[buttonCount] || buttonSets[3];
-        buttons.forEach(btn => { buttonsHtml += `<button class="btn ${btn.class}" data-answer="${btn.value}">${btn.text}</button>`; });
-        return buttonsHtml;
+        return buttons.map(btn => {
+            const iconHtml = btn.icon ? `<span class="rating-btn__icon"><i class="${btn.icon}"></i></span>` : '';
+            const captionHtml = btn.caption ? `<span class="rating-btn__caption">${btn.caption}</span>` : '';
+            return `<button class="btn rating-btn rating-btn--${btn.variant}" data-answer="${btn.value}">${iconHtml}<span class="rating-btn__text"><span class="rating-btn__title">${btn.title}</span>${captionHtml}</span></button>`;
+        }).join('');
     }
     
     function getCardToolbar(isMobile, itemId, setId) {
@@ -1209,6 +1319,7 @@
       if (flipBtn) {
         flipBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
+            stopAllFlashcardAudio();
             card.classList.add('flipped');
             actions?.classList.add('visible');
             flipBtn.style.display = 'none';
