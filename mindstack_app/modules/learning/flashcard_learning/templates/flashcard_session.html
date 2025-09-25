@@ -166,29 +166,59 @@
         width: 100%;
         height: 100%;
         position: relative;
-        background: #fff;
-        border: 2px solid #e5e7eb;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 18px;
+        box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
         overflow: hidden;
         transform-style: preserve-3d;
         -webkit-transform-style: preserve-3d;
-        transition: box-shadow .3s ease, border-color .3s ease;
+        transition: box-shadow .3s ease, transform .3s ease;
+        --card-accent-bg: linear-gradient(135deg, #6366f1, #2563eb);
+        --card-accent-hover-bg: linear-gradient(135deg, #4f46e5, #1d4ed8);
+        --card-accent-rgb: 37, 99, 235;
+        --card-accent-shadow: 0 16px 32px rgba(var(--card-accent-rgb), 0.22);
+        --card-accent-hover-shadow: 0 20px 40px rgba(var(--card-accent-rgb), 0.3);
     }
 
-    .flashcard-card.flashcard-card--new {
-        border-color: #22c55e;
-        box-shadow: 0 12px 32px rgba(34, 197, 94, 0.25);
+    .flashcard-card::before {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        background: radial-gradient(120% 120% at 90% 10%, rgba(var(--card-accent-rgb), 0.18), transparent 60%);
+        opacity: 0.85;
+        pointer-events: none;
+        z-index: 0;
     }
 
-    .flashcard-card.flashcard-card--due {
-        border-color: #f97316;
-        box-shadow: 0 12px 32px rgba(249, 115, 22, 0.25);
+    .flashcard-card:hover {
+        box-shadow: 0 28px 56px rgba(var(--card-accent-rgb), 0.25);
+        transform: translateY(-3px);
     }
 
-    .flashcard-card.flashcard-card--hard {
-        border-color: #ef4444;
-        box-shadow: 0 12px 32px rgba(239, 68, 68, 0.28);
+    .flashcard-card[data-card-category="new"] {
+        --card-accent-bg: linear-gradient(135deg, #34d399, #10b981);
+        --card-accent-hover-bg: linear-gradient(135deg, #22c55e, #059669);
+        --card-accent-rgb: 34, 197, 94;
+    }
+
+    .flashcard-card[data-card-category="due"] {
+        --card-accent-bg: linear-gradient(135deg, #facc15, #f97316);
+        --card-accent-hover-bg: linear-gradient(135deg, #f59e0b, #ea580c);
+        --card-accent-rgb: 249, 115, 22;
+    }
+
+    .flashcard-card[data-card-category="hard"] {
+        --card-accent-bg: linear-gradient(135deg, #fb7185, #ef4444);
+        --card-accent-hover-bg: linear-gradient(135deg, #f43f5e, #dc2626);
+        --card-accent-rgb: 239, 68, 68;
+    }
+
+    .flashcard-card[data-card-category="default"] {
+        --card-accent-bg: linear-gradient(135deg, #6366f1, #2563eb);
+        --card-accent-hover-bg: linear-gradient(135deg, #4f46e5, #1d4ed8);
+        --card-accent-rgb: 37, 99, 235;
     }
 
     .face {
@@ -204,6 +234,7 @@
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         transition: transform .6s ease-in-out;
+        z-index: 1;
     }
 
     .front {
@@ -232,6 +263,9 @@
         top: 0;
         left: 0;
         z-index: 10;
+        background: linear-gradient(135deg, rgba(var(--card-accent-rgb), 0.12), rgba(255, 255, 255, 0.9));
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        backdrop-filter: blur(8px);
     }
 
     .toolbar-left, .toolbar-right {
@@ -256,23 +290,25 @@
     .card-toolbar .icon-btn {
         width: 40px;
         height: 40px;
-        border-radius: 50%;
-        background-color: transparent;
-        color: #9ca3af;
+        border-radius: 12px;
+        background-color: rgba(255, 255, 255, 0.4);
+        color: #64748b;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.1rem;
         cursor: pointer;
-        transition: color 0.2s ease, background-color 0.2s ease;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
     }
 
     .card-toolbar .icon-btn:hover {
-        background-color: #f3f4f6;
-        color: #3b82f6;
+        background-color: rgba(255, 255, 255, 0.85);
+        color: rgba(var(--card-accent-rgb), 1);
+        transform: translateY(-1px);
     }
     .card-toolbar .icon-btn.is-active {
-        color: #3b82f6;
+        color: rgba(var(--card-accent-rgb), 1);
     }
     .card-toolbar .icon-btn.is-disabled {
         background-color: transparent;
@@ -281,23 +317,30 @@
     }
 
     .card-toolbar .play-audio-btn {
-        background-color: #2563eb;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        border: none;
+        background: var(--card-accent-bg);
         color: #ffffff;
-        width: 36px;
-        height: 36px;
         font-size: 1rem;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        box-shadow: var(--card-accent-shadow);
         cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
 
     .card-toolbar .play-audio-btn:hover {
-        background-color: #1d4ed8;
+        background: var(--card-accent-hover-bg);
         color: #ffffff;
+        box-shadow: var(--card-accent-hover-shadow);
+        transform: translateY(-1px);
     }
     .card-toolbar .play-audio-btn.is-disabled {
-        background-color: #9ca3af;
+        background-color: rgba(148, 163, 184, 0.35);
         color: #e5e7eb;
         cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
     }
 
     /* Cấu trúc mới cho nội dung thẻ */
@@ -505,18 +548,24 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.5rem;
+        padding: 0.85rem 1.75rem;
+        border-radius: 0.75rem;
         font-weight: 600;
         transition: all 0.2s ease-in-out;
-        background-color: #3b82f6;
+        background: var(--card-accent-bg);
         color: white;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        box-shadow: var(--card-accent-shadow);
+        border: none;
+        letter-spacing: 0.02em;
     }
     .flip-card-btn:hover {
-        background-color: #2563eb;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 10px -1px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        background: var(--card-accent-hover-bg);
+        transform: translateY(-2px);
+        box-shadow: var(--card-accent-hover-shadow);
+    }
+    .flip-card-btn:focus-visible {
+        outline: 3px solid rgba(var(--card-accent-rgb), 0.35);
+        outline-offset: 3px;
     }
 
 
