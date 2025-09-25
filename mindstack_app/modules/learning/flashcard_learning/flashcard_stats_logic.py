@@ -3,6 +3,8 @@
 # MỤC ĐÍCH: Cập nhật logic thống kê để phản ánh đầy đủ các chỉ số của SM-2.
 # ĐÃ SỬA: Thay đổi cách tính correct_rate, hard_count và thêm các chỉ số SM-2.
 
+import datetime
+
 from ....models import FlashcardProgress
 
 
@@ -38,6 +40,7 @@ def get_flashcard_item_statistics(user_id, item_id):
         'has_real_reviews': False,
         'has_preview_history': False,
         'has_preview_only': False,
+        'recent_reviews': [],
     }
 
     if not progress:
@@ -60,27 +63,62 @@ def get_flashcard_item_statistics(user_id, item_id):
 
     preview_entries = []
     review_qualities = []
+    normalized_review_entries = []
+
+    def _normalize_timestamp(value):
+        if isinstance(value, datetime.datetime):
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=datetime.timezone.utc)
+            return value.isoformat()
+        if isinstance(value, str):
+            try:
+                parsed = datetime.datetime.fromisoformat(value)
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+                return parsed.isoformat()
+            except ValueError:
+                return value
+        return None
+
     for entry in history:
+        if not isinstance(entry, dict):
+            continue
+
         quality = entry.get('user_answer_quality')
+        timestamp = _normalize_timestamp(entry.get('timestamp'))
+        entry_type = entry.get('type')
+
+        normalized_entry = {
+            'timestamp': timestamp,
+            'type': entry_type or ('preview' if quality is None else 'review'),
+        }
+
         if quality is None:
-            preview_entries.append(entry)
+            preview_entries.append(normalized_entry)
             continue
 
         try:
-            quality_value = int(quality)
+            quality_value = int(float(quality))
         except (TypeError, ValueError):
-            try:
-                quality_value = float(quality)
-            except (TypeError, ValueError):
-                quality_value = 0
+            quality_value = None
+
+        if quality_value is None:
+            continue
+
+        normalized_entry.update({
+            'user_answer_quality': quality_value,
+            'result': 'correct' if quality_value >= 4 else ('vague' if quality_value >= 2 else 'incorrect')
+        })
 
         review_qualities.append(quality_value)
+        normalized_review_entries.append(normalized_entry)
 
     stats['preview_count'] = len(preview_entries)
     stats['has_preview_history'] = stats['preview_count'] > 0
 
     if not review_qualities:
         stats['has_preview_only'] = stats['has_preview_history']
+        stats['recent_reviews'] = []
         return stats
 
     total_reviews = len(review_qualities)
@@ -118,6 +156,7 @@ def get_flashcard_item_statistics(user_id, item_id):
         'longest_streak': longest_streak,
         'has_real_reviews': True,
         'has_preview_only': stats['has_preview_history'] and total_reviews == 0,
+        'recent_reviews': [entry.copy() for entry in normalized_review_entries[-10:]],
     })
 
     return stats
