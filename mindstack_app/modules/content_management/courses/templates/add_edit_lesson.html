@@ -84,26 +84,94 @@
 </div>
 
 {# Script để tích hợp BBCode Editor #}
-<script src="https://cdn.jsdelivr.net/npm/bbcode-editor@latest/dist/bbcode-editor.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bbcode-editor@latest/dist/bbcode-editor.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sceditor@3/minified/themes/default.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sceditor@3/minified/themes/modern.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sceditor@3/minified/sceditor.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sceditor@3/minified/formats/bbcode.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Khởi tạo BBCode Editor trên textarea của form.bbcode_content
-        const bbcodeTextarea = document.getElementById('bbcode_content'); // ID của textarea
-        if (bbcodeTextarea) {
-            new BBCodeEditor(bbcodeTextarea, {
-                // Các tùy chọn của editor, bạn có thể tùy chỉnh thêm
-                // Ví dụ: chỉ hiển thị các nút cần thiết
-                buttons: [
-                    ['bold', 'italic', 'underline', 'strike'],
-                    ['link', 'youtube', 'img'],
-                    ['list', 'orderedlist'],
-                    ['quote', 'code'],
-                    ['undo', 'redo']
-                ]
-            });
+    document.addEventListener('DOMContentLoaded', function () {
+        const textarea = document.getElementById('bbcode_content');
+        if (!textarea || !window.sceditor) {
+            return;
         }
+
+        const insertTag = (startTag, endTag) => function () {
+            this.insertText(startTag, endTag);
+        };
+
+        const customCommands = {
+            spoiler: {
+                exec: insertTag('[spoiler=Tiêu đề]', '[/spoiler]'),
+                txtExec: insertTag('[spoiler=Tiêu đề]', '[/spoiler]'),
+                tooltip: 'Spoiler'
+            },
+            accordion: {
+                exec: insertTag('[accordion]\n[section=Tiêu đề 1]\nNội dung\n[/section]\n[/accordion]', ''),
+                txtExec: insertTag('[accordion]\n[section=Tiêu đề 1]\nNội dung\n[/section]\n[/accordion]', ''),
+                tooltip: 'Accordion'
+            },
+            note: {
+                exec: insertTag('[note]', '[/note]'),
+                txtExec: insertTag('[note]', '[/note]'),
+                tooltip: 'Ghi chú'
+            },
+            success: {
+                exec: insertTag('[success]', '[/success]'),
+                txtExec: insertTag('[success]', '[/success]'),
+                tooltip: 'Thông báo thành công'
+            },
+            warning: {
+                exec: insertTag('[warning]', '[/warning]'),
+                txtExec: insertTag('[warning]', '[/warning]'),
+                tooltip: 'Cảnh báo'
+            },
+            info: {
+                exec: insertTag('[info]', '[/info]'),
+                txtExec: insertTag('[info]', '[/info]'),
+                tooltip: 'Thông tin'
+            },
+            highlight: {
+                exec: insertTag('[highlight]', '[/highlight]'),
+                txtExec: insertTag('[highlight]', '[/highlight]'),
+                tooltip: 'Đánh dấu nổi bật'
+            },
+            kbd: {
+                exec: insertTag('[kbd]', '[/kbd]'),
+                txtExec: insertTag('[kbd]', '[/kbd]'),
+                tooltip: 'Phím tắt'
+            }
+        };
+
+        Object.entries(customCommands).forEach(([name, command]) => {
+            window.sceditor.command.set(name, command);
+        });
+
+        window.sceditor.create(textarea, {
+            format: 'bbcode',
+            style: 'https://cdn.jsdelivr.net/npm/sceditor@3/minified/themes/content/default.min.css',
+            icons: 'monocons',
+            toolbar: [
+                'undo', 'redo', 'cut', 'copy', 'pastetext', '|',
+                'bold', 'italic', 'underline', 'strike', 'subscript', 'superscript', 'removeformat', '|',
+                'left', 'center', 'right', 'justify', '|',
+                'font', 'size', 'color', 'highlight', '|',
+                'bulletlist', 'orderedlist', 'indent', 'outdent', 'horizontalrule', '|',
+                'table', 'code', 'quote', 'spoiler', 'accordion', '|',
+                'link', 'unlink', 'email', 'image', 'youtube', 'note', 'info', 'warning', 'success', '|',
+                'emoticon', 'date', 'time', 'ltr', 'rtl', '|',
+                'preview', 'source', 'print', 'maximize'
+            ].join(','),
+            enablePasteFiltering: true,
+            pasteFilter: true,
+            enablePasteImage: false,
+            spellcheck: true,
+            height: 360,
+            width: '100%',
+            resizeEnabled: true,
+            emoticonsEnabled: true,
+            rtl: false
+        });
     });
 </script>
 {% endblock %}
