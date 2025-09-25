@@ -1507,6 +1507,25 @@
         const easinessFactor = typeof stats.easiness_factor === 'number' ? Number(stats.easiness_factor).toFixed(2) : '—';
         const currentStreak = Number(stats.current_streak) || 0;
         const longestStreak = Number(stats.longest_streak) || 0;
+        const formatRecentTimestamp = (value) => {
+            if (!value) return 'Không rõ';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Không rõ';
+            try {
+                const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+                return `${timePart} · ${datePart}`;
+            } catch (err) {
+                return 'Không rõ';
+            }
+        };
+        const recentReviews = Array.isArray(stats.recent_reviews) ? [...stats.recent_reviews].slice(-10).reverse() : [];
+        const recentReviewConfig = {
+            'correct': { label: 'Nhớ', icon: 'fas fa-check-circle' },
+            'vague': { label: 'Mơ hồ', icon: 'fas fa-adjust' },
+            'incorrect': { label: 'Quên', icon: 'fas fa-times-circle' },
+            'preview': { label: 'Xem trước', icon: 'fas fa-eye' }
+        };
         const introNotice = isBrandNew
             ? `<div class="insight-banner"><i class="fas fa-seedling"></i><span>Thẻ mới - khám phá nội dung trước khi chấm điểm.</span></div>`
             : (isPreviewStage
@@ -1617,6 +1636,34 @@
             </div>
         `;
 
+        const recentSection = recentReviews.length
+            ? `
+                <div class="stats-section stats-section--recent">
+                    <div class="stats-section__header">
+                        <div class="icon-bubble"><i class="fas fa-history"></i></div>
+                        <div>
+                            <h4>Lượt trả lời gần đây</h4>
+                            <p>Theo dõi tối đa 10 lượt mới nhất và trạng thái ghi nhớ.</p>
+                        </div>
+                    </div>
+                    <div class="recent-answers-track">
+                        ${recentReviews.map(entry => {
+                            const resultKey = (entry.result || '').toLowerCase();
+                            const config = recentReviewConfig[resultKey] || recentReviewConfig.preview;
+                            const timestampDisplay = formatRecentTimestamp(entry.timestamp);
+                            const qualityScore = typeof entry.user_answer_quality === 'number' ? entry.user_answer_quality : '—';
+                            return `
+                                <div class="recent-answer-pill recent-answer-pill--${resultKey || 'preview'}" title="Điểm chất lượng: ${qualityScore}">
+                                    <span class="recent-answer-pill__status"><i class="${config.icon}"></i> ${config.label}</span>
+                                    <span class="recent-answer-pill__time">${timestampDisplay}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `
+            : '';
+
         const timelineSection = `
             <div class="stats-section stats-section--timeline">
                 <div class="stats-section__header">
@@ -1671,6 +1718,7 @@
             ${introNotice}
             ${progressSection}
             ${insightSection}
+            ${recentSection}
             ${timelineSection}
             ${cardDetails}
         `;
