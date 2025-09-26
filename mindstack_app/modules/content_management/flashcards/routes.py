@@ -19,12 +19,14 @@ from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
 # THÊM MỚI: Import AudioService
 from ...learning.flashcard_learning.audio_service import AudioService
+from ...learning.flashcard_learning.image_service import ImageService
 
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
                             template_folder='templates') # Đã cập nhật đường dẫn template
 
 # Khởi tạo service
 audio_service = AudioService()
+image_service = ImageService()
 
 
 def _apply_is_public_restrictions(form):
@@ -46,6 +48,28 @@ def _process_relative_url(url):
     if url and not url.startswith(('http://', 'https://', '/')):
         return f'uploads/{url}'
     return url
+
+
+def _get_static_image_url(url):
+    if not url:
+        return None
+
+    if isinstance(url, str):
+        normalized = url.strip()
+    else:
+        normalized = str(url).strip()
+
+    if not normalized:
+        return None
+
+    if normalized.startswith(('http://', 'https://', '/')):
+        return normalized
+
+    relative_path = normalized
+    if relative_path.startswith('uploads/'):
+        relative_path = relative_path.replace('uploads/', '', 1)
+
+    return url_for('static', filename=relative_path)
 
 
 def _has_editor_access(container_id):
@@ -418,15 +442,72 @@ def list_flashcard_items(set_id):
         _has_editor_access(set_id)
     )
     
-    return render_template('flashcard_items.html', 
-                           flashcard_set=flashcard_set, 
-                           flashcard_items=flashcard_items, 
-                           can_edit=can_edit, 
-                           pagination=pagination, 
+    return render_template('flashcard_items.html',
+                           flashcard_set=flashcard_set,
+                           flashcard_items=flashcard_items,
+                           can_edit=can_edit,
+                           pagination=pagination,
                            search_query=search_query,
                            search_field=search_field, # Truyền trường tìm kiếm hiện tại
                            search_field_map=item_search_field_map # Truyền map để tạo dropdown cho template
                            )
+
+
+@flashcards_bp.route('/flashcards/<int:set_id>/items/<int:item_id>/search-image', methods=['POST'])
+@login_required
+def search_flashcard_image(set_id, item_id):
+    flashcard_set = LearningContainer.query.get_or_404(set_id)
+
+    if flashcard_set.container_type != 'FLASHCARD_SET':
+        abort(404)
+
+    if not (
+        current_user.user_role == User.ROLE_ADMIN
+        or flashcard_set.creator_user_id == current_user.user_id
+        or _has_editor_access(set_id)
+    ):
+        return jsonify({'success': False, 'message': 'Bạn không có quyền thực hiện thao tác này.'}), 403
+
+    if item_id:
+        flashcard_item = LearningItem.query.filter_by(
+            item_id=item_id,
+            container_id=set_id,
+            item_type='FLASHCARD'
+        ).first()
+        if not flashcard_item:
+            return jsonify({'success': False, 'message': 'Không tìm thấy thẻ phù hợp.'}), 404
+
+    payload = request.get_json(silent=True) or {}
+    side = (payload.get('side') or 'front').lower()
+    query = (payload.get('query') or '').strip()
+
+    if side not in {'front', 'back'}:
+        return jsonify({'success': False, 'message': 'Mặt thẻ không hợp lệ.'}), 400
+
+    if not query:
+        return jsonify({'success': False, 'message': 'Vui lòng nhập nội dung để tìm kiếm ảnh.'}), 400
+
+    try:
+        absolute_path, success, message = image_service.get_cached_or_download_image(query)
+        if not success or not absolute_path:
+            return jsonify({'success': False, 'message': message or 'Không tìm thấy ảnh phù hợp.'}), 404
+
+        relative_path = image_service.convert_to_static_url(absolute_path)
+        if not relative_path:
+            return jsonify({'success': False, 'message': 'Không thể xử lý đường dẫn ảnh.'}), 500
+
+        image_url = url_for('static', filename=relative_path)
+        return jsonify({
+            'success': True,
+            'message': 'Đã tìm thấy ảnh minh họa.',
+            'relative_path': relative_path,
+            'image_url': image_url
+        })
+    except Exception as exc:  # pylint: disable=broad-except
+        current_app.logger.error(
+            "Lỗi khi tìm ảnh minh họa cho bộ thẻ %s: %s", set_id, exc, exc_info=True
+        )
+        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi tìm kiếm ảnh.'}), 500
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items/add', methods=['GET', 'POST'])
 @login_required
@@ -499,10 +580,19 @@ def add_flashcard_item(set_id):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
     
+    context = {
+        'form': form,
+        'flashcard_set': flashcard_set,
+        'title': 'Thêm Thẻ',
+        'front_image_url': _get_static_image_url(form.front_img.data),
+        'back_image_url': _get_static_image_url(form.back_img.data),
+        'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=0)
+    }
+
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, title='Thêm Thẻ')
-    return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, title='Thêm Thẻ')
+        return render_template('_add_edit_flashcard_item_bare.html', **context)
+    return render_template('add_edit_flashcard_item.html', **context)
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
@@ -590,10 +680,20 @@ def edit_flashcard_item(set_id, item_id):
         # Gán giá trị `order_in_container` vào form
         form.order_in_container.data = flashcard_item.order_in_container
     
+    context = {
+        'form': form,
+        'flashcard_set': flashcard_set,
+        'flashcard_item': flashcard_item,
+        'title': 'Sửa Thẻ',
+        'front_image_url': _get_static_image_url(form.front_img.data),
+        'back_image_url': _get_static_image_url(form.back_img.data),
+        'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=item_id)
+    }
+
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_flashcard_item_bare.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Sửa Thẻ')
-    return render_template('add_edit_flashcard_item.html', form=form, flashcard_set=flashcard_set, flashcard_item=flashcard_item, title='Sửa Thẻ')
+        return render_template('_add_edit_flashcard_item_bare.html', **context)
+    return render_template('add_edit_flashcard_item.html', **context)
 
 @flashcards_bp.route('/flashcards/delete/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
 @login_required
