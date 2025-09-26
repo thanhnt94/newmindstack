@@ -1,7 +1,8 @@
 # File: requirements.txt
-# Phiên bản: 1.1
+# Phiên bản: 1.2
 # Mô tả: Chứa danh sách các thư viện Python cần thiết để chạy ứng dụng Mindstack.
 # Hướng dẫn cài đặt: Chạy lệnh 'pip install -r requirements.txt' trong môi trường ảo của bạn.
+
 # --- Framework chính ---
 Flask>=2.0
 Werkzeug>=2.0 # Thư viện WSGI cốt lõi cho Flask
@@ -32,3 +33,7 @@ google-generativeai>=0.3 # Thư viện để tương tác với Google Gemini AP
 Jinja2>=3.0 # Engine template cho Flask
 itsdangerous>=2.0 # Dùng để ký dữ liệu an toàn trong Flask
 click>=8.0 # Dùng để tạo các lệnh command-line cho Flask
+
+# --- Tự động tìm kiếm và tải hình ảnh ---
+duckduckgo-search>=4.0.0
+requests>=2.31
