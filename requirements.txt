@@ -25,6 +25,7 @@ openpyxl>=3.0 # Thư viện phụ trợ cho pandas để làm việc với file 
 bbcode>=1.0 # Dùng để chuyển đổi BBCode sang HTML trong các bài học
 gTTS>=2.2 # Google Text-to-Speech, dùng để tạo file audio cho flashcard
 pydub>=0.25 # Dùng để xử lý và ghép các file audio
+audioop-lts>=0.2; python_version >= "3.13" # Cung cấp lại mô-đun audioop bị loại bỏ từ Python 3.13 trở lên
 
 # --- Tích hợp AI ---
 google-generativeai>=0.3 # Thư viện để tương tác với Google Gemini API
