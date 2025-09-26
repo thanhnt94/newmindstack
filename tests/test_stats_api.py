@@ -9,6 +9,7 @@ from mindstack_app.models import (
     FlashcardProgress,
     QuizProgress,
     CourseProgress,
+    ScoreLog,
 )
 
 
@@ -94,6 +95,10 @@ def stats_data(app):
                 times_correct=5,
                 last_reviewed=now - timedelta(days=1),
                 due_time=now - timedelta(hours=2),
+                review_history=[
+                    {'timestamp': (now - timedelta(days=5)).isoformat(), 'type': 'preview'},
+                    {'timestamp': (now - timedelta(days=4)).isoformat(), 'user_answer_quality': 5},
+                ],
             ),
             FlashcardProgress(
                 user_id=user.user_id,
@@ -102,6 +107,10 @@ def stats_data(app):
                 times_correct=3,
                 last_reviewed=now - timedelta(days=2),
                 due_time=now - timedelta(hours=5),
+                review_history=[
+                    {'timestamp': (now - timedelta(days=3)).isoformat(), 'type': 'preview'},
+                    {'timestamp': (now - timedelta(days=2)).isoformat(), 'user_answer_quality': 3},
+                ],
             ),
             FlashcardProgress(
                 user_id=user.user_id,
@@ -110,6 +119,9 @@ def stats_data(app):
                 times_correct=1,
                 times_incorrect=2,
                 due_time=now - timedelta(hours=1),
+                review_history=[
+                    {'timestamp': (now - timedelta(days=1)).isoformat(), 'user_answer_quality': 2},
+                ],
             ),
             FlashcardProgress(
                 user_id=user.user_id,
@@ -117,6 +129,7 @@ def stats_data(app):
                 status='new',
                 times_correct=0,
                 due_time=now + timedelta(days=1),
+                review_history=[],
             ),
         ]
 
@@ -127,6 +140,10 @@ def stats_data(app):
                 status='mastered',
                 times_correct=4,
                 last_reviewed=now - timedelta(days=1),
+                review_history=[
+                    {'timestamp': (now - timedelta(days=4)).isoformat(), 'is_correct': True, 'score_change': 25},
+                    {'timestamp': (now - timedelta(days=1)).isoformat(), 'is_correct': True, 'score_change': 20},
+                ],
             ),
             QuizProgress(
                 user_id=user.user_id,
@@ -135,6 +152,9 @@ def stats_data(app):
                 times_correct=1,
                 times_incorrect=3,
                 last_reviewed=now - timedelta(days=3),
+                review_history=[
+                    {'timestamp': (now - timedelta(days=2)).isoformat(), 'is_correct': False, 'score_change': -5},
+                ],
             ),
             QuizProgress(
                 user_id=user.user_id,
@@ -142,6 +162,7 @@ def stats_data(app):
                 status='hard',
                 times_correct=0,
                 times_incorrect=4,
+                review_history=[],
             ),
         ]
 
@@ -166,7 +187,38 @@ def stats_data(app):
             ),
         ]
 
-        db.session.add_all(flashcard_progress + quiz_progress + course_progress)
+        score_logs = [
+            ScoreLog(
+                user_id=user.user_id,
+                item_id=flashcard_items[0].item_id,
+                score_change=15,
+                item_type='FLASHCARD',
+                timestamp=now - timedelta(days=4),
+            ),
+            ScoreLog(
+                user_id=user.user_id,
+                item_id=flashcard_items[1].item_id,
+                score_change=10,
+                item_type='FLASHCARD',
+                timestamp=now - timedelta(days=2),
+            ),
+            ScoreLog(
+                user_id=user.user_id,
+                item_id=quiz_items[0].item_id,
+                score_change=25,
+                item_type='QUIZ_MCQ',
+                timestamp=now - timedelta(days=4),
+            ),
+            ScoreLog(
+                user_id=user.user_id,
+                item_id=quiz_items[1].item_id,
+                score_change=-5,
+                item_type='QUIZ_MCQ',
+                timestamp=now - timedelta(days=2),
+            ),
+        ]
+
+        db.session.add_all(flashcard_progress + quiz_progress + course_progress + score_logs)
         db.session.commit()
 
         yield {
@@ -255,3 +307,48 @@ def test_statistics_modal_markup(client, stats_data):
     assert 'id="stats-modal"' in html
     assert 'data-type="flashcard"' in html
     assert 'data-category="mastered"' in html
+
+
+def test_flashcard_activity_endpoint(client, stats_data):
+    login(client, stats_data['user_id'])
+    response = client.get(
+        f"/stats/api/flashcard-activity?container_id={stats_data['flashcard_container']}&timeframe=30d"
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload['success'] is True
+    series = payload['data']['series']
+    assert series, "Expected non-empty activity series"
+    first_entry = series[0]
+    assert {'date', 'new_count', 'review_count', 'score'} <= set(first_entry.keys())
+    assert any(point['new_count'] > 0 for point in series)
+
+
+def test_quiz_activity_endpoint(client, stats_data):
+    login(client, stats_data['user_id'])
+    response = client.get(
+        f"/stats/api/quiz-activity?container_id={stats_data['quiz_container']}&timeframe=30d"
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload['success'] is True
+    series = payload['data']['series']
+    assert series, "Expected non-empty quiz activity series"
+    assert any(point['review_count'] > 0 for point in series)
+
+
+def test_course_activity_endpoint(client, stats_data):
+    login(client, stats_data['user_id'])
+    response = client.get(
+        f"/stats/api/course-activity?container_id={stats_data['course_container']}&timeframe=30d"
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload['success'] is True
+    series = payload['data']['series']
+    assert series, "Expected course activity series response"
+    first_entry = series[0]
+    assert {'date', 'new_count', 'review_count', 'score'} <= set(first_entry.keys())
