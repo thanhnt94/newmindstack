@@ -16,7 +16,12 @@ import requests
 
 try:  # Ưu tiên package mới "ddgs" sau khi được đổi tên
     from ddgs import DDGS  # type: ignore[import-not-found]
-    from ddgs.exceptions import DuckDuckGoSearchException  # type: ignore[import-not-found]
+    from ddgs import exceptions as _ddgs_exceptions  # type: ignore[import-not-found]
+    DuckDuckGoSearchException = getattr(  # type: ignore[assignment]
+        _ddgs_exceptions,
+        "DuckDuckGoSearchException",
+        getattr(_ddgs_exceptions, "DDGSearchException", Exception),
+    )
 except ModuleNotFoundError:  # Fallback cho môi trường chưa nâng cấp
     from duckduckgo_search import DDGS  # type: ignore[import-not-found]
     from duckduckgo_search.exceptions import (  # type: ignore[import-not-found]
