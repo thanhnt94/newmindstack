@@ -11,7 +11,15 @@ import traceback
 from .algorithms import get_new_only_items, get_due_items, get_hard_items, get_mixed_items, get_filtered_flashcard_sets, get_flashcard_mode_counts
 from .session_manager import FlashcardSessionManager
 from .config import FlashcardLearningConfig
-from ....models import db, User, FlashcardProgress, UserContainerState, LearningContainer, LearningItem
+from ....models import (
+    db,
+    User,
+    FlashcardProgress,
+    UserContainerState,
+    LearningContainer,
+    LearningItem,
+    ContainerContributor,
+)
 from sqlalchemy.sql import func
 import asyncio
 from .audio_service import AudioService
@@ -24,6 +32,29 @@ flashcard_learning_bp = Blueprint('flashcard_learning', __name__,
 
 audio_service = AudioService()
 image_service = ImageService()
+
+
+def _user_can_edit_flashcard(container_id: int) -> bool:
+    """Return True if the current user can edit items within the container."""
+
+    if current_user.user_role == User.ROLE_ADMIN:
+        return True
+
+    container = LearningContainer.query.get(container_id)
+    if not container:
+        return False
+
+    if container.creator_user_id == current_user.user_id:
+        return True
+
+    return (
+        ContainerContributor.query.filter_by(
+            container_id=container_id,
+            user_id=current_user.user_id,
+            permission_level="editor",
+        ).first()
+        is not None
+    )
 
 
 @flashcard_learning_bp.route('/flashcard_learning_dashboard')
@@ -474,6 +505,9 @@ def generate_image_from_content():
     item = LearningItem.query.get(item_id)
     if not item or item.item_type != 'FLASHCARD':
         return jsonify({'success': False, 'message': 'Không tìm thấy thẻ phù hợp.'}), 404
+
+    if not _user_can_edit_flashcard(item.container_id):
+        return jsonify({'success': False, 'message': 'Bạn không có quyền chỉnh sửa thẻ này.'}), 403
 
     content = item.content or {}
     text_source = content.get('front' if side == 'front' else 'back') or ''

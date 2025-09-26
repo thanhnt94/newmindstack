@@ -1,0 +1,157 @@
+<script>
+(function() {
+    if (window.initializeFlashcardImageControls) {
+        return;
+    }
+
+    window.initializeFlashcardImageControls = function initializeFlashcardImageControls(options) {
+        const opts = options || {};
+        const formElement = opts.form || (opts.formSelector ? document.querySelector(opts.formSelector) : null);
+        if (!formElement) {
+            return;
+        }
+
+        const searchUrl = opts.searchUrl || formElement.dataset.imageSearchUrl;
+        if (!searchUrl) {
+            return;
+        }
+
+        const fields = Array.from(formElement.querySelectorAll('[data-image-side]'));
+        if (!fields.length) {
+            return;
+        }
+
+        const csrfInput = formElement.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
+
+        const getDefaultQuery = (field) => {
+            const side = field.dataset.imageSide || 'front';
+            const sourceId = side === 'back' ? formElement.dataset.backSourceId : formElement.dataset.frontSourceId;
+            if (!sourceId) {
+                return '';
+            }
+            const sourceField = document.getElementById(sourceId);
+            if (!sourceField) {
+                return '';
+            }
+            return (sourceField.value || '').trim();
+        };
+
+        fields.forEach(field => {
+            const side = (field.dataset.imageSide || 'front').toLowerCase();
+            const hiddenInput = field.querySelector('[data-role="image-path"]');
+            const previewImg = field.querySelector('[data-role="image-preview"]');
+            const placeholder = field.querySelector('[data-role="image-placeholder"]');
+            const removeBtn = field.querySelector('[data-role="remove-image"]');
+            const queryInput = field.querySelector('[data-role="image-query"]');
+            const searchBtn = field.querySelector('[data-role="search-image"]');
+            const errorLabel = field.querySelector('[data-role="image-error"]');
+            const initialUrl = field.dataset.initialUrl || '';
+
+            if (!hiddenInput || !searchBtn) {
+                return;
+            }
+
+            const updatePreview = (url) => {
+                const hasUrl = Boolean(url);
+                if (previewImg) {
+                    if (hasUrl) {
+                        previewImg.src = url;
+                        previewImg.classList.remove('hidden');
+                    } else {
+                        previewImg.removeAttribute('src');
+                        previewImg.classList.add('hidden');
+                    }
+                }
+                if (placeholder) {
+                    placeholder.classList.toggle('hidden', hasUrl);
+                }
+                if (removeBtn) {
+                    removeBtn.classList.toggle('hidden', !hasUrl);
+                }
+            };
+
+            updatePreview(initialUrl);
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    hiddenInput.value = '';
+                    updatePreview('');
+                    if (errorLabel) {
+                        errorLabel.textContent = '';
+                        errorLabel.classList.add('hidden');
+                    }
+                });
+            }
+
+            searchBtn.addEventListener('click', async () => {
+                if (errorLabel) {
+                    errorLabel.textContent = '';
+                    errorLabel.classList.add('hidden');
+                }
+
+                let query = queryInput ? queryInput.value.trim() : '';
+                if (!query) {
+                    query = getDefaultQuery(field);
+                    if (queryInput && query) {
+                        queryInput.value = query;
+                    }
+                }
+
+                if (!query) {
+                    if (errorLabel) {
+                        errorLabel.textContent = 'Vui lòng nhập nội dung để tìm ảnh.';
+                        errorLabel.classList.remove('hidden');
+                    }
+                    if (queryInput) {
+                        queryInput.focus();
+                    }
+                    return;
+                }
+
+                const originalHtml = searchBtn.dataset.originalHtml || searchBtn.innerHTML;
+                if (!searchBtn.dataset.originalHtml) {
+                    searchBtn.dataset.originalHtml = originalHtml;
+                }
+                searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                searchBtn.disabled = true;
+
+                try {
+                    const response = await fetch(searchUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {})
+                        },
+                        body: JSON.stringify({ side, query })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result && result.success && result.image_url) {
+                        hiddenInput.value = result.relative_path || '';
+                        updatePreview(result.image_url);
+                    } else {
+                        const message = (result && result.message) || 'Không tìm thấy ảnh phù hợp.';
+                        if (errorLabel) {
+                            errorLabel.textContent = message;
+                            errorLabel.classList.remove('hidden');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Lỗi tìm ảnh minh họa:', error);
+                    if (errorLabel) {
+                        errorLabel.textContent = 'Không thể kết nối đến máy chủ tìm kiếm ảnh.';
+                        errorLabel.classList.remove('hidden');
+                    }
+                } finally {
+                    searchBtn.innerHTML = searchBtn.dataset.originalHtml || originalHtml;
+                    searchBtn.disabled = false;
+                }
+            });
+        });
+    };
+})();
+</script>
