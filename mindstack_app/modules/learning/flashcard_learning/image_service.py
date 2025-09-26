@@ -8,11 +8,13 @@ import hashlib
 import logging
 import mimetypes
 import os
+import time
 from typing import Iterable, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
 from duckduckgo_search import DDGS
+from duckduckgo_search.exceptions import DuckDuckGoSearchException
 from sqlalchemy.orm.attributes import flag_modified
 
 from ....config import Config
@@ -153,27 +155,58 @@ class ImageService:
             return cached_path, True, "Đã tìm thấy ảnh trong cache."
 
         logger.info("%s Cache MISS cho hash %s. Đang tìm ảnh...", log_prefix, content_hash)
-        try:
-            with DDGS() as ddgs:
-                results: Iterable[dict] = ddgs.images(
-                    normalized_text,
-                    safesearch="moderate",
-                    region="wt-wt",
-                    size="Medium",
-                    max_results=max_results,
+        retry_attempts = 3
+        retry_delay_seconds = 3
+        friendly_retry_message = "Dịch vụ tìm kiếm ảnh đang bận, vui lòng thử lại sau."
+
+        for attempt in range(1, retry_attempts + 1):
+            try:
+                with DDGS() as ddgs:
+                    results: Iterable[dict] = ddgs.images(
+                        normalized_text,
+                        safesearch="moderate",
+                        region="wt-wt",
+                        size="Medium",
+                        max_results=max_results,
+                    )
+                    for result in results:
+                        image_url = result.get("image") or result.get("thumbnail")
+                        if not image_url:
+                            continue
+                        downloaded_path, success, message = self._download_image(image_url, content_hash)
+                        if success and downloaded_path:
+                            logger.info("%s Đã tải ảnh mới cho hash %s", log_prefix, content_hash)
+                            return downloaded_path, True, "Đã tìm và lưu ảnh thành công."
+                        logger.debug("%s Không thể dùng ảnh từ %s: %s", log_prefix, image_url, message)
+                break
+            except DuckDuckGoSearchException as exc:  # pylint: disable=broad-except
+                logger.warning(
+                    "%s DuckDuckGo trả về lỗi tạm thời (lần %s/%s): %s",
+                    log_prefix,
+                    attempt,
+                    retry_attempts,
+                    exc,
                 )
-                for result in results:
-                    image_url = result.get("image") or result.get("thumbnail")
-                    if not image_url:
+                if attempt < retry_attempts:
+                    time.sleep(retry_delay_seconds)
+                    continue
+                return None, False, friendly_retry_message
+            except Exception as exc:  # pylint: disable=broad-except
+                message_lower = str(exc).lower()
+                if "rate limit" in message_lower or "http 202" in message_lower or "status code 202" in message_lower:
+                    logger.warning(
+                        "%s DuckDuckGo phản hồi đang bị giới hạn (lần %s/%s): %s",
+                        log_prefix,
+                        attempt,
+                        retry_attempts,
+                        exc,
+                    )
+                    if attempt < retry_attempts:
+                        time.sleep(retry_delay_seconds)
                         continue
-                    downloaded_path, success, message = self._download_image(image_url, content_hash)
-                    if success and downloaded_path:
-                        logger.info("%s Đã tải ảnh mới cho hash %s", log_prefix, content_hash)
-                        return downloaded_path, True, "Đã tìm và lưu ảnh thành công."
-                    logger.debug("%s Không thể dùng ảnh từ %s: %s", log_prefix, image_url, message)
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.error("%s Lỗi khi tìm ảnh: %s", log_prefix, exc, exc_info=True)
-            return None, False, f"Lỗi khi tìm ảnh: {exc}"
+                    return None, False, friendly_retry_message
+                logger.error("%s Lỗi khi tìm ảnh: %s", log_prefix, exc, exc_info=True)
+                return None, False, f"Lỗi khi tìm ảnh: {exc}"
 
         return None, False, "Không tìm thấy ảnh phù hợp."
 
