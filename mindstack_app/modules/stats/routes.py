@@ -2,12 +2,24 @@
 # Phiên bản: 2.1
 # Mục đích: Bổ sung logic để lấy dữ liệu thống kê cho Khoá học.
 
+from collections import defaultdict
+from datetime import datetime, timedelta, date
+
 from flask import render_template, jsonify, request
 from flask_login import login_required, current_user
+from sqlalchemy import func, case
+
 from . import stats_bp
-from ...models import db, User, ScoreLog, FlashcardProgress, QuizProgress, LearningContainer, LearningItem, CourseProgress
-from sqlalchemy import func
-from datetime import datetime, timedelta, date
+from ...models import (
+    db,
+    User,
+    ScoreLog,
+    FlashcardProgress,
+    QuizProgress,
+    LearningContainer,
+    LearningItem,
+    CourseProgress,
+)
 
 
 def get_leaderboard_data_internal(sort_by, timeframe, viewer=None):
@@ -80,6 +92,428 @@ def get_leaderboard_data_internal(sort_by, timeframe, viewer=None):
 
     return leaderboard_data
 
+
+def _get_user_container_options(user_id, container_type, progress_model, timestamp_attr, item_type=None):
+    """Return the list of learning containers (id/title) a user interacted with."""
+
+    timestamp_column = getattr(progress_model, timestamp_attr, None) if timestamp_attr else None
+
+    columns = [
+        LearningContainer.container_id.label('container_id'),
+        LearningContainer.title.label('title'),
+    ]
+
+    if timestamp_column is not None:
+        columns.append(func.max(timestamp_column).label('last_activity'))
+    else:
+        columns.append(func.max(progress_model.progress_id).label('last_activity'))
+
+    query = (
+        db.session.query(*columns)
+        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
+        .join(progress_model, progress_model.item_id == LearningItem.item_id)
+        .filter(
+            progress_model.user_id == user_id,
+            LearningContainer.container_type == container_type,
+        )
+    )
+
+    if item_type is not None:
+        query = query.filter(LearningItem.item_type == item_type)
+
+    order_expression = columns[-1]
+    query = query.group_by(LearningContainer.container_id, LearningContainer.title).order_by(order_expression.desc())
+
+    return [
+        {
+            'id': row.container_id,
+            'title': row.title,
+        }
+        for row in query.all()
+    ]
+
+
+def get_flashcard_set_metrics(user_id, container_id=None, sample_limit=5):
+    """Aggregate flashcard metrics per set for the provided user."""
+
+    container_query = (
+        db.session.query(
+            LearningContainer.container_id,
+            LearningContainer.title,
+        )
+        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
+        .join(FlashcardProgress, FlashcardProgress.item_id == LearningItem.item_id)
+        .filter(
+            FlashcardProgress.user_id == user_id,
+            LearningContainer.container_type == 'FLASHCARD_SET',
+            LearningItem.item_type == 'FLASHCARD',
+        )
+    )
+
+    if container_id is not None:
+        container_query = container_query.filter(LearningContainer.container_id == container_id)
+
+    containers = (
+        container_query
+        .group_by(LearningContainer.container_id, LearningContainer.title)
+        .all()
+    )
+
+    if not containers:
+        return {}
+
+    container_ids = [row.container_id for row in containers]
+    title_map = {row.container_id: row.title for row in containers}
+
+    total_cards_map = dict(
+        db.session.query(
+            LearningItem.container_id,
+            func.count(LearningItem.item_id).label('total_cards'),
+        )
+        .filter(
+            LearningItem.item_type == 'FLASHCARD',
+            LearningItem.container_id.in_(container_ids),
+        )
+        .group_by(LearningItem.container_id)
+        .all()
+    )
+
+    progress_rows = (
+        db.session.query(
+            LearningItem.container_id.label('container_id'),
+            func.count(FlashcardProgress.progress_id).label('studied_cards'),
+            func.sum(case((FlashcardProgress.status == 'mastered', 1), else_=0)).label('learned_cards'),
+            func.sum(FlashcardProgress.times_correct).label('total_correct'),
+            func.sum(FlashcardProgress.times_incorrect).label('total_incorrect'),
+            func.sum(FlashcardProgress.times_vague).label('total_vague'),
+            func.avg(FlashcardProgress.correct_streak).label('avg_correct_streak'),
+            func.max(FlashcardProgress.correct_streak).label('best_correct_streak'),
+        )
+        .join(LearningItem, LearningItem.item_id == FlashcardProgress.item_id)
+        .filter(
+            FlashcardProgress.user_id == user_id,
+            LearningItem.container_id.in_(container_ids),
+        )
+        .group_by(LearningItem.container_id)
+        .all()
+    )
+
+    progress_map = {row.container_id: row for row in progress_rows}
+
+    learned_examples_rows = (
+        db.session.query(
+            LearningItem.container_id.label('container_id'),
+            LearningItem.item_id.label('item_id'),
+            LearningItem.content.label('content'),
+            FlashcardProgress.last_reviewed.label('last_reviewed'),
+            FlashcardProgress.first_seen_timestamp.label('first_seen'),
+        )
+        .join(FlashcardProgress, FlashcardProgress.item_id == LearningItem.item_id)
+        .filter(
+            FlashcardProgress.user_id == user_id,
+            FlashcardProgress.status == 'mastered',
+            LearningItem.container_id.in_(container_ids),
+        )
+        .order_by(func.coalesce(FlashcardProgress.last_reviewed, FlashcardProgress.first_seen_timestamp).desc())
+        .all()
+    )
+
+    learned_examples_map = defaultdict(list)
+    for row in learned_examples_rows:
+        bucket = learned_examples_map[row.container_id]
+        if len(bucket) >= sample_limit:
+            continue
+        content = row.content or {}
+        bucket.append({
+            'item_id': row.item_id,
+            'front': content.get('front'),
+            'back': content.get('back'),
+            'last_reviewed': row.last_reviewed.isoformat() if row.last_reviewed else None,
+            'first_seen': row.first_seen.isoformat() if row.first_seen else None,
+        })
+
+    result = {}
+    for container_id in container_ids:
+        progress = progress_map.get(container_id)
+        total_cards = int(total_cards_map.get(container_id, 0) or 0)
+
+        studied_cards = int(progress.studied_cards or 0) if progress else 0
+        learned_cards = int(progress.learned_cards or 0) if progress else 0
+        total_correct = int(progress.total_correct or 0) if progress else 0
+        total_incorrect = int(progress.total_incorrect or 0) if progress else 0
+        total_vague = int(progress.total_vague or 0) if progress else 0
+        total_attempts = total_correct + total_incorrect + total_vague
+
+        accuracy_percent = None
+        if total_attempts > 0:
+            accuracy_percent = round((total_correct / total_attempts) * 100, 1)
+
+        avg_streak = float(progress.avg_correct_streak or 0) if progress and progress.avg_correct_streak is not None else 0.0
+        best_streak = int(progress.best_correct_streak or 0) if progress else 0
+
+        result[container_id] = {
+            'container_id': container_id,
+            'container_title': title_map.get(container_id),
+            'total_cards': total_cards,
+            'studied_cards': studied_cards,
+            'learned_cards': learned_cards,
+            'accuracy_percent': accuracy_percent,
+            'avg_correct_streak': round(avg_streak, 1) if avg_streak else 0.0,
+            'best_correct_streak': best_streak,
+            'learned_examples': learned_examples_map.get(container_id, []),
+        }
+
+    return result
+
+
+def get_quiz_set_metrics(user_id, container_id=None, sample_limit=5):
+    """Aggregate quiz metrics per set for the provided user."""
+
+    container_query = (
+        db.session.query(
+            LearningContainer.container_id,
+            LearningContainer.title,
+        )
+        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
+        .join(QuizProgress, QuizProgress.item_id == LearningItem.item_id)
+        .filter(
+            QuizProgress.user_id == user_id,
+            LearningContainer.container_type == 'QUIZ_SET',
+            LearningItem.item_type == 'QUIZ_MCQ',
+        )
+    )
+
+    if container_id is not None:
+        container_query = container_query.filter(LearningContainer.container_id == container_id)
+
+    containers = (
+        container_query
+        .group_by(LearningContainer.container_id, LearningContainer.title)
+        .all()
+    )
+
+    if not containers:
+        return {}
+
+    container_ids = [row.container_id for row in containers]
+    title_map = {row.container_id: row.title for row in containers}
+
+    total_questions_map = dict(
+        db.session.query(
+            LearningItem.container_id,
+            func.count(LearningItem.item_id).label('total_questions'),
+        )
+        .filter(
+            LearningItem.item_type == 'QUIZ_MCQ',
+            LearningItem.container_id.in_(container_ids),
+        )
+        .group_by(LearningItem.container_id)
+        .all()
+    )
+
+    progress_rows = (
+        db.session.query(
+            LearningItem.container_id.label('container_id'),
+            func.count(QuizProgress.progress_id).label('attempted_questions'),
+            func.sum(QuizProgress.times_correct).label('total_correct'),
+            func.sum(QuizProgress.times_incorrect).label('total_incorrect'),
+            func.avg(QuizProgress.correct_streak).label('avg_correct_streak'),
+            func.max(QuizProgress.correct_streak).label('best_correct_streak'),
+        )
+        .join(LearningItem, LearningItem.item_id == QuizProgress.item_id)
+        .filter(
+            QuizProgress.user_id == user_id,
+            LearningItem.container_id.in_(container_ids),
+        )
+        .group_by(LearningItem.container_id)
+        .all()
+    )
+
+    progress_map = {row.container_id: row for row in progress_rows}
+
+    correct_example_rows = (
+        db.session.query(
+            LearningItem.container_id.label('container_id'),
+            LearningItem.item_id.label('item_id'),
+            LearningItem.content.label('content'),
+            QuizProgress.times_correct.label('times_correct'),
+            QuizProgress.times_incorrect.label('times_incorrect'),
+            QuizProgress.last_reviewed.label('last_reviewed'),
+        )
+        .join(QuizProgress, QuizProgress.item_id == LearningItem.item_id)
+        .filter(
+            QuizProgress.user_id == user_id,
+            QuizProgress.times_correct > 0,
+            LearningItem.container_id.in_(container_ids),
+        )
+        .order_by(func.coalesce(QuizProgress.last_reviewed, QuizProgress.first_seen_timestamp).desc())
+        .all()
+    )
+
+    correct_examples_map = defaultdict(list)
+    for row in correct_example_rows:
+        bucket = correct_examples_map[row.container_id]
+        if len(bucket) >= sample_limit:
+            continue
+        content = row.content or {}
+        bucket.append({
+            'item_id': row.item_id,
+            'question': content.get('question'),
+            'times_correct': int(row.times_correct or 0),
+            'times_incorrect': int(row.times_incorrect or 0),
+            'last_reviewed': row.last_reviewed.isoformat() if row.last_reviewed else None,
+        })
+
+    result = {}
+    for container_id in container_ids:
+        progress = progress_map.get(container_id)
+        total_questions = int(total_questions_map.get(container_id, 0) or 0)
+
+        attempted = int(progress.attempted_questions or 0) if progress else 0
+        total_correct = int(progress.total_correct or 0) if progress else 0
+        total_incorrect = int(progress.total_incorrect or 0) if progress else 0
+        total_attempts = total_correct + total_incorrect
+
+        accuracy_percent = None
+        if total_attempts > 0:
+            accuracy_percent = round((total_correct / total_attempts) * 100, 1)
+
+        avg_streak = float(progress.avg_correct_streak or 0) if progress and progress.avg_correct_streak is not None else 0.0
+        best_streak = int(progress.best_correct_streak or 0) if progress else 0
+
+        result[container_id] = {
+            'container_id': container_id,
+            'container_title': title_map.get(container_id),
+            'total_questions': total_questions,
+            'attempted_questions': attempted,
+            'total_correct': total_correct,
+            'total_incorrect': total_incorrect,
+            'accuracy_percent': accuracy_percent,
+            'avg_correct_streak': round(avg_streak, 1) if avg_streak else 0.0,
+            'best_correct_streak': best_streak,
+            'correct_examples': correct_examples_map.get(container_id, []),
+        }
+
+    return result
+
+
+def get_course_metrics(user_id, container_id=None, sample_limit=5):
+    """Aggregate course metrics per set for the provided user."""
+
+    container_query = (
+        db.session.query(
+            LearningContainer.container_id,
+            LearningContainer.title,
+        )
+        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
+        .join(CourseProgress, CourseProgress.item_id == LearningItem.item_id)
+        .filter(
+            CourseProgress.user_id == user_id,
+            LearningContainer.container_type == 'COURSE',
+            LearningItem.item_type == 'LESSON',
+        )
+    )
+
+    if container_id is not None:
+        container_query = container_query.filter(LearningContainer.container_id == container_id)
+
+    containers = (
+        container_query
+        .group_by(LearningContainer.container_id, LearningContainer.title)
+        .all()
+    )
+
+    if not containers:
+        return {}
+
+    container_ids = [row.container_id for row in containers]
+    title_map = {row.container_id: row.title for row in containers}
+
+    total_lessons_map = dict(
+        db.session.query(
+            LearningItem.container_id,
+            func.count(LearningItem.item_id).label('total_lessons'),
+        )
+        .filter(
+            LearningItem.item_type == 'LESSON',
+            LearningItem.container_id.in_(container_ids),
+        )
+        .group_by(LearningItem.container_id)
+        .all()
+    )
+
+    progress_rows = (
+        db.session.query(
+            LearningItem.container_id.label('container_id'),
+            func.count(CourseProgress.progress_id).label('lessons_started'),
+            func.sum(case((CourseProgress.completion_percentage >= 100, 1), else_=0)).label('lessons_completed'),
+            func.avg(CourseProgress.completion_percentage).label('avg_completion'),
+            func.max(CourseProgress.last_updated).label('last_activity'),
+        )
+        .join(LearningItem, LearningItem.item_id == CourseProgress.item_id)
+        .filter(
+            CourseProgress.user_id == user_id,
+            LearningItem.container_id.in_(container_ids),
+        )
+        .group_by(LearningItem.container_id)
+        .all()
+    )
+
+    progress_map = {row.container_id: row for row in progress_rows}
+
+    recent_lessons_rows = (
+        db.session.query(
+            LearningItem.container_id.label('container_id'),
+            LearningItem.item_id.label('item_id'),
+            LearningItem.content.label('content'),
+            CourseProgress.completion_percentage.label('completion_percentage'),
+            CourseProgress.last_updated.label('last_updated'),
+        )
+        .join(CourseProgress, CourseProgress.item_id == LearningItem.item_id)
+        .filter(
+            CourseProgress.user_id == user_id,
+            LearningItem.container_id.in_(container_ids),
+        )
+        .order_by(func.coalesce(CourseProgress.last_updated, CourseProgress.progress_id).desc())
+        .all()
+    )
+
+    recent_lessons_map = defaultdict(list)
+    for row in recent_lessons_rows:
+        bucket = recent_lessons_map[row.container_id]
+        if len(bucket) >= sample_limit:
+            continue
+        content = row.content or {}
+        bucket.append({
+            'item_id': row.item_id,
+            'title': content.get('title') or content.get('lesson_title'),
+            'completion_percentage': int(row.completion_percentage or 0),
+            'last_updated': row.last_updated.isoformat() if row.last_updated else None,
+        })
+
+    result = {}
+    for container_id in container_ids:
+        progress = progress_map.get(container_id)
+        total_lessons = int(total_lessons_map.get(container_id, 0) or 0)
+
+        lessons_started = int(progress.lessons_started or 0) if progress else 0
+        lessons_completed = int(progress.lessons_completed or 0) if progress else 0
+        avg_completion = float(progress.avg_completion or 0) if progress and progress.avg_completion is not None else 0.0
+        last_activity_value = progress.last_activity.isoformat() if progress and progress.last_activity else None
+
+        result[container_id] = {
+            'container_id': container_id,
+            'container_title': title_map.get(container_id),
+            'total_lessons': total_lessons,
+            'lessons_started': lessons_started,
+            'lessons_completed': lessons_completed,
+            'avg_completion_percent': round(avg_completion, 1) if avg_completion else 0.0,
+            'last_activity': last_activity_value,
+            'recent_lessons': recent_lessons_map.get(container_id, []),
+        }
+
+    return result
+
 @stats_bp.route('/')
 @login_required
 def dashboard():
@@ -105,12 +539,37 @@ def dashboard():
         'lessons_completed_count': CourseProgress.query.filter_by(user_id=current_user.user_id, completion_percentage=100).count(),
     }
 
+    flashcard_sets = _get_user_container_options(
+        current_user.user_id,
+        'FLASHCARD_SET',
+        FlashcardProgress,
+        'last_reviewed',
+        item_type='FLASHCARD',
+    )
+    quiz_sets = _get_user_container_options(
+        current_user.user_id,
+        'QUIZ_SET',
+        QuizProgress,
+        'last_reviewed',
+        item_type='QUIZ_MCQ',
+    )
+    course_sets = _get_user_container_options(
+        current_user.user_id,
+        'COURSE',
+        CourseProgress,
+        'last_updated',
+        item_type='LESSON',
+    )
+
     return render_template(
         'statistics.html',
         leaderboard_data=leaderboard_data,
         dashboard_data=dashboard_data,
         current_sort_by=initial_sort_by,
-        current_timeframe=initial_timeframe
+        current_timeframe=initial_timeframe,
+        flashcard_sets=flashcard_sets,
+        quiz_sets=quiz_sets,
+        course_sets=course_sets,
     )
 
 @stats_bp.route('/api/leaderboard-data')
@@ -137,4 +596,28 @@ def get_heatmap_data_api():
     
     heatmap_data = {int(datetime.combine(row.date, datetime.min.time()).timestamp()): row.count for row in activity}
     return jsonify(heatmap_data)
+
+
+@stats_bp.route('/api/flashcard-set-metrics')
+@login_required
+def get_flashcard_set_metrics_api():
+    container_id = request.args.get('container_id', type=int)
+    data = get_flashcard_set_metrics(current_user.user_id, container_id=container_id)
+    return jsonify({'success': True, 'data': data})
+
+
+@stats_bp.route('/api/quiz-set-metrics')
+@login_required
+def get_quiz_set_metrics_api():
+    container_id = request.args.get('container_id', type=int)
+    data = get_quiz_set_metrics(current_user.user_id, container_id=container_id)
+    return jsonify({'success': True, 'data': data})
+
+
+@stats_bp.route('/api/course-metrics')
+@login_required
+def get_course_metrics_api():
+    container_id = request.args.get('container_id', type=int)
+    data = get_course_metrics(current_user.user_id, container_id=container_id)
+    return jsonify({'success': True, 'data': data})
 
