@@ -2,7 +2,8 @@
 # Phiên bản: 2.1
 # Mục đích: Bổ sung logic để lấy dữ liệu thống kê cho Khoá học.
 
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
+from collections import defaultdict
 
 from flask import render_template, jsonify, request
 from flask_login import login_required, current_user
@@ -153,6 +154,58 @@ def _sanitize_pagination_args(page, per_page, default_per_page=10, max_per_page=
 
     per_page = min(per_page, max_per_page)
     return page, per_page
+
+
+def _resolve_timeframe_dates(timeframe):
+    """Return (start_date, end_date) for the requested timeframe."""
+
+    end_date = date.today()
+    timeframe = (timeframe or '').lower()
+    mapping = {
+        '7d': 7,
+        '14d': 14,
+        '30d': 30,
+        '90d': 90,
+        '180d': 180,
+        '365d': 365,
+    }
+    if timeframe == 'all':
+        return None, end_date
+
+    days = mapping.get(timeframe, 30)
+    start_date = end_date - timedelta(days=days - 1)
+    return start_date, end_date
+
+
+def _parse_history_datetime(raw_value):
+    """Safely parse ISO formatted timestamps stored in JSON histories."""
+
+    if not raw_value:
+        return None
+
+    if isinstance(raw_value, datetime):
+        dt_value = raw_value
+    elif isinstance(raw_value, str):
+        try:
+            normalized = raw_value.replace('Z', '+00:00')
+            dt_value = datetime.fromisoformat(normalized)
+        except ValueError:
+            return None
+    else:
+        return None
+
+    if dt_value.tzinfo is None:
+        dt_value = dt_value.replace(tzinfo=timezone.utc)
+    else:
+        dt_value = dt_value.astimezone(timezone.utc)
+    return dt_value
+
+
+def _date_range(start_date, end_date):
+    current = start_date
+    while current <= end_date:
+        yield current
+        current += timedelta(days=1)
 
 
 def _build_flashcard_items_query(user_id):
@@ -408,6 +461,255 @@ def paginate_course_items(user_id, container_id=None, status=None, page=1, per_p
         'per_page': per_page,
         'total': int(total),
         'records': records,
+    }
+
+
+def get_flashcard_activity_series(user_id, container_id, timeframe='30d'):
+    if not container_id:
+        return {'series': []}
+
+    timeframe_start, timeframe_end = _resolve_timeframe_dates(timeframe)
+    query = (
+        db.session.query(FlashcardProgress.review_history)
+        .join(LearningItem, LearningItem.item_id == FlashcardProgress.item_id)
+        .filter(
+            FlashcardProgress.user_id == user_id,
+            LearningItem.container_id == container_id,
+        )
+    )
+
+    new_counts = defaultdict(int)
+    review_counts = defaultdict(int)
+    min_date_seen = None
+
+    histories = query.all()
+    for (history,) in histories:
+        if not history or not isinstance(history, list):
+            continue
+
+        parsed_entries = []
+        for entry in history:
+            if not isinstance(entry, dict):
+                continue
+            dt_value = _parse_history_datetime(entry.get('timestamp'))
+            if not dt_value:
+                continue
+            parsed_entries.append((dt_value, entry))
+            entry_date = dt_value.date()
+            if min_date_seen is None or entry_date < min_date_seen:
+                min_date_seen = entry_date
+
+        parsed_entries.sort(key=lambda item: item[0])
+
+        seen_new = False
+        for dt_value, entry in parsed_entries:
+            entry_date = dt_value.date()
+            if timeframe_start and entry_date < timeframe_start:
+                continue
+            if entry_date > timeframe_end:
+                continue
+
+            if not seen_new:
+                new_counts[entry_date] += 1
+                seen_new = True
+
+            if entry.get('type') != 'preview':
+                review_counts[entry_date] += 1
+
+    if timeframe_start is None:
+        if min_date_seen is None:
+            return {'series': []}
+        timeframe_start = min_date_seen
+
+    start_dt_filter = datetime.combine(timeframe_start, datetime.min.time()).replace(tzinfo=timezone.utc)
+    end_dt_filter = datetime.combine(timeframe_end + timedelta(days=1), datetime.min.time()).replace(tzinfo=timezone.utc)
+
+    score_rows = (
+        db.session.query(
+            func.date(ScoreLog.timestamp).label('activity_date'),
+            func.sum(ScoreLog.score_change).label('total_score'),
+        )
+        .join(LearningItem, LearningItem.item_id == ScoreLog.item_id)
+        .filter(
+            ScoreLog.user_id == user_id,
+            ScoreLog.item_type == 'FLASHCARD',
+            LearningItem.container_id == container_id,
+            ScoreLog.timestamp >= start_dt_filter,
+            ScoreLog.timestamp < end_dt_filter,
+        )
+        .group_by(func.date(ScoreLog.timestamp))
+        .all()
+    )
+
+    score_map = {row.activity_date: int(row.total_score or 0) for row in score_rows}
+
+    series = []
+    for current_date in _date_range(timeframe_start, timeframe_end):
+        series.append({
+            'date': current_date.isoformat(),
+            'new_count': int(new_counts.get(current_date, 0)),
+            'review_count': int(review_counts.get(current_date, 0)),
+            'score': int(score_map.get(current_date, 0)),
+        })
+
+    return {
+        'series': series,
+        'start_date': timeframe_start.isoformat(),
+        'end_date': timeframe_end.isoformat(),
+        'timeframe': timeframe or '30d',
+    }
+
+
+def get_quiz_activity_series(user_id, container_id, timeframe='30d'):
+    if not container_id:
+        return {'series': []}
+
+    timeframe_start, timeframe_end = _resolve_timeframe_dates(timeframe)
+    query = (
+        db.session.query(QuizProgress.review_history)
+        .join(LearningItem, LearningItem.item_id == QuizProgress.item_id)
+        .filter(
+            QuizProgress.user_id == user_id,
+            LearningItem.container_id == container_id,
+        )
+    )
+
+    new_counts = defaultdict(int)
+    review_counts = defaultdict(int)
+    min_date_seen = None
+
+    histories = query.all()
+    for (history,) in histories:
+        if not history or not isinstance(history, list):
+            continue
+
+        parsed_entries = []
+        for entry in history:
+            if not isinstance(entry, dict):
+                continue
+            dt_value = _parse_history_datetime(entry.get('timestamp'))
+            if not dt_value:
+                continue
+            parsed_entries.append((dt_value, entry))
+            entry_date = dt_value.date()
+            if min_date_seen is None or entry_date < min_date_seen:
+                min_date_seen = entry_date
+
+        parsed_entries.sort(key=lambda item: item[0])
+
+        first_entry_date = parsed_entries[0][0].date() if parsed_entries else None
+        for index, (dt_value, _) in enumerate(parsed_entries):
+            entry_date = dt_value.date()
+            if timeframe_start and entry_date < timeframe_start:
+                continue
+            if entry_date > timeframe_end:
+                continue
+
+            if index == 0 and first_entry_date == entry_date:
+                new_counts[entry_date] += 1
+            else:
+                review_counts[entry_date] += 1
+
+    if timeframe_start is None:
+        if min_date_seen is None:
+            return {'series': []}
+        timeframe_start = min_date_seen
+
+    start_dt_filter = datetime.combine(timeframe_start, datetime.min.time()).replace(tzinfo=timezone.utc)
+    end_dt_filter = datetime.combine(timeframe_end + timedelta(days=1), datetime.min.time()).replace(tzinfo=timezone.utc)
+
+    score_rows = (
+        db.session.query(
+            func.date(ScoreLog.timestamp).label('activity_date'),
+            func.sum(ScoreLog.score_change).label('total_score'),
+        )
+        .join(LearningItem, LearningItem.item_id == ScoreLog.item_id)
+        .filter(
+            ScoreLog.user_id == user_id,
+            ScoreLog.item_type == 'QUIZ_MCQ',
+            LearningItem.container_id == container_id,
+            ScoreLog.timestamp >= start_dt_filter,
+            ScoreLog.timestamp < end_dt_filter,
+        )
+        .group_by(func.date(ScoreLog.timestamp))
+        .all()
+    )
+
+    score_map = {row.activity_date: int(row.total_score or 0) for row in score_rows}
+
+    series = []
+    for current_date in _date_range(timeframe_start, timeframe_end):
+        series.append({
+            'date': current_date.isoformat(),
+            'new_count': int(new_counts.get(current_date, 0)),
+            'review_count': int(review_counts.get(current_date, 0)),
+            'score': int(score_map.get(current_date, 0)),
+        })
+
+    return {
+        'series': series,
+        'start_date': timeframe_start.isoformat(),
+        'end_date': timeframe_end.isoformat(),
+        'timeframe': timeframe or '30d',
+    }
+
+
+def get_course_activity_series(user_id, container_id, timeframe='30d'):
+    if not container_id:
+        return {'series': []}
+
+    timeframe_start, timeframe_end = _resolve_timeframe_dates(timeframe)
+
+    query = (
+        db.session.query(CourseProgress.last_updated, CourseProgress.completion_percentage)
+        .join(LearningItem, LearningItem.item_id == CourseProgress.item_id)
+        .filter(
+            CourseProgress.user_id == user_id,
+            LearningItem.container_id == container_id,
+        )
+    )
+
+    new_counts = defaultdict(int)
+    review_counts = defaultdict(int)
+    min_date_seen = None
+
+    for last_updated, completion_percentage in query.all():
+        dt_value = _parse_history_datetime(last_updated)
+        if not dt_value:
+            continue
+        entry_date = dt_value.date()
+        if min_date_seen is None or entry_date < min_date_seen:
+            min_date_seen = entry_date
+
+        if timeframe_start and entry_date < timeframe_start:
+            continue
+        if entry_date > timeframe_end:
+            continue
+
+        if completion_percentage and completion_percentage > 0:
+            new_counts[entry_date] += 1
+        if completion_percentage and completion_percentage >= 100:
+            review_counts[entry_date] += 1
+
+    if timeframe_start is None:
+        if min_date_seen is None:
+            return {'series': []}
+        timeframe_start = min_date_seen
+
+    series = []
+    for current_date in _date_range(timeframe_start, timeframe_end):
+        series.append({
+            'date': current_date.isoformat(),
+            'new_count': int(new_counts.get(current_date, 0)),
+            'review_count': int(review_counts.get(current_date, 0)),
+            'score': 0,
+        })
+
+    return {
+        'series': series,
+        'start_date': timeframe_start.isoformat(),
+        'end_date': timeframe_end.isoformat(),
+        'timeframe': timeframe or '30d',
     }
 
 
@@ -830,6 +1132,42 @@ def get_heatmap_data_api():
     
     heatmap_data = {int(datetime.combine(row.date, datetime.min.time()).timestamp()): row.count for row in activity}
     return jsonify(heatmap_data)
+
+
+@stats_bp.route('/api/flashcard-activity')
+@login_required
+def get_flashcard_activity_api():
+    container_id = request.args.get('container_id', type=int)
+    timeframe = request.args.get('timeframe', '30d')
+    if not container_id:
+        return jsonify({'success': False, 'message': 'Thiếu container_id'}), 400
+
+    data = get_flashcard_activity_series(current_user.user_id, container_id, timeframe=timeframe)
+    return jsonify({'success': True, 'data': data})
+
+
+@stats_bp.route('/api/quiz-activity')
+@login_required
+def get_quiz_activity_api():
+    container_id = request.args.get('container_id', type=int)
+    timeframe = request.args.get('timeframe', '30d')
+    if not container_id:
+        return jsonify({'success': False, 'message': 'Thiếu container_id'}), 400
+
+    data = get_quiz_activity_series(current_user.user_id, container_id, timeframe=timeframe)
+    return jsonify({'success': True, 'data': data})
+
+
+@stats_bp.route('/api/course-activity')
+@login_required
+def get_course_activity_api():
+    container_id = request.args.get('container_id', type=int)
+    timeframe = request.args.get('timeframe', '30d')
+    if not container_id:
+        return jsonify({'success': False, 'message': 'Thiếu container_id'}), 400
+
+    data = get_course_activity_series(current_user.user_id, container_id, timeframe=timeframe)
+    return jsonify({'success': True, 'data': data})
 
 
 @stats_bp.route('/api/flashcard-set-metrics')
