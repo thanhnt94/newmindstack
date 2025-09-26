@@ -104,7 +104,7 @@ def create_app(config_class=Config):
             app.logger.info("Đã tạo user admin mặc định.")
 
         # THÊM MỚI: Khởi tạo các tác vụ nền nếu chưa có
-        for task_name in ['generate_audio_cache', 'clean_audio_cache']:
+        for task_name in ['generate_audio_cache', 'clean_audio_cache', 'generate_image_cache', 'clean_image_cache']:
             if not BackgroundTask.query.filter_by(task_name=task_name).first():
                 task = BackgroundTask(task_name=task_name, message='Sẵn sàng', is_enabled=True)
                 db.session.add(task)

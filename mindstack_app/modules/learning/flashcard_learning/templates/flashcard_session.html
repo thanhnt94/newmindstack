@@ -859,6 +859,7 @@
     const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
     const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
     const regenerateAudioUrl = "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}";
+    const regenerateImageUrl = "{{ url_for('learning.flashcard_learning.generate_image_from_content') }}";
     const userButtonCount = {{ user_button_count }};
     const isAutoplaySession = {{ 'true' if is_autoplay_session else 'false' }};
     const autoplayMode = "{{ autoplay_mode }}";
@@ -890,6 +891,29 @@
       const d = document.createElement('div');
       d.textContent = text;
       return d.innerHTML.replace(/\r?\n/g,'<br>');
+    }
+
+    function extractPlainText(text) {
+      if (text == null) return '';
+      if (typeof text !== 'string') {
+        text = String(text);
+      }
+      const temp = document.createElement('div');
+      temp.innerHTML = text;
+      const plain = temp.textContent || temp.innerText || '';
+      return plain.trim();
+    }
+
+    function bindCloseMediaButton(btn) {
+      if (!btn) return;
+      btn.addEventListener('click', ev => {
+        ev.stopPropagation();
+        const mediaContainer = btn.closest('.media-container');
+        if (mediaContainer) {
+          mediaContainer.classList.add('hidden');
+          setTimeout(adjustCardLayout, 0);
+        }
+      });
     }
 
     function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = false } = {}) {
@@ -1219,16 +1243,23 @@
     function getCardToolbar(isMobile, itemId, setId) {
         const hasFrontAudio = currentFlashcardBatch[currentFlashcardIndex].content.front_audio_url || currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content;
         const hasBackAudio = currentFlashcardBatch[currentFlashcardIndex].content.back_audio_url || currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content;
-        
+        const frontTextRaw = currentFlashcardBatch[currentFlashcardIndex].content.front || '';
+        const backTextRaw = currentFlashcardBatch[currentFlashcardIndex].content.back || '';
+        const canGenerateFrontImage = extractPlainText(frontTextRaw).length > 0;
+        const canGenerateBackImage = extractPlainText(backTextRaw).length > 0;
+
         const menuButtonHtml = isMobile ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-bars"></i></button>` : '';
         const aiButtonHtml = `<button class="icon-btn open-ai-modal-btn" data-item-id="${itemId}"><i class="fas fa-robot"></i></button>`;
         const noteButtonHtml = `<button class="icon-btn open-note-panel-btn" data-item-id="${itemId}"><i class="fas fa-sticky-note"></i></button>`;
         const feedbackButtonHtml = `<button class="icon-btn open-feedback-modal-btn" data-item-id="${itemId}"><i class="fas fa-flag"></i></button>`;
         const editButtonHtml = `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
 
+        const imageButtonHtmlFront = `<button class="icon-btn fetch-image-btn ${canGenerateFrontImage ? '' : 'is-disabled'}" data-side="front" data-item-id="${itemId}" ${canGenerateFrontImage ? '' : 'disabled'}><i class="fas fa-image"></i></button>`;
+        const imageButtonHtmlBack = `<button class="icon-btn fetch-image-btn ${canGenerateBackImage ? '' : 'is-disabled'}" data-side="back" data-item-id="${itemId}" ${canGenerateBackImage ? '' : 'disabled'}><i class="fas fa-image"></i></button>`;
+
         const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
         const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
-        
+
         const flipButtonHtml = `<button id="flip-card-btn" class="flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
 
         const leftToolbarContent = isMobile 
@@ -1239,8 +1270,8 @@
         const rightToolbarContent = `${feedbackButtonHtml}${editButtonHtml}`;
 
         return {
-            front: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT TRƯỚC</span><div class="toolbar-right">${rightToolbarContent}${audioButtonHtmlFront}</div></div>`,
-            back: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT SAU</span><div class="toolbar-right">${rightToolbarContent}${audioButtonHtmlBack}</div></div>`,
+            front: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT TRƯỚC</span><div class="toolbar-right">${rightToolbarContent}${imageButtonHtmlFront}${audioButtonHtmlFront}</div></div>`,
+            back: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT SAU</span><div class="toolbar-right">${rightToolbarContent}${imageButtonHtmlBack}${audioButtonHtmlBack}</div></div>`,
             flipButton: flipButtonHtml
         };
     }
@@ -1372,14 +1403,13 @@
           openFeedbackModal(itemId, termContent); 
       }));
       
-      document.querySelectorAll('.close-media-btn').forEach(btn => {
+      document.querySelectorAll('.close-media-btn').forEach(bindCloseMediaButton);
+
+      document.querySelectorAll('.fetch-image-btn').forEach(btn => {
         btn.addEventListener('click', ev => {
-            ev.stopPropagation();
-            const mediaContainer = btn.closest('.media-container');
-            if (mediaContainer) {
-                mediaContainer.classList.add('hidden');
-                setTimeout(adjustCardLayout, 0);
-            }
+          ev.preventDefault();
+          ev.stopPropagation();
+          generateIllustrationForCard(btn);
         });
       });
 
@@ -1389,6 +1419,114 @@
         startAutoplaySequence();
       } else {
         autoPlayFrontSide();
+      }
+    }
+
+    function updateCardImageDisplay(side, imageUrl) {
+      if (!imageUrl) return;
+      const faceSelector = side === 'back' ? '.face.back' : '.face.front';
+      const face = document.querySelector(`#flashcard-card ${faceSelector}`);
+      if (!face) return;
+      const container = face.querySelector('._card-container');
+      if (!container) return;
+
+      let mediaContainer = container.querySelector('.media-container');
+      if (!mediaContainer) {
+        mediaContainer = document.createElement('div');
+        mediaContainer.className = 'media-container';
+        const img = document.createElement('img');
+        img.alt = side === 'back' ? 'Mặt sau' : 'Mặt trước';
+        img.onerror = function() {
+          this.onerror = null;
+          this.src = 'https://placehold.co/200x120?text=Loi+anh';
+        };
+        mediaContainer.appendChild(img);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-media-btn';
+        closeBtn.innerHTML = '&times;';
+        mediaContainer.appendChild(closeBtn);
+        bindCloseMediaButton(closeBtn);
+
+        container.appendChild(mediaContainer);
+      }
+
+      const imgEl = mediaContainer.querySelector('img');
+      if (imgEl) {
+        const timestampedUrl = imageUrl.includes('?') ? `${imageUrl}&t=${Date.now()}` : `${imageUrl}?t=${Date.now()}`;
+        imgEl.src = timestampedUrl;
+        imgEl.alt = side === 'back' ? 'Mặt sau' : 'Mặt trước';
+        imgEl.onerror = function() {
+          this.onerror = null;
+          this.src = 'https://placehold.co/200x120?text=Loi+anh';
+        };
+      }
+
+      mediaContainer.classList.remove('hidden');
+      setTimeout(adjustCardLayout, 0);
+    }
+
+    async function generateIllustrationForCard(button) {
+      if (!button || button.classList.contains('is-disabled')) {
+        return;
+      }
+
+      const itemId = Number.parseInt(button.dataset.itemId || '', 10);
+      const side = (button.dataset.side || 'front').toLowerCase();
+      if (!itemId || !['front', 'back'].includes(side)) {
+        showCustomAlert('Không xác định được thẻ để tạo ảnh.');
+        return;
+      }
+
+      const cardData = Array.isArray(currentFlashcardBatch)
+        ? currentFlashcardBatch.find(item => Number(item.item_id) === itemId)
+        : null;
+      if (!cardData) {
+        showCustomAlert('Không thể tìm thấy dữ liệu thẻ hiện tại.');
+        return;
+      }
+
+      const sourceText = side === 'back' ? cardData.content.back : cardData.content.front;
+      const normalizedText = extractPlainText(sourceText);
+      if (!normalizedText) {
+        showCustomAlert('Nội dung mặt thẻ đang trống, không thể tìm ảnh.');
+        return;
+      }
+
+      const originalHtml = button.dataset.originalHtml || button.innerHTML;
+      if (!button.dataset.originalHtml) {
+        button.dataset.originalHtml = originalHtml;
+      }
+
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      button.classList.add('is-disabled');
+
+      try {
+        const response = await fetch(regenerateImageUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: itemId, side })
+        });
+        const result = await response.json();
+        if (result.success && result.image_url) {
+          updateCardImageDisplay(side, result.image_url);
+          if (side === 'front') {
+            cardData.content.front_img = result.image_url;
+          } else {
+            cardData.content.back_img = result.image_url;
+          }
+          if (result.message) {
+            showCustomAlert(result.message);
+          }
+        } else {
+          showCustomAlert(result.message || 'Không thể tìm ảnh minh họa.');
+        }
+      } catch (error) {
+        console.error('Lỗi khi tạo ảnh minh họa:', error);
+        showCustomAlert('Không thể kết nối đến máy chủ để tìm ảnh.');
+      } finally {
+        button.classList.remove('is-disabled');
+        button.innerHTML = button.dataset.originalHtml || '<i class="fas fa-image"></i>';
       }
     }
 

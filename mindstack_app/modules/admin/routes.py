@@ -15,7 +15,9 @@ import os
 import zipfile
 
 from ..learning.flashcard_learning.audio_service import AudioService
+from ..learning.flashcard_learning.image_service import ImageService
 audio_service = AudioService()
+image_service = ImageService()
 
 from . import admin_bp # Vẫn cần dòng này để các decorator như @admin_bp.route hoạt động chính xác.
 
@@ -58,11 +60,18 @@ def manage_background_tasks():
     Mô tả: Hiển thị trang quản lý các tác vụ nền.
     """
     tasks = BackgroundTask.query.all()
-    if not tasks:
-        # Nếu chưa có tác vụ nào, tạo các tác vụ mặc định
-        task1 = BackgroundTask(task_name='generate_audio_cache', message='Sẵn sàng', is_enabled=True)
-        task2 = BackgroundTask(task_name='clean_audio_cache', message='Sẵn sàng', is_enabled=True)
-        db.session.add_all([task1, task2])
+    desired_tasks = [
+        'generate_audio_cache',
+        'clean_audio_cache',
+        'generate_image_cache',
+        'clean_image_cache'
+    ]
+    created_any = False
+    for task_name in desired_tasks:
+        if not BackgroundTask.query.filter_by(task_name=task_name).first():
+            db.session.add(BackgroundTask(task_name=task_name, message='Sẵn sàng', is_enabled=True))
+            created_any = True
+    if created_any:
         db.session.commit()
         tasks = BackgroundTask.query.all()
 
@@ -114,6 +123,10 @@ def start_task(task_id):
             asyncio.run(audio_service.generate_cache_for_all_cards(task, container_ids=container_scope_ids))
         elif task.task_name == 'clean_audio_cache':
             audio_service.clean_orphan_audio_cache(task)
+        elif task.task_name == 'generate_image_cache':
+            asyncio.run(image_service.generate_images_for_missing_cards(task, container_ids=container_scope_ids))
+        elif task.task_name == 'clean_image_cache':
+            image_service.clean_orphan_image_cache(task)
 
         return jsonify({'success': True, 'scope_label': scope_label})
 

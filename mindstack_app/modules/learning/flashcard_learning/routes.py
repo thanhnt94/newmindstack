@@ -15,6 +15,7 @@ from ....models import db, User, FlashcardProgress, UserContainerState, Learning
 from sqlalchemy.sql import func
 import asyncio
 from .audio_service import AudioService
+from .image_service import ImageService
 from sqlalchemy.orm.attributes import flag_modified
 import os
 
@@ -22,6 +23,7 @@ flashcard_learning_bp = Blueprint('flashcard_learning', __name__,
                                   template_folder='templates')
 
 audio_service = AudioService()
+image_service = ImageService()
 
 
 @flashcard_learning_bp.route('/flashcard_learning_dashboard')
@@ -452,6 +454,58 @@ def bulk_unarchive_flashcard():
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Lỗi khi bỏ lưu trữ hàng loạt: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi xử lý yêu cầu.'}), 500
+
+
+@flashcard_learning_bp.route('/generate-image-from-content', methods=['POST'])
+@login_required
+def generate_image_from_content():
+    """Tự động tìm và lưu ảnh minh họa dựa trên nội dung của thẻ."""
+    data = request.get_json(silent=True) or {}
+    item_id = data.get('item_id')
+    side = (data.get('side') or 'front').lower()
+
+    if not item_id:
+        return jsonify({'success': False, 'message': 'Thiếu thông tin mã thẻ.'}), 400
+
+    if side not in {'front', 'back'}:
+        return jsonify({'success': False, 'message': 'Mặt thẻ không hợp lệ.'}), 400
+
+    item = LearningItem.query.get(item_id)
+    if not item or item.item_type != 'FLASHCARD':
+        return jsonify({'success': False, 'message': 'Không tìm thấy thẻ phù hợp.'}), 404
+
+    content = item.content or {}
+    text_source = content.get('front' if side == 'front' else 'back') or ''
+    if not str(text_source).strip():
+        return jsonify({'success': False, 'message': 'Không có nội dung để tìm ảnh minh họa.'}), 400
+
+    try:
+        absolute_path, success, message = image_service.get_cached_or_download_image(str(text_source))
+        if success and absolute_path:
+            relative_path = image_service.convert_to_static_url(absolute_path)
+            if not relative_path:
+                return jsonify({'success': False, 'message': 'Không thể lưu đường dẫn ảnh.'}), 500
+
+            if side == 'front':
+                content['front_img'] = relative_path
+            else:
+                content['back_img'] = relative_path
+
+            item.content = content
+            flag_modified(item, 'content')
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': 'Đã cập nhật ảnh minh họa thành công.',
+                'image_url': url_for('static', filename=relative_path)
+            })
+
+        return jsonify({'success': False, 'message': message or 'Không tìm thấy ảnh phù hợp.'}), 500
+    except Exception as exc:  # pylint: disable=broad-except
+        db.session.rollback()
+        current_app.logger.error(f"Lỗi khi tạo ảnh minh họa cho thẻ {item_id}: {exc}", exc_info=True)
         return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi xử lý yêu cầu.'}), 500
 
 @flashcard_learning_bp.route('/regenerate-audio-from-content', methods=['POST'])
