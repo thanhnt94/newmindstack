@@ -2,12 +2,11 @@
 # Phiên bản: 2.1
 # Mục đích: Bổ sung logic để lấy dữ liệu thống kê cho Khoá học.
 
-from collections import defaultdict
 from datetime import datetime, timedelta, date
 
 from flask import render_template, jsonify, request
 from flask_login import login_required, current_user
-from sqlalchemy import func, case
+from sqlalchemy import func, case, or_
 
 from . import stats_bp
 from ...models import (
@@ -133,7 +132,286 @@ def _get_user_container_options(user_id, container_type, progress_model, timesta
     ]
 
 
-def get_flashcard_set_metrics(user_id, container_id=None, sample_limit=5):
+def _sanitize_pagination_args(page, per_page, default_per_page=10, max_per_page=50):
+    """Normalise pagination parameters coming from query strings."""
+
+    try:
+        page = int(page)
+    except (TypeError, ValueError):
+        page = 1
+
+    if page < 1:
+        page = 1
+
+    try:
+        per_page = int(per_page)
+    except (TypeError, ValueError):
+        per_page = default_per_page
+
+    if per_page < 1:
+        per_page = default_per_page
+
+    per_page = min(per_page, max_per_page)
+    return page, per_page
+
+
+def _build_flashcard_items_query(user_id):
+    return (
+        db.session.query(
+            LearningItem.container_id.label('container_id'),
+            LearningContainer.title.label('container_title'),
+            LearningItem.item_id.label('item_id'),
+            LearningItem.content.label('content'),
+            FlashcardProgress.status.label('status'),
+            FlashcardProgress.last_reviewed.label('last_reviewed'),
+            FlashcardProgress.first_seen_timestamp.label('first_seen'),
+            FlashcardProgress.due_time.label('due_time'),
+        )
+        .join(LearningItem, LearningItem.item_id == FlashcardProgress.item_id)
+        .join(LearningContainer, LearningContainer.container_id == LearningItem.container_id)
+        .filter(
+            FlashcardProgress.user_id == user_id,
+            LearningItem.item_type == 'FLASHCARD',
+            LearningContainer.container_type == 'FLASHCARD_SET',
+        )
+    )
+
+
+def _apply_flashcard_category_filter(query, status):
+    if not status or status == 'all':
+        return query
+
+    status = status.lower()
+    if status in {'new', 'learning', 'mastered', 'hard'}:
+        return query.filter(FlashcardProgress.status == status)
+
+    if status == 'needs_review':
+        now = datetime.utcnow()
+        return query.filter(
+            FlashcardProgress.due_time.isnot(None),
+            FlashcardProgress.due_time <= now,
+        )
+
+    if status == 'due_soon':
+        now = datetime.utcnow()
+        return query.filter(
+            FlashcardProgress.due_time.isnot(None),
+            FlashcardProgress.due_time <= now + timedelta(days=1),
+        )
+
+    return query
+
+
+def paginate_flashcard_items(user_id, container_id=None, status=None, page=1, per_page=10):
+    page, per_page = _sanitize_pagination_args(page, per_page)
+    query = _build_flashcard_items_query(user_id)
+
+    if container_id is not None:
+        query = query.filter(LearningItem.container_id == container_id)
+
+    query = _apply_flashcard_category_filter(query, status)
+
+    total = query.with_entities(func.count(FlashcardProgress.progress_id)).scalar() or 0
+
+    rows = (
+        query
+        .order_by(func.coalesce(FlashcardProgress.last_reviewed, FlashcardProgress.first_seen_timestamp).desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+
+    records = []
+    for row in rows:
+        content = row.content or {}
+        records.append({
+            'container_id': row.container_id,
+            'container_title': row.container_title,
+            'item_id': row.item_id,
+            'front': content.get('front'),
+            'back': content.get('back'),
+            'status': row.status,
+            'last_reviewed': row.last_reviewed.isoformat() if row.last_reviewed else None,
+            'first_seen': row.first_seen.isoformat() if row.first_seen else None,
+            'due_time': row.due_time.isoformat() if row.due_time else None,
+        })
+
+    return {
+        'status': status or 'all',
+        'page': page,
+        'per_page': per_page,
+        'total': int(total),
+        'records': records,
+    }
+
+
+def _build_quiz_items_query(user_id):
+    return (
+        db.session.query(
+            LearningItem.container_id.label('container_id'),
+            LearningContainer.title.label('container_title'),
+            LearningItem.item_id.label('item_id'),
+            LearningItem.content.label('content'),
+            QuizProgress.status.label('status'),
+            QuizProgress.last_reviewed.label('last_reviewed'),
+            QuizProgress.first_seen_timestamp.label('first_seen'),
+            QuizProgress.times_correct.label('times_correct'),
+            QuizProgress.times_incorrect.label('times_incorrect'),
+        )
+        .join(LearningItem, LearningItem.item_id == QuizProgress.item_id)
+        .join(LearningContainer, LearningContainer.container_id == LearningItem.container_id)
+        .filter(
+            QuizProgress.user_id == user_id,
+            LearningItem.item_type == 'QUIZ_MCQ',
+            LearningContainer.container_type == 'QUIZ_SET',
+        )
+    )
+
+
+def _apply_quiz_category_filter(query, status):
+    if not status or status == 'all':
+        return query
+
+    status = status.lower()
+    if status in {'new', 'learning', 'mastered', 'hard'}:
+        return query.filter(QuizProgress.status == status)
+
+    if status == 'needs_review':
+        return query.filter(
+            or_(
+                QuizProgress.status.in_({'learning', 'hard'}),
+                QuizProgress.times_incorrect > QuizProgress.times_correct,
+            )
+        )
+
+    return query
+
+
+def paginate_quiz_items(user_id, container_id=None, status=None, page=1, per_page=10):
+    page, per_page = _sanitize_pagination_args(page, per_page)
+    query = _build_quiz_items_query(user_id)
+
+    if container_id is not None:
+        query = query.filter(LearningItem.container_id == container_id)
+
+    query = _apply_quiz_category_filter(query, status)
+
+    total = query.with_entities(func.count(QuizProgress.progress_id)).scalar() or 0
+
+    rows = (
+        query
+        .order_by(func.coalesce(QuizProgress.last_reviewed, QuizProgress.first_seen_timestamp).desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+
+    records = []
+    for row in rows:
+        content = row.content or {}
+        records.append({
+            'container_id': row.container_id,
+            'container_title': row.container_title,
+            'item_id': row.item_id,
+            'question': content.get('question'),
+            'status': row.status,
+            'times_correct': int(row.times_correct or 0),
+            'times_incorrect': int(row.times_incorrect or 0),
+            'last_reviewed': row.last_reviewed.isoformat() if row.last_reviewed else None,
+            'first_seen': row.first_seen.isoformat() if row.first_seen else None,
+        })
+
+    return {
+        'status': status or 'all',
+        'page': page,
+        'per_page': per_page,
+        'total': int(total),
+        'records': records,
+    }
+
+
+def _build_course_items_query(user_id):
+    return (
+        db.session.query(
+            LearningItem.container_id.label('container_id'),
+            LearningContainer.title.label('container_title'),
+            LearningItem.item_id.label('item_id'),
+            LearningItem.content.label('content'),
+            CourseProgress.completion_percentage.label('completion_percentage'),
+            CourseProgress.last_updated.label('last_updated'),
+        )
+        .join(LearningItem, LearningItem.item_id == CourseProgress.item_id)
+        .join(LearningContainer, LearningContainer.container_id == LearningItem.container_id)
+        .filter(
+            CourseProgress.user_id == user_id,
+            LearningItem.item_type == 'LESSON',
+            LearningContainer.container_type == 'COURSE',
+        )
+    )
+
+
+def _apply_course_category_filter(query, status):
+    if not status or status == 'all':
+        return query
+
+    status = status.lower()
+    if status == 'completed':
+        return query.filter(CourseProgress.completion_percentage >= 100)
+    if status == 'in_progress':
+        return query.filter(
+            CourseProgress.completion_percentage > 0,
+            CourseProgress.completion_percentage < 100,
+        )
+    if status == 'not_started':
+        return query.filter(CourseProgress.completion_percentage == 0)
+
+    return query
+
+
+def paginate_course_items(user_id, container_id=None, status=None, page=1, per_page=10):
+    page, per_page = _sanitize_pagination_args(page, per_page)
+    query = _build_course_items_query(user_id)
+
+    if container_id is not None:
+        query = query.filter(LearningItem.container_id == container_id)
+
+    query = _apply_course_category_filter(query, status)
+
+    total = query.with_entities(func.count(CourseProgress.progress_id)).scalar() or 0
+
+    rows = (
+        query
+        .order_by(func.coalesce(CourseProgress.last_updated, CourseProgress.progress_id).desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+
+    records = []
+    for row in rows:
+        content = row.content or {}
+        records.append({
+            'container_id': row.container_id,
+            'container_title': row.container_title,
+            'item_id': row.item_id,
+            'title': content.get('title') or content.get('lesson_title'),
+            'status': 'completed' if int(row.completion_percentage or 0) >= 100 else (
+                'in_progress' if int(row.completion_percentage or 0) > 0 else 'not_started'
+            ),
+            'completion_percentage': int(row.completion_percentage or 0),
+            'last_updated': row.last_updated.isoformat() if row.last_updated else None,
+        })
+
+    return {
+        'status': status or 'all',
+        'page': page,
+        'per_page': per_page,
+        'total': int(total),
+        'records': records,
+    }
+
+
+def get_flashcard_set_metrics(user_id, container_id=None, status=None, page=1, per_page=10):
     """Aggregate flashcard metrics per set for the provided user."""
 
     container_query = (
@@ -200,37 +478,16 @@ def get_flashcard_set_metrics(user_id, container_id=None, sample_limit=5):
 
     progress_map = {row.container_id: row for row in progress_rows}
 
-    learned_examples_rows = (
-        db.session.query(
-            LearningItem.container_id.label('container_id'),
-            LearningItem.item_id.label('item_id'),
-            LearningItem.content.label('content'),
-            FlashcardProgress.last_reviewed.label('last_reviewed'),
-            FlashcardProgress.first_seen_timestamp.label('first_seen'),
+    items_payload_map = {}
+    target_ids = container_ids if container_id is None else [container_id]
+    for target_id in target_ids:
+        items_payload_map[target_id] = paginate_flashcard_items(
+            user_id,
+            container_id=target_id,
+            status=status,
+            page=page,
+            per_page=per_page,
         )
-        .join(FlashcardProgress, FlashcardProgress.item_id == LearningItem.item_id)
-        .filter(
-            FlashcardProgress.user_id == user_id,
-            FlashcardProgress.status == 'mastered',
-            LearningItem.container_id.in_(container_ids),
-        )
-        .order_by(func.coalesce(FlashcardProgress.last_reviewed, FlashcardProgress.first_seen_timestamp).desc())
-        .all()
-    )
-
-    learned_examples_map = defaultdict(list)
-    for row in learned_examples_rows:
-        bucket = learned_examples_map[row.container_id]
-        if len(bucket) >= sample_limit:
-            continue
-        content = row.content or {}
-        bucket.append({
-            'item_id': row.item_id,
-            'front': content.get('front'),
-            'back': content.get('back'),
-            'last_reviewed': row.last_reviewed.isoformat() if row.last_reviewed else None,
-            'first_seen': row.first_seen.isoformat() if row.first_seen else None,
-        })
 
     result = {}
     for container_id in container_ids:
@@ -260,13 +517,19 @@ def get_flashcard_set_metrics(user_id, container_id=None, sample_limit=5):
             'accuracy_percent': accuracy_percent,
             'avg_correct_streak': round(avg_streak, 1) if avg_streak else 0.0,
             'best_correct_streak': best_streak,
-            'learned_examples': learned_examples_map.get(container_id, []),
+            'items': items_payload_map.get(container_id, {
+                'status': status or 'all',
+                'page': page,
+                'per_page': per_page,
+                'total': 0,
+                'records': [],
+            }),
         }
 
     return result
 
 
-def get_quiz_set_metrics(user_id, container_id=None, sample_limit=5):
+def get_quiz_set_metrics(user_id, container_id=None, status=None, page=1, per_page=10):
     """Aggregate quiz metrics per set for the provided user."""
 
     container_query = (
@@ -331,38 +594,16 @@ def get_quiz_set_metrics(user_id, container_id=None, sample_limit=5):
 
     progress_map = {row.container_id: row for row in progress_rows}
 
-    correct_example_rows = (
-        db.session.query(
-            LearningItem.container_id.label('container_id'),
-            LearningItem.item_id.label('item_id'),
-            LearningItem.content.label('content'),
-            QuizProgress.times_correct.label('times_correct'),
-            QuizProgress.times_incorrect.label('times_incorrect'),
-            QuizProgress.last_reviewed.label('last_reviewed'),
+    items_payload_map = {}
+    target_ids = container_ids if container_id is None else [container_id]
+    for target_id in target_ids:
+        items_payload_map[target_id] = paginate_quiz_items(
+            user_id,
+            container_id=target_id,
+            status=status,
+            page=page,
+            per_page=per_page,
         )
-        .join(QuizProgress, QuizProgress.item_id == LearningItem.item_id)
-        .filter(
-            QuizProgress.user_id == user_id,
-            QuizProgress.times_correct > 0,
-            LearningItem.container_id.in_(container_ids),
-        )
-        .order_by(func.coalesce(QuizProgress.last_reviewed, QuizProgress.first_seen_timestamp).desc())
-        .all()
-    )
-
-    correct_examples_map = defaultdict(list)
-    for row in correct_example_rows:
-        bucket = correct_examples_map[row.container_id]
-        if len(bucket) >= sample_limit:
-            continue
-        content = row.content or {}
-        bucket.append({
-            'item_id': row.item_id,
-            'question': content.get('question'),
-            'times_correct': int(row.times_correct or 0),
-            'times_incorrect': int(row.times_incorrect or 0),
-            'last_reviewed': row.last_reviewed.isoformat() if row.last_reviewed else None,
-        })
 
     result = {}
     for container_id in container_ids:
@@ -391,13 +632,19 @@ def get_quiz_set_metrics(user_id, container_id=None, sample_limit=5):
             'accuracy_percent': accuracy_percent,
             'avg_correct_streak': round(avg_streak, 1) if avg_streak else 0.0,
             'best_correct_streak': best_streak,
-            'correct_examples': correct_examples_map.get(container_id, []),
+            'items': items_payload_map.get(container_id, {
+                'status': status or 'all',
+                'page': page,
+                'per_page': per_page,
+                'total': 0,
+                'records': [],
+            }),
         }
 
     return result
 
 
-def get_course_metrics(user_id, container_id=None, sample_limit=5):
+def get_course_metrics(user_id, container_id=None, status=None, page=1, per_page=10):
     """Aggregate course metrics per set for the provided user."""
 
     container_query = (
@@ -461,35 +708,16 @@ def get_course_metrics(user_id, container_id=None, sample_limit=5):
 
     progress_map = {row.container_id: row for row in progress_rows}
 
-    recent_lessons_rows = (
-        db.session.query(
-            LearningItem.container_id.label('container_id'),
-            LearningItem.item_id.label('item_id'),
-            LearningItem.content.label('content'),
-            CourseProgress.completion_percentage.label('completion_percentage'),
-            CourseProgress.last_updated.label('last_updated'),
+    items_payload_map = {}
+    target_ids = container_ids if container_id is None else [container_id]
+    for target_id in target_ids:
+        items_payload_map[target_id] = paginate_course_items(
+            user_id,
+            container_id=target_id,
+            status=status,
+            page=page,
+            per_page=per_page,
         )
-        .join(CourseProgress, CourseProgress.item_id == LearningItem.item_id)
-        .filter(
-            CourseProgress.user_id == user_id,
-            LearningItem.container_id.in_(container_ids),
-        )
-        .order_by(func.coalesce(CourseProgress.last_updated, CourseProgress.progress_id).desc())
-        .all()
-    )
-
-    recent_lessons_map = defaultdict(list)
-    for row in recent_lessons_rows:
-        bucket = recent_lessons_map[row.container_id]
-        if len(bucket) >= sample_limit:
-            continue
-        content = row.content or {}
-        bucket.append({
-            'item_id': row.item_id,
-            'title': content.get('title') or content.get('lesson_title'),
-            'completion_percentage': int(row.completion_percentage or 0),
-            'last_updated': row.last_updated.isoformat() if row.last_updated else None,
-        })
 
     result = {}
     for container_id in container_ids:
@@ -509,7 +737,13 @@ def get_course_metrics(user_id, container_id=None, sample_limit=5):
             'lessons_completed': lessons_completed,
             'avg_completion_percent': round(avg_completion, 1) if avg_completion else 0.0,
             'last_activity': last_activity_value,
-            'recent_lessons': recent_lessons_map.get(container_id, []),
+            'items': items_payload_map.get(container_id, {
+                'status': status or 'all',
+                'page': page,
+                'per_page': per_page,
+                'total': 0,
+                'records': [],
+            }),
         }
 
     return result
@@ -602,7 +836,18 @@ def get_heatmap_data_api():
 @login_required
 def get_flashcard_set_metrics_api():
     container_id = request.args.get('container_id', type=int)
-    data = get_flashcard_set_metrics(current_user.user_id, container_id=container_id)
+    status = request.args.get('status')
+    page, per_page = _sanitize_pagination_args(
+        request.args.get('page', 1),
+        request.args.get('per_page', 10),
+    )
+    data = get_flashcard_set_metrics(
+        current_user.user_id,
+        container_id=container_id,
+        status=status,
+        page=page,
+        per_page=per_page,
+    )
     return jsonify({'success': True, 'data': data})
 
 
@@ -610,7 +855,18 @@ def get_flashcard_set_metrics_api():
 @login_required
 def get_quiz_set_metrics_api():
     container_id = request.args.get('container_id', type=int)
-    data = get_quiz_set_metrics(current_user.user_id, container_id=container_id)
+    status = request.args.get('status')
+    page, per_page = _sanitize_pagination_args(
+        request.args.get('page', 1),
+        request.args.get('per_page', 10),
+    )
+    data = get_quiz_set_metrics(
+        current_user.user_id,
+        container_id=container_id,
+        status=status,
+        page=page,
+        per_page=per_page,
+    )
     return jsonify({'success': True, 'data': data})
 
 
@@ -618,6 +874,74 @@ def get_quiz_set_metrics_api():
 @login_required
 def get_course_metrics_api():
     container_id = request.args.get('container_id', type=int)
-    data = get_course_metrics(current_user.user_id, container_id=container_id)
+    status = request.args.get('status')
+    page, per_page = _sanitize_pagination_args(
+        request.args.get('page', 1),
+        request.args.get('per_page', 10),
+    )
+    data = get_course_metrics(
+        current_user.user_id,
+        container_id=container_id,
+        status=status,
+        page=page,
+        per_page=per_page,
+    )
+    return jsonify({'success': True, 'data': data})
+
+
+@stats_bp.route('/api/flashcard-items')
+@login_required
+def get_flashcard_items_api():
+    container_id = request.args.get('container_id', type=int)
+    status = request.args.get('status')
+    page, per_page = _sanitize_pagination_args(
+        request.args.get('page', 1),
+        request.args.get('per_page', 10),
+    )
+    data = paginate_flashcard_items(
+        current_user.user_id,
+        container_id=container_id,
+        status=status,
+        page=page,
+        per_page=per_page,
+    )
+    return jsonify({'success': True, 'data': data})
+
+
+@stats_bp.route('/api/quiz-items')
+@login_required
+def get_quiz_items_api():
+    container_id = request.args.get('container_id', type=int)
+    status = request.args.get('status')
+    page, per_page = _sanitize_pagination_args(
+        request.args.get('page', 1),
+        request.args.get('per_page', 10),
+    )
+    data = paginate_quiz_items(
+        current_user.user_id,
+        container_id=container_id,
+        status=status,
+        page=page,
+        per_page=per_page,
+    )
+    return jsonify({'success': True, 'data': data})
+
+
+@stats_bp.route('/api/course-items')
+@login_required
+def get_course_items_api():
+    container_id = request.args.get('container_id', type=int)
+    status = request.args.get('status')
+    page, per_page = _sanitize_pagination_args(
+        request.args.get('page', 1),
+        request.args.get('per_page', 10),
+    )
+    data = paginate_course_items(
+        current_user.user_id,
+        container_id=container_id,
+        status=status,
+        page=page,
+        per_page=per_page,
+    )
     return jsonify({'success': True, 'data': data})
 

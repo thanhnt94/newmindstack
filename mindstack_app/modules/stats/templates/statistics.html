@@ -73,6 +73,30 @@
         .stat-detail-list-item strong { display: block; color: var(--text-primary); margin-bottom: 0.35rem; }
         .stat-detail-list-item span { display: block; color: var(--text-secondary); font-size: 0.875rem; }
         .stat-detail-meta { display: block; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.35rem; }
+
+        /* Modal chi tiết thống kê */
+        .stats-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 1050; }
+        .stats-modal.active { display: flex; }
+        .stats-modal-overlay { position: absolute; inset: 0; background: rgba(17, 24, 39, 0.55); }
+        .stats-modal-dialog { position: relative; background: #ffffff; border-radius: 0.75rem; width: min(92%, 760px); max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(30, 64, 175, 0.35); overflow: hidden; }
+        .stats-modal-header { display: flex; flex-direction: column; gap: 0.35rem; padding: 1.5rem 1.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        .stats-modal-title { font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+        .stats-modal-summary { font-size: 0.9rem; color: var(--text-secondary); margin: 0; }
+        .stats-modal-close { position: absolute; top: 1rem; right: 1rem; border: none; background: transparent; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer; }
+        .stats-modal-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 0 1.75rem 1rem; border-bottom: 1px solid var(--border-color); background: #f9fafb; }
+        .stats-modal-tab { border: none; background: #e5e7eb; color: var(--text-secondary); padding: 0.45rem 0.85rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease-in-out; }
+        .stats-modal-tab.active { background: var(--primary-color); color: #ffffff; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.35); }
+        .stats-modal-body { padding: 1.25rem 1.75rem; overflow-y: auto; flex: 1; }
+        .stats-modal-body .stat-detail-list { gap: 0.65rem; }
+        .stats-modal-pagination { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.75rem 1.25rem; border-top: 1px solid var(--border-color); }
+        .stats-modal-page-btn { border: none; background: var(--primary-color); color: #ffffff; padding: 0.45rem 0.95rem; border-radius: 0.45rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s ease-in-out; }
+        .stats-modal-page-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+        .stats-modal-page-label { font-size: 0.9rem; color: var(--text-secondary); }
+
+        @media (max-width: 640px) {
+            .stats-modal-dialog { width: 96%; }
+            .stats-modal-header, .stats-modal-body, .stats-modal-pagination { padding-left: 1.25rem; padding-right: 1.25rem; }
+        }
     </style>
 {% endblock %}
 
@@ -117,21 +141,21 @@
             <div class="stats-section">
                 <h2 class="section-title">Tổng quan Flashcard</h2>
                 <div class="stat-cards-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" role="button" tabindex="0" data-type="flashcard" data-category="all" data-container-id="all" data-container-title="Tất cả Flashcard" data-title="Tổng điểm Flashcard">
                         <div class="stat-card-icon score"><i class="fas fa-star"></i></div>
                         <div>
                             <span class="stat-card-value">{{ dashboard_data.flashcard_score }}</span>
                             <span class="stat-card-label">Tổng điểm Flashcard</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" role="button" tabindex="0" data-type="flashcard" data-category="mastered" data-container-id="all" data-container-title="Tất cả Flashcard" data-title="Thẻ đã học">
                         <div class="stat-card-icon learned"><i class="fas fa-check-circle"></i></div>
                         <div>
                             <span class="stat-card-value">{{ dashboard_data.learned_distinct_overall }}</span>
                             <span class="stat-card-label">Thẻ đã học</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" role="button" tabindex="0" data-type="flashcard" data-category="mastered" data-container-id="all" data-container-title="Tất cả Flashcard" data-title="Bộ đã học">
                         <div class="stat-card-icon sets"><i class="fas fa-layer-group"></i></div>
                         <div>
                             <span class="stat-card-value">{{ dashboard_data.learned_sets_count }}</span>
@@ -183,7 +207,7 @@
                         </div>
                     </div>
                     <div class="stat-detail-list-container" id="flashcard-learned-container" style="display: none;">
-                        <h4 class="stat-detail-subtitle">Thẻ thành thạo gần đây</h4>
+                        <h4 class="stat-detail-subtitle" id="flashcard-detail-subtitle">Danh sách thẻ</h4>
                         <ul class="stat-detail-list" id="flashcard-learned-list"></ul>
                     </div>
                 </div>
@@ -194,21 +218,21 @@
             <div class="stats-section">
                 <h2 class="section-title">Tổng quan Trắc nghiệm</h2>
                 <div class="stat-cards-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" role="button" tabindex="0" data-type="quiz" data-category="all" data-container-id="all" data-container-title="Tất cả Quiz" data-title="Tổng điểm Trắc nghiệm">
                         <div class="stat-card-icon score" style="background-color: #fce7f3; color: #db2777;"><i class="fas fa-trophy"></i></div>
                         <div>
                             <span class="stat-card-value">{{ dashboard_data.quiz_score }}</span>
                             <span class="stat-card-label">Tổng điểm Trắc nghiệm</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" role="button" tabindex="0" data-type="quiz" data-category="learning" data-container-id="all" data-container-title="Tất cả Quiz" data-title="Câu đã trả lời">
                         <div class="stat-card-icon learned" style="background-color: #e0e7ff; color: #4f46e5;"><i class="fas fa-question-circle"></i></div>
                         <div>
                             <span class="stat-card-value">{{ dashboard_data.questions_answered_count }}</span>
                             <span class="stat-card-label">Câu đã trả lời</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" role="button" tabindex="0" data-type="quiz" data-category="mastered" data-container-id="all" data-container-title="Tất cả Quiz" data-title="Bộ đã làm">
                         <div class="stat-card-icon sets" style="background-color: #fee2e2; color: #ef4444;"><i class="fas fa-tasks"></i></div>
                         <div>
                             <span class="stat-card-value">{{ dashboard_data.quiz_sets_started_count }}</span>
@@ -260,7 +284,7 @@
                         </div>
                     </div>
                     <div class="stat-detail-list-container" id="quiz-correct-container" style="display: none;">
-                        <h4 class="stat-detail-subtitle">Câu trả lời đúng gần đây</h4>
+                        <h4 class="stat-detail-subtitle" id="quiz-detail-subtitle">Danh sách câu hỏi</h4>
                         <ul class="stat-detail-list" id="quiz-correct-list"></ul>
                     </div>
                 </div>
@@ -271,14 +295,14 @@
             <div class="stats-section">
                 <h2 class="section-title">Tổng quan Khoá học</h2>
                 <div class="stat-cards-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" role="button" tabindex="0" data-type="course" data-category="completed" data-container-id="all" data-container-title="Tất cả Khoá học" data-title="Bài học hoàn thành">
                         <div class="stat-card-icon learned" style="background-color: #d1fae5; color: #059669;"><i class="fas fa-book-reader"></i></div>
                         <div>
                             <span class="stat-card-value">{{ dashboard_data.lessons_completed_count }}</span>
                             <span class="stat-card-label">Bài học hoàn thành</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" role="button" tabindex="0" data-type="course" data-category="in_progress" data-container-id="all" data-container-title="Tất cả Khoá học" data-title="Khoá học đã bắt đầu">
                         <div class="stat-card-icon sets" style="background-color: #eef2ff; color: #4338ca;"><i class="fas fa-graduation-cap"></i></div>
                         <div>
                             <span class="stat-card-value">{{ dashboard_data.courses_started_count }}</span>
@@ -323,11 +347,35 @@
                     </div>
                     <p class="stat-detail-note" id="course-detail-note" style="display: none;">Hoạt động gần nhất: <span data-course-metric="last_activity">--</span></p>
                     <div class="stat-detail-list-container" id="course-recent-container" style="display: none;">
-                        <h4 class="stat-detail-subtitle">Bài học gần đây</h4>
+                        <h4 class="stat-detail-subtitle" id="course-detail-subtitle">Bài học</h4>
                         <ul class="stat-detail-list" id="course-recent-list"></ul>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="stats-modal" id="stats-modal" aria-hidden="true">
+    <div class="stats-modal-overlay" data-modal-action="close"></div>
+    <div class="stats-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title">
+        <button type="button" class="stats-modal-close" data-modal-action="close" aria-label="Đóng">&times;</button>
+        <div class="stats-modal-header">
+            <h3 class="stats-modal-title" id="stats-modal-title">Chi tiết thống kê</h3>
+            <p class="stats-modal-summary" id="stats-modal-summary">--</p>
+        </div>
+        <div class="stats-modal-tabs" id="stats-modal-tabs"></div>
+        <div class="stats-modal-body">
+            <div class="loader-container" id="stats-modal-loader" style="display: none;">
+                <div class="loader"></div>
+            </div>
+            <p class="empty-message" id="stats-modal-empty" style="display: none;">Không có dữ liệu phù hợp.</p>
+            <ul class="stat-detail-list" id="stats-modal-list"></ul>
+        </div>
+        <div class="stats-modal-pagination" id="stats-modal-pagination" style="display: none;">
+            <button type="button" class="stats-modal-page-btn" data-modal-page="prev">Trước</button>
+            <span class="stats-modal-page-label" id="stats-modal-page-label">Trang 1 / 1</span>
+            <button type="button" class="stats-modal-page-btn" data-modal-page="next">Sau</button>
         </div>
     </div>
 </div>
@@ -346,7 +394,6 @@
     {{ super() }}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Logic cho Leaderboard động
             const timeframeTabs = document.querySelector('.timeframe-tabs');
             const sortBySelect = document.getElementById('sort_by');
             const listContainer = document.getElementById('leaderboard-list-container');
@@ -428,8 +475,43 @@
             const flashcardEndpoint = "{{ url_for('stats.get_flashcard_set_metrics_api') }}";
             const quizEndpoint = "{{ url_for('stats.get_quiz_set_metrics_api') }}";
             const courseEndpoint = "{{ url_for('stats.get_course_metrics_api') }}";
+            const flashcardItemsEndpoint = "{{ url_for('stats.get_flashcard_items_api') }}";
+            const quizItemsEndpoint = "{{ url_for('stats.get_quiz_items_api') }}";
+            const courseItemsEndpoint = "{{ url_for('stats.get_course_items_api') }}";
 
             const numberFormatter = new Intl.NumberFormat('vi-VN');
+
+            const STATUS_LABELS = {
+                flashcard: {
+                    all: 'Tất cả thẻ',
+                    new: 'Thẻ mới',
+                    learning: 'Đang học',
+                    mastered: 'Đã học',
+                    hard: 'Thẻ khó',
+                    needs_review: 'Cần ôn tập',
+                    due_soon: 'Sắp đến hạn',
+                },
+                quiz: {
+                    all: 'Tất cả câu hỏi',
+                    new: 'Câu mới',
+                    learning: 'Đang luyện',
+                    mastered: 'Đã thành thạo',
+                    hard: 'Câu khó',
+                    needs_review: 'Cần ôn lại',
+                },
+                course: {
+                    all: 'Tất cả bài học',
+                    completed: 'Hoàn thành',
+                    in_progress: 'Đang học',
+                    not_started: 'Chưa bắt đầu',
+                },
+            };
+
+            const CATEGORY_CONFIG = {
+                flashcard: ['all', 'new', 'learning', 'mastered', 'hard', 'needs_review'],
+                quiz: ['all', 'new', 'learning', 'mastered', 'hard', 'needs_review'],
+                course: ['all', 'in_progress', 'completed'],
+            };
 
             function formatNumber(value) {
                 if (value === null || value === undefined) return '0';
@@ -452,6 +534,143 @@
                 return dateValue.toLocaleString('vi-VN');
             }
 
+            function resolveStatusLabel(type, status) {
+                const normalized = (status || 'all').toLowerCase();
+                const labels = STATUS_LABELS[type] || {};
+                return labels[normalized] || labels.all || normalized;
+            }
+
+            function updateSubtitle(element, type, status, total) {
+                if (!element) return;
+                const label = resolveStatusLabel(type, status);
+                if (total !== undefined && total !== null) {
+                    element.textContent = `${label} • ${formatNumber(total)} mục`;
+                } else {
+                    element.textContent = label;
+                }
+            }
+
+            function buildFlashcardListItem(record, includeContainer = false) {
+                const li = document.createElement('li');
+                li.className = 'stat-detail-list-item';
+
+                const title = document.createElement('strong');
+                title.textContent = record.front || `Thẻ #${record.item_id}`;
+                li.appendChild(title);
+
+                if (record.back) {
+                    const back = document.createElement('span');
+                    back.textContent = record.back;
+                    li.appendChild(back);
+                }
+
+                if (includeContainer && record.container_title) {
+                    const containerMeta = document.createElement('span');
+                    containerMeta.className = 'stat-detail-meta';
+                    containerMeta.textContent = `Bộ: ${record.container_title}`;
+                    li.appendChild(containerMeta);
+                }
+
+                const statusMeta = document.createElement('span');
+                statusMeta.className = 'stat-detail-meta';
+                statusMeta.textContent = `Trạng thái: ${resolveStatusLabel('flashcard', record.status)}`;
+                li.appendChild(statusMeta);
+
+                if (record.last_reviewed) {
+                    const lastReviewed = document.createElement('span');
+                    lastReviewed.className = 'stat-detail-meta';
+                    lastReviewed.textContent = `Ôn gần nhất: ${formatDateTime(record.last_reviewed)}`;
+                    li.appendChild(lastReviewed);
+                } else if (record.first_seen) {
+                    const firstSeen = document.createElement('span');
+                    firstSeen.className = 'stat-detail-meta';
+                    firstSeen.textContent = `Bắt đầu: ${formatDateTime(record.first_seen)}`;
+                    li.appendChild(firstSeen);
+                }
+
+                if (record.due_time) {
+                    const dueSpan = document.createElement('span');
+                    dueSpan.className = 'stat-detail-meta';
+                    dueSpan.textContent = `Hạn ôn: ${formatDateTime(record.due_time)}`;
+                    li.appendChild(dueSpan);
+                }
+
+                return li;
+            }
+
+            function buildQuizListItem(record, includeContainer = false) {
+                const li = document.createElement('li');
+                li.className = 'stat-detail-list-item';
+
+                const title = document.createElement('strong');
+                title.textContent = record.question || `Câu hỏi #${record.item_id}`;
+                li.appendChild(title);
+
+                if (includeContainer && record.container_title) {
+                    const containerMeta = document.createElement('span');
+                    containerMeta.className = 'stat-detail-meta';
+                    containerMeta.textContent = `Bộ: ${record.container_title}`;
+                    li.appendChild(containerMeta);
+                }
+
+                const stats = document.createElement('span');
+                stats.textContent = `Đúng: ${formatNumber(record.times_correct)} • Sai: ${formatNumber(record.times_incorrect)}`;
+                li.appendChild(stats);
+
+                const statusMeta = document.createElement('span');
+                statusMeta.className = 'stat-detail-meta';
+                statusMeta.textContent = `Trạng thái: ${resolveStatusLabel('quiz', record.status)}`;
+                li.appendChild(statusMeta);
+
+                if (record.last_reviewed) {
+                    const lastReviewed = document.createElement('span');
+                    lastReviewed.className = 'stat-detail-meta';
+                    lastReviewed.textContent = `Ôn gần nhất: ${formatDateTime(record.last_reviewed)}`;
+                    li.appendChild(lastReviewed);
+                } else if (record.first_seen) {
+                    const firstSeen = document.createElement('span');
+                    firstSeen.className = 'stat-detail-meta';
+                    firstSeen.textContent = `Bắt đầu: ${formatDateTime(record.first_seen)}`;
+                    li.appendChild(firstSeen);
+                }
+
+                return li;
+            }
+
+            function buildCourseListItem(record, includeContainer = false) {
+                const li = document.createElement('li');
+                li.className = 'stat-detail-list-item';
+
+                const title = document.createElement('strong');
+                title.textContent = record.title || `Bài học #${record.item_id}`;
+                li.appendChild(title);
+
+                const progress = document.createElement('span');
+                progress.textContent = `Hoàn thành: ${formatNumber(record.completion_percentage)}%`;
+                li.appendChild(progress);
+
+                const statusMeta = document.createElement('span');
+                statusMeta.className = 'stat-detail-meta';
+                statusMeta.textContent = `Trạng thái: ${resolveStatusLabel('course', record.status)}`;
+                li.appendChild(statusMeta);
+
+                if (record.last_updated) {
+                    const updated = document.createElement('span');
+                    updated.className = 'stat-detail-meta';
+                    updated.textContent = `Cập nhật: ${formatDateTime(record.last_updated)}`;
+                    li.appendChild(updated);
+                }
+
+                if (includeContainer && record.container_title) {
+                    const containerMeta = document.createElement('span');
+                    containerMeta.className = 'stat-detail-meta';
+                    containerMeta.textContent = `Khoá học: ${record.container_title}`;
+                    li.appendChild(containerMeta);
+                }
+
+                return li;
+            }
+
             function setupFlashcardMetrics() {
                 const select = document.getElementById('flashcard-set-select');
                 if (!select) return;
@@ -461,6 +680,8 @@
                 const metricsGrid = document.getElementById('flashcard-detail-metrics');
                 const listWrapper = document.getElementById('flashcard-learned-container');
                 const listEl = document.getElementById('flashcard-learned-list');
+                const subtitleEl = document.getElementById('flashcard-detail-subtitle');
+                const defaultStatus = 'mastered';
                 const fields = {
                     total_cards: metricsGrid ? metricsGrid.querySelector('[data-flashcard-metric="total_cards"]') : null,
                     studied_cards: metricsGrid ? metricsGrid.querySelector('[data-flashcard-metric="studied_cards"]') : null,
@@ -477,6 +698,7 @@
                     }
                     if (metricsGrid) metricsGrid.style.display = 'none';
                     if (listWrapper) listWrapper.style.display = 'none';
+                    updateSubtitle(subtitleEl, 'flashcard', defaultStatus, 0);
                 }
 
                 function render(data) {
@@ -495,21 +717,17 @@
                     }
                     if (fields.best_streak) fields.best_streak.textContent = formatNumber(data.best_correct_streak);
 
+                    const itemsPayload = data.items || { status: defaultStatus, total: 0, records: [] };
+                    updateSubtitle(subtitleEl, 'flashcard', itemsPayload.status || defaultStatus, itemsPayload.total || (itemsPayload.records ? itemsPayload.records.length : 0));
+
                     if (metricsGrid) metricsGrid.style.display = 'grid';
 
                     if (listWrapper && listEl) {
                         listEl.innerHTML = '';
-                        const examples = Array.isArray(data.learned_examples) ? data.learned_examples : [];
+                        const examples = Array.isArray(itemsPayload.records) ? itemsPayload.records : [];
                         if (examples.length > 0) {
                             examples.forEach(example => {
-                                const li = document.createElement('li');
-                                li.className = 'stat-detail-list-item';
-                                const titleText = example.front || `Thẻ #${example.item_id}`;
-                                const backText = example.back ? `<span>${example.back}</span>` : '';
-                                const timestamp = example.last_reviewed || example.first_seen;
-                                const metaText = timestamp ? `<span class="stat-detail-meta">Ôn gần nhất: ${formatDateTime(timestamp)}</span>` : '';
-                                li.innerHTML = `<strong>${titleText}</strong>${backText}${metaText}`;
-                                listEl.appendChild(li);
+                                listEl.appendChild(buildFlashcardListItem(example));
                             });
                             listWrapper.style.display = 'block';
                         } else {
@@ -522,7 +740,7 @@
 
                 function load(containerId) {
                     if (!containerId) {
-                        showEmpty('Hãy chọn một bộ Flashcard để xem chi tiết.');
+                        showEmpty('Hãy chọn một bộ để xem chi tiết.');
                         return;
                     }
 
@@ -531,7 +749,14 @@
                     if (listWrapper) listWrapper.style.display = 'none';
                     if (emptyEl) emptyEl.style.display = 'none';
 
-                    fetch(`${flashcardEndpoint}?container_id=${containerId}`)
+                    const params = new URLSearchParams({
+                        container_id: containerId,
+                        status: defaultStatus,
+                        page: 1,
+                        per_page: 5,
+                    });
+
+                    fetch(`${flashcardEndpoint}?${params.toString()}`)
                         .then(response => response.json())
                         .then(result => {
                             if (result.success) {
@@ -548,7 +773,7 @@
                 }
 
                 if (!hasOptions) {
-                    showEmpty('Bạn chưa có bộ Flashcard nào đang học.');
+                    showEmpty('Bạn chưa có bộ Flashcard nào.');
                     return;
                 }
 
@@ -558,7 +783,7 @@
                 if (initialId) {
                     load(initialId);
                 } else {
-                    showEmpty('Hãy chọn một bộ Flashcard để xem chi tiết.');
+                    showEmpty('Hãy chọn một bộ để xem chi tiết.');
                 }
             }
 
@@ -571,6 +796,8 @@
                 const metricsGrid = document.getElementById('quiz-detail-metrics');
                 const listWrapper = document.getElementById('quiz-correct-container');
                 const listEl = document.getElementById('quiz-correct-list');
+                const subtitleEl = document.getElementById('quiz-detail-subtitle');
+                const defaultStatus = 'mastered';
                 const fields = {
                     total_questions: metricsGrid ? metricsGrid.querySelector('[data-quiz-metric="total_questions"]') : null,
                     attempted_questions: metricsGrid ? metricsGrid.querySelector('[data-quiz-metric="attempted_questions"]') : null,
@@ -587,6 +814,7 @@
                     }
                     if (metricsGrid) metricsGrid.style.display = 'none';
                     if (listWrapper) listWrapper.style.display = 'none';
+                    updateSubtitle(subtitleEl, 'quiz', defaultStatus, 0);
                 }
 
                 function render(data) {
@@ -605,20 +833,17 @@
                     }
                     if (fields.best_streak) fields.best_streak.textContent = formatNumber(data.best_correct_streak);
 
+                    const itemsPayload = data.items || { status: defaultStatus, total: 0, records: [] };
+                    updateSubtitle(subtitleEl, 'quiz', itemsPayload.status || defaultStatus, itemsPayload.total || (itemsPayload.records ? itemsPayload.records.length : 0));
+
                     if (metricsGrid) metricsGrid.style.display = 'grid';
 
                     if (listWrapper && listEl) {
                         listEl.innerHTML = '';
-                        const examples = Array.isArray(data.correct_examples) ? data.correct_examples : [];
-                        if (examples.length > 0) {
-                            examples.forEach(example => {
-                                const li = document.createElement('li');
-                                li.className = 'stat-detail-list-item';
-                                const titleText = example.question || `Câu hỏi #${example.item_id}`;
-                                const statsText = `<span>Đúng ${formatNumber(example.times_correct)} - Sai ${formatNumber(example.times_incorrect)}</span>`;
-                                const metaText = example.last_reviewed ? `<span class="stat-detail-meta">Lần gần nhất: ${formatDateTime(example.last_reviewed)}</span>` : '';
-                                li.innerHTML = `<strong>${titleText}</strong>${statsText}${metaText}`;
-                                listEl.appendChild(li);
+                        const records = Array.isArray(itemsPayload.records) ? itemsPayload.records : [];
+                        if (records.length > 0) {
+                            records.forEach(example => {
+                                listEl.appendChild(buildQuizListItem(example));
                             });
                             listWrapper.style.display = 'block';
                         } else {
@@ -631,7 +856,7 @@
 
                 function load(containerId) {
                     if (!containerId) {
-                        showEmpty('Hãy chọn một bộ Trắc nghiệm để xem chi tiết.');
+                        showEmpty('Hãy chọn một bộ để xem chi tiết.');
                         return;
                     }
 
@@ -640,7 +865,14 @@
                     if (listWrapper) listWrapper.style.display = 'none';
                     if (emptyEl) emptyEl.style.display = 'none';
 
-                    fetch(`${quizEndpoint}?container_id=${containerId}`)
+                    const params = new URLSearchParams({
+                        container_id: containerId,
+                        status: defaultStatus,
+                        page: 1,
+                        per_page: 5,
+                    });
+
+                    fetch(`${quizEndpoint}?${params.toString()}`)
                         .then(response => response.json())
                         .then(result => {
                             if (result.success) {
@@ -657,7 +889,7 @@
                 }
 
                 if (!hasOptions) {
-                    showEmpty('Bạn chưa có bộ Trắc nghiệm nào đang làm.');
+                    showEmpty('Bạn chưa có bộ Trắc nghiệm nào.');
                     return;
                 }
 
@@ -667,7 +899,7 @@
                 if (initialId) {
                     load(initialId);
                 } else {
-                    showEmpty('Hãy chọn một bộ Trắc nghiệm để xem chi tiết.');
+                    showEmpty('Hãy chọn một bộ để xem chi tiết.');
                 }
             }
 
@@ -682,6 +914,8 @@
                 const lastActivityField = noteEl ? noteEl.querySelector('[data-course-metric="last_activity"]') : null;
                 const listWrapper = document.getElementById('course-recent-container');
                 const listEl = document.getElementById('course-recent-list');
+                const subtitleEl = document.getElementById('course-detail-subtitle');
+                const defaultStatus = 'all';
                 const fields = {
                     total_lessons: metricsGrid ? metricsGrid.querySelector('[data-course-metric="total_lessons"]') : null,
                     lessons_started: metricsGrid ? metricsGrid.querySelector('[data-course-metric="lessons_started"]') : null,
@@ -697,6 +931,7 @@
                     if (metricsGrid) metricsGrid.style.display = 'none';
                     if (noteEl) noteEl.style.display = 'none';
                     if (listWrapper) listWrapper.style.display = 'none';
+                    updateSubtitle(subtitleEl, 'course', defaultStatus, 0);
                 }
 
                 function render(data) {
@@ -709,6 +944,9 @@
                     if (fields.lessons_started) fields.lessons_started.textContent = formatNumber(data.lessons_started);
                     if (fields.lessons_completed) fields.lessons_completed.textContent = formatNumber(data.lessons_completed);
                     if (fields.avg_completion) fields.avg_completion.textContent = formatPercent(data.avg_completion_percent);
+
+                    const itemsPayload = data.items || { status: defaultStatus, total: 0, records: [] };
+                    updateSubtitle(subtitleEl, 'course', itemsPayload.status || defaultStatus, itemsPayload.total || (itemsPayload.records ? itemsPayload.records.length : 0));
 
                     if (metricsGrid) metricsGrid.style.display = 'grid';
 
@@ -723,16 +961,10 @@
 
                     if (listWrapper && listEl) {
                         listEl.innerHTML = '';
-                        const lessons = Array.isArray(data.recent_lessons) ? data.recent_lessons : [];
+                        const lessons = Array.isArray(itemsPayload.records) ? itemsPayload.records : [];
                         if (lessons.length > 0) {
                             lessons.forEach(lesson => {
-                                const li = document.createElement('li');
-                                li.className = 'stat-detail-list-item';
-                                const titleText = lesson.title || `Bài học #${lesson.item_id}`;
-                                const progressText = `<span>Hoàn thành: ${formatNumber(lesson.completion_percentage)}%</span>`;
-                                const metaText = lesson.last_updated ? `<span class="stat-detail-meta">Cập nhật: ${formatDateTime(lesson.last_updated)}</span>` : '';
-                                li.innerHTML = `<strong>${titleText}</strong>${progressText}${metaText}`;
-                                listEl.appendChild(li);
+                                listEl.appendChild(buildCourseListItem(lesson));
                             });
                             listWrapper.style.display = 'block';
                         } else {
@@ -755,7 +987,14 @@
                     if (noteEl) noteEl.style.display = 'none';
                     if (emptyEl) emptyEl.style.display = 'none';
 
-                    fetch(`${courseEndpoint}?container_id=${containerId}`)
+                    const params = new URLSearchParams({
+                        container_id: containerId,
+                        status: defaultStatus,
+                        page: 1,
+                        per_page: 5,
+                    });
+
+                    fetch(`${courseEndpoint}?${params.toString()}`)
                         .then(response => response.json())
                         .then(result => {
                             if (result.success) {
@@ -785,6 +1024,237 @@
                     showEmpty('Hãy chọn một khoá học để xem chi tiết.');
                 }
             }
+
+            const modal = document.getElementById('stats-modal');
+            const statCards = document.querySelectorAll('.stat-card[data-type]');
+            const modalElements = modal ? {
+                root: modal,
+                overlay: modal.querySelector('.stats-modal-overlay'),
+                close: modal.querySelector('.stats-modal-close'),
+                tabs: modal.querySelector('#stats-modal-tabs'),
+                list: modal.querySelector('#stats-modal-list'),
+                empty: modal.querySelector('#stats-modal-empty'),
+                loader: modal.querySelector('#stats-modal-loader'),
+                pagination: modal.querySelector('#stats-modal-pagination'),
+                prev: modal.querySelector('[data-modal-page="prev"]'),
+                next: modal.querySelector('[data-modal-page="next"]'),
+                pageLabel: modal.querySelector('#stats-modal-page-label'),
+                title: modal.querySelector('#stats-modal-title'),
+                summary: modal.querySelector('#stats-modal-summary'),
+            } : {};
+
+            const modalState = {
+                type: null,
+                category: 'all',
+                containerId: null,
+                containerTitle: '',
+                title: '',
+                page: 1,
+                perPage: 10,
+            };
+
+            function resetModalContent() {
+                if (!modalElements.root) return;
+                if (modalElements.list) modalElements.list.innerHTML = '';
+                if (modalElements.empty) modalElements.empty.style.display = 'none';
+                if (modalElements.loader) modalElements.loader.style.display = 'none';
+                if (modalElements.pagination) modalElements.pagination.style.display = 'none';
+                if (modalElements.summary) modalElements.summary.textContent = '--';
+            }
+
+            function closeModal() {
+                if (!modalElements.root || !modalElements.root.classList.contains('active')) return;
+                modalElements.root.classList.remove('active');
+                modalElements.root.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = document.body.dataset.statsModalOverflow || '';
+                delete document.body.dataset.statsModalOverflow;
+                resetModalContent();
+                modalState.type = null;
+            }
+
+            function buildModalTabs(type, activeCategory) {
+                if (!modalElements.tabs) return;
+                const categories = CATEGORY_CONFIG[type] || ['all'];
+                modalElements.tabs.innerHTML = '';
+
+                categories.forEach(category => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'stats-modal-tab';
+                    button.textContent = resolveStatusLabel(type, category);
+                    if (category === activeCategory) {
+                        button.classList.add('active');
+                    }
+                    button.addEventListener('click', () => {
+                        if (modalState.category === category) return;
+                        modalState.category = category;
+                        modalState.page = 1;
+                        buildModalTabs(type, category);
+                        fetchModalData();
+                    });
+                    modalElements.tabs.appendChild(button);
+                });
+
+                modalElements.tabs.style.display = categories.length > 1 ? 'flex' : 'none';
+            }
+
+            function setModalEmpty(message) {
+                if (!modalElements.empty || !modalElements.list) return;
+                modalElements.list.innerHTML = '';
+                modalElements.empty.textContent = message;
+                modalElements.empty.style.display = 'block';
+                if (modalElements.pagination) modalElements.pagination.style.display = 'none';
+            }
+
+            function renderModalContent(type, payload) {
+                if (!modalElements.list || !modalElements.summary || !payload) {
+                    setModalEmpty('Không thể tải dữ liệu.');
+                    return;
+                }
+
+                modalState.page = payload.page || 1;
+                modalState.perPage = payload.per_page || modalState.perPage;
+                modalState.category = payload.status || modalState.category;
+
+                const records = Array.isArray(payload.records) ? payload.records : [];
+
+                modalElements.list.innerHTML = '';
+                if (records.length === 0) {
+                    setModalEmpty('Không có dữ liệu phù hợp.');
+                } else {
+                    const builderMap = {
+                        flashcard: buildFlashcardListItem,
+                        quiz: buildQuizListItem,
+                        course: buildCourseListItem,
+                    };
+                    const builder = builderMap[type];
+                    records.forEach(record => {
+                        if (builder) {
+                            modalElements.list.appendChild(builder(record, true));
+                        }
+                    });
+                    modalElements.empty.style.display = 'none';
+                }
+
+                const total = payload.total || records.length || 0;
+                const summaryParts = [];
+                if (modalState.containerTitle) summaryParts.push(modalState.containerTitle);
+                summaryParts.push(resolveStatusLabel(type, modalState.category));
+                summaryParts.push(`Tổng ${formatNumber(total)} mục`);
+                modalElements.summary.textContent = summaryParts.join(' • ');
+
+                if (modalElements.pagination && modalElements.pageLabel && modalElements.prev && modalElements.next) {
+                    const totalPages = Math.max(1, Math.ceil(total / modalState.perPage));
+                    modalElements.pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+                    modalElements.pageLabel.textContent = `Trang ${modalState.page} / ${totalPages}`;
+                    modalElements.prev.disabled = modalState.page <= 1;
+                    modalElements.next.disabled = modalState.page >= totalPages;
+                }
+            }
+
+            function fetchModalData() {
+                if (!modalState.type) return;
+                const endpointMap = {
+                    flashcard: flashcardItemsEndpoint,
+                    quiz: quizItemsEndpoint,
+                    course: courseItemsEndpoint,
+                };
+                const endpoint = endpointMap[modalState.type];
+                if (!endpoint) {
+                    setModalEmpty('Không tìm thấy endpoint phù hợp.');
+                    return;
+                }
+
+                if (modalElements.loader) modalElements.loader.style.display = 'flex';
+                if (modalElements.empty) modalElements.empty.style.display = 'none';
+                if (modalElements.list) modalElements.list.innerHTML = '';
+
+                const params = new URLSearchParams({
+                    page: modalState.page,
+                    per_page: modalState.perPage,
+                });
+                if (modalState.containerId) {
+                    params.set('container_id', modalState.containerId);
+                }
+                if (modalState.category && modalState.category !== 'all') {
+                    params.set('status', modalState.category);
+                }
+
+                fetch(`${endpoint}?${params.toString()}`)
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            renderModalContent(modalState.type, result.data || { status: modalState.category, page: modalState.page, per_page: modalState.perPage, total: 0, records: [] });
+                        } else {
+                            setModalEmpty('Không thể tải dữ liệu.');
+                        }
+                    })
+                    .catch(() => setModalEmpty('Không thể tải dữ liệu.'))
+                    .finally(() => {
+                        if (modalElements.loader) modalElements.loader.style.display = 'none';
+                    });
+            }
+
+            function openModal(type, containerId, category, title, containerTitle) {
+                if (!modalElements.root) return;
+                modalState.type = type;
+                modalState.category = category || 'all';
+                modalState.containerId = containerId && containerId !== 'all' ? containerId : null;
+                modalState.containerTitle = containerTitle || (modalState.containerId ? `Bộ #${modalState.containerId}` : 'Tất cả học liệu');
+                modalState.title = title || 'Chi tiết thống kê';
+                modalState.page = 1;
+
+                modalElements.title.textContent = modalState.title;
+                modalElements.root.classList.add('active');
+                modalElements.root.setAttribute('aria-hidden', 'false');
+                document.body.dataset.statsModalOverflow = document.body.style.overflow || '';
+                document.body.style.overflow = 'hidden';
+
+                resetModalContent();
+                buildModalTabs(type, modalState.category);
+                fetchModalData();
+            }
+
+            if (modalElements.overlay) {
+                modalElements.overlay.addEventListener('click', closeModal);
+            }
+            if (modalElements.close) {
+                modalElements.close.addEventListener('click', closeModal);
+            }
+            if (modalElements.prev) {
+                modalElements.prev.addEventListener('click', () => {
+                    if (modalState.page > 1) {
+                        modalState.page -= 1;
+                        fetchModalData();
+                    }
+                });
+            }
+            if (modalElements.next) {
+                modalElements.next.addEventListener('click', () => {
+                    modalState.page += 1;
+                    fetchModalData();
+                });
+            }
+
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape') {
+                    closeModal();
+                }
+            });
+
+            statCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const { type, category, containerId, title, containerTitle } = card.dataset;
+                    if (!type) return;
+                    openModal(type, containerId || null, category || 'all', title || card.textContent.trim(), containerTitle || 'Tất cả học liệu');
+                });
+                card.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        card.click();
+                    }
+                });
+            });
 
             setupFlashcardMetrics();
             setupQuizMetrics();
