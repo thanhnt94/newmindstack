@@ -194,7 +194,7 @@
 
 {% block scripts %}
 {{ super() }}
-{% include 'flashcards/_flashcard_image_control_scripts.html' %}
+{% include '_flashcard_image_control_scripts.html' %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         initializeFlashcardImageControls({ formSelector: '#flashcardItemForm' });
