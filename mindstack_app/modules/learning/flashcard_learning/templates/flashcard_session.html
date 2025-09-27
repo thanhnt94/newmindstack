@@ -874,6 +874,7 @@
     const statsModalBody = document.getElementById('statsModalBody');
 
     const getFlashcardBatchUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
+    const flashcardItemApiUrlTemplate = "{{ url_for('learning.flashcard_learning.get_flashcard_item_api', item_id=0) }}";
     const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
     const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
     const regenerateAudioUrl = "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}";
@@ -1786,6 +1787,74 @@
         container.innerHTML = html;
         initializeStatsToggleListeners(container);
     }
+
+    window.updateFlashcardCard = async function(itemId, setId) {
+        const numericItemId = Number(itemId);
+        const numericSetId = Number(setId);
+
+        if (!Number.isInteger(numericItemId) || numericItemId <= 0) {
+            const message = 'Không thể xác định thẻ cần cập nhật.';
+            if (window.showFlashMessage) {
+                window.showFlashMessage(message, 'warning');
+            }
+            throw new Error(message);
+        }
+
+        const apiUrl = flashcardItemApiUrlTemplate.replace('/0', `/${numericItemId}`);
+
+        try {
+            const response = await fetch(apiUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            let payload = null;
+
+            try {
+                payload = await response.json();
+            } catch (parseError) {
+                payload = null;
+            }
+
+            if (!response.ok || !payload || !payload.success || !payload.item) {
+                const errorMessage = (payload && payload.message) ? payload.message : 'Không thể tải lại thẻ sau khi chỉnh sửa.';
+                throw new Error(errorMessage);
+            }
+
+            const updatedItem = payload.item;
+
+            if (Number.isInteger(numericSetId) && updatedItem.container_id !== numericSetId) {
+                const message = 'Thẻ vừa chỉnh sửa không thuộc bộ hiện tại.';
+                if (window.showFlashMessage) {
+                    window.showFlashMessage(message, 'warning');
+                }
+                return updatedItem;
+            }
+
+            const targetIndex = currentFlashcardBatch.findIndex(card => Number(card.item_id) === Number(updatedItem.item_id));
+
+            if (targetIndex === -1) {
+                const message = 'Không tìm thấy thẻ đang hiển thị trong phiên để cập nhật.';
+                if (window.showFlashMessage) {
+                    window.showFlashMessage(message, 'info');
+                }
+                return updatedItem;
+            }
+
+            currentFlashcardBatch[targetIndex] = updatedItem;
+
+            if (targetIndex === currentFlashcardIndex) {
+                stopAllFlashcardAudio();
+                renderCard(updatedItem);
+                const initialStatsHtml = renderCardStatsHtml(updatedItem.initial_stats, 0, updatedItem.content, true);
+                displayCardStats(currentCardStatsContainer, initialStatsHtml);
+            }
+
+            return updatedItem;
+        } catch (error) {
+            console.error('Không thể tải lại thẻ sau khi chỉnh sửa:', error);
+            if (window.showFlashMessage) {
+                window.showFlashMessage(error.message || 'Không thể tải lại thẻ sau khi chỉnh sửa.', 'danger');
+            }
+            throw error;
+        }
+    };
 
     async function getNextFlashcardBatch(){
       stopAllFlashcardAudio();

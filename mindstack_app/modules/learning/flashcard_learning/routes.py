@@ -8,8 +8,17 @@
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
 import traceback
-from .algorithms import get_new_only_items, get_due_items, get_hard_items, get_mixed_items, get_filtered_flashcard_sets, get_flashcard_mode_counts
+from .algorithms import (
+    get_new_only_items,
+    get_due_items,
+    get_hard_items,
+    get_mixed_items,
+    get_filtered_flashcard_sets,
+    get_flashcard_mode_counts,
+    get_accessible_flashcard_set_ids,
+)
 from .session_manager import FlashcardSessionManager
+from .flashcard_stats_logic import get_flashcard_item_statistics
 from .config import FlashcardLearningConfig
 from ....models import (
     db,
@@ -231,6 +240,59 @@ def get_flashcard_batch():
         current_app.logger.error(f"LỖI NGHIÊM TRỌNG khi lấy nhóm thẻ: {e}", exc_info=True)
         current_app.logger.debug("--- Kết thúc get_flashcard_batch (LỖI) ---")
         return jsonify({'message': f'Lỗi khi tải thẻ: {str(e)}'}), 500
+
+
+@flashcard_learning_bp.route('/flashcard_learning/api/items/<int:item_id>', methods=['GET'])
+@login_required
+def get_flashcard_item_api(item_id):
+    """Trả về thông tin chi tiết của một thẻ trong phiên học hiện tại."""
+
+    if 'flashcard_session' not in session:
+        return jsonify({'success': False, 'message': 'Không có phiên học nào đang hoạt động.'}), 400
+
+    try:
+        item = LearningItem.query.filter_by(item_id=item_id, item_type='FLASHCARD').first()
+        if not item:
+            return jsonify({'success': False, 'message': 'Không tìm thấy thẻ yêu cầu.'}), 404
+
+        accessible_set_ids = set(get_accessible_flashcard_set_ids(current_user.user_id))
+        if accessible_set_ids and item.container_id not in accessible_set_ids:
+            return jsonify({'success': False, 'message': 'Bạn không có quyền truy cập thẻ này.'}), 403
+
+        def resolve_media_url(file_path):
+            if not file_path:
+                return None
+            try:
+                if not isinstance(file_path, str):
+                    file_path = str(file_path)
+                normalized = file_path.lstrip('/')
+                return url_for('static', filename=normalized, _external=True)
+            except Exception:
+                return None
+
+        initial_stats = get_flashcard_item_statistics(current_user.user_id, item_id)
+
+        item_payload = {
+            'item_id': item.item_id,
+            'container_id': item.container_id,
+            'content': {
+                'front': item.content.get('front', ''),
+                'back': item.content.get('back', ''),
+                'front_audio_content': item.content.get('front_audio_content', ''),
+                'front_audio_url': resolve_media_url(item.content.get('front_audio_url')),
+                'back_audio_content': item.content.get('back_audio_content', ''),
+                'back_audio_url': resolve_media_url(item.content.get('back_audio_url')),
+                'front_img': resolve_media_url(item.content.get('front_img')),
+                'back_img': resolve_media_url(item.content.get('back_img')),
+            },
+            'ai_explanation': item.ai_explanation,
+            'initial_stats': initial_stats,
+        }
+
+        return jsonify({'success': True, 'item': item_payload})
+    except Exception as exc:
+        current_app.logger.error('Lỗi khi tải thông tin thẻ %s: %s', item_id, exc, exc_info=True)
+        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi tải lại thẻ.'}), 500
 
 
 @flashcard_learning_bp.route('/submit_flashcard_answer', methods=['POST'])

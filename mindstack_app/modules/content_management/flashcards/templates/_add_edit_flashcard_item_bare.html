@@ -248,7 +248,8 @@
         const aiRegenerateBtn = document.getElementById('ai-regenerate-btn');
         const aiExplanationField = document.getElementById('ai_explanation');
         const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
-        const itemId = "{{ flashcard_item.item_id | default('None') }}";
+        let currentItemId = {{ (flashcard_item.item_id if flashcard_item else None) | tojson }};
+        const setId = {{ flashcard_set.container_id | tojson }};
 
         if (aiRegenerateBtn) {
             aiRegenerateBtn.addEventListener('click', async function() {
@@ -258,7 +259,7 @@
                 aiExplanationField.value = "Đang tạo lại nội dung...";
 
                 const payload = {
-                    item_id: itemId,
+                    item_id: currentItemId,
                     prompt_type: 'explanation',
                     force_regenerate: true
                 };
@@ -293,7 +294,7 @@
             initializeFlashcardAudioControls({ form: form });
             {# Đặt action của form dựa trên URL hiện tại (để xử lý cả add và edit) #}
             const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.delete('is_modal'); 
+            currentUrl.searchParams.delete('is_modal');
             form.action = currentUrl.toString();
 
             form.addEventListener('submit', async function(event) {
@@ -319,19 +320,28 @@
 
                     if (response.ok) { {# HTTP status 200-299 #}
                         if (result.success) {
+                            if (typeof result.item_id !== 'undefined' && result.item_id !== null) {
+                                currentItemId = result.item_id;
+                                form.dataset.itemId = String(result.item_id);
+                            }
                             {# Thông báo thành công qua parent window (base.html) #}
                             if (window.parent && window.parent.showFlashMessage) {
                                 window.parent.showFlashMessage(result.message, 'success');
                             }
+                            const resolvedItemId = currentItemId || result.item_id;
+                            if (window.parent && typeof window.parent.updateFlashcardCard === 'function') {
+                                if (resolvedItemId) {
+                                    try {
+                                        await window.parent.updateFlashcardCard(resolvedItemId, setId);
+                                    } catch (updateError) {
+                                        console.error('Không thể cập nhật thẻ trong phiên học:', updateError);
+                                    }
+                                } else if (window.parent.showFlashMessage) {
+                                    window.parent.showFlashMessage('Không thể xác định thẻ vừa chỉnh sửa để làm mới trong phiên học.', 'warning');
+                                }
+                            }
                             {# Đóng modal #}
                             if (window.parent && window.parent.closeModal) {
-                                window.parent.closeModal();
-                            }
-                            {# Cập nhật thẻ hiện tại mà không tải lại trang #}
-                            if (window.parent.updateFlashcardCard) {
-                                // Assume we have a function to update the current card content on the parent page
-                                // This is a placeholder, as the parent doesn't have this function yet.
-                                // We'll just close the modal for now.
                                 window.parent.closeModal();
                             }
                             {# THAY ĐỔI: không tải lại trang #}

@@ -594,7 +594,11 @@ def add_flashcard_item(set_id):
         
         # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': 'Thẻ mới đã được thêm!'})
+            return jsonify({
+                'success': True,
+                'message': 'Thẻ mới đã được thêm!',
+                'item_id': new_item.item_id
+            })
         else:
             flash('Thẻ mới đã được thêm!', 'success')
             return redirect(url_for('.list_flashcard_items', set_id=set_id))
@@ -688,7 +692,11 @@ def edit_flashcard_item(set_id, item_id):
         
         # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': 'Thẻ đã được cập nhật!'})
+            return jsonify({
+                'success': True,
+                'message': 'Thẻ đã được cập nhật!',
+                'item_id': flashcard_item.item_id
+            })
         else:
             flash('Thẻ đã được cập nhật!', 'success')
             return redirect(url_for('.list_flashcard_items', set_id=set_id))
