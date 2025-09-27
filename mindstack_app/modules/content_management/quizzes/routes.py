@@ -28,9 +28,6 @@ def _apply_is_public_restrictions(form):
         existing_render_kw['disabled'] = True
         form.is_public.render_kw = existing_render_kw
 
-STATIC_RELATIVE_PREFIXES = ('uploads/',)
-
-
 def _process_relative_url(url):
     """Chuẩn hóa đường dẫn tương đối và thêm tiền tố tĩnh khi cần."""
     if url is None:
@@ -40,13 +37,7 @@ def _process_relative_url(url):
     if not normalized:
         return ''
 
-    if normalized.startswith(('http://', 'https://', '/')):
-        return normalized
-
-    if normalized.startswith(STATIC_RELATIVE_PREFIXES):
-        return normalized
-
-    return f'uploads/{normalized}'
+    return normalized
 
 
 def _build_absolute_media_url(file_path):
