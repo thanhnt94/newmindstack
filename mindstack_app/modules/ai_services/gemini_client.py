@@ -108,7 +108,7 @@ class GeminiClient:
         
         self.app_context = app_context
         self.api_key_manager = ApiKeyManager()
-        self.model_name = 'gemini-1.5-flash'
+        self.model_name = 'gemini-2.0-flash-lite-001'
         current_app.logger.info(f"Gemini Client đã được khởi tạo với model '{self.model_name}'.")
 
     def generate_content(self, prompt, item_info="N/A"):
