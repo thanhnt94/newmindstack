@@ -79,7 +79,7 @@
     .session-layout {
         height: 100%;
         display: grid;
-        grid-template-columns: minmax(0, 3fr) minmax(520px, 4fr);
+        grid-template-columns: minmax(0, 5fr) minmax(400px, 2fr);
         gap: 2rem;
         max-width: 1680px;
         margin: 0 auto;
@@ -119,7 +119,6 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            max-width: none;
         }
         #flashcard-content {
             flex: 1;
@@ -152,9 +151,6 @@
         .flashcard-card {
             padding: 0.2rem !important;
         }
-        .flashcard-card-container {
-            max-width: none;
-        }
     }
 
     /* ===== Wrapper cho thẻ Flashcard ===== */
@@ -165,8 +161,6 @@
         min-height: 0;
         position: relative;
         overflow: hidden;
-        max-width: 900px;
-        margin: 0 auto;
     }
 
     #flashcard-content {
@@ -181,8 +175,6 @@
         width: 100%;
         height: 100%;
         min-height: 300px;
-        max-width: 760px;
-        margin: 0 auto;
     }
 
     .flashcard-card {

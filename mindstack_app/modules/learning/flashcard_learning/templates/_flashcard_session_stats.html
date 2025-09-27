@@ -10,23 +10,17 @@
         border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 16px;
         box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-        padding: 1.5rem 1.75rem;
+        padding: 1.25rem 1.5rem;
         display: flex;
         flex-direction: column;
         gap: 1rem;
         color: #0f172a;
-        max-width: 880px;
+        max-width: 520px;
         width: 100%;
+        overflow-y: auto;
         max-height: 100%;
-        overflow: visible;
         scrollbar-width: thin;
         scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
-    }
-
-    .stats-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
     }
 
     .sr-only {
@@ -248,8 +242,8 @@
     }
 
     .stats-section + .stats-section {
-        margin-top: 0;
-        padding-top: 0;
+        margin-top: 1.1rem;
+        padding-top: 1.1rem;
     }
 
     .stats-section__header {
@@ -735,41 +729,6 @@
     .statistics-card--modal {
         max-height: none;
         overflow: visible;
-    }
-
-    @media (max-width: 1024px) {
-        .statistics-card {
-            overflow-y: auto;
-            padding: 1.25rem 1.5rem;
-        }
-    }
-
-    @media (min-width: 1280px) {
-        .statistics-card {
-            padding: 1.75rem 2rem;
-        }
-        .stats-stack {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 1.5rem;
-            align-content: start;
-        }
-        .stats-stack > .insight-banner,
-        .stats-stack > .stats-section--recent,
-        .stats-stack > .stats-section--timeline {
-            grid-column: 1 / -1;
-        }
-        .session-overview {
-            flex-wrap: wrap;
-            overflow: visible;
-            gap: 1rem;
-        }
-        .session-overview > * {
-            min-width: 240px;
-        }
-        .stats-tab-nav {
-            overflow: visible;
-        }
     }
 
     @media (min-width: 1024px) {
