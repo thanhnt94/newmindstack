@@ -320,6 +320,24 @@
             return tempDiv.innerHTML.replace(/\r?\n/g, '<br>');
         }
 
+        function renderMarkdownContent(text, options = {}) {
+            if (text === null || text === undefined) return '';
+            if (window.renderMarkdown) {
+                return window.renderMarkdown(text, options);
+            }
+            return formatTextForHtml(String(text));
+        }
+
+        function setMarkdownContent(element, text, options = {}) {
+            if (!element) return;
+            if (window.applyMarkdownToElement) {
+                window.applyMarkdownToElement(element, text, options);
+            } else {
+                element.innerHTML = renderMarkdownContent(text, options);
+                element.classList.add('markdown-body');
+            }
+        }
+
         function displayQuestionBatch(batchData) {
             currentQuestionBatch = batchData.items;
             userAnswers = {};
@@ -346,7 +364,11 @@
                 if (questionData.content.question_audio_file) {
                     mediaHtml += `<audio controls src="${formatTextForHtml(questionData.content.question_audio_file)}" class="w-full mb-4"></audio>`;
                 }
-                
+
+                const aiExplanationHtml = questionData.ai_explanation
+                    ? renderMarkdownContent(questionData.ai_explanation)
+                    : '<span class="italic text-gray-500">Chưa có giải thích từ AI.</span>';
+
                 fullBatchContentHtml += `
                     <div class="question-card" data-item-id="${questionData.item_id}">
                         <p class="text-gray-500 text-sm mb-2">Câu ${batchData.start_index + index + 1} / ${batchData.total_items_in_session}</p>
@@ -374,7 +396,7 @@
                             </div>
                             <div class="ai-explanation-section info-section" style="display: none;">
                                 <h4><i class="fas fa-robot text-blue-500"></i> Giải thích của AI</h4>
-                                <div class="content-display">${questionData.ai_explanation ? formatTextForHtml(questionData.ai_explanation) : '<span class="italic text-gray-500">Chưa có giải thích từ AI.</span>'}</div>
+                                <div class="content-display markdown-body">${aiExplanationHtml}</div>
                             </div>
                         </div>
 
@@ -433,9 +455,14 @@
                         const feedbackArea = questionCard.querySelector('.feedback-area');
                         let feedbackHtml = result.is_correct ? `<div class="feedback-box feedback-correct">Đáp án chính xác!</div>` : `<div class="feedback-box feedback-incorrect">Sai rồi. Đáp án đúng là ${formatTextForHtml(result.correct_answer)}.</div>`;
                         if (result.explanation) {
-                            feedbackHtml += `<div class="feedback-explanation"><strong>Giải thích:</strong> ${formatTextForHtml(result.explanation)}</div>`;
+                            feedbackHtml += `<div class="feedback-explanation"><strong>Giải thích:</strong> <div class="feedback-explanation-content mt-2"></div></div>`;
                         }
                         feedbackArea.innerHTML = feedbackHtml;
+
+                        if (result.explanation) {
+                            const explanationContent = feedbackArea.querySelector('.feedback-explanation-content');
+                            setMarkdownContent(explanationContent, result.explanation);
+                        }
 
                         questionCard.querySelectorAll('.option-button').forEach(button => {
                             button.classList.remove('selected');
@@ -528,10 +555,11 @@
                             });
                             const result = await response.json();
                             if (result.success) {
-                                contentDisplay.innerHTML = formatTextForHtml(result.response);
+                                const rawResponse = result.html_content || result.response || '';
+                                setMarkdownContent(contentDisplay, rawResponse, { treatAsHtml: Boolean(result.html_content) });
                                 // Cập nhật lại dữ liệu trong JS object để không phải gọi lại
                                 const questionInBatch = currentQuestionBatch.find(q => q.item_id == itemId);
-                                if (questionInBatch) questionInBatch.ai_explanation = result.response;
+                                if (questionInBatch) questionInBatch.ai_explanation = result.response || result.html_content || '';
                             } else {
                                 contentDisplay.innerHTML = `<span class="italic text-red-500">${result.message || 'Lỗi khi tạo giải thích.'}</span>`;
                             }

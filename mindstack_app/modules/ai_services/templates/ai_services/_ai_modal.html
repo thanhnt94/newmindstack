@@ -12,7 +12,7 @@
         </div>
         <div class="text-left space-y-4">
             <h4 id="ai-modal-term" class="text-sm font-semibold text-purple-600"></h4>
-            <div id="ai-response-container" class="prose max-w-none prose-sm bg-gray-50 p-4 rounded-md min-h-[150px] max-h-[40vh] overflow-y-auto">
+            <div id="ai-response-container" class="markdown-body bg-gray-50 p-4 rounded-md min-h-[150px] max-h-[40vh] overflow-y-auto">
                 <div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>
             </div>
         </div>
@@ -77,7 +77,12 @@ async function fetchAiResponse() {
         })
         const result = await response.json()
         if (response.ok && result.success) {
-            aiResponseContainer.innerHTML = result.html_content || result.response
+            const rawContent = result.html_content || result.response || ''
+            if (window.applyMarkdownToElement) {
+                window.applyMarkdownToElement(aiResponseContainer, rawContent, { treatAsHtml: Boolean(result.html_content) })
+            } else {
+                aiResponseContainer.innerHTML = rawContent
+            }
         } else {
             aiResponseContainer.innerHTML = `<p class="text-red-500">${result.message || 'Có lỗi xảy ra.'}</p>`
         }
