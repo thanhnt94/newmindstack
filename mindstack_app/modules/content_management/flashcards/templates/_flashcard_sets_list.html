@@ -33,9 +33,19 @@
                 <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ set.title }}</h3>
                 <p class="text-gray-600 text-sm mb-4 h-10 overflow-hidden">{{ set.description if set.description else 'Không có mô tả.' }}</p>
                 
-                <div class="flex items-center text-gray-500 text-xs mb-4">
+                <div class="flex items-center text-gray-500 text-xs mb-2">
                     <i class="fas fa-tags mr-2 text-gray-400"></i>
                     <span class="truncate">{{ set.tags if set.tags else 'Không có thẻ' }}</span>
+                </div>
+
+                <div class="flex items-center text-gray-500 text-xs mb-2">
+                    <i class="fas fa-user-circle mr-2 text-gray-400"></i>
+                    <span class="flex-1 text-left" title="{{ set.creator_display_name }}">Người tạo: {{ set.creator_display_name }}</span>
+                </div>
+
+                <div class="flex items-start text-gray-500 text-xs mb-4">
+                    <i class="fas fa-user-shield mr-2 text-gray-400 mt-0.5"></i>
+                    <span class="flex-1 text-left" title="{{ set.editor_display_names | join(', ') }}">Chỉnh sửa: {{ set.editor_display_names | join(', ') }}</span>
                 </div>
 
                 <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">

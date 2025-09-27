@@ -556,12 +556,53 @@ def list_flashcard_sets():
     pagination = get_pagination_data(base_query.order_by(LearningContainer.created_at.desc()), page)
     flashcard_sets = pagination.items
 
-    # Đếm số lượng thẻ trong mỗi bộ
+    # Đếm số lượng thẻ trong mỗi bộ và chuẩn bị thông tin hiển thị bổ sung
     for set_item in flashcard_sets:
         set_item.item_count = db.session.query(LearningItem).filter_by(
             container_id=set_item.container_id,
             item_type='FLASHCARD'
         ).count()
+
+        # Thông tin người tạo
+        creator = getattr(set_item, 'creator', None)
+        if creator:
+            creator_label = creator.username
+            if creator.user_id == current_user.user_id:
+                creator_label += " (Bạn)"
+            set_item.creator_display_name = creator_label
+        else:
+            set_item.creator_display_name = "Không xác định"
+
+        # Danh sách những người có quyền chỉnh sửa
+        editor_labels = []
+        seen_user_ids = set()
+
+        if creator:
+            seen_user_ids.add(creator.user_id)
+            creator_editor_label = creator.username
+            if creator.user_id == current_user.user_id:
+                creator_editor_label += " (Bạn)"
+            else:
+                creator_editor_label += " (Người tạo)"
+            editor_labels.append(creator_editor_label)
+
+        for contributor in getattr(set_item, 'contributors', []) or []:
+            if contributor.permission_level != 'editor':
+                continue
+            contributor_user = getattr(contributor, 'user', None)
+            if not contributor_user or contributor_user.user_id in seen_user_ids:
+                continue
+
+            contributor_label = contributor_user.username
+            if contributor_user.user_id == current_user.user_id:
+                contributor_label += " (Bạn)"
+            editor_labels.append(contributor_label)
+            seen_user_ids.add(contributor_user.user_id)
+
+        if not editor_labels:
+            editor_labels.append("Chưa có")
+
+        set_item.editor_display_names = editor_labels
 
     # Các biến để truyền vào template
     template_vars = {
