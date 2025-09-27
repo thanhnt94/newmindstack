@@ -1396,8 +1396,7 @@
           const itemId = btn.dataset.itemId;
           const currentCard = currentFlashcardBatch[currentFlashcardIndex];
           const termContent = currentCard.content.front;
-          const itemContent = currentCard.content;
-          window.openAiModal(itemId, termContent, itemContent);
+          window.openAiModal(itemId, termContent);
       }));
       document.querySelectorAll('.open-note-panel-btn').forEach(btn => btn.addEventListener('click', () => {
           const itemId = btn.dataset.itemId;
@@ -1995,7 +1994,7 @@
     // ==============================================================================
     
     // Ghi đè hàm openAiModal và closeAiModal được định nghĩa trong _ai_modal.html
-    window.openAiModal = function(itemId, termContent, itemContent) {
+    window.openAiModal = function(itemId, termContent) {
         const aiModal = document.getElementById('ai-modal');
         if (aiModal && aiModal.classList.contains('open')) {
             console.warn("AI modal đã được mở, bỏ qua lệnh gọi.");
@@ -2004,12 +2003,12 @@
 
         const aiModalTerm = document.getElementById('ai-modal-term');
         const aiResponseContainer = document.getElementById('ai-response-container');
-        
+
         currentAiItemId = itemId;
-        aiModalTerm.textContent = termContent; 
+        aiModalTerm.textContent = termContent;
         aiModal.classList.add('open');
-        
-        fetchAiResponse('explanation', itemContent);
+
+        fetchAiResponse();
     };
 
     window.closeAiModal = function() {

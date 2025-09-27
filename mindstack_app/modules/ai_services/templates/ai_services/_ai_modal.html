@@ -10,25 +10,8 @@
             <h3 class="text-xl font-bold text-gray-800">Mindstack AI</h3>
             <button id="close-ai-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
         </div>
-        <div class="text-left">
-            <p class="text-sm text-gray-600 mb-1">Hỗ trợ AI cho thẻ:</p>
-            <p id="ai-modal-term" class="font-semibold text-purple-600 bg-purple-50 p-2 rounded-md mb-4 truncate"></p>
-            
-            <div class="flex items-center space-x-2 border-b border-gray-200 mb-4">
-                <button data-ai-action="explanation" class="ai-tab-btn active">
-                    <i class="fas fa-book-open mr-2"></i>Giải thích
-                </button>
-                <button data-ai-action="example" class="ai-tab-btn">
-                    <i class="fas fa-lightbulb mr-2"></i>Ví dụ
-                </button>
-                <button data-ai-action="synonym" class="ai-tab-btn">
-                    <i class="fas fa-clone mr-2"></i>Từ đồng nghĩa
-                </button>
-                 <button data-ai-action="antonym" class="ai-tab-btn">
-                    <i class="fas fa-yin-yang mr-2"></i>Từ trái nghĩa
-                </button>
-            </div>
-
+        <div class="text-left space-y-4">
+            <h4 id="ai-modal-term" class="text-sm font-semibold text-purple-600"></h4>
             <div id="ai-response-container" class="prose max-w-none prose-sm bg-gray-50 p-4 rounded-md min-h-[150px] max-h-[40vh] overflow-y-auto">
                 <div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>
             </div>
@@ -38,35 +21,24 @@
 
 <script>
 let currentAiItemId = null
-let currentAiItemContent = null // THÊM MỚI: Lưu nội dung thẻ để dùng cho các action
 
 /**
  * Mô tả: Mở modal AI và thiết lập các thông tin cần thiết.
  * @param {string} itemId - ID của học liệu đang được yêu cầu hỗ trợ.
  * @param {string} termContent - Nội dung mặt trước của thẻ.
- * @param {object} itemContent - Toàn bộ nội dung của thẻ (front, back,...).
  */
-function openAiModal(itemId, termContent, itemContent) {
+function openAiModal(itemId, termContent) {
     const aiModal = document.getElementById('ai-modal')
     if (!aiModal || aiModal.style.display === 'flex') return
 
     const aiModalTerm = document.getElementById('ai-modal-term')
     const aiResponseContainer = document.getElementById('ai-response-container')
-    
+
     currentAiItemId = itemId
-    currentAiItemContent = itemContent // Lưu nội dung thẻ
-    if(aiModalTerm) aiModalTerm.textContent = termContent 
-    
+    if(aiModalTerm) aiModalTerm.textContent = termContent
+
     aiModal.style.display = 'flex'
-    
-    // Mặc định chạy action 'explanation' khi mở
-    const defaultButton = document.querySelector('.ai-tab-btn[data-ai-action="explanation"]')
-    if (defaultButton) {
-        // Reset trạng thái active của các nút khác
-        document.querySelectorAll('.ai-tab-btn').forEach(btn => btn.classList.remove('active'))
-        defaultButton.classList.add('active')
-        fetchAiResponse('explanation', currentAiItemContent)
-    }
+    fetchAiResponse()
 }
 
 /**
@@ -78,7 +50,6 @@ function closeAiModal() {
         aiModal.style.display = 'none'
     }
     currentAiItemId = null
-    currentAiItemContent = null
     const aiResponseContainer = document.getElementById('ai-response-container')
     if (aiResponseContainer) {
         aiResponseContainer.innerHTML = `<div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>`
@@ -87,10 +58,8 @@ function closeAiModal() {
 
 /**
  * Mô tả: Gửi yêu cầu đến server để nhận phản hồi từ AI.
- * @param {string} action - Hành động yêu cầu (vd: 'explanation', 'example').
- * @param {object} itemContent - Nội dung của thẻ để gửi cho AI.
  */
-async function fetchAiResponse(action, itemContent) {
+async function fetchAiResponse() {
     const aiResponseContainer = document.getElementById('ai-response-container')
     if (!currentAiItemId || !aiResponseContainer) return
 
@@ -103,13 +72,12 @@ async function fetchAiResponse(action, itemContent) {
             headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             body: JSON.stringify({
                 item_id: currentAiItemId,
-                action: action,
-                item_content: itemContent
+                prompt_type: 'explanation'
             })
         })
         const result = await response.json()
         if (response.ok && result.success) {
-            aiResponseContainer.innerHTML = result.html_content
+            aiResponseContainer.innerHTML = result.html_content || result.response
         } else {
             aiResponseContainer.innerHTML = `<p class="text-red-500">${result.message || 'Có lỗi xảy ra.'}</p>`
         }
@@ -126,13 +94,5 @@ document.addEventListener('DOMContentLoaded', function() {
         closeBtn.addEventListener('click', closeAiModal)
     }
 
-    document.querySelectorAll('.ai-tab-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            document.querySelectorAll('.ai-tab-btn').forEach(btn => btn.classList.remove('active'))
-            this.classList.add('active')
-            const action = this.dataset.aiAction
-            fetchAiResponse(action, currentAiItemContent)
-        })
-    })
 })
 </script>
