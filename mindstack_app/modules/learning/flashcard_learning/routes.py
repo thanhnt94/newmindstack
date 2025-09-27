@@ -101,18 +101,18 @@ def get_flashcard_options_partial(set_identifier):
     selected_mode = request.args.get('selected_mode', None, type=str)
     user_button_count = current_user.flashcard_button_count if current_user.flashcard_button_count else 3
     
-    modes = []
-    
+    mode_groups = []
+
     if set_identifier == 'all':
-        modes = get_flashcard_mode_counts(current_user.user_id, 'all')
+        mode_groups = get_flashcard_mode_counts(current_user.user_id, 'all')
     else:
         try:
             set_ids = [int(s) for s in set_identifier.split(',') if s]
             if len(set_ids) == 1:
                 # THAY ĐỔI: Lấy phần tử đầu tiên của danh sách
-                modes = get_flashcard_mode_counts(current_user.user_id, set_ids[0])
+                mode_groups = get_flashcard_mode_counts(current_user.user_id, set_ids[0])
             else:
-                modes = get_flashcard_mode_counts(current_user.user_id, set_ids)
+                mode_groups = get_flashcard_mode_counts(current_user.user_id, set_ids)
         except ValueError:
             return '<p class="text-red-500 text-center">Lỗi: Định dạng ID bộ thẻ không hợp lệ.</p>', 400
         except IndexError:
@@ -120,7 +120,7 @@ def get_flashcard_options_partial(set_identifier):
 
 
     return render_template('_flashcard_modes_selection.html',
-                           modes=modes,
+                           mode_groups=mode_groups,
                            selected_set_id=set_identifier,
                            selected_flashcard_mode_id=selected_mode,
                            user_button_count=user_button_count
