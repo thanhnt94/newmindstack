@@ -14,6 +14,9 @@ from .algorithms import (
     get_all_review_items,
     get_all_items_for_autoplay,
     get_accessible_flashcard_set_ids,
+    get_pronunciation_items,
+    get_writing_items,
+    get_quiz_items,
 )
 from .flashcard_logic import process_flashcard_answer
 from .flashcard_stats_logic import get_flashcard_item_statistics
@@ -91,6 +94,9 @@ class FlashcardSessionManager:
             'hard_only': get_hard_items,
             'mixed_srs': get_mixed_items,
             'all_review': get_all_review_items,
+            'pronunciation_practice': get_pronunciation_items,
+            'writing_practice': get_writing_items,
+            'quiz_practice': get_quiz_items,
             'autoplay_all': get_all_items_for_autoplay,
             'autoplay_learned': get_all_review_items,
         }.get(mode)
@@ -201,6 +207,21 @@ class FlashcardSessionManager:
                 get_all_items_for_autoplay(self.user_id, self.set_id, None)
             ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
             next_item = query.first()
+        elif self.mode == 'pronunciation_practice':
+            query = apply_exclusion(
+                get_pronunciation_items(self.user_id, self.set_id, None)
+            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+            next_item = query.first()
+        elif self.mode == 'writing_practice':
+            query = apply_exclusion(
+                get_writing_items(self.user_id, self.set_id, None)
+            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+            next_item = query.first()
+        elif self.mode == 'quiz_practice':
+            query = apply_exclusion(
+                get_quiz_items(self.user_id, self.set_id, None)
+            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+            next_item = query.first()
         else:
             due_query = apply_exclusion(
                 get_due_items(self.user_id, self.set_id, None)
@@ -230,6 +251,9 @@ class FlashcardSessionManager:
                 'back_audio_url': self._get_media_absolute_url(next_item.content.get('back_audio_url')),
                 'front_img': self._get_media_absolute_url(next_item.content.get('front_img')),
                 'back_img': self._get_media_absolute_url(next_item.content.get('back_img')),
+                'supports_pronunciation': bool(next_item.content.get('supports_pronunciation')),
+                'supports_writing': bool(next_item.content.get('supports_writing')),
+                'supports_quiz': bool(next_item.content.get('supports_quiz')),
             },
             'ai_explanation': next_item.ai_explanation,
             'initial_stats': initial_stats  # Gửi kèm thống kê

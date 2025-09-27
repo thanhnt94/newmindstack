@@ -108,9 +108,12 @@ class FlashcardItemForm(FlaskForm):
     front_img = StringField('URL hình ảnh mặt trước', validators=[Optional()])
     back_img = StringField('URL hình ảnh mặt sau', validators=[Optional()])
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
-    ai_prompt = TextAreaField('AI Prompt tùy chỉnh (cho thẻ này)', 
+    ai_prompt = TextAreaField('AI Prompt tùy chỉnh (cho thẻ này)',
                               description='Nhập prompt tùy chỉnh để ghi đè prompt của bộ thẻ hoặc mặc định hệ thống. Nếu để trống, hệ thống sẽ tự động sử dụng prompt cấp trên.',
                               validators=[Optional()])
+    supports_pronunciation = BooleanField('Hỗ trợ luyện phát âm')
+    supports_writing = BooleanField('Hỗ trợ luyện viết')
+    supports_quiz = BooleanField('Hỗ trợ luyện trắc nghiệm')
     order_in_container = IntegerField('Thứ tự hiển thị', validators=[
         Optional(),
         NumberRange(min=1, message="Thứ tự phải là một số nguyên dương.")

@@ -210,6 +210,54 @@ def get_all_review_items(user_id, container_id, session_size):
     return items
 
 
+def _get_items_by_capability(user_id, container_id, session_size, capability_flag):
+    """Lấy các thẻ được đánh dấu hỗ trợ một kiểu học cụ thể."""
+    print(
+        f">>> ALGORITHMS: Bắt đầu _get_items_by_capability cho user_id={user_id}, container_id={container_id}, "
+        f"capability={capability_flag}, session_size={session_size} <<<"
+    )
+    base_items_query = _get_base_items_query(user_id, container_id)
+
+    capability_items_query = base_items_query.outerjoin(
+        UserContainerState,
+        and_(
+            UserContainerState.container_id == LearningItem.container_id,
+            UserContainerState.user_id == user_id
+        )
+    ).filter(
+        or_(
+            UserContainerState.is_archived == False,
+            UserContainerState.is_archived == None
+        ),
+        func.lower(func.coalesce(LearningItem.content[capability_flag].astext, 'false')) == 'true'
+    )
+
+    if session_size is None or session_size == 999999:
+        return capability_items_query
+
+    items = capability_items_query.order_by(
+        LearningItem.order_in_container.asc(),
+        LearningItem.item_id.asc()
+    ).limit(session_size).all()
+
+    print(
+        f">>> ALGORITHMS: _get_items_by_capability tìm thấy {len(items)} thẻ với capability={capability_flag}. <<<"
+    )
+    return items
+
+
+def get_pronunciation_items(user_id, container_id, session_size):
+    return _get_items_by_capability(user_id, container_id, session_size, 'supports_pronunciation')
+
+
+def get_writing_items(user_id, container_id, session_size):
+    return _get_items_by_capability(user_id, container_id, session_size, 'supports_writing')
+
+
+def get_quiz_items(user_id, container_id, session_size):
+    return _get_items_by_capability(user_id, container_id, session_size, 'supports_quiz')
+
+
 def get_all_items_for_autoplay(user_id, container_id, session_size):
     """
     Lấy toàn bộ thẻ (bao gồm thẻ mới) phục vụ cho chế độ AutoPlay.
@@ -423,12 +471,16 @@ def get_flashcard_mode_counts(user_id, set_identifier):
         'due_only': get_due_items,
         'all_review': get_all_review_items,
         'hard_only': get_hard_items,
+        'pronunciation_practice': get_pronunciation_items,
+        'writing_practice': get_writing_items,
+        'quiz_practice': get_quiz_items,
     }
 
     for mode_config in FlashcardLearningConfig.FLASHCARD_MODES:
         mode_id = mode_config['id']
         mode_name = mode_config['name']
         algorithm_func = mode_function_map.get(mode_id)
+        hide_if_zero = mode_config.get('hide_if_zero', False)
 
         if algorithm_func:
             # SỬA LỖI: Sử dụng .count() trên đối tượng truy vấn để lấy số lượng
@@ -440,7 +492,10 @@ def get_flashcard_mode_counts(user_id, set_identifier):
                 count = due_count + new_count
             else:
                 count = algorithm_func(user_id, set_identifier, None).count()
-            
+
+            if hide_if_zero and count == 0:
+                continue
+
             modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
         else:
             current_app.logger.warning(f"Không tìm thấy hàm thuật toán cho chế độ Flashcard: {mode_id}")
