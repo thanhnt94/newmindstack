@@ -82,6 +82,27 @@
                                 <span class="block text-xs text-gray-500 mt-1">Cho phép chuyển thẻ thành câu hỏi trắc nghiệm.</span>
                             </span>
                         </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_essay(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Chế độ tự luận</span>
+                                <span class="block text-xs text-gray-500 mt-1">Phù hợp cho câu hỏi yêu cầu trả lời mở.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_listening(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Chế độ luyện nghe</span>
+                                <span class="block text-xs text-gray-500 mt-1">Dùng cho thẻ có audio để tập trung nghe hiểu.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_speaking(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Chế độ luyện nói</span>
+                                <span class="block text-xs text-gray-500 mt-1">Khuyến khích người học luyện nói/thu âm câu trả lời.</span>
+                            </span>
+                        </label>
                     </div>
                     <p class="text-xs text-gray-500 mt-3">Bật các chế độ phù hợp, toàn bộ thẻ trong bộ sẽ sẵn sàng cho hình thức học tương ứng.</p>
                 </div>
@@ -159,6 +180,9 @@
                         { key: 'supports_pronunciation', selector: '[name="supports_pronunciation"]' },
                         { key: 'supports_writing', selector: '[name="supports_writing"]' },
                         { key: 'supports_quiz', selector: '[name="supports_quiz"]' },
+                        { key: 'supports_essay', selector: '[name="supports_essay"]' },
+                        { key: 'supports_listening', selector: '[name="supports_listening"]' },
+                        { key: 'supports_speaking', selector: '[name="supports_speaking"]' },
                     ];
 
                     capabilityFields.forEach(({ key, selector }) => {

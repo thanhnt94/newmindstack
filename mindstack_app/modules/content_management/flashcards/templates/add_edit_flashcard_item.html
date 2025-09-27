@@ -235,6 +235,27 @@
                                 <span class="block text-xs text-gray-500 mt-1">Thẻ phù hợp để chuyển thành câu hỏi dạng lựa chọn.</span>
                             </span>
                         </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_essay(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Chế độ tự luận</span>
+                                <span class="block text-xs text-gray-500 mt-1">Đánh dấu nếu thẻ cần người học trả lời mở.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_listening(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Chế độ luyện nghe</span>
+                                <span class="block text-xs text-gray-500 mt-1">Thích hợp cho bài tập tập trung nghe hiểu.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_speaking(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Chế độ luyện nói</span>
+                                <span class="block text-xs text-gray-500 mt-1">Bật để khuyến khích luyện phát âm và nói lại.</span>
+                            </span>
+                        </label>
                     </div>
                     <p class="text-xs text-gray-500 mt-3">Đánh dấu các kiểu học mà thẻ này hỗ trợ để mở thêm chế độ tương ứng trong khi học.</p>
                 </div>

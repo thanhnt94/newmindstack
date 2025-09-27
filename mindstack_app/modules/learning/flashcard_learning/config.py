@@ -39,4 +39,25 @@ class FlashcardLearningConfig:
             'capability_flag': 'supports_quiz',
             'hide_if_zero': True,
         },
+        {
+            'id': 'essay_practice',
+            'name': 'Chế độ tự luận',
+            'algorithm_func_name': 'get_essay_items',
+            'capability_flag': 'supports_essay',
+            'hide_if_zero': True,
+        },
+        {
+            'id': 'listening_practice',
+            'name': 'Chế độ luyện nghe',
+            'algorithm_func_name': 'get_listening_items',
+            'capability_flag': 'supports_listening',
+            'hide_if_zero': True,
+        },
+        {
+            'id': 'speaking_practice',
+            'name': 'Chế độ luyện nói',
+            'algorithm_func_name': 'get_speaking_items',
+            'capability_flag': 'supports_speaking',
+            'hide_if_zero': True,
+        },
     ]
