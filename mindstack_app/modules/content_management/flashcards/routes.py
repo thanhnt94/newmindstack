@@ -54,6 +54,58 @@ def _apply_is_public_restrictions(form):
         existing_render_kw['disabled'] = True
         form.is_public.render_kw = existing_render_kw
 
+def _normalize_capabilities(raw_capabilities):
+    """Convert different representations of capability flags into a set of strings."""
+    capabilities = set()
+    if isinstance(raw_capabilities, (list, tuple, set)):
+        for value in raw_capabilities:
+            if isinstance(value, str) and value:
+                capabilities.add(value)
+    elif isinstance(raw_capabilities, dict):
+        for key, enabled in raw_capabilities.items():
+            if enabled and isinstance(key, str) and key:
+                capabilities.add(key)
+    elif isinstance(raw_capabilities, str) and raw_capabilities:
+        capabilities.add(raw_capabilities)
+    return capabilities
+
+
+def _get_container_capabilities(container):
+    """Return the set of learning capability flags enabled on a flashcard container."""
+    if not container or not isinstance(getattr(container, 'ai_settings', None), dict):
+        return set()
+    return _normalize_capabilities(container.ai_settings.get('capabilities'))
+
+
+def _build_ai_settings_from_form(form, existing_settings=None):
+    """Compose the ai_settings payload based on form input and existing settings."""
+    settings = {}
+    if isinstance(existing_settings, dict):
+        # Sao chép để tránh chỉnh sửa tại chỗ
+        settings.update(existing_settings)
+
+    ai_prompt_value = (getattr(form.ai_prompt, 'data', '') or '').strip()
+    if ai_prompt_value:
+        settings['custom_prompt'] = ai_prompt_value
+    else:
+        settings.pop('custom_prompt', None)
+
+    capability_flags = [
+        flag_name for flag_name in (
+            'supports_pronunciation',
+            'supports_writing',
+            'supports_quiz',
+        )
+        if getattr(getattr(form, flag_name, None), 'data', False)
+    ]
+
+    if capability_flags:
+        settings['capabilities'] = capability_flags
+    else:
+        settings.pop('capabilities', None)
+
+    return settings or None
+
 def _process_relative_url(url):
     """Chuẩn hóa đường dẫn tương đối và thêm tiền tố tĩnh khi cần."""
     if url is None:
@@ -258,8 +310,15 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
             'back_audio_url',
             'ai_explanation',
             'ai_prompt',
+            'supports_pronunciation',
+            'supports_writing',
+            'supports_quiz',
         ]
         url_fields = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
+        capability_fields = {'supports_pronunciation', 'supports_writing', 'supports_quiz'}
+        container_capabilities = _get_container_capabilities(
+            LearningContainer.query.get(container_id)
+        )
 
         def _get_cell(row_data, column_name):
             if column_name not in df.columns:
@@ -316,10 +375,17 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                     if cell_value:
                         if field in url_fields:
                             content_dict[field] = _process_relative_url(cell_value)
+                        elif field in capability_fields:
+                            content_dict[field] = cell_value.lower() in {'true', '1', 'yes', 'y', 'on'}
                         else:
                             content_dict[field] = cell_value
                     else:
-                        content_dict.pop(field, None)
+                        if field in capability_fields:
+                            content_dict[field] = False
+                        else:
+                            content_dict.pop(field, None)
+                for capability_flag in container_capabilities:
+                    content_dict.setdefault(capability_flag, True)
                 item.content = content_dict
                 flag_modified(item, 'content')
                 ordered_entries.append({
@@ -342,8 +408,12 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                     if cell_value:
                         if field in url_fields:
                             content_dict[field] = _process_relative_url(cell_value)
+                        elif field in capability_fields:
+                            content_dict[field] = cell_value.lower() in {'true', '1', 'yes', 'y', 'on'}
                         else:
                             content_dict[field] = cell_value
+                for capability_flag in container_capabilities:
+                    content_dict.setdefault(capability_flag, True)
                 ordered_entries.append({
                     'type': 'new',
                     'data': content_dict,
@@ -527,6 +597,14 @@ def export_flashcard_set(set_id):
             {'Key': 'is_public', 'Value': str(flashcard_set.is_public)},
         ]
 
+        container_capabilities = _get_container_capabilities(flashcard_set)
+        for capability_key in (
+            'supports_pronunciation',
+            'supports_writing',
+            'supports_quiz',
+        ):
+            info_rows.append({'Key': capability_key, 'Value': str(capability_key in container_capabilities)})
+
         if flashcard_set.ai_settings:
             info_rows.append({'Key': 'ai_prompt', 'Value': flashcard_set.ai_settings.get('custom_prompt', '')})
 
@@ -537,25 +615,28 @@ def export_flashcard_set(set_id):
                 'item_id': item.item_id,
                 'order_in_container': item.order_in_container,
                 'front': content.get('front'),
-                'back': content.get('back'),
-                'front_audio_content': content.get('front_audio_content'),
-                'back_audio_content': content.get('back_audio_content'),
-                'front_audio_url': _copy_media_into_package(
-                    content.get('front_audio_url'), media_dir, media_cache, media_subdir='audio'
-                ),
-                'back_audio_url': _copy_media_into_package(
-                    content.get('back_audio_url'), media_dir, media_cache, media_subdir='audio'
-                ),
-                'front_img': _copy_media_into_package(
-                    content.get('front_img'), media_dir, media_cache, media_subdir='images'
-                ),
-                'back_img': _copy_media_into_package(
-                    content.get('back_img'), media_dir, media_cache, media_subdir='images'
-                ),
-                'ai_explanation': content.get('ai_explanation'),
-                'ai_prompt': content.get('ai_prompt'),
-                'action': '',
-            }
+                    'back': content.get('back'),
+                    'front_audio_content': content.get('front_audio_content'),
+                    'back_audio_content': content.get('back_audio_content'),
+                    'front_audio_url': _copy_media_into_package(
+                        content.get('front_audio_url'), media_dir, media_cache, media_subdir='audio'
+                    ),
+                    'back_audio_url': _copy_media_into_package(
+                        content.get('back_audio_url'), media_dir, media_cache, media_subdir='audio'
+                    ),
+                    'front_img': _copy_media_into_package(
+                        content.get('front_img'), media_dir, media_cache, media_subdir='images'
+                    ),
+                    'back_img': _copy_media_into_package(
+                        content.get('back_img'), media_dir, media_cache, media_subdir='images'
+                    ),
+                    'ai_explanation': content.get('ai_explanation'),
+                    'ai_prompt': content.get('ai_prompt'),
+                    'supports_pronunciation': content.get('supports_pronunciation'),
+                    'supports_writing': content.get('supports_writing'),
+                    'supports_quiz': content.get('supports_quiz'),
+                    'action': '',
+                }
             data_rows.append(row)
 
         excel_path = os.path.join(tmp_dir, 'flashcards.xlsx')
@@ -633,6 +714,10 @@ def add_flashcard_set():
         flash_category = ''
         temp_filepath = None
         try:
+            ai_settings_payload = _build_ai_settings_from_form(form)
+            selected_capabilities = _normalize_capabilities(
+                (ai_settings_payload or {}).get('capabilities')
+            )
             # Tạo bộ Flashcard mới
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
@@ -641,7 +726,7 @@ def add_flashcard_set():
                 description=form.description.data,
                 tags=form.tags.data,
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
-                ai_settings={'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+                ai_settings=ai_settings_payload
             )
             db.session.add(new_set)
             db.session.flush() # Lưu tạm thời để có container_id
@@ -663,10 +748,25 @@ def add_flashcard_set():
                     back_content = str(row['back']) if pd.notna(row['back']) else ''
                     if front_content and back_content:
                         item_content = {'front': front_content, 'back': back_content}
-                        optional_cols = ['front_audio_content', 'back_audio_content', 'front_img', 'back_img', 'ai_explanation', 'ai_prompt']
+                        optional_cols = [
+                            'front_audio_content',
+                            'back_audio_content',
+                            'front_img',
+                            'back_img',
+                            'ai_explanation',
+                            'ai_prompt',
+                            'supports_pronunciation',
+                            'supports_writing',
+                            'supports_quiz',
+                        ]
                         for col in optional_cols:
                             if col in df.columns and pd.notna(row[col]):
-                                item_content[col] = str(row[col])
+                                if col in {'supports_pronunciation', 'supports_writing', 'supports_quiz'}:
+                                    item_content[col] = str(row[col]).strip().lower() in {'true', '1', 'yes', 'y', 'on'}
+                                else:
+                                    item_content[col] = str(row[col])
+                        for capability_flag in selected_capabilities:
+                            item_content.setdefault(capability_flag, True)
                         # Tạo thẻ Flashcard mới
                         new_item = LearningItem(
                             container_id=new_set.container_id,
@@ -726,6 +826,13 @@ def edit_flashcard_set(set_id):
     
     form = FlashcardSetForm(obj=flashcard_set)
     _apply_is_public_restrictions(form)
+    if request.method == 'GET':
+        if isinstance(flashcard_set.ai_settings, dict):
+            form.ai_prompt.data = flashcard_set.ai_settings.get('custom_prompt', '')
+        container_capabilities = _get_container_capabilities(flashcard_set)
+        form.supports_pronunciation.data = 'supports_pronunciation' in container_capabilities
+        form.supports_writing.data = 'supports_writing' in container_capabilities
+        form.supports_quiz.data = 'supports_quiz' in container_capabilities
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
@@ -735,7 +842,7 @@ def edit_flashcard_set(set_id):
             flashcard_set.description = form.description.data
             flashcard_set.tags = form.tags.data
             flashcard_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
-            flashcard_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+            flashcard_set.ai_settings = _build_ai_settings_from_form(form, flashcard_set.ai_settings)
 
             # Xử lý file Excel nếu có để cập nhật các thẻ
             if form.excel_file.data and form.excel_file.data.filename != '':
@@ -923,6 +1030,11 @@ def add_flashcard_item(set_id):
             abort(403)  # Không có quyền
     
     form = FlashcardItemForm()
+    container_capabilities = _get_container_capabilities(flashcard_set)
+    if request.method == 'GET':
+        form.supports_pronunciation.data = 'supports_pronunciation' in container_capabilities
+        form.supports_writing.data = 'supports_writing' in container_capabilities
+        form.supports_quiz.data = 'supports_quiz' in container_capabilities
     if form.validate_on_submit():
         # THÊM MỚI: Xử lý logic chèn thẻ
         new_order = form.order_in_container.data
@@ -1021,6 +1133,7 @@ def edit_flashcard_item(set_id, item_id):
     
     # Khởi tạo form với dữ liệu hiện có
     form = FlashcardItemForm(obj=flashcard_item.content)
+    container_capabilities = _get_container_capabilities(flashcard_set)
     if form.validate_on_submit():
         # Lấy thứ tự cũ và mới
         old_order = flashcard_item.order_in_container
@@ -1092,9 +1205,14 @@ def edit_flashcard_item(set_id, item_id):
         form.front_img.data = flashcard_item.content.get('front_img')
         form.back_img.data = flashcard_item.content.get('back_img')
         form.ai_prompt.data = flashcard_item.content.get('ai_prompt')
-        form.supports_pronunciation.data = bool(flashcard_item.content.get('supports_pronunciation'))
-        form.supports_writing.data = bool(flashcard_item.content.get('supports_writing'))
-        form.supports_quiz.data = bool(flashcard_item.content.get('supports_quiz'))
+        def _resolve_flag(flag_name):
+            if flag_name in flashcard_item.content:
+                return bool(flashcard_item.content.get(flag_name))
+            return flag_name in container_capabilities
+
+        form.supports_pronunciation.data = _resolve_flag('supports_pronunciation')
+        form.supports_writing.data = _resolve_flag('supports_writing')
+        form.supports_quiz.data = _resolve_flag('supports_quiz')
         # Gán giá trị `order_in_container` vào form
         form.order_in_container.data = flashcard_item.order_in_container
     

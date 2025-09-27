@@ -59,6 +59,34 @@
                 {% endif %}
 
                 <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Kiểu học hỗ trợ</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_pronunciation(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Luyện phát âm</span>
+                                <span class="block text-xs text-gray-500 mt-1">Mở chế độ luyện nghe - nói cho toàn bộ thẻ.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_writing(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Luyện viết</span>
+                                <span class="block text-xs text-gray-500 mt-1">Mở chế độ luyện viết chính tả cho cả bộ.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_quiz(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Luyện trắc nghiệm</span>
+                                <span class="block text-xs text-gray-500 mt-1">Cho phép chuyển thẻ thành câu hỏi trắc nghiệm.</span>
+                            </span>
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">Bật các chế độ phù hợp, toàn bộ thẻ trong bộ sẽ sẵn sàng cho hình thức học tương ứng.</p>
+                </div>
+
+                <div class="border-t border-gray-200 pt-6">
                     {{ form.ai_prompt.label(class="block text-sm font-medium text-gray-700") }}
                     <p class="text-xs text-gray-500 mb-2">{{ form.ai_prompt.description }}</p>
                     {{ form.ai_prompt(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", rows="3", placeholder="Ví dụ: Tạo câu ví dụ cho mỗi từ vựng.") }}
@@ -116,7 +144,7 @@
                     if (data.description) form.querySelector('[name="description"]').value = data.description;
                     if (data.tags) form.querySelector('[name="tags"]').value = data.tags;
                     if (data.ai_prompt) form.querySelector('[name="ai_prompt"]').value = data.ai_prompt;
-                    
+
                     const isPublicCheckbox = form.querySelector('[name="is_public"]');
                     if (isPublicCheckbox) {
                         if (data.is_public) {
@@ -126,6 +154,22 @@
                             isPublicCheckbox.checked = false;
                         }
                     }
+
+                    const capabilityFields = [
+                        { key: 'supports_pronunciation', selector: '[name="supports_pronunciation"]' },
+                        { key: 'supports_writing', selector: '[name="supports_writing"]' },
+                        { key: 'supports_quiz', selector: '[name="supports_quiz"]' },
+                    ];
+
+                    capabilityFields.forEach(({ key, selector }) => {
+                        if (Object.prototype.hasOwnProperty.call(data, key)) {
+                            const checkbox = form.querySelector(selector);
+                            if (checkbox) {
+                                const rawValue = String(data[key]).toLowerCase();
+                                checkbox.checked = ['true', '1', 'yes', 'y', 'on'].includes(rawValue);
+                            }
+                        }
+                    });
                 } else {
                     console.warn(result.message || 'Không thể đọc sheet Info từ file.');
                 }
