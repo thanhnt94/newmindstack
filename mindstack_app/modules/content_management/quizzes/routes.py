@@ -547,6 +547,34 @@ def list_quiz_sets():
             item_type='QUIZ_MCQ'
         ).count()
 
+        creator = getattr(set_item, 'creator', None)
+        if creator:
+            set_item.creator_display_name = creator.username
+        else:
+            set_item.creator_display_name = "Không xác định"
+
+        editor_labels = []
+        seen_user_ids = set()
+
+        if creator:
+            seen_user_ids.add(creator.user_id)
+            editor_labels.append(creator.username)
+
+        for contributor in getattr(set_item, 'contributors', []) or []:
+            if contributor.permission_level != 'editor':
+                continue
+            contributor_user = getattr(contributor, 'user', None)
+            if not contributor_user or contributor_user.user_id in seen_user_ids:
+                continue
+
+            editor_labels.append(contributor_user.username)
+            seen_user_ids.add(contributor_user.user_id)
+
+        if not editor_labels:
+            editor_labels.append("Chưa có")
+
+        set_item.editor_display_names = editor_labels
+
     template_vars = {
         'quiz_sets': quiz_sets, 
         'pagination': pagination, 
