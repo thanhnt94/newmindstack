@@ -18,4 +18,25 @@ class FlashcardLearningConfig:
         {'id': 'due_only', 'name': 'Ôn tập thẻ đến hạn', 'algorithm_func_name': 'get_due_items'},
         {'id': 'all_review', 'name': 'Ôn tập toàn bộ thẻ đã học', 'algorithm_func_name': 'get_all_review_items'},
         {'id': 'hard_only', 'name': 'Ôn tập thẻ khó', 'algorithm_func_name': 'get_hard_items'},
+        {
+            'id': 'pronunciation_practice',
+            'name': 'Luyện phát âm',
+            'algorithm_func_name': 'get_pronunciation_items',
+            'capability_flag': 'supports_pronunciation',
+            'hide_if_zero': True,
+        },
+        {
+            'id': 'writing_practice',
+            'name': 'Luyện viết',
+            'algorithm_func_name': 'get_writing_items',
+            'capability_flag': 'supports_writing',
+            'hide_if_zero': True,
+        },
+        {
+            'id': 'quiz_practice',
+            'name': 'Luyện trắc nghiệm',
+            'algorithm_func_name': 'get_quiz_items',
+            'capability_flag': 'supports_quiz',
+            'hide_if_zero': True,
+        },
     ]

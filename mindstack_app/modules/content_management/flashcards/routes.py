@@ -953,6 +953,9 @@ def add_flashcard_item(set_id):
             'back_audio_url': _process_relative_url(form.back_audio_url.data),
             'front_img': _process_relative_url(form.front_img.data),
             'back_img': _process_relative_url(form.back_img.data),
+            'supports_pronunciation': bool(form.supports_pronunciation.data),
+            'supports_writing': bool(form.supports_writing.data),
+            'supports_quiz': bool(form.supports_quiz.data),
         }
         if form.ai_prompt.data:
             content_dict['ai_prompt'] = form.ai_prompt.data
@@ -1054,6 +1057,9 @@ def edit_flashcard_item(set_id, item_id):
         flashcard_item.content['back_audio_url'] = _process_relative_url(form.back_audio_url.data)
         flashcard_item.content['front_img'] = _process_relative_url(form.front_img.data)
         flashcard_item.content['back_img'] = _process_relative_url(form.back_img.data)
+        flashcard_item.content['supports_pronunciation'] = bool(form.supports_pronunciation.data)
+        flashcard_item.content['supports_writing'] = bool(form.supports_writing.data)
+        flashcard_item.content['supports_quiz'] = bool(form.supports_quiz.data)
         
         if form.ai_prompt.data:
             flashcard_item.content['ai_prompt'] = form.ai_prompt.data
@@ -1086,6 +1092,9 @@ def edit_flashcard_item(set_id, item_id):
         form.front_img.data = flashcard_item.content.get('front_img')
         form.back_img.data = flashcard_item.content.get('back_img')
         form.ai_prompt.data = flashcard_item.content.get('ai_prompt')
+        form.supports_pronunciation.data = bool(flashcard_item.content.get('supports_pronunciation'))
+        form.supports_writing.data = bool(flashcard_item.content.get('supports_writing'))
+        form.supports_quiz.data = bool(flashcard_item.content.get('supports_quiz'))
         # Gán giá trị `order_in_container` vào form
         form.order_in_container.data = flashcard_item.order_in_container
     
