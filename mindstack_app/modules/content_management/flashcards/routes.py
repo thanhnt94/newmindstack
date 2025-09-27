@@ -5,7 +5,18 @@
 # ĐÃ SỬA: Bổ sung logic vào add_flashcard_item để chèn thẻ vào vị trí cụ thể.
 # ĐÃ SỬA: Bổ sung logic vào edit_flashcard_item để thay đổi vị trí thẻ và cập nhật lại thứ tự các thẻ khác.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    abort,
+    jsonify,
+    current_app,
+    send_file,
+)
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.orm.attributes import flag_modified
@@ -15,6 +26,11 @@ import pandas as pd
 import tempfile
 import os
 import asyncio
+import zipfile
+import shutil
+import re
+import io
+from typing import Optional
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
 # THÊM MỚI: Import AudioService
@@ -94,6 +110,97 @@ def _get_static_audio_url(url):
     return url_for('static', filename=relative_path)
 
 
+def _slugify_filename(value: str) -> str:
+    """Chuyển tiêu đề thành chuỗi thân thiện để đặt tên file zip."""
+    value = (value or '').strip().lower()
+    if not value:
+        return 'flashcard-set'
+    value = re.sub(r'[^a-z0-9\-]+', '-', value)
+    value = re.sub(r'-{2,}', '-', value).strip('-')
+    return value or 'flashcard-set'
+
+
+def _resolve_local_media_path(path_value: str):
+    """Trả về đường dẫn tuyệt đối tới file media nếu thuộc thư mục uploads/static."""
+    if not path_value:
+        return None
+
+    normalized = str(path_value).strip()
+    if not normalized:
+        return None
+
+    if normalized.startswith(('http://', 'https://')):
+        return None
+
+    # Nếu đường dẫn bắt đầu bằng /static, thử map tới thư mục static
+    base_static = os.path.join(current_app.root_path, 'static')
+    candidates = []
+    if normalized.startswith('/'):
+        candidates.append(os.path.join(base_static, normalized.lstrip('/')))
+    else:
+        upload_folder = current_app.config.get('UPLOAD_FOLDER')
+        if upload_folder:
+            candidates.append(os.path.join(upload_folder, normalized))
+        candidates.append(os.path.join(base_static, normalized))
+
+    for candidate in candidates:
+        if candidate and os.path.isfile(candidate):
+            return candidate
+
+    return None
+
+
+def _copy_media_into_package(
+    original_path: str,
+    media_dir: str,
+    existing_map: dict,
+    asset_type: Optional[str] = None,
+) -> str:
+    """Sao chép file media vào thư mục tạm và trả về đường dẫn tương đối trong gói."""
+    if not original_path:
+        return original_path
+
+    normalized = str(original_path).strip()
+    if not normalized:
+        return ''
+
+    if normalized.startswith(('http://', 'https://')):
+        return normalized
+
+    local_path = _resolve_local_media_path(normalized)
+    if not local_path:
+        return normalized
+
+    cache_key = (local_path, asset_type or 'default')
+
+    target_dir = media_dir
+    relative_prefix = 'media'
+    if asset_type == 'audio':
+        target_dir = os.path.join(media_dir, 'audio')
+        relative_prefix = os.path.join('media', 'audio')
+    elif asset_type == 'image':
+        target_dir = os.path.join(media_dir, 'images')
+        relative_prefix = os.path.join('media', 'images')
+
+    if cache_key in existing_map:
+        return existing_map[cache_key]
+
+    os.makedirs(target_dir, exist_ok=True)
+    filename = os.path.basename(local_path)
+    name, ext = os.path.splitext(filename)
+    candidate = filename
+    counter = 1
+    while os.path.exists(os.path.join(target_dir, candidate)):
+        candidate = f"{name}_{counter}{ext}"
+        counter += 1
+
+    destination = os.path.join(target_dir, candidate)
+    shutil.copy2(local_path, destination)
+    relative_in_zip = os.path.join(relative_prefix, candidate).replace('\\', '/')
+    existing_map[cache_key] = relative_in_zip
+    return relative_in_zip
+
+
 def _has_editor_access(container_id):
     if current_user.user_role == User.ROLE_FREE:
         return False
@@ -102,6 +209,170 @@ def _has_editor_access(container_id):
         user_id=current_user.user_id,
         permission_level='editor'
     ).first() is not None
+
+
+def _apply_flashcard_excel_updates(set_id: int, df: pd.DataFrame) -> dict:
+    required_cols = ['front', 'back']
+    if not all(col in df.columns for col in required_cols):
+        raise ValueError(
+            f"File Excel (sheet 'Data') phải có các cột bắt buộc: {', '.join(required_cols)}."
+        )
+
+    existing_items = (
+        LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD')
+        .order_by(LearningItem.order_in_container, LearningItem.item_id)
+        .all()
+    )
+    existing_map = {item.item_id: item for item in existing_items}
+    processed_ids = set()
+    delete_ids = set()
+    ordered_entries = []
+
+    optional_fields = [
+        'front_audio_content',
+        'back_audio_content',
+        'front_img',
+        'back_img',
+        'front_audio_url',
+        'back_audio_url',
+        'ai_explanation',
+        'ai_prompt',
+    ]
+    url_fields = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
+
+    added_count = 0
+    updated_count = 0
+    deleted_count = 0
+
+    def _get_cell(row_data, column_name):
+        if column_name not in df.columns:
+            return None
+        value = row_data[column_name]
+        if pd.isna(value):
+            return None
+        return str(value).strip()
+
+    for index, row in df.iterrows():
+        item_id_value = _get_cell(row, 'item_id')
+        action_value = (_get_cell(row, 'action') or '').lower()
+        order_value = _get_cell(row, 'order_in_container')
+        order_number = None
+        if order_value:
+            try:
+                order_number = int(float(order_value))
+            except (TypeError, ValueError):
+                raise ValueError(
+                    f"Hàng {index + 2}: order_in_container '{order_value}' không hợp lệ."
+                )
+
+        front_content = _get_cell(row, 'front') or ''
+        back_content = _get_cell(row, 'back') or ''
+
+        item_id = None
+        if item_id_value:
+            try:
+                item_id = int(float(item_id_value))
+            except (TypeError, ValueError):
+                raise ValueError(f"Hàng {index + 2}: item_id '{item_id_value}' không hợp lệ.")
+
+        if item_id:
+            item = existing_map.get(item_id)
+            if not item:
+                raise ValueError(f"Hàng {index + 2}: Không tìm thấy thẻ với ID {item_id}.")
+
+            if action_value == 'delete':
+                if item_id not in delete_ids:
+                    deleted_count += 1
+                delete_ids.add(item_id)
+                continue
+
+            if not front_content or not back_content:
+                raise ValueError(f"Hàng {index + 2}: Thẻ với ID {item_id} thiếu dữ liệu front/back.")
+
+            content_dict = item.content or {}
+            content_dict['front'] = front_content
+            content_dict['back'] = back_content
+            for field in optional_fields:
+                cell_value = _get_cell(row, field)
+                if cell_value:
+                    if field in url_fields:
+                        content_dict[field] = _process_relative_url(cell_value)
+                    else:
+                        content_dict[field] = cell_value
+                else:
+                    content_dict.pop(field, None)
+            item.content = content_dict
+            flag_modified(item, 'content')
+            ordered_entries.append({
+                'type': 'existing',
+                'item': item,
+                'order': order_number if order_number is not None else (item.order_in_container or 0),
+                'sequence': index,
+            })
+            processed_ids.add(item_id)
+            updated_count += 1
+        else:
+            if action_value == 'delete':
+                continue
+            if not front_content or not back_content:
+                continue
+
+            content_dict = {'front': front_content, 'back': back_content}
+            for field in optional_fields:
+                cell_value = _get_cell(row, field)
+                if cell_value:
+                    if field in url_fields:
+                        content_dict[field] = _process_relative_url(cell_value)
+                    else:
+                        content_dict[field] = cell_value
+            ordered_entries.append({
+                'type': 'new',
+                'data': content_dict,
+                'order': order_number,
+                'sequence': index,
+            })
+            added_count += 1
+
+    untouched_items = [
+        item for item in existing_items
+        if item.item_id not in processed_ids and item.item_id not in delete_ids
+    ]
+    for offset, item in enumerate(untouched_items, start=len(df) + 1):
+        ordered_entries.append({
+            'type': 'existing',
+            'item': item,
+            'order': item.order_in_container or 0,
+            'sequence': offset,
+        })
+
+    for delete_id in delete_ids:
+        if delete_id in existing_map:
+            db.session.delete(existing_map[delete_id])
+
+    ordered_entries.sort(key=lambda entry: (
+        entry['order'] if entry['order'] is not None else float('inf'),
+        entry['sequence'],
+    ))
+
+    next_order = 1
+    for entry in ordered_entries:
+        if entry['type'] == 'existing':
+            entry['item'].order_in_container = next_order
+        else:
+            new_item = LearningItem(
+                container_id=set_id,
+                item_type='FLASHCARD',
+                content=entry['data'],
+                order_in_container=next_order,
+            )
+            db.session.add(new_item)
+        next_order += 1
+
+    return {
+        'added': added_count,
+        'updated': updated_count,
+        'deleted': deleted_count,
+    }
 
 @flashcards_bp.route('/flashcards/process_excel_info', methods=['POST'])
 @login_required
@@ -207,6 +478,132 @@ def list_flashcard_sets():
         return render_template('_flashcard_sets_list.html', **template_vars)
     else:
         return render_template('flashcard_sets.html', **template_vars)
+
+
+@flashcards_bp.route('/flashcards/<int:set_id>/export', methods=['GET'])
+@login_required
+def export_flashcard_set(set_id):
+    """Xuất bộ flashcard thành gói zip gồm Excel và media."""
+    flashcard_set = LearningContainer.query.get_or_404(set_id)
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and flashcard_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(set_id):
+            abort(403)
+
+    items = (
+        LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD')
+        .order_by(LearningItem.order_in_container, LearningItem.item_id)
+        .all()
+    )
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        media_dir = os.path.join(tmp_dir, 'media')
+        os.makedirs(media_dir, exist_ok=True)
+        media_cache = {}
+
+        info_rows = [
+            {'Key': 'title', 'Value': flashcard_set.title},
+            {'Key': 'description', 'Value': flashcard_set.description or ''},
+            {'Key': 'tags', 'Value': flashcard_set.tags or ''},
+            {'Key': 'is_public', 'Value': str(flashcard_set.is_public)},
+        ]
+
+        if flashcard_set.ai_settings:
+            info_rows.append({'Key': 'ai_prompt', 'Value': flashcard_set.ai_settings.get('custom_prompt', '')})
+
+        data_rows = []
+        for item in items:
+            content = item.content or {}
+            row = {
+                'item_id': item.item_id,
+                'order_in_container': item.order_in_container,
+                'front': content.get('front'),
+                'back': content.get('back'),
+                'front_audio_content': content.get('front_audio_content'),
+                'back_audio_content': content.get('back_audio_content'),
+                'front_audio_url': _copy_media_into_package(
+                    content.get('front_audio_url'), media_dir, media_cache, 'audio'
+                ),
+                'back_audio_url': _copy_media_into_package(
+                    content.get('back_audio_url'), media_dir, media_cache, 'audio'
+                ),
+                'front_img': _copy_media_into_package(
+                    content.get('front_img'), media_dir, media_cache, 'image'
+                ),
+                'back_img': _copy_media_into_package(
+                    content.get('back_img'), media_dir, media_cache, 'image'
+                ),
+                'ai_explanation': content.get('ai_explanation'),
+                'ai_prompt': content.get('ai_prompt'),
+                'action': '',
+            }
+            data_rows.append(row)
+
+        excel_path = os.path.join(tmp_dir, 'flashcards.xlsx')
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
+            pd.DataFrame(data_rows).to_excel(writer, sheet_name='Data', index=False)
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            zipf.write(excel_path, arcname='flashcards.xlsx')
+            if os.path.isdir(media_dir):
+                for root_dir, _, files in os.walk(media_dir):
+                    for filename in files:
+                        file_path = os.path.join(root_dir, filename)
+                        arcname = os.path.relpath(file_path, tmp_dir)
+                        zipf.write(file_path, arcname)
+
+        zip_buffer.seek(0)
+        download_name = f"{_slugify_filename(flashcard_set.title)}.zip"
+        return send_file(zip_buffer, as_attachment=True, download_name=download_name, mimetype='application/zip')
+
+
+@flashcards_bp.route('/flashcards/<int:set_id>/excel', methods=['GET', 'POST'])
+@login_required
+def manage_flashcard_excel(set_id):
+    flashcard_set = LearningContainer.query.get_or_404(set_id)
+
+    if flashcard_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)
+
+    if request.method == 'POST':
+        excel_file = request.files.get('excel_file')
+        if not excel_file or excel_file.filename == '':
+            flash('Vui lòng chọn file Excel để nhập.', 'danger')
+            return redirect(url_for('content_management.content_management_flashcards.manage_flashcard_excel', set_id=set_id))
+
+        temp_filepath = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                excel_file.save(tmp_file.name)
+                temp_filepath = tmp_file.name
+
+            df = pd.read_excel(temp_filepath, sheet_name='Data')
+            summary = _apply_flashcard_excel_updates(set_id, df)
+            db.session.commit()
+            flash(
+                'Cập nhật bộ thẻ từ Excel thành công! '
+                f"(Thêm: {summary['added']}, Sửa: {summary['updated']}, Xóa: {summary['deleted']})",
+                'success'
+            )
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), 'danger')
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error('Lỗi khi cập nhật flashcard từ Excel', exc_info=True)
+            flash(f'Lỗi khi xử lý: {exc}', 'danger')
+        finally:
+            if temp_filepath and os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
+
+        return redirect(url_for('content_management.content_management_flashcards.manage_flashcard_excel', set_id=set_id))
+
+    return render_template('flashcard_excel_manage.html', flashcard_set=flashcard_set)
 
 @flashcards_bp.route('/flashcards/add', methods=['GET', 'POST'])
 @login_required
@@ -335,32 +732,13 @@ def edit_flashcard_set(set_id):
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                     excel_file.save(tmp_file.name)
                     temp_filepath = tmp_file.name
+
                 df = pd.read_excel(temp_filepath, sheet_name='Data')
-                required_cols = ['front', 'back']
-                # Kiểm tra các cột bắt buộc
-                if not all(col in df.columns for col in required_cols):
-                    raise ValueError(f"File Excel (sheet 'Data') phải có các cột bắt buộc: {', '.join(required_cols)}.")
-                
-                # Xóa các thẻ cũ và thêm các thẻ mới từ Excel
-                LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD').delete()
-                db.session.flush() # Áp dụng thay đổi xóa trước khi thêm mới
-                for index, row in df.iterrows():
-                    front_content = str(row['front']) if pd.notna(row['front']) else ''
-                    back_content = str(row['back']) if pd.notna(row['back']) else ''
-                    if front_content and back_content:
-                        item_content = {'front': front_content, 'back': back_content}
-                        optional_cols = ['front_audio_content', 'back_audio_content', 'front_img', 'back_img', 'ai_explanation', 'ai_prompt']
-                        for col in optional_cols:
-                            if col in df.columns and pd.notna(row[col]):
-                                item_content[col] = str(row[col])
-                        new_item = LearningItem(
-                            container_id=set_id,
-                            item_type='FLASHCARD',
-                            content=item_content,
-                            order_in_container=index + 1
-                        )
-                        db.session.add(new_item)
-                flash_message = 'Bộ thẻ và các thẻ từ Excel đã được cập nhật!'
+                summary = _apply_flashcard_excel_updates(set_id, df)
+                flash_message = (
+                    'Bộ thẻ và dữ liệu từ Excel đã được cập nhật! '
+                    f"(Thêm: {summary['added']}, Sửa: {summary['updated']}, Xóa: {summary['deleted']})"
+                )
                 flash_category = 'success'
             else:
                 flash_message = 'Bộ thẻ đã được cập nhật!'

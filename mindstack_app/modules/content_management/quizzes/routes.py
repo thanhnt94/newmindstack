@@ -3,7 +3,18 @@
 # MỤC ĐÍCH: Tích hợp quyền chỉnh sửa vào QuizSession.
 # ĐÃ SỬA: Sửa đổi route list_quiz_items để hiển thị đúng nút Sửa.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    abort,
+    jsonify,
+    current_app,
+    send_file,
+)
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.orm.attributes import flag_modified
@@ -15,6 +26,11 @@ import os
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
 import copy
+import zipfile
+import shutil
+import re
+import io
+from typing import Optional
 
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
                         template_folder='templates') # Đã cập nhật đường dẫn template
@@ -27,6 +43,16 @@ def _apply_is_public_restrictions(form):
         existing_render_kw = dict(form.is_public.render_kw or {})
         existing_render_kw['disabled'] = True
         form.is_public.render_kw = existing_render_kw
+
+
+def _has_editor_access(container_id):
+    if current_user.user_role == User.ROLE_FREE:
+        return False
+    return ContainerContributor.query.filter_by(
+        container_id=container_id,
+        user_id=current_user.user_id,
+        permission_level='editor'
+    ).first() is not None
 
 def _process_relative_url(url):
     """Chuẩn hóa đường dẫn tương đối và thêm tiền tố tĩnh khi cần."""
@@ -51,6 +77,405 @@ def _build_absolute_media_url(file_path):
         current_app.logger.error(f"Không thể tạo URL tuyệt đối cho media '{file_path}': {exc}")
         return file_path
 
+
+def _slugify_filename(value: str) -> str:
+    value = (value or '').strip().lower()
+    if not value:
+        return 'quiz-set'
+    value = re.sub(r'[^a-z0-9\-]+', '-', value)
+    value = re.sub(r'-{2,}', '-', value).strip('-')
+    return value or 'quiz-set'
+
+
+def _resolve_local_media_path(path_value: str):
+    if not path_value:
+        return None
+
+    normalized = str(path_value).strip()
+    if not normalized or normalized.startswith(('http://', 'https://')):
+        return None
+
+    base_static = os.path.join(current_app.root_path, 'static')
+    candidates = []
+    if normalized.startswith('/'):
+        candidates.append(os.path.join(base_static, normalized.lstrip('/')))
+    else:
+        upload_folder = current_app.config.get('UPLOAD_FOLDER')
+        if upload_folder:
+            candidates.append(os.path.join(upload_folder, normalized))
+        candidates.append(os.path.join(base_static, normalized))
+
+    for candidate in candidates:
+        if candidate and os.path.isfile(candidate):
+            return candidate
+
+    return None
+
+
+def _copy_media_into_package(
+    original_path: str,
+    media_dir: str,
+    existing_map: dict,
+    asset_type: Optional[str] = None,
+) -> str:
+    if not original_path:
+        return original_path
+
+    normalized = str(original_path).strip()
+    if not normalized:
+        return ''
+
+    if normalized.startswith(('http://', 'https://')):
+        return normalized
+
+    local_path = _resolve_local_media_path(normalized)
+    if not local_path:
+        return normalized
+
+    cache_key = (local_path, asset_type or 'default')
+
+    target_dir = media_dir
+    relative_prefix = 'media'
+    if asset_type == 'audio':
+        target_dir = os.path.join(media_dir, 'audio')
+        relative_prefix = os.path.join('media', 'audio')
+    elif asset_type == 'image':
+        target_dir = os.path.join(media_dir, 'images')
+        relative_prefix = os.path.join('media', 'images')
+
+    if cache_key in existing_map:
+        return existing_map[cache_key]
+
+    os.makedirs(target_dir, exist_ok=True)
+    filename = os.path.basename(local_path)
+    name, ext = os.path.splitext(filename)
+    candidate = filename
+    counter = 1
+    while os.path.exists(os.path.join(target_dir, candidate)):
+        candidate = f"{name}_{counter}{ext}"
+        counter += 1
+
+    destination = os.path.join(target_dir, candidate)
+    shutil.copy2(local_path, destination)
+    relative_in_zip = os.path.join(relative_prefix, candidate).replace('\\', '/')
+    existing_map[cache_key] = relative_in_zip
+    return relative_in_zip
+
+
+def _apply_quiz_excel_updates(set_id: int, df: pd.DataFrame) -> dict:
+    required_cols = ['option_a', 'option_b', 'correct_answer_text']
+    if not all(col in df.columns for col in required_cols):
+        raise ValueError(
+            "File Excel (sheet 'Data') phải có các cột bắt buộc: option_a, option_b, correct_answer_text."
+        )
+
+    existing_items = (
+        LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ')
+        .order_by(LearningItem.order_in_container, LearningItem.item_id)
+        .all()
+    )
+    existing_map = {item.item_id: item for item in existing_items}
+    existing_groups = {
+        group.group_id: group
+        for group in LearningGroup.query.filter_by(container_id=set_id).all()
+    }
+
+    processed_ids = set()
+    delete_ids = set()
+    ordered_entries = []
+    group_cache = {}
+
+    added_count = 0
+    updated_count = 0
+    deleted_count = 0
+
+    def _get_cell(row_data, column_name):
+        if column_name not in df.columns:
+            return None
+        value = row_data[column_name]
+        if pd.isna(value):
+            return None
+        return str(value).strip()
+
+    def _parse_int(value, row_index, field_name):
+        if value is None or value == '':
+            return None
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            raise ValueError(f"Hàng {row_index}: {field_name} '{value}' không hợp lệ.")
+
+    def _resolve_group(row_data, row_index):
+        group_id_value = _get_cell(row_data, 'group_id')
+        group_ref_value = _get_cell(row_data, 'group_ref')
+        group_passage = _get_cell(row_data, 'group_passage_text')
+        group_audio = _get_cell(row_data, 'group_audio_file')
+        group_image = _get_cell(row_data, 'group_image_file')
+
+        group_id_local = None
+        if group_id_value:
+            group_id_local = _parse_int(group_id_value, row_index, 'group_id')
+        elif group_ref_value and group_ref_value.lower().startswith('group-'):
+            try:
+                group_id_local = int(group_ref_value.split('-', 1)[1])
+            except (ValueError, IndexError):
+                group_id_local = None
+
+        if group_id_local and group_id_local in existing_groups:
+            group_obj = existing_groups[group_id_local]
+            content_dict = dict(group_obj.content or {})
+            updated = False
+            if group_passage:
+                content_dict['passage_text'] = group_passage
+                updated = True
+            if group_audio:
+                content_dict['question_audio_file'] = _process_relative_url(group_audio)
+                updated = True
+            if group_image:
+                content_dict['question_image_file'] = _process_relative_url(group_image)
+                updated = True
+            if updated:
+                group_obj.content = content_dict
+                flag_modified(group_obj, 'content')
+            return group_obj
+
+        if group_ref_value and group_ref_value in group_cache:
+            return group_cache[group_ref_value]
+
+        if any([group_passage, group_audio, group_image]):
+            group_content = {}
+            if group_passage:
+                group_content['passage_text'] = group_passage
+            if group_audio:
+                group_content['question_audio_file'] = _process_relative_url(group_audio)
+            if group_image:
+                group_content['question_image_file'] = _process_relative_url(group_image)
+
+            if group_passage:
+                group_type = 'PASSAGE'
+            elif group_audio:
+                group_type = 'AUDIO'
+            elif group_image:
+                group_type = 'IMAGE'
+            else:
+                group_type = 'PASSAGE'
+
+            new_group = LearningGroup(
+                container_id=set_id,
+                group_type=group_type,
+                content=group_content,
+            )
+            db.session.add(new_group)
+            db.session.flush()
+            if group_ref_value:
+                group_cache[group_ref_value] = new_group
+            return new_group
+
+        return None
+
+    for index, row in df.iterrows():
+        row_number = index + 2
+        item_id_value = _get_cell(row, 'item_id')
+        action_value = (_get_cell(row, 'action') or '').lower()
+        order_value = _get_cell(row, 'order_in_container')
+        order_number = _parse_int(order_value, row_number, 'order_in_container') if order_value else None
+
+        item_id = None
+        if item_id_value:
+            try:
+                item_id = int(float(item_id_value))
+            except (TypeError, ValueError):
+                raise ValueError(f"Hàng {row_number}: item_id '{item_id_value}' không hợp lệ.")
+
+        question_text = _get_cell(row, 'question')
+        option_a = _get_cell(row, 'option_a')
+        option_b = _get_cell(row, 'option_b')
+        option_c = _get_cell(row, 'option_c')
+        option_d = _get_cell(row, 'option_d')
+        correct_answer = _get_cell(row, 'correct_answer') or _get_cell(row, 'correct_answer_text')
+
+        if item_id:
+            item = existing_map.get(item_id)
+            if not item:
+                raise ValueError(f"Hàng {row_number}: Không tìm thấy câu hỏi với ID {item_id}.")
+
+            if action_value == 'delete':
+                if item_id not in delete_ids:
+                    deleted_count += 1
+                delete_ids.add(item_id)
+                continue
+
+            if not option_a or not option_b or not correct_answer:
+                raise ValueError(
+                    f"Hàng {row_number}: Câu hỏi với ID {item_id} thiếu dữ liệu đáp án bắt buộc."
+                )
+
+            content_dict = dict(item.content or {})
+            if question_text:
+                content_dict['question'] = question_text
+            content_dict.setdefault('options', {})['A'] = option_a
+            content_dict.setdefault('options', {})['B'] = option_b
+            if option_c or option_c == '':
+                if option_c:
+                    content_dict.setdefault('options', {})['C'] = option_c
+                else:
+                    content_dict.setdefault('options', {}).pop('C', None)
+            if option_d or option_d == '':
+                if option_d:
+                    content_dict.setdefault('options', {})['D'] = option_d
+                else:
+                    content_dict.setdefault('options', {}).pop('D', None)
+
+            content_dict['correct_answer'] = correct_answer
+            guidance_value = _get_cell(row, 'guidance')
+            if guidance_value:
+                content_dict['explanation'] = guidance_value
+            else:
+                content_dict.pop('explanation', None)
+
+            pre_question = _get_cell(row, 'pre_question_text')
+            if pre_question:
+                content_dict['pre_question_text'] = pre_question
+            else:
+                content_dict.pop('pre_question_text', None)
+
+            passage_text = _get_cell(row, 'passage_text')
+            if passage_text:
+                content_dict['passage_text'] = passage_text
+            else:
+                content_dict.pop('passage_text', None)
+
+            passage_order = _parse_int(_get_cell(row, 'passage_order'), row_number, 'passage_order')
+            if passage_order is not None:
+                content_dict['passage_order'] = passage_order
+            else:
+                content_dict.pop('passage_order', None)
+
+            image_value = _get_cell(row, 'question_image_file')
+            audio_value = _get_cell(row, 'question_audio_file')
+            if image_value:
+                content_dict['question_image_file'] = _process_relative_url(image_value)
+            else:
+                content_dict.pop('question_image_file', None)
+            if audio_value:
+                content_dict['question_audio_file'] = _process_relative_url(audio_value)
+            else:
+                content_dict.pop('question_audio_file', None)
+
+            ai_prompt_value = _get_cell(row, 'ai_prompt')
+            if ai_prompt_value:
+                content_dict['ai_prompt'] = ai_prompt_value
+            else:
+                content_dict.pop('ai_prompt', None)
+
+            item_group = _resolve_group(row, row_number)
+            item.group_id = item_group.group_id if item_group else None
+
+            item.content = content_dict
+            flag_modified(item, 'content')
+            ordered_entries.append({
+                'type': 'existing',
+                'item': item,
+                'order': order_number if order_number is not None else (item.order_in_container or 0),
+                'sequence': index,
+            })
+            processed_ids.add(item_id)
+            updated_count += 1
+        else:
+            if action_value == 'delete':
+                continue
+
+            if not option_a or not option_b or not correct_answer:
+                raise ValueError(
+                    f"Hàng {row_number}: Thiếu dữ liệu đáp án bắt buộc cho câu hỏi mới."
+                )
+
+            new_content = {
+                'question': question_text,
+                'options': {
+                    'A': option_a,
+                    'B': option_b,
+                    'C': option_c,
+                    'D': option_d,
+                },
+                'correct_answer': correct_answer,
+                'explanation': _get_cell(row, 'guidance'),
+                'pre_question_text': _get_cell(row, 'pre_question_text'),
+            }
+
+            passage_text = _get_cell(row, 'passage_text')
+            if passage_text:
+                new_content['passage_text'] = passage_text
+
+            passage_order = _parse_int(_get_cell(row, 'passage_order'), row_number, 'passage_order')
+            if passage_order is not None:
+                new_content['passage_order'] = passage_order
+
+            image_value = _get_cell(row, 'question_image_file')
+            audio_value = _get_cell(row, 'question_audio_file')
+            if image_value:
+                new_content['question_image_file'] = _process_relative_url(image_value)
+            if audio_value:
+                new_content['question_audio_file'] = _process_relative_url(audio_value)
+
+            ai_prompt_value = _get_cell(row, 'ai_prompt')
+            if ai_prompt_value:
+                new_content['ai_prompt'] = ai_prompt_value
+
+            item_group = _resolve_group(row, row_number)
+            ordered_entries.append({
+                'type': 'new',
+                'data': new_content,
+                'group_id': item_group.group_id if item_group else None,
+                'group_obj': item_group,
+                'order': order_number,
+                'sequence': index,
+            })
+            added_count += 1
+
+    untouched_items = [
+        item for item in existing_items
+        if item.item_id not in processed_ids and item.item_id not in delete_ids
+    ]
+    for offset, item in enumerate(untouched_items, start=len(df) + 1):
+        ordered_entries.append({
+            'type': 'existing',
+            'item': item,
+            'order': item.order_in_container or 0,
+            'sequence': offset,
+        })
+
+    for delete_id in delete_ids:
+        if delete_id in existing_map:
+            db.session.delete(existing_map[delete_id])
+
+    ordered_entries.sort(key=lambda entry: (
+        entry['order'] if entry['order'] is not None else float('inf'),
+        entry['sequence'],
+    ))
+
+    next_order = 1
+    for entry in ordered_entries:
+        if entry['type'] == 'existing':
+            entry['item'].order_in_container = next_order
+        else:
+            group_id_value = entry.get('group_id')
+            group_obj = entry.get('group_obj')
+            new_item = LearningItem(
+                container_id=set_id,
+                group_id=group_id_value if group_id_value else (group_obj.group_id if group_obj else None),
+                item_type='QUIZ_MCQ',
+                content=entry['data'],
+                order_in_container=next_order,
+            )
+            db.session.add(new_item)
+        next_order += 1
+
+    return {
+        'added': added_count,
+        'updated': updated_count,
+        'deleted': deleted_count,
+    }
 
 def _serialize_quiz_item_for_response(item, user_id=None):
     content_copy = copy.deepcopy(item.content or {})
@@ -169,6 +594,151 @@ def list_quiz_sets():
         return render_template('_quiz_sets_list.html', **template_vars)
     else:
         return render_template('quiz_sets.html', **template_vars)
+
+
+@quizzes_bp.route('/quizzes/<int:set_id>/export', methods=['GET'])
+@login_required
+def export_quiz_set(set_id):
+    """Xuất bộ quiz ra gói zip gồm Excel và media."""
+    quiz_set = LearningContainer.query.get_or_404(set_id)
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and quiz_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(set_id):
+            abort(403)
+
+    items = (
+        LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ')
+        .order_by(LearningItem.order_in_container, LearningItem.item_id)
+        .all()
+    )
+    groups = {
+        group.group_id: group
+        for group in LearningGroup.query.filter_by(container_id=set_id).all()
+    }
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        media_dir = os.path.join(tmp_dir, 'media')
+        os.makedirs(media_dir, exist_ok=True)
+        media_cache = {}
+
+        info_rows = [
+            {'Key': 'title', 'Value': quiz_set.title},
+            {'Key': 'description', 'Value': quiz_set.description or ''},
+            {'Key': 'tags', 'Value': quiz_set.tags or ''},
+            {'Key': 'is_public', 'Value': str(quiz_set.is_public)},
+        ]
+        if quiz_set.ai_settings:
+            info_rows.append({'Key': 'ai_prompt', 'Value': quiz_set.ai_settings.get('custom_prompt', '')})
+
+        data_rows = []
+        for item in items:
+            content = item.content or {}
+            group = groups.get(item.group_id) if item.group_id else None
+            group_content = group.content if group else {}
+            row = {
+                'item_id': item.item_id,
+                'order_in_container': item.order_in_container,
+                'question': content.get('question'),
+                'pre_question_text': content.get('pre_question_text'),
+                'option_a': (content.get('options') or {}).get('A'),
+                'option_b': (content.get('options') or {}).get('B'),
+                'option_c': (content.get('options') or {}).get('C'),
+                'option_d': (content.get('options') or {}).get('D'),
+                'correct_answer_text': content.get('correct_answer'),
+                'guidance': content.get('explanation'),
+                'question_image_file': _copy_media_into_package(
+                    content.get('question_image_file'), media_dir, media_cache, 'image'
+                ),
+                'question_audio_file': _copy_media_into_package(
+                    content.get('question_audio_file'), media_dir, media_cache, 'audio'
+                ),
+                'passage_text': content.get('passage_text'),
+                'passage_order': content.get('passage_order'),
+                'ai_prompt': content.get('ai_prompt'),
+                'group_id': group.group_id if group else None,
+                'group_ref': f"group-{group.group_id}" if group else '',
+                'group_type': group.group_type if group else '',
+                'group_passage_text': group_content.get('passage_text') if isinstance(group_content, dict) else None,
+                'group_audio_file': _copy_media_into_package(
+                    group_content.get('question_audio_file') if isinstance(group_content, dict) else None,
+                    media_dir,
+                    media_cache,
+                    'audio',
+                ),
+                'group_image_file': _copy_media_into_package(
+                    group_content.get('question_image_file') if isinstance(group_content, dict) else None,
+                    media_dir,
+                    media_cache,
+                    'image',
+                ),
+                'action': '',
+            }
+            data_rows.append(row)
+
+        excel_path = os.path.join(tmp_dir, 'quizzes.xlsx')
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
+            pd.DataFrame(data_rows).to_excel(writer, sheet_name='Data', index=False)
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            zipf.write(excel_path, arcname='quizzes.xlsx')
+            if os.path.isdir(media_dir):
+                for root_dir, _, files in os.walk(media_dir):
+                    for filename in files:
+                        file_path = os.path.join(root_dir, filename)
+                        arcname = os.path.relpath(file_path, tmp_dir)
+                        zipf.write(file_path, arcname)
+
+        zip_buffer.seek(0)
+        download_name = f"{_slugify_filename(quiz_set.title)}.zip"
+        return send_file(zip_buffer, as_attachment=True, download_name=download_name, mimetype='application/zip')
+
+@quizzes_bp.route('/quizzes/<int:set_id>/excel', methods=['GET', 'POST'])
+@login_required
+def manage_quiz_excel(set_id):
+    quiz_set = LearningContainer.query.get_or_404(set_id)
+
+    if quiz_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)
+
+    if request.method == 'POST':
+        excel_file = request.files.get('excel_file')
+        if not excel_file or excel_file.filename == '':
+            flash('Vui lòng chọn file Excel để nhập.', 'danger')
+            return redirect(url_for('content_management.content_management_quizzes.manage_quiz_excel', set_id=set_id))
+
+        temp_filepath = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                excel_file.save(tmp_file.name)
+                temp_filepath = tmp_file.name
+
+            df = pd.read_excel(temp_filepath, sheet_name='Data')
+            summary = _apply_quiz_excel_updates(set_id, df)
+            db.session.commit()
+            flash(
+                'Cập nhật bộ câu hỏi từ Excel thành công! '
+                f"(Thêm: {summary['added']}, Sửa: {summary['updated']}, Xóa: {summary['deleted']})",
+                'success'
+            )
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), 'danger')
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error('Lỗi khi cập nhật quiz từ Excel', exc_info=True)
+            flash(f'Lỗi khi xử lý: {exc}', 'danger')
+        finally:
+            if temp_filepath and os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
+
+        return redirect(url_for('content_management.content_management_quizzes.manage_quiz_excel', set_id=set_id))
+
+    return render_template('quiz_excel_manage.html', quiz_set=quiz_set)
 
 @quizzes_bp.route('/quizzes/add', methods=['GET', 'POST'])
 @login_required
@@ -332,13 +902,290 @@ def edit_quiz_set(set_id):
     form = QuizSetForm(obj=quiz_set)
     _apply_is_public_restrictions(form)
     if form.validate_on_submit():
-        quiz_set.title = form.title.data
-        quiz_set.description = form.description.data
-        quiz_set.tags = form.tags.data
-        quiz_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
-        quiz_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
-        db.session.commit()
-        flash('Bộ câu hỏi đã được cập nhật!', 'success')
+        flash_message = 'Bộ câu hỏi đã được cập nhật!'
+        flash_category = 'success'
+        temp_filepath = None
+        try:
+            quiz_set.title = form.title.data
+            quiz_set.description = form.description.data
+            quiz_set.tags = form.tags.data
+            quiz_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
+            quiz_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+
+            if form.excel_file.data and form.excel_file.data.filename != '':
+                excel_file = form.excel_file.data
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                    excel_file.save(tmp_file.name)
+                    temp_filepath = tmp_file.name
+
+                df = pd.read_excel(temp_filepath, sheet_name='Data')
+
+                required_cols = ['option_a', 'option_b', 'correct_answer_text']
+                if not all(col in df.columns for col in required_cols):
+                    raise ValueError(
+                        "File Excel (sheet 'Data') phải có các cột bắt buộc: option_a, option_b, correct_answer_text."
+                    )
+
+                existing_items = (
+                    LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ')
+                    .order_by(LearningItem.order_in_container, LearningItem.item_id)
+                    .all()
+                )
+                existing_map = {item.item_id: item for item in existing_items}
+                existing_groups = {
+                    group.group_id: group
+                    for group in LearningGroup.query.filter_by(container_id=set_id).all()
+                }
+
+                processed_ids = set()
+                delete_ids = set()
+                ordered_entries = []
+                group_cache = {}
+
+                def _get_cell(row_data, column_name):
+                    if column_name not in df.columns:
+                        return None
+                    value = row_data[column_name]
+                    if pd.isna(value):
+                        return None
+                    return str(value).strip()
+
+                def _parse_int(value, row_index, field_name):
+                    if value is None or value == '':
+                        return None
+                    try:
+                        return int(float(value))
+                    except (TypeError, ValueError):
+                        raise ValueError(f"Hàng {row_index}: {field_name} '{value}' không hợp lệ.")
+
+                def _resolve_group(row_data, row_index):
+                    group_id_value = _get_cell(row_data, 'group_id')
+                    group_ref_value = _get_cell(row_data, 'group_ref')
+                    group_passage = _get_cell(row_data, 'group_passage_text')
+                    group_audio = _get_cell(row_data, 'group_audio_file')
+                    group_image = _get_cell(row_data, 'group_image_file')
+
+                    group_id_local = None
+                    if group_id_value:
+                        group_id_local = _parse_int(group_id_value, row_index, 'group_id')
+                    elif group_ref_value and group_ref_value.lower().startswith('group-'):
+                        try:
+                            group_id_local = int(group_ref_value.split('-', 1)[1])
+                        except (ValueError, IndexError):
+                            group_id_local = None
+
+                    if group_id_local and group_id_local in existing_groups:
+                        group_obj = existing_groups[group_id_local]
+                        content_dict = dict(group_obj.content or {})
+                        updated = False
+                        if group_passage:
+                            content_dict['passage_text'] = group_passage
+                            updated = True
+                        if group_audio:
+                            content_dict['question_audio_file'] = _process_relative_url(group_audio)
+                            updated = True
+                        if group_image:
+                            content_dict['question_image_file'] = _process_relative_url(group_image)
+                            updated = True
+                        if updated:
+                            group_obj.content = content_dict
+                            flag_modified(group_obj, 'content')
+                        return group_obj
+
+                    if group_ref_value and group_ref_value in group_cache:
+                        return group_cache[group_ref_value]
+
+                    if any([group_passage, group_audio, group_image]):
+                        group_content = {}
+                        if group_passage:
+                            group_content['passage_text'] = group_passage
+                        if group_audio:
+                            group_content['question_audio_file'] = _process_relative_url(group_audio)
+                        if group_image:
+                            group_content['question_image_file'] = _process_relative_url(group_image)
+
+                        if group_passage:
+                            group_type = 'PASSAGE'
+                        elif group_audio:
+                            group_type = 'AUDIO'
+                        elif group_image:
+                            group_type = 'IMAGE'
+                        else:
+                            group_type = 'PASSAGE'
+
+                        new_group = LearningGroup(
+                            container_id=set_id,
+                            group_type=group_type,
+                            content=group_content,
+                        )
+                        db.session.add(new_group)
+                        db.session.flush()
+                        if group_ref_value:
+                            group_cache[group_ref_value] = new_group
+                        return new_group
+
+                    return None
+
+                for index, row in df.iterrows():
+                    row_number = index + 2
+                    item_id_value = _get_cell(row, 'item_id')
+                    action_value = (_get_cell(row, 'action') or '').lower()
+                    order_value = _get_cell(row, 'order_in_container')
+                    order_number = _parse_int(order_value, row_number, 'order_in_container') if order_value else None
+
+                    question_text = _get_cell(row, 'question') or ''
+                    option_a = _get_cell(row, 'option_a')
+                    option_b = _get_cell(row, 'option_b')
+                    option_c = _get_cell(row, 'option_c')
+                    option_d = _get_cell(row, 'option_d')
+                    correct_answer = _get_cell(row, 'correct_answer_text')
+
+                    if not (option_a and option_b and correct_answer) and action_value != 'delete':
+                        raise ValueError(f"Hàng {row_number}: Thiếu option A/B hoặc đáp án đúng.")
+
+                    item_id = None
+                    if item_id_value:
+                        item_id = _parse_int(item_id_value, row_number, 'item_id')
+
+                    if item_id:
+                        item = existing_map.get(item_id)
+                        if not item:
+                            raise ValueError(f"Hàng {row_number}: Không tìm thấy câu hỏi với ID {item_id}.")
+
+                        if action_value == 'delete':
+                            delete_ids.add(item_id)
+                            continue
+
+                        content_dict = item.content or {}
+                        content_dict['question'] = question_text
+                        content_dict.setdefault('options', {})
+                        content_dict['options']['A'] = option_a
+                        content_dict['options']['B'] = option_b
+                        content_dict['options']['C'] = option_c
+                        content_dict['options']['D'] = option_d
+                        content_dict['correct_answer'] = correct_answer
+                        content_dict['explanation'] = _get_cell(row, 'guidance')
+                        content_dict['pre_question_text'] = _get_cell(row, 'pre_question_text')
+                        passage_text = _get_cell(row, 'passage_text')
+                        content_dict['passage_text'] = passage_text
+                        passage_order = _parse_int(_get_cell(row, 'passage_order'), row_number, 'passage_order')
+                        content_dict['passage_order'] = passage_order
+                        image_value = _get_cell(row, 'question_image_file')
+                        audio_value = _get_cell(row, 'question_audio_file')
+                        content_dict['question_image_file'] = _process_relative_url(image_value) if image_value else None
+                        content_dict['question_audio_file'] = _process_relative_url(audio_value) if audio_value else None
+                        ai_prompt_value = _get_cell(row, 'ai_prompt')
+                        if ai_prompt_value:
+                            content_dict['ai_prompt'] = ai_prompt_value
+                        else:
+                            content_dict.pop('ai_prompt', None)
+
+                        item_group = _resolve_group(row, row_number)
+                        item.group_id = item_group.group_id if item_group else None
+
+                        item.content = content_dict
+                        flag_modified(item, 'content')
+
+                        ordered_entries.append({
+                            'type': 'existing',
+                            'item': item,
+                            'order': order_number if order_number is not None else (item.order_in_container or 0),
+                            'sequence': index,
+                        })
+                        processed_ids.add(item_id)
+                    else:
+                        if action_value == 'delete':
+                            continue
+
+                        new_content = {
+                            'question': question_text,
+                            'options': {
+                                'A': option_a,
+                                'B': option_b,
+                                'C': option_c,
+                                'D': option_d,
+                            },
+                            'correct_answer': correct_answer,
+                            'explanation': _get_cell(row, 'guidance'),
+                            'pre_question_text': _get_cell(row, 'pre_question_text'),
+                        }
+                        passage_text = _get_cell(row, 'passage_text')
+                        if passage_text:
+                            new_content['passage_text'] = passage_text
+                        passage_order = _parse_int(_get_cell(row, 'passage_order'), row_number, 'passage_order')
+                        if passage_order is not None:
+                            new_content['passage_order'] = passage_order
+                        image_value = _get_cell(row, 'question_image_file')
+                        audio_value = _get_cell(row, 'question_audio_file')
+                        if image_value:
+                            new_content['question_image_file'] = _process_relative_url(image_value)
+                        if audio_value:
+                            new_content['question_audio_file'] = _process_relative_url(audio_value)
+                        ai_prompt_value = _get_cell(row, 'ai_prompt')
+                        if ai_prompt_value:
+                            new_content['ai_prompt'] = ai_prompt_value
+
+                        item_group = _resolve_group(row, row_number)
+                        ordered_entries.append({
+                            'type': 'new',
+                            'data': new_content,
+                            'group_id': item_group.group_id if item_group else None,
+                            'group_obj': item_group,
+                            'order': order_number,
+                            'sequence': index,
+                        })
+
+                untouched_items = [
+                    item for item in existing_items
+                    if item.item_id not in processed_ids and item.item_id not in delete_ids
+                ]
+                for offset, item in enumerate(untouched_items, start=len(df) + 1):
+                    ordered_entries.append({
+                        'type': 'existing',
+                        'item': item,
+                        'order': item.order_in_container or 0,
+                        'sequence': offset,
+                    })
+
+                for delete_id in delete_ids:
+                    if delete_id in existing_map:
+                        db.session.delete(existing_map[delete_id])
+
+                ordered_entries.sort(key=lambda entry: (
+                    entry['order'] if entry['order'] is not None else float('inf'),
+                    entry['sequence'],
+                ))
+
+                next_order = 1
+                for entry in ordered_entries:
+                    if entry['type'] == 'existing':
+                        entry['item'].order_in_container = next_order
+                    else:
+                        group_id_value = entry.get('group_id')
+                        group_obj = entry.get('group_obj')
+                        new_item = LearningItem(
+                            container_id=set_id,
+                            group_id=group_id_value if group_id_value else (group_obj.group_id if group_obj else None),
+                            item_type='QUIZ_MCQ',
+                            content=entry['data'],
+                            order_in_container=next_order,
+                        )
+                        db.session.add(new_item)
+                    next_order += 1
+
+                flash_message = 'Bộ câu hỏi và dữ liệu từ Excel đã được cập nhật!'
+
+            db.session.commit()
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error(f"Lỗi khi cập nhật bộ quiz: {exc}", exc_info=True)
+            flash_message = f'Lỗi khi xử lý: {exc}'
+            flash_category = 'danger'
+        finally:
+            if temp_filepath and os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
+
+        flash(flash_message, flash_category)
         return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':

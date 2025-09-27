@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Quản lý Excel cho bộ thẻ: {{ flashcard_set.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <h1 class="text-3xl font-semibold text-gray-800">Quản lý Excel cho bộ thẻ: {{ flashcard_set.title }}</h1>
+        <a href="{{ url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=flashcard_set.container_id) }}"
+           class="text-blue-600 hover:text-blue-800 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Quay lại danh sách thẻ
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-3 flex items-center">
+                <i class="fas fa-file-export text-purple-600 mr-2"></i> Xuất gói dữ liệu hiện tại
+            </h2>
+            <p class="text-gray-600 mb-4">Tải về gói zip bao gồm file Excel và toàn bộ media (audio/hình ảnh) để chỉnh sửa ngoại tuyến.</p>
+            <a href="{{ url_for('content_management.content_management_flashcards.export_flashcard_set', set_id=flashcard_set.container_id) }}"
+               class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition">
+                <i class="fas fa-download mr-2"></i> Tải gói Excel + Media
+            </a>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-3 flex items-center">
+                <i class="fas fa-file-import text-green-600 mr-2"></i> Cập nhật từ Excel
+            </h2>
+            <p class="text-gray-600 mb-4">Chọn file Excel (sheet Data) theo định dạng đã xuất. Cột <code>item_id</code> dùng để xác định thẻ hiện có, để trống để tạo mới. Sử dụng cột <code>action</code> với giá trị <strong>Delete</strong> nếu muốn xóa thẻ.</p>
+            <form method="post" enctype="multipart/form-data" class="space-y-4">
+                {{ csrf_token() }}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file Excel</label>
+                    <input type="file" name="excel_file" accept=".xlsx" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
+                </div>
+                <button type="submit" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+                    <i class="fas fa-upload mr-2"></i> Tải lên và cập nhật
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-8 bg-blue-50 border border-blue-100 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-800 mb-3">Hướng dẫn nhanh</h3>
+        <ul class="list-disc list-inside text-blue-900 space-y-2">
+            <li>Giữ nguyên sheet <strong>Info</strong> để hệ thống bảo toàn thông tin bộ thẻ.</li>
+            <li>Mỗi hàng trong sheet <strong>Data</strong> tương ứng với một thẻ. Điền <code>item_id</code> khi muốn cập nhật, để trống để thêm thẻ mới.</li>
+            <li>Thiết lập <code>order_in_container</code> nếu muốn điều chỉnh thứ tự, hoặc để trống để thêm vào cuối danh sách.</li>
+            <li>Các file audio sẽ được ánh xạ lại vào thư mục <code>media/audio</code> và hình ảnh vào <code>media/images</code> trong gói xuất.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
