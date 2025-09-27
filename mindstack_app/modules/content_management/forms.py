@@ -5,7 +5,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, BooleanField, SubmitField, FileField, SelectField, IntegerField
-from wtforms.validators import DataRequired, Length, Optional, ValidationError, Email, NumberRange
+from wtforms.validators import DataRequired, Length, Optional, ValidationError, NumberRange
 from flask_wtf.file import FileAllowed
 import re
 
@@ -15,11 +15,12 @@ import re
 
 class ContributorForm(FlaskForm):
     """
-    Form để thêm một người đóng góp mới bằng email.
+    Form để thêm một người đóng góp mới bằng tên người dùng.
     """
-    email = StringField('Email của người dùng', 
-                        validators=[DataRequired(message="Vui lòng nhập email."), 
-                                    Email(message="Địa chỉ email không hợp lệ.")])
+    username = StringField('Tên người dùng',
+                           validators=[DataRequired(message="Vui lòng nhập tên người dùng."),
+                                       Length(max=150, message="Tên người dùng tối đa 150 ký tự.")],
+                           render_kw={'autocomplete': 'off'})
     permission_level = SelectField('Cấp độ quyền', 
                                    choices=[('editor', 'Editor (Chỉnh sửa)')], # Hiện tại chỉ có 1 cấp độ
                                    validators=[DataRequired()])

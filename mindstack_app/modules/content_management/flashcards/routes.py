@@ -566,10 +566,7 @@ def list_flashcard_sets():
         # Thông tin người tạo
         creator = getattr(set_item, 'creator', None)
         if creator:
-            creator_label = creator.username
-            if creator.user_id == current_user.user_id:
-                creator_label += " (Bạn)"
-            set_item.creator_display_name = creator_label
+            set_item.creator_display_name = creator.username
         else:
             set_item.creator_display_name = "Không xác định"
 
@@ -579,12 +576,7 @@ def list_flashcard_sets():
 
         if creator:
             seen_user_ids.add(creator.user_id)
-            creator_editor_label = creator.username
-            if creator.user_id == current_user.user_id:
-                creator_editor_label += " (Bạn)"
-            else:
-                creator_editor_label += " (Người tạo)"
-            editor_labels.append(creator_editor_label)
+            editor_labels.append(creator.username)
 
         for contributor in getattr(set_item, 'contributors', []) or []:
             if contributor.permission_level != 'editor':
@@ -593,10 +585,7 @@ def list_flashcard_sets():
             if not contributor_user or contributor_user.user_id in seen_user_ids:
                 continue
 
-            contributor_label = contributor_user.username
-            if contributor_user.user_id == current_user.user_id:
-                contributor_label += " (Bạn)"
-            editor_labels.append(contributor_label)
+            editor_labels.append(contributor_user.username)
             seen_user_ids.add(contributor_user.user_id)
 
         if not editor_labels:

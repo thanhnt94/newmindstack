@@ -4,7 +4,7 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from ...models import db, LearningContainer, ContainerContributor, User
 from .forms import ContributorForm # SỬA: Import form mới
 
@@ -48,13 +48,17 @@ def manage_contributors(container_id):
     form = ContributorForm()
 
     if form.validate_on_submit():
-        email_to_add = form.email.data
+        username_to_add = (form.username.data or "").strip()
         permission_level = form.permission_level.data
-        
-        user_to_add = User.query.filter_by(email=email_to_add).first() # Giả định model User có trường email
+
+        if not username_to_add:
+            flash('Vui lòng nhập tên người dùng.', 'danger')
+            return redirect(url_for('content_management.manage_contributors', container_id=container_id))
+
+        user_to_add = User.query.filter(func.lower(User.username) == username_to_add.lower()).first()
 
         if not user_to_add:
-            flash(f'Không tìm thấy người dùng với email: {email_to_add}.', 'danger')
+            flash(f'Không tìm thấy người dùng với tên: {username_to_add}.', 'danger')
         elif user_to_add.user_id == container.creator_user_id:
             flash('Không thể thêm chính người tạo làm người đóng góp.', 'warning')
         elif user_to_add.user_role in {User.ROLE_FREE, User.ROLE_ANONYMOUS}:
@@ -103,6 +107,20 @@ def manage_contributors(container_id):
     contributors = db.session.query(ContainerContributor, User).join(User).filter(
         ContainerContributor.container_id == container_id
     ).all()
-    
-    return render_template('manage_contributors.html', container=container, contributors=contributors, form=form)
+
+    ineligible_roles = (User.ROLE_FREE, User.ROLE_ANONYMOUS)
+    eligible_usernames = (
+        User.query
+        .filter(~User.user_role.in_(ineligible_roles))
+        .order_by(User.username.asc())
+        .with_entities(User.username)
+        .all()
+    )
+    username_suggestions = [username for (username,) in eligible_usernames]
+
+    return render_template('manage_contributors.html',
+                           container=container,
+                           contributors=contributors,
+                           form=form,
+                           username_suggestions=username_suggestions)
 
