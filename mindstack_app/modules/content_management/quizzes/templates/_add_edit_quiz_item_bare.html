@@ -37,7 +37,9 @@
 </head>
 <body>
 
-<div class="full-height-container p-4">
+<div class="full-height-container p-4"
+     data-item-id="{{ quiz_item.item_id if quiz_item else '' }}"
+     data-set-id="{{ quiz_set.container_id if quiz_set else '' }}">
     <div class="w-full">
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
             <h2 class="text-2xl font-bold text-center mb-6 flex items-center justify-center">
@@ -176,16 +178,21 @@
 
                     if (response.ok) { // HTTP status 200-299
                         if (result.success) {
+                            const modalContainer = document.querySelector('.full-height-container');
+                            const itemId = modalContainer?.dataset.itemId;
+                            const setId = modalContainer?.dataset.setId;
                             if (window.parent && window.parent.showFlashMessage) {
                                 window.parent.showFlashMessage(result.message, 'success');
                             }
                             if (window.parent && window.parent.closeModal) {
                                 window.parent.closeModal();
                             }
-                            if (window.parent && window.parent.loadTabContent) {
+                            if (window.parent && typeof window.parent.updateQuizQuestion === 'function' && itemId && setId) {
+                                window.parent.updateQuizQuestion(parseInt(itemId, 10), parseInt(setId, 10));
+                            } else if (window.parent && window.parent.loadTabContent) {
                                 // Nếu đang ở trang list_quiz_items, tải lại trang đó
                                 if (window.parent.location.href.includes('/quizzes/') && window.parent.location.href.includes('/items')) {
-                                    window.parent.location.reload(); 
+                                    window.parent.location.reload();
                                 } else {
                                     // Ngược lại, tải lại tab quizzes trên dashboard
                                     window.parent.loadTabContent('quizzes');

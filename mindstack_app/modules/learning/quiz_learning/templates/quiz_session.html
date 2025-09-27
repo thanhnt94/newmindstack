@@ -297,6 +297,7 @@
     {{ super() }}
     <script>
         let currentQuestionBatch = [];
+        let currentBatchMeta = { startIndex: 0, totalItemsInSession: 0 };
         let userAnswers = {};
         let isBatchSubmitted = false;
 
@@ -312,6 +313,7 @@
         const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
         const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}"; // URL mới cho AI
         const editQuizItemUrl = "{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=0, item_id=0) }}";
+        const quizItemApiBaseUrl = "{{ url_for('learning.quiz_learning.get_quiz_item_api', item_id=0) }}";
 
         function formatTextForHtml(text) {
             if (text === null || text === undefined) return '';
@@ -338,90 +340,107 @@
             }
         }
 
+        function buildQuestionCardHtml(questionData, index, batchMeta) {
+            const questionNumber = (batchMeta.startIndex || 0) + index + 1;
+            const totalQuestions = batchMeta.totalItemsInSession || questionNumber;
+            const content = questionData.content || {};
+            let optionsHtml = '';
+            const options = content.options || {};
+            ['A', 'B', 'C', 'D'].forEach(key => {
+                if (options[key]) {
+                    optionsHtml += `<button class="option-button" data-question-id="${questionData.item_id}" data-option="${key}"><span class="font-bold mr-2">${key}:</span> <span>${formatTextForHtml(options[key])}</span></button>`;
+                }
+            });
+
+            let mediaHtml = '';
+            if (content.question_image_file) {
+                mediaHtml += `<img src="${formatTextForHtml(content.question_image_file)}" alt="Hình ảnh câu hỏi" class="quiz-image my-4">`;
+            }
+            if (content.question_audio_file) {
+                mediaHtml += `<audio controls src="${formatTextForHtml(content.question_audio_file)}" class="w-full mb-4"></audio>`;
+            }
+
+            const aiExplanationHtml = questionData.ai_explanation
+                ? renderMarkdownContent(questionData.ai_explanation)
+                : '<span class="italic text-gray-500">Chưa có giải thích từ AI.</span>';
+
+            const noteContentHtml = questionData.note_content
+                ? formatTextForHtml(questionData.note_content)
+                : '<span class="italic text-gray-500">Bạn chưa có ghi chú.</span>';
+
+            return `
+                <div class="question-card" data-item-id="${questionData.item_id}">
+                    <p class="text-gray-500 text-sm mb-2">Câu ${questionNumber} / ${totalQuestions}</p>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">${formatTextForHtml(content.question)}</h2>
+                    ${mediaHtml}
+                    <div class="options-container space-y-3">${optionsHtml}</div>
+                    <div class="feedback-area mt-4"></div>
+
+                    <div class="extra-info-area">
+                        <div class="user-note-section info-section mb-4" style="display: none;">
+                            <h4>
+                                <span><i class="fas fa-sticky-note text-yellow-500"></i> Ghi chú của bạn</span>
+                                <button class="toolbar-btn edit-note-btn"><i class="fas fa-pencil-alt"></i> Sửa</button>
+                            </h4>
+                            <div class="note-view-mode">
+                                <div class="content-display note-content-display">${noteContentHtml}</div>
+                            </div>
+                            <div class="note-edit-mode" style="display:none;">
+                                <textarea class="note-textarea">${questionData.note_content || ''}</textarea>
+                                <div class="flex justify-end mt-2 space-x-2">
+                                    <button class="bg-gray-200 text-gray-800 px-4 py-1 rounded-md text-sm cancel-note-btn">Hủy</button>
+                                    <button class="bg-green-600 text-white px-4 py-1 rounded-md text-sm save-note-btn">Lưu</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ai-explanation-section info-section" style="display: none;">
+                            <h4><i class="fas fa-robot text-blue-500"></i> Giải thích của AI</h4>
+                            <div class="content-display markdown-body">${aiExplanationHtml}</div>
+                        </div>
+                    </div>
+
+                    <div class="question-toolbar flex justify-end gap-2">
+                        <button class="toolbar-btn toggle-ai-btn" style="display: none;"><i class="fas fa-robot"></i> <span>Giải thích AI</span></button>
+                        <button class="toolbar-btn open-feedback-modal-btn" data-item-id="${questionData.item_id}" data-item-title="${content.question}"><i class="fas fa-flag"></i> <span>Phản hồi</span></button>
+                        <button class="toolbar-btn edit-quiz-btn" data-item-id="${questionData.item_id}" data-set-id="${questionData.container_id}"><i class="fas fa-pencil-alt"></i> <span>Sửa</span></button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function attachOptionHandlers(scopeElement = quizContentDiv) {
+            scopeElement.querySelectorAll('.option-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (!isBatchSubmitted) {
+                        const questionId = this.dataset.questionId;
+                        quizContentDiv.querySelectorAll(`.option-button[data-question-id="${questionId}"]`).forEach(btn => btn.classList.remove('selected'));
+                        this.classList.add('selected');
+                        userAnswers[questionId] = this.dataset.option;
+                    }
+                });
+            });
+        }
+
         function displayQuestionBatch(batchData) {
             currentQuestionBatch = batchData.items;
+            currentBatchMeta = {
+                startIndex: batchData.start_index || 0,
+                totalItemsInSession: batchData.total_items_in_session || batchData.items.length
+            };
             userAnswers = {};
             isBatchSubmitted = false;
             submitBatchBtn.style.display = 'block';
             submitBatchBtn.disabled = false;
             nextBatchBtn.style.display = 'none';
 
-            let fullBatchContentHtml = '';
-
-            currentQuestionBatch.forEach((questionData, index) => {
-                let optionsHtml = '';
-                const options = questionData.content.options || {};
-                ['A', 'B', 'C', 'D'].forEach(key => {
-                    if (options[key]) {
-                        optionsHtml += `<button class="option-button" data-question-id="${questionData.item_id}" data-option="${key}"><span class="font-bold mr-2">${key}:</span> <span>${formatTextForHtml(options[key])}</span></button>`;
-                    }
-                });
-                
-                let mediaHtml = '';
-                if (questionData.content.question_image_file) {
-                    mediaHtml += `<img src="${formatTextForHtml(questionData.content.question_image_file)}" alt="Hình ảnh câu hỏi" class="quiz-image my-4">`;
-                }
-                if (questionData.content.question_audio_file) {
-                    mediaHtml += `<audio controls src="${formatTextForHtml(questionData.content.question_audio_file)}" class="w-full mb-4"></audio>`;
-                }
-
-                const aiExplanationHtml = questionData.ai_explanation
-                    ? renderMarkdownContent(questionData.ai_explanation)
-                    : '<span class="italic text-gray-500">Chưa có giải thích từ AI.</span>';
-
-                fullBatchContentHtml += `
-                    <div class="question-card" data-item-id="${questionData.item_id}">
-                        <p class="text-gray-500 text-sm mb-2">Câu ${batchData.start_index + index + 1} / ${batchData.total_items_in_session}</p>
-                        <h2 class="text-xl font-semibold text-gray-800 mb-4">${formatTextForHtml(questionData.content.question)}</h2>
-                        ${mediaHtml}
-                        <div class="options-container space-y-3">${optionsHtml}</div>
-                        <div class="feedback-area mt-4"></div>
-                        
-                        <div class="extra-info-area">
-                            <div class="user-note-section info-section mb-4" style="display: none;">
-                                <h4>
-                                    <span><i class="fas fa-sticky-note text-yellow-500"></i> Ghi chú của bạn</span>
-                                    <button class="toolbar-btn edit-note-btn"><i class="fas fa-pencil-alt"></i> Sửa</button>
-                                </h4>
-                                <div class="note-view-mode">
-                                    <div class="content-display note-content-display">${formatTextForHtml(questionData.note_content) || '<span class="italic text-gray-500">Bạn chưa có ghi chú.</span>'}</div>
-                                </div>
-                                <div class="note-edit-mode" style="display:none;">
-                                    <textarea class="note-textarea">${questionData.note_content || ''}</textarea>
-                                    <div class="flex justify-end mt-2 space-x-2">
-                                        <button class="bg-gray-200 text-gray-800 px-4 py-1 rounded-md text-sm cancel-note-btn">Hủy</button>
-                                        <button class="bg-green-600 text-white px-4 py-1 rounded-md text-sm save-note-btn">Lưu</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="ai-explanation-section info-section" style="display: none;">
-                                <h4><i class="fas fa-robot text-blue-500"></i> Giải thích của AI</h4>
-                                <div class="content-display markdown-body">${aiExplanationHtml}</div>
-                            </div>
-                        </div>
-
-                        <div class="question-toolbar flex justify-end gap-2">
-                            <button class="toolbar-btn toggle-ai-btn" style="display: none;"><i class="fas fa-robot"></i> <span>Giải thích AI</span></button>
-                            <button class="toolbar-btn open-feedback-modal-btn" data-item-id="${questionData.item_id}" data-item-title="${questionData.content.question}"><i class="fas fa-flag"></i> <span>Phản hồi</span></button>
-                            <button class="toolbar-btn edit-quiz-btn" data-item-id="${questionData.item_id}" data-set-id="${questionData.container_id}"><i class="fas fa-pencil-alt"></i> <span>Sửa</span></button>
-                        </div>
-                    </div>
-                `;
-            });
+            const fullBatchContentHtml = currentQuestionBatch
+                .map((questionData, index) => buildQuestionCardHtml(questionData, index, currentBatchMeta))
+                .join('');
 
             quizContentDiv.innerHTML = fullBatchContentHtml;
-            quizProgressSpan.textContent = `(${batchData.start_index + 1}-${batchData.start_index + currentQuestionBatch.length} / ${batchData.total_items_in_session})`;
+            quizProgressSpan.textContent = `(${currentBatchMeta.startIndex + 1}-${currentBatchMeta.startIndex + currentQuestionBatch.length} / ${currentBatchMeta.totalItemsInSession})`;
 
-            document.querySelectorAll('.option-button').forEach(button => {
-                button.addEventListener('click', function() {
-                    if (!isBatchSubmitted) {
-                        const questionId = this.dataset.questionId;
-                        document.querySelectorAll(`.option-button[data-question-id="${questionId}"]`).forEach(btn => btn.classList.remove('selected'));
-                        this.classList.add('selected');
-                        userAnswers[questionId] = this.dataset.option;
-                    }
-                });
-            });
+            attachOptionHandlers(quizContentDiv);
         }
 
         async function submitAnswerBatch() {
@@ -525,6 +544,64 @@
         submitBatchBtn.addEventListener('click', submitAnswerBatch);
         nextBatchBtn.addEventListener('click', getNextQuestionBatch);
         document.addEventListener('DOMContentLoaded', getNextQuestionBatch);
+
+        window.updateQuizQuestion = async function(itemId, setId) {
+            if (!itemId) {
+                return;
+            }
+
+            try {
+                const response = await fetch(quizItemApiBaseUrl.replace('/0', `/${itemId}`), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const payload = await response.json();
+                if (!payload.success || !payload.item) {
+                    throw new Error(payload.message || 'Không nhận được dữ liệu câu hỏi hợp lệ.');
+                }
+
+                const updatedItem = payload.item;
+                const questionIndex = currentQuestionBatch.findIndex(q => q.item_id === updatedItem.item_id);
+                if (questionIndex !== -1) {
+                    currentQuestionBatch[questionIndex] = updatedItem;
+                } else {
+                    currentQuestionBatch.push(updatedItem);
+                }
+
+                delete userAnswers[itemId];
+                delete userAnswers[String(itemId)];
+
+                const questionCard = document.querySelector(`.question-card[data-item-id="${itemId}"]`);
+                const renderIndex = questionIndex !== -1 ? questionIndex : currentQuestionBatch.length - 1;
+                const newHtml = buildQuestionCardHtml(updatedItem, renderIndex, currentBatchMeta);
+                const tempWrapper = document.createElement('div');
+                tempWrapper.innerHTML = newHtml.trim();
+                const newElement = tempWrapper.firstElementChild;
+
+                if (questionCard) {
+                    questionCard.replaceWith(newElement);
+                } else {
+                    quizContentDiv.appendChild(newElement);
+                }
+
+                attachOptionHandlers(newElement);
+
+                if (window.showFlashMessage) {
+                    window.showFlashMessage('Câu hỏi đã được cập nhật thành công!', 'success');
+                }
+            } catch (error) {
+                console.error('Không thể tải lại câu hỏi sau khi chỉnh sửa:', error);
+                if (window.showFlashMessage) {
+                    window.showFlashMessage('Không thể tải lại câu hỏi sau khi chỉnh sửa. Vui lòng tải lại trang để cập nhật thay đổi.', 'warning');
+                } else {
+                    alert('Không thể tải lại câu hỏi sau khi chỉnh sửa. Vui lòng tải lại trang.');
+                }
+            }
+        };
 
         // ==========================================================
         // SCRIPT ĐÃ CẬP NHẬT HOÀN TOÀN
