@@ -4,7 +4,7 @@
 # ĐÃ SỬA: Thêm IntegerField cho order_in_container vào LessonForm.
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, BooleanField, SubmitField, URLField, FileField, SelectField, IntegerField
+from wtforms import StringField, TextAreaField, BooleanField, SubmitField, FileField, SelectField, IntegerField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError, Email, NumberRange
 from flask_wtf.file import FileAllowed
 import re
@@ -102,9 +102,9 @@ class FlashcardItemForm(FlaskForm):
     front = TextAreaField('Mặt trước (câu hỏi/từ)', validators=[DataRequired(message="Mặt trước không được để trống.")])
     back = TextAreaField('Mặt sau (câu trả lời/định nghĩa)', validators=[DataRequired(message="Mặt sau không được để trống.")])
     front_audio_content = TextAreaField('Văn bản tạo âm thanh mặt trước (TTS)', validators=[Optional()])
-    front_audio_url = URLField('URL file âm thanh mặt trước', validators=[Optional()])
+    front_audio_url = StringField('URL file âm thanh mặt trước', validators=[Optional()])
     back_audio_content = TextAreaField('Văn bản tạo âm thanh mặt sau (TTS)', validators=[Optional()])
-    back_audio_url = URLField('URL file âm thanh mặt sau', validators=[Optional()])
+    back_audio_url = StringField('URL file âm thanh mặt sau', validators=[Optional()])
     front_img = StringField('URL hình ảnh mặt trước', validators=[Optional()])
     back_img = StringField('URL hình ảnh mặt sau', validators=[Optional()])
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
@@ -130,7 +130,21 @@ class FlashcardItemForm(FlaskForm):
         """
         if field.data and not self._is_valid_url_or_path(field.data):
             raise ValidationError('Đường dẫn hình ảnh không hợp lệ. Vui lòng nhập URL đầy đủ hoặc đường dẫn tương đối.')
-            
+
+    def validate_front_audio_url(self, field):
+        """
+        Mô tả: Validator tùy chỉnh để chấp nhận cả URL đầy đủ và đường dẫn tương đối cho file âm thanh mặt trước.
+        """
+        if field.data and not self._is_valid_url_or_path(field.data):
+            raise ValidationError('Đường dẫn file âm thanh mặt trước không hợp lệ. Vui lòng nhập URL đầy đủ hoặc đường dẫn tương đối.')
+
+    def validate_back_audio_url(self, field):
+        """
+        Mô tả: Validator tùy chỉnh để chấp nhận cả URL đầy đủ và đường dẫn tương đối cho file âm thanh mặt sau.
+        """
+        if field.data and not self._is_valid_url_or_path(field.data):
+            raise ValidationError('Đường dẫn file âm thanh mặt sau không hợp lệ. Vui lòng nhập URL đầy đủ hoặc đường dẫn tương đối.')
+
     def _is_valid_url_or_path(self, value):
         """
         Mô tả: Hàm kiểm tra nội bộ để xác định xem một chuỗi có phải là URL hợp lệ hay đường dẫn tương đối.
