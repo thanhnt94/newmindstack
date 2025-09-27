@@ -236,6 +236,27 @@
                                 <span class="block text-xs text-gray-500 mt-1">Thẻ phù hợp để chuyển thành câu hỏi dạng lựa chọn.</span>
                             </span>
                         </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_essay(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Chế độ tự luận</span>
+                                <span class="block text-xs text-gray-500 mt-1">Đánh dấu nếu thẻ phù hợp với câu hỏi mở dài.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_listening(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Chế độ luyện nghe</span>
+                                <span class="block text-xs text-gray-500 mt-1">Sử dụng khi thẻ có audio để tập trung luyện nghe.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            {{ form.supports_speaking(class="mt-1 h-5 w-5 text-blue-600") }}
+                            <span>
+                                <span class="block text-sm font-medium text-gray-800">Chế độ luyện nói</span>
+                                <span class="block text-xs text-gray-500 mt-1">Khuyến khích học viên nói lại/thu âm câu trả lời.</span>
+                            </span>
+                        </label>
                     </div>
                     <p class="text-xs text-gray-500 mt-3">Các tùy chọn này được bật theo cấu hình của cả bộ thẻ. Chỉ thay đổi nếu thẻ này cần ngoại lệ so với cấu hình chung.</p>
                 </div>

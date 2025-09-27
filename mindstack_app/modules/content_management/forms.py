@@ -89,6 +89,9 @@ class FlashcardSetForm(FlaskForm):
     supports_pronunciation = BooleanField('Hỗ trợ luyện phát âm')
     supports_writing = BooleanField('Hỗ trợ luyện viết')
     supports_quiz = BooleanField('Hỗ trợ luyện trắc nghiệm')
+    supports_essay = BooleanField('Hỗ trợ tự luận')
+    supports_listening = BooleanField('Hỗ trợ luyện nghe')
+    supports_speaking = BooleanField('Hỗ trợ luyện nói')
     ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho bộ thẻ)',
                               description='Nhập prompt tùy chỉnh để AI tạo thẻ. Nếu để trống, hệ thống sẽ sử dụng prompt mặc định.',
                               validators=[Optional()])
@@ -117,6 +120,9 @@ class FlashcardItemForm(FlaskForm):
     supports_pronunciation = BooleanField('Hỗ trợ luyện phát âm')
     supports_writing = BooleanField('Hỗ trợ luyện viết')
     supports_quiz = BooleanField('Hỗ trợ luyện trắc nghiệm')
+    supports_essay = BooleanField('Hỗ trợ tự luận')
+    supports_listening = BooleanField('Hỗ trợ luyện nghe')
+    supports_speaking = BooleanField('Hỗ trợ luyện nói')
     order_in_container = IntegerField('Thứ tự hiển thị', validators=[
         Optional(),
         NumberRange(min=1, message="Thứ tự phải là một số nguyên dương.")

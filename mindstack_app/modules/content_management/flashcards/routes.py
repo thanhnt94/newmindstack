@@ -46,6 +46,16 @@ audio_service = AudioService()
 image_service = ImageService()
 
 
+CAPABILITY_FLAGS = (
+    'supports_pronunciation',
+    'supports_writing',
+    'supports_quiz',
+    'supports_essay',
+    'supports_listening',
+    'supports_speaking',
+)
+
+
 def _apply_is_public_restrictions(form):
     """Disable public toggle for free users and ensure value stays False."""
     if hasattr(form, 'is_public') and current_user.user_role == 'free':
@@ -91,11 +101,8 @@ def _build_ai_settings_from_form(form, existing_settings=None):
         settings.pop('custom_prompt', None)
 
     capability_flags = [
-        flag_name for flag_name in (
-            'supports_pronunciation',
-            'supports_writing',
-            'supports_quiz',
-        )
+        flag_name
+        for flag_name in CAPABILITY_FLAGS
         if getattr(getattr(form, flag_name, None), 'data', False)
     ]
 
@@ -313,9 +320,12 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
             'supports_pronunciation',
             'supports_writing',
             'supports_quiz',
+            'supports_essay',
+            'supports_listening',
+            'supports_speaking',
         ]
         url_fields = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
-        capability_fields = {'supports_pronunciation', 'supports_writing', 'supports_quiz'}
+        capability_fields = set(CAPABILITY_FLAGS)
         container_capabilities = _get_container_capabilities(
             LearningContainer.query.get(container_id)
         )
@@ -598,11 +608,7 @@ def export_flashcard_set(set_id):
         ]
 
         container_capabilities = _get_container_capabilities(flashcard_set)
-        for capability_key in (
-            'supports_pronunciation',
-            'supports_writing',
-            'supports_quiz',
-        ):
+        for capability_key in CAPABILITY_FLAGS:
             info_rows.append({'Key': capability_key, 'Value': str(capability_key in container_capabilities)})
 
         if flashcard_set.ai_settings:
@@ -635,6 +641,9 @@ def export_flashcard_set(set_id):
                     'supports_pronunciation': content.get('supports_pronunciation'),
                     'supports_writing': content.get('supports_writing'),
                     'supports_quiz': content.get('supports_quiz'),
+                    'supports_essay': content.get('supports_essay'),
+                    'supports_listening': content.get('supports_listening'),
+                    'supports_speaking': content.get('supports_speaking'),
                     'action': '',
                 }
             data_rows.append(row)
@@ -758,10 +767,13 @@ def add_flashcard_set():
                             'supports_pronunciation',
                             'supports_writing',
                             'supports_quiz',
+                            'supports_essay',
+                            'supports_listening',
+                            'supports_speaking',
                         ]
                         for col in optional_cols:
                             if col in df.columns and pd.notna(row[col]):
-                                if col in {'supports_pronunciation', 'supports_writing', 'supports_quiz'}:
+                                if col in CAPABILITY_FLAGS:
                                     item_content[col] = str(row[col]).strip().lower() in {'true', '1', 'yes', 'y', 'on'}
                                 else:
                                     item_content[col] = str(row[col])
@@ -833,6 +845,9 @@ def edit_flashcard_set(set_id):
         form.supports_pronunciation.data = 'supports_pronunciation' in container_capabilities
         form.supports_writing.data = 'supports_writing' in container_capabilities
         form.supports_quiz.data = 'supports_quiz' in container_capabilities
+        form.supports_essay.data = 'supports_essay' in container_capabilities
+        form.supports_listening.data = 'supports_listening' in container_capabilities
+        form.supports_speaking.data = 'supports_speaking' in container_capabilities
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
@@ -1035,6 +1050,9 @@ def add_flashcard_item(set_id):
         form.supports_pronunciation.data = 'supports_pronunciation' in container_capabilities
         form.supports_writing.data = 'supports_writing' in container_capabilities
         form.supports_quiz.data = 'supports_quiz' in container_capabilities
+        form.supports_essay.data = 'supports_essay' in container_capabilities
+        form.supports_listening.data = 'supports_listening' in container_capabilities
+        form.supports_speaking.data = 'supports_speaking' in container_capabilities
     if form.validate_on_submit():
         # THÊM MỚI: Xử lý logic chèn thẻ
         new_order = form.order_in_container.data
@@ -1068,6 +1086,9 @@ def add_flashcard_item(set_id):
             'supports_pronunciation': bool(form.supports_pronunciation.data),
             'supports_writing': bool(form.supports_writing.data),
             'supports_quiz': bool(form.supports_quiz.data),
+            'supports_essay': bool(form.supports_essay.data),
+            'supports_listening': bool(form.supports_listening.data),
+            'supports_speaking': bool(form.supports_speaking.data),
         }
         if form.ai_prompt.data:
             content_dict['ai_prompt'] = form.ai_prompt.data
@@ -1173,6 +1194,9 @@ def edit_flashcard_item(set_id, item_id):
         flashcard_item.content['supports_pronunciation'] = bool(form.supports_pronunciation.data)
         flashcard_item.content['supports_writing'] = bool(form.supports_writing.data)
         flashcard_item.content['supports_quiz'] = bool(form.supports_quiz.data)
+        flashcard_item.content['supports_essay'] = bool(form.supports_essay.data)
+        flashcard_item.content['supports_listening'] = bool(form.supports_listening.data)
+        flashcard_item.content['supports_speaking'] = bool(form.supports_speaking.data)
         
         if form.ai_prompt.data:
             flashcard_item.content['ai_prompt'] = form.ai_prompt.data
@@ -1213,6 +1237,9 @@ def edit_flashcard_item(set_id, item_id):
         form.supports_pronunciation.data = _resolve_flag('supports_pronunciation')
         form.supports_writing.data = _resolve_flag('supports_writing')
         form.supports_quiz.data = _resolve_flag('supports_quiz')
+        form.supports_essay.data = _resolve_flag('supports_essay')
+        form.supports_listening.data = _resolve_flag('supports_listening')
+        form.supports_speaking.data = _resolve_flag('supports_speaking')
         # Gán giá trị `order_in_container` vào form
         form.order_in_container.data = flashcard_item.order_in_container
     

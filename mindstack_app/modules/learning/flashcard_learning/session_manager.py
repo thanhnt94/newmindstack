@@ -17,6 +17,9 @@ from .algorithms import (
     get_pronunciation_items,
     get_writing_items,
     get_quiz_items,
+    get_essay_items,
+    get_listening_items,
+    get_speaking_items,
 )
 from .flashcard_logic import process_flashcard_answer
 from .flashcard_stats_logic import get_flashcard_item_statistics
@@ -113,6 +116,9 @@ class FlashcardSessionManager:
             'pronunciation_practice': get_pronunciation_items,
             'writing_practice': get_writing_items,
             'quiz_practice': get_quiz_items,
+            'essay_practice': get_essay_items,
+            'listening_practice': get_listening_items,
+            'speaking_practice': get_speaking_items,
             'autoplay_all': get_all_items_for_autoplay,
             'autoplay_learned': get_all_review_items,
         }.get(mode)
@@ -285,6 +291,15 @@ class FlashcardSessionManager:
                 ),
                 'supports_quiz': bool(next_item.content.get('supports_quiz')) or (
                     'supports_quiz' in container_capabilities
+                ),
+                'supports_essay': bool(next_item.content.get('supports_essay')) or (
+                    'supports_essay' in container_capabilities
+                ),
+                'supports_listening': bool(next_item.content.get('supports_listening')) or (
+                    'supports_listening' in container_capabilities
+                ),
+                'supports_speaking': bool(next_item.content.get('supports_speaking')) or (
+                    'supports_speaking' in container_capabilities
                 ),
             },
             'ai_explanation': next_item.ai_explanation,

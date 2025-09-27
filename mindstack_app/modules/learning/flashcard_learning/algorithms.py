@@ -314,6 +314,18 @@ def get_quiz_items(user_id, container_id, session_size):
     return _get_items_by_capability(user_id, container_id, session_size, 'supports_quiz')
 
 
+def get_essay_items(user_id, container_id, session_size):
+    return _get_items_by_capability(user_id, container_id, session_size, 'supports_essay')
+
+
+def get_listening_items(user_id, container_id, session_size):
+    return _get_items_by_capability(user_id, container_id, session_size, 'supports_listening')
+
+
+def get_speaking_items(user_id, container_id, session_size):
+    return _get_items_by_capability(user_id, container_id, session_size, 'supports_speaking')
+
+
 def get_all_items_for_autoplay(user_id, container_id, session_size):
     """
     Lấy toàn bộ thẻ (bao gồm thẻ mới) phục vụ cho chế độ AutoPlay.
@@ -530,6 +542,9 @@ def get_flashcard_mode_counts(user_id, set_identifier):
         'pronunciation_practice': get_pronunciation_items,
         'writing_practice': get_writing_items,
         'quiz_practice': get_quiz_items,
+        'essay_practice': get_essay_items,
+        'listening_practice': get_listening_items,
+        'speaking_practice': get_speaking_items,
     }
 
     for mode_config in FlashcardLearningConfig.FLASHCARD_MODES:
