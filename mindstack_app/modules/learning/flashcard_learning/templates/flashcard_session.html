@@ -34,10 +34,23 @@
         overflow: hidden;
     }
 
+    body.flashcard-session-active > main {
+        padding: 0 !important;
+        margin: 0;
+        width: 100%;
+        max-width: none;
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+    }
+
     .page-shell {
         display: flex;
         flex-direction: column;
-        height: calc(var(--vh, 1vh) * 100);
+        flex: 1 1 auto;
+        min-height: 0;
         padding: 0;
         overflow: hidden;
     }
@@ -74,6 +87,7 @@
         align-items: stretch;
         min-height: 0;
         flex-grow: 1;
+        box-sizing: border-box;
         /* THAY ĐỔI: Cố định layout */
         overflow: hidden;
     }
@@ -84,6 +98,7 @@
             top: var(--header-h, 0px);
             bottom: 0;
             padding: 0;
+            height: calc(var(--vh, 1vh) * 100);
         }
         .session-layout {
             display: flex;
