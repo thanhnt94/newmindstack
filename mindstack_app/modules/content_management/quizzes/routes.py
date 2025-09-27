@@ -8,12 +8,13 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import QuizSetForm, QuizItemForm
-from ....models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User
+from ....models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User, UserNote
 import pandas as pd
 import tempfile
 import os
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
+import copy
 
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
                         template_folder='templates') # Đã cập nhật đường dẫn template
@@ -38,6 +39,52 @@ def _process_relative_url(url):
     if url and not url.startswith(('http://', 'https://', '/')):
         return f'uploads/{url}'
     return url
+
+
+def _build_absolute_media_url(file_path):
+    if not file_path:
+        return None
+    if file_path.startswith(('http://', 'https://')) or file_path.startswith('/'):
+        return file_path
+    try:
+        return url_for('static', filename=file_path)
+    except Exception as exc:
+        current_app.logger.error(f"Không thể tạo URL tuyệt đối cho media '{file_path}': {exc}")
+        return file_path
+
+
+def _serialize_quiz_item_for_response(item, user_id=None):
+    content_copy = copy.deepcopy(item.content or {})
+    options = content_copy.get('options') or {}
+    content_copy['options'] = {
+        'A': options.get('A'),
+        'B': options.get('B'),
+        'C': options.get('C'),
+        'D': options.get('D')
+    }
+
+    image_path = content_copy.get('question_image_file')
+    if image_path:
+        content_copy['question_image_file'] = _build_absolute_media_url(image_path)
+
+    audio_path = content_copy.get('question_audio_file')
+    if audio_path:
+        content_copy['question_audio_file'] = _build_absolute_media_url(audio_path)
+
+    note_content = ''
+    if user_id is not None:
+        note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
+        note_content = note.content if note else ''
+
+    return {
+        'item_id': item.item_id,
+        'container_id': item.container_id,
+        'content': content_copy,
+        'ai_explanation': item.ai_explanation,
+        'note_content': note_content,
+        'group_id': item.group_id,
+        'group_details': None
+    }
 
 @quizzes_bp.route('/quizzes/process_excel_info', methods=['POST'])
 @login_required
@@ -457,7 +504,7 @@ def edit_quiz_item(set_id, item_id):
     if form.validate_on_submit():
         old_order = quiz_item.order_in_container
         new_order = form.order_in_container.data
-        
+
         if new_order is not None and new_order != old_order:
             if new_order > old_order:
                 db.session.query(LearningItem).filter(
@@ -481,6 +528,7 @@ def edit_quiz_item(set_id, item_id):
         
         quiz_item.content['question'] = form.question.data
         quiz_item.content['pre_question_text'] = form.pre_question_text.data
+        quiz_item.content.setdefault('options', {})
         quiz_item.content['options']['A'] = form.option_a.data
         quiz_item.content['options']['B'] = form.option_b.data
         quiz_item.content['options']['C'] = form.option_c.data
@@ -492,7 +540,7 @@ def edit_quiz_item(set_id, item_id):
         quiz_item.content['passage_text'] = form.passage_text.data
         quiz_item.content['passage_order'] = form.passage_order.data
         quiz_item.ai_explanation = form.ai_explanation.data
-        
+
         if form.ai_prompt.data:
             quiz_item.content['ai_prompt'] = form.ai_prompt.data
         elif 'ai_prompt' in quiz_item.content:
@@ -500,9 +548,16 @@ def edit_quiz_item(set_id, item_id):
 
         flag_modified(quiz_item, "content")
         db.session.commit()
-        flash('Câu hỏi đã được cập nhật!', 'success')
+        success_message = 'Câu hỏi đã được cập nhật!'
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            item_payload = _serialize_quiz_item_for_response(quiz_item, current_user.user_id)
+            return jsonify({'success': True, 'message': success_message, 'data': item_payload})
+        flash(success_message, 'success')
         return redirect(url_for('.list_quiz_items', set_id=set_id))
-    
+
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': False, 'message': 'Dữ liệu không hợp lệ.', 'errors': form.errors}), 400
+
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_quiz_item_bare.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')
     return render_template('add_edit_quiz_item.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')

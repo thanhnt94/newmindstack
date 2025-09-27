@@ -6,15 +6,66 @@
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
 import traceback
-from .algorithms import get_new_only_items, get_reviewed_items, get_hard_items, get_filtered_quiz_sets, get_quiz_mode_counts
+from .algorithms import (
+    get_new_only_items,
+    get_reviewed_items,
+    get_hard_items,
+    get_filtered_quiz_sets,
+    get_quiz_mode_counts,
+    get_accessible_quiz_set_ids,
+)
 from .session_manager import QuizSessionManager
 from .config import QuizLearningConfig
-from ....models import db, User, UserContainerState, LearningContainer, QuizProgress
+from ....models import db, User, UserContainerState, LearningContainer, QuizProgress, LearningItem, UserNote
 from sqlalchemy.sql import func
+import copy
 
 
 quiz_learning_bp = Blueprint('quiz_learning', __name__,
                              template_folder='templates')
+
+
+def _build_absolute_media_url(file_path):
+    if not file_path:
+        return None
+    if file_path.startswith(('http://', 'https://')) or file_path.startswith('/'):
+        return file_path
+    try:
+        return url_for('static', filename=file_path)
+    except Exception as exc:
+        current_app.logger.error(f"Không thể tạo URL tuyệt đối cho media '{file_path}': {exc}")
+        return file_path
+
+
+def _serialize_quiz_learning_item(item, user_id):
+    content_copy = copy.deepcopy(item.content or {})
+    options = content_copy.get('options') or {}
+    content_copy['options'] = {
+        'A': options.get('A'),
+        'B': options.get('B'),
+        'C': options.get('C'),
+        'D': options.get('D'),
+    }
+
+    image_path = content_copy.get('question_image_file')
+    if image_path:
+        content_copy['question_image_file'] = _build_absolute_media_url(image_path)
+
+    audio_path = content_copy.get('question_audio_file')
+    if audio_path:
+        content_copy['question_audio_file'] = _build_absolute_media_url(audio_path)
+
+    note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
+
+    return {
+        'item_id': item.item_id,
+        'container_id': item.container_id,
+        'content': content_copy,
+        'ai_explanation': item.ai_explanation,
+        'note_content': note.content if note else '',
+        'group_id': item.group_id,
+        'group_details': None,
+    }
 
 
 @quiz_learning_bp.route('/quiz_learning_dashboard')
@@ -171,6 +222,22 @@ def quiz_session():
         flash('Không có phiên học Quiz nào đang hoạt động. Vui lòng chọn bộ Quiz để bắt đầu.', 'info')
         return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
     return render_template('quiz_session.html')
+
+
+@quiz_learning_bp.route('/quiz_learning/api/items/<int:item_id>', methods=['GET'])
+@login_required
+def get_quiz_item_api(item_id):
+    item = LearningItem.query.get_or_404(item_id)
+    if item.item_type != 'QUIZ_MCQ':
+        abort(404)
+
+    accessible_ids = set(get_accessible_quiz_set_ids(current_user.user_id))
+    if accessible_ids and item.container_id not in accessible_ids:
+        abort(403)
+
+    item_payload = _serialize_quiz_learning_item(item, current_user.user_id)
+    return jsonify({'success': True, 'item': item_payload})
+
 
 @quiz_learning_bp.route('/get_question_batch', methods=['GET'])
 @login_required
