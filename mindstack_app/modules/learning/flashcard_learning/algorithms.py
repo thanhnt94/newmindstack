@@ -514,61 +514,101 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
 
 def get_flashcard_mode_counts(user_id, set_identifier):
     """
-    Tính toán số lượng thẻ cho các chế độ học Flashcard.
-    Hàm này sẽ loại trừ các bộ thẻ đã được archive.
+    Tính toán số lượng thẻ cho các nhóm chế độ học Flashcard.
+    Hàm này sẽ loại trừ các bộ thẻ đã được archive và gom kết quả theo nhóm hiển thị.
     """
-    print(f">>> ALGORITHMS: Bắt đầu get_flashcard_mode_counts cho user_id={user_id}, set_identifier={set_identifier} <<<")
-    
-    modes_with_counts = []
-    mode_function_map = {
-        'mixed_srs': get_mixed_items,
-        'new_only': get_new_only_items,
-        'due_only': get_due_items,
-        'all_review': get_all_review_items,
-        'hard_only': get_hard_items,
-        'pronunciation_practice': get_pronunciation_items,
-        'writing_practice': get_writing_items,
-        'quiz_practice': get_quiz_items,
+
+    print(
+        f">>> ALGORITHMS: Bắt đầu get_flashcard_mode_counts cho user_id={user_id}, set_identifier={set_identifier} <<<"
+    )
+
+    algorithm_lookup = {
+        'get_mixed_items': get_mixed_items,
+        'get_new_only_items': get_new_only_items,
+        'get_due_items': get_due_items,
+        'get_all_review_items': get_all_review_items,
+        'get_hard_items': get_hard_items,
+        'get_pronunciation_items': get_pronunciation_items,
+        'get_writing_items': get_writing_items,
+        'get_quiz_items': get_quiz_items,
     }
 
-    for mode_config in FlashcardLearningConfig.FLASHCARD_MODES:
-        mode_id = mode_config['id']
-        mode_name = mode_config['name']
-        algorithm_func = mode_function_map.get(mode_id)
-        hide_if_zero = mode_config.get('hide_if_zero', False)
+    grouped_payload = []
 
-        if algorithm_func:
-            # SỬA LỖI: Sử dụng .count() trên đối tượng truy vấn để lấy số lượng
-            # Thay vì gọi hàm với session_size=None và sau đó dùng len()
-            if mode_id == 'mixed_srs':
-                # Chế độ mixed_srs cần phải chạy logic để lấy số lượng thẻ
-                due_count = get_due_items(user_id, set_identifier, None).count()
-                new_count = get_new_only_items(user_id, set_identifier, None).count()
-                count = due_count + new_count
+    for group_config in FlashcardLearningConfig.FLASHCARD_MODE_GROUPS:
+        configured_modes = group_config.get('modes', [])
+        group_modes = []
+
+        for mode_config in configured_modes:
+            mode_id = mode_config['id']
+            metadata = FlashcardLearningConfig.FLASHCARD_MODE_MAP.get(mode_id, mode_config)
+            hide_if_zero = metadata.get('hide_if_zero', False)
+            capability_flag = metadata.get('capability_flag')
+
+            if metadata.get('is_autoplay'):
+                autoplay_learned_count = get_all_review_items(user_id, set_identifier, None).count()
+                autoplay_all_count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
+                count = max(autoplay_learned_count, autoplay_all_count)
+                autoplay_counts = {
+                    'autoplay_learned': autoplay_learned_count,
+                    'autoplay_all': autoplay_all_count,
+                }
             else:
-                count = algorithm_func(user_id, set_identifier, None).count()
+                func_name = metadata.get('algorithm_func_name')
+                algorithm_func = algorithm_lookup.get(func_name)
+
+                if not algorithm_func and func_name:
+                    current_app.logger.warning(
+                        f"Không tìm thấy hàm thuật toán cho chế độ Flashcard: {mode_id}"
+                    )
+
+                if mode_id == 'mixed_srs':
+                    due_count = get_due_items(user_id, set_identifier, None).count()
+                    new_count = get_new_only_items(user_id, set_identifier, None).count()
+                    count = due_count + new_count
+                elif algorithm_func:
+                    count = algorithm_func(user_id, set_identifier, None).count()
+                else:
+                    count = 0
+
+                autoplay_counts = None
 
             if hide_if_zero and count == 0:
                 continue
 
-            modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
-        else:
-            current_app.logger.warning(f"Không tìm thấy hàm thuật toán cho chế độ Flashcard: {mode_id}")
-            modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': 0})
+            mode_payload = {
+                'id': mode_id,
+                'name': metadata['name'],
+                'description': metadata.get('description'),
+                'count': count,
+                'capability_flag': capability_flag,
+                'is_autoplay': metadata.get('is_autoplay', False),
+            }
 
-    autoplay_learned_count = get_all_review_items(user_id, set_identifier, None).count()
-    autoplay_all_count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
-    autoplay_total_count = max(autoplay_learned_count, autoplay_all_count)
+            if autoplay_counts is not None:
+                mode_payload['autoplay_counts'] = autoplay_counts
 
-    modes_with_counts.append({
-        'id': 'autoplay',
-        'name': FlashcardLearningConfig.AUTOPLAY_MODE_NAME,
-        'count': autoplay_total_count,
-        'autoplay_counts': {
-            'autoplay_learned': autoplay_learned_count,
-            'autoplay_all': autoplay_all_count,
-        }
-    })
+            group_modes.append(mode_payload)
 
-    print(f">>> ALGORITHMS: Kết thúc get_flashcard_mode_counts. Modes: {modes_with_counts} <<<")
-    return modes_with_counts
+        configured_count = len(configured_modes)
+        visible_count = len(group_modes)
+        active_count = sum(1 for mode in group_modes if mode['count'] > 0)
+        is_placeholder = group_config.get('is_placeholder', False) or visible_count == 0
+
+        grouped_payload.append({
+            'id': group_config['id'],
+            'title': group_config.get('title'),
+            'description': group_config.get('description'),
+            'icon': group_config.get('icon'),
+            'placeholder_copy': group_config.get('placeholder_copy'),
+            'is_placeholder': is_placeholder,
+            'configured_modes': configured_count,
+            'total_modes': visible_count,
+            'active_modes': active_count,
+            'modes': group_modes,
+        })
+
+    print(
+        f">>> ALGORITHMS: Kết thúc get_flashcard_mode_counts. Mode groups: {grouped_payload} <<<"
+    )
+    return grouped_payload
