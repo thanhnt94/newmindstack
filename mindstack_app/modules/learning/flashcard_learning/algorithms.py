@@ -13,7 +13,7 @@ from ....models import (
     User,
 )
 from flask_login import current_user
-from sqlalchemy import func, and_, not_, or_
+from sqlalchemy import func, and_, not_, or_, cast, String
 from flask import current_app
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
@@ -279,8 +279,9 @@ def _get_items_by_capability(user_id, container_id, session_size, capability_fla
         )
     )
 
+    capability_json_value = cast(LearningItem.content[capability_flag], String)
     capability_filters = [
-        func.lower(func.coalesce(LearningItem.content[capability_flag].astext, 'false')) == 'true'
+        func.lower(func.coalesce(capability_json_value, 'false')) == 'true'
     ]
     if enabled_set_ids:
         capability_filters.append(LearningItem.container_id.in_(enabled_set_ids))
