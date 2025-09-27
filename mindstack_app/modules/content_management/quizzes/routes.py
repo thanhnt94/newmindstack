@@ -28,17 +28,25 @@ def _apply_is_public_restrictions(form):
         existing_render_kw['disabled'] = True
         form.is_public.render_kw = existing_render_kw
 
+STATIC_RELATIVE_PREFIXES = ('uploads/',)
+
+
 def _process_relative_url(url):
-    """
-    Mô tả: Tiền xử lý URL tương đối, thêm 'uploads/' nếu cần.
-    Args:
-        url (str): URL ban đầu.
-    Returns:
-        str: URL đã được tiền xử lý.
-    """
-    if url and not url.startswith(('http://', 'https://', '/')):
-        return f'uploads/{url}'
-    return url
+    """Chuẩn hóa đường dẫn tương đối và thêm tiền tố tĩnh khi cần."""
+    if url is None:
+        return None
+
+    normalized = str(url).strip()
+    if not normalized:
+        return ''
+
+    if normalized.startswith(('http://', 'https://', '/')):
+        return normalized
+
+    if normalized.startswith(STATIC_RELATIVE_PREFIXES):
+        return normalized
+
+    return f'uploads/{normalized}'
 
 
 def _build_absolute_media_url(file_path):
