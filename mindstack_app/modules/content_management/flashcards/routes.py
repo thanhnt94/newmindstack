@@ -72,6 +72,29 @@ def _get_static_image_url(url):
     return url_for('static', filename=relative_path)
 
 
+def _get_static_audio_url(url):
+    """Chuyển đổi đường dẫn audio tương đối thành URL tĩnh đầy đủ."""
+    if not url:
+        return None
+
+    if isinstance(url, str):
+        normalized = url.strip()
+    else:
+        normalized = str(url).strip()
+
+    if not normalized:
+        return None
+
+    if normalized.startswith(('http://', 'https://', '/')):
+        return normalized
+
+    relative_path = normalized
+    if relative_path.startswith('uploads/'):
+        relative_path = relative_path.replace('uploads/', '', 1)
+
+    return url_for('static', filename=relative_path)
+
+
 def _has_editor_access(container_id):
     if current_user.user_role == User.ROLE_FREE:
         return False
@@ -583,10 +606,14 @@ def add_flashcard_item(set_id):
     context = {
         'form': form,
         'flashcard_set': flashcard_set,
+        'flashcard_item': None,
         'title': 'Thêm Thẻ',
         'front_image_url': _get_static_image_url(form.front_img.data),
         'back_image_url': _get_static_image_url(form.back_img.data),
-        'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=0)
+        'front_audio_url_resolved': _get_static_audio_url(form.front_audio_url.data),
+        'back_audio_url_resolved': _get_static_audio_url(form.back_audio_url.data),
+        'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=0),
+        'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content')
     }
 
     # Render template cho modal hoặc trang đầy đủ
@@ -687,7 +714,10 @@ def edit_flashcard_item(set_id, item_id):
         'title': 'Sửa Thẻ',
         'front_image_url': _get_static_image_url(form.front_img.data),
         'back_image_url': _get_static_image_url(form.back_img.data),
-        'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=item_id)
+        'front_audio_url_resolved': _get_static_audio_url(form.front_audio_url.data),
+        'back_audio_url_resolved': _get_static_audio_url(form.back_audio_url.data),
+        'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=item_id),
+        'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content')
     }
 
     # Render template cho modal hoặc trang đầy đủ

@@ -1,0 +1,271 @@
+<script>
+(function() {
+    if (window.initializeFlashcardAudioControls) {
+        return;
+    }
+
+    window.initializeFlashcardAudioControls = function initializeFlashcardAudioControls(options) {
+        const opts = options || {};
+        const formElement = opts.form || (opts.formSelector ? document.querySelector(opts.formSelector) : null);
+        if (!formElement) {
+            return;
+        }
+
+        const itemId = opts.itemId || formElement.dataset.itemId || '';
+        const regenerateUrl = opts.regenerateUrl || formElement.dataset.regenerateAudioUrl || '';
+        const csrfInput = formElement.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
+
+        const audioGroups = Array.from(formElement.querySelectorAll('[data-audio-side]'));
+        if (!audioGroups.length) {
+            return;
+        }
+
+        let currentAudio = null;
+
+        const stopCurrentAudio = () => {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+        };
+
+        const resolveAudioUrl = (value) => {
+            const raw = (value || '').trim();
+            if (!raw) {
+                return '';
+            }
+
+            if (/^(?:https?:)?\/\//i.test(raw) || raw.startsWith('data:')) {
+                return raw;
+            }
+
+            if (raw.startsWith('/')) {
+                return raw;
+            }
+
+            const uploadsPrefix = 'uploads/';
+            const withoutUploads = raw.startsWith(uploadsPrefix) ? raw.slice(uploadsPrefix.length) : raw;
+            return `/static/${withoutUploads}`;
+        };
+
+        const toInputValue = (url) => {
+            if (!url) {
+                return '';
+            }
+            const trimmed = url.trim();
+            const staticPrefix = '/static/';
+            if (trimmed.startsWith(staticPrefix)) {
+                return trimmed.slice(staticPrefix.length);
+            }
+            const originStatic = window.location.origin + staticPrefix;
+            if (trimmed.startsWith(originStatic)) {
+                return trimmed.slice(originStatic.length);
+            }
+            return trimmed;
+        };
+
+        audioGroups.forEach(group => {
+            const side = (group.dataset.audioSide || 'front').toLowerCase();
+            const audioElement = group.querySelector('audio[data-role="audio-player"]');
+            const playButton = group.querySelector('[data-role="play-audio"]');
+            const regenerateButton = group.querySelector('[data-role="regenerate-audio"]');
+            const statusLabel = group.querySelector('[data-role="audio-status"]');
+            const urlInputId = group.dataset.audioUrlInputId;
+            const contentInputId = group.dataset.audioContentInputId;
+            const initialUrl = group.dataset.initialAudioUrl || '';
+
+            const urlInput = urlInputId ? formElement.querySelector(`#${urlInputId}`) : null;
+            const contentInput = contentInputId ? formElement.querySelector(`#${contentInputId}`) : null;
+
+            if (!audioElement || !playButton) {
+                return;
+            }
+
+            const updateStatus = (message, type) => {
+                if (!statusLabel) {
+                    return;
+                }
+                statusLabel.textContent = message || '';
+                statusLabel.classList.remove('text-red-500', 'text-green-600', 'text-gray-500');
+                if (!message) {
+                    return;
+                }
+                if (type === 'error') {
+                    statusLabel.classList.add('text-red-500');
+                } else if (type === 'success') {
+                    statusLabel.classList.add('text-green-600');
+                } else {
+                    statusLabel.classList.add('text-gray-500');
+                }
+            };
+
+            const syncAudioWithInput = () => {
+                if (!urlInput) {
+                    return;
+                }
+                const resolved = resolveAudioUrl(urlInput.value);
+                if (resolved) {
+                    audioElement.src = resolved;
+                    audioElement.classList.remove('hidden');
+                } else {
+                    audioElement.pause();
+                    audioElement.removeAttribute('src');
+                    audioElement.load();
+                    audioElement.classList.add('hidden');
+                }
+            };
+
+            if (initialUrl) {
+                audioElement.src = initialUrl;
+                audioElement.classList.remove('hidden');
+            } else {
+                syncAudioWithInput();
+            }
+
+            if (urlInput) {
+                ['input', 'change'].forEach(evt => {
+                    urlInput.addEventListener(evt, () => {
+                        syncAudioWithInput();
+                        updateStatus('', '');
+                    });
+                });
+            }
+
+            playButton.addEventListener('click', () => {
+                const sourceUrl = urlInput ? resolveAudioUrl(urlInput.value) : (audioElement.getAttribute('src') || '');
+                if (!sourceUrl) {
+                    updateStatus('Chưa có audio. Vui lòng nhập URL hoặc tái tạo.', 'error');
+                    return;
+                }
+
+                if (currentAudio && currentAudio !== audioElement) {
+                    stopCurrentAudio();
+                }
+
+                audioElement.src = sourceUrl;
+                audioElement.play().then(() => {
+                    currentAudio = audioElement;
+                    updateStatus('Đang phát audio...', '');
+                }).catch(error => {
+                    console.error('Không thể phát audio:', error);
+                    updateStatus('Không thể phát audio. Vui lòng kiểm tra URL.', 'error');
+                });
+            });
+
+            audioElement.addEventListener('ended', () => {
+                if (currentAudio === audioElement) {
+                    currentAudio = null;
+                }
+                updateStatus('', '');
+            });
+
+            audioElement.addEventListener('pause', () => {
+                if (currentAudio === audioElement && Math.floor(audioElement.currentTime) === 0) {
+                    currentAudio = null;
+                    updateStatus('', '');
+                }
+            });
+
+            audioElement.addEventListener('error', () => {
+                updateStatus('Không thể tải audio. Vui lòng kiểm tra URL.', 'error');
+            });
+
+            if (regenerateButton) {
+                if (!regenerateUrl || !itemId) {
+                    regenerateButton.disabled = true;
+                    if (!regenerateUrl) {
+                        regenerateButton.title = 'Không tìm thấy đường dẫn tái tạo audio.';
+                    } else {
+                        regenerateButton.title = 'Vui lòng lưu thẻ trước khi tái tạo audio.';
+                    }
+                }
+
+                regenerateButton.addEventListener('click', async () => {
+                    if (!regenerateUrl || !itemId) {
+                        return;
+                    }
+
+                    const contentToRead = contentInput ? contentInput.value.trim() : '';
+                    if (!contentToRead) {
+                        updateStatus('Vui lòng nhập nội dung audio trước khi tái tạo.', 'error');
+                        if (contentInput) {
+                            contentInput.focus();
+                        }
+                        return;
+                    }
+
+                    const originalHtml = regenerateButton.dataset.originalHtml || regenerateButton.innerHTML;
+                    if (!regenerateButton.dataset.originalHtml) {
+                        regenerateButton.dataset.originalHtml = originalHtml;
+                    }
+
+                    regenerateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    regenerateButton.disabled = true;
+                    playButton.disabled = true;
+                    updateStatus('Đang tạo audio...', '');
+
+                    try {
+                        const response = await fetch(regenerateUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {})
+                            },
+                            body: JSON.stringify({
+                                item_id: itemId,
+                                side,
+                                content_to_read: contentToRead
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok && result && result.success && result.audio_url) {
+                            const resolved = result.audio_url;
+                            const inputValue = result.relative_path ? result.relative_path : toInputValue(resolved);
+                            if (urlInput) {
+                                urlInput.value = inputValue;
+                            }
+                            audioElement.src = resolved;
+                            audioElement.classList.remove('hidden');
+                            audioElement.load();
+                            updateStatus('Đã tạo audio mới.', 'success');
+                        } else {
+                            const message = (result && result.message) || 'Không thể tạo audio.';
+                            updateStatus(message, 'error');
+                        }
+                    } catch (error) {
+                        console.error('Lỗi khi tái tạo audio:', error);
+                        updateStatus('Không thể kết nối đến máy chủ.', 'error');
+                    } finally {
+                        regenerateButton.innerHTML = regenerateButton.dataset.originalHtml || originalHtml;
+                        if (regenerateUrl && itemId) {
+                            regenerateButton.disabled = false;
+                        }
+                        playButton.disabled = false;
+                    }
+                });
+            }
+        });
+
+        document.addEventListener('play', (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLAudioElement)) {
+                return;
+            }
+
+            if (!audioGroups.some(group => group.contains(target))) {
+                return;
+            }
+
+            if (currentAudio && currentAudio !== target) {
+                stopCurrentAudio();
+            }
+            currentAudio = target;
+        }, true);
+    };
+})();
+</script>
