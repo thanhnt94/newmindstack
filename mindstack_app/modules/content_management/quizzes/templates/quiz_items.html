@@ -28,6 +28,9 @@
             <a href="{{ url_for('content_management.content_management_quizzes.export_quiz_set', set_id=quiz_set.container_id) }}" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-300 flex items-center">
                 <i class="fas fa-file-export mr-2"></i> Xuất Excel
             </a>
+            <a href="{{ url_for('content_management.content_management_quizzes.manage_quiz_excel', set_id=quiz_set.container_id) }}" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-300 flex items-center">
+                <i class="fas fa-sync-alt mr-2"></i> Cập nhật bằng Excel
+            </a>
         </div>
         {% endif %}
     </div>
