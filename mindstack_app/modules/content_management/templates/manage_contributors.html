@@ -25,11 +25,16 @@
                 <form method="POST" action="{{ url_for('content_management.manage_contributors', container_id=container.container_id) }}">
                     {{ form.hidden_tag() }}
                     <div class="mb-4">
-                        <label for="{{ form.email.id }}" class="block text-sm font-medium text-gray-700">{{ form.email.label }}</label>
-                        {{ form.email(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm") }}
-                        {% if form.email.errors %}
+                        <label for="{{ form.username.id }}" class="block text-sm font-medium text-gray-700">{{ form.username.label }}</label>
+                        {{ form.username(class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm", list="username-suggestions") }}
+                        <datalist id="username-suggestions">
+                            {% for username in username_suggestions %}
+                                <option value="{{ username }}"></option>
+                            {% endfor %}
+                        </datalist>
+                        {% if form.username.errors %}
                             <ul class="text-red-500 text-xs mt-1">
-                            {% for error in form.email.errors %}
+                            {% for error in form.username.errors %}
                                 <li>{{ error }}</li>
                             {% endfor %}
                             </ul>
