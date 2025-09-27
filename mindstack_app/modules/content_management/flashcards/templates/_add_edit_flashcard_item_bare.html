@@ -99,9 +99,9 @@
                         </div>
                         <div data-image-side="front"
                              data-initial-url="{{ front_image_url or '' }}">
-                            {{ form.front_img(type='hidden', id=form.front_img.id, data_role='image-path') }}
                             {{ form.front_img.label(class="block text-sm font-medium text-gray-700") }}
-                            <div class="flex flex-col sm:flex-row gap-4 mt-2">
+                            {{ form.front_img(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", id=form.front_img.id, data_role='image-path', placeholder="URL hình ảnh mặt trước") }}
+                            <div class="flex flex-col sm:flex-row gap-4 mt-3">
                                 <div class="relative w-full sm:w-40 h-40 border border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden" data-role="image-preview-wrapper">
                                     <img src="{{ front_image_url }}" alt="Hình ảnh mặt trước" class="max-h-full max-w-full {{ '' if front_image_url else 'hidden' }}" data-role="image-preview">
                                     <span class="text-gray-400 text-xs text-center px-2 {{ 'hidden' if front_image_url else '' }}" data-role="image-placeholder">Chưa có hình ảnh</span>
@@ -130,9 +130,9 @@
                         </div>
                         <div data-image-side="back"
                              data-initial-url="{{ back_image_url or '' }}">
-                            {{ form.back_img(type='hidden', id=form.back_img.id, data_role='image-path') }}
                             {{ form.back_img.label(class="block text-sm font-medium text-gray-700") }}
-                            <div class="flex flex-col sm:flex-row gap-4 mt-2">
+                            {{ form.back_img(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", id=form.back_img.id, data_role='image-path', placeholder="URL hình ảnh mặt sau") }}
+                            <div class="flex flex-col sm:flex-row gap-4 mt-3">
                                 <div class="relative w-full sm:w-40 h-40 border border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden" data-role="image-preview-wrapper">
                                     <img src="{{ back_image_url }}" alt="Hình ảnh mặt sau" class="max-h-full max-w-full {{ '' if back_image_url else 'hidden' }}" data-role="image-preview">
                                     <span class="text-gray-400 text-xs text-center px-2 {{ 'hidden' if back_image_url else '' }}" data-role="image-placeholder">Chưa có hình ảnh</span>
