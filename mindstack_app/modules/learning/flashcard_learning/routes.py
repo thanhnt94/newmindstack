@@ -575,11 +575,12 @@ def regenerate_audio_from_content():
             
             flag_modified(item, 'content')
             db.session.commit()
-            
+
             return jsonify({
                 'success': True,
                 'message': 'Đã tạo audio thành công.',
-                'audio_url': url_for('static', filename=relative_path)
+                'audio_url': url_for('static', filename=relative_path),
+                'relative_path': relative_path
             })
         else:
             return jsonify({'success': False, 'message': msg}), 500
