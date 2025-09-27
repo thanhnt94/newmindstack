@@ -21,6 +21,22 @@ from .config import FlashcardLearningConfig
 import random
 
 
+def _normalize_capability_flags(raw_flags):
+    """Chuẩn hóa dữ liệu capability trong ai_settings thành tập hợp chuỗi."""
+    normalized = set()
+    if isinstance(raw_flags, (list, tuple, set)):
+        for value in raw_flags:
+            if isinstance(value, str) and value:
+                normalized.add(value)
+    elif isinstance(raw_flags, dict):
+        for key, enabled in raw_flags.items():
+            if enabled and isinstance(key, str) and key:
+                normalized.add(key)
+    elif isinstance(raw_flags, str) and raw_flags:
+        normalized.add(raw_flags)
+    return normalized
+
+
 def get_accessible_flashcard_set_ids(user_id):
     """Return IDs of flashcard sets accessible to the current user."""
 
@@ -218,6 +234,38 @@ def _get_items_by_capability(user_id, container_id, session_size, capability_fla
     )
     base_items_query = _get_base_items_query(user_id, container_id)
 
+    accessible_ids = set(get_accessible_flashcard_set_ids(user_id))
+    if isinstance(container_id, list):
+        candidate_ids = set()
+        for value in container_id:
+            try:
+                candidate_id = int(value)
+            except (TypeError, ValueError):
+                continue
+            if candidate_id in accessible_ids:
+                candidate_ids.add(candidate_id)
+    elif container_id == 'all':
+        candidate_ids = accessible_ids
+    else:
+        try:
+            candidate_id = int(container_id)
+            candidate_ids = {candidate_id} if candidate_id in accessible_ids else set()
+        except (TypeError, ValueError):
+            candidate_ids = set()
+
+    enabled_set_ids = set()
+    if candidate_ids:
+        containers = LearningContainer.query.filter(
+            LearningContainer.container_id.in_(candidate_ids)
+        ).all()
+        for container in containers:
+            if isinstance(container.ai_settings, dict):
+                capabilities = _normalize_capability_flags(
+                    container.ai_settings.get('capabilities')
+                )
+                if capability_flag in capabilities:
+                    enabled_set_ids.add(container.container_id)
+
     capability_items_query = base_items_query.outerjoin(
         UserContainerState,
         and_(
@@ -228,9 +276,16 @@ def _get_items_by_capability(user_id, container_id, session_size, capability_fla
         or_(
             UserContainerState.is_archived == False,
             UserContainerState.is_archived == None
-        ),
-        func.lower(func.coalesce(LearningItem.content[capability_flag].astext, 'false')) == 'true'
+        )
     )
+
+    capability_filters = [
+        func.lower(func.coalesce(LearningItem.content[capability_flag].astext, 'false')) == 'true'
+    ]
+    if enabled_set_ids:
+        capability_filters.append(LearningItem.container_id.in_(enabled_set_ids))
+
+    capability_items_query = capability_items_query.filter(or_(*capability_filters))
 
     if session_size is None or session_size == 999999:
         return capability_items_query

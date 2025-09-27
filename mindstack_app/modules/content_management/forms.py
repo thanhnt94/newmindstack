@@ -86,7 +86,10 @@ class FlashcardSetForm(FlaskForm):
     description = TextAreaField('Mô tả', validators=[Optional()])
     tags = StringField('Thẻ (cách nhau bởi dấu phẩy)', validators=[Optional(), Length(max=255)])
     is_public = BooleanField('Công khai (người khác có thể tìm thấy và học)')
-    ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho bộ thẻ)', 
+    supports_pronunciation = BooleanField('Hỗ trợ luyện phát âm')
+    supports_writing = BooleanField('Hỗ trợ luyện viết')
+    supports_quiz = BooleanField('Hỗ trợ luyện trắc nghiệm')
+    ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho bộ thẻ)',
                               description='Nhập prompt tùy chỉnh để AI tạo thẻ. Nếu để trống, hệ thống sẽ sử dụng prompt mặc định.',
                               validators=[Optional()])
     excel_file = FileField('Tải từ file Excel (.xlsx)', validators=[

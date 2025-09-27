@@ -5,7 +5,7 @@
 
 from flask import session, current_app, url_for
 from flask_login import current_user
-from ....models import db, LearningItem, FlashcardProgress, LearningGroup, User
+from ....models import db, LearningItem, FlashcardProgress, LearningGroup, User, LearningContainer
 from .algorithms import (
     get_new_only_items,
     get_due_items,
@@ -30,6 +30,22 @@ import asyncio
 from .audio_service import AudioService
 
 audio_service = AudioService()
+
+
+def _normalize_capability_flags(raw_flags):
+    """Chuẩn hóa dữ liệu capability trong ai_settings thành tập hợp chuỗi."""
+    normalized = set()
+    if isinstance(raw_flags, (list, tuple, set)):
+        for value in raw_flags:
+            if isinstance(value, str) and value:
+                normalized.add(value)
+    elif isinstance(raw_flags, dict):
+        for key, enabled in raw_flags.items():
+            if enabled and isinstance(key, str) and key:
+                normalized.add(key)
+    elif isinstance(raw_flags, str) and raw_flags:
+        normalized.add(raw_flags)
+    return normalized
 
 class FlashcardSessionManager:
     """
@@ -239,6 +255,16 @@ class FlashcardSessionManager:
         # ĐÃ THÊM: Lấy thống kê ban đầu cho thẻ sắp hiển thị
         initial_stats = get_flashcard_item_statistics(self.user_id, next_item.item_id)
 
+        container_capabilities = set()
+        try:
+            container = LearningContainer.query.get(next_item.container_id)
+            if container and isinstance(container.ai_settings, dict):
+                container_capabilities = _normalize_capability_flags(
+                    container.ai_settings.get('capabilities')
+                )
+        except Exception:
+            container_capabilities = set()
+
         item_dict = {
             'item_id': next_item.item_id,
             'container_id': next_item.container_id,
@@ -251,9 +277,15 @@ class FlashcardSessionManager:
                 'back_audio_url': self._get_media_absolute_url(next_item.content.get('back_audio_url')),
                 'front_img': self._get_media_absolute_url(next_item.content.get('front_img')),
                 'back_img': self._get_media_absolute_url(next_item.content.get('back_img')),
-                'supports_pronunciation': bool(next_item.content.get('supports_pronunciation')),
-                'supports_writing': bool(next_item.content.get('supports_writing')),
-                'supports_quiz': bool(next_item.content.get('supports_quiz')),
+                'supports_pronunciation': bool(next_item.content.get('supports_pronunciation')) or (
+                    'supports_pronunciation' in container_capabilities
+                ),
+                'supports_writing': bool(next_item.content.get('supports_writing')) or (
+                    'supports_writing' in container_capabilities
+                ),
+                'supports_quiz': bool(next_item.content.get('supports_quiz')) or (
+                    'supports_quiz' in container_capabilities
+                ),
             },
             'ai_explanation': next_item.ai_explanation,
             'initial_stats': initial_stats  # Gửi kèm thống kê
