@@ -39,7 +39,7 @@
 
         fields.forEach(field => {
             const side = (field.dataset.imageSide || 'front').toLowerCase();
-            const hiddenInput = field.querySelector('[data-role="image-path"]');
+            const urlInput = field.querySelector('[data-role="image-path"]');
             const previewImg = field.querySelector('[data-role="image-preview"]');
             const placeholder = field.querySelector('[data-role="image-placeholder"]');
             const removeBtn = field.querySelector('[data-role="remove-image"]');
@@ -48,7 +48,7 @@
             const errorLabel = field.querySelector('[data-role="image-error"]');
             const initialUrl = field.dataset.initialUrl || '';
 
-            if (!hiddenInput || !searchBtn) {
+            if (!urlInput || !searchBtn) {
                 return;
             }
 
@@ -71,13 +71,54 @@
                 }
             };
 
-            updatePreview(initialUrl);
+            const buildPreviewUrl = (value) => {
+                const raw = (value || '').trim();
+                if (!raw) {
+                    return '';
+                }
+
+                if (/^(?:https?:)?\/\//i.test(raw) || raw.startsWith('data:')) {
+                    return raw;
+                }
+
+                if (raw.startsWith('/')) {
+                    return raw;
+                }
+
+                const uploadsPrefix = 'uploads/';
+                const withoutUploads = raw.startsWith(uploadsPrefix) ? raw.slice(uploadsPrefix.length) : raw;
+                return `/static/${withoutUploads}`;
+            };
+
+            const syncPreviewWithInput = (overrideUrl) => {
+                if (typeof overrideUrl === 'string') {
+                    updatePreview(overrideUrl);
+                } else {
+                    updatePreview(buildPreviewUrl(urlInput.value));
+                }
+            };
+
+            if (initialUrl) {
+                updatePreview(initialUrl);
+            } else {
+                syncPreviewWithInput();
+            }
+
+            ['input', 'change'].forEach(evtName => {
+                urlInput.addEventListener(evtName, () => {
+                    syncPreviewWithInput();
+                    if (errorLabel) {
+                        errorLabel.textContent = '';
+                        errorLabel.classList.add('hidden');
+                    }
+                });
+            });
 
             if (removeBtn) {
                 removeBtn.addEventListener('click', (event) => {
                     event.preventDefault();
-                    hiddenInput.value = '';
-                    updatePreview('');
+                    urlInput.value = '';
+                    syncPreviewWithInput('');
                     if (errorLabel) {
                         errorLabel.textContent = '';
                         errorLabel.classList.add('hidden');
@@ -131,8 +172,8 @@
                     const result = await response.json();
 
                     if (response.ok && result && result.success && result.image_url) {
-                        hiddenInput.value = result.relative_path || '';
-                        updatePreview(result.image_url);
+                        urlInput.value = result.relative_path || '';
+                        syncPreviewWithInput(result.image_url);
                     } else {
                         const message = (result && result.message) || 'Không tìm thấy ảnh phù hợp.';
                         if (errorLabel) {
