@@ -35,6 +35,9 @@ from .audio_service import AudioService
 from .image_service import ImageService
 from sqlalchemy.orm.attributes import flag_modified
 import os
+import shutil
+import hashlib
+from typing import Optional
 
 flashcard_learning_bp = Blueprint('flashcard_learning', __name__,
                                   template_folder='templates')
@@ -42,6 +45,105 @@ flashcard_learning_bp = Blueprint('flashcard_learning', __name__,
 audio_service = AudioService()
 image_service = ImageService()
 
+
+def _ensure_audio_media_path(source_path: str) -> Optional[str]:
+    """Copy the source audio into the static media directory and return its relative path."""
+
+    if not source_path:
+        return None
+
+    try:
+        absolute_source = os.path.abspath(source_path)
+        if not os.path.isfile(absolute_source):
+            current_app.logger.warning(
+                "Audio source missing when ensuring media path: %s", source_path
+            )
+            return None
+
+        media_audio_dir = os.path.join(current_app.static_folder, 'media', 'audio')
+        os.makedirs(media_audio_dir, exist_ok=True)
+
+        normalized_media_dir = os.path.normpath(media_audio_dir)
+        normalized_source = os.path.normpath(absolute_source)
+
+        if os.path.commonpath([normalized_source, normalized_media_dir]) == normalized_media_dir:
+            relative_existing = os.path.relpath(normalized_source, current_app.static_folder)
+            return relative_existing.replace(os.path.sep, '/')
+
+        filename = os.path.basename(normalized_source)
+        name, ext = os.path.splitext(filename)
+        if not ext:
+            ext = '.mp3'
+        base_identifier = name or hashlib.sha1(filename.encode('utf-8')).hexdigest()
+
+        candidate = f"{base_identifier}{ext}"
+        destination = os.path.join(normalized_media_dir, candidate)
+        counter = 1
+        while os.path.exists(destination):
+            try:
+                if os.path.samefile(destination, normalized_source):
+                    relative_existing = os.path.relpath(destination, current_app.static_folder)
+                    return relative_existing.replace(os.path.sep, '/')
+            except FileNotFoundError:
+                pass
+            candidate = f"{base_identifier}_{counter}{ext}"
+            destination = os.path.join(normalized_media_dir, candidate)
+            counter += 1
+
+        shutil.copy2(normalized_source, destination)
+
+        relative_destination = os.path.relpath(destination, current_app.static_folder)
+        return relative_destination.replace(os.path.sep, '/')
+    except Exception as exc:  # pylint: disable=broad-except
+        current_app.logger.error(
+            "Failed to ensure audio media path for %s: %s", source_path, exc, exc_info=True
+        )
+        return None
+
+
+def _rewrite_cached_audio_reference(relative_path: Optional[str]) -> Optional[str]:
+    """Migrate legacy cache-based audio references into the media/audio directory."""
+
+    if not relative_path:
+        return relative_path
+
+    normalized = str(relative_path).strip()
+    if not normalized or normalized.startswith(('http://', 'https://')):
+        return normalized
+
+    if normalized.startswith('media/audio/'):
+        return normalized.replace(os.path.sep, '/')
+
+    cache_segment = 'flashcard/audio/cache/'
+    cache_index = normalized.find(cache_segment)
+    if cache_index == -1:
+        return normalized
+
+    upload_folder = current_app.config.get('UPLOAD_FOLDER')
+    if not upload_folder:
+        return normalized
+
+    cache_relative = normalized[cache_index:]
+    source_path = os.path.join(upload_folder, cache_relative.replace('/', os.path.sep))
+    ensured_path = _ensure_audio_media_path(source_path)
+    return ensured_path or normalized
+
+
+def _migrate_legacy_audio_references(item: LearningItem) -> bool:
+    """Update any legacy cache-based audio URLs on the given item."""
+
+    if not item.content:
+        return False
+
+    updated = False
+    for field in ('front_audio_url', 'back_audio_url'):
+        current_value = item.content.get(field)
+        migrated_value = _rewrite_cached_audio_reference(current_value)
+        if migrated_value and migrated_value != current_value:
+            item.content[field] = migrated_value
+            updated = True
+
+    return updated
 
 def _user_can_edit_flashcard(container_id: int) -> bool:
     """Return True if the current user can edit items within the container."""
@@ -624,19 +726,34 @@ def regenerate_audio_from_content():
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
+    content_updated = _migrate_legacy_audio_references(item)
+
     try:
-        path_or_url, success, msg = loop.run_until_complete(audio_service.get_cached_or_generate_audio(content_to_read))
-        if success:
-            relative_path = os.path.relpath(path_or_url, current_app.static_folder)
-            relative_path = relative_path.replace(os.path.sep, '/')
+        path_or_url, success, msg = loop.run_until_complete(
+            audio_service.get_cached_or_generate_audio(content_to_read)
+        )
+        if success and path_or_url:
+            relative_path = _ensure_audio_media_path(path_or_url)
+            if not relative_path:
+                if content_updated:
+                    flag_modified(item, 'content')
+                    db.session.commit()
+                return jsonify({
+                    'success': False,
+                    'message': 'Không thể lưu file audio vào thư mục media.',
+                }), 500
 
             if side == 'front':
                 item.content['front_audio_url'] = relative_path
             elif side == 'back':
                 item.content['back_audio_url'] = relative_path
-            
-            flag_modified(item, 'content')
-            db.session.commit()
+
+            content_updated = True
+
+            if content_updated:
+                flag_modified(item, 'content')
+                db.session.commit()
 
             return jsonify({
                 'success': True,
@@ -644,8 +761,12 @@ def regenerate_audio_from_content():
                 'audio_url': url_for('static', filename=relative_path),
                 'relative_path': relative_path
             })
-        else:
-            return jsonify({'success': False, 'message': msg}), 500
+
+        if content_updated:
+            flag_modified(item, 'content')
+            db.session.commit()
+
+        return jsonify({'success': False, 'message': msg}), 500
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Lỗi khi tạo audio từ nội dung: {e}", exc_info=True)
