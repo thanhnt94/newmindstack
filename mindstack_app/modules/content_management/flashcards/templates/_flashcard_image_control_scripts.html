@@ -46,29 +46,48 @@
             const queryInput = field.querySelector('[data-role="image-query"]');
             const searchBtn = field.querySelector('[data-role="search-image"]');
             const errorLabel = field.querySelector('[data-role="image-error"]');
+            const statusLabel = field.querySelector('[data-role="image-status"]');
+            const loadingOverlay = field.querySelector('[data-role="image-loading"]');
+            const openButton = field.querySelector('[data-role="open-image"]');
             const initialUrl = field.dataset.initialUrl || '';
 
             if (!urlInput || !searchBtn) {
                 return;
             }
 
-            const updatePreview = (url) => {
-                const hasUrl = Boolean(url);
-                if (previewImg) {
-                    if (hasUrl) {
-                        previewImg.src = url;
-                        previewImg.classList.remove('hidden');
-                    } else {
-                        previewImg.removeAttribute('src');
-                        previewImg.classList.add('hidden');
-                    }
+            let currentPreviewUrl = '';
+
+            const setStatus = (message, type) => {
+                if (!statusLabel) {
+                    return;
                 }
-                if (placeholder) {
-                    placeholder.classList.toggle('hidden', hasUrl);
+                statusLabel.textContent = message || '';
+                statusLabel.classList.remove('hidden', 'text-red-500', 'text-green-600', 'text-blue-600');
+                if (!message) {
+                    statusLabel.classList.add('hidden');
+                    return;
                 }
-                if (removeBtn) {
-                    removeBtn.classList.toggle('hidden', !hasUrl);
+                if (type === 'error') {
+                    statusLabel.classList.add('text-red-500');
+                } else if (type === 'success') {
+                    statusLabel.classList.add('text-green-600');
+                } else {
+                    statusLabel.classList.add('text-blue-600');
                 }
+            };
+
+            const setLoading = (isLoading) => {
+                if (!loadingOverlay) {
+                    return;
+                }
+                loadingOverlay.classList.toggle('hidden', !isLoading);
+            };
+
+            const setOpenButtonVisible = (visible) => {
+                if (!openButton) {
+                    return;
+                }
+                openButton.classList.toggle('hidden', !visible);
             };
 
             const buildPreviewUrl = (value) => {
@@ -90,6 +109,34 @@
                 return `/static/${withoutUploads}`;
             };
 
+            const updatePreview = (url) => {
+                const hasUrl = Boolean(url);
+                if (previewImg) {
+                    if (hasUrl) {
+                        currentPreviewUrl = url;
+                        previewImg.src = url;
+                        previewImg.classList.remove('hidden');
+                        setLoading(true);
+                        setStatus('Đang tải hình ảnh...', 'info');
+                    } else {
+                        currentPreviewUrl = '';
+                        previewImg.removeAttribute('src');
+                        previewImg.classList.add('hidden');
+                        setLoading(false);
+                        setStatus('', '');
+                    }
+                }
+                if (placeholder) {
+                    placeholder.classList.toggle('hidden', hasUrl);
+                }
+                if (removeBtn) {
+                    removeBtn.classList.toggle('hidden', !hasUrl);
+                }
+                if (!hasUrl) {
+                    setOpenButtonVisible(false);
+                }
+            };
+
             const syncPreviewWithInput = (overrideUrl) => {
                 if (typeof overrideUrl === 'string') {
                     updatePreview(overrideUrl);
@@ -98,10 +145,35 @@
                 }
             };
 
+            if (previewImg) {
+                previewImg.addEventListener('load', () => {
+                    setLoading(false);
+                    if (previewImg.src) {
+                        setStatus('Đã tải xem trước hình ảnh.', 'success');
+                        setOpenButtonVisible(true);
+                    } else {
+                        setStatus('', '');
+                        setOpenButtonVisible(false);
+                    }
+                });
+                previewImg.addEventListener('error', () => {
+                    setLoading(false);
+                    previewImg.classList.add('hidden');
+                    previewImg.removeAttribute('src');
+                    if (placeholder) {
+                        placeholder.classList.remove('hidden');
+                    }
+                    currentPreviewUrl = '';
+                    setStatus('Không thể tải hình ảnh. Vui lòng kiểm tra đường dẫn.', 'error');
+                    setOpenButtonVisible(false);
+                });
+            }
+
             if (initialUrl) {
                 updatePreview(initialUrl);
             } else {
-                syncPreviewWithInput();
+                syncPreviewWithInput('');
+                setLoading(false);
             }
 
             ['input', 'change'].forEach(evtName => {
@@ -123,6 +195,20 @@
                         errorLabel.textContent = '';
                         errorLabel.classList.add('hidden');
                     }
+                    setStatus('', '');
+                    setOpenButtonVisible(false);
+                });
+            }
+
+            if (openButton) {
+                openButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const urlToOpen = currentPreviewUrl || buildPreviewUrl(urlInput.value);
+                    if (!urlToOpen) {
+                        setStatus('Chưa có hình ảnh để mở.', 'error');
+                        return;
+                    }
+                    window.open(urlToOpen, '_blank', 'noopener');
                 });
             }
 
@@ -131,6 +217,7 @@
                     errorLabel.textContent = '';
                     errorLabel.classList.add('hidden');
                 }
+                setStatus('', '');
 
                 let query = queryInput ? queryInput.value.trim() : '';
                 if (!query) {
@@ -141,10 +228,12 @@
                 }
 
                 if (!query) {
+                    const message = 'Vui lòng nhập nội dung để tìm ảnh.';
                     if (errorLabel) {
-                        errorLabel.textContent = 'Vui lòng nhập nội dung để tìm ảnh.';
+                        errorLabel.textContent = message;
                         errorLabel.classList.remove('hidden');
                     }
+                    setStatus(message, 'error');
                     if (queryInput) {
                         queryInput.focus();
                     }
@@ -180,13 +269,16 @@
                             errorLabel.textContent = message;
                             errorLabel.classList.remove('hidden');
                         }
+                        setStatus(message, 'error');
                     }
                 } catch (error) {
                     console.error('Lỗi tìm ảnh minh họa:', error);
+                    const message = 'Không thể kết nối đến máy chủ tìm kiếm ảnh.';
                     if (errorLabel) {
-                        errorLabel.textContent = 'Không thể kết nối đến máy chủ tìm kiếm ảnh.';
+                        errorLabel.textContent = message;
                         errorLabel.classList.remove('hidden');
                     }
+                    setStatus(message, 'error');
                 } finally {
                     searchBtn.innerHTML = searchBtn.dataset.originalHtml || originalHtml;
                     searchBtn.disabled = false;

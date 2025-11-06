@@ -698,6 +698,76 @@ def export_flashcard_set(set_id):
         return send_file(zip_buffer, as_attachment=True, download_name=download_name, mimetype='application/zip')
 
 
+@flashcards_bp.route('/flashcards/excel-template', methods=['GET'])
+@login_required
+def download_flashcard_excel_template():
+    """Cung cấp file Excel mẫu để quản trị viên chuẩn bị dữ liệu flashcard."""
+    info_rows = [
+        {'Key': 'title', 'Value': 'Tiêu đề bộ thẻ (tuỳ chọn)'},
+        {'Key': 'description', 'Value': 'Mô tả ngắn gọn về bộ thẻ'},
+        {'Key': 'tags', 'Value': 'Từ khoá phân tách bằng dấu phẩy'},
+        {'Key': 'is_public', 'Value': 'true/false - trạng thái công khai'},
+        {'Key': 'supports_*', 'Value': 'true/false - bật từng chế độ học cho toàn bộ bộ thẻ'},
+    ]
+
+    data_columns = [
+        'item_id',
+        'order_in_container',
+        'front',
+        'back',
+        'front_audio_content',
+        'back_audio_content',
+        'front_audio_url',
+        'back_audio_url',
+        'front_img',
+        'back_img',
+        'ai_explanation',
+        'ai_prompt',
+        'supports_pronunciation',
+        'supports_writing',
+        'supports_quiz',
+        'supports_essay',
+        'supports_listening',
+        'supports_speaking',
+        'action',
+    ]
+
+    sample_row = {
+        'item_id': '',
+        'order_in_container': 1,
+        'front': 'Hello',
+        'back': 'Xin chào',
+        'front_audio_content': 'Hello',
+        'back_audio_content': 'Xin chào',
+        'front_audio_url': '',
+        'back_audio_url': '',
+        'front_img': '',
+        'back_img': '',
+        'ai_explanation': '',
+        'ai_prompt': '',
+        'supports_pronunciation': 'TRUE',
+        'supports_writing': 'TRUE',
+        'supports_quiz': 'TRUE',
+        'supports_essay': 'FALSE',
+        'supports_listening': 'TRUE',
+        'supports_speaking': 'TRUE',
+        'action': '',
+    }
+
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
+        pd.DataFrame([sample_row], columns=data_columns).to_excel(writer, sheet_name='Data', index=False)
+
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name='flashcard_template.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
 @flashcards_bp.route('/flashcards/<int:set_id>/manage-excel', methods=['GET', 'POST'])
 @login_required
 def manage_flashcard_excel(set_id):
@@ -730,10 +800,14 @@ def manage_flashcard_excel(set_id):
         return redirect(url_for('content_management.content_management_flashcards.manage_flashcard_excel', set_id=set_id))
 
     export_url = url_for('content_management.content_management_flashcards.export_flashcard_set', set_id=set_id)
+    template_url = url_for('content_management.content_management_flashcards.download_flashcard_excel_template')
+    item_count = LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD').count()
     return render_template(
         'manage_flashcard_excel.html',
         flashcard_set=flashcard_set,
         export_url=export_url,
+        template_url=template_url,
+        item_count=item_count,
     )
 
 

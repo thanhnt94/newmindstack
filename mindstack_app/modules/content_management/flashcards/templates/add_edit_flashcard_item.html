@@ -85,8 +85,13 @@
                                             data-role="regenerate-audio">
                                         <i class="fas fa-sync-alt mr-2"></i> Tái tạo audio
                                     </button>
-                                    <span class="text-sm text-gray-500" data-role="audio-status"></span>
+                                    <button type="button"
+                                            class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md transition duration-200 flex items-center hidden"
+                                            data-role="open-audio">
+                                        <i class="fas fa-external-link-alt mr-2"></i> Mở file
+                                    </button>
                                 </div>
+                                <p class="text-xs text-gray-500 hidden" data-role="audio-status"></p>
                                 <audio controls preload="none"
                                        class="w-full rounded-md border border-gray-200 {{ '' if front_audio_url_resolved else 'hidden' }}"
                                        data-role="audio-player"{% if front_audio_url_resolved %} src="{{ front_audio_url_resolved }}"{% endif %}>
@@ -127,8 +132,13 @@
                                             data-role="regenerate-audio">
                                         <i class="fas fa-sync-alt mr-2"></i> Tái tạo audio
                                     </button>
-                                    <span class="text-sm text-gray-500" data-role="audio-status"></span>
+                                    <button type="button"
+                                            class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md transition duration-200 flex items-center hidden"
+                                            data-role="open-audio">
+                                        <i class="fas fa-external-link-alt mr-2"></i> Mở file
+                                    </button>
                                 </div>
+                                <p class="text-xs text-gray-500 hidden" data-role="audio-status"></p>
                                 <audio controls preload="none"
                                        class="w-full rounded-md border border-gray-200 {{ '' if back_audio_url_resolved else 'hidden' }}"
                                        data-role="audio-player"{% if back_audio_url_resolved %} src="{{ back_audio_url_resolved }}"{% endif %}>
@@ -143,9 +153,15 @@
                             <div class="flex flex-col sm:flex-row gap-4 mt-3">
                                 <div class="relative w-full sm:w-40 h-40 border border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden" data-role="image-preview-wrapper">
                                     <img src="{{ front_image_url }}" alt="Hình ảnh mặt trước" class="max-h-full max-w-full {{ '' if front_image_url else 'hidden' }}" data-role="image-preview">
+                                    <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 {{ 'hidden' if not front_image_url else '' }}" data-role="image-loading">
+                                        <i class="fas fa-spinner fa-spin text-gray-400 text-xl"></i>
+                                    </div>
                                     <span class="text-gray-400 text-xs text-center px-2 {{ 'hidden' if front_image_url else '' }}" data-role="image-placeholder">Chưa có hình ảnh</span>
                                     <button type="button" class="absolute top-1 right-1 text-gray-500 hover:text-red-500 transition {{ '' if front_image_url else 'hidden' }}" data-role="remove-image" aria-label="Xoá hình ảnh">
                                         <i class="fas fa-times"></i>
+                                    </button>
+                                    <button type="button" class="absolute bottom-1 right-1 text-xs bg-white/80 text-gray-600 hover:text-blue-600 px-2 py-1 rounded hidden" data-role="open-image" aria-label="Mở hình ảnh">
+                                        <i class="fas fa-external-link-alt"></i>
                                     </button>
                                 </div>
                                 <div class="flex-1 space-y-2">
@@ -163,6 +179,7 @@
                                         </button>
                                     </div>
                                     <p class="text-xs text-gray-500">Mặc định sử dụng nội dung mặt trước, bạn có thể chỉnh sửa trước khi tìm.</p>
+                                    <p class="text-xs text-gray-500 hidden" data-role="image-status"></p>
                                     <p class="text-sm text-red-500 hidden" data-role="image-error"></p>
                                 </div>
                             </div>
@@ -179,9 +196,15 @@
                             <div class="flex flex-col sm:flex-row gap-4 mt-3">
                                 <div class="relative w-full sm:w-40 h-40 border border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden" data-role="image-preview-wrapper">
                                     <img src="{{ back_image_url }}" alt="Hình ảnh mặt sau" class="max-h-full max-w-full {{ '' if back_image_url else 'hidden' }}" data-role="image-preview">
+                                    <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 {{ 'hidden' if not back_image_url else '' }}" data-role="image-loading">
+                                        <i class="fas fa-spinner fa-spin text-gray-400 text-xl"></i>
+                                    </div>
                                     <span class="text-gray-400 text-xs text-center px-2 {{ 'hidden' if back_image_url else '' }}" data-role="image-placeholder">Chưa có hình ảnh</span>
                                     <button type="button" class="absolute top-1 right-1 text-gray-500 hover:text-red-500 transition {{ '' if back_image_url else 'hidden' }}" data-role="remove-image" aria-label="Xoá hình ảnh">
                                         <i class="fas fa-times"></i>
+                                    </button>
+                                    <button type="button" class="absolute bottom-1 right-1 text-xs bg-white/80 text-gray-600 hover:text-blue-600 px-2 py-1 rounded hidden" data-role="open-image" aria-label="Mở hình ảnh">
+                                        <i class="fas fa-external-link-alt"></i>
                                     </button>
                                 </div>
                                 <div class="flex-1 space-y-2">
@@ -199,6 +222,7 @@
                                         </button>
                                     </div>
                                     <p class="text-xs text-gray-500">Mặc định sử dụng nội dung mặt sau, bạn có thể chỉnh sửa trước khi tìm.</p>
+                                    <p class="text-xs text-gray-500 hidden" data-role="image-status"></p>
                                     <p class="text-sm text-red-500 hidden" data-role="image-error"></p>
                                 </div>
                             </div>
