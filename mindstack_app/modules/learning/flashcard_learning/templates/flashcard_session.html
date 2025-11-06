@@ -1367,17 +1367,50 @@
         card.dataset.cardCategory = cardCategory || 'default';
       }
 
+      const flipToBack = () => {
+        stopAllFlashcardAudio();
+        card.classList.add('flipped');
+        actions?.classList.add('visible');
+        if (flipBtn) {
+          flipBtn.style.display = 'none';
+        }
+        setTimeout(adjustCardLayout, 0);
+        if (!isAutoplaySession) {
+          autoPlayBackSide();
+        }
+      };
+
+      const flipToFront = () => {
+        stopAllFlashcardAudio();
+        card.classList.remove('flipped');
+        actions?.classList.remove('visible');
+        if (flipBtn) {
+          flipBtn.style.display = '';
+        }
+        setTimeout(adjustCardLayout, 0);
+      };
+
       if (flipBtn) {
         flipBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
-            stopAllFlashcardAudio();
-            card.classList.add('flipped');
-            actions?.classList.add('visible');
-            flipBtn.style.display = 'none';
-            setTimeout(adjustCardLayout, 0);
-            if (!isAutoplaySession) {
-                autoPlayBackSide();
-            }
+            flipToBack();
+        });
+      }
+
+      const frontLabel = card?.querySelector('.front .card-toolbar .label');
+      const backLabel = card?.querySelector('.back .card-toolbar .label');
+
+      if (frontLabel) {
+        frontLabel.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          flipToBack();
+        });
+      }
+
+      if (backLabel) {
+        backLabel.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          flipToFront();
         });
       }
       
