@@ -35,6 +35,13 @@ from .audio_service import AudioService
 from .image_service import ImageService
 from sqlalchemy.orm.attributes import flag_modified
 import os
+import shutil
+
+from mindstack_app.modules.shared.utils.media_paths import (
+    get_media_folders,
+    normalize_media_value_for_storage,
+    build_relative_media_path,
+)
 
 flashcard_learning_bp = Blueprint('flashcard_learning', __name__,
                                   template_folder='templates')
@@ -259,14 +266,20 @@ def get_flashcard_item_api(item_id):
         if accessible_set_ids and item.container_id not in accessible_set_ids:
             return jsonify({'success': False, 'message': 'Bạn không có quyền truy cập thẻ này.'}), 403
 
-        def resolve_media_url(file_path):
+        media_folders = get_media_folders(item.container.ai_settings if item.container and isinstance(item.container.ai_settings, dict) else None)
+
+        def resolve_media_url(file_path, media_type=None):
             if not file_path:
                 return None
             try:
-                if not isinstance(file_path, str):
-                    file_path = str(file_path)
-                normalized = file_path.lstrip('/')
-                return url_for('static', filename=normalized, _external=True)
+                relative_path = build_relative_media_path(file_path, media_folders.get(media_type) if media_type else None)
+                if not relative_path:
+                    return None
+                if relative_path.startswith(('http://', 'https://')):
+                    return relative_path
+                if relative_path.startswith('/'):
+                    return url_for('static', filename=relative_path.lstrip('/'), _external=True)
+                return url_for('static', filename=relative_path, _external=True)
             except Exception:
                 return None
 
@@ -279,11 +292,11 @@ def get_flashcard_item_api(item_id):
                 'front': item.content.get('front', ''),
                 'back': item.content.get('back', ''),
                 'front_audio_content': item.content.get('front_audio_content', ''),
-                'front_audio_url': resolve_media_url(item.content.get('front_audio_url')),
+                'front_audio_url': resolve_media_url(item.content.get('front_audio_url'), 'audio'),
                 'back_audio_content': item.content.get('back_audio_content', ''),
-                'back_audio_url': resolve_media_url(item.content.get('back_audio_url')),
-                'front_img': resolve_media_url(item.content.get('front_img')),
-                'back_img': resolve_media_url(item.content.get('back_img')),
+                'back_audio_url': resolve_media_url(item.content.get('back_audio_url'), 'audio'),
+                'front_img': resolve_media_url(item.content.get('front_img'), 'image'),
+                'back_img': resolve_media_url(item.content.get('back_img'), 'image'),
             },
             'ai_explanation': item.ai_explanation,
             'initial_stats': initial_stats,
@@ -627,14 +640,40 @@ def regenerate_audio_from_content():
     try:
         path_or_url, success, msg = loop.run_until_complete(audio_service.get_cached_or_generate_audio(content_to_read))
         if success:
-            relative_path = os.path.relpath(path_or_url, current_app.static_folder)
-            relative_path = relative_path.replace(os.path.sep, '/')
+            media_folders = get_media_folders(item.container.ai_settings if item.container and isinstance(item.container.ai_settings, dict) else None)
+            audio_folder = media_folders.get('audio')
+            stored_value = None
+            relative_path = None
+
+            if audio_folder:
+                try:
+                    os.makedirs(os.path.join(current_app.static_folder, audio_folder), exist_ok=True)
+                    filename = os.path.basename(path_or_url)
+                    destination = os.path.join(current_app.static_folder, audio_folder, filename)
+                    shutil.copy2(path_or_url, destination)
+                    stored_value = normalize_media_value_for_storage(filename, audio_folder)
+                    relative_path = build_relative_media_path(stored_value, audio_folder)
+                except Exception as copy_exc:  # pylint: disable=broad-except
+                    current_app.logger.error(
+                        "Lỗi khi sao chép audio vào thư mục tùy chỉnh %s: %s", audio_folder, copy_exc, exc_info=True
+                    )
+                    stored_value = None
+                    relative_path = None
+
+            if not relative_path:
+                raw_relative = os.path.relpath(path_or_url, current_app.static_folder)
+                raw_relative = raw_relative.replace(os.path.sep, '/')
+                stored_value = normalize_media_value_for_storage(raw_relative, None)
+                relative_path = build_relative_media_path(stored_value, None)
+
+            if not relative_path:
+                return jsonify({'success': False, 'message': 'Không thể xử lý đường dẫn audio.'}), 500
 
             if side == 'front':
-                item.content['front_audio_url'] = relative_path
+                item.content['front_audio_url'] = stored_value
             elif side == 'back':
-                item.content['back_audio_url'] = relative_path
-            
+                item.content['back_audio_url'] = stored_value
+
             flag_modified(item, 'content')
             db.session.commit()
 
@@ -642,7 +681,8 @@ def regenerate_audio_from_content():
                 'success': True,
                 'message': 'Đã tạo audio thành công.',
                 'audio_url': url_for('static', filename=relative_path),
-                'relative_path': relative_path
+                'relative_path': relative_path,
+                'stored_value': stored_value,
             })
         else:
             return jsonify({'success': False, 'message': msg}), 500

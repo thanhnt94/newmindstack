@@ -89,6 +89,16 @@ class FlashcardSetForm(FlaskForm):
     title = StringField('Tiêu đề bộ thẻ', validators=[DataRequired(message="Vui lòng nhập tiêu đề bộ thẻ."), Length(max=255)])
     description = TextAreaField('Mô tả', validators=[Optional()])
     tags = StringField('Thẻ (cách nhau bởi dấu phẩy)', validators=[Optional(), Length(max=255)])
+    image_base_folder = StringField(
+        'Thư mục ảnh (trong uploads)',
+        validators=[Optional(), Length(max=255)],
+        description='Khai báo thư mục con dùng để lưu hình ảnh, ví dụ: flashcard/n5/images',
+    )
+    audio_base_folder = StringField(
+        'Thư mục audio (trong uploads)',
+        validators=[Optional(), Length(max=255)],
+        description='Khai báo thư mục con dùng để lưu file âm thanh, ví dụ: flashcard/n5/audio',
+    )
     is_public = BooleanField('Công khai (người khác có thể tìm thấy và học)')
     supports_pronunciation = BooleanField('Hỗ trợ luyện phát âm')
     supports_writing = BooleanField('Hỗ trợ luyện viết')

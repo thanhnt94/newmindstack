@@ -23,6 +23,7 @@
 
         const csrfInput = formElement.querySelector('input[name="csrf_token"]');
         const csrfToken = csrfInput ? csrfInput.value : '';
+        const imageBaseFolder = (formElement.dataset.imageBaseFolder || '').replace(/^\/+|\/+$/g, '');
 
         const getDefaultQuery = (field) => {
             const side = field.dataset.imageSide || 'front';
@@ -91,7 +92,7 @@
             };
 
             const buildPreviewUrl = (value) => {
-                const raw = (value || '').trim();
+                let raw = (value || '').trim();
                 if (!raw) {
                     return '';
                 }
@@ -100,13 +101,22 @@
                     return raw;
                 }
 
+                raw = raw.replace(/\\/g, '/');
+
                 if (raw.startsWith('/')) {
                     return raw;
                 }
 
                 const uploadsPrefix = 'uploads/';
-                const withoutUploads = raw.startsWith(uploadsPrefix) ? raw.slice(uploadsPrefix.length) : raw;
-                return `/static/${withoutUploads}`;
+                if (raw.startsWith(uploadsPrefix)) {
+                    raw = raw.slice(uploadsPrefix.length);
+                }
+
+                if (imageBaseFolder && !raw.includes('/')) {
+                    raw = `${imageBaseFolder}/${raw}`;
+                }
+
+                return `/static/${raw}`;
             };
 
             const updatePreview = (url) => {
@@ -261,7 +271,8 @@
                     const result = await response.json();
 
                     if (response.ok && result && result.success && result.image_url) {
-                        urlInput.value = result.relative_path || '';
+                        const storedValue = (typeof result.stored_value !== 'undefined') ? result.stored_value : result.relative_path;
+                        urlInput.value = storedValue || '';
                         syncPreviewWithInput(result.image_url);
                     } else {
                         const message = (result && result.message) || 'Không tìm thấy ảnh phù hợp.';

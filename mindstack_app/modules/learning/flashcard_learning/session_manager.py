@@ -31,6 +31,7 @@ import datetime
 import os
 import asyncio
 from .audio_service import AudioService
+from mindstack_app.modules.shared.utils.media_paths import get_media_folders, build_relative_media_path
 
 audio_service = AudioService()
 
@@ -68,10 +69,11 @@ class FlashcardSessionManager:
         self.incorrect_answers = incorrect_answers
         self.vague_answers = vague_answers
         self.start_time = start_time
+        self._media_folders_cache = None
 
     @classmethod
     def from_dict(cls, session_dict):
-        return cls(
+        instance = cls(
             user_id=session_dict['user_id'],
             set_id=session_dict['set_id'],
             mode=session_dict['mode'],
@@ -82,6 +84,8 @@ class FlashcardSessionManager:
             vague_answers=session_dict['vague_answers'],
             start_time=session_dict['start_time']
         )
+        instance._media_folders_cache = None
+        return instance
 
     def to_dict(self):
         return {
@@ -181,12 +185,30 @@ class FlashcardSessionManager:
         session.modified = True
         return True
 
-    def _get_media_absolute_url(self, file_path):
-        if not file_path: return None
+    def _get_media_folders(self):
+        if self._media_folders_cache is None:
+            container = LearningContainer.query.get(self.set_id)
+            if container and isinstance(container.ai_settings, dict):
+                self._media_folders_cache = get_media_folders(container.ai_settings)
+            else:
+                self._media_folders_cache = {}
+        return self._media_folders_cache
+
+    def _get_media_absolute_url(self, file_path, media_type=None):
+        if not file_path:
+            return None
         try:
-            if file_path.startswith('/'): file_path = file_path.lstrip('/')
-            return url_for('static', filename=file_path)
-        except Exception: return None
+            folders = self._get_media_folders()
+            relative_path = build_relative_media_path(file_path, folders.get(media_type) if media_type else None)
+            if not relative_path:
+                return None
+            if relative_path.startswith(('http://', 'https://')):
+                return relative_path
+            if relative_path.startswith('/'):
+                return url_for('static', filename=relative_path.lstrip('/'))
+            return url_for('static', filename=relative_path)
+        except Exception:
+            return None
 
     def get_next_batch(self):
         next_item = None
@@ -278,11 +300,11 @@ class FlashcardSessionManager:
                 'front': next_item.content.get('front', ''),
                 'back': next_item.content.get('back', ''),
                 'front_audio_content': next_item.content.get('front_audio_content', ''),
-                'front_audio_url': self._get_media_absolute_url(next_item.content.get('front_audio_url')),
+                'front_audio_url': self._get_media_absolute_url(next_item.content.get('front_audio_url'), 'audio'),
                 'back_audio_content': next_item.content.get('back_audio_content', ''),
-                'back_audio_url': self._get_media_absolute_url(next_item.content.get('back_audio_url')),
-                'front_img': self._get_media_absolute_url(next_item.content.get('front_img')),
-                'back_img': self._get_media_absolute_url(next_item.content.get('back_img')),
+                'back_audio_url': self._get_media_absolute_url(next_item.content.get('back_audio_url'), 'audio'),
+                'front_img': self._get_media_absolute_url(next_item.content.get('front_img'), 'image'),
+                'back_img': self._get_media_absolute_url(next_item.content.get('back_img'), 'image'),
                 'supports_pronunciation': bool(next_item.content.get('supports_pronunciation')) or (
                     'supports_pronunciation' in container_capabilities
                 ),

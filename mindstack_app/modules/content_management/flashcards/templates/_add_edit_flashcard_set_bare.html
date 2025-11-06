@@ -48,6 +48,19 @@
                     {{ form.tags(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="ví dụ: Kanji, N5, Tiếng Nhật") }}
                 </div>
 
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        {{ form.image_base_folder.label(class="block text-sm font-medium text-gray-700") }}
+                        <p class="text-xs text-gray-500 mb-1">{{ form.image_base_folder.description }}</p>
+                        {{ form.image_base_folder(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="vd: flashcard/n5/images") }}
+                    </div>
+                    <div>
+                        {{ form.audio_base_folder.label(class="block text-sm font-medium text-gray-700") }}
+                        <p class="text-xs text-gray-500 mb-1">{{ form.audio_base_folder.description }}</p>
+                        {{ form.audio_base_folder(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="vd: flashcard/n5/audio") }}
+                    </div>
+                </div>
+
                 {% if current_user.user_role != 'free' %}
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Trạng thái công khai:</label>
@@ -165,6 +178,16 @@
                     if (data.description) form.querySelector('[name="description"]').value = data.description;
                     if (data.tags) form.querySelector('[name="tags"]').value = data.tags;
                     if (data.ai_prompt) form.querySelector('[name="ai_prompt"]').value = data.ai_prompt;
+
+                    const imageFolderField = form.querySelector('[name="image_base_folder"]');
+                    if (imageFolderField) {
+                        imageFolderField.value = data.image_base_folder || '';
+                    }
+
+                    const audioFolderField = form.querySelector('[name="audio_base_folder"]');
+                    if (audioFolderField) {
+                        audioFolderField.value = data.audio_base_folder || '';
+                    }
 
                     const isPublicCheckbox = form.querySelector('[name="is_public"]');
                     if (isPublicCheckbox) {

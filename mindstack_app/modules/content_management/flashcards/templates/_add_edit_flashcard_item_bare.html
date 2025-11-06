@@ -54,7 +54,9 @@
                   data-front-source-id="{{ form.front.id }}"
                   data-back-source-id="{{ form.back.id }}"
                   data-item-id="{{ flashcard_item.item_id if flashcard_item else '' }}"
-                  data-regenerate-audio-url="{{ regenerate_audio_url }}">
+                  data-regenerate-audio-url="{{ regenerate_audio_url }}"
+                  data-image-base-folder="{{ image_base_folder or '' }}"
+                  data-audio-base-folder="{{ audio_base_folder or '' }}">
                 {{ form.csrf_token }}
                 
                 <div>

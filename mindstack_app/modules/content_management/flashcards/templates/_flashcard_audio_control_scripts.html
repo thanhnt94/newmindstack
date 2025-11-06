@@ -22,6 +22,7 @@
         }
 
         let currentAudio = null;
+        const audioBaseFolder = (formElement.dataset.audioBaseFolder || '').replace(/^\/+|\/+$/g, '');
 
         const stopCurrentAudio = () => {
             if (currentAudio) {
@@ -32,7 +33,7 @@
         };
 
         const resolveAudioUrl = (value) => {
-            const raw = (value || '').trim();
+            let raw = (value || '').trim();
             if (!raw) {
                 return '';
             }
@@ -41,13 +42,22 @@
                 return raw;
             }
 
+            raw = raw.replace(/\\/g, '/');
+
             if (raw.startsWith('/')) {
                 return raw;
             }
 
             const uploadsPrefix = 'uploads/';
-            const withoutUploads = raw.startsWith(uploadsPrefix) ? raw.slice(uploadsPrefix.length) : raw;
-            return `/static/${withoutUploads}`;
+            if (raw.startsWith(uploadsPrefix)) {
+                raw = raw.slice(uploadsPrefix.length);
+            }
+
+            if (audioBaseFolder && !raw.includes('/')) {
+                raw = `${audioBaseFolder}/${raw}`;
+            }
+
+            return `/static/${raw}`;
         };
 
         const toInputValue = (url) => {
@@ -57,11 +67,19 @@
             const trimmed = url.trim();
             const staticPrefix = '/static/';
             if (trimmed.startsWith(staticPrefix)) {
-                return trimmed.slice(staticPrefix.length);
+                const relative = trimmed.slice(staticPrefix.length);
+                if (audioBaseFolder && relative.startsWith(`${audioBaseFolder}/`)) {
+                    return relative.slice(audioBaseFolder.length + 1);
+                }
+                return relative;
             }
             const originStatic = window.location.origin + staticPrefix;
             if (trimmed.startsWith(originStatic)) {
-                return trimmed.slice(originStatic.length);
+                const relative = trimmed.slice(originStatic.length);
+                if (audioBaseFolder && relative.startsWith(`${audioBaseFolder}/`)) {
+                    return relative.slice(audioBaseFolder.length + 1);
+                }
+                return relative;
             }
             return trimmed;
         };
@@ -268,7 +286,8 @@
 
                         if (response.ok && result && result.success && result.audio_url) {
                             const resolved = result.audio_url;
-                            const inputValue = result.relative_path ? result.relative_path : toInputValue(resolved);
+                            const storedValue = (typeof result.stored_value !== 'undefined') ? result.stored_value : result.relative_path;
+                            const inputValue = storedValue ? storedValue : toInputValue(resolved);
                             if (urlInput) {
                                 urlInput.value = inputValue;
                             }
