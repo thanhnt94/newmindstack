@@ -24,6 +24,12 @@ from sqlalchemy import or_
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import FlashcardSetForm, FlashcardItemForm
 from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
+from mindstack_app.modules.shared.utils.media_paths import (
+    normalize_media_folder,
+    get_media_folders,
+    normalize_media_value_for_storage,
+    build_relative_media_path,
+)
 import pandas as pd
 import tempfile
 import os
@@ -54,6 +60,8 @@ CAPABILITY_FLAGS = (
     'supports_listening',
     'supports_speaking',
 )
+
+MEDIA_URL_FIELDS = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
 
 
 def _apply_is_public_restrictions(form):
@@ -87,6 +95,20 @@ def _get_container_capabilities(container):
     return _normalize_capabilities(container.ai_settings.get('capabilities'))
 
 
+def _get_media_folders_from_container(container) -> dict[str, str]:
+    if not container or not isinstance(getattr(container, 'ai_settings', None), dict):
+        return {}
+    return get_media_folders(container.ai_settings)
+
+
+def _get_media_folder_for_field(field_name: str, media_folders: dict[str, str]):
+    if field_name in {'front_img', 'back_img'}:
+        return media_folders.get('image')
+    if field_name in {'front_audio_url', 'back_audio_url'}:
+        return media_folders.get('audio')
+    return None
+
+
 def _build_ai_settings_from_form(form, existing_settings=None):
     """Compose the ai_settings payload based on form input and existing settings."""
     settings = {}
@@ -111,10 +133,28 @@ def _build_ai_settings_from_form(form, existing_settings=None):
     else:
         settings.pop('capabilities', None)
 
+    media_folders = {}
+    image_folder_value = normalize_media_folder(getattr(getattr(form, 'image_base_folder', None), 'data', None))
+    audio_folder_value = normalize_media_folder(getattr(getattr(form, 'audio_base_folder', None), 'data', None))
+
+    if image_folder_value:
+        media_folders['image'] = image_folder_value
+    if audio_folder_value:
+        media_folders['audio'] = audio_folder_value
+
+    if media_folders:
+        settings['media_folders'] = media_folders
+    else:
+        settings.pop('media_folders', None)
+
+    # Dọn dẹp các khóa cũ nếu còn sót
+    settings.pop('image_base_folder', None)
+    settings.pop('audio_base_folder', None)
+
     return settings or None
 
-def _process_relative_url(url):
-    """Chuẩn hóa đường dẫn tương đối và thêm tiền tố tĩnh khi cần."""
+def _process_relative_url(url, media_folder=None):
+    """Chuẩn hóa dữ liệu URL/đường dẫn trước khi lưu vào DB."""
     if url is None:
         return None
 
@@ -122,52 +162,29 @@ def _process_relative_url(url):
     if not normalized:
         return ''
 
-    return normalized
-
-
-def _get_static_image_url(url):
-    if not url:
-        return None
-
-    if isinstance(url, str):
-        normalized = url.strip()
-    else:
-        normalized = str(url).strip()
-
-    if not normalized:
-        return None
-
-    if normalized.startswith(('http://', 'https://', '/')):
+    if normalized.startswith(('http://', 'https://')):
         return normalized
 
-    relative_path = normalized
-    if relative_path.startswith('uploads/'):
-        relative_path = relative_path.replace('uploads/', '', 1)
+    return normalize_media_value_for_storage(normalized, media_folder)
+
+
+def _build_static_media_url(value, media_folder=None):
+    relative_path = build_relative_media_path(value, media_folder)
+    if not relative_path:
+        return None
+
+    if relative_path.startswith(('http://', 'https://')):
+        return relative_path
 
     return url_for('static', filename=relative_path)
 
 
-def _get_static_audio_url(url):
-    """Chuyển đổi đường dẫn audio tương đối thành URL tĩnh đầy đủ."""
-    if not url:
-        return None
+def _get_static_image_url(url, media_folder=None):
+    return _build_static_media_url(url, media_folder)
 
-    if isinstance(url, str):
-        normalized = url.strip()
-    else:
-        normalized = str(url).strip()
 
-    if not normalized:
-        return None
-
-    if normalized.startswith(('http://', 'https://', '/')):
-        return normalized
-
-    relative_path = normalized
-    if relative_path.startswith('uploads/'):
-        relative_path = relative_path.replace('uploads/', '', 1)
-
-    return url_for('static', filename=relative_path)
+def _get_static_audio_url(url, media_folder=None):
+    return _build_static_media_url(url, media_folder)
 
 
 def _slugify_filename(value: str) -> str:
@@ -180,7 +197,7 @@ def _slugify_filename(value: str) -> str:
     return value or 'flashcard-set'
 
 
-def _resolve_local_media_path(path_value: str):
+def _resolve_local_media_path(path_value: str, *, media_folder: Optional[str] = None):
     """Trả về đường dẫn tuyệt đối tới file media nếu thuộc thư mục uploads/static."""
     if not path_value:
         return None
@@ -192,16 +209,26 @@ def _resolve_local_media_path(path_value: str):
     if normalized.startswith(('http://', 'https://')):
         return None
 
+    normalized = normalized.lstrip('/')
+    if normalized.startswith('uploads/'):
+        normalized = normalized[len('uploads/'):]
+
     # Nếu đường dẫn bắt đầu bằng /static, thử map tới thư mục static
     base_static = os.path.join(current_app.root_path, 'static')
     candidates = []
-    if normalized.startswith('/'):
-        candidates.append(os.path.join(base_static, normalized.lstrip('/')))
-    else:
-        upload_folder = current_app.config.get('UPLOAD_FOLDER')
+    relative_candidates = [normalized]
+    folder_normalized = normalize_media_folder(media_folder)
+    if folder_normalized:
+        if '/' not in normalized:
+            relative_candidates.insert(0, f"{folder_normalized}/{normalized}")
+        else:
+            relative_candidates.insert(0, normalized)
+
+    upload_folder = current_app.config.get('UPLOAD_FOLDER')
+    for rel_path in relative_candidates:
         if upload_folder:
-            candidates.append(os.path.join(upload_folder, normalized))
-        candidates.append(os.path.join(base_static, normalized))
+            candidates.append(os.path.join(upload_folder, rel_path))
+        candidates.append(os.path.join(base_static, rel_path))
 
     for candidate in candidates:
         if candidate and os.path.isfile(candidate):
@@ -215,6 +242,7 @@ def _copy_media_into_package(
     media_dir: str,
     existing_map: dict,
     media_subdir: Optional[str] = None,
+    media_folder: Optional[str] = None,
 ) -> str:
     """Sao chép file media vào thư mục tạm và trả về đường dẫn tương đối trong gói.
 
@@ -231,7 +259,7 @@ def _copy_media_into_package(
     if normalized.startswith(('http://', 'https://')):
         return normalized
 
-    local_path = _resolve_local_media_path(normalized)
+    local_path = _resolve_local_media_path(normalized, media_folder=media_folder)
     if not local_path:
         return normalized
 
@@ -298,6 +326,11 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                 f"File Excel (sheet 'Data') phải có các cột bắt buộc: {', '.join(required_cols)}."
             )
 
+        flashcard_set = LearningContainer.query.get(container_id)
+        media_folders = _get_media_folders_from_container(flashcard_set)
+        image_folder = media_folders.get('image')
+        audio_folder = media_folders.get('audio')
+
         existing_items = (
             LearningItem.query.filter_by(container_id=container_id, item_type='FLASHCARD')
             .order_by(LearningItem.order_in_container, LearningItem.item_id)
@@ -326,9 +359,7 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
         ]
         url_fields = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
         capability_fields = set(CAPABILITY_FLAGS)
-        container_capabilities = _get_container_capabilities(
-            LearningContainer.query.get(container_id)
-        )
+        container_capabilities = _get_container_capabilities(flashcard_set)
 
         def _get_cell(row_data, column_name):
             if column_name not in df.columns:
@@ -384,7 +415,8 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                     cell_value = _get_cell(row, field)
                     if cell_value:
                         if field in url_fields:
-                            content_dict[field] = _process_relative_url(cell_value)
+                            base_folder = image_folder if field in {'front_img', 'back_img'} else audio_folder
+                            content_dict[field] = _process_relative_url(cell_value, base_folder)
                         elif field in capability_fields:
                             content_dict[field] = cell_value.lower() in {'true', '1', 'yes', 'y', 'on'}
                         else:
@@ -417,7 +449,8 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                     cell_value = _get_cell(row, field)
                     if cell_value:
                         if field in url_fields:
-                            content_dict[field] = _process_relative_url(cell_value)
+                            base_folder = image_folder if field in {'front_img', 'back_img'} else audio_folder
+                            content_dict[field] = _process_relative_url(cell_value, base_folder)
                         elif field in capability_fields:
                             content_dict[field] = cell_value.lower() in {'true', '1', 'yes', 'y', 'on'}
                         else:
@@ -641,8 +674,15 @@ def export_flashcard_set(set_id):
         for capability_key in CAPABILITY_FLAGS:
             info_rows.append({'Key': capability_key, 'Value': str(capability_key in container_capabilities)})
 
+        media_folders = _get_media_folders_from_container(flashcard_set)
+
         if flashcard_set.ai_settings:
             info_rows.append({'Key': 'ai_prompt', 'Value': flashcard_set.ai_settings.get('custom_prompt', '')})
+
+        if media_folders.get('image'):
+            info_rows.append({'Key': 'image_base_folder', 'Value': media_folders['image']})
+        if media_folders.get('audio'):
+            info_rows.append({'Key': 'audio_base_folder', 'Value': media_folders['audio']})
 
         data_rows = []
         for item in items:
@@ -655,16 +695,20 @@ def export_flashcard_set(set_id):
                     'front_audio_content': content.get('front_audio_content'),
                     'back_audio_content': content.get('back_audio_content'),
                     'front_audio_url': _copy_media_into_package(
-                        content.get('front_audio_url'), media_dir, media_cache, media_subdir='audio'
+                        content.get('front_audio_url'), media_dir, media_cache,
+                        media_subdir='audio', media_folder=media_folders.get('audio')
                     ),
                     'back_audio_url': _copy_media_into_package(
-                        content.get('back_audio_url'), media_dir, media_cache, media_subdir='audio'
+                        content.get('back_audio_url'), media_dir, media_cache,
+                        media_subdir='audio', media_folder=media_folders.get('audio')
                     ),
                     'front_img': _copy_media_into_package(
-                        content.get('front_img'), media_dir, media_cache, media_subdir='images'
+                        content.get('front_img'), media_dir, media_cache,
+                        media_subdir='images', media_folder=media_folders.get('image')
                     ),
                     'back_img': _copy_media_into_package(
-                        content.get('back_img'), media_dir, media_cache, media_subdir='images'
+                        content.get('back_img'), media_dir, media_cache,
+                        media_subdir='images', media_folder=media_folders.get('image')
                     ),
                     'ai_explanation': content.get('ai_explanation'),
                     'ai_prompt': content.get('ai_prompt'),
@@ -708,6 +752,8 @@ def download_flashcard_excel_template():
         {'Key': 'tags', 'Value': 'Từ khoá phân tách bằng dấu phẩy'},
         {'Key': 'is_public', 'Value': 'true/false - trạng thái công khai'},
         {'Key': 'supports_*', 'Value': 'true/false - bật từng chế độ học cho toàn bộ bộ thẻ'},
+        {'Key': 'image_base_folder', 'Value': 'Thư mục ảnh trong uploads, ví dụ: flashcard/n5/images'},
+        {'Key': 'audio_base_folder', 'Value': 'Thư mục audio trong uploads, ví dụ: flashcard/n5/audio'},
     ]
 
     data_columns = [
@@ -831,6 +877,9 @@ def add_flashcard_set():
             selected_capabilities = _normalize_capabilities(
                 (ai_settings_payload or {}).get('capabilities')
             )
+            media_folders = get_media_folders(ai_settings_payload)
+            image_folder = media_folders.get('image')
+            audio_folder = media_folders.get('audio')
             # Tạo bộ Flashcard mới
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
@@ -864,6 +913,8 @@ def add_flashcard_set():
                         optional_cols = [
                             'front_audio_content',
                             'back_audio_content',
+                            'front_audio_url',
+                            'back_audio_url',
                             'front_img',
                             'back_img',
                             'ai_explanation',
@@ -879,6 +930,9 @@ def add_flashcard_set():
                             if col in df.columns and pd.notna(row[col]):
                                 if col in CAPABILITY_FLAGS:
                                     item_content[col] = str(row[col]).strip().lower() in {'true', '1', 'yes', 'y', 'on'}
+                                elif col in MEDIA_URL_FIELDS:
+                                    base_folder = image_folder if col in {'front_img', 'back_img'} else audio_folder
+                                    item_content[col] = _process_relative_url(str(row[col]), base_folder)
                                 else:
                                     item_content[col] = str(row[col])
                         for capability_flag in selected_capabilities:
@@ -945,6 +999,9 @@ def edit_flashcard_set(set_id):
     if request.method == 'GET':
         if isinstance(flashcard_set.ai_settings, dict):
             form.ai_prompt.data = flashcard_set.ai_settings.get('custom_prompt', '')
+            media_folders = get_media_folders(flashcard_set.ai_settings)
+            form.image_base_folder.data = media_folders.get('image')
+            form.audio_base_folder.data = media_folders.get('audio')
         container_capabilities = _get_container_capabilities(flashcard_set)
         form.supports_pronunciation.data = 'supports_pronunciation' in container_capabilities
         form.supports_writing.data = 'supports_writing' in container_capabilities
@@ -1115,7 +1172,31 @@ def search_flashcard_image(set_id, item_id):
         if not success or not absolute_path:
             return jsonify({'success': False, 'message': message or 'Không tìm thấy ảnh phù hợp.'}), 404
 
-        relative_path = image_service.convert_to_static_url(absolute_path)
+        media_folders = _get_media_folders_from_container(flashcard_set)
+        image_folder = media_folders.get('image')
+
+        stored_value = None
+        relative_path = None
+
+        if image_folder:
+            try:
+                os.makedirs(os.path.join(current_app.static_folder, image_folder), exist_ok=True)
+                filename = os.path.basename(absolute_path)
+                destination = os.path.join(current_app.static_folder, image_folder, filename)
+                shutil.copy2(absolute_path, destination)
+                stored_value = normalize_media_value_for_storage(filename, image_folder)
+                relative_path = build_relative_media_path(stored_value, image_folder)
+            except Exception as copy_exc:  # pylint: disable=broad-except
+                current_app.logger.error(
+                    "Lỗi khi sao chép ảnh vào thư mục tùy chỉnh %s: %s", image_folder, copy_exc, exc_info=True
+                )
+                stored_value = None
+                relative_path = None
+
+        if not relative_path:
+            relative_path = image_service.convert_to_static_url(absolute_path)
+            stored_value = stored_value or relative_path
+
         if not relative_path:
             return jsonify({'success': False, 'message': 'Không thể xử lý đường dẫn ảnh.'}), 500
 
@@ -1124,6 +1205,7 @@ def search_flashcard_image(set_id, item_id):
             'success': True,
             'message': 'Đã tìm thấy ảnh minh họa.',
             'relative_path': relative_path,
+            'stored_value': stored_value,
             'image_url': image_url
         })
     except Exception as exc:  # pylint: disable=broad-except
@@ -1149,6 +1231,9 @@ def add_flashcard_item(set_id):
             abort(403)  # Không có quyền
     
     form = FlashcardItemForm()
+    media_folders = _get_media_folders_from_container(flashcard_set)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
     container_capabilities = _get_container_capabilities(flashcard_set)
     if request.method == 'GET':
         form.supports_pronunciation.data = 'supports_pronunciation' in container_capabilities
@@ -1182,11 +1267,11 @@ def add_flashcard_item(set_id):
         content_dict = {
             'front': form.front.data, 'back': form.back.data,
             'front_audio_content': form.front_audio_content.data,
-            'front_audio_url': _process_relative_url(form.front_audio_url.data),
+            'front_audio_url': _process_relative_url(form.front_audio_url.data, audio_folder),
             'back_audio_content': form.back_audio_content.data,
-            'back_audio_url': _process_relative_url(form.back_audio_url.data),
-            'front_img': _process_relative_url(form.front_img.data),
-            'back_img': _process_relative_url(form.back_img.data),
+            'back_audio_url': _process_relative_url(form.back_audio_url.data, audio_folder),
+            'front_img': _process_relative_url(form.front_img.data, image_folder),
+            'back_img': _process_relative_url(form.back_img.data, image_folder),
             'supports_pronunciation': bool(form.supports_pronunciation.data),
             'supports_writing': bool(form.supports_writing.data),
             'supports_quiz': bool(form.supports_quiz.data),
@@ -1226,12 +1311,14 @@ def add_flashcard_item(set_id):
         'flashcard_set': flashcard_set,
         'flashcard_item': None,
         'title': 'Thêm Thẻ',
-        'front_image_url': _get_static_image_url(form.front_img.data),
-        'back_image_url': _get_static_image_url(form.back_img.data),
-        'front_audio_url_resolved': _get_static_audio_url(form.front_audio_url.data),
-        'back_audio_url_resolved': _get_static_audio_url(form.back_audio_url.data),
+        'front_image_url': _get_static_image_url(form.front_img.data, image_folder),
+        'back_image_url': _get_static_image_url(form.back_img.data, image_folder),
+        'front_audio_url_resolved': _get_static_audio_url(form.front_audio_url.data, audio_folder),
+        'back_audio_url_resolved': _get_static_audio_url(form.back_audio_url.data, audio_folder),
         'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=0),
-        'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content')
+        'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content'),
+        'image_base_folder': image_folder,
+        'audio_base_folder': audio_folder,
     }
 
     # Render template cho modal hoặc trang đầy đủ
@@ -1258,6 +1345,9 @@ def edit_flashcard_item(set_id, item_id):
     
     # Khởi tạo form với dữ liệu hiện có
     form = FlashcardItemForm(obj=flashcard_item.content)
+    media_folders = _get_media_folders_from_container(flashcard_set)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
     container_capabilities = _get_container_capabilities(flashcard_set)
     if form.validate_on_submit():
         # Lấy thứ tự cũ và mới
@@ -1290,11 +1380,11 @@ def edit_flashcard_item(set_id, item_id):
         flashcard_item.content['front'] = form.front.data
         flashcard_item.content['back'] = form.back.data
         flashcard_item.content['front_audio_content'] = form.front_audio_content.data
-        flashcard_item.content['front_audio_url'] = _process_relative_url(form.front_audio_url.data)
+        flashcard_item.content['front_audio_url'] = _process_relative_url(form.front_audio_url.data, audio_folder)
         flashcard_item.content['back_audio_content'] = form.back_audio_content.data
-        flashcard_item.content['back_audio_url'] = _process_relative_url(form.back_audio_url.data)
-        flashcard_item.content['front_img'] = _process_relative_url(form.front_img.data)
-        flashcard_item.content['back_img'] = _process_relative_url(form.back_img.data)
+        flashcard_item.content['back_audio_url'] = _process_relative_url(form.back_audio_url.data, audio_folder)
+        flashcard_item.content['front_img'] = _process_relative_url(form.front_img.data, image_folder)
+        flashcard_item.content['back_img'] = _process_relative_url(form.back_img.data, image_folder)
         flashcard_item.content['supports_pronunciation'] = bool(form.supports_pronunciation.data)
         flashcard_item.content['supports_writing'] = bool(form.supports_writing.data)
         flashcard_item.content['supports_quiz'] = bool(form.supports_quiz.data)
@@ -1352,12 +1442,14 @@ def edit_flashcard_item(set_id, item_id):
         'flashcard_set': flashcard_set,
         'flashcard_item': flashcard_item,
         'title': 'Sửa Thẻ',
-        'front_image_url': _get_static_image_url(form.front_img.data),
-        'back_image_url': _get_static_image_url(form.back_img.data),
-        'front_audio_url_resolved': _get_static_audio_url(form.front_audio_url.data),
-        'back_audio_url_resolved': _get_static_audio_url(form.back_audio_url.data),
+        'front_image_url': _get_static_image_url(form.front_img.data, image_folder),
+        'back_image_url': _get_static_image_url(form.back_img.data, image_folder),
+        'front_audio_url_resolved': _get_static_audio_url(form.front_audio_url.data, audio_folder),
+        'back_audio_url_resolved': _get_static_audio_url(form.back_audio_url.data, audio_folder),
         'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=item_id),
-        'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content')
+        'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content'),
+        'image_base_folder': image_folder,
+        'audio_base_folder': audio_folder,
     }
 
     # Render template cho modal hoặc trang đầy đủ
