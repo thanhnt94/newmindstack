@@ -43,10 +43,14 @@
                 <h3 class="font-semibold text-gray-800 mb-2">Tiêu đề bài học</h3>
                 <p class="text-gray-700 text-sm mb-3">{{ lesson.content.title }}</p>
                 
-                {% if lesson.content.bbcode_content %}
-                <h3 class="font-semibold text-gray-800 mb-2">Nội dung (BBCode)</h3>
+                {% set preview_html = lesson.content.get('content_html') %}
+                {% if not preview_html and lesson.content.get('bbcode_content') %}
+                    {% set preview_html = bbcode_to_html(lesson.content.get('bbcode_content')) %}
+                {% endif %}
+                {% if preview_html %}
+                <h3 class="font-semibold text-gray-800 mb-2">Nội dung</h3>
                 <div class="text-gray-700 text-sm mb-3 line-clamp-3">
-                    {{ lesson.content.bbcode_content }}
+                    {{ preview_html | striptags }}
                 </div>
                 {% endif %}
 

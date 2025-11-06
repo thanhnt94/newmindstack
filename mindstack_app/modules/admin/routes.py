@@ -13,13 +13,79 @@ from sqlalchemy.orm.attributes import flag_modified
 import shutil
 import os
 import zipfile
+from uuid import uuid4
+from werkzeug.utils import secure_filename, safe_join
 
 from ..learning.flashcard_learning.audio_service import AudioService
 from ..learning.flashcard_learning.image_service import ImageService
+
 audio_service = AudioService()
 image_service = ImageService()
 
 from . import admin_bp # Vẫn cần dòng này để các decorator như @admin_bp.route hoạt động chính xác.
+
+ADMIN_ALLOWED_MEDIA_EXTENSIONS = {
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico',
+    '.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.opus',
+    '.mp4', '.webm', '.mov', '.mkv', '.avi', '.m4v',
+    '.pdf', '.docx', '.pptx', '.xlsx', '.csv', '.txt', '.zip', '.rar', '.7z', '.json'
+}
+
+
+def _format_file_size(num_bytes: int) -> str:
+    units = ['B', 'KB', 'MB', 'GB', 'TB']
+    size = float(num_bytes)
+    for unit in units:
+        if size < 1024.0 or unit == units[-1]:
+            if unit == 'B':
+                return f"{int(size)} {unit}"
+            return f"{size:.1f} {unit}"
+        size /= 1024.0
+    return f"{size:.1f} PB"
+
+
+def _normalize_subpath(path_value: str | None) -> str:
+    normalized = os.path.normpath(path_value or '').replace('\\', '/')
+    if normalized in ('', '.', '/'):  # Root folder
+        return ''
+    if normalized.startswith('..'):
+        raise ValueError('Đường dẫn không hợp lệ.')
+    return normalized.strip('/')
+
+
+def _collect_directory_listing(base_dir: str, upload_root: str):
+    directories = []
+    files = []
+
+    if not os.path.isdir(base_dir):
+        return directories, files
+
+    for entry in os.scandir(base_dir):
+        if entry.name.startswith('.'):
+            continue
+        relative = os.path.relpath(entry.path, upload_root).replace('\\', '/')
+        if entry.is_dir():
+            directories.append({
+                'name': entry.name,
+                'path': relative.strip('/'),
+                'item_count': sum(1 for _ in os.scandir(entry.path)) if os.path.isdir(entry.path) else 0,
+                'modified': datetime.fromtimestamp(entry.stat().st_mtime)
+            })
+        elif entry.is_file():
+            stat = entry.stat()
+            files.append({
+                'name': entry.name,
+                'path': relative,
+                'url': url_for('static', filename=relative),
+                'size': _format_file_size(stat.st_size),
+                'size_bytes': stat.st_size,
+                'modified': datetime.fromtimestamp(stat.st_mtime),
+                'extension': os.path.splitext(entry.name)[1].lower()
+            })
+
+    directories.sort(key=lambda item: item['name'].lower())
+    files.sort(key=lambda item: item['modified'], reverse=True)
+    return directories, files
 
 # Middleware để kiểm tra quyền admin cho toàn bộ Blueprint admin
 @admin_bp.before_request 
@@ -53,6 +119,135 @@ def admin_dashboard():
     }
 
     return render_template('dashboard.html', stats_data=stats_data)
+
+
+@admin_bp.route('/media-library', methods=['GET', 'POST'])
+def media_library():
+    upload_root = current_app.config.get('UPLOAD_FOLDER')
+    if not upload_root:
+        flash('Hệ thống chưa cấu hình thư mục lưu trữ uploads.', 'danger')
+        return redirect(url_for('admin.admin_dashboard'))
+
+    try:
+        current_folder = _normalize_subpath(
+            request.form.get('current_folder') if request.method == 'POST' else request.args.get('folder')
+        )
+    except ValueError:
+        flash('Đường dẫn thư mục không hợp lệ.', 'danger')
+        return redirect(url_for('admin.media_library'))
+
+    target_dir = safe_join(upload_root, current_folder) if current_folder else upload_root
+    if target_dir is None:
+        flash('Đường dẫn thư mục không hợp lệ.', 'danger')
+        return redirect(url_for('admin.media_library'))
+
+    os.makedirs(target_dir, exist_ok=True)
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'upload')
+        if action == 'create_folder':
+            new_folder_name = secure_filename(request.form.get('folder_name', '').strip())
+            if not new_folder_name:
+                flash('Tên thư mục không hợp lệ.', 'warning')
+            else:
+                new_dir = os.path.join(target_dir, new_folder_name)
+                os.makedirs(new_dir, exist_ok=True)
+                flash(f'Đã tạo thư mục "{new_folder_name}".', 'success')
+                normalized_new_dir = _normalize_subpath(os.path.relpath(new_dir, upload_root))
+                return redirect(url_for('admin.media_library', folder=normalized_new_dir))
+        else:
+            uploaded_files = request.files.getlist('media_files')
+            if not uploaded_files:
+                flash('Vui lòng chọn ít nhất một file để tải lên.', 'warning')
+            else:
+                saved = []
+                skipped = []
+                for file in uploaded_files:
+                    if not file or file.filename == '':
+                        continue
+                    original_name = file.filename
+                    filename = secure_filename(original_name)
+                    if not filename:
+                        skipped.append(original_name)
+                        continue
+                    ext = os.path.splitext(filename)[1].lower()
+                    if ext and ext not in ADMIN_ALLOWED_MEDIA_EXTENSIONS:
+                        skipped.append(original_name)
+                        continue
+
+                    candidate_name = filename
+                    destination = os.path.join(target_dir, candidate_name)
+                    while os.path.exists(destination):
+                        name_part, extension_part = os.path.splitext(filename)
+                        candidate_name = f"{name_part}_{uuid4().hex[:6]}{extension_part}"
+                        destination = os.path.join(target_dir, candidate_name)
+
+                    try:
+                        file.save(destination)
+                        saved.append(candidate_name)
+                    except Exception as exc:  # pragma: no cover - lỗi IO hiếm gặp
+                        current_app.logger.exception('Không thể lưu file %s: %s', candidate_name, exc)
+                        skipped.append(original_name)
+
+                if saved:
+                    flash(f'Đã tải lên {len(saved)} file thành công.', 'success')
+                if skipped:
+                    flash('Một số file bị bỏ qua: ' + ', '.join(skipped), 'warning')
+
+        return redirect(url_for('admin.media_library', folder=current_folder or None))
+
+    directories, files = _collect_directory_listing(target_dir, upload_root)
+    breadcrumb = []
+    if current_folder:
+        parts = current_folder.split('/')
+        cumulative = []
+        for part in parts:
+            cumulative.append(part)
+            breadcrumb.append({'name': part, 'path': '/'.join(cumulative)})
+
+    parent_folder = '/'.join(current_folder.split('/')[:-1]) if current_folder else ''
+    total_size = _format_file_size(sum(item['size_bytes'] for item in files)) if files else '0 B'
+
+    return render_template(
+        'media_library.html',
+        directories=directories,
+        files=files,
+        current_folder=current_folder,
+        parent_folder=parent_folder,
+        breadcrumb=breadcrumb,
+        total_size=total_size,
+    )
+
+
+@admin_bp.route('/media-library/delete', methods=['POST'])
+def delete_media_item():
+    upload_root = current_app.config.get('UPLOAD_FOLDER')
+    if not upload_root:
+        flash('Hệ thống chưa cấu hình thư mục lưu trữ uploads.', 'danger')
+        return redirect(url_for('admin.admin_dashboard'))
+
+    try:
+        relative_path = _normalize_subpath(request.form.get('path'))
+    except ValueError:
+        flash('Đường dẫn file không hợp lệ.', 'danger')
+        return redirect(url_for('admin.media_library'))
+
+    full_path = safe_join(upload_root, relative_path)
+    if not full_path or not os.path.isfile(full_path):
+        flash('Không tìm thấy file để xóa.', 'warning')
+        parent_folder = '/'.join((relative_path or '').split('/')[:-1])
+        return redirect(url_for('admin.media_library', folder=parent_folder or None))
+
+    try:
+        os.remove(full_path)
+        flash('Đã xóa file thành công.', 'success')
+    except Exception as exc:  # pragma: no cover - lỗi IO hiếm gặp
+        current_app.logger.exception('Không thể xóa file %s: %s', full_path, exc)
+        flash('Không thể xóa file. Vui lòng thử lại.', 'danger')
+
+    parent_folder = '/'.join(relative_path.split('/')[:-1])
+    return redirect(url_for('admin.media_library', folder=parent_folder or None))
+
 
 @admin_bp.route('/tasks')
 def manage_background_tasks():
