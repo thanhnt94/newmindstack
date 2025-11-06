@@ -44,11 +44,14 @@ class CourseForm(FlaskForm):
     submit = SubmitField('Lưu khoá học')
 
 class LessonForm(FlaskForm):
-    """
-    Form để tạo hoặc sửa một Bài học (LearningItem).
-    """
+    """Form để tạo hoặc sửa một Bài học (LearningItem)."""
+
     title = StringField('Tiêu đề bài học', validators=[DataRequired(message="Tiêu đề bài học không được để trống.")])
-    bbcode_content = TextAreaField('Nội dung bài học (BBCode)', validators=[DataRequired(message="Nội dung bài học không được để trống.")])
+    content_html = TextAreaField(
+        'Nội dung bài học',
+        validators=[DataRequired(message="Nội dung bài học không được để trống.")],
+        description="Sử dụng trình soạn thảo WYSIWYG để định dạng nội dung, chèn hình ảnh, audio, bảng biểu...",
+    )
     estimated_time = IntegerField('Thời gian hoàn thành dự tính (phút)', 
                                 validators=[Optional(), 
                                             NumberRange(min=0, message="Thời gian phải là một số dương.")])

@@ -2,11 +2,14 @@
 # Phiên bản: 2.2
 # ĐÃ SỬA: Khắc phục lỗi 404 bằng cách loại bỏ url_prefix khi đăng ký các blueprint con.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 from ...models import db, LearningContainer, ContainerContributor, User
 from .forms import ContributorForm # SỬA: Import form mới
+from werkzeug.utils import secure_filename
+from uuid import uuid4
+import os
 
 # Import các blueprint con
 from .courses.routes import courses_bp
@@ -22,6 +25,67 @@ content_management_bp = Blueprint('content_management', __name__,
 content_management_bp.register_blueprint(courses_bp)
 content_management_bp.register_blueprint(flashcards_bp)
 content_management_bp.register_blueprint(quizzes_bp)
+
+
+def _select_media_subdir(media_type: str) -> str:
+    media_type = (media_type or 'file').lower()
+    if media_type == 'image':
+        return 'images'
+    if media_type == 'media':
+        return 'media'
+    return 'files'
+
+
+@content_management_bp.route('/media/upload', methods=['POST'])
+@login_required
+def upload_rich_text_media():
+    """Tải file media sử dụng trong trình soạn thảo WYSIWYG."""
+
+    if current_user.user_role == User.ROLE_FREE:
+        return jsonify({'success': False, 'message': 'Tài khoản của bạn không có quyền tải media.'}), 403
+
+    upload_root = current_app.config.get('UPLOAD_FOLDER')
+    if not upload_root:
+        current_app.logger.error('UPLOAD_FOLDER chưa được cấu hình.')
+        return jsonify({'success': False, 'message': 'Máy chủ chưa cấu hình thư mục lưu trữ.'}), 500
+
+    if 'media_file' not in request.files:
+        return jsonify({'success': False, 'message': 'Không tìm thấy file tải lên.'}), 400
+
+    file = request.files['media_file']
+    if not file or file.filename == '':
+        return jsonify({'success': False, 'message': 'Không có file nào được chọn.'}), 400
+
+    filename = secure_filename(file.filename)
+    if not filename:
+        return jsonify({'success': False, 'message': 'Tên file không hợp lệ.'}), 400
+
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_RICH_TEXT_EXTENSIONS:
+        return jsonify({'success': False, 'message': f'Định dạng file "{ext}" không được hỗ trợ.'}), 400
+
+    media_type = request.form.get('media_type', 'file')
+    target_dir = os.path.join(upload_root, 'content', _select_media_subdir(media_type))
+    os.makedirs(target_dir, exist_ok=True)
+
+    base_name = os.path.splitext(filename)[0]
+    candidate_name = f"{base_name}_{uuid4().hex[:8]}{ext}"
+    candidate_path = os.path.join(target_dir, candidate_name)
+    while os.path.exists(candidate_path):
+        candidate_name = f"{base_name}_{uuid4().hex[:8]}{ext}"
+        candidate_path = os.path.join(target_dir, candidate_name)
+
+    try:
+        file.save(candidate_path)
+    except Exception as exc:  # pragma: no cover - phòng lỗi IO hiếm gặp
+        current_app.logger.exception('Không thể lưu file media: %s', exc)
+        return jsonify({'success': False, 'message': 'Không thể lưu file media trên máy chủ.'}), 500
+
+    relative_path = os.path.relpath(candidate_path, upload_root).replace('\\', '/')
+    file_url = url_for('static', filename=relative_path, _external=False)
+
+    return jsonify({'success': True, 'location': file_url, 'filename': candidate_name})
+
 
 @content_management_bp.route('/')
 @login_required
@@ -123,4 +187,11 @@ def manage_contributors(container_id):
                            contributors=contributors,
                            form=form,
                            username_suggestions=username_suggestions)
+
+ALLOWED_RICH_TEXT_EXTENSIONS = {
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp',
+    '.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac',
+    '.mp4', '.webm', '.mov', '.mkv', '.avi',
+    '.pdf', '.docx', '.pptx', '.xlsx', '.zip', '.rar', '.txt'
+}
 

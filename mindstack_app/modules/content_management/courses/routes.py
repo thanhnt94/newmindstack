@@ -7,7 +7,7 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import CourseForm, LessonForm # Đã sửa từ CourseSetForm
 from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
@@ -16,6 +16,8 @@ import tempfile
 import os
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
+from ....modules.shared.utils.html_sanitizer import sanitize_rich_text
+from ....modules.shared.utils.bbcode_parser import bbcode_to_html
 
 courses_bp = Blueprint('content_management_courses', __name__,
                        template_folder='templates') # Đã cập nhật đường dẫn template
@@ -287,7 +289,7 @@ def list_lessons(set_id):
     
     item_search_field_map = {
         'title': LearningItem.content['title'],
-        'content': LearningItem.content['bbcode_content'],
+        'content': func.coalesce(LearningItem.content['content_html'], LearningItem.content['bbcode_content']),
     }
 
     base_query = apply_search_filter(base_query, search_query, item_search_field_map, search_field)
@@ -347,8 +349,8 @@ def add_lesson(set_id):
             new_order = (max_order or 0) + 1
         
         content_dict = {
-            'title': form.title.data, 
-            'bbcode_content': form.bbcode_content.data,
+            'title': form.title.data,
+            'content_html': sanitize_rich_text(form.content_html.data),
             'estimated_time': form.estimated_time.data,
         }
 
@@ -389,7 +391,7 @@ def edit_lesson(set_id, item_id):
         if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
             abort(403)
         
-    form = LessonForm(obj=lesson_item.content)
+    form = LessonForm()
     if form.validate_on_submit():
         # Lấy thứ tự cũ và mới
         old_order = lesson_item.order_in_container
@@ -418,7 +420,8 @@ def edit_lesson(set_id, item_id):
             lesson_item.order_in_container = new_order
         
         lesson_item.content['title'] = form.title.data
-        lesson_item.content['bbcode_content'] = form.bbcode_content.data
+        lesson_item.content['content_html'] = sanitize_rich_text(form.content_html.data)
+        lesson_item.content.pop('bbcode_content', None)
         lesson_item.content['estimated_time'] = form.estimated_time.data
         flag_modified(lesson_item, "content")
         db.session.commit()
@@ -431,7 +434,10 @@ def edit_lesson(set_id, item_id):
             
     if request.method == 'GET':
         form.title.data = lesson_item.content.get('title')
-        form.bbcode_content.data = lesson_item.content.get('bbcode_content')
+        existing_html = lesson_item.content.get('content_html')
+        if not existing_html:
+            existing_html = bbcode_to_html(lesson_item.content.get('bbcode_content', ''))
+        form.content_html.data = existing_html
         form.estimated_time.data = lesson_item.content.get('estimated_time')
         form.order_in_container.data = lesson_item.order_in_container
         

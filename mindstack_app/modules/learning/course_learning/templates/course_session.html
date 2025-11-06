@@ -117,7 +117,12 @@
             <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Nội dung bài học:</h2>
             
             <div class="prose max-w-none parsed-content">
-                {{ bbcode_to_html(lesson.content.get('bbcode_content', '')) | safe }}
+                {% set lesson_html = lesson.content.get('content_html') %}
+                {% if lesson_html %}
+                    {{ lesson_html | safe }}
+                {% else %}
+                    {{ bbcode_to_html(lesson.content.get('bbcode_content', '')) | safe }}
+                {% endif %}
             </div>
 
             <div class="note-section">
