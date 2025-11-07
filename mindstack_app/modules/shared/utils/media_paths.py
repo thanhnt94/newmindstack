@@ -94,8 +94,7 @@ def build_relative_media_path(value, media_folder: Optional[str]) -> Optional[st
     if normalized.startswith(("http://", "https://")):
         return normalized
 
-    if normalized.startswith("/"):
-        normalized = normalized.lstrip("/")
+    normalized = normalized.lstrip("/")
 
     uploads_prefix = "uploads/"
     if normalized.startswith(uploads_prefix):
@@ -103,8 +102,17 @@ def build_relative_media_path(value, media_folder: Optional[str]) -> Optional[st
 
     folder_normalized = normalize_media_folder(media_folder)
     if folder_normalized:
+        folder_prefix = f"{folder_normalized}/"
+        if normalized.startswith(folder_prefix):
+            normalized = normalized[len(folder_prefix):]
         if "/" not in normalized:
             normalized = f"{folder_normalized}/{normalized}"
+
+    if not normalized:
+        return None
+
+    if not normalized.startswith("uploads/"):
+        normalized = f"uploads/{normalized}"
 
     return normalized
 

@@ -6,6 +6,7 @@
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
 import traceback
+from typing import Optional
 from .algorithms import (
     get_new_only_items,
     get_reviewed_items,
@@ -20,18 +21,39 @@ from ....models import db, User, UserContainerState, LearningContainer, QuizProg
 from sqlalchemy.sql import func
 import copy
 
+from mindstack_app.modules.shared.utils.media_paths import (
+    get_media_folders,
+    build_relative_media_path,
+)
+
 
 quiz_learning_bp = Blueprint('quiz_learning', __name__,
                              template_folder='templates')
 
 
-def _build_absolute_media_url(file_path):
+def _get_media_folders_from_container(container) -> dict[str, str]:
+    if not container:
+        return {}
+    folders = getattr(container, 'media_folders', {}) or {}
+    if folders:
+        return dict(folders)
+    settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
+    if isinstance(settings_payload, dict):
+        return get_media_folders(settings_payload)
+    return {}
+
+
+def _build_absolute_media_url(file_path, media_folder: Optional[str] = None):
     if not file_path:
         return None
-    if file_path.startswith(('http://', 'https://')) or file_path.startswith('/'):
-        return file_path
     try:
-        return url_for('static', filename=file_path)
+        relative_path = build_relative_media_path(file_path, media_folder)
+        if not relative_path:
+            return None
+        if relative_path.startswith(('http://', 'https://')):
+            return relative_path
+        static_path = relative_path.lstrip('/')
+        return url_for('static', filename=static_path)
     except Exception as exc:
         current_app.logger.error(f"Không thể tạo URL tuyệt đối cho media '{file_path}': {exc}")
         return file_path
@@ -47,13 +69,17 @@ def _serialize_quiz_learning_item(item, user_id):
         'D': options.get('D'),
     }
 
+    media_folders = _get_media_folders_from_container(item.container if item else None)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
+
     image_path = content_copy.get('question_image_file')
     if image_path:
-        content_copy['question_image_file'] = _build_absolute_media_url(image_path)
+        content_copy['question_image_file'] = _build_absolute_media_url(image_path, image_folder)
 
     audio_path = content_copy.get('question_audio_file')
     if audio_path:
-        content_copy['question_audio_file'] = _build_absolute_media_url(audio_path)
+        content_copy['question_audio_file'] = _build_absolute_media_url(audio_path, audio_folder)
 
     note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
 

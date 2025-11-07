@@ -198,8 +198,18 @@ class QuizSetForm(FlaskForm):
     title = StringField('Tiêu đề bộ Quiz', validators=[DataRequired(message="Vui lòng nhập tiêu đề bộ Quiz."), Length(max=255)])
     description = TextAreaField('Mô tả', validators=[Optional()])
     tags = StringField('Thẻ (cách nhau bởi dấu phẩy)', validators=[Optional(), Length(max=255)])
+    image_base_folder = StringField(
+        'Thư mục ảnh (trong uploads)',
+        validators=[Optional(), Length(max=255)],
+        description='Khai báo thư mục con dùng để lưu hình ảnh, ví dụ: quiz/level1/images',
+    )
+    audio_base_folder = StringField(
+        'Thư mục audio (trong uploads)',
+        validators=[Optional(), Length(max=255)],
+        description='Khai báo thư mục con dùng để lưu file âm thanh, ví dụ: quiz/level1/audio',
+    )
     is_public = BooleanField('Công khai (người khác có thể tìm thấy và làm)')
-    ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho bộ Quiz)', 
+    ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho bộ Quiz)',
                               description='Nhập prompt tùy chỉnh để AI tạo câu hỏi. Nếu để trống, hệ thống sẽ sử dụng prompt mặc định.',
                               validators=[Optional()])
     excel_file = FileField('Tải từ file Excel (.xlsx)', validators=[
