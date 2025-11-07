@@ -259,12 +259,17 @@ def _get_items_by_capability(user_id, container_id, session_size, capability_fla
             LearningContainer.container_id.in_(candidate_ids)
         ).all()
         for container in containers:
-            if isinstance(container.ai_settings, dict):
-                capabilities = _normalize_capability_flags(
-                    container.ai_settings.get('capabilities')
-                )
-                if capability_flag in capabilities:
-                    enabled_set_ids.add(container.container_id)
+            capabilities = set()
+            if hasattr(container, 'capability_flags'):
+                capabilities = container.capability_flags()
+            else:
+                settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
+                if isinstance(settings_payload, dict):
+                    capabilities = _normalize_capability_flags(
+                        settings_payload.get('capabilities')
+                    )
+            if capability_flag in capabilities:
+                enabled_set_ids.add(container.container_id)
 
     capability_items_query = base_items_query.outerjoin(
         UserContainerState,

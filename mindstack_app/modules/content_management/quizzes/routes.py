@@ -620,8 +620,12 @@ def export_quiz_set(set_id):
             {'Key': 'tags', 'Value': quiz_set.tags or ''},
             {'Key': 'is_public', 'Value': str(quiz_set.is_public)},
         ]
-        if quiz_set.ai_settings:
-            info_rows.append({'Key': 'ai_prompt', 'Value': quiz_set.ai_settings.get('custom_prompt', '')})
+        ai_settings_payload = quiz_set.ai_settings if hasattr(quiz_set, 'ai_settings') else None
+        ai_prompt_value = getattr(quiz_set, 'ai_prompt', None)
+        if not ai_prompt_value and isinstance(ai_settings_payload, dict):
+            ai_prompt_value = ai_settings_payload.get('custom_prompt', '')
+        if ai_prompt_value:
+            info_rows.append({'Key': 'ai_prompt', 'Value': ai_prompt_value})
 
         data_rows = []
         for item in items:
@@ -737,6 +741,7 @@ def add_quiz_set():
         flash_category = ''
         temp_filepath = None
         try:
+            ai_prompt_value = (form.ai_prompt.data or '').strip()
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
                 container_type='QUIZ_SET',
@@ -744,7 +749,7 @@ def add_quiz_set():
                 description=form.description.data,
                 tags=form.tags.data,
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
-                ai_settings={'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+                ai_prompt=ai_prompt_value or None,
             )
             db.session.add(new_set)
             db.session.flush()
@@ -893,7 +898,8 @@ def edit_quiz_set(set_id):
             quiz_set.description = form.description.data
             quiz_set.tags = form.tags.data
             quiz_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
-            quiz_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+            ai_prompt_value = (form.ai_prompt.data or '').strip()
+            quiz_set.ai_prompt = ai_prompt_value or None
 
             if form.excel_file.data and form.excel_file.data.filename != '':
                 flash_message = _update_quiz_from_excel_file(set_id, form.excel_file.data)

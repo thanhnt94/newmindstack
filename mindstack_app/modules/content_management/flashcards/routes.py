@@ -90,15 +90,26 @@ def _normalize_capabilities(raw_capabilities):
 
 def _get_container_capabilities(container):
     """Return the set of learning capability flags enabled on a flashcard container."""
-    if not container or not isinstance(getattr(container, 'ai_settings', None), dict):
+    if not container:
         return set()
-    return _normalize_capabilities(container.ai_settings.get('capabilities'))
+    if hasattr(container, 'capability_flags'):
+        return set(container.capability_flags())
+    settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
+    if isinstance(settings_payload, dict):
+        return _normalize_capabilities(settings_payload.get('capabilities'))
+    return set()
 
 
 def _get_media_folders_from_container(container) -> dict[str, str]:
-    if not container or not isinstance(getattr(container, 'ai_settings', None), dict):
+    if not container:
         return {}
-    return get_media_folders(container.ai_settings)
+    folders = getattr(container, 'media_folders', {}) or {}
+    if folders:
+        return dict(folders)
+    settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
+    if isinstance(settings_payload, dict):
+        return get_media_folders(settings_payload)
+    return {}
 
 
 def _get_media_folder_for_field(field_name: str, media_folders: dict[str, str]):
@@ -110,48 +121,43 @@ def _get_media_folder_for_field(field_name: str, media_folders: dict[str, str]):
 
 
 def _build_ai_settings_from_form(form, existing_settings=None):
-    """Compose the ai_settings payload based on form input and existing settings."""
-    settings = {}
+    """Compose a normalized AI configuration mapping based on form input."""
+
+    existing_payload = {}
     if isinstance(existing_settings, dict):
-        # Sao chép để tránh chỉnh sửa tại chỗ
-        settings.update(existing_settings)
+        extra_payload = existing_settings.get('extra')
+        if isinstance(extra_payload, dict):
+            existing_payload.update(extra_payload)
 
     ai_prompt_value = (getattr(form.ai_prompt, 'data', '') or '').strip()
     if ai_prompt_value:
-        settings['custom_prompt'] = ai_prompt_value
+        existing_payload['custom_prompt'] = ai_prompt_value
     else:
-        settings.pop('custom_prompt', None)
+        existing_payload.pop('custom_prompt', None)
 
     capability_flags = [
         flag_name
         for flag_name in CAPABILITY_FLAGS
         if getattr(getattr(form, flag_name, None), 'data', False)
     ]
-
     if capability_flags:
-        settings['capabilities'] = capability_flags
+        existing_payload['capabilities'] = capability_flags
     else:
-        settings.pop('capabilities', None)
+        existing_payload.pop('capabilities', None)
 
     media_folders = {}
     image_folder_value = normalize_media_folder(getattr(getattr(form, 'image_base_folder', None), 'data', None))
     audio_folder_value = normalize_media_folder(getattr(getattr(form, 'audio_base_folder', None), 'data', None))
-
     if image_folder_value:
         media_folders['image'] = image_folder_value
     if audio_folder_value:
         media_folders['audio'] = audio_folder_value
-
     if media_folders:
-        settings['media_folders'] = media_folders
+        existing_payload['media_folders'] = media_folders
     else:
-        settings.pop('media_folders', None)
+        existing_payload.pop('media_folders', None)
 
-    # Dọn dẹp các khóa cũ nếu còn sót
-    settings.pop('image_base_folder', None)
-    settings.pop('audio_base_folder', None)
-
-    return settings or None
+    return existing_payload or None
 
 def _process_relative_url(url, media_folder=None):
     """Chuẩn hóa dữ liệu URL/đường dẫn trước khi lưu vào DB."""
@@ -676,8 +682,12 @@ def export_flashcard_set(set_id):
 
         media_folders = _get_media_folders_from_container(flashcard_set)
 
-        if flashcard_set.ai_settings:
-            info_rows.append({'Key': 'ai_prompt', 'Value': flashcard_set.ai_settings.get('custom_prompt', '')})
+        ai_settings_payload = flashcard_set.ai_settings if hasattr(flashcard_set, 'ai_settings') else None
+        ai_prompt_value = getattr(flashcard_set, 'ai_prompt', None)
+        if not ai_prompt_value and isinstance(ai_settings_payload, dict):
+            ai_prompt_value = ai_settings_payload.get('custom_prompt')
+        if ai_prompt_value:
+            info_rows.append({'Key': 'ai_prompt', 'Value': ai_prompt_value})
 
         if media_folders.get('image'):
             info_rows.append({'Key': 'image_base_folder', 'Value': media_folders['image']})
@@ -997,11 +1007,15 @@ def edit_flashcard_set(set_id):
     form = FlashcardSetForm(obj=flashcard_set)
     _apply_is_public_restrictions(form)
     if request.method == 'GET':
-        if isinstance(flashcard_set.ai_settings, dict):
-            form.ai_prompt.data = flashcard_set.ai_settings.get('custom_prompt', '')
-            media_folders = get_media_folders(flashcard_set.ai_settings)
-            form.image_base_folder.data = media_folders.get('image')
-            form.audio_base_folder.data = media_folders.get('audio')
+        ai_prompt_value = getattr(flashcard_set, 'ai_prompt', None)
+        ai_settings_payload = flashcard_set.ai_settings if hasattr(flashcard_set, 'ai_settings') else None
+        if not ai_prompt_value and isinstance(ai_settings_payload, dict):
+            ai_prompt_value = ai_settings_payload.get('custom_prompt', '')
+        form.ai_prompt.data = ai_prompt_value or ''
+
+        media_folders = _get_media_folders_from_container(flashcard_set)
+        form.image_base_folder.data = media_folders.get('image')
+        form.audio_base_folder.data = media_folders.get('audio')
         container_capabilities = _get_container_capabilities(flashcard_set)
         form.supports_pronunciation.data = 'supports_pronunciation' in container_capabilities
         form.supports_writing.data = 'supports_writing' in container_capabilities
