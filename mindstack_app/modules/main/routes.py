@@ -78,11 +78,11 @@ def dashboard():
                 case(
                     (
                         (CourseProgress.completion_percentage > 0)
-                        & (CourseProgress.completion_percentage < 100)
+                        & (CourseProgress.completion_percentage < 100),
+                        1,
                     ),
-                    1,
-                ),
-                else_=0,
+                    else_=0,
+                )
             ).label('in_progress'),
             func.avg(CourseProgress.completion_percentage).label('avg_completion'),
             func.max(CourseProgress.last_updated).label('last_updated'),
