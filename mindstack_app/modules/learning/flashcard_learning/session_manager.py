@@ -188,8 +188,13 @@ class FlashcardSessionManager:
     def _get_media_folders(self):
         if self._media_folders_cache is None:
             container = LearningContainer.query.get(self.set_id)
-            if container and isinstance(container.ai_settings, dict):
-                self._media_folders_cache = get_media_folders(container.ai_settings)
+            if container:
+                folders = getattr(container, 'media_folders', {}) or {}
+                if not folders:
+                    settings_payload = container.ai_settings or {}
+                    if isinstance(settings_payload, dict):
+                        folders = get_media_folders(settings_payload)
+                self._media_folders_cache = dict(folders)
             else:
                 self._media_folders_cache = {}
         return self._media_folders_cache
@@ -286,10 +291,15 @@ class FlashcardSessionManager:
         container_capabilities = set()
         try:
             container = LearningContainer.query.get(next_item.container_id)
-            if container and isinstance(container.ai_settings, dict):
-                container_capabilities = _normalize_capability_flags(
-                    container.ai_settings.get('capabilities')
-                )
+            if container:
+                if hasattr(container, 'capability_flags'):
+                    container_capabilities = container.capability_flags()
+                else:
+                    settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
+                    if isinstance(settings_payload, dict):
+                        container_capabilities = _normalize_capability_flags(
+                            settings_payload.get('capabilities')
+                        )
         except Exception:
             container_capabilities = set()
 

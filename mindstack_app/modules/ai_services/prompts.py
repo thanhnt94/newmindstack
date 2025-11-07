@@ -66,8 +66,12 @@ def _get_item_context_data(item):
         data['set_title'] = container.title or ""
         data['set_description'] = container.description or ""
         data['set_tags'] = container.tags or ""
-        if isinstance(container.ai_settings, dict):
-            data['set_custom_prompt'] = container.ai_settings.get('custom_prompt', '')
+        ai_prompt_value = getattr(container, 'ai_prompt', None)
+        if not ai_prompt_value and hasattr(container, 'ai_settings'):
+            settings_payload = container.ai_settings
+            if isinstance(settings_payload, dict):
+                ai_prompt_value = settings_payload.get('custom_prompt', '')
+        data['set_custom_prompt'] = ai_prompt_value or ""
 
     # Cung cấp giá trị mặc định để tránh lỗi khi format
     # Các keys này tương ứng với các placeholder trong prompt mặc định
@@ -101,8 +105,12 @@ def get_formatted_prompt(item, purpose='explanation', custom_question=None):
         raw_prompt = item.content.get('ai_prompt')
     
     # 2. Nếu không có, dùng prompt tùy chỉnh của container
-    if not raw_prompt and container and isinstance(container.ai_settings, dict):
-        raw_prompt = container.ai_settings.get('custom_prompt')
+    if not raw_prompt and container:
+        ai_prompt_value = getattr(container, 'ai_prompt', None)
+        if ai_prompt_value:
+            raw_prompt = ai_prompt_value
+        elif hasattr(container, 'ai_settings') and isinstance(container.ai_settings, dict):
+            raw_prompt = container.ai_settings.get('custom_prompt')
 
     # 3. Nếu vẫn không có, dùng prompt mặc định theo loại item
     if not raw_prompt:

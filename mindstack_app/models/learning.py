@@ -1,0 +1,258 @@
+"""Learning domain models and helpers."""
+
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping, MutableMapping
+from typing import Any, Dict, Optional
+
+from sqlalchemy.sql import func
+from sqlalchemy.types import JSON
+
+from ..db_instance import db
+
+
+class LearningContainer(db.Model):
+    """Represents a collection of learning content (courses, flashcards, quizzes)."""
+
+    __tablename__ = 'learning_containers'
+
+    _MEDIA_TYPES = ('image', 'audio')
+
+    container_id = db.Column(db.Integer, primary_key=True)
+    creator_user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    container_type = db.Column(db.String(50), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    tags = db.Column(db.String(255))
+    is_public = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+
+    # Structured configuration columns replacing the legacy ai_settings blob
+    ai_prompt = db.Column(db.Text, nullable=True)
+    ai_capabilities = db.Column(JSON, nullable=True)
+    media_image_folder = db.Column(db.String(255), nullable=True)
+    media_audio_folder = db.Column(db.String(255), nullable=True)
+    legacy_ai_settings = db.Column('ai_settings', JSON, nullable=True)
+
+    creator = db.relationship(
+        'User',
+        backref='created_containers',
+        foreign_keys=[creator_user_id],
+        lazy=True,
+    )
+    contributors = db.relationship(
+        'ContainerContributor',
+        backref='container',
+        lazy=True,
+        cascade='all, delete-orphan',
+    )
+    items = db.relationship(
+        'LearningItem',
+        backref='container',
+        lazy=True,
+        cascade='all, delete-orphan',
+    )
+
+    # ------------------------------------------------------------------
+    # Helpers for working with the structured configuration
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _normalize_capabilities(value: Any) -> Optional[list[str]]:
+        """Return a sorted list of capability flags or ``None``."""
+
+        if value is None:
+            return None
+
+        result: set[str] = set()
+
+        if isinstance(value, str):
+            value = [value]
+
+        if isinstance(value, Iterable):
+            for item in value:
+                if isinstance(item, str) and item.strip():
+                    result.add(item.strip())
+        elif isinstance(value, Mapping):
+            for key, enabled in value.items():
+                if enabled and isinstance(key, str) and key.strip():
+                    result.add(key.strip())
+        else:
+            return None
+
+        return sorted(result) or None
+
+    @staticmethod
+    def _normalize_media_folder(value: Any) -> Optional[str]:
+        if not value:
+            return None
+
+        normalized = str(value).strip().replace('\\', '/')
+        normalized = normalized.strip('/')
+        return normalized or None
+
+    def set_media_folders(self, media_mapping: Optional[Mapping[str, Any]]) -> None:
+        """Persist media folder configuration from a mapping."""
+
+        if not isinstance(media_mapping, Mapping):
+            self.media_image_folder = None
+            self.media_audio_folder = None
+            return
+
+        image_folder = self._normalize_media_folder(media_mapping.get('image'))
+        audio_folder = self._normalize_media_folder(media_mapping.get('audio'))
+
+        self.media_image_folder = image_folder
+        self.media_audio_folder = audio_folder
+
+    @property
+    def media_folders(self) -> dict[str, str]:
+        """Return configured media folders as a mapping."""
+
+        result: dict[str, str] = {}
+        if self.media_image_folder:
+            result['image'] = self.media_image_folder
+        if self.media_audio_folder:
+            result['audio'] = self.media_audio_folder
+        return result
+
+    def capability_flags(self) -> set[str]:
+        """Return the set of configured capability flags."""
+
+        normalized = self._normalize_capabilities(self.ai_capabilities)
+        if normalized:
+            return set(normalized)
+
+        legacy = self.legacy_ai_settings if isinstance(self.legacy_ai_settings, Mapping) else {}
+        legacy_caps = self._normalize_capabilities(legacy.get('capabilities'))
+        return set(legacy_caps or [])
+
+    @property
+    def ai_settings(self) -> Optional[dict[str, Any]]:
+        """Expose a consolidated AI configuration mapping."""
+
+        data: dict[str, Any] = {}
+        legacy: Mapping[str, Any] = self.legacy_ai_settings if isinstance(self.legacy_ai_settings, Mapping) else {}
+
+        prompt = self.ai_prompt or legacy.get('custom_prompt')
+        if isinstance(prompt, str) and prompt.strip():
+            data['custom_prompt'] = prompt
+
+        capabilities = self.ai_capabilities
+        if not capabilities:
+            capabilities = self._normalize_capabilities(legacy.get('capabilities'))
+        if capabilities:
+            data['capabilities'] = list(capabilities)
+
+        media_data = self.media_folders
+        if not media_data:
+            legacy_media = legacy.get('media_folders')
+            if not isinstance(legacy_media, Mapping):
+                legacy_media = {
+                    media_type: legacy.get(f'{media_type}_base_folder')
+                    for media_type in self._MEDIA_TYPES
+                    if legacy.get(f'{media_type}_base_folder')
+                }
+            if isinstance(legacy_media, Mapping):
+                parsed_media = {}
+                for media_type in self._MEDIA_TYPES:
+                    normalized = self._normalize_media_folder(legacy_media.get(media_type))
+                    if normalized:
+                        parsed_media[media_type] = normalized
+                media_data = parsed_media
+        if media_data:
+            data['media_folders'] = media_data
+
+        extra: dict[str, Any] = {}
+        for key, value in legacy.items():
+            if key in {
+                'custom_prompt',
+                'capabilities',
+                'media_folders',
+                'image_base_folder',
+                'audio_base_folder',
+            }:
+                continue
+            if key == 'extra' and isinstance(value, Mapping):
+                extra.update(value)
+            else:
+                extra[key] = value
+        if extra:
+            data['extra'] = extra
+
+        return data or None
+
+    @ai_settings.setter
+    def ai_settings(self, value: Optional[Mapping[str, Any]]) -> None:
+        if value is None:
+            self.ai_prompt = None
+            self.ai_capabilities = None
+            self.media_image_folder = None
+            self.media_audio_folder = None
+            self.legacy_ai_settings = None
+            return
+
+        if not isinstance(value, Mapping):
+            raise TypeError('ai_settings must be a mapping or None')
+
+        payload: MutableMapping[str, Any] = dict(value)
+
+        extra_payload = payload.pop('extra', None)
+        if isinstance(extra_payload, Mapping):
+            legacy_payload = dict(extra_payload)
+        else:
+            legacy_payload = {}
+
+        prompt_candidate = payload.pop('custom_prompt', None)
+        if isinstance(prompt_candidate, str):
+            prompt_candidate = prompt_candidate.strip()
+        self.ai_prompt = prompt_candidate or None
+
+        capabilities_value = payload.pop('capabilities', None)
+        self.ai_capabilities = self._normalize_capabilities(capabilities_value)
+
+        media_payload = payload.pop('media_folders', None)
+        if not isinstance(media_payload, Mapping):
+            fallback_media: Dict[str, Any] = {}
+            for media_type in self._MEDIA_TYPES:
+                fallback_key = f'{media_type}_base_folder'
+                if fallback_key in payload:
+                    fallback_media[media_type] = payload.pop(fallback_key)
+            media_payload = fallback_media
+        self.set_media_folders(media_payload)
+
+        legacy_payload.update(payload)
+        self.legacy_ai_settings = legacy_payload or None
+
+
+class LearningGroup(db.Model):
+    """Represents a shared context for multiple learning items (e.g. a passage)."""
+
+    __tablename__ = 'learning_groups'
+
+    group_id = db.Column(db.Integer, primary_key=True)
+    container_id = db.Column(
+        db.Integer,
+        db.ForeignKey('learning_containers.container_id'),
+        nullable=False,
+    )
+    group_type = db.Column(db.String(50), nullable=False)
+    content = db.Column(JSON, nullable=False)
+
+
+class LearningItem(db.Model):
+    """Represents a single learning artefact."""
+
+    __tablename__ = 'learning_items'
+
+    item_id = db.Column(db.Integer, primary_key=True)
+    container_id = db.Column(
+        db.Integer,
+        db.ForeignKey('learning_containers.container_id'),
+        nullable=False,
+    )
+    group_id = db.Column(db.Integer, db.ForeignKey('learning_groups.group_id'), nullable=True)
+    item_type = db.Column(db.String(50), nullable=False)
+    content = db.Column(JSON, nullable=False)
+    order_in_container = db.Column(db.Integer, default=0)
+    ai_explanation = db.Column(db.Text, nullable=True)

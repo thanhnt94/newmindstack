@@ -172,6 +172,7 @@ def add_course_set():
         flash_message = ''
         flash_category = ''
         try:
+            ai_prompt_value = (form.ai_prompt.data or '').strip()
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
                 container_type='COURSE',
@@ -179,7 +180,7 @@ def add_course_set():
                 description=form.description.data,
                 tags=form.tags.data,
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
-                ai_settings={'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+                ai_prompt=ai_prompt_value or None,
             )
             db.session.add(new_set)
             db.session.commit()
@@ -228,7 +229,8 @@ def edit_course_set(set_id):
             course_set.description = form.description.data
             course_set.tags = form.tags.data
             course_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
-            course_set.ai_settings = {'custom_prompt': form.ai_prompt.data} if form.ai_prompt.data else None
+            ai_prompt_value = (form.ai_prompt.data or '').strip()
+            course_set.ai_prompt = ai_prompt_value or None
             db.session.commit()
             flash_message = 'Bộ khóa học đã được cập nhật!'
             flash_category = 'success'

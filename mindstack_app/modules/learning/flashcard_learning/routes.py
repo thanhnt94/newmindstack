@@ -266,7 +266,14 @@ def get_flashcard_item_api(item_id):
         if accessible_set_ids and item.container_id not in accessible_set_ids:
             return jsonify({'success': False, 'message': 'Bạn không có quyền truy cập thẻ này.'}), 403
 
-        media_folders = get_media_folders(item.container.ai_settings if item.container and isinstance(item.container.ai_settings, dict) else None)
+        container = item.container if item else None
+        media_folders = {}
+        if container:
+            media_folders = dict(getattr(container, 'media_folders', {}) or {})
+            if not media_folders:
+                settings_payload = container.ai_settings or {}
+                if isinstance(settings_payload, dict):
+                    media_folders = dict(settings_payload.get('media_folders') or {})
 
         def resolve_media_url(file_path, media_type=None):
             if not file_path:
@@ -640,7 +647,14 @@ def regenerate_audio_from_content():
     try:
         path_or_url, success, msg = loop.run_until_complete(audio_service.get_cached_or_generate_audio(content_to_read))
         if success:
-            media_folders = get_media_folders(item.container.ai_settings if item.container and isinstance(item.container.ai_settings, dict) else None)
+            container = item.container if item else None
+            media_folders = {}
+            if container:
+                media_folders = dict(getattr(container, 'media_folders', {}) or {})
+                if not media_folders:
+                    settings_payload = container.ai_settings or {}
+                    if isinstance(settings_payload, dict):
+                        media_folders = dict(settings_payload.get('media_folders') or {})
             audio_folder = media_folders.get('audio')
             stored_value = None
             relative_path = None
