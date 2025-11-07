@@ -76,13 +76,6 @@ def dashboard():
             ).label('completed'),
             func.sum(
                 case(
-                    [
-                        (
-                            (CourseProgress.completion_percentage > 0)
-                            & (CourseProgress.completion_percentage < 100),
-                            1,
-                        )
-                    ],
                     else_=0,
                 )
             ).label('in_progress'),
