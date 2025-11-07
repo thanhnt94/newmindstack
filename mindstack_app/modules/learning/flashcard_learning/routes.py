@@ -30,6 +30,7 @@ from ....models import (
     ContainerContributor,
 )
 from sqlalchemy.sql import func
+from sqlalchemy.exc import OperationalError
 import asyncio
 from .audio_service import AudioService
 from .image_service import ImageService
@@ -42,6 +43,7 @@ from mindstack_app.modules.shared.utils.media_paths import (
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
+from mindstack_app.modules.shared.utils.db_session import safe_commit
 
 flashcard_learning_bp = Blueprint('flashcard_learning', __name__,
                                   template_folder='templates')
@@ -347,8 +349,9 @@ def submit_flashcard_answer():
             set_ids = [set_ids]
 
     if set_ids and set_ids != ['all']:
-        for s_id in set_ids:
-            try:
+        pending_state_update = False
+        try:
+            for s_id in set_ids:
                 user_container_state = UserContainerState.query.filter_by(
                     user_id=current_user.user_id,
                     container_id=s_id
@@ -362,11 +365,26 @@ def submit_flashcard_answer():
                     )
                     db.session.add(user_container_state)
                 user_container_state.last_accessed = func.now()
-                db.session.commit()
-                print(f">>> ROUTES: Đã cập nhật last_accessed cho bộ thẻ {s_id} <<<")
-            except Exception as e:
-                db.session.rollback()
-                current_app.logger.error(f"Lỗi khi cập nhật last_accessed cho bộ thẻ {s_id}: {e}", exc_info=True)
+                pending_state_update = True
+
+            if pending_state_update:
+                safe_commit(db.session)
+        except OperationalError as exc:
+            current_app.logger.warning(
+                "Không thể cập nhật last_accessed cho các bộ thẻ %s do cơ sở dữ liệu đang bận: %s",
+                set_ids,
+                exc,
+                exc_info=True,
+            )
+            db.session.rollback()
+        except Exception as exc:  # pylint: disable=broad-except
+            db.session.rollback()
+            current_app.logger.error(
+                "Lỗi khi cập nhật last_accessed cho các bộ thẻ %s: %s",
+                set_ids,
+                exc,
+                exc_info=True,
+            )
                 
     user_button_count = current_user.flashcard_button_count or 3
     normalized_answer = str(user_answer).lower()
@@ -439,7 +457,7 @@ def save_flashcard_settings():
         user = User.query.get(current_user.user_id)
         if user:
             user.flashcard_button_count = button_count
-            db.session.commit()
+            safe_commit(db.session)
             return jsonify({'success': True, 'message': 'Cài đặt số nút đã được lưu.'})
         else:
             return jsonify({'success': False, 'message': 'Không tìm thấy người dùng.'}), 404
@@ -520,7 +538,7 @@ def toggle_archive_flashcard(set_id):
             db.session.add(user_container_state)
             is_currently_archived = True
 
-        db.session.commit()
+        safe_commit(db.session)
         
         status_text = "đã được lưu trữ." if is_currently_archived else "đã được bỏ lưu trữ."
         flash(f'Bộ thẻ "{set_id}" {status_text}', 'success')
@@ -556,7 +574,7 @@ def bulk_unarchive_flashcard():
                 user_container_state.is_archived = False
                 updated_count += 1
         
-        db.session.commit()
+        safe_commit(db.session)
         
         if updated_count > 0:
             flash(f'Đã bỏ lưu trữ thành công {updated_count} bộ thẻ.', 'success')
@@ -610,7 +628,7 @@ def generate_image_from_content():
 
             item.content = content
             flag_modified(item, 'content')
-            db.session.commit()
+            safe_commit(db.session)
 
             return jsonify({
                 'success': True,
@@ -689,7 +707,7 @@ def regenerate_audio_from_content():
                 item.content['back_audio_url'] = stored_value
 
             flag_modified(item, 'content')
-            db.session.commit()
+            safe_commit(db.session)
 
             return jsonify({
                 'success': True,
