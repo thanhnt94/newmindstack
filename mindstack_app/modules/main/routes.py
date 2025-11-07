@@ -45,12 +45,20 @@ def dashboard():
     flashcard_row = (
         db.session.query(
             func.count(FlashcardProgress.progress_id).label('total'),
-            func.sum(case([(FlashcardProgress.status == 'mastered', 1)], else_=0)).label('mastered'),
-            func.sum(case([(FlashcardProgress.status == 'learning', 1)], else_=0)).label('learning'),
-            func.sum(case([(FlashcardProgress.status == 'new', 1)], else_=0)).label('new'),
-            func.sum(case([(FlashcardProgress.status == 'hard', 1)], else_=0)).label('hard'),
-            func.sum(case([(FlashcardProgress.status == 'reviewing', 1)], else_=0)).label('reviewing'),
-            func.sum(case([(FlashcardProgress.due_time <= func.now(), 1)], else_=0)).label('due'),
+            func.sum(
+                case((FlashcardProgress.status == 'mastered', 1), else_=0)
+            ).label('mastered'),
+            func.sum(
+                case((FlashcardProgress.status == 'learning', 1), else_=0)
+            ).label('learning'),
+            func.sum(case((FlashcardProgress.status == 'new', 1), else_=0)).label('new'),
+            func.sum(case((FlashcardProgress.status == 'hard', 1), else_=0)).label('hard'),
+            func.sum(
+                case((FlashcardProgress.status == 'reviewing', 1), else_=0)
+            ).label('reviewing'),
+            func.sum(
+                case((FlashcardProgress.due_time <= func.now(), 1), else_=0)
+            ).label('due'),
         )
         .filter(FlashcardProgress.user_id == user_id)
         .first()
@@ -59,10 +67,14 @@ def dashboard():
     quiz_row = (
         db.session.query(
             func.count(QuizProgress.progress_id).label('total'),
-            func.sum(case([(QuizProgress.status == 'mastered', 1)], else_=0)).label('mastered'),
-            func.sum(case([(QuizProgress.status == 'learning', 1)], else_=0)).label('learning'),
-            func.sum(case([(QuizProgress.status == 'new', 1)], else_=0)).label('new'),
-            func.sum(case([(QuizProgress.status == 'hard', 1)], else_=0)).label('hard'),
+            func.sum(case((QuizProgress.status == 'mastered', 1), else_=0)).label(
+                'mastered'
+            ),
+            func.sum(case((QuizProgress.status == 'learning', 1), else_=0)).label(
+                'learning'
+            ),
+            func.sum(case((QuizProgress.status == 'new', 1), else_=0)).label('new'),
+            func.sum(case((QuizProgress.status == 'hard', 1), else_=0)).label('hard'),
         )
         .filter(QuizProgress.user_id == user_id)
         .first()
@@ -72,12 +84,10 @@ def dashboard():
         db.session.query(
             func.count(CourseProgress.progress_id).label('total'),
             func.sum(
-                case([(CourseProgress.completion_percentage >= 100, 1)], else_=0)
+                case((CourseProgress.completion_percentage >= 100, 1), else_=0)
             ).label('completed'),
             func.sum(
-                case(
-                    else_=0,
-                )
+                case((CourseProgress.completion_percentage < 100, 1), else_=0)
             ).label('in_progress'),
             func.avg(CourseProgress.completion_percentage).label('avg_completion'),
             func.max(CourseProgress.last_updated).label('last_updated'),
