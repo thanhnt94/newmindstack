@@ -274,9 +274,6 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
     temp_filepath = None
     try:
         quiz_set = LearningContainer.query.get(container_id)
-        media_folders = _get_media_folders_from_container(quiz_set)
-        image_folder = media_folders.get('image')
-        audio_folder = media_folders.get('audio')
 
         with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
             excel_file.save(tmp_file.name)
@@ -289,6 +286,27 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
             raise ValueError(
                 "File Excel (sheet 'Data') phải có các cột bắt buộc: option_a, option_b, correct_answer_text."
             )
+
+        media_overrides: dict[str, str] = {}
+        try:
+            df_info = pd.read_excel(temp_filepath, sheet_name='Info')
+        except ValueError:
+            df_info = None
+        else:
+            info_mapping = df_info.set_index('Key')['Value'].dropna().to_dict()
+            image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
+            audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))
+            if image_folder_override:
+                media_overrides['image'] = image_folder_override
+            if audio_folder_override:
+                media_overrides['audio'] = audio_folder_override
+
+        if media_overrides:
+            quiz_set.set_media_folders(media_overrides)
+
+        media_folders = _get_media_folders_from_container(quiz_set)
+        image_folder = media_folders.get('image')
+        audio_folder = media_folders.get('audio')
 
         existing_items = (
             LearningItem.query.filter_by(container_id=container_id, item_type='QUIZ_MCQ')
@@ -305,6 +323,32 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
         delete_ids = set()
         ordered_entries = []
         group_cache = {}
+        stats = {
+            'updated': 0,
+            'created': 0,
+            'deleted': 0,
+            'skipped': 0,
+            'reordered': 0,
+        }
+
+        action_aliases = {
+            'delete': {'delete', 'remove'},
+            'skip': {'skip', 'keep', 'none', 'ignore', 'nochange', 'unchanged', 'giu nguyen', 'giu-nguyen', 'giu_nguyen'},
+            'create': {'create', 'new', 'add', 'insert'},
+            'update': {'update', 'upsert', 'edit', 'modify'},
+        }
+
+        def _normalize_action(raw_action: str | None, *, has_item_id: bool) -> str:
+            value = (raw_action or '').strip().lower()
+            if value:
+                for normalized, alias_values in action_aliases.items():
+                    if value in alias_values:
+                        if normalized == 'create' and has_item_id:
+                            return 'update'
+                        if normalized == 'update' and not has_item_id:
+                            return 'create'
+                        return normalized
+            return 'update' if has_item_id else 'create'
 
         def _get_cell(row_data, column_name):
             if column_name not in df.columns:
@@ -393,9 +437,10 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
         for index, row in df.iterrows():
             row_number = index + 2
             item_id_value = _get_cell(row, 'item_id')
-            action_value = (_get_cell(row, 'action') or '').lower()
             order_value = _get_cell(row, 'order_in_container')
             order_number = _parse_int(order_value, row_number, 'order_in_container') if order_value else None
+            if order_number is not None:
+                stats['reordered'] += 1
 
             question_text = _get_cell(row, 'question') or ''
             option_a = _get_cell(row, 'option_a')
@@ -404,12 +449,14 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
             option_d = _get_cell(row, 'option_d')
             correct_answer = _get_cell(row, 'correct_answer_text')
 
-            if not (option_a and option_b and correct_answer) and action_value != 'delete':
-                raise ValueError(f"Hàng {row_number}: Thiếu option A/B hoặc đáp án đúng.")
-
             item_id = None
             if item_id_value:
                 item_id = _parse_int(item_id_value, row_number, 'item_id')
+
+            action_value = _normalize_action(_get_cell(row, 'action'), has_item_id=bool(item_id))
+
+            if not (option_a and option_b and correct_answer) and action_value not in {'delete', 'skip'}:
+                raise ValueError(f"Hàng {row_number}: Thiếu option A/B hoặc đáp án đúng.")
 
             if item_id:
                 item = existing_map.get(item_id)
@@ -418,6 +465,18 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
 
                 if action_value == 'delete':
                     delete_ids.add(item_id)
+                    stats['deleted'] += 1
+                    continue
+
+                if action_value == 'skip':
+                    ordered_entries.append({
+                        'type': 'existing',
+                        'item': item,
+                        'order': order_number if order_number is not None else (item.order_in_container or 0),
+                        'sequence': index,
+                    })
+                    processed_ids.add(item_id)
+                    stats['skipped'] += 1
                     continue
 
                 content_dict = item.content or {}
@@ -457,8 +516,13 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                     'sequence': index,
                 })
                 processed_ids.add(item_id)
+                stats['updated'] += 1
             else:
                 if action_value == 'delete':
+                    stats['deleted'] += 1
+                    continue
+                if action_value == 'skip':
+                    stats['skipped'] += 1
                     continue
 
                 new_content = {
@@ -498,6 +562,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                     'order': order_number,
                     'sequence': index,
                 })
+                stats['created'] += 1
 
         untouched_items = [
             item for item in existing_items
@@ -539,7 +604,16 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 db.session.add(new_item)
             next_order += 1
 
-        return 'Bộ câu hỏi và dữ liệu từ Excel đã được cập nhật!'
+        summary_parts = [
+            f"{stats['updated']} cập nhật",
+            f"{stats['created']} thêm mới",
+            f"{stats['deleted']} xoá",
+            f"{stats['skipped']} giữ nguyên",
+        ]
+        if stats['reordered']:
+            summary_parts.append(f"{stats['reordered']} dòng có sắp xếp lại")
+        summary_text = ', '.join(summary_parts)
+        return f'Bộ câu hỏi quiz đã được xử lý: {summary_text}.'
     finally:
         if temp_filepath and os.path.exists(temp_filepath):
             os.remove(temp_filepath)
@@ -809,10 +883,12 @@ def manage_quiz_excel(set_id):
         return redirect(url_for('content_management.content_management_quizzes.manage_quiz_excel', set_id=set_id))
 
     export_url = url_for('content_management.content_management_quizzes.export_quiz_set', set_id=set_id)
+    item_count = LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ').count()
     return render_template(
         'manage_quiz_excel.html',
         quiz_set=quiz_set,
         export_url=export_url,
+        item_count=item_count,
     )
 
 

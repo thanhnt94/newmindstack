@@ -122,8 +122,13 @@
                             </tr>
                             <tr>
                                 <td class="px-4 py-3 font-medium text-gray-800">action</td>
-                                <td class="px-4 py-3 text-gray-600">Thực hiện thao tác đặc biệt.</td>
-                                <td class="px-4 py-3 text-gray-500">Nhập <code>delete</code> để xóa thẻ.</td>
+                                <td class="px-4 py-3 text-gray-600">Kiểm soát thao tác cần thực hiện với từng dòng.</td>
+                                <td class="px-4 py-3 text-gray-500 space-y-1">
+                                    <div><code>update</code> hoặc để trống: cập nhật thẻ đã có <code>item_id</code>.</div>
+                                    <div><code>keep</code>/<code>skip</code>: giữ nguyên nội dung hiện tại (vẫn có thể đổi thứ tự).</div>
+                                    <div><code>create</code>/<code>new</code>: luôn tạo thẻ mới.</div>
+                                    <div><code>delete</code>: xóa thẻ tương ứng.</div>
+                                </td>
                             </tr>
                             <tr>
                                 <td class="px-4 py-3 font-medium text-gray-800">front_img / back_img</td>
@@ -151,9 +156,10 @@
                 <h2 class="text-lg font-semibold text-gray-800 mb-3">Hướng dẫn nhanh</h2>
                 <ul class="list-disc list-inside text-gray-700 space-y-2 text-sm">
                     <li>Sử dụng file mẫu hoặc file gốc đã xuất để đảm bảo đúng cấu trúc.</li>
-                    <li>Cột <strong>action</strong> đặt giá trị <code>delete</code> để xóa thẻ tương ứng.</li>
+                    <li>Cột <strong>action</strong> hỗ trợ các giá trị <code>update</code>, <code>keep</code>/<code>skip</code>, <code>create</code> và <code>delete</code> để thao tác nhanh.</li>
                     <li>Các đường dẫn media nội bộ có thể sử dụng dạng <code>uploads/images/...</code> hoặc <code>uploads/audio/...</code>.</li>
                     <li>Giữ nguyên cột <strong>item_id</strong> để cập nhật thẻ hiện có, bỏ trống để tạo thẻ mới.</li>
+                    <li>Các trường <code>image_base_folder</code> và <code>audio_base_folder</code> trong sheet <code>Info</code> sẽ được áp dụng tự động cho lần nhập.</li>
                     <li>Sau khi nhập thành công hệ thống sẽ tự động sắp xếp lại thứ tự thẻ.</li>
                 </ul>
             </div>
