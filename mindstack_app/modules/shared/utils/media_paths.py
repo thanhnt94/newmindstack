@@ -9,13 +9,17 @@ MEDIA_TYPES = ("image", "audio")
 
 
 def normalize_media_folder(folder: Optional[str]) -> Optional[str]:
-    """Return a sanitized folder path (relative to the static/uploads root)."""
+    """Return a sanitized folder path (relative to the uploads static root)."""
 
     if not folder:
         return None
 
     normalized = str(folder).strip().replace("\\", "/")
     normalized = normalized.strip("/")
+
+    uploads_prefix = "uploads/"
+    while normalized.startswith(uploads_prefix):
+        normalized = normalized[len(uploads_prefix):]
 
     return normalized or None
 
@@ -65,7 +69,7 @@ def normalize_media_value_for_storage(value, media_folder: Optional[str]) -> Opt
     normalized = normalized.lstrip("/")
 
     uploads_prefix = "uploads/"
-    if normalized.startswith(uploads_prefix):
+    while normalized.startswith(uploads_prefix):
         normalized = normalized[len(uploads_prefix):]
 
     folder_normalized = normalize_media_folder(media_folder)
@@ -97,7 +101,7 @@ def build_relative_media_path(value, media_folder: Optional[str]) -> Optional[st
     normalized = normalized.lstrip("/")
 
     uploads_prefix = "uploads/"
-    if normalized.startswith(uploads_prefix):
+    while normalized.startswith(uploads_prefix):
         normalized = normalized[len(uploads_prefix):]
 
     folder_normalized = normalize_media_folder(media_folder)
@@ -110,9 +114,6 @@ def build_relative_media_path(value, media_folder: Optional[str]) -> Optional[st
 
     if not normalized:
         return None
-
-    if not normalized.startswith("uploads/"):
-        normalized = f"uploads/{normalized}"
 
     return normalized
 
