@@ -8,6 +8,7 @@ from sqlalchemy.orm.attributes import flag_modified
 import datetime
 import math
 from flask import current_app
+from mindstack_app.modules.shared.utils.db_session import safe_commit
 
 # ==============================================================================
 # I. CÁC HỆ SỐ CÓ THỂ TÙY CHỈNH CHO THUẬT TOÁN
@@ -123,7 +124,7 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
             )
             db.session.add(new_score_log)
 
-        db.session.commit()
+        safe_commit(db.session)
 
         if user:
             updated_total_score = user.total_score
@@ -170,7 +171,7 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
             reason=f"Flashcard Early Review (Quality: {user_answer_quality})", item_type='FLASHCARD'
         )
         db.session.add(new_score_log)
-        db.session.commit()
+        safe_commit(db.session)
 
         if user_answer_quality >= 4:
             answer_result_type = 'correct'
@@ -257,7 +258,7 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         reason=f"Flashcard Answer (Quality: {user_answer_quality})", item_type='FLASHCARD'
     )
     db.session.add(new_score_log)
-    db.session.commit()
+    safe_commit(db.session)
     
     from .flashcard_stats_logic import get_flashcard_item_statistics
     item_stats = get_flashcard_item_statistics(user_id, item_id)

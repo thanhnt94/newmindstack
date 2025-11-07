@@ -22,6 +22,14 @@ class Config:
     # Cấu hình đường dẫn đến cơ sở dữ liệu
     SQLALCHEMY_DATABASE_URI = f'sqlite:///{DATABASE_PATH}'
 
+    # Tăng thời gian chờ kết nối để giảm lỗi "database is locked" của SQLite
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'connect_args': {
+            'timeout': 30,
+        },
+    }
+
     # Tắt tính năng theo dõi sự thay đổi của SQLAlchemy để tiết kiệm tài nguyên
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
