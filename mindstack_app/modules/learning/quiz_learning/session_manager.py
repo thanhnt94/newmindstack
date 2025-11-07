@@ -4,7 +4,8 @@
 
 from flask import session, current_app, url_for
 from flask_login import current_user
-from ....models import db, LearningItem, QuizProgress, LearningGroup, User, UserNote
+from typing import Optional
+from ....models import db, LearningItem, QuizProgress, LearningGroup, User, UserNote, LearningContainer
 from .algorithms import (
     get_new_only_items,
     get_reviewed_items,
@@ -18,6 +19,11 @@ from sqlalchemy.sql import func
 import random
 import datetime
 import os
+
+from mindstack_app.modules.shared.utils.media_paths import (
+    get_media_folders,
+    build_relative_media_path,
+)
 
 class QuizSessionManager:
     """
@@ -42,6 +48,7 @@ class QuizSessionManager:
         self.incorrect_answers = incorrect_answers
         self.start_time = start_time
         self.common_pre_question_text_global = common_pre_question_text_global
+        self._media_folders_cache: Optional[dict[str, str]] = None
         current_app.logger.debug(f"QuizSessionManager: Instance được khởi tạo/tải. User: {self.user_id}, Set: {self.set_id}, Mode: {self.mode}")
 
     @classmethod
@@ -49,7 +56,7 @@ class QuizSessionManager:
         """
         Tạo một instance QuizSessionManager từ một dictionary (thường từ Flask session).
         """
-        return cls(
+        instance = cls(
             user_id=session_dict['user_id'],
             set_id=session_dict['set_id'],
             mode=session_dict['mode'],
@@ -61,6 +68,8 @@ class QuizSessionManager:
             start_time=session_dict['start_time'],
             common_pre_question_text_global=session_dict['common_pre_question_text_global']
         )
+        instance._media_folders_cache = None
+        return instance
 
     def to_dict(self):
         """
@@ -194,20 +203,51 @@ class QuizSessionManager:
         current_app.logger.debug(f"SessionManager: Phiên học mới đã được khởi tạo với {total_items_in_session} câu hỏi. Batch size: {batch_size}")
         return True
 
-    def _get_media_absolute_url(self, file_path):
+    def _get_media_absolute_url(self, file_path, media_type: Optional[str] = None, *, container: Optional[LearningContainer] = None):
         """
         Chuyển đổi đường dẫn file media tương đối thành URL tuyệt đối.
         """
         if not file_path:
             return None
-        
+
         try:
-            full_url = url_for('static', filename=file_path)
+            if container:
+                folders = self._get_container_media_folders(container)
+            else:
+                folders = self._get_media_folders()
+            relative_path = build_relative_media_path(file_path, folders.get(media_type) if media_type else None)
+            if not relative_path:
+                return None
+            if relative_path.startswith(('http://', 'https://')):
+                return relative_path
+            static_path = relative_path.lstrip('/')
+            full_url = url_for('static', filename=static_path)
             current_app.logger.debug(f"Media URL - Gốc: '{file_path}', URL: '{full_url}'")
             return full_url
         except Exception as e:
             current_app.logger.error(f"Lỗi khi tạo URL cho media '{file_path}': {e}")
             return None
+
+    def _get_media_folders(self):
+        if self._media_folders_cache is None:
+            container = LearningContainer.query.get(self.set_id)
+            if container:
+                self._media_folders_cache = self._get_container_media_folders(container)
+            else:
+                self._media_folders_cache = {}
+        return self._media_folders_cache
+
+    @staticmethod
+    def _get_container_media_folders(container: Optional[LearningContainer]) -> dict[str, str]:
+        if not container:
+            return {}
+        folders = getattr(container, 'media_folders', {}) or {}
+        if folders:
+            return dict(folders)
+        settings_payload = container.ai_settings or {}
+        if isinstance(settings_payload, dict):
+            return get_media_folders(settings_payload)
+        return {}
 
 
     def get_next_batch(self, requested_batch_size):
@@ -264,10 +304,15 @@ class QuizSessionManager:
                 'group_id': item.group_id,
                 'group_details': None
             }
+            container_obj = item.container if hasattr(item, 'container') else None
             if item_dict['content'].get('question_image_file'):
-                item_dict['content']['question_image_file'] = self._get_media_absolute_url(item_dict['content']['question_image_file'])
+                item_dict['content']['question_image_file'] = self._get_media_absolute_url(
+                    item_dict['content']['question_image_file'], 'image', container=container_obj
+                )
             if item_dict['content'].get('question_audio_file'):
-                item_dict['content']['question_audio_file'] = self._get_media_absolute_url(item_dict['content']['question_audio_file'])
+                item_dict['content']['question_audio_file'] = self._get_media_absolute_url(
+                    item_dict['content']['question_audio_file'], 'audio', container=container_obj
+                )
 
             items_data.append(item_dict)
             newly_processed_item_ids.append(item.item_id)

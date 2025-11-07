@@ -27,6 +27,12 @@ import tempfile
 import os
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
+from mindstack_app.modules.shared.utils.media_paths import (
+    normalize_media_folder,
+    get_media_folders,
+    normalize_media_value_for_storage,
+    build_relative_media_path,
+)
 import copy
 import zipfile
 import shutil
@@ -55,8 +61,20 @@ def _has_editor_access(container_id):
         permission_level='editor'
     ).first() is not None
 
-def _process_relative_url(url):
-    """Chuẩn hóa đường dẫn tương đối và thêm tiền tố tĩnh khi cần."""
+def _get_media_folders_from_container(container) -> dict[str, str]:
+    if not container:
+        return {}
+    folders = getattr(container, 'media_folders', {}) or {}
+    if folders:
+        return dict(folders)
+    settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
+    if isinstance(settings_payload, dict):
+        return get_media_folders(settings_payload)
+    return {}
+
+
+def _process_relative_url(url, media_folder: Optional[str] = None):
+    """Normalize a user-provided media path before storing it."""
     if url is None:
         return None
 
@@ -64,19 +82,50 @@ def _process_relative_url(url):
     if not normalized:
         return ''
 
-    return normalized
+    return normalize_media_value_for_storage(normalized, media_folder)
 
 
-def _build_absolute_media_url(file_path):
+def _build_absolute_media_url(file_path, media_folder: Optional[str] = None):
     if not file_path:
         return None
-    if file_path.startswith(('http://', 'https://')) or file_path.startswith('/'):
-        return file_path
     try:
-        return url_for('static', filename=file_path)
+        relative_path = build_relative_media_path(file_path, media_folder)
+        if not relative_path:
+            return None
+        if relative_path.startswith(('http://', 'https://')):
+            return relative_path
+        static_path = relative_path.lstrip('/')
+        return url_for('static', filename=static_path)
     except Exception as exc:
         current_app.logger.error(f"Không thể tạo URL tuyệt đối cho media '{file_path}': {exc}")
         return file_path
+
+
+def _build_ai_settings_from_form(form, existing_settings=None):
+    payload = {}
+    if isinstance(existing_settings, dict):
+        payload.update(existing_settings)
+
+    ai_prompt_value = (getattr(form.ai_prompt, 'data', '') or '').strip()
+    if ai_prompt_value:
+        payload['custom_prompt'] = ai_prompt_value
+    else:
+        payload.pop('custom_prompt', None)
+
+    media_folders = {}
+    image_folder_value = normalize_media_folder(getattr(getattr(form, 'image_base_folder', None), 'data', None))
+    audio_folder_value = normalize_media_folder(getattr(getattr(form, 'audio_base_folder', None), 'data', None))
+    if image_folder_value:
+        media_folders['image'] = image_folder_value
+    if audio_folder_value:
+        media_folders['audio'] = audio_folder_value
+
+    if media_folders:
+        payload['media_folders'] = media_folders
+    else:
+        payload.pop('media_folders', None)
+
+    return payload or None
 
 
 def _slugify_filename(value: str) -> str:
@@ -88,7 +137,7 @@ def _slugify_filename(value: str) -> str:
     return value or 'quiz-set'
 
 
-def _resolve_local_media_path(path_value: str):
+def _resolve_local_media_path(path_value: str, *, media_folder: Optional[str] = None):
     if not path_value:
         return None
 
@@ -96,15 +145,26 @@ def _resolve_local_media_path(path_value: str):
     if not normalized or normalized.startswith(('http://', 'https://')):
         return None
 
+    normalized = normalized.lstrip('/')
+    if normalized.startswith('uploads/'):
+        normalized = normalized[len('uploads/'):]
+
     base_static = os.path.join(current_app.root_path, 'static')
+    upload_folder = current_app.config.get('UPLOAD_FOLDER')
     candidates = []
-    if normalized.startswith('/'):
-        candidates.append(os.path.join(base_static, normalized.lstrip('/')))
-    else:
-        upload_folder = current_app.config.get('UPLOAD_FOLDER')
+
+    relative_candidates = [normalized]
+    folder_normalized = normalize_media_folder(media_folder)
+    if folder_normalized:
+        if '/' not in normalized:
+            relative_candidates.insert(0, f"{folder_normalized}/{normalized}")
+        else:
+            relative_candidates.insert(0, normalized)
+
+    for rel_path in relative_candidates:
         if upload_folder:
-            candidates.append(os.path.join(upload_folder, normalized))
-        candidates.append(os.path.join(base_static, normalized))
+            candidates.append(os.path.join(upload_folder, rel_path))
+        candidates.append(os.path.join(base_static, rel_path))
 
     for candidate in candidates:
         if candidate and os.path.isfile(candidate):
@@ -118,6 +178,7 @@ def _copy_media_into_package(
     media_dir: str,
     existing_map: dict,
     media_subdir: Optional[str] = None,
+    media_folder: Optional[str] = None,
 ) -> str:
     if not original_path:
         return original_path
@@ -129,7 +190,7 @@ def _copy_media_into_package(
     if normalized.startswith(('http://', 'https://')):
         return normalized
 
-    local_path = _resolve_local_media_path(normalized)
+    local_path = _resolve_local_media_path(normalized, media_folder=media_folder)
     if not local_path:
         return normalized
 
@@ -181,13 +242,17 @@ def _serialize_quiz_item_for_response(item, user_id=None):
         'D': options.get('D')
     }
 
+    media_folders = _get_media_folders_from_container(item.container if item else None)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
+
     image_path = content_copy.get('question_image_file')
     if image_path:
-        content_copy['question_image_file'] = _build_absolute_media_url(image_path)
+        content_copy['question_image_file'] = _build_absolute_media_url(image_path, image_folder)
 
     audio_path = content_copy.get('question_audio_file')
     if audio_path:
-        content_copy['question_audio_file'] = _build_absolute_media_url(audio_path)
+        content_copy['question_audio_file'] = _build_absolute_media_url(audio_path, audio_folder)
 
     note_content = ''
     if user_id is not None:
@@ -208,6 +273,11 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
     """Cập nhật câu hỏi quiz từ file Excel được tải lên."""
     temp_filepath = None
     try:
+        quiz_set = LearningContainer.query.get(container_id)
+        media_folders = _get_media_folders_from_container(quiz_set)
+        image_folder = media_folders.get('image')
+        audio_folder = media_folders.get('audio')
+
         with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
             excel_file.save(tmp_file.name)
             temp_filepath = tmp_file.name
@@ -276,10 +346,10 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                     content_dict['passage_text'] = group_passage
                     updated = True
                 if group_audio:
-                    content_dict['question_audio_file'] = _process_relative_url(group_audio)
+                    content_dict['question_audio_file'] = _process_relative_url(group_audio, audio_folder)
                     updated = True
                 if group_image:
-                    content_dict['question_image_file'] = _process_relative_url(group_image)
+                    content_dict['question_image_file'] = _process_relative_url(group_image, image_folder)
                     updated = True
                 if updated:
                     group_obj.content = content_dict
@@ -294,9 +364,9 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 if group_passage:
                     group_content['passage_text'] = group_passage
                 if group_audio:
-                    group_content['question_audio_file'] = _process_relative_url(group_audio)
+                    group_content['question_audio_file'] = _process_relative_url(group_audio, audio_folder)
                 if group_image:
-                    group_content['question_image_file'] = _process_relative_url(group_image)
+                    group_content['question_image_file'] = _process_relative_url(group_image, image_folder)
 
                 if group_passage:
                     group_type = 'PASSAGE'
@@ -366,8 +436,8 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 content_dict['passage_order'] = passage_order
                 image_value = _get_cell(row, 'question_image_file')
                 audio_value = _get_cell(row, 'question_audio_file')
-                content_dict['question_image_file'] = _process_relative_url(image_value) if image_value else None
-                content_dict['question_audio_file'] = _process_relative_url(audio_value) if audio_value else None
+                content_dict['question_image_file'] = _process_relative_url(image_value, image_folder) if image_value else None
+                content_dict['question_audio_file'] = _process_relative_url(audio_value, audio_folder) if audio_value else None
                 ai_prompt_value = _get_cell(row, 'ai_prompt')
                 if ai_prompt_value:
                     content_dict['ai_prompt'] = ai_prompt_value
@@ -412,9 +482,9 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 image_value = _get_cell(row, 'question_image_file')
                 audio_value = _get_cell(row, 'question_audio_file')
                 if image_value:
-                    new_content['question_image_file'] = _process_relative_url(image_value)
+                    new_content['question_image_file'] = _process_relative_url(image_value, image_folder)
                 if audio_value:
-                    new_content['question_audio_file'] = _process_relative_url(audio_value)
+                    new_content['question_audio_file'] = _process_relative_url(audio_value, audio_folder)
                 ai_prompt_value = _get_cell(row, 'ai_prompt')
                 if ai_prompt_value:
                     new_content['ai_prompt'] = ai_prompt_value
@@ -609,6 +679,10 @@ def export_quiz_set(set_id):
         for group in LearningGroup.query.filter_by(container_id=set_id).all()
     }
 
+    media_folders = _get_media_folders_from_container(quiz_set)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         media_dir = os.path.join(tmp_dir, 'media')
         os.makedirs(media_dir, exist_ok=True)
@@ -620,6 +694,10 @@ def export_quiz_set(set_id):
             {'Key': 'tags', 'Value': quiz_set.tags or ''},
             {'Key': 'is_public', 'Value': str(quiz_set.is_public)},
         ]
+        if image_folder:
+            info_rows.append({'Key': 'image_base_folder', 'Value': image_folder})
+        if audio_folder:
+            info_rows.append({'Key': 'audio_base_folder', 'Value': audio_folder})
         ai_settings_payload = quiz_set.ai_settings if hasattr(quiz_set, 'ai_settings') else None
         ai_prompt_value = getattr(quiz_set, 'ai_prompt', None)
         if not ai_prompt_value and isinstance(ai_settings_payload, dict):
@@ -644,10 +722,18 @@ def export_quiz_set(set_id):
                 'correct_answer_text': content.get('correct_answer'),
                 'guidance': content.get('explanation'),
                 'question_image_file': _copy_media_into_package(
-                    content.get('question_image_file'), media_dir, media_cache, media_subdir='images'
+                    content.get('question_image_file'),
+                    media_dir,
+                    media_cache,
+                    media_subdir='images',
+                    media_folder=image_folder,
                 ),
                 'question_audio_file': _copy_media_into_package(
-                    content.get('question_audio_file'), media_dir, media_cache, media_subdir='audio'
+                    content.get('question_audio_file'),
+                    media_dir,
+                    media_cache,
+                    media_subdir='audio',
+                    media_folder=audio_folder,
                 ),
                 'passage_text': content.get('passage_text'),
                 'passage_order': content.get('passage_order'),
@@ -661,12 +747,14 @@ def export_quiz_set(set_id):
                     media_dir,
                     media_cache,
                     media_subdir='audio',
+                    media_folder=audio_folder,
                 ),
                 'group_image_file': _copy_media_into_package(
                     group_content.get('question_image_file') if isinstance(group_content, dict) else None,
                     media_dir,
                     media_cache,
                     media_subdir='images',
+                    media_folder=image_folder,
                 ),
                 'action': '',
             }
@@ -741,7 +829,10 @@ def add_quiz_set():
         flash_category = ''
         temp_filepath = None
         try:
-            ai_prompt_value = (form.ai_prompt.data or '').strip()
+            ai_settings_payload = _build_ai_settings_from_form(form)
+            media_folders = get_media_folders(ai_settings_payload)
+            image_folder = media_folders.get('image')
+            audio_folder = media_folders.get('audio')
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
                 container_type='QUIZ_SET',
@@ -749,7 +840,7 @@ def add_quiz_set():
                 description=form.description.data,
                 tags=form.tags.data,
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
-                ai_prompt=ai_prompt_value or None,
+                ai_settings=ai_settings_payload,
             )
             db.session.add(new_set)
             db.session.flush()
@@ -782,15 +873,15 @@ def add_quiz_set():
                             group_key = group_passage_text
                             group_content['passage_text'] = group_passage_text
                             group_type = 'PASSAGE'
-                        
+
                         if group_audio_file:
                             group_key = group_audio_file
-                            group_content['question_audio_file'] = group_audio_file
+                            group_content['question_audio_file'] = _process_relative_url(group_audio_file, audio_folder)
                             group_type = 'AUDIO'
-                        
+
                         if group_image_file:
                             group_key = group_image_file
-                            group_content['question_image_file'] = group_image_file
+                            group_content['question_image_file'] = _process_relative_url(group_image_file, image_folder)
                             group_type = 'IMAGE'
 
                         if group_key and group_key not in group_cache:
@@ -832,8 +923,8 @@ def add_quiz_set():
                         'pre_question_text': str(row['pre_question_text']) if 'pre_question_text' in df.columns and pd.notna(row['pre_question_text']) else None,
                         'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None,
                         'passage_order': int(passage_order) if passage_order else None,
-                        'question_image_file': item_image_file,
-                        'question_audio_file': item_audio_file,
+                        'question_image_file': _process_relative_url(item_image_file, image_folder) if item_image_file else None,
+                        'question_audio_file': _process_relative_url(item_audio_file, audio_folder) if item_audio_file else None,
                     }
                     if item_ai_prompt:
                         item_content['ai_prompt'] = item_ai_prompt
@@ -890,6 +981,17 @@ def edit_quiz_set(set_id):
     
     form = QuizSetForm(obj=quiz_set)
     _apply_is_public_restrictions(form)
+    if request.method == 'GET':
+        ai_prompt_value = getattr(quiz_set, 'ai_prompt', None)
+        ai_settings_payload = quiz_set.ai_settings if hasattr(quiz_set, 'ai_settings') else None
+        if not ai_prompt_value and isinstance(ai_settings_payload, dict):
+            ai_prompt_value = ai_settings_payload.get('custom_prompt', '')
+        form.ai_prompt.data = ai_prompt_value or ''
+
+        media_folders = _get_media_folders_from_container(quiz_set)
+        form.image_base_folder.data = media_folders.get('image')
+        form.audio_base_folder.data = media_folders.get('audio')
+
     if form.validate_on_submit():
         flash_message = 'Bộ câu hỏi đã được cập nhật!'
         flash_category = 'success'
@@ -898,8 +1000,7 @@ def edit_quiz_set(set_id):
             quiz_set.description = form.description.data
             quiz_set.tags = form.tags.data
             quiz_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
-            ai_prompt_value = (form.ai_prompt.data or '').strip()
-            quiz_set.ai_prompt = ai_prompt_value or None
+            quiz_set.ai_settings = _build_ai_settings_from_form(form, quiz_set.ai_settings)
 
             if form.excel_file.data and form.excel_file.data.filename != '':
                 flash_message = _update_quiz_from_excel_file(set_id, form.excel_file.data)
@@ -991,7 +1092,11 @@ def add_quiz_item(set_id):
     quiz_set = LearningContainer.query.get_or_404(set_id)
     if current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
         abort(403)
-    
+
+    media_folders = _get_media_folders_from_container(quiz_set)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
+
     form = QuizItemForm()
     if form.validate_on_submit():
         new_order = form.order_in_container.data
@@ -1022,8 +1127,8 @@ def add_quiz_item(set_id):
             'pre_question_text': form.pre_question_text.data,
             'passage_text': form.passage_text.data,
             'passage_order': form.passage_order.data,
-            'question_image_file': _process_relative_url(form.question_image_file.data),
-            'question_audio_file': _process_relative_url(form.question_audio_file.data)
+            'question_image_file': _process_relative_url(form.question_image_file.data, image_folder),
+            'question_audio_file': _process_relative_url(form.question_audio_file.data, audio_folder)
         }
         if form.ai_prompt.data:
             content_dict['ai_prompt'] = form.ai_prompt.data
@@ -1054,7 +1159,11 @@ def edit_quiz_item(set_id, item_id):
     quiz_set = LearningContainer.query.get_or_404(set_id)
     if current_user.user_role != 'admin' and quiz_set.creator_user_id != current_user.user_id:
         abort(403)
-    
+
+    media_folders = _get_media_folders_from_container(quiz_set)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
+
     form = QuizItemForm()
     if request.method == 'GET':
         form.question.data = quiz_item.content.get('question')
@@ -1107,8 +1216,8 @@ def edit_quiz_item(set_id, item_id):
         quiz_item.content['options']['D'] = form.option_d.data
         quiz_item.content['correct_answer'] = form.correct_answer_text.data
         quiz_item.content['explanation'] = form.guidance.data
-        quiz_item.content['question_image_file'] = _process_relative_url(form.question_image_file.data)
-        quiz_item.content['question_audio_file'] = _process_relative_url(form.question_audio_file.data)
+        quiz_item.content['question_image_file'] = _process_relative_url(form.question_image_file.data, image_folder)
+        quiz_item.content['question_audio_file'] = _process_relative_url(form.question_audio_file.data, audio_folder)
         quiz_item.content['passage_text'] = form.passage_text.data
         quiz_item.content['passage_order'] = form.passage_order.data
         quiz_item.ai_explanation = form.ai_explanation.data
