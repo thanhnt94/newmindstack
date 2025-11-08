@@ -31,7 +31,7 @@ import datetime
 import os
 import asyncio
 from .audio_service import AudioService
-from mindstack_app.modules.shared.utils.media_paths import get_media_folders, build_relative_media_path
+from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
 
 audio_service = AudioService()
 
@@ -190,10 +190,6 @@ class FlashcardSessionManager:
             container = LearningContainer.query.get(self.set_id)
             if container:
                 folders = getattr(container, 'media_folders', {}) or {}
-                if not folders:
-                    settings_payload = container.ai_settings or {}
-                    if isinstance(settings_payload, dict):
-                        folders = get_media_folders(settings_payload)
                 self._media_folders_cache = dict(folders)
             else:
                 self._media_folders_cache = {}

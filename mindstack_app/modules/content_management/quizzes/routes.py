@@ -29,7 +29,6 @@ from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
 from mindstack_app.modules.shared.utils.media_paths import (
     normalize_media_folder,
-    get_media_folders,
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
@@ -67,10 +66,30 @@ def _get_media_folders_from_container(container) -> dict[str, str]:
     folders = getattr(container, 'media_folders', {}) or {}
     if folders:
         return dict(folders)
-    settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
-    if isinstance(settings_payload, dict):
-        return get_media_folders(settings_payload)
     return {}
+
+
+def _extract_media_folders(settings_payload) -> dict[str, str]:
+    """Return normalized media folder mapping from a settings payload."""
+
+    result: dict[str, str] = {}
+    if not isinstance(settings_payload, dict):
+        return result
+
+    media_settings = settings_payload.get('media_folders')
+    if isinstance(media_settings, dict):
+        for media_type in ('image', 'audio'):
+            normalized = normalize_media_folder(media_settings.get(media_type))
+            if normalized:
+                result[media_type] = normalized
+    else:
+        for media_type in ('image', 'audio'):
+            fallback_key = f"{media_type}_base_folder"
+            normalized = normalize_media_folder(settings_payload.get(fallback_key))
+            if normalized:
+                result[media_type] = normalized
+
+    return result
 
 
 def _process_relative_url(url, media_folder: Optional[str] = None):
@@ -906,7 +925,7 @@ def add_quiz_set():
         temp_filepath = None
         try:
             ai_settings_payload = _build_ai_settings_from_form(form)
-            media_folders = get_media_folders(ai_settings_payload)
+            media_folders = _extract_media_folders(ai_settings_payload)
             image_folder = media_folders.get('image')
             audio_folder = media_folders.get('audio')
             new_set = LearningContainer(
@@ -918,6 +937,8 @@ def add_quiz_set():
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
                 ai_settings=ai_settings_payload,
             )
+            if media_folders:
+                new_set.set_media_folders(media_folders)
             db.session.add(new_set)
             db.session.flush()
 
