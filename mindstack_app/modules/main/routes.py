@@ -5,7 +5,7 @@
 
 from datetime import datetime, timedelta, timezone
 
-from flask import render_template, redirect, url_for
+from flask import flash, redirect, render_template, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import case, func, distinct
 
@@ -16,7 +16,41 @@ from ...models import (
     QuizProgress,
     CourseProgress,
     ScoreLog,
+    LearningGoal,
+    User,
 )
+from .forms import GoalForm
+
+
+GOAL_TYPE_CONFIG = {
+    'flashcards_reviewed': {
+        'label': 'Flashcard',
+        'description': 'Ôn luyện flashcard và giữ chuỗi học.',
+        'unit': 'thẻ',
+        'icon': 'clone',
+        'endpoint': 'learning.flashcard_learning.flashcard_learning_dashboard',
+    },
+    'quizzes_practiced': {
+        'label': 'Quiz',
+        'description': 'Luyện quiz để củng cố kiến thức.',
+        'unit': 'câu',
+        'icon': 'circle-question',
+        'endpoint': 'learning.quiz_learning.quiz_learning_dashboard',
+    },
+    'lessons_completed': {
+        'label': 'Bài học',
+        'description': 'Hoàn thành các bài học trong khóa.',
+        'unit': 'bài',
+        'icon': 'graduation-cap',
+        'endpoint': 'learning.course_learning.course_learning_dashboard',
+    },
+}
+
+PERIOD_LABELS = {
+    'daily': 'Hôm nay',
+    'weekly': '7 ngày qua',
+    'total': 'Tổng cộng',
+}
 
 
 @main_bp.route('/')
@@ -33,7 +67,7 @@ def index():
     return render_template('main/landing_page.html')
 
 
-@main_bp.route('/dashboard')
+@main_bp.route('/dashboard', methods=['GET', 'POST'])
 @login_required  # Yêu cầu người dùng phải đăng nhập để truy cập route này
 def dashboard():
     user_id = current_user.user_id
@@ -150,6 +184,17 @@ def dashboard():
         or 0
     )
 
+    flashcard_reviews_week = (
+        db.session.query(func.count(FlashcardProgress.progress_id))
+        .filter(
+            FlashcardProgress.user_id == user_id,
+            FlashcardProgress.last_reviewed.isnot(None),
+            FlashcardProgress.last_reviewed >= start_of_week,
+        )
+        .scalar()
+        or 0
+    )
+
     quiz_attempts_today = (
         db.session.query(func.count(QuizProgress.progress_id))
         .filter(
@@ -161,12 +206,34 @@ def dashboard():
         or 0
     )
 
+    quiz_attempts_week = (
+        db.session.query(func.count(QuizProgress.progress_id))
+        .filter(
+            QuizProgress.user_id == user_id,
+            QuizProgress.last_reviewed.isnot(None),
+            QuizProgress.last_reviewed >= start_of_week,
+        )
+        .scalar()
+        or 0
+    )
+
     course_updates_today = (
         db.session.query(func.count(CourseProgress.progress_id))
         .filter(
             CourseProgress.user_id == user_id,
             CourseProgress.last_updated.isnot(None),
             CourseProgress.last_updated >= start_of_today,
+        )
+        .scalar()
+        or 0
+    )
+
+    course_updates_week = (
+        db.session.query(func.count(CourseProgress.progress_id))
+        .filter(
+            CourseProgress.user_id == user_id,
+            CourseProgress.last_updated.isnot(None),
+            CourseProgress.last_updated >= start_of_week,
         )
         .scalar()
         or 0
@@ -209,45 +276,6 @@ def dashboard():
         or 0
     )
 
-    recent_actions_rows = (
-        db.session.query(ScoreLog)
-        .filter(ScoreLog.user_id == user_id)
-        .order_by(ScoreLog.timestamp.desc())
-        .limit(5)
-        .all()
-    )
-
-    recent_actions = []
-    for row in recent_actions_rows:
-        timestamp = row.timestamp
-        if timestamp is None:
-            timestamp = now
-        elif timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=timezone.utc)
-        else:
-            timestamp = timestamp.astimezone(timezone.utc)
-
-        score_change = int(row.score_change or 0)
-        if score_change > 0:
-            score_badge = f"+{score_change} điểm"
-            tone = 'positive'
-        elif score_change < 0:
-            score_badge = f"{score_change} điểm"
-            tone = 'negative'
-        else:
-            score_badge = "0 điểm"
-            tone = 'neutral'
-
-        recent_actions.append(
-            {
-                'title': row.reason or 'Hoạt động học tập',
-                'timestamp_display': timestamp.strftime('%H:%M'),
-                'date_display': timestamp.strftime('%d/%m'),
-                'score_badge': score_badge,
-                'tone': tone,
-            }
-        )
-
     activity_parts = []
     if flashcard_reviews_today:
         activity_parts.append(f"ôn {flashcard_reviews_today} thẻ flashcard")
@@ -276,9 +304,9 @@ def dashboard():
             "Hôm nay bạn chưa bắt đầu phiên học nào. Chọn một hoạt động bên dưới để khởi động nhé!"
         )
 
-    quick_actions = []
+    shortcut_actions = []
     if flashcard_summary['due'] > 0:
-        quick_actions.append(
+        shortcut_actions.append(
             {
                 'title': 'Ôn flashcard đến hạn',
                 'description': f"{flashcard_summary['due']} thẻ đang chờ bạn.",
@@ -287,7 +315,7 @@ def dashboard():
             }
         )
     if quiz_summary['learning'] > 0:
-        quick_actions.append(
+        shortcut_actions.append(
             {
                 'title': 'Tiếp tục luyện quiz',
                 'description': f"Bạn còn {quiz_summary['learning']} câu hỏi ở trạng thái đang học.",
@@ -296,7 +324,7 @@ def dashboard():
             }
         )
     if course_summary['in_progress'] > 0:
-        quick_actions.append(
+        shortcut_actions.append(
             {
                 'title': 'Hoàn thiện khóa học',
                 'description': f"{course_summary['in_progress']} bài học đang dang dở.",
@@ -305,8 +333,8 @@ def dashboard():
             }
         )
 
-    if not quick_actions:
-        quick_actions.append(
+    if not shortcut_actions:
+        shortcut_actions.append(
             {
                 'title': 'Khởi động với Flashcard',
                 'description': 'Tạo đà học tập với vài thẻ đầu tiên.',
@@ -319,13 +347,235 @@ def dashboard():
         'today': int(score_today),
         'week': int(score_week),
         'total': int(score_total),
+        'active_days': int(weekly_active_days),
     }
 
-    today_activity = {
-        'flashcards': flashcard_reviews_today,
-        'quizzes': quiz_attempts_today,
-        'courses': course_updates_today,
+    goal_form = GoalForm()
+    goal_form.goal_type.choices = [
+        (key, config['label']) for key, config in GOAL_TYPE_CONFIG.items()
+    ]
+
+    if goal_form.validate_on_submit():
+        selected_type = goal_form.goal_type.data
+        config = GOAL_TYPE_CONFIG.get(selected_type)
+        if config is None:
+            flash('Loại mục tiêu không hợp lệ.', 'error')
+        else:
+            goal = (
+                db.session.query(LearningGoal)
+                .filter(
+                    LearningGoal.user_id == user_id,
+                    LearningGoal.goal_type == selected_type,
+                    LearningGoal.period == goal_form.period.data,
+                    LearningGoal.is_active.is_(True),
+                )
+                .first()
+            )
+            if goal:
+                goal.target_value = goal_form.target_value.data
+                goal.description = goal.description or config['description']
+                message = 'Đã cập nhật mục tiêu hiện tại.'
+            else:
+                goal = LearningGoal(
+                    user_id=user_id,
+                    goal_type=selected_type,
+                    period=goal_form.period.data,
+                    target_value=goal_form.target_value.data,
+                    description=config['description'],
+                )
+                db.session.add(goal)
+                message = 'Đã tạo mục tiêu mới.'
+            db.session.commit()
+            flash(message, 'success')
+            return redirect(url_for('main.dashboard'))
+
+    goals = (
+        db.session.query(LearningGoal)
+        .filter(
+            LearningGoal.user_id == user_id,
+            LearningGoal.is_active.is_(True),
+        )
+        .order_by(LearningGoal.created_at.desc())
+        .all()
+    )
+
+    metrics = {
+        'flashcard_reviews_today': flashcard_reviews_today,
+        'flashcard_reviews_week': flashcard_reviews_week,
+        'flashcard_mastered': flashcard_summary['mastered'],
+        'quiz_attempts_today': quiz_attempts_today,
+        'quiz_attempts_week': quiz_attempts_week,
+        'quiz_mastered': quiz_summary['mastered'],
+        'course_updates_today': course_updates_today,
+        'course_updates_week': course_updates_week,
+        'course_completed': course_summary['completed'],
     }
+
+    def _goal_value(goal: LearningGoal) -> int:
+        if goal.goal_type == 'flashcards_reviewed':
+            if goal.period == 'daily':
+                return metrics['flashcard_reviews_today']
+            if goal.period == 'weekly':
+                return metrics['flashcard_reviews_week']
+            return metrics['flashcard_mastered']
+        if goal.goal_type == 'quizzes_practiced':
+            if goal.period == 'daily':
+                return metrics['quiz_attempts_today']
+            if goal.period == 'weekly':
+                return metrics['quiz_attempts_week']
+            return metrics['quiz_mastered']
+        if goal.goal_type == 'lessons_completed':
+            if goal.period == 'daily':
+                return metrics['course_updates_today']
+            if goal.period == 'weekly':
+                return metrics['course_updates_week']
+            return metrics['course_completed']
+        return 0
+
+    goal_progress = []
+    for goal in goals:
+        config = GOAL_TYPE_CONFIG.get(goal.goal_type)
+        if not config:
+            continue
+        current_value = _goal_value(goal)
+        percent = 0
+        if goal.target_value > 0:
+            percent = min(100, round((current_value / goal.target_value) * 100))
+        goal_progress.append(
+            {
+                'id': goal.goal_id,
+                'title': config['label'],
+                'description': config['description'],
+                'period_label': PERIOD_LABELS.get(goal.period, goal.period),
+                'current_value': current_value,
+                'target_value': goal.target_value,
+                'unit': config['unit'],
+                'percent': percent,
+                'url': url_for(config['endpoint']),
+                'icon': config['icon'],
+            }
+        )
+
+    score_cards = [
+        {
+            'label': 'Điểm hôm nay',
+            'value': score_overview['today'],
+            'icon': 'sun',
+            'accent': 'from-indigo-500 to-indigo-600',
+        },
+        {
+            'label': 'Điểm 7 ngày',
+            'value': score_overview['week'],
+            'icon': 'calendar-week',
+            'accent': 'from-emerald-500 to-emerald-600',
+        },
+        {
+            'label': 'Điểm tích lũy',
+            'value': score_overview['total'],
+            'icon': 'trophy',
+            'accent': 'from-amber-500 to-amber-600',
+        },
+        {
+            'label': 'Ngày hoạt động',
+            'value': score_overview['active_days'],
+            'icon': 'fire',
+            'accent': 'from-rose-500 to-rose-600',
+        },
+    ]
+
+    achievements = [
+        {
+            'label': 'Flashcard đã thành thạo',
+            'value': flashcard_summary['mastered'],
+            'detail': f"Trong tổng {flashcard_summary['total']} thẻ" if flashcard_summary['total'] else 'Bắt đầu tạo bộ thẻ đầu tiên',
+            'icon': 'clone',
+            'tone': 'indigo',
+        },
+        {
+            'label': 'Quiz đã nắm vững',
+            'value': quiz_summary['mastered'],
+            'detail': f"{quiz_summary['completion_percent']}% câu hỏi đã thành thạo",
+            'icon': 'circle-question',
+            'tone': 'emerald',
+        },
+        {
+            'label': 'Khóa học hoàn thành',
+            'value': course_summary['completed'],
+            'detail': f"Đang theo học {course_summary['in_progress']} khóa",
+            'icon': 'graduation-cap',
+            'tone': 'amber',
+        },
+        {
+            'label': 'Điểm thưởng tích lũy',
+            'value': score_overview['total'],
+            'detail': 'Tích lũy từ mọi hoạt động học tập',
+            'icon': 'star',
+            'tone': 'violet',
+        },
+    ]
+
+    progress_snapshots = [
+        {
+            'label': 'Flashcard đã ôn hôm nay',
+            'value': flashcard_reviews_today,
+            'unit': 'thẻ',
+            'trend': f"{flashcard_reviews_week} trong 7 ngày qua",
+            'icon': 'bolt',
+        },
+        {
+            'label': 'Quiz đã luyện hôm nay',
+            'value': quiz_attempts_today,
+            'unit': 'câu',
+            'trend': f"{quiz_attempts_week} trong 7 ngày qua",
+            'icon': 'brain',
+        },
+        {
+            'label': 'Bài học cập nhật hôm nay',
+            'value': course_updates_today,
+            'unit': 'bài',
+            'trend': f"{course_updates_week} trong 7 ngày qua",
+            'icon': 'book-open',
+        },
+    ]
+
+    leaderboard_rows = (
+        db.session.query(User.user_id, User.username, User.total_score)
+        .order_by(User.total_score.desc())
+        .limit(5)
+        .all()
+    )
+
+    leaderboard = []
+    seen_user_ids = set()
+    for index, row in enumerate(leaderboard_rows, start=1):
+        score_value = int(row.total_score or 0)
+        is_current = row.user_id == current_user.user_id
+        leaderboard.append(
+            {
+                'rank': index,
+                'username': row.username,
+                'score': score_value,
+                'is_current_user': is_current,
+            }
+        )
+        seen_user_ids.add(row.user_id)
+
+    if current_user.user_id not in seen_user_ids:
+        higher_score_count = (
+            db.session.query(func.count(User.user_id))
+            .filter(User.total_score > (current_user.total_score or 0))
+            .scalar()
+            or 0
+        )
+        leaderboard.append(
+            {
+                'rank': higher_score_count + 1,
+                'username': current_user.username,
+                'score': int(current_user.total_score or 0),
+                'is_current_user': True,
+            }
+        )
+        leaderboard.sort(key=lambda item: item['rank'])
 
     return render_template(
         'main/dashboard.html',
@@ -334,7 +584,11 @@ def dashboard():
         course_summary=course_summary,
         score_overview=score_overview,
         motivation_message=motivation_message,
-        quick_actions=quick_actions,
-        today_activity=today_activity,
-        recent_actions=recent_actions,
+        shortcut_actions=shortcut_actions,
+        goal_form=goal_form,
+        goal_progress=goal_progress,
+        score_cards=score_cards,
+        achievements=achievements,
+        progress_snapshots=progress_snapshots,
+        leaderboard=leaderboard,
     )
