@@ -3,150 +3,156 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="bg-slate-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-        <div class="grid gap-6 xl:grid-cols-3">
-            <section class="xl:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
+<div class="bg-gradient-to-b from-slate-900/5 via-slate-50 to-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div class="grid gap-6 xl:grid-cols-3 items-start">
+            <section class="xl:col-span-2 bg-white/80 backdrop-blur border border-slate-100 rounded-3xl shadow-sm p-8 lg:p-10 space-y-8">
                 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
-                    <div class="text-left max-w-2xl">
-                        <p class="uppercase text-xs font-semibold tracking-widest text-indigo-500">Nhật ký hôm nay</p>
-                        <h1 class="text-3xl sm:text-4xl font-bold text-slate-900 mt-3">Xin chào, {{ current_user.username }} 👋</h1>
-                        <p class="text-base sm:text-lg text-slate-600 leading-relaxed mt-4">
-                            {{ motivation_message }}
-                        </p>
+                    <div class="max-w-2xl">
+                        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Nhật ký hôm nay</p>
+                        <h1 class="mt-3 text-3xl sm:text-4xl font-bold text-slate-900 leading-tight">Xin chào, {{ current_user.username }} 👋</h1>
+                        <p class="mt-4 text-sm sm:text-base text-slate-600 leading-relaxed">{{ motivation_message }}</p>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full lg:w-auto">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full lg:w-auto">
                         {% for card in score_cards %}
-                            <div class="rounded-2xl bg-gradient-to-br {{ card.accent }} text-white p-4 shadow-sm">
+                            <div class="rounded-2xl bg-gradient-to-br {{ card.accent }} text-white p-4 sm:p-5 shadow-sm">
                                 <div class="flex items-center justify-between gap-3">
-                                    <span class="text-xs font-semibold uppercase tracking-widest text-white/70">{{ card.label }}</span>
+                                    <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.35em] text-white/70">{{ card.label }}</span>
                                     <span class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
                                         <i class="fa-solid fa-{{ card.icon }} text-sm"></i>
                                     </span>
                                 </div>
-                                <p class="mt-4 text-3xl font-bold tracking-tight">{{ "{:,}".format(card.value) }}</p>
+                                <p class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">{{ "{:,}".format(card.value) }}</p>
                             </div>
                         {% endfor %}
                     </div>
                 </div>
 
-                <div class="mt-10 grid gap-4 md:grid-cols-3">
-                    <div class="p-4 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-indigo-50 to-white">
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <div class="p-5 rounded-2xl border border-indigo-100 bg-indigo-50/70">
                         <div class="flex items-center justify-between">
-                            <p class="text-sm font-semibold text-indigo-600">Flashcard đến hạn</p>
-                            <span class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">Sẵn sàng</span>
+                            <p class="text-sm font-semibold text-indigo-700">Flashcard đến hạn</p>
+                            <span class="text-[10px] uppercase font-semibold text-indigo-600 bg-white px-2 py-0.5 rounded-full">Sẵn sàng</span>
                         </div>
-                        <p class="mt-3 text-3xl font-bold text-indigo-700">{{ flashcard_summary.due }}</p>
-                        <p class="mt-2 text-xs text-indigo-500">Giải quyết để giữ chuỗi học ổn định.</p>
+                        <p class="mt-4 text-3xl font-bold text-indigo-700">{{ flashcard_summary.due }}</p>
+                        <p class="mt-2 text-xs text-indigo-500">Giải quyết để duy trì chuỗi học ổn định.</p>
                     </div>
-                    <div class="p-4 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-emerald-50 to-white">
+                    <div class="p-5 rounded-2xl border border-emerald-100 bg-emerald-50/70">
                         <div class="flex items-center justify-between">
-                            <p class="text-sm font-semibold text-emerald-600">Quiz đã nắm vững</p>
-                            <span class="text-xs bg-emerald-100 text-emerald-600 font-semibold px-2 py-0.5 rounded-full">Tiến bộ</span>
+                            <p class="text-sm font-semibold text-emerald-700">Quiz đã nắm vững</p>
+                            <span class="text-[10px] uppercase font-semibold text-emerald-600 bg-white px-2 py-0.5 rounded-full">Tiến bộ</span>
                         </div>
-                        <p class="mt-3 text-3xl font-bold text-emerald-700">{{ quiz_summary.mastered }}</p>
+                        <p class="mt-4 text-3xl font-bold text-emerald-700">{{ quiz_summary.mastered }}</p>
                         <p class="mt-2 text-xs text-emerald-500">{{ quiz_summary.completion_percent }}% câu hỏi đã thành thạo.</p>
                     </div>
-                    <div class="p-4 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-amber-50 to-white">
+                    <div class="p-5 rounded-2xl border border-amber-100 bg-amber-50/70">
                         <div class="flex items-center justify-between">
-                            <p class="text-sm font-semibold text-amber-600">Tiến độ khóa học</p>
-                            <span class="text-xs bg-amber-100 text-amber-600 font-semibold px-2 py-0.5 rounded-full">Lộ trình</span>
+                            <p class="text-sm font-semibold text-amber-700">Tiến độ khóa học</p>
+                            <span class="text-[10px] uppercase font-semibold text-amber-600 bg-white px-2 py-0.5 rounded-full">Lộ trình</span>
                         </div>
-                        <p class="mt-3 text-3xl font-bold text-amber-700">{{ course_summary.avg_completion }}%</p>
+                        <p class="mt-4 text-3xl font-bold text-amber-700">{{ course_summary.avg_completion }}%</p>
                         <p class="mt-2 text-xs text-amber-500">Trung bình hoàn thành trên các khóa đang theo học.</p>
                     </div>
                 </div>
             </section>
 
             <section class="space-y-6">
-                <div class="bg-slate-900 text-white rounded-3xl p-8 shadow-sm">
+                <div class="bg-slate-900 text-white rounded-3xl p-8 shadow-lg space-y-6">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-widest text-slate-300">Nhắc nhở hành động</p>
-                            <h2 class="text-2xl font-semibold mt-3">Mục tiêu &amp; bước tiếp theo</h2>
+                            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/60">Nhắc nhở hành động</p>
+                            <h2 class="mt-3 text-2xl font-semibold">Mục tiêu &amp; bước tiếp theo</h2>
                         </div>
-                        <span class="text-xs font-semibold px-3 py-1 rounded-full bg-white/10 text-white/80 self-start">
-                            {{ goal_progress|length }} mục tiêu
-                        </span>
+                        <a href="{{ url_for('goals.manage_goals') }}" class="inline-flex items-center gap-2 text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition">
+                            <i class="fa-solid fa-sliders"></i> Quản lý
+                        </a>
                     </div>
 
-                    <div class="mt-6 space-y-4">
+                    <div class="space-y-4">
                         {% for goal in goal_progress %}
-                            <div class="group rounded-2xl bg-white/10 hover:bg-white/15 transition-all p-4">
+                            <div class="rounded-2xl bg-white/10 hover:bg-white/15 transition-all p-4">
                                 <div class="flex flex-col gap-4">
-                                    <div class="flex items-start justify-between gap-4">
-                                        <div>
-                                            <div class="flex items-center gap-3">
-                                                <span class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-lg">
-                                                    <i class="fa-solid fa-{{ goal.icon }}"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="font-semibold text-base">{{ goal.title }} · {{ goal.period_label }}</p>
-                                                    <p class="text-xs uppercase tracking-widest text-indigo-200 mt-1">
-                                                        {{ goal.current_value }}/{{ goal.target_value }} {{ goal.unit }}
-                                                    </p>
+                                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                        <div class="flex gap-4">
+                                            <span class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-lg">
+                                                <i class="fa-solid fa-{{ goal.icon }}"></i>
+                                            </span>
+                                            <div>
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    <h3 class="text-lg font-semibold text-white">{{ goal.title }}</h3>
+                                                    <span class="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-indigo-200 bg-white/10 px-2 py-1 rounded-full">{{ goal.period_label }}</span>
+                                                    {% if goal.due_date %}
+                                                        <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-200 bg-white/10 px-2 py-1 rounded-full">
+                                                            <i class="fa-solid fa-clock"></i> Hạn {{ goal.due_date.strftime('%d/%m/%Y') }}
+                                                        </span>
+                                                    {% endif %}
                                                 </div>
+                                                <p class="mt-2 text-xs uppercase tracking-[0.3em] text-indigo-200">{{ goal.current_value }}/{{ goal.target_value }} {{ goal.unit }}</p>
+                                                <p class="mt-3 text-sm text-white/80">{{ goal.description }}</p>
+                                                {% if goal.notes %}
+                                                    <p class="mt-2 text-sm text-white/70 italic">“{{ goal.notes }}”</p>
+                                                {% endif %}
+                                                {% if goal.start_date %}
+                                                    <p class="mt-2 text-xs text-white/60">Bắt đầu từ {{ goal.start_date.strftime('%d/%m/%Y') }}</p>
+                                                {% endif %}
                                             </div>
-                                            <p class="text-sm text-slate-200 mt-4">{{ goal.description }}</p>
                                         </div>
-                                        <a href="{{ goal.url }}" class="shrink-0 inline-flex items-center gap-2 text-xs font-semibold text-indigo-200 hover:text-white">
-                                            Đi tới mục tiêu <i class="fa-solid fa-arrow-right text-[0.65rem]"></i>
+                                        <a href="{{ goal.url }}" class="inline-flex items-center gap-2 text-xs font-semibold text-indigo-200 hover:text-white transition">
+                                            Đi tới mục tiêu <i class="fa-solid fa-arrow-up-right-from-square text-[0.65rem]"></i>
                                         </a>
                                     </div>
                                     <div>
-                                        <div class="flex justify-between text-xs font-semibold uppercase tracking-widest text-white/70">
+                                        <div class="flex justify-between text-[10px] font-semibold uppercase tracking-[0.35em] text-white/60">
                                             <span>Tiến độ</span>
                                             <span>{{ goal.percent }}%</span>
                                         </div>
-                                        <div class="mt-2 h-2.5 bg-white/10 rounded-full overflow-hidden">
-                                            <div class="h-full bg-white rounded-full" style="width: {{ goal.percent }}%"></div>
+                                        <div class="mt-2 h-2.5 rounded-full bg-white/10 overflow-hidden">
+                                            <div class="h-full rounded-full bg-white" style="width: {{ goal.percent }}%"></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         {% else %}
-                            <p class="text-sm text-slate-200">Chưa có mục tiêu nào. Hãy đặt mục tiêu học tập mới ở bên dưới để tạo động lực cho mình.</p>
+                            <p class="text-sm text-white/70">Chưa có mục tiêu nào. Hãy đặt mục tiêu học tập mới ở bên dưới để tạo động lực cho mình.</p>
                         {% endfor %}
                     </div>
 
-                    <div class="mt-6 border-t border-white/10 pt-6">
-                        <p class="text-xs font-semibold uppercase tracking-widest text-slate-300">Lối tắt nhanh</p>
-                        <div class="mt-4 space-y-3">
-                            {% for action in shortcut_actions %}
-                                <a href="{{ action.url }}" class="flex items-center justify-between gap-4 rounded-2xl bg-white/10 hover:bg-white/20 transition-all px-4 py-3">
-                                    <div class="flex items-center gap-3">
-                                        <span class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-sm">
-                                            <i class="fa-solid fa-{{ action.icon }}"></i>
-                                        </span>
-                                        <div>
-                                            <p class="text-sm font-semibold text-white">{{ action.title }}</p>
-                                            <p class="text-xs text-slate-200 mt-1">{{ action.description }}</p>
-                                        </div>
+                    <div class="border-t border-white/10 pt-6 space-y-3">
+                        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/60">Lối tắt nhanh</p>
+                        {% for action in shortcut_actions %}
+                            <a href="{{ action.url }}" class="flex items-center justify-between gap-4 rounded-2xl bg-white/10 hover:bg-white/20 transition px-4 py-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-sm">
+                                        <i class="fa-solid fa-{{ action.icon }}"></i>
+                                    </span>
+                                    <div>
+                                        <p class="text-sm font-semibold text-white">{{ action.title }}</p>
+                                        <p class="text-xs text-white/70 mt-1">{{ action.description }}</p>
                                     </div>
-                                    <i class="fa-solid fa-arrow-right text-xs text-indigo-200"></i>
-                                </a>
-                            {% endfor %}
-                        </div>
+                                </div>
+                                <i class="fa-solid fa-arrow-right text-xs text-indigo-200"></i>
+                            </a>
+                        {% endfor %}
                     </div>
                 </div>
 
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-                    <p class="text-xs uppercase tracking-widest font-semibold text-slate-400">Thiết lập mục tiêu</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Thiết lập mục tiêu</p>
                     <h3 class="mt-2 text-xl font-semibold text-slate-900">Thêm mục tiêu học tập mới</h3>
-                    <p class="mt-2 text-sm text-slate-500">Chọn nội dung bạn muốn chinh phục và đặt mục tiêu phù hợp cho hôm nay, tuần này hoặc tổng cộng.</p>
+                    <p class="mt-2 text-sm text-slate-500">Chọn nội dung bạn muốn chinh phục, đặt khoảng thời gian và thêm ghi chú để Mindstack nhắc bạn đều đặn.</p>
 
                     <form method="post" class="mt-6 space-y-4">
                         {{ goal_form.hidden_tag() }}
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div>
-                                <label class="text-sm font-semibold text-slate-700" for="{{ goal_form.goal_type.id }}">{{ goal_form.goal_type.label.text }}</label>
+                                <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.goal_type.id }}">{{ goal_form.goal_type.label.text }}</label>
                                 {{ goal_form.goal_type(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
                                 {% if goal_form.goal_type.errors %}
                                     <p class="mt-1 text-xs text-rose-500">{{ goal_form.goal_type.errors[0] }}</p>
                                 {% endif %}
                             </div>
                             <div>
-                                <label class="text-sm font-semibold text-slate-700" for="{{ goal_form.period.id }}">{{ goal_form.period.label.text }}</label>
+                                <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.period.id }}">{{ goal_form.period.label.text }}</label>
                                 {{ goal_form.period(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
                                 {% if goal_form.period.errors %}
                                     <p class="mt-1 text-xs text-rose-500">{{ goal_form.period.errors[0] }}</p>
@@ -154,14 +160,44 @@
                             </div>
                         </div>
                         <div>
-                            <label class="text-sm font-semibold text-slate-700" for="{{ goal_form.target_value.id }}">{{ goal_form.target_value.label.text }}</label>
-                            {{ goal_form.target_value(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
+                            <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.title.id }}">{{ goal_form.title.label.text }}</label>
+                            {{ goal_form.title(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', placeholder='Ví dụ: Ôn 20 flashcard') }}
+                            {% if goal_form.title.errors %}
+                                <p class="mt-1 text-xs text-rose-500">{{ goal_form.title.errors[0] }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.target_value.id }}">{{ goal_form.target_value.label.text }}</label>
+                            {{ goal_form.target_value(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', placeholder='20') }}
                             {% if goal_form.target_value.errors %}
                                 <p class="mt-1 text-xs text-rose-500">{{ goal_form.target_value.errors[0] }}</p>
                             {% endif %}
                         </div>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.start_date.id }}">{{ goal_form.start_date.label.text }}</label>
+                                {{ goal_form.start_date(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', placeholder='YYYY-MM-DD') }}
+                                {% if goal_form.start_date.errors %}
+                                    <p class="mt-1 text-xs text-rose-500">{{ goal_form.start_date.errors[0] }}</p>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.due_date.id }}">{{ goal_form.due_date.label.text }}</label>
+                                {{ goal_form.due_date(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', placeholder='YYYY-MM-DD') }}
+                                {% if goal_form.due_date.errors %}
+                                    <p class="mt-1 text-xs text-rose-500">{{ goal_form.due_date.errors[0] }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.notes.id }}">{{ goal_form.notes.label.text }}</label>
+                            {{ goal_form.notes(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', rows='3', placeholder='Ghi chú riêng giúp bạn nhớ mục tiêu...') }}
+                            {% if goal_form.notes.errors %}
+                                <p class="mt-1 text-xs text-rose-500">{{ goal_form.notes.errors[0] }}</p>
+                            {% endif %}
+                        </div>
                         <div class="sm:flex sm:items-center sm:justify-between sm:gap-4">
-                            <p class="text-xs text-slate-500">Các mục tiêu giống nhau sẽ được cập nhật nếu bạn đặt lại.</p>
+                            <p class="text-xs text-slate-500">Các mục tiêu giống nhau sẽ được cập nhật thay vì tạo bản sao mới.</p>
                             {{ goal_form.submit(class_='mt-3 sm:mt-0 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all') }}
                         </div>
                     </form>
@@ -169,12 +205,12 @@
             </section>
         </div>
 
-        <section class="grid gap-6 xl:grid-cols-3">
+        <section class="grid gap-6 xl:grid-cols-3 items-start">
             <div class="xl:col-span-2 space-y-6">
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
-                            <p class="text-xs uppercase tracking-widest font-semibold text-slate-400">Tổng hợp thành tựu</p>
+                            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Tổng hợp thành tựu</p>
                             <h3 class="mt-2 text-xl font-semibold text-slate-900">Bạn đã làm được gì đến hiện tại?</h3>
                         </div>
                         <a href="{{ url_for('stats.dashboard') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">Xem thống kê chi tiết →</a>
@@ -182,7 +218,7 @@
 
                     <div class="mt-6 grid gap-4 md:grid-cols-2">
                         {% for achievement in achievements %}
-                            <div class="rounded-2xl border border-slate-100 p-4">
+                            <div class="rounded-2xl border border-slate-100 p-5">
                                 <div class="flex items-center justify-between gap-4">
                                     <span class="text-sm font-semibold text-slate-600">{{ achievement.label }}</span>
                                     <span class="w-9 h-9 rounded-xl flex items-center justify-center text-{{ achievement.tone }}-500 bg-{{ achievement.tone }}-50">
@@ -197,7 +233,7 @@
 
                     <div class="mt-8 grid gap-4 sm:grid-cols-3">
                         {% for snapshot in progress_snapshots %}
-                            <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                            <div class="rounded-2xl border border-slate-100 bg-slate-50 p-5">
                                 <div class="flex items-center gap-3">
                                     <span class="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-slate-500">
                                         <i class="fa-solid fa-{{ snapshot.icon }}"></i>
@@ -217,7 +253,7 @@
 
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
                     <div>
-                        <p class="text-xs uppercase tracking-widest font-semibold text-slate-400">Khám phá thêm</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Khám phá thêm</p>
                         <h3 class="mt-2 text-xl font-semibold text-slate-900">Chọn hoạt động để tiếp tục đà học tập</h3>
                     </div>
 
@@ -228,9 +264,7 @@
                                 <i class="fa-solid fa-clone text-indigo-500"></i>
                             </div>
                             <p class="mt-3 text-sm text-indigo-600">Ôn luyện với hệ thống lặp lại ngắt quãng thông minh.</p>
-                            <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-indigo-600 group-hover:text-indigo-800">
-                                Bắt đầu ôn tập <i class="fa-solid fa-arrow-right text-[0.65rem]"></i>
-                            </span>
+                            <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-indigo-600 group-hover:text-indigo-800">Bắt đầu ôn tập <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
                         </a>
 
                         <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}" class="group bg-emerald-50 border border-emerald-100 rounded-2xl p-6 hover:border-emerald-200 transition-all">
@@ -239,9 +273,7 @@
                                 <i class="fa-solid fa-question-circle text-emerald-500"></i>
                             </div>
                             <p class="mt-3 text-sm text-emerald-600">Thử sức với các câu hỏi trắc nghiệm đa dạng.</p>
-                            <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-emerald-600 group-hover:text-emerald-800">
-                                Vào phòng quiz <i class="fa-solid fa-arrow-right text-[0.65rem]"></i>
-                            </span>
+                            <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-emerald-600 group-hover:text-emerald-800">Vào phòng quiz <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
                         </a>
 
                         <a href="{{ url_for('learning.course_learning.course_learning_dashboard') }}" class="group bg-amber-50 border border-amber-100 rounded-2xl p-6 hover:border-amber-200 transition-all">
@@ -250,9 +282,7 @@
                                 <i class="fa-solid fa-graduation-cap text-amber-500"></i>
                             </div>
                             <p class="mt-3 text-sm text-amber-600">Theo dõi lộ trình học tập có cấu trúc rõ ràng.</p>
-                            <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-amber-600 group-hover:text-amber-800">
-                                Tiếp tục bài học <i class="fa-solid fa-arrow-right text-[0.65rem]"></i>
-                            </span>
+                            <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-amber-600 group-hover:text-amber-800">Tiếp tục bài học <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
                         </a>
 
                         <a href="{{ url_for('content_management.content_dashboard') }}" class="group bg-slate-50 border border-slate-200 rounded-2xl p-6 hover:border-slate-300 transition-all">
@@ -261,16 +291,14 @@
                                 <i class="fa-solid fa-book text-slate-500"></i>
                             </div>
                             <p class="mt-3 text-sm text-slate-600">Tạo, chỉnh sửa và quản lý tài nguyên học tập của riêng bạn.</p>
-                            <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 group-hover:text-slate-800">
-                                Mở trang quản trị <i class="fa-solid fa-arrow-right text-[0.65rem]"></i>
-                            </span>
+                            <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 group-hover:text-slate-800">Mở trang quản trị <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
                         </a>
                     </div>
                 </div>
             </div>
 
             <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 h-fit">
-                <p class="text-xs uppercase tracking-widest font-semibold text-slate-400">Bảng xếp hạng</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Bảng xếp hạng</p>
                 <h3 class="mt-2 text-xl font-semibold text-slate-900">Top điểm thưởng thành viên</h3>
                 <p class="mt-2 text-sm text-slate-500">Cùng thi đua để đạt được nhiều phần thưởng hơn.</p>
 
