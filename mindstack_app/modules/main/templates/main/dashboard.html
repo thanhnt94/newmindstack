@@ -2,11 +2,37 @@
 
 {% block title %}Dashboard{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <style>
+        /* CSS cho thanh cuộn tùy chỉnh (chỉ áp dụng nơi gán class) */
+        .custom-scrollbar-dark::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar-dark::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .custom-scrollbar-dark::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+        .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+            background-clip: content-box;
+        }
+    </style>
+{% endblock %}
+
 {% block content %}
-<div class="bg-gradient-to-b from-slate-900/5 via-slate-50 to-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        <div class="grid gap-6 xl:grid-cols-3 items-start">
-            <section class="xl:col-span-2 bg-white/80 backdrop-blur border border-slate-100 rounded-3xl shadow-sm p-8 lg:p-10 space-y-8">
+<div class="bg-transparent">
+    <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div class="grid gap-6 xl:grid-cols-3 items-stretch">
+            <!-- CỘT TRÁI -->
+            <section id="left-column" class="xl:col-span-2 bg-white/80 backdrop-blur border border-slate-100 rounded-3xl shadow-sm p-8 lg:p-10 space-y-8 h-full">
                 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
                     <div class="max-w-2xl">
                         <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Nhật ký hôm nay</p>
@@ -56,25 +82,33 @@
                 </div>
             </section>
 
-            <section class="space-y-6">
-                <div class="bg-slate-900 text-white rounded-3xl p-8 shadow-lg space-y-6">
-                    <div class="flex items-start justify-between gap-4">
+            <!-- CỘT PHẢI -->
+            <section class="space-y-6 h-full flex flex-col">
+                <!-- SỬA: chỉ bật overflow/height “kỹ thuật” ở lg trở lên -->
+                <div class="bg-slate-900 text-white rounded-3xl p-8 shadow-lg space-y-6 flex flex-col lg:flex-grow lg:overflow-hidden">
+                    <div class="flex items-start justify-between gap-4 flex-shrink-0">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/60">Nhắc nhở hành động</p>
                             <h2 class="mt-3 text-2xl font-semibold">Mục tiêu &amp; bước tiếp theo</h2>
                         </div>
-                        <a href="{{ url_for('goals.manage_goals') }}" class="inline-flex items-center gap-2 text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition">
+                        <a href="{{ url_for('goals.manage_goals') }}" class="inline-flex items-center gap-2 text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition flex-shrink-0">
                             <i class="fa-solid fa-sliders"></i> Quản lý
                         </a>
                     </div>
 
-                    <div class="space-y-4">
+                    <!-- SỬA QUAN TRỌNG:
+                         - Mobile: overflow-visible, h-auto, min-h để luôn thấy nội dung
+                         - Desktop (lg+): overflow-y-auto + flex-grow + h-0 để có vùng cuộn đẹp
+                    -->
+                    <div class="space-y-4 pr-2 min-h-[180px] custom-scrollbar-dark
+                                overflow-visible h-auto
+                                lg:overflow-y-auto lg:flex-grow lg:h-0">
                         {% for goal in goal_progress %}
-                            <div class="rounded-2xl bg-white/10 hover:bg-white/15 transition-all p-4">
+                            <div class="rounded-2xl bg-white/10 hover:bg-white/15 transition-all p-4 flex-shrink-0">
                                 <div class="flex flex-col gap-4">
                                     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                                        <div class="flex gap-4">
-                                            <span class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-lg">
+                                        <div class="flex items-start gap-3">
+                                            <span class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-lg flex-shrink-0">
                                                 <i class="fa-solid fa-{{ goal.icon }}"></i>
                                             </span>
                                             <div>
@@ -87,8 +121,7 @@
                                                         </span>
                                                     {% endif %}
                                                 </div>
-                                                <p class="mt-2 text-xs uppercase tracking-[0.3em] text-indigo-200">{{ goal.current_value }}/{{ goal.target_value }} {{ goal.unit }}</p>
-                                                <p class="mt-3 text-sm text-white/80">{{ goal.description }}</p>
+                                                <p class="mt-2 text-sm text-white/80">{{ goal.description }}</p>
                                                 {% if goal.notes %}
                                                     <p class="mt-2 text-sm text-white/70 italic">“{{ goal.notes }}”</p>
                                                 {% endif %}
@@ -97,13 +130,13 @@
                                                 {% endif %}
                                             </div>
                                         </div>
-                                        <a href="{{ goal.url }}" class="inline-flex items-center gap-2 text-xs font-semibold text-indigo-200 hover:text-white transition">
+                                        <a href="{{ goal.url }}" class="inline-flex items-center gap-2 text-xs font-semibold text-indigo-200 hover:text-white transition flex-shrink-0">
                                             Đi tới mục tiêu <i class="fa-solid fa-arrow-up-right-from-square text-[0.65rem]"></i>
                                         </a>
                                     </div>
                                     <div>
                                         <div class="flex justify-between text-[10px] font-semibold uppercase tracking-[0.35em] text-white/60">
-                                            <span>Tiến độ</span>
+                                            <span>Tiến độ ({{ goal.current_value }}/{{ goal.target_value }} {{ goal.unit }})</span>
                                             <span>{{ goal.percent }}%</span>
                                         </div>
                                         <div class="mt-2 h-2.5 rounded-full bg-white/10 overflow-hidden">
@@ -113,98 +146,14 @@
                                 </div>
                             </div>
                         {% else %}
-                            <p class="text-sm text-white/70">Chưa có mục tiêu nào. Hãy đặt mục tiêu học tập mới ở bên dưới để tạo động lực cho mình.</p>
+                            <p class="text-sm text-white/70">Bạn chưa có mục tiêu đang hoạt động. Hãy đặt mục tiêu học tập mới ở trang Quản lý Mục tiêu.</p>
                         {% endfor %}
                     </div>
-
-                    <div class="border-t border-white/10 pt-6 space-y-3">
-                        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/60">Lối tắt nhanh</p>
-                        {% for action in shortcut_actions %}
-                            <a href="{{ action.url }}" class="flex items-center justify-between gap-4 rounded-2xl bg-white/10 hover:bg-white/20 transition px-4 py-3">
-                                <div class="flex items-center gap-3">
-                                    <span class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-sm">
-                                        <i class="fa-solid fa-{{ action.icon }}"></i>
-                                    </span>
-                                    <div>
-                                        <p class="text-sm font-semibold text-white">{{ action.title }}</p>
-                                        <p class="text-xs text-white/70 mt-1">{{ action.description }}</p>
-                                    </div>
-                                </div>
-                                <i class="fa-solid fa-arrow-right text-xs text-indigo-200"></i>
-                            </a>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-                    <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Thiết lập mục tiêu</p>
-                    <h3 class="mt-2 text-xl font-semibold text-slate-900">Thêm mục tiêu học tập mới</h3>
-                    <p class="mt-2 text-sm text-slate-500">Chọn nội dung bạn muốn chinh phục, đặt khoảng thời gian và thêm ghi chú để Mindstack nhắc bạn đều đặn.</p>
-
-                    <form method="post" class="mt-6 space-y-4">
-                        {{ goal_form.hidden_tag() }}
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.goal_type.id }}">{{ goal_form.goal_type.label.text }}</label>
-                                {{ goal_form.goal_type(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
-                                {% if goal_form.goal_type.errors %}
-                                    <p class="mt-1 text-xs text-rose-500">{{ goal_form.goal_type.errors[0] }}</p>
-                                {% endif %}
-                            </div>
-                            <div>
-                                <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.period.id }}">{{ goal_form.period.label.text }}</label>
-                                {{ goal_form.period(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
-                                {% if goal_form.period.errors %}
-                                    <p class="mt-1 text-xs text-rose-500">{{ goal_form.period.errors[0] }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.title.id }}">{{ goal_form.title.label.text }}</label>
-                            {{ goal_form.title(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', placeholder='Ví dụ: Ôn 20 flashcard') }}
-                            {% if goal_form.title.errors %}
-                                <p class="mt-1 text-xs text-rose-500">{{ goal_form.title.errors[0] }}</p>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.target_value.id }}">{{ goal_form.target_value.label.text }}</label>
-                            {{ goal_form.target_value(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', placeholder='20') }}
-                            {% if goal_form.target_value.errors %}
-                                <p class="mt-1 text-xs text-rose-500">{{ goal_form.target_value.errors[0] }}</p>
-                            {% endif %}
-                        </div>
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.start_date.id }}">{{ goal_form.start_date.label.text }}</label>
-                                {{ goal_form.start_date(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', placeholder='YYYY-MM-DD') }}
-                                {% if goal_form.start_date.errors %}
-                                    <p class="mt-1 text-xs text-rose-500">{{ goal_form.start_date.errors[0] }}</p>
-                                {% endif %}
-                            </div>
-                            <div>
-                                <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.due_date.id }}">{{ goal_form.due_date.label.text }}</label>
-                                {{ goal_form.due_date(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', placeholder='YYYY-MM-DD') }}
-                                {% if goal_form.due_date.errors %}
-                                    <p class="mt-1 text-xs text-rose-500">{{ goal_form.due_date.errors[0] }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" for="{{ goal_form.notes.id }}">{{ goal_form.notes.label.text }}</label>
-                            {{ goal_form.notes(class_='mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', rows='3', placeholder='Ghi chú riêng giúp bạn nhớ mục tiêu...') }}
-                            {% if goal_form.notes.errors %}
-                                <p class="mt-1 text-xs text-rose-500">{{ goal_form.notes.errors[0] }}</p>
-                            {% endif %}
-                        </div>
-                        <div class="sm:flex sm:items-center sm:justify-between sm:gap-4">
-                            <p class="text-xs text-slate-500">Các mục tiêu giống nhau sẽ được cập nhật thay vì tạo bản sao mới.</p>
-                            {{ goal_form.submit(class_='mt-3 sm:mt-0 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all') }}
-                        </div>
-                    </form>
                 </div>
             </section>
         </div>
 
+        <!-- PHẦN DƯỚI: giữ nguyên -->
         <section class="grid gap-6 xl:grid-cols-3 items-start">
             <div class="xl:col-span-2 space-y-6">
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
@@ -272,7 +221,7 @@
                                 <span class="text-lg font-semibold text-emerald-700">Quiz</span>
                                 <i class="fa-solid fa-question-circle text-emerald-500"></i>
                             </div>
-                            <p class="mt-3 text-sm text-emerald-600">Thử sức với các câu hỏi trắc nghiệm đa dạng.</p>
+                            <p class="mt-3 text-sm text-emerald-600">Thử sức với các câu hỏi trắc nghiệm đa dạng và tùy chỉnh.</p>
                             <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-emerald-600 group-hover:text-emerald-800">Vào phòng quiz <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
                         </a>
 

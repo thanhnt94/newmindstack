@@ -1,10 +1,11 @@
 {#
     File: mindstack_app/modules/shared/templates/includes/_navbar.html
-    Phiên bản: 3.1
+    Phiên bản: 3.2
     Mục đích: Cập nhật navbar theo yêu cầu:
               - Thêm link "Quản lý Phản hồi" vào menu thả xuống của người dùng.
               - Thêm link "Quản lý nội dung" vào menu thả xuống của người dùng.
               - Sửa lỗi `BuildError` bằng cách đổi endpoint từ 'content_management.dashboard' sang 'content_management.content_dashboard'.
+              - ĐÃ THÊM: Thêm link "Mục tiêu học tập" vào menu thả xuống.
 #}
 {% macro render_navbar(current_user, request) %}
 <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -39,14 +40,14 @@
                 <span>Course</span>
             </a>
         </li>
-        <li>
+        <!-- <li>
             <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2"
                 {% if request.endpoint.startswith('goals.') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}"
                 href="{{ url_for('goals.manage_goals') }}">
                 <i class="fas fa-bullseye mr-1 md:mr-2"></i>
                 <span>Mục tiêu</span>
             </a>
-        </li>
+        </li> -->
         {% endif %}
     </ul>
 
@@ -68,15 +69,16 @@
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('stats.dashboard') }}">
                         <i class="fas fa-chart-line mr-2 w-4"></i> Thống kê
                     </a>
-                    {# Thêm menu item Quản lý nội dung #}
+                    {# THÊM MỚI: Link Mục tiêu học tập #}
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('goals.manage_goals') }}">
+                        <i class="fas fa-bullseye mr-2 w-4"></i> Mục tiêu học tập
+                    </a>
+                    {# Link Quản lý nội dung #}
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('content_management.content_dashboard') }}">
                         <i class="fas fa-folder-open mr-2 w-4"></i> Quản lý nội dung
                     </a>
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('feedback.manage_feedback') }}">
                         <i class="fas fa-comment-dots mr-2 w-4"></i> Quản lý Phản hồi
-                    </a>
-                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('goals.manage_goals') }}">
-                        <i class="fas fa-bullseye mr-2 w-4"></i> Mục tiêu học tập
                     </a>
                     {% if current_user.user_role == 'admin' %}
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('admin.admin_dashboard') }}">

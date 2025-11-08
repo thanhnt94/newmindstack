@@ -1,15 +1,14 @@
 # Tệp: web/mindstack_app/modules/main/routes.py
-# Version: 1.1
+# Version: 1.2
 # Mục đích: Định nghĩa Blueprint và import các routes liên quan.
-# ĐÃ SỬA: Thay đổi logic route '/' để hiển thị trang giới thiệu thay vì redirect thẳng đến trang login.
+# ĐÃ SỬA: Xóa logic xử lý form mục tiêu trên Dashboard và chỉ truyền dữ liệu cần thiết.
 
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from . import main_bp
-from ..goals.constants import GOAL_TYPE_CONFIG, PERIOD_LABELS
-from ..goals.forms import LearningGoalForm
+from ..goals.constants import GOAL_TYPE_CONFIG
 from ..goals.services import build_goal_progress, get_learning_activity
 from ...models import db, LearningGoal, User
 
@@ -39,10 +38,10 @@ def dashboard():
     quiz_summary = metrics['quiz_summary']
     course_summary = metrics['course_summary']
     flashcard_reviews_today = metrics['flashcard_reviews_today']
-    flashcard_reviews_week = metrics['flashcard_reviews_week']
     quiz_attempts_today = metrics['quiz_attempts_today']
-    quiz_attempts_week = metrics['quiz_attempts_week']
     course_updates_today = metrics['course_updates_today']
+    flashcard_reviews_week = metrics['flashcard_reviews_week']
+    quiz_attempts_week = metrics['quiz_attempts_week']
     course_updates_week = metrics['course_updates_week']
     score_today = metrics['score_today']
     score_week = metrics['score_week']
@@ -122,67 +121,6 @@ def dashboard():
         'total': int(score_total),
         'active_days': int(weekly_active_days),
     }
-
-    goal_form = LearningGoalForm()
-    goal_form.goal_type.choices = [
-        (key, config['label']) for key, config in GOAL_TYPE_CONFIG.items()
-    ]
-
-    if request.method == 'GET' and goal_form.goal_type.choices:
-        default_type = goal_form.goal_type.choices[0][0]
-        current_type = goal_form.goal_type.data or default_type
-        goal_form.goal_type.data = current_type
-        default_config = GOAL_TYPE_CONFIG.get(current_type)
-        if default_config and not goal_form.title.data:
-            goal_form.title.data = default_config['label']
-
-    if goal_form.validate_on_submit():
-        selected_type = goal_form.goal_type.data
-        config = GOAL_TYPE_CONFIG.get(selected_type)
-        if config is None:
-            flash('Loại mục tiêu không hợp lệ.', 'error')
-        else:
-            goal = (
-                db.session.query(LearningGoal)
-                .filter(
-                    LearningGoal.user_id == user_id,
-                    LearningGoal.goal_type == selected_type,
-                    LearningGoal.period == goal_form.period.data,
-                    LearningGoal.is_active.is_(True),
-                )
-                .first()
-            )
-            if goal:
-                goal.target_value = goal_form.target_value.data
-                goal.title = (
-                    goal_form.title.data.strip() if goal_form.title.data else config['label']
-                )
-                goal.description = config['description']
-                goal.start_date = goal_form.start_date.data
-                goal.due_date = goal_form.due_date.data
-                goal.notes = goal_form.notes.data.strip() if goal_form.notes.data else None
-                message = 'Đã cập nhật mục tiêu hiện tại.'
-            else:
-                goal = LearningGoal(
-                    user_id=user_id,
-                    goal_type=selected_type,
-                    period=goal_form.period.data,
-                    target_value=goal_form.target_value.data,
-                    title=(
-                        goal_form.title.data.strip()
-                        if goal_form.title.data
-                        else config['label']
-                    ),
-                    description=config['description'],
-                    start_date=goal_form.start_date.data,
-                    due_date=goal_form.due_date.data,
-                    notes=goal_form.notes.data.strip() if goal_form.notes.data else None,
-                )
-                db.session.add(goal)
-                message = 'Đã tạo mục tiêu mới.'
-            db.session.commit()
-            flash(message, 'success')
-            return redirect(url_for('main.dashboard'))
 
     goals = (
         db.session.query(LearningGoal)
@@ -325,7 +263,6 @@ def dashboard():
         score_overview=score_overview,
         motivation_message=motivation_message,
         shortcut_actions=shortcut_actions,
-        goal_form=goal_form,
         goal_progress=goal_progress,
         score_cards=score_cards,
         achievements=achievements,
