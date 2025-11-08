@@ -39,7 +39,6 @@ import os
 import shutil
 
 from mindstack_app.modules.shared.utils.media_paths import (
-    get_media_folders,
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
@@ -50,6 +49,31 @@ flashcard_learning_bp = Blueprint('flashcard_learning', __name__,
 
 audio_service = AudioService()
 image_service = ImageService()
+
+
+def _ensure_container_media_folder(container: LearningContainer, media_type: str) -> str:
+    """Return the folder for the requested media type, creating a default if missing."""
+
+    attr_name = f"media_{media_type}_folder"
+    existing = getattr(container, attr_name, None)
+    if existing:
+        return existing
+
+    type_slug = (container.container_type or "").lower()
+    if type_slug.endswith("_set"):
+        type_slug = type_slug[:-4]
+    type_slug = type_slug.replace("_", "-") or "container"
+
+    default_folder = f"{type_slug}/{container.container_id}/{media_type}"
+    setattr(container, attr_name, default_folder)
+    db.session.add(container)
+    try:
+        safe_commit(db.session)
+    except Exception:  # pragma: no cover - commit failures bubble up
+        db.session.rollback()
+        raise
+
+    return default_folder
 
 
 def _user_can_edit_flashcard(container_id: int) -> bool:
@@ -617,14 +641,43 @@ def generate_image_from_content():
     try:
         absolute_path, success, message = image_service.get_cached_or_download_image(str(text_source))
         if success and absolute_path:
-            relative_path = image_service.convert_to_static_url(absolute_path)
-            if not relative_path:
-                return jsonify({'success': False, 'message': 'Không thể lưu đường dẫn ảnh.'}), 500
+            container = item.container if item else None
+            if not container:
+                return jsonify({'success': False, 'message': 'Không xác định được bộ thẻ.'}), 400
+
+            image_folder = getattr(container, 'media_image_folder', None)
+            if not image_folder:
+                image_folder = _ensure_container_media_folder(container, 'image')
+
+            try:
+                os.makedirs(os.path.join(current_app.static_folder, image_folder), exist_ok=True)
+            except OSError as folder_exc:
+                current_app.logger.error(
+                    "Không thể tạo thư mục ảnh %s: %s", image_folder, folder_exc, exc_info=True
+                )
+                return jsonify({'success': False, 'message': 'Không thể chuẩn bị thư mục lưu ảnh.'}), 500
+
+            filename = os.path.basename(absolute_path)
+            destination = os.path.join(current_app.static_folder, image_folder, filename)
+
+            try:
+                if os.path.abspath(absolute_path) != os.path.abspath(destination):
+                    if os.path.exists(destination):
+                        os.remove(destination)
+                    shutil.move(absolute_path, destination)
+            except Exception as move_exc:  # pylint: disable=broad-except
+                current_app.logger.error(
+                    "Lỗi khi di chuyển ảnh vào thư mục %s: %s", image_folder, move_exc, exc_info=True
+                )
+                return jsonify({'success': False, 'message': 'Không thể lưu file ảnh.'}), 500
+
+            stored_value = normalize_media_value_for_storage(filename, image_folder)
+            relative_path = build_relative_media_path(stored_value, image_folder)
 
             if side == 'front':
-                content['front_img'] = relative_path
+                content['front_img'] = stored_value
             else:
-                content['back_img'] = relative_path
+                content['back_img'] = stored_value
 
             item.content = content
             flag_modified(item, 'content')
@@ -666,37 +719,38 @@ def regenerate_audio_from_content():
         path_or_url, success, msg = loop.run_until_complete(audio_service.get_cached_or_generate_audio(content_to_read))
         if success:
             container = item.container if item else None
-            media_folders = {}
+            audio_folder = None
             if container:
-                media_folders = dict(getattr(container, 'media_folders', {}) or {})
-                if not media_folders:
-                    settings_payload = container.ai_settings or {}
-                    if isinstance(settings_payload, dict):
-                        media_folders = dict(settings_payload.get('media_folders') or {})
-            audio_folder = media_folders.get('audio')
-            stored_value = None
-            relative_path = None
+                audio_folder = getattr(container, 'media_audio_folder', None)
+                if not audio_folder:
+                    audio_folder = _ensure_container_media_folder(container, 'audio')
 
-            if audio_folder:
-                try:
-                    os.makedirs(os.path.join(current_app.static_folder, audio_folder), exist_ok=True)
-                    filename = os.path.basename(path_or_url)
-                    destination = os.path.join(current_app.static_folder, audio_folder, filename)
-                    shutil.copy2(path_or_url, destination)
-                    stored_value = normalize_media_value_for_storage(filename, audio_folder)
-                    relative_path = build_relative_media_path(stored_value, audio_folder)
-                except Exception as copy_exc:  # pylint: disable=broad-except
-                    current_app.logger.error(
-                        "Lỗi khi sao chép audio vào thư mục tùy chỉnh %s: %s", audio_folder, copy_exc, exc_info=True
-                    )
-                    stored_value = None
-                    relative_path = None
+            if not audio_folder:
+                return jsonify({'success': False, 'message': 'Bộ thẻ chưa được cấu hình thư mục audio.'}), 400
 
-            if not relative_path:
-                raw_relative = os.path.relpath(path_or_url, current_app.static_folder)
-                raw_relative = raw_relative.replace(os.path.sep, '/')
-                stored_value = normalize_media_value_for_storage(raw_relative, None)
-                relative_path = build_relative_media_path(stored_value, None)
+            try:
+                os.makedirs(os.path.join(current_app.static_folder, audio_folder), exist_ok=True)
+            except OSError as folder_exc:
+                current_app.logger.error(
+                    "Không thể tạo thư mục audio %s: %s", audio_folder, folder_exc, exc_info=True
+                )
+                return jsonify({'success': False, 'message': 'Không thể chuẩn bị thư mục lưu audio.'}), 500
+
+            filename = os.path.basename(path_or_url)
+            destination = os.path.join(current_app.static_folder, audio_folder, filename)
+
+            try:
+                if os.path.abspath(path_or_url) != os.path.abspath(destination):
+                    if os.path.exists(destination):
+                        os.remove(destination)
+                    shutil.move(path_or_url, destination)
+                stored_value = normalize_media_value_for_storage(filename, audio_folder)
+                relative_path = build_relative_media_path(stored_value, audio_folder)
+            except Exception as move_exc:  # pylint: disable=broad-except
+                current_app.logger.error(
+                    "Lỗi khi di chuyển audio vào thư mục %s: %s", audio_folder, move_exc, exc_info=True
+                )
+                return jsonify({'success': False, 'message': 'Không thể lưu file audio.'}), 500
 
             if not relative_path:
                 return jsonify({'success': False, 'message': 'Không thể xử lý đường dẫn audio.'}), 500

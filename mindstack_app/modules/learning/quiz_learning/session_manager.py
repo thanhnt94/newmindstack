@@ -20,10 +20,7 @@ import random
 import datetime
 import os
 
-from mindstack_app.modules.shared.utils.media_paths import (
-    get_media_folders,
-    build_relative_media_path,
-)
+from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
 
 class QuizSessionManager:
     """
@@ -244,9 +241,6 @@ class QuizSessionManager:
         folders = getattr(container, 'media_folders', {}) or {}
         if folders:
             return dict(folders)
-        settings_payload = container.ai_settings or {}
-        if isinstance(settings_payload, dict):
-            return get_media_folders(settings_payload)
         return {}
 
 

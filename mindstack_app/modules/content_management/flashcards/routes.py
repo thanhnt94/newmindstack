@@ -26,10 +26,10 @@ from ..forms import FlashcardSetForm, FlashcardItemForm
 from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
 from mindstack_app.modules.shared.utils.media_paths import (
     normalize_media_folder,
-    get_media_folders,
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
+from ....modules.shared.utils.db_session import safe_commit
 import pandas as pd
 import tempfile
 import os
@@ -50,6 +50,54 @@ flashcards_bp = Blueprint('content_management_flashcards', __name__,
 # Khởi tạo service
 audio_service = AudioService()
 image_service = ImageService()
+
+
+def _ensure_container_media_folder(container: LearningContainer, media_type: str) -> str:
+    """Return the configured folder for the media type, creating a default one if missing."""
+
+    attr_name = f"media_{media_type}_folder"
+    existing = getattr(container, attr_name, None)
+    if existing:
+        return existing
+
+    type_slug = (container.container_type or "").lower()
+    if type_slug.endswith("_set"):
+        type_slug = type_slug[:-4]
+    type_slug = type_slug.replace("_", "-") or "container"
+
+    default_folder = f"{type_slug}/{container.container_id}/{media_type}"
+    setattr(container, attr_name, default_folder)
+    db.session.add(container)
+    try:
+        safe_commit(db.session)
+    except Exception:  # pragma: no cover - propagate commit failure
+        db.session.rollback()
+        raise
+
+    return default_folder
+
+
+def _extract_media_folders(settings_payload) -> dict[str, str]:
+    """Return normalized media folder mapping from a generic settings payload."""
+
+    result: dict[str, str] = {}
+    if not isinstance(settings_payload, dict):
+        return result
+
+    media_settings = settings_payload.get('media_folders')
+    if isinstance(media_settings, dict):
+        for media_type in ('image', 'audio'):
+            normalized = normalize_media_folder(media_settings.get(media_type))
+            if normalized:
+                result[media_type] = normalized
+    else:
+        for media_type in ('image', 'audio'):
+            fallback_key = f"{media_type}_base_folder"
+            normalized = normalize_media_folder(settings_payload.get(fallback_key))
+            if normalized:
+                result[media_type] = normalized
+
+    return result
 
 
 CAPABILITY_FLAGS = (
@@ -106,9 +154,6 @@ def _get_media_folders_from_container(container) -> dict[str, str]:
     folders = getattr(container, 'media_folders', {}) or {}
     if folders:
         return dict(folders)
-    settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
-    if isinstance(settings_payload, dict):
-        return get_media_folders(settings_payload)
     return {}
 
 
@@ -959,7 +1004,7 @@ def add_flashcard_set():
             selected_capabilities = _normalize_capabilities(
                 (ai_settings_payload or {}).get('capabilities')
             )
-            media_folders = get_media_folders(ai_settings_payload)
+            media_folders = _extract_media_folders(ai_settings_payload)
             image_folder = media_folders.get('image')
             audio_folder = media_folders.get('audio')
             # Tạo bộ Flashcard mới
@@ -972,6 +1017,8 @@ def add_flashcard_set():
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
                 ai_settings=ai_settings_payload
             )
+            if media_folders:
+                new_set.set_media_folders(media_folders)
             db.session.add(new_set)
             db.session.flush() # Lưu tạm thời để có container_id
 
@@ -1258,30 +1305,34 @@ def search_flashcard_image(set_id, item_id):
         if not success or not absolute_path:
             return jsonify({'success': False, 'message': message or 'Không tìm thấy ảnh phù hợp.'}), 404
 
-        media_folders = _get_media_folders_from_container(flashcard_set)
-        image_folder = media_folders.get('image')
+        image_folder = _get_media_folders_from_container(flashcard_set).get('image')
+        if not image_folder:
+            image_folder = _ensure_container_media_folder(flashcard_set, 'image')
 
-        stored_value = None
-        relative_path = None
+        try:
+            os.makedirs(os.path.join(current_app.static_folder, image_folder), exist_ok=True)
+        except OSError as folder_exc:
+            current_app.logger.error(
+                "Không thể tạo thư mục ảnh %s: %s", image_folder, folder_exc, exc_info=True
+            )
+            return jsonify({'success': False, 'message': 'Không thể chuẩn bị thư mục lưu ảnh.'}), 500
 
-        if image_folder:
-            try:
-                os.makedirs(os.path.join(current_app.static_folder, image_folder), exist_ok=True)
-                filename = os.path.basename(absolute_path)
-                destination = os.path.join(current_app.static_folder, image_folder, filename)
-                shutil.copy2(absolute_path, destination)
-                stored_value = normalize_media_value_for_storage(filename, image_folder)
-                relative_path = build_relative_media_path(stored_value, image_folder)
-            except Exception as copy_exc:  # pylint: disable=broad-except
-                current_app.logger.error(
-                    "Lỗi khi sao chép ảnh vào thư mục tùy chỉnh %s: %s", image_folder, copy_exc, exc_info=True
-                )
-                stored_value = None
-                relative_path = None
+        filename = os.path.basename(absolute_path)
+        destination = os.path.join(current_app.static_folder, image_folder, filename)
 
-        if not relative_path:
-            relative_path = image_service.convert_to_static_url(absolute_path)
-            stored_value = stored_value or relative_path
+        try:
+            if os.path.abspath(absolute_path) != os.path.abspath(destination):
+                if os.path.exists(destination):
+                    os.remove(destination)
+                shutil.move(absolute_path, destination)
+        except Exception as move_exc:  # pylint: disable=broad-except
+            current_app.logger.error(
+                "Lỗi khi di chuyển ảnh vào thư mục %s: %s", image_folder, move_exc, exc_info=True
+            )
+            return jsonify({'success': False, 'message': 'Không thể lưu file ảnh.'}), 500
+
+        stored_value = normalize_media_value_for_storage(filename, image_folder)
+        relative_path = build_relative_media_path(stored_value, image_folder)
 
         if not relative_path:
             return jsonify({'success': False, 'message': 'Không thể xử lý đường dẫn ảnh.'}), 500

@@ -21,10 +21,7 @@ from ....models import db, User, UserContainerState, LearningContainer, QuizProg
 from sqlalchemy.sql import func
 import copy
 
-from mindstack_app.modules.shared.utils.media_paths import (
-    get_media_folders,
-    build_relative_media_path,
-)
+from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
 
 
 quiz_learning_bp = Blueprint('quiz_learning', __name__,
@@ -37,9 +34,6 @@ def _get_media_folders_from_container(container) -> dict[str, str]:
     folders = getattr(container, 'media_folders', {}) or {}
     if folders:
         return dict(folders)
-    settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
-    if isinstance(settings_payload, dict):
-        return get_media_folders(settings_payload)
     return {}
 
 
