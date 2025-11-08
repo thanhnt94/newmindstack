@@ -109,8 +109,8 @@ def build_relative_media_path(value, media_folder: Optional[str]) -> Optional[st
         folder_prefix = f"{folder_normalized}/"
         if normalized.startswith(folder_prefix):
             normalized = normalized[len(folder_prefix):]
-        if "/" not in normalized:
-            normalized = f"{folder_normalized}/{normalized}"
+        normalized = normalized.lstrip("/")
+        normalized = f"{folder_prefix}{normalized}" if normalized else folder_normalized
 
     if not normalized:
         return None
