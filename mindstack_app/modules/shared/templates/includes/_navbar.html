@@ -39,6 +39,14 @@
                 <span>Course</span>
             </a>
         </li>
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2"
+                {% if request.endpoint.startswith('goals.') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}"
+                href="{{ url_for('goals.manage_goals') }}">
+                <i class="fas fa-bullseye mr-1 md:mr-2"></i>
+                <span>Mục tiêu</span>
+            </a>
+        </li>
         {% endif %}
     </ul>
 
@@ -66,6 +74,9 @@
                     </a>
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('feedback.manage_feedback') }}">
                         <i class="fas fa-comment-dots mr-2 w-4"></i> Quản lý Phản hồi
+                    </a>
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('goals.manage_goals') }}">
+                        <i class="fas fa-bullseye mr-2 w-4"></i> Mục tiêu học tập
                     </a>
                     {% if current_user.user_role == 'admin' %}
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('admin.admin_dashboard') }}">

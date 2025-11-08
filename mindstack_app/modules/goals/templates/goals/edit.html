@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Cập nhật mục tiêu{% endblock %}
+
+{% block content %}
+<div class="bg-gradient-to-b from-slate-900/5 via-slate-50 to-white py-10">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">Chỉnh sửa mục tiêu</p>
+                    <h1 class="mt-2 text-2xl font-semibold text-slate-900">{{ goal.title or 'Mục tiêu học tập' }}</h1>
+                    <p class="mt-3 text-sm text-slate-500">Cập nhật lại chỉ số, thời gian hoặc ghi chú cho mục tiêu này. Thay đổi sẽ áp dụng ngay trên Dashboard.</p>
+                </div>
+                <a href="{{ url_for('goals.manage_goals') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
+                </a>
+            </div>
+
+            <form method="post" class="space-y-5">
+                {{ form.hidden_tag() }}
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" for="{{ form.goal_type.id }}">{{ form.goal_type.label.text }}</label>
+                        {{ form.goal_type(class_='mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
+                        {% if form.goal_type.errors %}
+                            <p class="mt-1 text-xs text-rose-500">{{ form.goal_type.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" for="{{ form.period.id }}">{{ form.period.label.text }}</label>
+                        {{ form.period(class_='mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
+                        {% if form.period.errors %}
+                            <p class="mt-1 text-xs text-rose-500">{{ form.period.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" for="{{ form.target_value.id }}">{{ form.target_value.label.text }}</label>
+                    {{ form.target_value(class_='mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
+                    {% if form.target_value.errors %}
+                        <p class="mt-1 text-xs text-rose-500">{{ form.target_value.errors[0] }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" for="{{ form.title.id }}">{{ form.title.label.text }}</label>
+                    {{ form.title(class_='mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
+                    {% if form.title.errors %}
+                        <p class="mt-1 text-xs text-rose-500">{{ form.title.errors[0] }}</p>
+                    {% endif %}
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" for="{{ form.start_date.id }}">{{ form.start_date.label.text }}</label>
+                        {{ form.start_date(class_='mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
+                        {% if form.start_date.errors %}
+                            <p class="mt-1 text-xs text-rose-500">{{ form.start_date.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" for="{{ form.due_date.id }}">{{ form.due_date.label.text }}</label>
+                        {{ form.due_date(class_='mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200') }}
+                        {% if form.due_date.errors %}
+                            <p class="mt-1 text-xs text-rose-500">{{ form.due_date.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" for="{{ form.notes.id }}">{{ form.notes.label.text }}</label>
+                    {{ form.notes(class_='mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-200', rows='4') }}
+                    {% if form.notes.errors %}
+                        <p class="mt-1 text-xs text-rose-500">{{ form.notes.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <p class="text-xs text-slate-500">Bạn có thể tạm dừng hoặc xóa mục tiêu ở trang danh sách bất cứ lúc nào.</p>
+                    {{ form.submit(class_='inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition') }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

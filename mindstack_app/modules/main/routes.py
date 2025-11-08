@@ -3,54 +3,15 @@
 # Mục đích: Định nghĩa Blueprint và import các routes liên quan.
 # ĐÃ SỬA: Thay đổi logic route '/' để hiển thị trang giới thiệu thay vì redirect thẳng đến trang login.
 
-from datetime import datetime, timedelta, timezone
-
-from flask import flash, redirect, render_template, url_for
-from flask_login import login_required, current_user
-from sqlalchemy import case, func, distinct
+from flask import flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+from sqlalchemy import func
 
 from . import main_bp
-from ...models import (
-    db,
-    FlashcardProgress,
-    QuizProgress,
-    CourseProgress,
-    ScoreLog,
-    LearningGoal,
-    User,
-)
-from .forms import GoalForm
-
-
-GOAL_TYPE_CONFIG = {
-    'flashcards_reviewed': {
-        'label': 'Flashcard',
-        'description': 'Ôn luyện flashcard và giữ chuỗi học.',
-        'unit': 'thẻ',
-        'icon': 'clone',
-        'endpoint': 'learning.flashcard_learning.flashcard_learning_dashboard',
-    },
-    'quizzes_practiced': {
-        'label': 'Quiz',
-        'description': 'Luyện quiz để củng cố kiến thức.',
-        'unit': 'câu',
-        'icon': 'circle-question',
-        'endpoint': 'learning.quiz_learning.quiz_learning_dashboard',
-    },
-    'lessons_completed': {
-        'label': 'Bài học',
-        'description': 'Hoàn thành các bài học trong khóa.',
-        'unit': 'bài',
-        'icon': 'graduation-cap',
-        'endpoint': 'learning.course_learning.course_learning_dashboard',
-    },
-}
-
-PERIOD_LABELS = {
-    'daily': 'Hôm nay',
-    'weekly': '7 ngày qua',
-    'total': 'Tổng cộng',
-}
+from ..goals.constants import GOAL_TYPE_CONFIG, PERIOD_LABELS
+from ..goals.forms import LearningGoalForm
+from ..goals.services import build_goal_progress, get_learning_activity
+from ...models import db, LearningGoal, User
 
 
 @main_bp.route('/')
@@ -72,209 +33,21 @@ def index():
 def dashboard():
     user_id = current_user.user_id
 
-    now = datetime.now(timezone.utc)
-    start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    start_of_week = start_of_today - timedelta(days=6)
+    metrics = get_learning_activity(user_id)
 
-    flashcard_row = (
-        db.session.query(
-            func.count(FlashcardProgress.progress_id).label('total'),
-            func.sum(
-                case((FlashcardProgress.status == 'mastered', 1), else_=0)
-            ).label('mastered'),
-            func.sum(
-                case((FlashcardProgress.status == 'learning', 1), else_=0)
-            ).label('learning'),
-            func.sum(case((FlashcardProgress.status == 'new', 1), else_=0)).label('new'),
-            func.sum(case((FlashcardProgress.status == 'hard', 1), else_=0)).label('hard'),
-            func.sum(
-                case((FlashcardProgress.status == 'reviewing', 1), else_=0)
-            ).label('reviewing'),
-            func.sum(
-                case((FlashcardProgress.due_time <= func.now(), 1), else_=0)
-            ).label('due'),
-        )
-        .filter(FlashcardProgress.user_id == user_id)
-        .first()
-    )
-
-    quiz_row = (
-        db.session.query(
-            func.count(QuizProgress.progress_id).label('total'),
-            func.sum(case((QuizProgress.status == 'mastered', 1), else_=0)).label(
-                'mastered'
-            ),
-            func.sum(case((QuizProgress.status == 'learning', 1), else_=0)).label(
-                'learning'
-            ),
-            func.sum(case((QuizProgress.status == 'new', 1), else_=0)).label('new'),
-            func.sum(case((QuizProgress.status == 'hard', 1), else_=0)).label('hard'),
-        )
-        .filter(QuizProgress.user_id == user_id)
-        .first()
-    )
-
-    course_row = (
-        db.session.query(
-            func.count(CourseProgress.progress_id).label('total'),
-            func.sum(
-                case((CourseProgress.completion_percentage >= 100, 1), else_=0)
-            ).label('completed'),
-            func.sum(
-                case((CourseProgress.completion_percentage < 100, 1), else_=0)
-            ).label('in_progress'),
-            func.avg(CourseProgress.completion_percentage).label('avg_completion'),
-            func.max(CourseProgress.last_updated).label('last_updated'),
-        )
-        .filter(CourseProgress.user_id == user_id)
-        .first()
-    )
-
-    def _as_int(value):
-        return int(value or 0)
-
-    flashcard_summary = {
-        'total': _as_int(flashcard_row.total if flashcard_row else 0),
-        'mastered': _as_int(flashcard_row.mastered if flashcard_row else 0),
-        'learning': _as_int(flashcard_row.learning if flashcard_row else 0),
-        'new': _as_int(flashcard_row.new if flashcard_row else 0),
-        'hard': _as_int(flashcard_row.hard if flashcard_row else 0),
-        'reviewing': _as_int(flashcard_row.reviewing if flashcard_row else 0),
-        'due': _as_int(flashcard_row.due if flashcard_row else 0),
-    }
-
-    flashcard_total = flashcard_summary['total']
-    flashcard_mastered = flashcard_summary['mastered']
-    flashcard_summary['completion_percent'] = (
-        round((flashcard_mastered / flashcard_total) * 100)
-        if flashcard_total
-        else 0
-    )
-
-    quiz_summary = {
-        'total': _as_int(quiz_row.total if quiz_row else 0),
-        'mastered': _as_int(quiz_row.mastered if quiz_row else 0),
-        'learning': _as_int(quiz_row.learning if quiz_row else 0),
-        'new': _as_int(quiz_row.new if quiz_row else 0),
-        'hard': _as_int(quiz_row.hard if quiz_row else 0),
-    }
-    quiz_total = quiz_summary['total']
-    quiz_summary['completion_percent'] = (
-        round((quiz_summary['mastered'] / quiz_total) * 100) if quiz_total else 0
-    )
-
-    course_summary = {
-        'total': _as_int(course_row.total if course_row else 0),
-        'completed': _as_int(course_row.completed if course_row else 0),
-        'in_progress': _as_int(course_row.in_progress if course_row else 0),
-        'avg_completion': round(float(course_row.avg_completion or 0), 1)
-        if course_row and course_row.avg_completion is not None
-        else 0.0,
-        'last_updated': course_row.last_updated if course_row else None,
-    }
-
-    flashcard_reviews_today = (
-        db.session.query(func.count(FlashcardProgress.progress_id))
-        .filter(
-            FlashcardProgress.user_id == user_id,
-            FlashcardProgress.last_reviewed.isnot(None),
-            FlashcardProgress.last_reviewed >= start_of_today,
-        )
-        .scalar()
-        or 0
-    )
-
-    flashcard_reviews_week = (
-        db.session.query(func.count(FlashcardProgress.progress_id))
-        .filter(
-            FlashcardProgress.user_id == user_id,
-            FlashcardProgress.last_reviewed.isnot(None),
-            FlashcardProgress.last_reviewed >= start_of_week,
-        )
-        .scalar()
-        or 0
-    )
-
-    quiz_attempts_today = (
-        db.session.query(func.count(QuizProgress.progress_id))
-        .filter(
-            QuizProgress.user_id == user_id,
-            QuizProgress.last_reviewed.isnot(None),
-            QuizProgress.last_reviewed >= start_of_today,
-        )
-        .scalar()
-        or 0
-    )
-
-    quiz_attempts_week = (
-        db.session.query(func.count(QuizProgress.progress_id))
-        .filter(
-            QuizProgress.user_id == user_id,
-            QuizProgress.last_reviewed.isnot(None),
-            QuizProgress.last_reviewed >= start_of_week,
-        )
-        .scalar()
-        or 0
-    )
-
-    course_updates_today = (
-        db.session.query(func.count(CourseProgress.progress_id))
-        .filter(
-            CourseProgress.user_id == user_id,
-            CourseProgress.last_updated.isnot(None),
-            CourseProgress.last_updated >= start_of_today,
-        )
-        .scalar()
-        or 0
-    )
-
-    course_updates_week = (
-        db.session.query(func.count(CourseProgress.progress_id))
-        .filter(
-            CourseProgress.user_id == user_id,
-            CourseProgress.last_updated.isnot(None),
-            CourseProgress.last_updated >= start_of_week,
-        )
-        .scalar()
-        or 0
-    )
-
-    score_today = (
-        db.session.query(func.sum(ScoreLog.score_change))
-        .filter(
-            ScoreLog.user_id == user_id,
-            ScoreLog.timestamp >= start_of_today,
-        )
-        .scalar()
-        or 0
-    )
-
-    score_week = (
-        db.session.query(func.sum(ScoreLog.score_change))
-        .filter(
-            ScoreLog.user_id == user_id,
-            ScoreLog.timestamp >= start_of_week,
-        )
-        .scalar()
-        or 0
-    )
-
-    score_total = (
-        db.session.query(func.sum(ScoreLog.score_change))
-        .filter(ScoreLog.user_id == user_id)
-        .scalar()
-        or 0
-    )
-
-    weekly_active_days = (
-        db.session.query(func.count(distinct(func.date(ScoreLog.timestamp))))
-        .filter(
-            ScoreLog.user_id == user_id,
-            ScoreLog.timestamp >= start_of_week,
-        )
-        .scalar()
-        or 0
-    )
+    flashcard_summary = metrics['flashcard_summary']
+    quiz_summary = metrics['quiz_summary']
+    course_summary = metrics['course_summary']
+    flashcard_reviews_today = metrics['flashcard_reviews_today']
+    flashcard_reviews_week = metrics['flashcard_reviews_week']
+    quiz_attempts_today = metrics['quiz_attempts_today']
+    quiz_attempts_week = metrics['quiz_attempts_week']
+    course_updates_today = metrics['course_updates_today']
+    course_updates_week = metrics['course_updates_week']
+    score_today = metrics['score_today']
+    score_week = metrics['score_week']
+    score_total = metrics['score_total']
+    weekly_active_days = metrics['weekly_active_days']
 
     activity_parts = []
     if flashcard_reviews_today:
@@ -350,10 +123,18 @@ def dashboard():
         'active_days': int(weekly_active_days),
     }
 
-    goal_form = GoalForm()
+    goal_form = LearningGoalForm()
     goal_form.goal_type.choices = [
         (key, config['label']) for key, config in GOAL_TYPE_CONFIG.items()
     ]
+
+    if request.method == 'GET' and goal_form.goal_type.choices:
+        default_type = goal_form.goal_type.choices[0][0]
+        current_type = goal_form.goal_type.data or default_type
+        goal_form.goal_type.data = current_type
+        default_config = GOAL_TYPE_CONFIG.get(current_type)
+        if default_config and not goal_form.title.data:
+            goal_form.title.data = default_config['label']
 
     if goal_form.validate_on_submit():
         selected_type = goal_form.goal_type.data
@@ -373,7 +154,13 @@ def dashboard():
             )
             if goal:
                 goal.target_value = goal_form.target_value.data
-                goal.description = goal.description or config['description']
+                goal.title = (
+                    goal_form.title.data.strip() if goal_form.title.data else config['label']
+                )
+                goal.description = config['description']
+                goal.start_date = goal_form.start_date.data
+                goal.due_date = goal_form.due_date.data
+                goal.notes = goal_form.notes.data.strip() if goal_form.notes.data else None
                 message = 'Đã cập nhật mục tiêu hiện tại.'
             else:
                 goal = LearningGoal(
@@ -381,7 +168,15 @@ def dashboard():
                     goal_type=selected_type,
                     period=goal_form.period.data,
                     target_value=goal_form.target_value.data,
+                    title=(
+                        goal_form.title.data.strip()
+                        if goal_form.title.data
+                        else config['label']
+                    ),
                     description=config['description'],
+                    start_date=goal_form.start_date.data,
+                    due_date=goal_form.due_date.data,
+                    notes=goal_form.notes.data.strip() if goal_form.notes.data else None,
                 )
                 db.session.add(goal)
                 message = 'Đã tạo mục tiêu mới.'
@@ -399,62 +194,7 @@ def dashboard():
         .all()
     )
 
-    metrics = {
-        'flashcard_reviews_today': flashcard_reviews_today,
-        'flashcard_reviews_week': flashcard_reviews_week,
-        'flashcard_mastered': flashcard_summary['mastered'],
-        'quiz_attempts_today': quiz_attempts_today,
-        'quiz_attempts_week': quiz_attempts_week,
-        'quiz_mastered': quiz_summary['mastered'],
-        'course_updates_today': course_updates_today,
-        'course_updates_week': course_updates_week,
-        'course_completed': course_summary['completed'],
-    }
-
-    def _goal_value(goal: LearningGoal) -> int:
-        if goal.goal_type == 'flashcards_reviewed':
-            if goal.period == 'daily':
-                return metrics['flashcard_reviews_today']
-            if goal.period == 'weekly':
-                return metrics['flashcard_reviews_week']
-            return metrics['flashcard_mastered']
-        if goal.goal_type == 'quizzes_practiced':
-            if goal.period == 'daily':
-                return metrics['quiz_attempts_today']
-            if goal.period == 'weekly':
-                return metrics['quiz_attempts_week']
-            return metrics['quiz_mastered']
-        if goal.goal_type == 'lessons_completed':
-            if goal.period == 'daily':
-                return metrics['course_updates_today']
-            if goal.period == 'weekly':
-                return metrics['course_updates_week']
-            return metrics['course_completed']
-        return 0
-
-    goal_progress = []
-    for goal in goals:
-        config = GOAL_TYPE_CONFIG.get(goal.goal_type)
-        if not config:
-            continue
-        current_value = _goal_value(goal)
-        percent = 0
-        if goal.target_value > 0:
-            percent = min(100, round((current_value / goal.target_value) * 100))
-        goal_progress.append(
-            {
-                'id': goal.goal_id,
-                'title': config['label'],
-                'description': config['description'],
-                'period_label': PERIOD_LABELS.get(goal.period, goal.period),
-                'current_value': current_value,
-                'target_value': goal.target_value,
-                'unit': config['unit'],
-                'percent': percent,
-                'url': url_for(config['endpoint']),
-                'icon': config['icon'],
-            }
-        )
+    goal_progress = build_goal_progress(goals, metrics)
 
     score_cards = [
         {

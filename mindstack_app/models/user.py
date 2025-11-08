@@ -201,7 +201,11 @@ class LearningGoal(db.Model):
     goal_type = db.Column(db.String(50), nullable=False)
     period = db.Column(db.String(20), nullable=False, default='daily')
     target_value = db.Column(db.Integer, nullable=False)
-    description = db.Column(db.String(255))
+    title = db.Column(db.String(120), nullable=True)
+    description = db.Column(db.Text)
+    start_date = db.Column(db.Date, nullable=True)
+    due_date = db.Column(db.Date, nullable=True)
+    notes = db.Column(db.Text)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
@@ -210,6 +214,10 @@ class LearningGoal(db.Model):
         'User',
         backref=db.backref('learning_goals', lazy=True, cascade='all, delete-orphan'),
         lazy=True,
+    )
+
+    __table_args__ = (
+        db.Index('ix_learning_goals_user_period', 'user_id', 'period'),
     )
 
 
