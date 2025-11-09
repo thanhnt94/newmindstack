@@ -53,7 +53,7 @@ image_service = ImageService()
 
 
 def _ensure_container_media_folder(container: LearningContainer, media_type: str) -> str:
-    """Return the configured folder for the media type, creating a default one if missing."""
+    """Trả về thư mục đã cấu hình cho loại media, tạo thư mục mặc định nếu thiếu."""
 
     attr_name = f"media_{media_type}_folder"
     existing = getattr(container, attr_name, None)
@@ -78,7 +78,7 @@ def _ensure_container_media_folder(container: LearningContainer, media_type: str
 
 
 def _extract_media_folders(settings_payload) -> dict[str, str]:
-    """Return normalized media folder mapping from a generic settings payload."""
+    """Trả về ánh xạ thư mục media đã được chuẩn hóa từ một payload cấu hình chung."""
 
     result: dict[str, str] = {}
     if not isinstance(settings_payload, dict):
@@ -113,7 +113,7 @@ MEDIA_URL_FIELDS = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'
 
 
 def _apply_is_public_restrictions(form):
-    """Disable public toggle for free users and ensure value stays False."""
+    """Vô hiệu hóa chuyển đổi công khai cho người dùng miễn phí và đảm bảo giá trị là False."""
     if hasattr(form, 'is_public') and current_user.user_role == 'free':
         form.is_public.data = False
         existing_render_kw = dict(form.is_public.render_kw or {})
@@ -121,7 +121,7 @@ def _apply_is_public_restrictions(form):
         form.is_public.render_kw = existing_render_kw
 
 def _normalize_capabilities(raw_capabilities):
-    """Convert different representations of capability flags into a set of strings."""
+    """Chuyển đổi các biểu diễn khác nhau của cờ khả năng thành một tập hợp chuỗi."""
     capabilities = set()
     if isinstance(raw_capabilities, (list, tuple, set)):
         for value in raw_capabilities:
@@ -137,7 +137,7 @@ def _normalize_capabilities(raw_capabilities):
 
 
 def _get_container_capabilities(container):
-    """Return the set of learning capability flags enabled on a flashcard container."""
+    """Trả về tập hợp các cờ khả năng học tập được kích hoạt trên một bộ flashcard."""
     if not container:
         return set()
     if hasattr(container, 'capability_flags'):
@@ -166,7 +166,7 @@ def _get_media_folder_for_field(field_name: str, media_folders: dict[str, str]):
 
 
 def _build_ai_settings_from_form(form, existing_settings=None):
-    """Compose a normalized AI configuration mapping based on form input."""
+    """Tạo một ánh xạ cấu hình AI đã được chuẩn hóa dựa trên đầu vào form."""
 
     existing_payload = {}
     if isinstance(existing_settings, dict):
@@ -568,6 +568,11 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                             content_dict[field] = cell_value.lower() in {'true', '1', 'yes', 'y', 'on'}
                         else:
                             content_dict[field] = cell_value
+                    else:
+                        if field in capability_fields:
+                            content_dict[field] = False
+                        else:
+                            content_dict.pop(field, None)
                 for capability_flag in container_capabilities:
                     content_dict.setdefault(capability_flag, True)
                 ordered_entries.append({
@@ -633,7 +638,7 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
 @login_required
 def process_excel_info():
     """
-    Xử lý file Excel được tải lên để trích xuất thông tin từ sheet 'Info'.
+    Mô tả: Xử lý file Excel được tải lên để trích xuất thông tin từ sheet 'Info'.
 
     Hàm này đọc một file Excel, tìm kiếm sheet có tên 'Info',
     và trích xuất dữ liệu từ đó, trả về dưới dạng JSON.
@@ -672,7 +677,7 @@ def process_excel_info():
 @login_required
 def list_flashcard_sets():
     """
-    Hiển thị danh sách các bộ Flashcard.
+    Mô tả: Hiển thị danh sách các bộ Flashcard.
 
     Hàm này truy xuất các bộ Flashcard mà người dùng hiện tại đã tạo hoặc đóng góp,
     áp dụng bộ lọc tìm kiếm và phân trang, sau đó hiển thị chúng.
@@ -988,7 +993,7 @@ def manage_flashcard_excel(set_id):
 @login_required
 def add_flashcard_set():
     """
-    Thêm một bộ Flashcard mới.
+    Mô tả: Thêm một bộ Flashcard mới.
 
     Hàm này xử lý việc tạo bộ Flashcard, bao gồm cả việc nhập dữ liệu từ file Excel
     và thêm các thẻ Flashcard liên quan.
@@ -1028,6 +1033,28 @@ def add_flashcard_set():
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                     excel_file.save(tmp_file.name)
                     temp_filepath = tmp_file.name
+                
+                # --- THÊM MỚI LOGIC XỬ LÝ SHEET INFO ---
+                media_overrides = {}
+                try:
+                    df_info = pd.read_excel(temp_filepath, sheet_name='Info')
+                    info_mapping = df_info.set_index('Key')['Value'].dropna().to_dict()
+                    image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
+                    audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))
+                    if image_folder_override:
+                        media_overrides['image'] = image_folder_override
+                    if audio_folder_override:
+                        media_overrides['audio'] = audio_folder_override
+                except ValueError:
+                    current_app.logger.debug("Không tìm thấy sheet 'Info' trong file Excel. Bỏ qua media_overrides.")
+                
+                if media_overrides:
+                    # Áp dụng media overrides và cập nhật local folders
+                    new_set.set_media_folders(media_overrides)
+                    image_folder = media_overrides.get('image') or image_folder
+                    audio_folder = media_overrides.get('audio') or audio_folder
+                # --- KẾT THÚC THÊM MỚI ---
+
                 df = pd.read_excel(temp_filepath, sheet_name='Data')
                 required_cols = ['front', 'back']
                 # Kiểm tra các cột bắt buộc
@@ -1110,7 +1137,7 @@ def add_flashcard_set():
 @login_required
 def edit_flashcard_set(set_id):
     """
-    Chỉnh sửa một bộ Flashcard hiện có.
+    Mô tả: Chỉnh sửa một bộ Flashcard hiện có.
 
     Hàm này cho phép chỉnh sửa thông tin của bộ Flashcard và cập nhật/thêm các thẻ
     từ file Excel.
@@ -1186,7 +1213,7 @@ def edit_flashcard_set(set_id):
 @login_required
 def delete_flashcard_set(set_id):
     """
-    Xóa một bộ Flashcard.
+    Mô tả: Xóa một bộ Flashcard.
 
     Hàm này cho phép xóa một bộ Flashcard và các thẻ liên quan.
     Chỉ người tạo hoặc admin mới có quyền xóa.
@@ -1206,7 +1233,7 @@ def delete_flashcard_set(set_id):
 @login_required
 def list_flashcard_items(set_id):
     """
-    Hiển thị danh sách các thẻ Flashcard trong một bộ cụ thể.
+    Mô tả: Hiển thị danh sách các thẻ Flashcard trong một bộ cụ thể.
 
     Hàm này truy xuất các thẻ Flashcard của một bộ, áp dụng bộ lọc tìm kiếm
     trên nội dung thẻ và phân trang, sau đó hiển thị chúng.
@@ -1355,7 +1382,7 @@ def search_flashcard_image(set_id, item_id):
 @login_required
 def add_flashcard_item(set_id):
     """
-    Thêm một thẻ Flashcard mới vào một bộ cụ thể.
+    Mô tả: Thêm một thẻ Flashcard mới vào một bộ cụ thể.
 
     Hàm này xử lý việc thêm một thẻ Flashcard mới vào một bộ Flashcard hiện có.
     """
@@ -1463,11 +1490,11 @@ def add_flashcard_item(set_id):
         return render_template('_add_edit_flashcard_item_bare.html', **context)
     return render_template('add_edit_flashcard_item.html', **context)
 
-@flashcards_bp.route('/flashcards/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
+@flashcards_bp.route('/flashcards/edit/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
 def edit_flashcard_item(set_id, item_id):
     """
-    Chỉnh sửa một thẻ Flashcard hiện có trong một bộ cụ thể.
+    Mô tả: Chỉnh sửa một thẻ Flashcard hiện có trong một bộ cụ thể.
 
     Hàm này xử lý việc cập nhật nội dung của một thẻ Flashcard.
     """
@@ -1598,7 +1625,7 @@ def edit_flashcard_item(set_id, item_id):
 @login_required
 def delete_flashcard_item(set_id, item_id):
     """
-    Xóa một thẻ Flashcard khỏi một bộ cụ thể.
+    Mô tả: Xóa một thẻ Flashcard khỏi một bộ cụ thể.
 
     Hàm này xử lý việc xóa một thẻ Flashcard.
     """
