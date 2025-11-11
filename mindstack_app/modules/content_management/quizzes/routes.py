@@ -194,12 +194,16 @@ def _resolve_local_media_path(path_value: str, *, media_folder: Optional[str] = 
 
 def _copy_media_into_package(
     original_path: str,
-    media_dir: str,
+    media_dir: Optional[str],
     existing_map: dict,
     media_subdir: Optional[str] = None,
     media_folder: Optional[str] = None,
+    export_mode: str = 'zip',
 ) -> str:
-    if not original_path:
+    if original_path in (None, ''):
+        return original_path
+
+    if export_mode == 'excel':
         return original_path
 
     normalized = str(original_path).strip()
@@ -210,45 +214,158 @@ def _copy_media_into_package(
         return normalized
 
     local_path = _resolve_local_media_path(normalized, media_folder=media_folder)
+    if not local_path and os.path.isabs(normalized) and os.path.isfile(normalized):
+        local_path = normalized
+
+    display_value = normalized
+    if os.path.isabs(normalized):
+        display_value = os.path.basename(normalized)
+
     if not local_path:
-        return normalized
+        return display_value
 
-    if local_path in existing_map:
-        return existing_map[local_path]
+    cache_key = (
+        local_path,
+        media_folder,
+        media_subdir,
+        display_value,
+    )
+    if cache_key in existing_map:
+        return display_value
 
-    audio_exts = {'.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac'}
-    image_exts = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'}
+    if not media_dir:
+        existing_map[cache_key] = True
+        return display_value
 
-    filename = os.path.basename(local_path)
-    name, ext = os.path.splitext(filename)
-    ext_lower = ext.lower()
-    target_subdir = media_subdir
-    if not target_subdir:
-        if ext_lower in audio_exts:
-            target_subdir = 'audio'
-        elif ext_lower in image_exts:
-            target_subdir = 'images'
+    folder_normalized = normalize_media_folder(media_folder)
 
-    base_media_dir = media_dir
-    if target_subdir:
-        base_media_dir = os.path.join(media_dir, target_subdir)
+    sanitized = normalized.replace('\\', '/').lstrip('/')
+    segments = [segment for segment in sanitized.split('/') if segment and segment not in {'.', '..'}]
 
-    os.makedirs(base_media_dir, exist_ok=True)
-    candidate = filename
-    counter = 1
-    while os.path.exists(os.path.join(base_media_dir, candidate)):
-        candidate = f"{name}_{counter}{ext}"
-        counter += 1
+    # Drop uploads prefix if present
+    while segments and segments[0].lower() == 'uploads':
+        segments.pop(0)
 
-    destination = os.path.join(base_media_dir, candidate)
-    shutil.copy2(local_path, destination)
-    relative_parts = ['media']
-    if target_subdir:
-        relative_parts.append(target_subdir)
-    relative_parts.append(candidate)
-    relative_in_zip = '/'.join(relative_parts)
-    existing_map[local_path] = relative_in_zip
-    return relative_in_zip
+    if folder_normalized:
+        folder_segments = [seg for seg in folder_normalized.split('/') if seg]
+        if segments[: len(folder_segments)] == folder_segments:
+            segments = segments[len(folder_segments) :]
+
+    if os.path.isabs(normalized):
+        segments = [os.path.basename(local_path)]
+
+    if not segments:
+        segments = [os.path.basename(local_path)]
+
+    destination_root_parts = ['uploads']
+    if folder_normalized:
+        destination_root_parts.extend(folder_normalized.split('/'))
+    elif media_subdir:
+        destination_root_parts.append(media_subdir)
+
+    destination_parts = destination_root_parts + segments
+    destination_relative = '/'.join(['media'] + destination_parts)
+    destination_full = os.path.join(media_dir, *destination_parts)
+
+    os.makedirs(os.path.dirname(destination_full), exist_ok=True)
+    if not os.path.exists(destination_full):
+        shutil.copy2(local_path, destination_full)
+
+    existing_map[cache_key] = destination_relative
+    return display_value
+
+
+def _build_quiz_export_payload(
+    quiz_set,
+    items,
+    groups,
+    *,
+    export_mode: str,
+    media_dir: Optional[str],
+    media_cache: Optional[dict],
+    image_folder: Optional[str],
+    audio_folder: Optional[str],
+):
+    media_cache = media_cache or {}
+
+    info_rows = [
+        {'Key': 'title', 'Value': quiz_set.title},
+        {'Key': 'description', 'Value': quiz_set.description or ''},
+        {'Key': 'tags', 'Value': quiz_set.tags or ''},
+        {'Key': 'is_public', 'Value': str(quiz_set.is_public)},
+    ]
+    if image_folder:
+        info_rows.append({'Key': 'image_base_folder', 'Value': image_folder})
+    if audio_folder:
+        info_rows.append({'Key': 'audio_base_folder', 'Value': audio_folder})
+
+    ai_settings_payload = quiz_set.ai_settings if hasattr(quiz_set, 'ai_settings') else None
+    ai_prompt_value = getattr(quiz_set, 'ai_prompt', None)
+    if not ai_prompt_value and isinstance(ai_settings_payload, dict):
+        ai_prompt_value = ai_settings_payload.get('custom_prompt', '')
+    if ai_prompt_value:
+        info_rows.append({'Key': 'ai_prompt', 'Value': ai_prompt_value})
+
+    data_rows = []
+    for item in items:
+        content = item.content or {}
+        group = groups.get(item.group_id) if item.group_id else None
+        group_content = group.content if group else {}
+        row = {
+            'item_id': item.item_id,
+            'order_in_container': item.order_in_container,
+            'question': content.get('question'),
+            'pre_question_text': content.get('pre_question_text'),
+            'option_a': (content.get('options') or {}).get('A'),
+            'option_b': (content.get('options') or {}).get('B'),
+            'option_c': (content.get('options') or {}).get('C'),
+            'option_d': (content.get('options') or {}).get('D'),
+            'correct_answer_text': content.get('correct_answer'),
+            'guidance': content.get('explanation'),
+            'question_image_file': _copy_media_into_package(
+                content.get('question_image_file'),
+                media_dir,
+                media_cache,
+                media_subdir='images',
+                media_folder=image_folder,
+                export_mode=export_mode,
+            ),
+            'question_audio_file': _copy_media_into_package(
+                content.get('question_audio_file'),
+                media_dir,
+                media_cache,
+                media_subdir='audio',
+                media_folder=audio_folder,
+                export_mode=export_mode,
+            ),
+            'passage_text': content.get('passage_text'),
+            'passage_order': content.get('passage_order'),
+            'ai_prompt': content.get('ai_prompt'),
+            'group_id': group.group_id if group else None,
+            'group_ref': f"group-{group.group_id}" if group else '',
+            'group_type': group.group_type if group else '',
+            'group_passage_text': group_content.get('passage_text') if isinstance(group_content, dict) else None,
+            'group_audio_file': _copy_media_into_package(
+                group_content.get('question_audio_file') if isinstance(group_content, dict) else None,
+                media_dir,
+                media_cache,
+                media_subdir='audio',
+                media_folder=audio_folder,
+                export_mode=export_mode,
+            ),
+            'group_image_file': _copy_media_into_package(
+                group_content.get('question_image_file') if isinstance(group_content, dict) else None,
+                media_dir,
+                media_cache,
+                media_subdir='images',
+                media_folder=image_folder,
+                export_mode=export_mode,
+            ),
+            'action': '',
+        }
+        data_rows.append(row)
+
+    return info_rows, data_rows
 
 
 def _serialize_quiz_item_for_response(item, user_id=None):
@@ -781,77 +898,16 @@ def export_quiz_set(set_id):
         os.makedirs(media_dir, exist_ok=True)
         media_cache = {}
 
-        info_rows = [
-            {'Key': 'title', 'Value': quiz_set.title},
-            {'Key': 'description', 'Value': quiz_set.description or ''},
-            {'Key': 'tags', 'Value': quiz_set.tags or ''},
-            {'Key': 'is_public', 'Value': str(quiz_set.is_public)},
-        ]
-        if image_folder:
-            info_rows.append({'Key': 'image_base_folder', 'Value': image_folder})
-        if audio_folder:
-            info_rows.append({'Key': 'audio_base_folder', 'Value': audio_folder})
-        ai_settings_payload = quiz_set.ai_settings if hasattr(quiz_set, 'ai_settings') else None
-        ai_prompt_value = getattr(quiz_set, 'ai_prompt', None)
-        if not ai_prompt_value and isinstance(ai_settings_payload, dict):
-            ai_prompt_value = ai_settings_payload.get('custom_prompt', '')
-        if ai_prompt_value:
-            info_rows.append({'Key': 'ai_prompt', 'Value': ai_prompt_value})
-
-        data_rows = []
-        for item in items:
-            content = item.content or {}
-            group = groups.get(item.group_id) if item.group_id else None
-            group_content = group.content if group else {}
-            row = {
-                'item_id': item.item_id,
-                'order_in_container': item.order_in_container,
-                'question': content.get('question'),
-                'pre_question_text': content.get('pre_question_text'),
-                'option_a': (content.get('options') or {}).get('A'),
-                'option_b': (content.get('options') or {}).get('B'),
-                'option_c': (content.get('options') or {}).get('C'),
-                'option_d': (content.get('options') or {}).get('D'),
-                'correct_answer_text': content.get('correct_answer'),
-                'guidance': content.get('explanation'),
-                'question_image_file': _copy_media_into_package(
-                    content.get('question_image_file'),
-                    media_dir,
-                    media_cache,
-                    media_subdir='images',
-                    media_folder=image_folder,
-                ),
-                'question_audio_file': _copy_media_into_package(
-                    content.get('question_audio_file'),
-                    media_dir,
-                    media_cache,
-                    media_subdir='audio',
-                    media_folder=audio_folder,
-                ),
-                'passage_text': content.get('passage_text'),
-                'passage_order': content.get('passage_order'),
-                'ai_prompt': content.get('ai_prompt'),
-                'group_id': group.group_id if group else None,
-                'group_ref': f"group-{group.group_id}" if group else '',
-                'group_type': group.group_type if group else '',
-                'group_passage_text': group_content.get('passage_text') if isinstance(group_content, dict) else None,
-                'group_audio_file': _copy_media_into_package(
-                    group_content.get('question_audio_file') if isinstance(group_content, dict) else None,
-                    media_dir,
-                    media_cache,
-                    media_subdir='audio',
-                    media_folder=audio_folder,
-                ),
-                'group_image_file': _copy_media_into_package(
-                    group_content.get('question_image_file') if isinstance(group_content, dict) else None,
-                    media_dir,
-                    media_cache,
-                    media_subdir='images',
-                    media_folder=image_folder,
-                ),
-                'action': '',
-            }
-            data_rows.append(row)
+        info_rows, data_rows = _build_quiz_export_payload(
+            quiz_set,
+            items,
+            groups,
+            export_mode='zip',
+            media_dir=media_dir,
+            media_cache=media_cache,
+            image_folder=image_folder,
+            audio_folder=audio_folder,
+        )
 
         excel_path = os.path.join(tmp_dir, 'quizzes.xlsx')
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
@@ -871,6 +927,56 @@ def export_quiz_set(set_id):
         zip_buffer.seek(0)
         download_name = f"{_slugify_filename(quiz_set.title)}.zip"
         return send_file(zip_buffer, as_attachment=True, download_name=download_name, mimetype='application/zip')
+
+
+@quizzes_bp.route('/quizzes/<int:set_id>/export-excel', methods=['GET'])
+@login_required
+def export_quiz_set_excel(set_id):
+    """Xuất bộ quiz ra file Excel duy nhất, giữ nguyên đường dẫn media."""
+    quiz_set = LearningContainer.query.get_or_404(set_id)
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and quiz_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(set_id):
+            abort(403)
+
+    items = (
+        LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ')
+        .order_by(LearningItem.order_in_container, LearningItem.item_id)
+        .all()
+    )
+    groups = {
+        group.group_id: group
+        for group in LearningGroup.query.filter_by(container_id=set_id).all()
+    }
+
+    media_folders = _get_media_folders_from_container(quiz_set)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
+
+    info_rows, data_rows = _build_quiz_export_payload(
+        quiz_set,
+        items,
+        groups,
+        export_mode='excel',
+        media_dir=None,
+        media_cache={},
+        image_folder=image_folder,
+        audio_folder=audio_folder,
+    )
+
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+        pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
+        pd.DataFrame(data_rows).to_excel(writer, sheet_name='Data', index=False)
+
+    excel_buffer.seek(0)
+    download_name = f"{_slugify_filename(quiz_set.title)}.xlsx"
+    return send_file(
+        excel_buffer,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
 
 
 @quizzes_bp.route('/quizzes/<int:set_id>/manage-excel', methods=['GET', 'POST'])
@@ -901,12 +1007,14 @@ def manage_quiz_excel(set_id):
 
         return redirect(url_for('content_management.content_management_quizzes.manage_quiz_excel', set_id=set_id))
 
-    export_url = url_for('content_management.content_management_quizzes.export_quiz_set', set_id=set_id)
+    export_excel_url = url_for('content_management.content_management_quizzes.export_quiz_set_excel', set_id=set_id)
+    export_zip_url = url_for('content_management.content_management_quizzes.export_quiz_set', set_id=set_id)
     item_count = LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ').count()
     return render_template(
         'manage_quiz_excel.html',
         quiz_set=quiz_set,
-        export_url=export_url,
+        export_excel_url=export_excel_url,
+        export_zip_url=export_zip_url,
         item_count=item_count,
     )
 

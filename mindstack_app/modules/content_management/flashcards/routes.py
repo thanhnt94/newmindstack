@@ -290,17 +290,17 @@ def _resolve_local_media_path(path_value: str, *, media_folder: Optional[str] = 
 
 def _copy_media_into_package(
     original_path: str,
-    media_dir: str,
+    media_dir: Optional[str],
     existing_map: dict,
     media_subdir: Optional[str] = None,
     media_folder: Optional[str] = None,
+    export_mode: str = 'zip',
 ) -> str:
-    """Sao chép file media vào thư mục tạm và trả về đường dẫn tương đối trong gói.
+    """Chuẩn hoá đường dẫn media cho xuất Excel/ZIP và sao chép file nếu cần."""
+    if original_path in (None, ''):
+        return original_path
 
-    Các file sẽ được đặt trong thư mục ``media`` và được tách thành ``audio`` hoặc
-    ``images`` nếu ``media_subdir`` được cung cấp (hoặc suy ra từ phần mở rộng).
-    """
-    if not original_path:
+    if export_mode == 'excel':
         return original_path
 
     normalized = str(original_path).strip()
@@ -311,45 +311,156 @@ def _copy_media_into_package(
         return normalized
 
     local_path = _resolve_local_media_path(normalized, media_folder=media_folder)
+    if not local_path and os.path.isabs(normalized) and os.path.isfile(normalized):
+        local_path = normalized
+
+    display_value = normalized
+    if os.path.isabs(normalized):
+        display_value = os.path.basename(normalized)
+
     if not local_path:
-        return normalized
+        return display_value
 
-    if local_path in existing_map:
-        return existing_map[local_path]
+    cache_key = (
+        local_path,
+        media_folder,
+        media_subdir,
+        display_value,
+    )
+    if cache_key in existing_map:
+        return display_value
 
-    audio_exts = {'.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac'}
-    image_exts = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'}
+    if not media_dir:
+        existing_map[cache_key] = True
+        return display_value
 
-    filename = os.path.basename(local_path)
-    name, ext = os.path.splitext(filename)
-    ext_lower = ext.lower()
-    target_subdir = media_subdir
-    if not target_subdir:
-        if ext_lower in audio_exts:
-            target_subdir = 'audio'
-        elif ext_lower in image_exts:
-            target_subdir = 'images'
+    folder_normalized = normalize_media_folder(media_folder)
 
-    base_media_dir = media_dir
-    if target_subdir:
-        base_media_dir = os.path.join(media_dir, target_subdir)
+    sanitized = normalized.replace('\\', '/').lstrip('/')
+    segments = [segment for segment in sanitized.split('/') if segment and segment not in {'.', '..'}]
 
-    os.makedirs(base_media_dir, exist_ok=True)
-    candidate = filename
-    counter = 1
-    while os.path.exists(os.path.join(base_media_dir, candidate)):
-        candidate = f"{name}_{counter}{ext}"
-        counter += 1
+    while segments and segments[0].lower() == 'uploads':
+        segments.pop(0)
 
-    destination = os.path.join(base_media_dir, candidate)
-    shutil.copy2(local_path, destination)
-    relative_parts = ['media']
-    if target_subdir:
-        relative_parts.append(target_subdir)
-    relative_parts.append(candidate)
-    relative_in_zip = '/'.join(relative_parts)
-    existing_map[local_path] = relative_in_zip
-    return relative_in_zip
+    if folder_normalized:
+        folder_segments = [seg for seg in folder_normalized.split('/') if seg]
+        if segments[: len(folder_segments)] == folder_segments:
+            segments = segments[len(folder_segments) :]
+
+    if os.path.isabs(normalized):
+        segments = [os.path.basename(local_path)]
+
+    if not segments:
+        segments = [os.path.basename(local_path)]
+
+    destination_root_parts = ['uploads']
+    if folder_normalized:
+        destination_root_parts.extend(folder_normalized.split('/'))
+    elif media_subdir:
+        destination_root_parts.append(media_subdir)
+
+    destination_parts = destination_root_parts + segments
+    destination_relative = '/'.join(['media'] + destination_parts)
+    destination_full = os.path.join(media_dir, *destination_parts)
+
+    os.makedirs(os.path.dirname(destination_full), exist_ok=True)
+    if not os.path.exists(destination_full):
+        shutil.copy2(local_path, destination_full)
+
+    existing_map[cache_key] = destination_relative
+    return display_value
+
+
+def _build_flashcard_export_payload(
+    flashcard_set,
+    items,
+    *,
+    export_mode: str,
+    media_dir: Optional[str],
+    media_cache: Optional[dict],
+    image_folder: Optional[str],
+    audio_folder: Optional[str],
+):
+    media_cache = media_cache or {}
+
+    info_rows = [
+        {'Key': 'title', 'Value': flashcard_set.title},
+        {'Key': 'description', 'Value': flashcard_set.description or ''},
+        {'Key': 'tags', 'Value': flashcard_set.tags or ''},
+        {'Key': 'is_public', 'Value': str(flashcard_set.is_public)},
+    ]
+
+    container_capabilities = _get_container_capabilities(flashcard_set)
+    for capability_key in CAPABILITY_FLAGS:
+        info_rows.append({'Key': capability_key, 'Value': str(capability_key in container_capabilities)})
+
+    if image_folder:
+        info_rows.append({'Key': 'image_base_folder', 'Value': image_folder})
+    if audio_folder:
+        info_rows.append({'Key': 'audio_base_folder', 'Value': audio_folder})
+
+    ai_settings_payload = flashcard_set.ai_settings if hasattr(flashcard_set, 'ai_settings') else None
+    ai_prompt_value = getattr(flashcard_set, 'ai_prompt', None)
+    if not ai_prompt_value and isinstance(ai_settings_payload, dict):
+        ai_prompt_value = ai_settings_payload.get('custom_prompt')
+    if ai_prompt_value:
+        info_rows.append({'Key': 'ai_prompt', 'Value': ai_prompt_value})
+
+    data_rows = []
+    for item in items:
+        content = item.content or {}
+        row = {
+            'item_id': item.item_id,
+            'order_in_container': item.order_in_container,
+            'front': content.get('front'),
+            'back': content.get('back'),
+            'front_audio_content': content.get('front_audio_content'),
+            'back_audio_content': content.get('back_audio_content'),
+            'front_audio_url': _copy_media_into_package(
+                content.get('front_audio_url'),
+                media_dir,
+                media_cache,
+                media_subdir='audio',
+                media_folder=audio_folder,
+                export_mode=export_mode,
+            ),
+            'back_audio_url': _copy_media_into_package(
+                content.get('back_audio_url'),
+                media_dir,
+                media_cache,
+                media_subdir='audio',
+                media_folder=audio_folder,
+                export_mode=export_mode,
+            ),
+            'front_img': _copy_media_into_package(
+                content.get('front_img'),
+                media_dir,
+                media_cache,
+                media_subdir='images',
+                media_folder=image_folder,
+                export_mode=export_mode,
+            ),
+            'back_img': _copy_media_into_package(
+                content.get('back_img'),
+                media_dir,
+                media_cache,
+                media_subdir='images',
+                media_folder=image_folder,
+                export_mode=export_mode,
+            ),
+            'ai_explanation': content.get('ai_explanation'),
+            'ai_prompt': content.get('ai_prompt'),
+            'supports_pronunciation': content.get('supports_pronunciation'),
+            'supports_writing': content.get('supports_writing'),
+            'supports_quiz': content.get('supports_quiz'),
+            'supports_essay': content.get('supports_essay'),
+            'supports_listening': content.get('supports_listening'),
+            'supports_speaking': content.get('supports_speaking'),
+            'action': '',
+        }
+        data_rows.append(row)
+
+    return info_rows, data_rows
 
 
 def _has_editor_access(container_id):
@@ -786,73 +897,24 @@ def export_flashcard_set(set_id):
         .all()
     )
 
+    media_folders = _get_media_folders_from_container(flashcard_set)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         media_dir = os.path.join(tmp_dir, 'media')
         os.makedirs(media_dir, exist_ok=True)
         media_cache = {}
 
-        info_rows = [
-            {'Key': 'title', 'Value': flashcard_set.title},
-            {'Key': 'description', 'Value': flashcard_set.description or ''},
-            {'Key': 'tags', 'Value': flashcard_set.tags or ''},
-            {'Key': 'is_public', 'Value': str(flashcard_set.is_public)},
-        ]
-
-        container_capabilities = _get_container_capabilities(flashcard_set)
-        for capability_key in CAPABILITY_FLAGS:
-            info_rows.append({'Key': capability_key, 'Value': str(capability_key in container_capabilities)})
-
-        media_folders = _get_media_folders_from_container(flashcard_set)
-
-        ai_settings_payload = flashcard_set.ai_settings if hasattr(flashcard_set, 'ai_settings') else None
-        ai_prompt_value = getattr(flashcard_set, 'ai_prompt', None)
-        if not ai_prompt_value and isinstance(ai_settings_payload, dict):
-            ai_prompt_value = ai_settings_payload.get('custom_prompt')
-        if ai_prompt_value:
-            info_rows.append({'Key': 'ai_prompt', 'Value': ai_prompt_value})
-
-        if media_folders.get('image'):
-            info_rows.append({'Key': 'image_base_folder', 'Value': media_folders['image']})
-        if media_folders.get('audio'):
-            info_rows.append({'Key': 'audio_base_folder', 'Value': media_folders['audio']})
-
-        data_rows = []
-        for item in items:
-            content = item.content or {}
-            row = {
-                'item_id': item.item_id,
-                'order_in_container': item.order_in_container,
-                'front': content.get('front'),
-                    'back': content.get('back'),
-                    'front_audio_content': content.get('front_audio_content'),
-                    'back_audio_content': content.get('back_audio_content'),
-                    'front_audio_url': _copy_media_into_package(
-                        content.get('front_audio_url'), media_dir, media_cache,
-                        media_subdir='audio', media_folder=media_folders.get('audio')
-                    ),
-                    'back_audio_url': _copy_media_into_package(
-                        content.get('back_audio_url'), media_dir, media_cache,
-                        media_subdir='audio', media_folder=media_folders.get('audio')
-                    ),
-                    'front_img': _copy_media_into_package(
-                        content.get('front_img'), media_dir, media_cache,
-                        media_subdir='images', media_folder=media_folders.get('image')
-                    ),
-                    'back_img': _copy_media_into_package(
-                        content.get('back_img'), media_dir, media_cache,
-                        media_subdir='images', media_folder=media_folders.get('image')
-                    ),
-                    'ai_explanation': content.get('ai_explanation'),
-                    'ai_prompt': content.get('ai_prompt'),
-                    'supports_pronunciation': content.get('supports_pronunciation'),
-                    'supports_writing': content.get('supports_writing'),
-                    'supports_quiz': content.get('supports_quiz'),
-                    'supports_essay': content.get('supports_essay'),
-                    'supports_listening': content.get('supports_listening'),
-                    'supports_speaking': content.get('supports_speaking'),
-                    'action': '',
-                }
-            data_rows.append(row)
+        info_rows, data_rows = _build_flashcard_export_payload(
+            flashcard_set,
+            items,
+            export_mode='zip',
+            media_dir=media_dir,
+            media_cache=media_cache,
+            image_folder=image_folder,
+            audio_folder=audio_folder,
+        )
 
         excel_path = os.path.join(tmp_dir, 'flashcards.xlsx')
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
@@ -872,6 +934,51 @@ def export_flashcard_set(set_id):
         zip_buffer.seek(0)
         download_name = f"{_slugify_filename(flashcard_set.title)}.zip"
         return send_file(zip_buffer, as_attachment=True, download_name=download_name, mimetype='application/zip')
+
+
+@flashcards_bp.route('/flashcards/<int:set_id>/export-excel', methods=['GET'])
+@login_required
+def export_flashcard_set_excel(set_id):
+    """Xuất bộ flashcard ra file Excel duy nhất, giữ nguyên đường dẫn media."""
+    flashcard_set = LearningContainer.query.get_or_404(set_id)
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and flashcard_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(set_id):
+            abort(403)
+
+    items = (
+        LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD')
+        .order_by(LearningItem.order_in_container, LearningItem.item_id)
+        .all()
+    )
+
+    media_folders = _get_media_folders_from_container(flashcard_set)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
+
+    info_rows, data_rows = _build_flashcard_export_payload(
+        flashcard_set,
+        items,
+        export_mode='excel',
+        media_dir=None,
+        media_cache={},
+        image_folder=image_folder,
+        audio_folder=audio_folder,
+    )
+
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+        pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
+        pd.DataFrame(data_rows).to_excel(writer, sheet_name='Data', index=False)
+
+    excel_buffer.seek(0)
+    download_name = f"{_slugify_filename(flashcard_set.title)}.xlsx"
+    return send_file(
+        excel_buffer,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
 
 
 @flashcards_bp.route('/flashcards/excel-template', methods=['GET'])
@@ -977,13 +1084,15 @@ def manage_flashcard_excel(set_id):
 
         return redirect(url_for('content_management.content_management_flashcards.manage_flashcard_excel', set_id=set_id))
 
-    export_url = url_for('content_management.content_management_flashcards.export_flashcard_set', set_id=set_id)
+    export_excel_url = url_for('content_management.content_management_flashcards.export_flashcard_set_excel', set_id=set_id)
+    export_zip_url = url_for('content_management.content_management_flashcards.export_flashcard_set', set_id=set_id)
     template_url = url_for('content_management.content_management_flashcards.download_flashcard_excel_template')
     item_count = LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD').count()
     return render_template(
         'manage_flashcard_excel.html',
         flashcard_set=flashcard_set,
-        export_url=export_url,
+        export_excel_url=export_excel_url,
+        export_zip_url=export_zip_url,
         template_url=template_url,
         item_count=item_count,
     )
