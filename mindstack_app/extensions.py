@@ -6,6 +6,7 @@ simpler to reuse the same initialization logic across blueprints and services.
 """
 
 from flask_login import LoginManager
+from flask_wtf import CSRFProtect
 
 from .db_instance import db
 
@@ -14,4 +15,6 @@ login_manager.login_view = "auth.login"
 login_manager.login_message = "Vui lòng đăng nhập để truy cập trang này."
 login_manager.login_message_category = "info"
 
-__all__ = ["db", "login_manager"]
+csrf_protect = CSRFProtect()
+
+__all__ = ["db", "login_manager", "csrf_protect"]

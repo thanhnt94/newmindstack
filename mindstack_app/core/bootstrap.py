@@ -10,7 +10,7 @@ from flask import Flask
 from flask_login import current_user
 
 from ..config import BASE_DIR
-from ..extensions import db, login_manager
+from ..extensions import csrf_protect, db, login_manager
 from ..modules.shared.utils.bbcode_parser import bbcode_to_html
 from .module_registry import register_default_modules
 
@@ -35,6 +35,7 @@ def register_extensions(app: Flask) -> None:
 
     db.init_app(app)
     login_manager.init_app(app)
+    csrf_protect.init_app(app)
 
 
 def configure_static_uploads(app: Flask) -> None:
