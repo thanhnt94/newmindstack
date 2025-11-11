@@ -27,8 +27,8 @@
             {% endif %}
         </div>
         <div class="flex flex-wrap items-center gap-3">
-            <a href="{{ export_url }}" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-300 flex items-center shadow-md">
-                <i class="fas fa-file-export mr-2"></i> Xuất gói dữ liệu
+            <a href="{{ export_excel_url }}" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-300 flex items-center shadow-md">
+                <i class="fas fa-file-export mr-2"></i> Xuất file Excel
             </a>
         </div>
     </div>
@@ -149,9 +149,43 @@
 
         <div class="space-y-6">
             <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Tóm tắt cách xuất dữ liệu</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-50">
+                            <tr class="text-left text-gray-600">
+                                <th class="px-4 py-3 font-medium">Vị trí nút hành động</th>
+                                <th class="px-4 py-3 font-medium">Mục đích</th>
+                                <th class="px-4 py-3 font-medium">Lưu ý Media trong Excel</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">Trong trang Cập nhật Excel</td>
+                                <td class="px-4 py-3 text-gray-600">Xuất file Excel để dễ chỉnh sửa và nhập trở lại.</td>
+                                <td class="px-4 py-3 text-gray-500">Đường dẫn/URL giữ nguyên như trong CSDL (đường dẫn tương đối không bị thay đổi). Không sao chép media.</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">Trong trang Danh sách câu hỏi</td>
+                                <td class="px-4 py-3 text-gray-600">Tạo gói ZIP để di chuyển/sao lưu, bao gồm Excel và media.</td>
+                                <td class="px-4 py-3 text-gray-500 space-y-1">
+                                    <div>Đường dẫn media trong Excel được chuẩn hoá về dạng gốc (ví dụ: <code>uploads/&lt;thư_mục&gt;/...</code>).</div>
+                                    <div>Nếu gặp đường dẫn tuyệt đối, file sẽ được đưa vào thư mục tương ứng trong gói ZIP và Excel chỉ lưu tên file.</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-sm text-purple-600">
+                    <i class="fas fa-external-link-alt mr-1"></i>
+                    Nút xuất ZIP hiển thị tại trang <a href="{{ url_for('content_management.content_management_quizzes.list_quiz_items', set_id=quiz_set.container_id) }}" class="text-purple-600 underline">Danh sách câu hỏi</a> (liên kết trực tiếp: <a href="{{ export_zip_url }}" class="underline">{{ export_zip_url }}</a>).
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-3">Hướng dẫn nhanh</h2>
                 <ul class="list-disc list-inside text-gray-700 space-y-2 text-sm">
-                    <li>Xuất gói dữ liệu hiện tại để tham khảo cấu trúc chuẩn.</li>
+                    <li>Xuất file Excel hiện tại để tham khảo cấu trúc chuẩn.</li>
                     <li>Cột <strong>action</strong> hỗ trợ <code>update</code>, <code>keep</code>/<code>skip</code>, <code>create</code>, <code>delete</code> để thao tác nhanh.</li>
                     <li>Sheet <code>Info</code> có thể khai báo <code>image_base_folder</code> và <code>audio_base_folder</code>; hệ thống sẽ áp dụng tự động khi nhập.</li>
                     <li>Khai báo thông tin nhóm (<code>group_passage_text</code>, <code>group_audio_file</code>, <code>group_image_file</code>) khi nhiều câu dùng chung ngữ cảnh.</li>
