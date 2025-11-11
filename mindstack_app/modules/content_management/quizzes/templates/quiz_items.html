@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="cm-shell" data-accent="rose">
+<div class="cm-shell">
     <div class="cm-container space-y-6">
         <div class="cm-section-header">
             <div class="cm-heading-group">
@@ -26,12 +26,6 @@
                         <i class="fa-solid fa-circle-question"></i>
                         {{ pagination.total }} câu hỏi
                     </span>
-                    {% if can_edit %}
-                    <span class="cm-pill cm-pill--neutral">
-                        <i class="fa-solid fa-arrows-up-down"></i>
-                        Kéo thả để sắp xếp
-                    </span>
-                    {% endif %}
                 </div>
             </div>
             {% if can_edit %}
@@ -80,27 +74,9 @@
         </div>
 
         {% if quiz_items %}
-        {% if can_edit %}
-        <div class="cm-chip-row text-xs font-semibold">
-            <span class="cm-pill cm-pill--accent">
-                <i class="fa-solid fa-hand"></i>
-                Kéo biểu tượng <i class="fa-solid fa-grip-lines"></i> để sắp xếp.
-            </span>
-            <div data-reorder-feedback class="hidden text-sm font-semibold"></div>
-        </div>
-        {% endif %}
-
-        <div data-draggable-list
-             data-can-edit="{{ 'true' if can_edit else 'false' }}"
-             data-reorder-url="{{ url_for('content_management.content_management_quizzes.reorder_quiz_items', set_id=quiz_set.container_id) }}"
-             data-start-order="{{ quiz_items[0].order_in_container if quiz_items else 1 }}"
-             class="cm-grid cm-grid--three">
+        <div class="cm-grid cm-grid--three">
             {% for item in quiz_items %}
-            <article class="cm-collection-card"
-                     data-draggable-item
-                     data-item-id="{{ item.item_id }}"
-                     data-current-order="{{ item.order_in_container }}"
-                     draggable="true">
+            <article class="cm-collection-card">
                 <div class="flex items-start justify-between gap-4">
                     <div class="space-y-3">
                         <div class="cm-chip-row text-xs font-semibold">
@@ -124,11 +100,6 @@
                             </ul>
                         </div>
                     </div>
-                    {% if can_edit %}
-                    <button type="button" class="cm-icon-button" data-drag-handle title="Giữ và kéo để sắp xếp">
-                        <i class="fa-solid fa-grip-lines"></i>
-                    </button>
-                    {% endif %}
                 </div>
 
                 <div class="mt-4 space-y-2 text-xs text-slate-500">
@@ -215,122 +186,6 @@
                 const detail = event?.detail || {};
                 if (detail.scope === 'quiz-item' && Number(detail.setId || detail.containerId) === {{ quiz_set.container_id }}) {
                     window.location.reload();
-                }
-            });
-
-            const list = document.querySelector('[data-draggable-list]');
-            if (!list || list.dataset.canEdit !== 'true') {
-                return;
-            }
-
-            const reorderUrl = list.dataset.reorderUrl;
-            if (!reorderUrl) {
-                return;
-            }
-
-            const csrfToken = '{{ csrf_token() }}';
-            const startOrder = parseInt(list.dataset.startOrder || '1', 10);
-            const feedback = document.querySelector('[data-reorder-feedback]');
-            let draggedItem = null;
-            let feedbackTimeout = null;
-
-            const setFeedback = (type, message) => {
-                if (!feedback) return;
-                clearTimeout(feedbackTimeout);
-                feedback.textContent = message;
-                feedback.classList.remove('hidden', 'text-slate-500', 'text-emerald-600', 'text-rose-600');
-                const colorClass = type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-rose-600' : 'text-slate-500';
-                feedback.classList.add(colorClass);
-                feedbackTimeout = setTimeout(() => {
-                    feedback.classList.add('hidden');
-                    feedback.classList.remove(colorClass);
-                }, 3500);
-            };
-
-            list.querySelectorAll('[data-drag-handle]').forEach(handle => {
-                handle.setAttribute('draggable', 'false');
-            });
-
-            const getDragAfterElement = (container, y) => {
-                const elements = [...container.querySelectorAll('[data-draggable-item]:not(.dragging)')];
-                return elements.reduce((closest, child) => {
-                    const box = child.getBoundingClientRect();
-                    const offset = y - box.top - box.height / 2;
-                    if (offset < 0 && offset > closest.offset) {
-                        return { offset, element: child };
-                    }
-                    return closest;
-                }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
-            };
-
-            list.addEventListener('dragstart', event => {
-                const item = event.target.closest('[data-draggable-item]');
-                if (!item || !event.target.closest('[data-drag-handle]')) {
-                    event.preventDefault();
-                    return;
-                }
-                draggedItem = item;
-                item.classList.add('dragging', 'opacity-60', 'ring-2', 'ring-rose-200');
-                event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('text/plain', item.dataset.itemId);
-            });
-
-            const finalizeDrag = () => {
-                if (!draggedItem) {
-                    return;
-                }
-                draggedItem.classList.remove('dragging', 'opacity-60', 'ring-2', 'ring-rose-200');
-                draggedItem = null;
-            };
-
-            list.addEventListener('dragend', finalizeDrag);
-            list.addEventListener('drop', finalizeDrag);
-
-            list.addEventListener('dragover', event => {
-                event.preventDefault();
-                if (!draggedItem) {
-                    return;
-                }
-                const afterElement = getDragAfterElement(list, event.clientY);
-                if (!afterElement) {
-                    list.appendChild(draggedItem);
-                } else {
-                    list.insertBefore(draggedItem, afterElement);
-                }
-            });
-
-            list.addEventListener('drop', async () => {
-                const items = [...list.querySelectorAll('[data-draggable-item]')];
-                const payload = items.map((item, index) => ({
-                    item_id: item.dataset.itemId,
-                    order_in_container: startOrder + index
-                }));
-
-                try {
-                    const response = await fetch(reorderUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: JSON.stringify({ items: payload })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Không thể cập nhật thứ tự câu hỏi.');
-                    }
-
-                    items.forEach((item, index) => {
-                        const label = item.querySelector('[data-order-label]');
-                        if (label) {
-                            label.textContent = startOrder + index;
-                        }
-                    });
-
-                    setFeedback('success', 'Đã cập nhật lại thứ tự câu hỏi.');
-                } catch (error) {
-                    console.error(error);
-                    setFeedback('error', 'Không thể cập nhật thứ tự câu hỏi.');
                 }
             });
         })();

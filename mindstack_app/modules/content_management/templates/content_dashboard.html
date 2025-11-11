@@ -13,18 +13,6 @@
     {{ super() }}
     {% include 'content_management/_shared_styles.html' %}
     <style>
-        .cm-hero[data-variant="dashboard"] {
-            align-items: stretch;
-        }
-
-        .cm-hero[data-variant="dashboard"] .cm-heading {
-            font-size: clamp(2rem, 1.6rem + 1.8vw, 3rem);
-        }
-
-        .cm-hero[data-variant="dashboard"] .cm-subheading {
-            max-width: 28rem;
-        }
-
         .cm-tab-bar::-webkit-scrollbar {
             display: none;
         }
@@ -32,27 +20,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="cm-shell" data-accent="indigo">
-    <div class="cm-container space-y-8">
-        <header class="cm-card cm-card--padded cm-hero" data-variant="dashboard">
+<div class="cm-shell">
+    <div class="cm-container space-y-6">
+        <header class="cm-card cm-card--padded">
             <div class="cm-heading-group">
                 <span class="cm-eyebrow">Không gian biên tập</span>
                 <h1 class="cm-heading">Quản lý nội dung</h1>
-                <p class="cm-subheading">Điều phối khoá học, bộ thẻ và bộ câu hỏi trong cùng một bảng điều khiển.</p>
-            </div>
-            <div class="cm-hero-stats">
-                <div class="cm-stat-card">
-                    <span class="cm-stat-title">Khoá học</span>
-                    <span class="cm-stat-value">Lộ trình học tập được tổ chức rõ ràng.</span>
-                </div>
-                <div class="cm-stat-card">
-                    <span class="cm-stat-title">Thẻ ghi nhớ</span>
-                    <span class="cm-stat-value">Luyện tập trực quan cùng hình ảnh &amp; audio.</span>
-                </div>
-                <div class="cm-stat-card">
-                    <span class="cm-stat-title">Bộ câu hỏi</span>
-                    <span class="cm-stat-value">Đánh giá tiến bộ và củng cố kiến thức.</span>
-                </div>
             </div>
         </header>
 
