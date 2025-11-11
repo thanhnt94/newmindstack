@@ -4,27 +4,30 @@
 
 {% block title %}Câu hỏi trong bộ: {{ quiz_set.title }}{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    {% include 'content_management/_shared_styles.html' %}
+{% endblock %}
+
 {% block content %}
-<div class="bg-gradient-to-br from-rose-50 via-white to-amber-50 py-10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div class="space-y-3">
-                <a href="{{ url_for('content_management.content_dashboard', tab='quizzes') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-rose-600 transition hover:text-rose-700">
+<div class="cm-shell" data-accent="rose">
+    <div class="cm-container space-y-6">
+        <div class="cm-section-header">
+            <div class="cm-heading-group">
+                <a href="{{ url_for('content_management.content_dashboard', tab='quizzes') }}" class="cm-link text-sm">
                     <i class="fa-solid fa-arrow-left"></i>
-                    Quay lại Quản lý nội dung
+                    <span>Quay lại bảng điều khiển</span>
                 </a>
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.35em] text-rose-500">Bộ câu hỏi</p>
-                    <h1 class="mt-2 text-3xl sm:text-4xl font-bold text-slate-900">{{ quiz_set.title }}</h1>
-                    <p class="mt-3 text-sm text-slate-500 max-w-3xl">{{ quiz_set.description or 'Quản lý câu hỏi luyện tập, chỉnh sửa đáp án và sắp xếp thứ tự trình bày để tạo trải nghiệm kiểm tra mạch lạc.' }}</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
-                    <span class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-rose-600">
+                <span class="cm-eyebrow">Bộ câu hỏi</span>
+                <h1 class="cm-heading">{{ quiz_set.title }}</h1>
+                <p class="cm-subheading">{{ (quiz_set.description or 'Quản lý câu hỏi luyện tập, chỉnh sửa đáp án và giữ trải nghiệm kiểm tra mạch lạc.') | truncate(110, True, '…') }}</p>
+                <div class="cm-chip-row">
+                    <span class="cm-pill cm-pill--accent">
                         <i class="fa-solid fa-circle-question"></i>
                         {{ pagination.total }} câu hỏi
                     </span>
                     {% if can_edit %}
-                    <span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-emerald-600">
+                    <span class="cm-pill cm-pill--neutral">
                         <i class="fa-solid fa-arrows-up-down"></i>
                         Kéo thả để sắp xếp
                     </span>
@@ -32,22 +35,26 @@
                 </div>
             </div>
             {% if can_edit %}
-            <div class="flex flex-wrap items-center justify-start gap-3">
-                <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}" class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition duration-200 hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
+            <div class="cm-actions">
+                <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}"
+                   data-modal-url="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}"
+                   class="open-modal-btn cm-action cm-action--primary">
                     <i class="fas fa-plus-circle"></i>
-                    Thêm câu hỏi
+                    <span>Thêm câu hỏi</span>
                 </a>
-                <a href="{{ url_for('content_management.content_management_quizzes.export_quiz_set', set_id=quiz_set.container_id) }}" class="inline-flex items-center gap-2 rounded-full bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-500/20 transition duration-200 hover:bg-purple-700">
-                    <i class="fas fa-file-export"></i> Xuất gói ZIP
+                <a href="{{ url_for('content_management.content_management_quizzes.export_quiz_set', set_id=quiz_set.container_id) }}" class="cm-action cm-action--ghost">
+                    <i class="fas fa-file-export"></i>
+                    <span>Xuất gói ZIP</span>
                 </a>
-                <a href="{{ url_for('content_management.content_management_quizzes.manage_quiz_excel', set_id=quiz_set.container_id) }}" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition duration-200 hover:bg-emerald-700">
-                    <i class="fas fa-table"></i> Cập nhật Excel
+                <a href="{{ url_for('content_management.content_management_quizzes.manage_quiz_excel', set_id=quiz_set.container_id) }}" class="cm-action cm-action--ghost">
+                    <i class="fas fa-table"></i>
+                    <span>Cập nhật Excel</span>
                 </a>
             </div>
             {% endif %}
         </div>
 
-        <div class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm shadow-slate-200/40">
+        <div class="cm-card cm-card--padded">
             {% set display_item_search_options = {
                 'question': 'Câu hỏi',
                 'option_a': 'Lựa chọn A',
@@ -61,10 +68,10 @@
                 'question_image_file': 'Ảnh câu hỏi (URL)',
                 'question_audio_file': 'Audio câu hỏi (URL)'
             } %}
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div class="space-y-1">
+            <div class="cm-search-header">
+                <div class="cm-heading-group">
                     <h2 class="text-lg font-semibold text-slate-800">Tìm kiếm câu hỏi</h2>
-                    <p class="text-sm text-slate-500">Kết hợp bộ lọc để cập nhật nội dung và đáp án phù hợp với mục tiêu kiểm tra.</p>
+                    <p class="cm-subheading text-sm">Kết hợp bộ lọc để cập nhật nội dung và đáp án phù hợp.</p>
                 </div>
                 <div class="w-full md:w-auto md:min-w-[320px]">
                     {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm câu hỏi...", set_id=quiz_set.container_id, search_field=search_field, search_options=display_item_search_options) }}
@@ -74,11 +81,11 @@
 
         {% if quiz_items %}
         {% if can_edit %}
-        <div class="flex flex-wrap items-center justify-between gap-3 text-xs font-semibold text-slate-500">
-            <div class="flex items-center gap-2">
-                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-rose-500"><i class="fa-solid fa-hand"></i></span>
-                <span>Kéo thả biểu tượng <i class="fa-solid fa-grip-lines"></i> để thay đổi thứ tự câu hỏi trong trang hiện tại.</span>
-            </div>
+        <div class="cm-chip-row text-xs font-semibold">
+            <span class="cm-pill cm-pill--accent">
+                <i class="fa-solid fa-hand"></i>
+                Kéo biểu tượng <i class="fa-solid fa-grip-lines"></i> để sắp xếp.
+            </span>
             <div data-reorder-feedback class="hidden text-sm font-semibold"></div>
         </div>
         {% endif %}
@@ -87,24 +94,23 @@
              data-can-edit="{{ 'true' if can_edit else 'false' }}"
              data-reorder-url="{{ url_for('content_management.content_management_quizzes.reorder_quiz_items', set_id=quiz_set.container_id) }}"
              data-start-order="{{ quiz_items[0].order_in_container if quiz_items else 1 }}"
-             class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+             class="cm-grid cm-grid--three">
             {% for item in quiz_items %}
-            <article class="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/95 p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl"
+            <article class="cm-collection-card"
                      data-draggable-item
                      data-item-id="{{ item.item_id }}"
                      data-current-order="{{ item.order_in_container }}"
                      draggable="true">
-                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 via-amber-400 to-indigo-500 opacity-70"></div>
                 <div class="flex items-start justify-between gap-4">
                     <div class="space-y-3">
-                        <div class="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
-                            <span class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-rose-600">
+                        <div class="cm-chip-row text-xs font-semibold">
+                            <span class="cm-pill cm-pill--accent">
                                 <i class="fa-solid fa-circle-question"></i>
-                                <span>Câu hỏi #<span data-order-label>{{ item.order_in_container }}</span></span>
+                                Câu hỏi #<span data-order-label>{{ item.order_in_container }}</span>
                             </span>
-                            <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
-                                <i class="fa-solid fa-id-card-clip text-slate-400"></i>
-                                <span>ID: {{ item.item_id }}</span>
+                            <span class="cm-pill cm-pill--neutral">
+                                <i class="fa-solid fa-id-card-clip"></i>
+                                ID {{ item.item_id }}
                             </span>
                         </div>
                         <h3 class="text-base font-semibold text-slate-900">{{ item.content.question }}</h3>
@@ -119,7 +125,7 @@
                         </div>
                     </div>
                     {% if can_edit %}
-                    <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition hover:bg-slate-200" data-drag-handle title="Giữ và kéo để sắp xếp">
+                    <button type="button" class="cm-icon-button" data-drag-handle title="Giữ và kéo để sắp xếp">
                         <i class="fa-solid fa-grip-lines"></i>
                     </button>
                     {% endif %}
@@ -127,13 +133,13 @@
 
                 <div class="mt-4 space-y-2 text-xs text-slate-500">
                     {% if item.content.question_image_file %}
-                    <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
+                    <span class="cm-tag">
                         <i class="fa-solid fa-image text-slate-400"></i>
                         Hình ảnh đính kèm
                     </span>
                     {% endif %}
                     {% if item.content.question_audio_file %}
-                    <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
+                    <span class="cm-tag">
                         <i class="fa-solid fa-volume-high text-slate-400"></i>
                         Audio câu hỏi
                     </span>
@@ -152,17 +158,21 @@
                     {% endif %}
                 </div>
 
-                <div class="mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
-                    <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-rose-600 transition hover:text-rose-700">
-                        <i class="fa-solid fa-pen-to-square"></i> Mở trình chỉnh sửa
+                <div class="cm-divider"></div>
+                <div class="flex items-center justify-between">
+                    <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}"
+                       data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}"
+                       class="open-modal-btn cm-link">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Mở trình chỉnh sửa</span>
                     </a>
                     {% if can_edit %}
-                    <div class="flex items-center gap-2">
-                        <button type="button" data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}" class="open-modal-btn inline-flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 text-rose-600 transition hover:bg-rose-100" title="Chỉnh sửa">
+                    <div class="cm-inline-actions">
+                        <button type="button" data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}" class="open-modal-btn cm-icon-button" title="Chỉnh sửa">
                             <i class="fa-solid fa-pen"></i>
                         </button>
                         <form action="{{ url_for('content_management.content_management_quizzes.delete_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa câu hỏi này?');">
-                            <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200" title="Xoá câu hỏi">
+                            <button type="submit" class="cm-icon-button" title="Xoá câu hỏi">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </form>
@@ -178,14 +188,17 @@
         </div>
 
         {% else %}
-        <div class="rounded-3xl border border-dashed border-slate-200 bg-white/90 p-10 text-center text-slate-500">
-            <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-500">
-                <i class="fa-solid fa-circle-question text-2xl"></i>
+        <div class="cm-empty">
+            <span class="cm-empty-icon">
+                <i class="fa-solid fa-circle-question"></i>
             </span>
-            <p class="mt-4 text-base">Bộ Quiz này chưa có câu hỏi nào hoặc không tìm thấy kết quả phù hợp.</p>
+            <p class="text-sm">Bộ quiz này chưa có câu hỏi nào hoặc không tìm thấy kết quả phù hợp.</p>
             {% if can_edit %}
-            <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}" class="mt-4 inline-flex items-center gap-2 rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition duration-200 hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
-                <i class="fas fa-plus-circle"></i> Thêm câu hỏi đầu tiên
+            <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}"
+               data-modal-url="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}"
+               class="open-modal-btn cm-action cm-action--primary">
+                <i class="fas fa-plus-circle"></i>
+                <span>Thêm câu hỏi đầu tiên</span>
             </a>
             {% endif %}
         </div>
@@ -198,6 +211,13 @@
     {{ super() }}
     <script>
         (function() {
+            window.addEventListener('content-management:refresh', function(event) {
+                const detail = event?.detail || {};
+                if (detail.scope === 'quiz-item' && Number(detail.setId || detail.containerId) === {{ quiz_set.container_id }}) {
+                    window.location.reload();
+                }
+            });
+
             const list = document.querySelector('[data-draggable-list]');
             if (!list || list.dataset.canEdit !== 'true') {
                 return;
@@ -261,83 +281,58 @@
                 }
                 draggedItem.classList.remove('dragging', 'opacity-60', 'ring-2', 'ring-rose-200');
                 draggedItem = null;
-                persistOrder();
             };
 
             list.addEventListener('dragend', finalizeDrag);
-            list.addEventListener('drop', event => {
-                event.preventDefault();
-                finalizeDrag();
-            });
+            list.addEventListener('drop', finalizeDrag);
 
             list.addEventListener('dragover', event => {
+                event.preventDefault();
                 if (!draggedItem) {
                     return;
                 }
-                event.preventDefault();
                 const afterElement = getDragAfterElement(list, event.clientY);
                 if (!afterElement) {
                     list.appendChild(draggedItem);
-                } else if (afterElement !== draggedItem) {
+                } else {
                     list.insertBefore(draggedItem, afterElement);
                 }
             });
 
-            const persistOrder = async () => {
-                const items = Array.from(list.querySelectorAll('[data-draggable-item]'));
-                if (items.length <= 1) {
-                    return;
-                }
-
-                let hasChanges = false;
-                const payload = [];
-                const updates = [];
-
-                items.forEach((item, index) => {
-                    const newOrder = startOrder + index;
-                    const currentOrder = Number(item.dataset.currentOrder);
-                    if (currentOrder !== newOrder) {
-                        hasChanges = true;
-                    }
-                    payload.push({ item_id: Number(item.dataset.itemId), order: newOrder });
-                    updates.push({ item, newOrder });
-                });
-
-                if (!hasChanges) {
-                    return;
-                }
-
-                updates.forEach(({ item, newOrder }) => {
-                    const label = item.querySelector('[data-order-label]');
-                    if (label) {
-                        label.textContent = newOrder;
-                    }
-                    item.dataset.currentOrder = newOrder;
-                });
-
-                setFeedback('info', 'Đang lưu thứ tự mới...');
+            list.addEventListener('drop', async () => {
+                const items = [...list.querySelectorAll('[data-draggable-item]')];
+                const payload = items.map((item, index) => ({
+                    item_id: item.dataset.itemId,
+                    order_in_container: startOrder + index
+                }));
 
                 try {
                     const response = await fetch(reorderUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {})
+                            'X-CSRFToken': csrfToken
                         },
-                        body: JSON.stringify({ order: payload })
+                        body: JSON.stringify({ items: payload })
                     });
 
-                    const data = await response.json();
-                    if (!response.ok || !data.success) {
-                        throw new Error(data.message || 'Không thể cập nhật thứ tự.');
+                    if (!response.ok) {
+                        throw new Error('Không thể cập nhật thứ tự câu hỏi.');
                     }
-                    setFeedback('success', data.message || 'Đã cập nhật thứ tự!');
+
+                    items.forEach((item, index) => {
+                        const label = item.querySelector('[data-order-label]');
+                        if (label) {
+                            label.textContent = startOrder + index;
+                        }
+                    });
+
+                    setFeedback('success', 'Đã cập nhật lại thứ tự câu hỏi.');
                 } catch (error) {
-                    console.error('Reorder error:', error);
-                    setFeedback('error', error.message || 'Không thể cập nhật thứ tự.');
+                    console.error(error);
+                    setFeedback('error', 'Không thể cập nhật thứ tự câu hỏi.');
                 }
-            };
+            });
         })();
     </script>
 {% endblock %}

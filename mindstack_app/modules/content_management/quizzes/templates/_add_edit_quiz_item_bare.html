@@ -184,19 +184,20 @@
                             if (window.parent && window.parent.showFlashMessage) {
                                 window.parent.showFlashMessage(result.message, 'success');
                             }
-                            if (window.parent && window.parent.closeModal) {
-                                window.parent.closeModal();
-                            }
                             if (window.parent && typeof window.parent.updateQuizQuestion === 'function' && itemId && setId) {
                                 window.parent.updateQuizQuestion(parseInt(itemId, 10), parseInt(setId, 10));
-                            } else if (window.parent && window.parent.loadTabContent) {
-                                // Nếu đang ở trang list_quiz_items, tải lại trang đó
-                                if (window.parent.location.href.includes('/quizzes/') && window.parent.location.href.includes('/items')) {
-                                    window.parent.location.reload();
-                                } else {
-                                    // Ngược lại, tải lại tab quizzes trên dashboard
-                                    window.parent.loadTabContent('quizzes');
-                                }
+                            }
+                            if (window.parent) {
+                                const payload = {
+                                    scope: 'quiz-item',
+                                    setId: setId ? parseInt(setId, 10) : null,
+                                    itemId: result.item_id || (itemId ? parseInt(itemId, 10) : null),
+                                    targetTab: 'quizzes'
+                                };
+                                window.parent.dispatchEvent(new CustomEvent('content-management:refresh', { detail: payload }));
+                            }
+                            if (window.parent && window.parent.closeModal) {
+                                window.parent.closeModal();
                             }
                         } else {
                             // Xử lý lỗi nghiệp vụ từ backend

@@ -497,8 +497,12 @@
 
                 if (response.ok && result.success) {
                     window.parent.showFlashMessage(result.message, 'success');
+                    if (window.parent) {
+                        window.parent.dispatchEvent(new CustomEvent('content-management:refresh', {
+                            detail: { scope: 'flashcard-set', targetTab: 'flashcards' }
+                        }));
+                    }
                     window.parent.closeModal();
-                    window.parent.loadTabContent('flashcards');
                 } else {
                     if (result.errors) {
                         for (const fieldName in result.errors) {
