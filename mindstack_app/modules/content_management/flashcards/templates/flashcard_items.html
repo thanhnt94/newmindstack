@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="cm-shell" data-accent="sky">
+<div class="cm-shell">
     <div class="cm-container space-y-6">
         <div class="cm-section-header">
             <div class="cm-heading-group">
@@ -26,12 +26,6 @@
                         <i class="fa-solid fa-clone"></i>
                         {{ pagination.total }} thẻ
                     </span>
-                    {% if can_edit %}
-                    <span class="cm-pill cm-pill--neutral">
-                        <i class="fa-solid fa-arrows-up-down"></i>
-                        Kéo thả để sắp xếp
-                    </span>
-                    {% endif %}
                 </div>
             </div>
             {% if can_edit %}
@@ -75,27 +69,9 @@
         </div>
 
         {% if flashcard_items %}
-        {% if can_edit %}
-        <div class="cm-chip-row text-xs font-semibold">
-            <span class="cm-pill cm-pill--accent">
-                <i class="fa-solid fa-hand"></i>
-                Kéo biểu tượng <i class="fa-solid fa-grip-lines"></i> để sắp xếp lại.
-            </span>
-            <div data-reorder-feedback class="hidden text-sm font-semibold"></div>
-        </div>
-        {% endif %}
-
-        <div data-draggable-list
-             data-can-edit="{{ 'true' if can_edit else 'false' }}"
-             data-reorder-url="{{ url_for('content_management.content_management_flashcards.reorder_flashcard_items', set_id=flashcard_set.container_id) }}"
-             data-start-order="{{ flashcard_items[0].order_in_container if flashcard_items else 1 }}"
-             class="cm-grid cm-grid--three">
+        <div class="cm-grid cm-grid--three">
             {% for item in flashcard_items %}
-            <article class="cm-collection-card"
-                     data-draggable-item
-                     data-item-id="{{ item.item_id }}"
-                     data-current-order="{{ item.order_in_container }}"
-                     draggable="true">
+            <article class="cm-collection-card">
                 <div class="flex items-start justify-between gap-4">
                     <div class="space-y-3">
                         <div class="cm-chip-row text-xs font-semibold">
@@ -115,11 +91,6 @@
                             <p class="text-sm text-slate-600">{{ item.content.back }}</p>
                         </div>
                     </div>
-                    {% if can_edit %}
-                    <button type="button" class="cm-icon-button" data-drag-handle title="Giữ và kéo để sắp xếp">
-                        <i class="fa-solid fa-grip-lines"></i>
-                    </button>
-                    {% endif %}
                 </div>
 
                 <div class="mt-4 space-y-2 text-xs text-slate-500">
@@ -210,147 +181,6 @@
                     window.location.reload();
                 }
             });
-
-            const list = document.querySelector('[data-draggable-list]');
-            if (!list || list.dataset.canEdit !== 'true') {
-                return;
-            }
-
-            const reorderUrl = list.dataset.reorderUrl;
-            if (!reorderUrl) {
-                return;
-            }
-
-            const csrfToken = '{{ csrf_token() }}';
-            const startOrder = parseInt(list.dataset.startOrder || '1', 10);
-            const feedback = document.querySelector('[data-reorder-feedback]');
-            let draggedItem = null;
-            let feedbackTimeout = null;
-
-            const setFeedback = (type, message) => {
-                if (!feedback) return;
-                clearTimeout(feedbackTimeout);
-                feedback.textContent = message;
-                feedback.classList.remove('hidden', 'text-slate-500', 'text-emerald-600', 'text-rose-600');
-                const colorClass = type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-rose-600' : 'text-slate-500';
-                feedback.classList.add(colorClass);
-                feedbackTimeout = setTimeout(() => {
-                    feedback.classList.add('hidden');
-                    feedback.classList.remove(colorClass);
-                }, 3500);
-            };
-
-            list.querySelectorAll('[data-drag-handle]').forEach(handle => {
-                handle.setAttribute('draggable', 'false');
-            });
-
-            const getDragAfterElement = (container, y) => {
-                const elements = [...container.querySelectorAll('[data-draggable-item]:not(.dragging)')];
-                return elements.reduce((closest, child) => {
-                    const box = child.getBoundingClientRect();
-                    const offset = y - box.top - box.height / 2;
-                    if (offset < 0 && offset > closest.offset) {
-                        return { offset, element: child };
-                    }
-                    return closest;
-                }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
-            };
-
-            list.addEventListener('dragstart', event => {
-                const item = event.target.closest('[data-draggable-item]');
-                if (!item || !event.target.closest('[data-drag-handle]')) {
-                    event.preventDefault();
-                    return;
-                }
-                draggedItem = item;
-                item.classList.add('dragging', 'opacity-60', 'ring-2', 'ring-sky-200');
-                event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('text/plain', item.dataset.itemId);
-            });
-
-            const finalizeDrag = () => {
-                if (!draggedItem) {
-                    return;
-                }
-                draggedItem.classList.remove('dragging', 'opacity-60', 'ring-2', 'ring-sky-200');
-                draggedItem = null;
-                persistOrder();
-            };
-
-            list.addEventListener('dragend', finalizeDrag);
-            list.addEventListener('drop', event => {
-                event.preventDefault();
-                finalizeDrag();
-            });
-
-            list.addEventListener('dragover', event => {
-                if (!draggedItem) {
-                    return;
-                }
-                event.preventDefault();
-                const afterElement = getDragAfterElement(list, event.clientY);
-                if (!afterElement) {
-                    list.appendChild(draggedItem);
-                } else if (afterElement !== draggedItem) {
-                    list.insertBefore(draggedItem, afterElement);
-                }
-            });
-
-            const persistOrder = async () => {
-                const items = Array.from(list.querySelectorAll('[data-draggable-item]'));
-                if (items.length <= 1) {
-                    return;
-                }
-
-                let hasChanges = false;
-                const payload = [];
-                const updates = [];
-
-                items.forEach((item, index) => {
-                    const newOrder = startOrder + index;
-                    const currentOrder = Number(item.dataset.currentOrder);
-                    if (currentOrder !== newOrder) {
-                        hasChanges = true;
-                    }
-                    payload.push({ item_id: Number(item.dataset.itemId), order: newOrder });
-                    updates.push({ item, newOrder });
-                });
-
-                if (!hasChanges) {
-                    return;
-                }
-
-                updates.forEach(({ item, newOrder }) => {
-                    const label = item.querySelector('[data-order-label]');
-                    if (label) {
-                        label.textContent = newOrder;
-                    }
-                    item.dataset.currentOrder = newOrder;
-                });
-
-                setFeedback('info', 'Đang lưu thứ tự mới...');
-
-                try {
-                    const response = await fetch(reorderUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {})
-                        },
-                        body: JSON.stringify({ order: payload })
-                    });
-
-                    const data = await response.json();
-                    if (!response.ok || !data.success) {
-                        throw new Error(data.message || 'Không thể cập nhật thứ tự.');
-                    }
-                    setFeedback('success', data.message || 'Đã cập nhật thứ tự!');
-                } catch (error) {
-                    console.error('Reorder error:', error);
-                    setFeedback('error', error.message || 'Không thể cập nhật thứ tự.');
-                }
-            };
         })();
     </script>
 {% endblock %}
