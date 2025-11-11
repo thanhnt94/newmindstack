@@ -115,17 +115,17 @@
                     if (response.ok) { // HTTP status 200-299
                         if (result.success) {
                             // Thông báo thành công qua parent window (base.html)
-                            if (window.parent && window.parent.showFlashMessage) {
-                                window.parent.showFlashMessage(result.message, 'success');
-                            }
-                            // Đóng modal
-                            if (window.parent && window.parent.closeModal) {
-                                window.parent.closeModal();
-                            }
-                            // Tải lại nội dung tab courses trong dashboard
-                            if (window.parent && window.parent.loadTabContent) {
-                                window.parent.loadTabContent('courses');
-                            }
+                    if (window.parent && window.parent.showFlashMessage) {
+                        window.parent.showFlashMessage(result.message, 'success');
+                    }
+                    if (window.parent) {
+                        window.parent.dispatchEvent(new CustomEvent('content-management:refresh', {
+                            detail: { scope: 'course-set', targetTab: 'courses' }
+                        }));
+                    }
+                    if (window.parent && window.parent.closeModal) {
+                        window.parent.closeModal();
+                    }
                         } else {
                             // Xử lý lỗi không thành công nhưng HTTP status vẫn OK (ví dụ: lỗi nghiệp vụ)
                             // Điều này không nên xảy ra với cấu trúc Flask hiện tại, nhưng giữ lại để an toàn

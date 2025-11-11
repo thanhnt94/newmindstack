@@ -393,6 +393,17 @@
                                     window.parent.showFlashMessage('Không thể xác định thẻ vừa chỉnh sửa để làm mới trong phiên học.', 'warning');
                                 }
                             }
+                            if (window.parent) {
+                                window.parent.dispatchEvent(new CustomEvent('content-management:refresh', {
+                                    detail: {
+                                        scope: 'flashcard-item',
+                                        setId: setId,
+                                        itemId: currentItemId,
+                                        action: form.dataset.itemId ? 'update' : 'create',
+                                        targetTab: 'flashcards'
+                                    }
+                                }));
+                            }
                             {# Đóng modal #}
                             if (window.parent && window.parent.closeModal) {
                                 window.parent.closeModal();
