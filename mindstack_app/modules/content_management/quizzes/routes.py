@@ -1278,15 +1278,57 @@ def list_quiz_items(set_id):
     
     can_edit = (current_user.user_role == 'admin' or quiz_set.creator_user_id == current_user.user_id)
     
-    return render_template('quiz_items.html', 
-                           quiz_set=quiz_set, 
-                           quiz_items=quiz_items, 
-                           can_edit=can_edit, 
-                           pagination=pagination, 
+    return render_template('quiz_items.html',
+                           quiz_set=quiz_set,
+                           quiz_items=quiz_items,
+                           can_edit=can_edit,
+                           pagination=pagination,
                            search_query=search_query,
                            search_field=search_field,
                            search_field_map=item_search_field_map
                            )
+
+@quizzes_bp.route('/quizzes/<int:set_id>/items/reorder', methods=['POST'])
+@login_required
+def reorder_quiz_items(set_id):
+    quiz_set = LearningContainer.query.get_or_404(set_id)
+    if quiz_set.creator_user_id != current_user.user_id:
+        if current_user.user_role != User.ROLE_ADMIN:
+            abort(403)
+
+    payload = request.get_json(silent=True) or {}
+    order_payload = payload.get('order')
+    if not isinstance(order_payload, list) or not order_payload:
+        return jsonify({'success': False, 'message': 'Dữ liệu sắp xếp không hợp lệ.'}), 400
+
+    order_map = {}
+    try:
+        for entry in order_payload:
+            item_id = int(entry['item_id'])
+            order_value = int(entry['order'])
+            order_map[item_id] = order_value
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'success': False, 'message': 'Định dạng dữ liệu không hợp lệ.'}), 400
+
+    if len(order_map) != len(set(order_map.values())):
+        return jsonify({'success': False, 'message': 'Thứ tự mới không hợp lệ.'}), 400
+
+    items = LearningItem.query.filter(
+        LearningItem.container_id == set_id,
+        LearningItem.item_type == 'QUIZ_MCQ',
+        LearningItem.item_id.in_(order_map.keys())
+    ).all()
+
+    if len(items) != len(order_map):
+        return jsonify({'success': False, 'message': 'Không tìm thấy một số câu hỏi cần sắp xếp.'}), 404
+
+    for item in items:
+        new_position = order_map.get(item.item_id)
+        if new_position is not None:
+            item.order_in_container = new_position
+
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Thứ tự câu hỏi đã được cập nhật.'})
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/add', methods=['GET', 'POST'])
 @login_required

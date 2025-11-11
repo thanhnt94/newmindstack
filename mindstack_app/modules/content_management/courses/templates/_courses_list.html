@@ -8,67 +8,97 @@
 {% from 'includes/_search_form.html' import render_search_form %}
 {% from 'includes/_pagination.html' import render_pagination %}
 
-<div class="w-full">
-    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Danh sách Khóa học</h2>
-        <button type="button" data-modal-url="{{ url_for('content_management.content_management_courses.add_course_set') }}" class="open-modal-btn bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 flex items-center shadow-md">
-            <i class="fas fa-plus-circle mr-2"></i> Thêm Khóa học mới
-        </button>
+<div class="w-full space-y-8">
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div class="space-y-2">
+            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Kho kiến thức</p>
+            <h2 class="text-2xl sm:text-3xl font-bold text-slate-900">Khoá học của bạn</h2>
+            <p class="text-sm text-slate-500 max-w-2xl">Tập trung mọi khoá học vào một bảng điều khiển thống nhất. Theo dõi tình trạng, phân quyền và đi sâu vào từng bài học chỉ với một cú nhấp.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <button type="button" data-modal-url="{{ url_for('content_management.content_management_courses.add_course_set') }}" class="open-modal-btn inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition duration-200 hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                <i class="fas fa-plus-circle"></i>
+                <span>Tạo khoá học mới</span>
+            </button>
+        </div>
     </div>
 
-    <div class="mb-6">
+    <div class="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm shadow-slate-200/40">
         {# Truyền search_field_map (được đổi tên thành search_options để phù hợp với macro) và search_field vào macro tìm kiếm #}
         {% set display_search_options = {
             'title': 'Tiêu đề',
             'description': 'Mô tả',
             'tags': 'Thẻ'
         } %}
-        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm khóa học...", search_field=search_field, search_options=display_search_options) }}
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div class="space-y-1">
+                <h3 class="text-lg font-semibold text-slate-800">Tìm kiếm &amp; lọc nhanh</h3>
+                <p class="text-sm text-slate-500">Lọc theo tiêu đề, mô tả hoặc thẻ để tìm đúng nội dung cần chỉnh sửa.</p>
+            </div>
+            <div class="w-full md:w-auto md:min-w-[320px]">
+                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm khóa học...", search_field=search_field, search_options=display_search_options) }}
+            </div>
+        </div>
     </div>
 
     {% if course_sets %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {% for set in course_sets %}
-        <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
-            <div class="p-5">
-                <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ set.title }}</h3>
-                <p class="text-gray-600 text-sm mb-4 h-10 overflow-hidden">{{ set.description if set.description else 'Không có mô tả.' }}</p>
-                
-                <div class="flex items-center text-gray-500 text-xs mb-2">
-                    <i class="fas fa-tags mr-2 text-gray-400"></i>
-                    <span class="truncate">{{ set.tags if set.tags else 'Không có thẻ' }}</span>
+        <article class="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl">
+            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500 via-sky-500 to-purple-500 opacity-70"></div>
+            <div class="flex flex-col gap-4">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                        <h3 class="truncate text-lg font-semibold text-slate-900">{{ set.title }}</h3>
+                        <p class="mt-1 line-clamp-2 text-sm text-slate-500">{{ set.description if set.description else 'Chưa có mô tả cho khoá học này.' }}</p>
+                    </div>
+                    <span class="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                        <i class="fa-solid fa-book"></i>
+                    </span>
                 </div>
 
-                <div class="flex items-center text-gray-500 text-xs mb-2">
-                    <i class="fas fa-user-circle mr-2 text-gray-400"></i>
-                    <span class="flex-1 text-left" title="{{ set.creator_display_name }}">Người tạo: {{ set.creator_display_name }}</span>
+                <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
+                        <i class="fa-solid fa-tags text-slate-400"></i>
+                        <span class="truncate max-w-[160px]" title="{{ set.tags if set.tags else 'Không có thẻ' }}">{{ set.tags if set.tags else 'Không có thẻ' }}</span>
+                    </span>
+                    <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
+                        <i class="fa-solid fa-layer-group text-slate-400"></i>
+                        <span>{{ set.item_count }} bài học</span>
+                    </span>
+                    <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1" title="{{ set.creator_display_name }}">
+                        <i class="fa-solid fa-user-pen text-slate-400"></i>
+                        <span>Người tạo: {{ set.creator_display_name }}</span>
+                    </span>
                 </div>
 
-                <div class="flex items-start text-gray-500 text-xs mb-4">
-                    <i class="fas fa-user-shield mr-2 text-gray-400 mt-0.5"></i>
-                    <span class="flex-1 text-left" title="{{ set.editor_display_names | join(', ') }}">Chỉnh sửa: {{ set.editor_display_names | join(', ') }}</span>
+                <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <i class="fa-solid fa-user-shield text-slate-400"></i>
+                    <span class="font-semibold">Cộng tác:</span>
+                    <span class="truncate" title="{{ set.editor_display_names | join(', ') }}">{{ set.editor_display_names | join(', ') }}</span>
                 </div>
 
-                <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
-                    <a href="{{ url_for('content_management.content_management_courses.list_lessons', set_id=set.container_id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        Xem bài học ({{ set.item_count }}) 
+                <div class="mt-2 flex items-center justify-between pt-4">
+                    <a href="{{ url_for('content_management.content_management_courses.list_lessons', set_id=set.container_id) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 transition hover:text-indigo-800">
+                        <span>Xem bài học</span>
+                        <i class="fa-solid fa-arrow-right"></i>
                     </a>
-                    <div class="flex space-x-3">
+                    <div class="flex items-center gap-2 text-slate-400">
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id or (set.contributors and current_user.user_id in set.contributors|map(attribute='user_id')|list and 'editor' in set.contributors|selectattr('user_id', 'equalto', current_user.user_id)|map(attribute='permission_level')|list) %}
-                        <button type="button" data-modal-url="{{ url_for('content_management.content_management_courses.edit_course_set', set_id=set.container_id) }}" class="open-modal-btn text-gray-500 hover:text-green-600 transition-colors duration-200" title="Sửa">
-                            <i class="fas fa-edit"></i>
+                        <button type="button" data-modal-url="{{ url_for('content_management.content_management_courses.edit_course_set', set_id=set.container_id) }}" class="open-modal-btn inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-emerald-50 hover:text-emerald-600" title="Chỉnh sửa">
+                            <i class="fas fa-pen"></i>
                         </button>
                         {% endif %}
-                        
+
                         {% if current_user.user_role != 'free' and (current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id) %}
-                        <a href="{{ url_for('content_management.manage_contributors', container_id=set.container_id) }}" class="text-gray-500 hover:text-blue-600 transition-colors duration-200" title="Quản lý quyền">
+                        <a href="{{ url_for('content_management.manage_contributors', container_id=set.container_id) }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-sky-50 hover:text-sky-600" title="Quản lý quyền">
                             <i class="fas fa-users"></i>
                         </a>
                         {% endif %}
 
                         {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
                         <form action="{{ url_for('content_management.content_management_courses.delete_course_set', set_id=set.container_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ khóa học này và tất cả các bài học của nó?');" class="inline">
-                            <button type="submit" class="text-gray-500 hover:text-red-600 transition-colors duration-200" title="Xóa">
+                            <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600" title="Xoá khoá học">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </form>
@@ -76,15 +106,19 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </article>
         {% endfor %}
     </div>
-    {{ render_pagination(pagination=pagination, search_query=search_query, search_field=search_field) }}
+    <div class="pt-4">
+        {{ render_pagination(pagination=pagination, search_query=search_query, search_field=search_field) }}
+    </div>
     {% else %}
-    <div class="text-center py-12 px-6">
-        <i class="fas fa-book text-5xl text-gray-300 mb-4"></i>
-        <h3 class="text-xl font-semibold text-gray-700 mb-2">Chưa có khóa học nào</h3>
-        <p class="text-gray-500">Hãy tạo một khóa học mới để bắt đầu học tập và chia sẻ kiến thức.</p>
+    <div class="rounded-3xl border border-dashed border-slate-200 bg-white/90 p-10 text-center text-slate-500">
+        <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 text-indigo-500">
+            <i class="fas fa-book text-2xl"></i>
+        </span>
+        <h3 class="mt-4 text-xl font-semibold text-slate-700">Bạn chưa có khoá học nào</h3>
+        <p class="mt-2 text-sm">Hãy khởi tạo khoá học đầu tiên để bắt đầu xây dựng lộ trình kiến thức cá nhân hoặc cho học viên của bạn.</p>
     </div>
     {% endif %}
 </div>

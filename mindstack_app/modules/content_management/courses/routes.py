@@ -305,15 +305,59 @@ def list_lessons(set_id):
         _has_editor_access(set_id)
     )
        
-    return render_template('lessons.html', 
-                           course=course, 
-                           lessons=lessons, 
-                           can_edit=can_edit, 
-                           pagination=pagination, 
+    return render_template('lessons.html',
+                           course=course,
+                           lessons=lessons,
+                           can_edit=can_edit,
+                           pagination=pagination,
                            search_query=search_query,
                            search_field=search_field,
                            search_field_map=item_search_field_map
                            )
+
+@courses_bp.route('/courses/<int:set_id>/lessons/reorder', methods=['POST'])
+@login_required
+def reorder_lessons(set_id):
+    course_set = LearningContainer.query.get_or_404(set_id)
+    if course_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE:
+            abort(403)
+        if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
+            abort(403)
+
+    payload = request.get_json(silent=True) or {}
+    order_payload = payload.get('order')
+    if not isinstance(order_payload, list) or not order_payload:
+        return jsonify({'success': False, 'message': 'Dữ liệu sắp xếp không hợp lệ.'}), 400
+
+    order_map = {}
+    try:
+        for entry in order_payload:
+            item_id = int(entry['item_id'])
+            order_value = int(entry['order'])
+            order_map[item_id] = order_value
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'success': False, 'message': 'Định dạng dữ liệu không hợp lệ.'}), 400
+
+    if len(order_map) != len(set(order_map.values())):
+        return jsonify({'success': False, 'message': 'Thứ tự mới không hợp lệ.'}), 400
+
+    items = LearningItem.query.filter(
+        LearningItem.container_id == set_id,
+        LearningItem.item_type == 'LESSON',
+        LearningItem.item_id.in_(order_map.keys())
+    ).all()
+
+    if len(items) != len(order_map):
+        return jsonify({'success': False, 'message': 'Không tìm thấy một số bài học cần sắp xếp.'}), 404
+
+    for item in items:
+        new_position = order_map.get(item.item_id)
+        if new_position is not None:
+            item.order_in_container = new_position
+
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Thứ tự bài học đã được cập nhật.'})
 
 @courses_bp.route('/courses/<int:set_id>/lessons/add', methods=['GET', 'POST'])
 @login_required
