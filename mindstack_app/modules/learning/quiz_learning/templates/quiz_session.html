@@ -315,6 +315,10 @@
         const editQuizItemUrl = "{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=0, item_id=0) }}";
         const quizItemApiBaseUrl = "{{ url_for('learning.quiz_learning.get_quiz_item_api', item_id=0) }}";
 
+        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+        const csrfHeaders = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+
         function formatTextForHtml(text) {
             if (text === null || text === undefined) return '';
             const tempDiv = document.createElement('div');
@@ -462,7 +466,7 @@
             try {
                 const response = await fetch(submitAnswerBatchUrl, {
                      method: 'POST',
-                     headers: { 'Content-Type': 'application/json' },
+                     headers: { 'Content-Type': 'application/json', ...csrfHeaders },
                      body: JSON.stringify({ answers: answersToSend })
                 });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -627,7 +631,7 @@
                         try {
                             const response = await fetch(getAiResponseUrl, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'application/json', ...csrfHeaders },
                                 body: JSON.stringify({ item_id: itemId, prompt_type: 'explanation' })
                             });
                             const result = await response.json();
@@ -696,7 +700,7 @@
                 try {
                     const response = await fetch(saveNoteUrl.replace('/0', `/${itemId}`), {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
                         body: JSON.stringify({ content })
                     });
                     const result = await response.json();
