@@ -893,6 +893,9 @@
     const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
     const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
     const regenerateAudioUrl = "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}";
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+    const csrfHeaders = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
     const userButtonCount = {{ user_button_count }};
     const isAutoplaySession = {{ 'true' if is_autoplay_session else 'false' }};
     const autoplayMode = "{{ autoplay_mode }}";
@@ -1496,7 +1499,7 @@
       try {
         const response = await fetch(regenerateAudioUrl, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
           body: JSON.stringify({ item_id: itemId, side: side, content_to_read: contentToRead })
         });
         const result = await response.json();
@@ -1943,7 +1946,7 @@
       try {
         const res = await fetch(submitAnswerUrl, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
           body: JSON.stringify({ item_id: itemId, user_answer: answer })
         });
         if (!res.ok) {
@@ -1983,7 +1986,7 @@
         cancelAutoplaySequence();
       }
       try {
-        const res = await fetch(endSessionUrl, { method: 'POST' });
+        const res = await fetch(endSessionUrl, { method: 'POST', headers: csrfHeaders });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const r = await res.json();
         window.showFlashMessage(r.message || 'Đã kết thúc phiên.', 'info');
@@ -2189,7 +2192,7 @@
         try {
             const response = await fetch(saveNoteUrl.replace('/0', `/${currentNoteItemId}`), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...csrfHeaders },
                 body: JSON.stringify({ content: content })
             });
             const result = await response.json();
