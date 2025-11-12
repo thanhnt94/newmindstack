@@ -52,6 +52,8 @@
 <script>
 // Biến toàn cục để lưu trữ thông tin cần thiết cho modal
 let currentFeedbackItemId = null
+const csrfMeta = document.querySelector('meta[name="csrf-token"]')
+const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null
 
 /**
  * Mô tả: Mở modal feedback và thiết lập các thông tin cần thiết.
@@ -115,19 +117,31 @@ async function handleFeedbackSubmit(event) {
     submitBtn.textContent = 'Đang gửi...'
 
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken
+        }
+
         const response = await fetch("{{ url_for('feedback.submit_feedback') }}", {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
+            headers,
             body: JSON.stringify({
                 item_id: currentFeedbackItemId,
-                feedback_text: feedbackText 
+                feedback_text: feedbackText
             })
         })
 
-        const result = await response.json()
+        const contentType = response.headers.get('content-type') || ''
+        let result = {}
+        if (contentType.includes('application/json')) {
+            result = await response.json()
+        } else {
+            const rawText = await response.text()
+            throw new Error(`INVALID_JSON_RESPONSE:${rawText.slice(0, 200)}`)
+        }
 
         if (response.ok && result.success) {
             window.showFlashMessage(result.message, 'success')
@@ -139,7 +153,11 @@ async function handleFeedbackSubmit(event) {
 
     } catch (error) {
         console.error('Lỗi khi gửi feedback:', error)
-        window.showFlashMessage('Lỗi kết nối. Không thể gửi phản hồi.', 'danger')
+        if (String(error.message || '').startsWith('INVALID_JSON_RESPONSE')) {
+            window.showFlashMessage('Máy chủ trả về phản hồi không hợp lệ. Vui lòng thử lại sau.', 'danger')
+        } else {
+            window.showFlashMessage('Lỗi kết nối. Không thể gửi phản hồi.', 'danger')
+        }
     } finally {
         // Kích hoạt lại nút gửi
         submitBtn.disabled = false

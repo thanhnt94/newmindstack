@@ -305,6 +305,8 @@
     const saveQuizSettingsUrl = "{{ url_for('learning.quiz_learning.save_quiz_settings') }}";
     const toggleArchiveUrl = "{{ url_for('learning.quiz_learning.toggle_archive', set_id=0) or '#' }}";
     const bulkUnarchiveUrl = "{{ url_for('learning.quiz_learning.bulk_unarchive') }}";
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfHeaders = csrfTokenMeta ? { 'X-CSRFToken': csrfTokenMeta.getAttribute('content') } : {};
 
     function toggleAllSetsButtonVisibility() {
         if (!allSetsButton) {
@@ -403,9 +405,17 @@
                     selectedSessionSize = parseInt(this.value);
                     updateActionButtons();
                     try {
-                        const res = await fetch(saveQuizSettingsUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ batch_size: selectedSessionSize }) });
-                        const js = await res.json();
-                        if (!js.success) { console.error('Lưu batch_size lỗi:', js.message); }
+                        const headers = { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...csrfHeaders };
+                        const res = await fetch(saveQuizSettingsUrl, { method: 'POST', headers, body: JSON.stringify({ batch_size: selectedSessionSize }) });
+                        const contentType = res.headers.get('content-type') || '';
+                        let js = {};
+                        if (contentType.includes('application/json')) {
+                            js = await res.json();
+                        } else {
+                            const raw = await res.text();
+                            throw new Error(`INVALID_JSON_RESPONSE:${raw.slice(0, 200)}`);
+                        }
+                        if (!res.ok || !js.success) { console.error('Lưu batch_size lỗi:', js.message || res.statusText); }
                     } catch (err) { console.error('AJAX lưu batch_size lỗi:', err); }
                 });
             }
