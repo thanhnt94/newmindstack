@@ -16,7 +16,7 @@
             </h2>
             <p class="text-center text-gray-600 mb-6">Điền thông tin dưới đây để {{ "tạo bài học mới" if title == "Thêm Bài học mới" else "sửa bài học" }}.</p>
 
-            <form action="" method="post" class="space-y-6">
+            <form action="" method="post" class="space-y-6" data-lesson-form="true">
                 {{ form.csrf_token }}
                 
                 <div>
@@ -32,7 +32,7 @@
                 <div>
                     {{ form.content_html.label(class="block text-sm font-medium text-gray-700") }}
                     <p class="text-xs text-gray-500 mb-2">{{ form.content_html.description }}</p>
-                    {{ form.content_html(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows="14", placeholder="Nhập nội dung bài học") }}
+                    {{ form.content_html(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows=14, placeholder="Nhập nội dung bài học", **{'required': False, 'data-required': 'true'}) }}
                     {% if form.content_html.errors %}
                         <div class="text-red-500 text-xs mt-1">
                             {% for error in form.content_html.errors %}<p>{{ error }}</p>{% endfor %}
@@ -88,6 +88,61 @@
     document.addEventListener('DOMContentLoaded', function () {
         const selector = '#content_html';
         const textarea = document.querySelector(selector);
+        const lessonForm = document.querySelector('form[data-lesson-form="true"]');
+
+        const showFormMessage = (message, level = 'warning') => {
+            if (typeof window.showFlashMessage === 'function') {
+                window.showFlashMessage(message, level);
+            } else if (message) {
+                alert(message);
+            }
+        };
+
+        if (textarea) {
+            textarea.removeAttribute('required');
+        }
+
+        const hasMeaningfulContent = (htmlContent) => {
+            if (!htmlContent) {
+                return false;
+            }
+            const container = document.createElement('div');
+            container.innerHTML = htmlContent;
+            const textContent = (container.textContent || '').replace(/\u00a0/g, ' ').trim();
+            if (textContent) {
+                return true;
+            }
+            return Boolean(container.querySelector('img, video, audio, iframe, table, ul, ol, li, blockquote, pre, code, svg, embed, object, canvas'));
+        };
+
+        const handleLessonSubmit = (event) => {
+            const editorInstance = (typeof tinymce !== 'undefined') ? tinymce.get('content_html') : null;
+            if (editorInstance) {
+                editorInstance.save();
+                const htmlContent = editorInstance.getContent({ format: 'html' });
+                const hasContent = hasMeaningfulContent(htmlContent);
+                if (!hasContent) {
+                    event.preventDefault();
+                    showFormMessage('Vui lòng nhập nội dung bài học trước khi lưu.', 'warning');
+                    editorInstance.focus();
+                }
+                return;
+            }
+
+            if (textarea) {
+                const plainText = textarea.value.replace(/\u00a0/g, ' ').trim();
+                if (!plainText) {
+                    event.preventDefault();
+                    showFormMessage('Vui lòng nhập nội dung bài học trước khi lưu.', 'warning');
+                    textarea.focus();
+                }
+            }
+        };
+
+        if (lessonForm) {
+            lessonForm.addEventListener('submit', handleLessonSubmit);
+        }
+
         if (!textarea || typeof tinymce === 'undefined') {
             return;
         }
@@ -180,6 +235,9 @@
                 input.click();
             },
             setup: (editor) => {
+                const syncEditorContent = () => editor.save();
+                editor.on('init', syncEditorContent);
+                editor.on('change keyup paste setcontent undo redo', syncEditorContent);
                 {% if current_user.user_role == 'admin' %}
                 editor.ui.registry.addButton('openMediaLibrary', {
                     icon: 'browse',
