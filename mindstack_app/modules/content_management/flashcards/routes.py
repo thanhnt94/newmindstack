@@ -40,6 +40,8 @@ import re
 import io
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 # THÊM MỚI: Import AudioService
 from ...learning.flashcard_learning.audio_service import AudioService
 from ...learning.flashcard_learning.image_service import ImageService
@@ -110,6 +112,95 @@ CAPABILITY_FLAGS = (
 )
 
 MEDIA_URL_FIELDS = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
+
+FLASHCARD_DATA_COLUMNS = [
+    'item_id',
+    'order_in_container',
+    'front',
+    'back',
+    'front_audio_content',
+    'back_audio_content',
+    'front_audio_url',
+    'back_audio_url',
+    'front_img',
+    'back_img',
+    'ai_explanation',
+    'ai_prompt',
+    'supports_pronunciation',
+    'supports_writing',
+    'supports_quiz',
+    'supports_essay',
+    'supports_listening',
+    'supports_speaking',
+    'action',
+]
+
+FLASHCARD_INFO_KEYS = [
+    'title',
+    'description',
+    'tags',
+    'is_public',
+    *CAPABILITY_FLAGS,
+    'image_base_folder',
+    'audio_base_folder',
+    'ai_prompt',
+]
+
+ACTION_OPTIONS = ['None', 'Update', 'Create', 'Delete', 'Skip']
+
+
+def _apply_action_dropdown(worksheet, data_columns):
+    try:
+        action_index = data_columns.index('action') + 1
+    except ValueError:
+        return
+
+    action_letter = get_column_letter(action_index)
+    validation = DataValidation(
+        type='list',
+        formula1=f'"{",".join(ACTION_OPTIONS)}"',
+        allow_blank=True,
+        showDropDown=True,
+    )
+    validation.errorTitle = 'Hành động không hợp lệ'
+    validation.error = 'Vui lòng chọn một hành động hợp lệ hoặc để None nếu không thay đổi.'
+    validation.promptTitle = 'Chọn hành động'
+    validation.prompt = 'Chọn hành động bạn muốn áp dụng cho dòng này.'
+    worksheet.add_data_validation(validation)
+    validation.add(f"{action_letter}2:{action_letter}1048576")
+
+
+def _create_flashcard_excel(info_rows, data_rows, *, output_path: Optional[str] = None):
+    info_df = pd.DataFrame(info_rows, columns=['Key', 'Value'])
+    if not info_df.empty:
+        info_df['Value'] = info_df['Value'].apply(lambda value: '' if value is None else str(value))
+    else:
+        info_df = pd.DataFrame(columns=['Key', 'Value'])
+
+    data_df = pd.DataFrame(data_rows, columns=FLASHCARD_DATA_COLUMNS)
+    if data_df.empty:
+        data_df = pd.DataFrame(columns=FLASHCARD_DATA_COLUMNS)
+    else:
+        data_df = data_df.fillna('')
+
+    if 'action' in data_df.columns:
+        data_df['action'] = data_df['action'].replace({None: 'None', '': 'None'})
+    else:
+        data_df['action'] = 'None'
+
+    target = output_path or io.BytesIO()
+    with pd.ExcelWriter(target, engine='openpyxl') as writer:
+        info_df.to_excel(writer, sheet_name='Info', index=False)
+        data_df.to_excel(writer, sheet_name='Data', index=False)
+        data_sheet = writer.sheets.get('Data')
+        if data_sheet is not None:
+            _apply_action_dropdown(data_sheet, FLASHCARD_DATA_COLUMNS)
+
+    if output_path:
+        return output_path
+
+    target.seek(0)
+    return target
 
 
 def _apply_is_public_restrictions(form):
@@ -353,15 +444,15 @@ def _copy_media_into_package(
     if not segments:
         segments = [os.path.basename(local_path)]
 
-    destination_root_parts = ['uploads']
+    base_segments: list[str] = []
     if folder_normalized:
-        destination_root_parts.extend(folder_normalized.split('/'))
+        base_segments.extend(folder_normalized.split('/'))
     elif media_subdir:
-        destination_root_parts.append(media_subdir)
+        base_segments.append(media_subdir)
 
-    destination_parts = destination_root_parts + segments
-    destination_relative = '/'.join(['media'] + destination_parts)
+    destination_parts = base_segments + segments
     destination_full = os.path.join(media_dir, *destination_parts)
+    destination_relative = '/'.join(['uploads'] + destination_parts)
 
     os.makedirs(os.path.dirname(destination_full), exist_ok=True)
     if not os.path.exists(destination_full):
@@ -382,82 +473,84 @@ def _build_flashcard_export_payload(
     audio_folder: Optional[str],
 ):
     media_cache = media_cache or {}
-
-    info_rows = [
-        {'Key': 'title', 'Value': flashcard_set.title},
-        {'Key': 'description', 'Value': flashcard_set.description or ''},
-        {'Key': 'tags', 'Value': flashcard_set.tags or ''},
-        {'Key': 'is_public', 'Value': str(flashcard_set.is_public)},
-    ]
-
     container_capabilities = _get_container_capabilities(flashcard_set)
-    for capability_key in CAPABILITY_FLAGS:
-        info_rows.append({'Key': capability_key, 'Value': str(capability_key in container_capabilities)})
-
-    if image_folder:
-        info_rows.append({'Key': 'image_base_folder', 'Value': image_folder})
-    if audio_folder:
-        info_rows.append({'Key': 'audio_base_folder', 'Value': audio_folder})
 
     ai_settings_payload = flashcard_set.ai_settings if hasattr(flashcard_set, 'ai_settings') else None
     ai_prompt_value = getattr(flashcard_set, 'ai_prompt', None)
     if not ai_prompt_value and isinstance(ai_settings_payload, dict):
         ai_prompt_value = ai_settings_payload.get('custom_prompt')
-    if ai_prompt_value:
-        info_rows.append({'Key': 'ai_prompt', 'Value': ai_prompt_value})
+
+    info_mapping = {
+        'title': flashcard_set.title or '',
+        'description': flashcard_set.description or '',
+        'tags': flashcard_set.tags or '',
+        'is_public': 'True' if flashcard_set.is_public else 'False',
+        'image_base_folder': image_folder or '',
+        'audio_base_folder': audio_folder or '',
+        'ai_prompt': ai_prompt_value or '',
+    }
+
+    for capability_key in CAPABILITY_FLAGS:
+        info_mapping[capability_key] = 'True' if capability_key in container_capabilities else 'False'
+
+    info_rows = [
+        {'Key': key, 'Value': info_mapping.get(key, '')}
+        for key in FLASHCARD_INFO_KEYS
+    ]
 
     data_rows = []
     for item in items:
         content = item.content or {}
-        row = {
-            'item_id': item.item_id,
-            'order_in_container': item.order_in_container,
-            'front': content.get('front'),
-            'back': content.get('back'),
-            'front_audio_content': content.get('front_audio_content'),
-            'back_audio_content': content.get('back_audio_content'),
-            'front_audio_url': _copy_media_into_package(
-                content.get('front_audio_url'),
-                media_dir,
-                media_cache,
-                media_subdir='audio',
-                media_folder=audio_folder,
-                export_mode=export_mode,
-            ),
-            'back_audio_url': _copy_media_into_package(
-                content.get('back_audio_url'),
-                media_dir,
-                media_cache,
-                media_subdir='audio',
-                media_folder=audio_folder,
-                export_mode=export_mode,
-            ),
-            'front_img': _copy_media_into_package(
-                content.get('front_img'),
-                media_dir,
-                media_cache,
-                media_subdir='images',
-                media_folder=image_folder,
-                export_mode=export_mode,
-            ),
-            'back_img': _copy_media_into_package(
-                content.get('back_img'),
-                media_dir,
-                media_cache,
-                media_subdir='images',
-                media_folder=image_folder,
-                export_mode=export_mode,
-            ),
-            'ai_explanation': content.get('ai_explanation'),
-            'ai_prompt': content.get('ai_prompt'),
-            'supports_pronunciation': content.get('supports_pronunciation'),
-            'supports_writing': content.get('supports_writing'),
-            'supports_quiz': content.get('supports_quiz'),
-            'supports_essay': content.get('supports_essay'),
-            'supports_listening': content.get('supports_listening'),
-            'supports_speaking': content.get('supports_speaking'),
-            'action': '',
-        }
+        row = {column: '' for column in FLASHCARD_DATA_COLUMNS}
+        row['item_id'] = item.item_id
+        row['order_in_container'] = item.order_in_container if item.order_in_container is not None else ''
+        row['front'] = content.get('front') or ''
+        row['back'] = content.get('back') or ''
+        row['front_audio_content'] = content.get('front_audio_content') or ''
+        row['back_audio_content'] = content.get('back_audio_content') or ''
+        row['front_audio_url'] = _copy_media_into_package(
+            content.get('front_audio_url'),
+            media_dir,
+            media_cache,
+            media_subdir='audio',
+            media_folder=audio_folder,
+            export_mode=export_mode,
+        ) or ''
+        row['back_audio_url'] = _copy_media_into_package(
+            content.get('back_audio_url'),
+            media_dir,
+            media_cache,
+            media_subdir='audio',
+            media_folder=audio_folder,
+            export_mode=export_mode,
+        ) or ''
+        row['front_img'] = _copy_media_into_package(
+            content.get('front_img'),
+            media_dir,
+            media_cache,
+            media_subdir='images',
+            media_folder=image_folder,
+            export_mode=export_mode,
+        ) or ''
+        row['back_img'] = _copy_media_into_package(
+            content.get('back_img'),
+            media_dir,
+            media_cache,
+            media_subdir='images',
+            media_folder=image_folder,
+            export_mode=export_mode,
+        ) or ''
+        row['ai_explanation'] = content.get('ai_explanation') or ''
+        row['ai_prompt'] = content.get('ai_prompt') or ''
+
+        for capability_key in CAPABILITY_FLAGS:
+            value = content.get(capability_key)
+            if value is None:
+                row[capability_key] = ''
+            else:
+                row[capability_key] = 'true' if bool(value) else 'false'
+
+        row['action'] = 'None'
         data_rows.append(row)
 
     return info_rows, data_rows
@@ -902,7 +995,7 @@ def export_flashcard_set(set_id):
     audio_folder = media_folders.get('audio')
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        media_dir = os.path.join(tmp_dir, 'media')
+        media_dir = os.path.join(tmp_dir, 'uploads')
         os.makedirs(media_dir, exist_ok=True)
         media_cache = {}
 
@@ -917,9 +1010,7 @@ def export_flashcard_set(set_id):
         )
 
         excel_path = os.path.join(tmp_dir, 'flashcards.xlsx')
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
-            pd.DataFrame(data_rows).to_excel(writer, sheet_name='Data', index=False)
+        _create_flashcard_excel(info_rows, data_rows, output_path=excel_path)
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -966,12 +1057,7 @@ def export_flashcard_set_excel(set_id):
         audio_folder=audio_folder,
     )
 
-    excel_buffer = io.BytesIO()
-    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-        pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
-        pd.DataFrame(data_rows).to_excel(writer, sheet_name='Data', index=False)
-
-    excel_buffer.seek(0)
+    excel_buffer = _create_flashcard_excel(info_rows, data_rows)
     download_name = f"{_slugify_filename(flashcard_set.title)}.xlsx"
     return send_file(
         excel_buffer,
@@ -1036,17 +1122,12 @@ def download_flashcard_excel_template():
         'supports_essay': 'FALSE',
         'supports_listening': 'TRUE',
         'supports_speaking': 'TRUE',
-        'action': '',
+        'action': 'None',
     }
 
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
-        pd.DataFrame([sample_row], columns=data_columns).to_excel(writer, sheet_name='Data', index=False)
-
-    buffer.seek(0)
+    excel_buffer = _create_flashcard_excel(info_rows, [sample_row])
     return send_file(
-        buffer,
+        excel_buffer,
         as_attachment=True,
         download_name='flashcard_template.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
