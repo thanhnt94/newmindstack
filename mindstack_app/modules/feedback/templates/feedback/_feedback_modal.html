@@ -50,135 +50,144 @@
 </div>
 
 <script>
-// Biến toàn cục để lưu trữ thông tin cần thiết cho modal
-let currentFeedbackItemId = null
-const csrfMeta = document.querySelector('meta[name="csrf-token"]')
-const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null
-
-/**
- * Mô tả: Mở modal feedback và thiết lập các thông tin cần thiết.
- * @param {string} itemId - ID của học liệu đang được phản hồi.
- * @param {string} termContent - Nội dung mặt trước của thẻ để hiển thị cho người dùng.
- */
-function openFeedbackModal(itemId, termContent) {
-    const feedbackModal = document.getElementById('feedback-modal')
-    if (!feedbackModal) return
-
-    const feedbackModalTerm = document.getElementById('feedback-modal-term')
-    const feedbackTextarea = document.getElementById('feedback-textarea')
-    
-    currentFeedbackItemId = itemId
-    if (feedbackModalTerm) {
-        feedbackModalTerm.textContent = termContent
+(function () {
+    if (window.__mindstackFeedbackModalInitialized) {
+        return;
     }
-    if (feedbackTextarea) {
-        feedbackTextarea.value = '' // Xóa nội dung cũ
-    }
+    window.__mindstackFeedbackModalInitialized = true;
 
-    // THAY ĐỔI: Sử dụng class 'open' để hiển thị modal
-    feedbackModal.classList.add('open');
-}
+    let currentFeedbackItemId = null;
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const feedbackCsrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null;
 
-/**
- * Mô tả: Đóng modal feedback và reset trạng thái.
- */
-function closeFeedbackModal() {
-    const feedbackModal = document.getElementById('feedback-modal')
-    if (feedbackModal) {
-        // THAY ĐỔI: Xóa class 'open' để ẩn modal
-        feedbackModal.classList.remove('open');
-    }
-    currentFeedbackItemId = null
-}
-
-/**
- * Mô tả: Gửi dữ liệu feedback lên server.
- * Hàm này sẽ được gọi khi người dùng nhấn nút "Gửi" trong form.
- */
-async function handleFeedbackSubmit(event) {
-    event.preventDefault() // Ngăn form reload lại trang
-
-    const feedbackTextarea = document.getElementById('feedback-textarea')
-    const submitBtn = document.getElementById('submit-feedback-btn')
-    const feedbackText = feedbackTextarea.value.trim()
-
-    if (!feedbackText) {
-        window.showFlashMessage('Vui lòng nhập nội dung phản hồi.', 'warning')
-        return
-    }
-
-    if (!currentFeedbackItemId) {
-        window.showFlashMessage('Lỗi: Không tìm thấy ID của thẻ.', 'danger')
-        return
-    }
-
-    // Vô hiệu hóa nút gửi để tránh spam
-    submitBtn.disabled = true
-    submitBtn.textContent = 'Đang gửi...'
-
-    try {
-        const headers = {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+    const showFeedbackMessage = (message, level = 'info') => {
+        if (typeof window.showFlashMessage === 'function') {
+            window.showFlashMessage(message, level);
+        } else if (message) {
+            // Fallback khi flash message không khả dụng
+            alert(message);
         }
-        if (csrfToken) {
-            headers['X-CSRFToken'] = csrfToken
+    };
+
+    function openFeedbackModal(itemId, termContent) {
+        const feedbackModal = document.getElementById('feedback-modal');
+        if (!feedbackModal) return;
+
+        const feedbackModalTerm = document.getElementById('feedback-modal-term');
+        const feedbackTextarea = document.getElementById('feedback-textarea');
+
+        currentFeedbackItemId = itemId;
+        if (feedbackModalTerm) {
+            feedbackModalTerm.textContent = termContent;
+        }
+        if (feedbackTextarea) {
+            feedbackTextarea.value = '';
         }
 
-        const response = await fetch("{{ url_for('feedback.submit_feedback') }}", {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                item_id: currentFeedbackItemId,
-                feedback_text: feedbackText
-            })
-        })
+        feedbackModal.classList.add('open');
+    }
 
-        const contentType = response.headers.get('content-type') || ''
-        let result = {}
-        if (contentType.includes('application/json')) {
-            result = await response.json()
-        } else {
-            const rawText = await response.text()
-            throw new Error(`INVALID_JSON_RESPONSE:${rawText.slice(0, 200)}`)
+    function closeFeedbackModal() {
+        const feedbackModal = document.getElementById('feedback-modal');
+        if (feedbackModal) {
+            feedbackModal.classList.remove('open');
+        }
+        currentFeedbackItemId = null;
+    }
+
+    async function handleFeedbackSubmit(event) {
+        event.preventDefault();
+
+        const feedbackTextarea = document.getElementById('feedback-textarea');
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        if (!feedbackTextarea || !submitBtn) {
+            return;
         }
 
-        if (response.ok && result.success) {
-            window.showFlashMessage(result.message, 'success')
-            // SỬA LỖI: Thêm độ trễ 500ms trước khi đóng modal
-            setTimeout(closeFeedbackModal, 500)
-        } else {
-            window.showFlashMessage(result.message || 'Có lỗi xảy ra khi gửi phản hồi.', 'danger')
+        const feedbackText = feedbackTextarea.value.trim();
+        if (!feedbackText) {
+            showFeedbackMessage('Vui lòng nhập nội dung phản hồi.', 'warning');
+            feedbackTextarea.focus({ preventScroll: false });
+            return;
         }
 
-    } catch (error) {
-        console.error('Lỗi khi gửi feedback:', error)
-        if (String(error.message || '').startsWith('INVALID_JSON_RESPONSE')) {
-            window.showFlashMessage('Máy chủ trả về phản hồi không hợp lệ. Vui lòng thử lại sau.', 'danger')
-        } else {
-            window.showFlashMessage('Lỗi kết nối. Không thể gửi phản hồi.', 'danger')
+        if (!currentFeedbackItemId) {
+            showFeedbackMessage('Lỗi: Không tìm thấy ID của thẻ.', 'danger');
+            return;
         }
-    } finally {
-        // Kích hoạt lại nút gửi
-        submitBtn.disabled = false
-        submitBtn.textContent = 'Gửi'
-    }
-}
 
-// Gắn các event listener khi DOM đã sẵn sàng
-document.addEventListener('DOMContentLoaded', function() {
-    const feedbackForm = document.getElementById('feedback-form')
-    const closeBtn = document.getElementById('close-feedback-modal-btn')
-    const cancelBtn = document.getElementById('cancel-feedback-btn')
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Đang gửi...';
 
-    if (feedbackForm) {
-        feedbackForm.addEventListener('submit', handleFeedbackSubmit)
+        try {
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            };
+            if (feedbackCsrfToken) {
+                headers['X-CSRFToken'] = feedbackCsrfToken;
+            }
+
+            const response = await fetch("{{ url_for('feedback.submit_feedback') }}", {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    item_id: currentFeedbackItemId,
+                    feedback_text: feedbackText
+                })
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            let result = {};
+            if (contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                const rawText = await response.text();
+                throw new Error(`INVALID_JSON_RESPONSE:${rawText.slice(0, 200)}`);
+            }
+
+            if (response.ok && result.success) {
+                showFeedbackMessage(result.message, 'success');
+                setTimeout(closeFeedbackModal, 500);
+            } else {
+                showFeedbackMessage(result.message || 'Có lỗi xảy ra khi gửi phản hồi.', 'danger');
+            }
+        } catch (error) {
+            console.error('Lỗi khi gửi feedback:', error);
+            if (String(error.message || '').startsWith('INVALID_JSON_RESPONSE')) {
+                showFeedbackMessage('Máy chủ trả về phản hồi không hợp lệ. Vui lòng thử lại sau.', 'danger');
+            } else {
+                showFeedbackMessage('Lỗi kết nối. Không thể gửi phản hồi.', 'danger');
+            }
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Gửi';
+        }
     }
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeFeedbackModal)
+
+    function bindFeedbackModalEvents() {
+        const feedbackForm = document.getElementById('feedback-form');
+        const closeBtn = document.getElementById('close-feedback-modal-btn');
+        const cancelBtn = document.getElementById('cancel-feedback-btn');
+
+        if (feedbackForm) {
+            feedbackForm.addEventListener('submit', handleFeedbackSubmit);
+        }
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeFeedbackModal);
+        }
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeFeedbackModal);
+        }
     }
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', closeFeedbackModal)
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindFeedbackModalEvents);
+    } else {
+        bindFeedbackModalEvents();
     }
-})
+
+    window.openFeedbackModal = openFeedbackModal;
+    window.closeFeedbackModal = closeFeedbackModal;
+})();
 </script>
