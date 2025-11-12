@@ -27,6 +27,8 @@ import tempfile
 import os
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 from mindstack_app.modules.shared.utils.media_paths import (
     normalize_media_folder,
     normalize_media_value_for_storage,
@@ -37,6 +39,98 @@ import zipfile
 import shutil
 import re
 import io
+
+QUIZ_DATA_COLUMNS = [
+    'item_id',
+    'order_in_container',
+    'question',
+    'pre_question_text',
+    'option_a',
+    'option_b',
+    'option_c',
+    'option_d',
+    'correct_answer_text',
+    'guidance',
+    'question_image_file',
+    'question_audio_file',
+    'passage_text',
+    'passage_order',
+    'ai_prompt',
+    'group_id',
+    'group_ref',
+    'group_type',
+    'group_passage_text',
+    'group_audio_file',
+    'group_image_file',
+    'action',
+]
+
+QUIZ_INFO_KEYS = [
+    'title',
+    'description',
+    'tags',
+    'is_public',
+    'image_base_folder',
+    'audio_base_folder',
+    'ai_prompt',
+]
+
+ACTION_OPTIONS = ['None', 'Update', 'Create', 'Delete', 'Skip']
+
+
+def _apply_action_dropdown(worksheet, data_columns):
+    try:
+        action_index = data_columns.index('action') + 1
+    except ValueError:
+        return
+
+    action_letter = get_column_letter(action_index)
+    validation = DataValidation(
+        type='list',
+        formula1=f'"{",".join(ACTION_OPTIONS)}"',
+        allow_blank=True,
+        showDropDown=True,
+    )
+    validation.errorTitle = 'Hành động không hợp lệ'
+    validation.error = 'Vui lòng chọn một hành động hợp lệ hoặc để None nếu không thay đổi.'
+    validation.promptTitle = 'Chọn hành động'
+    validation.prompt = 'Chọn hành động bạn muốn áp dụng cho dòng này.'
+    worksheet.add_data_validation(validation)
+    validation.add(f"{action_letter}2:{action_letter}1048576")
+
+
+def _create_quiz_excel(info_rows, data_rows, *, output_path: Optional[str] = None):
+    info_df = pd.DataFrame(info_rows, columns=['Key', 'Value'])
+    if not info_df.empty:
+        info_df['Value'] = info_df['Value'].apply(lambda value: '' if value is None else str(value))
+    else:
+        info_df = pd.DataFrame(columns=['Key', 'Value'])
+
+    data_df = pd.DataFrame(data_rows, columns=QUIZ_DATA_COLUMNS)
+    if data_df.empty:
+        data_df = pd.DataFrame(columns=QUIZ_DATA_COLUMNS)
+    else:
+        data_df = data_df.fillna('')
+
+    if 'action' in data_df.columns:
+        data_df['action'] = data_df['action'].replace({None: 'None', '': 'None'})
+    else:
+        data_df['action'] = 'None'
+
+    target = output_path or io.BytesIO()
+    with pd.ExcelWriter(target, engine='openpyxl') as writer:
+        info_df.to_excel(writer, sheet_name='Info', index=False)
+        data_df.to_excel(writer, sheet_name='Data', index=False)
+        data_sheet = writer.sheets.get('Data')
+        if data_sheet is not None:
+            _apply_action_dropdown(data_sheet, QUIZ_DATA_COLUMNS)
+
+    if output_path:
+        return output_path
+
+    target.seek(0)
+    return target
+
 
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
                         template_folder='templates') # Đã cập nhật đường dẫn template
@@ -257,15 +351,15 @@ def _copy_media_into_package(
     if not segments:
         segments = [os.path.basename(local_path)]
 
-    destination_root_parts = ['uploads']
+    base_segments: list[str] = []
     if folder_normalized:
-        destination_root_parts.extend(folder_normalized.split('/'))
+        base_segments.extend(folder_normalized.split('/'))
     elif media_subdir:
-        destination_root_parts.append(media_subdir)
+        base_segments.append(media_subdir)
 
-    destination_parts = destination_root_parts + segments
-    destination_relative = '/'.join(['media'] + destination_parts)
+    destination_parts = base_segments + segments
     destination_full = os.path.join(media_dir, *destination_parts)
+    destination_relative = '/'.join(['uploads'] + destination_parts)
 
     os.makedirs(os.path.dirname(destination_full), exist_ok=True)
     if not os.path.exists(destination_full):
@@ -288,81 +382,90 @@ def _build_quiz_export_payload(
 ):
     media_cache = media_cache or {}
 
-    info_rows = [
-        {'Key': 'title', 'Value': quiz_set.title},
-        {'Key': 'description', 'Value': quiz_set.description or ''},
-        {'Key': 'tags', 'Value': quiz_set.tags or ''},
-        {'Key': 'is_public', 'Value': str(quiz_set.is_public)},
-    ]
-    if image_folder:
-        info_rows.append({'Key': 'image_base_folder', 'Value': image_folder})
-    if audio_folder:
-        info_rows.append({'Key': 'audio_base_folder', 'Value': audio_folder})
-
     ai_settings_payload = quiz_set.ai_settings if hasattr(quiz_set, 'ai_settings') else None
     ai_prompt_value = getattr(quiz_set, 'ai_prompt', None)
     if not ai_prompt_value and isinstance(ai_settings_payload, dict):
         ai_prompt_value = ai_settings_payload.get('custom_prompt', '')
-    if ai_prompt_value:
-        info_rows.append({'Key': 'ai_prompt', 'Value': ai_prompt_value})
+
+    info_mapping = {
+        'title': quiz_set.title or '',
+        'description': quiz_set.description or '',
+        'tags': quiz_set.tags or '',
+        'is_public': 'True' if quiz_set.is_public else 'False',
+        'image_base_folder': image_folder or '',
+        'audio_base_folder': audio_folder or '',
+        'ai_prompt': ai_prompt_value or '',
+    }
+
+    info_rows = [
+        {'Key': key, 'Value': info_mapping.get(key, '')}
+        for key in QUIZ_INFO_KEYS
+    ]
 
     data_rows = []
     for item in items:
         content = item.content or {}
         group = groups.get(item.group_id) if item.group_id else None
         group_content = group.content if group else {}
-        row = {
-            'item_id': item.item_id,
-            'order_in_container': item.order_in_container,
-            'question': content.get('question'),
-            'pre_question_text': content.get('pre_question_text'),
-            'option_a': (content.get('options') or {}).get('A'),
-            'option_b': (content.get('options') or {}).get('B'),
-            'option_c': (content.get('options') or {}).get('C'),
-            'option_d': (content.get('options') or {}).get('D'),
-            'correct_answer_text': content.get('correct_answer'),
-            'guidance': content.get('explanation'),
-            'question_image_file': _copy_media_into_package(
-                content.get('question_image_file'),
-                media_dir,
-                media_cache,
-                media_subdir='images',
-                media_folder=image_folder,
-                export_mode=export_mode,
-            ),
-            'question_audio_file': _copy_media_into_package(
-                content.get('question_audio_file'),
+        row = {column: '' for column in QUIZ_DATA_COLUMNS}
+        row['item_id'] = item.item_id
+        row['order_in_container'] = item.order_in_container if item.order_in_container is not None else ''
+        row['question'] = content.get('question') or ''
+        row['pre_question_text'] = content.get('pre_question_text') or ''
+        options = content.get('options') or {}
+        row['option_a'] = options.get('A') or ''
+        row['option_b'] = options.get('B') or ''
+        row['option_c'] = options.get('C') or ''
+        row['option_d'] = options.get('D') or ''
+        row['correct_answer_text'] = content.get('correct_answer') or ''
+        row['guidance'] = content.get('explanation') or ''
+        row['question_image_file'] = _copy_media_into_package(
+            content.get('question_image_file'),
+            media_dir,
+            media_cache,
+            media_subdir='images',
+            media_folder=image_folder,
+            export_mode=export_mode,
+        ) or ''
+        row['question_audio_file'] = _copy_media_into_package(
+            content.get('question_audio_file'),
+            media_dir,
+            media_cache,
+            media_subdir='audio',
+            media_folder=audio_folder,
+            export_mode=export_mode,
+        ) or ''
+        row['passage_text'] = content.get('passage_text') or ''
+        row['passage_order'] = content.get('passage_order') if content.get('passage_order') is not None else ''
+        row['ai_prompt'] = content.get('ai_prompt') or ''
+
+        row['group_id'] = group.group_id if group else ''
+        row['group_ref'] = f"group-{group.group_id}" if group else ''
+        row['group_type'] = group.group_type if group else ''
+        if isinstance(group_content, dict):
+            row['group_passage_text'] = group_content.get('passage_text') or ''
+            row['group_audio_file'] = _copy_media_into_package(
+                group_content.get('question_audio_file'),
                 media_dir,
                 media_cache,
                 media_subdir='audio',
                 media_folder=audio_folder,
                 export_mode=export_mode,
-            ),
-            'passage_text': content.get('passage_text'),
-            'passage_order': content.get('passage_order'),
-            'ai_prompt': content.get('ai_prompt'),
-            'group_id': group.group_id if group else None,
-            'group_ref': f"group-{group.group_id}" if group else '',
-            'group_type': group.group_type if group else '',
-            'group_passage_text': group_content.get('passage_text') if isinstance(group_content, dict) else None,
-            'group_audio_file': _copy_media_into_package(
-                group_content.get('question_audio_file') if isinstance(group_content, dict) else None,
-                media_dir,
-                media_cache,
-                media_subdir='audio',
-                media_folder=audio_folder,
-                export_mode=export_mode,
-            ),
-            'group_image_file': _copy_media_into_package(
-                group_content.get('question_image_file') if isinstance(group_content, dict) else None,
+            ) or ''
+            row['group_image_file'] = _copy_media_into_package(
+                group_content.get('question_image_file'),
                 media_dir,
                 media_cache,
                 media_subdir='images',
                 media_folder=image_folder,
                 export_mode=export_mode,
-            ),
-            'action': '',
-        }
+            ) or ''
+        else:
+            row['group_passage_text'] = ''
+            row['group_audio_file'] = ''
+            row['group_image_file'] = ''
+
+        row['action'] = 'None'
         data_rows.append(row)
 
     return info_rows, data_rows
@@ -894,7 +997,7 @@ def export_quiz_set(set_id):
     audio_folder = media_folders.get('audio')
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        media_dir = os.path.join(tmp_dir, 'media')
+        media_dir = os.path.join(tmp_dir, 'uploads')
         os.makedirs(media_dir, exist_ok=True)
         media_cache = {}
 
@@ -910,9 +1013,7 @@ def export_quiz_set(set_id):
         )
 
         excel_path = os.path.join(tmp_dir, 'quizzes.xlsx')
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
-            pd.DataFrame(data_rows).to_excel(writer, sheet_name='Data', index=False)
+        _create_quiz_excel(info_rows, data_rows, output_path=excel_path)
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -964,12 +1065,7 @@ def export_quiz_set_excel(set_id):
         audio_folder=audio_folder,
     )
 
-    excel_buffer = io.BytesIO()
-    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-        pd.DataFrame(info_rows).to_excel(writer, sheet_name='Info', index=False)
-        pd.DataFrame(data_rows).to_excel(writer, sheet_name='Data', index=False)
-
-    excel_buffer.seek(0)
+    excel_buffer = _create_quiz_excel(info_rows, data_rows)
     download_name = f"{_slugify_filename(quiz_set.title)}.xlsx"
     return send_file(
         excel_buffer,
@@ -1392,9 +1488,26 @@ def add_quiz_item(set_id):
         flash('Câu hỏi mới đã được thêm!', 'success')
         return redirect(url_for('.list_quiz_items', set_id=set_id))
     
+    preview_image_url = ''
+    if getattr(form.question_image_file, 'data', None):
+        preview_image_url = _build_absolute_media_url(form.question_image_file.data, image_folder) or ''
+    preview_audio_url = ''
+    if getattr(form.question_audio_file, 'data', None):
+        preview_audio_url = _build_absolute_media_url(form.question_audio_file.data, audio_folder) or ''
+
+    template_context = {
+        'form': form,
+        'quiz_set': quiz_set,
+        'title': 'Thêm Câu hỏi',
+        'image_base_folder': image_folder or '',
+        'audio_base_folder': audio_folder or '',
+        'image_preview_url': preview_image_url,
+        'audio_preview_url': preview_audio_url,
+    }
+
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_quiz_item_bare.html', form=form, quiz_set=quiz_set, title='Thêm Câu hỏi')
-    return render_template('add_edit_quiz_item.html', form=form, quiz_set=quiz_set, title='Thêm Câu hỏi')
+        return render_template('_add_edit_quiz_item_bare.html', **template_context)
+    return render_template('add_edit_quiz_item.html', **template_context)
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
@@ -1486,9 +1599,27 @@ def edit_quiz_item(set_id, item_id):
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': False, 'message': 'Dữ liệu không hợp lệ.', 'errors': form.errors}), 400
 
+    preview_image_url = ''
+    if getattr(form.question_image_file, 'data', None):
+        preview_image_url = _build_absolute_media_url(form.question_image_file.data, image_folder) or ''
+    preview_audio_url = ''
+    if getattr(form.question_audio_file, 'data', None):
+        preview_audio_url = _build_absolute_media_url(form.question_audio_file.data, audio_folder) or ''
+
+    template_context = {
+        'form': form,
+        'quiz_set': quiz_set,
+        'quiz_item': quiz_item,
+        'title': 'Chỉnh sửa Câu hỏi',
+        'image_base_folder': image_folder or '',
+        'audio_base_folder': audio_folder or '',
+        'image_preview_url': preview_image_url,
+        'audio_preview_url': preview_audio_url,
+    }
+
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_quiz_item_bare.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')
-    return render_template('add_edit_quiz_item.html', form=form, quiz_set=quiz_set, quiz_item=quiz_item, title='Chỉnh sửa Câu hỏi')
+        return render_template('_add_edit_quiz_item_bare.html', **template_context)
+    return render_template('add_edit_quiz_item.html', **template_context)
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
 @login_required

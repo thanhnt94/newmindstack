@@ -47,7 +47,9 @@
             </h2>
             <p class="text-center text-gray-600 mb-6">Điền thông tin dưới đây để tạo một câu hỏi mới.</p>
 
-            <form id="quizItemForm" action="" method="post" class="space-y-6">
+            <form id="quizItemForm" action="" method="post" class="space-y-6"
+                  data-image-base-folder="{{ image_base_folder or '' }}"
+                  data-audio-base-folder="{{ audio_base_folder or '' }}">
                 {{ form.csrf_token }}
                 
                 <div>
@@ -93,13 +95,49 @@
                 <div class="border-t border-gray-200 pt-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">Tuỳ chọn Media</h3>
                     <div class="space-y-4">
-                        <div>
-                            {{ form.question_image_file.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.question_image_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh câu hỏi hoặc đường dẫn tương đối") }}
-                        </div>
-                        <div>
-                            {{ form.question_audio_file.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.question_audio_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL file âm thanh câu hỏi hoặc đường dẫn tương đối") }}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div data-role="quiz-image-field" data-initial-url="{{ image_preview_url or '' }}">
+                                {{ form.question_image_file.label(class="block text-sm font-medium text-gray-700") }}
+                                <div class="mt-2 space-y-3">
+                                    {{ form.question_image_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL hình ảnh câu hỏi hoặc đường dẫn tương đối", **{'data-role': 'quiz-image-input'}) }}
+                                    <div class="relative border border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                                        <img data-role="quiz-image-preview" src="{{ image_preview_url or '' }}" alt="Xem trước hình ảnh" class="w-full max-h-64 object-contain{% if not image_preview_url %} hidden{% endif %}">
+                                        <div data-role="quiz-image-placeholder" class="flex items-center justify-center text-sm text-gray-400 py-12{% if image_preview_url %} hidden{% endif %}">
+                                            Chưa có ảnh để xem trước.
+                                        </div>
+                                    </div>
+                                    <button type="button" data-role="quiz-open-image" class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center gap-2{% if not image_preview_url %} hidden{% endif %}">
+                                        <i class="fas fa-external-link-alt"></i>
+                                        <span>Mở ảnh trong tab mới</span>
+                                    </button>
+                                    <p class="text-xs text-gray-500" data-role="quiz-image-status"></p>
+                                </div>
+                                {% if form.question_image_file.errors %}
+                                    <div class="text-red-500 text-xs mt-1">
+                                        {% for error in form.question_image_file.errors %}<p>{{ error }}</p>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div data-role="quiz-audio-field" data-initial-url="{{ audio_preview_url or '' }}">
+                                {{ form.question_audio_file.label(class="block text-sm font-medium text-gray-700") }}
+                                <div class="mt-2 space-y-3">
+                                    {{ form.question_audio_file(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="URL file âm thanh câu hỏi hoặc đường dẫn tương đối", **{'data-role': 'quiz-audio-input'}) }}
+                                    <div class="border border-gray-200 rounded-lg bg-gray-50 p-4">
+                                        <audio controls data-role="quiz-audio-player" class="w-full{% if not audio_preview_url %} hidden{% endif %}">
+                                            {% if audio_preview_url %}<source src="{{ audio_preview_url }}">{% endif %}
+                                        </audio>
+                                        <div data-role="quiz-audio-placeholder" class="text-sm text-gray-400 text-center{% if audio_preview_url %} hidden{% endif %}">
+                                            Chưa có audio để nghe thử.
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-500" data-role="quiz-audio-status"></p>
+                                </div>
+                                {% if form.question_audio_file.errors %}
+                                    <div class="text-red-500 text-xs mt-1">
+                                        {% for error in form.question_audio_file.errors %}<p>{{ error }}</p>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
                         </div>
                         <div>
                             {{ form.passage_text.label(class="block text-sm font-medium text-gray-700") }}
@@ -146,10 +184,15 @@
     </div>
 </div>
 
+{% include '_quiz_media_scripts.html' %}
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('quizItemForm');
         if (form) {
+            if (window.initializeQuizMediaControls) {
+                window.initializeQuizMediaControls({ form: form });
+            }
             // Đặt action của form dựa trên URL hiện tại (để xử lý cả add và edit)
             const currentUrl = new URL(window.location.href);
             currentUrl.searchParams.delete('is_modal'); 
