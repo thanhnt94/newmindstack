@@ -20,6 +20,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from ....modules.shared.utils.pagination import get_pagination_data
 from ....modules.shared.utils.search import apply_search_filter
+from ....modules.shared.utils.excel import extract_info_sheet_mapping, format_info_warnings
 from ....modules.shared.utils.html_sanitizer import sanitize_rich_text
 from ....modules.shared.utils.bbcode_parser import bbcode_to_html
 
@@ -175,12 +176,9 @@ def _update_lessons_from_excel_file(container_id: int, excel_file) -> str:
         if not required_cols.issubset(set(df.columns)):
             raise ValueError('Sheet "Data" phải có các cột title và content_html.')
 
-        try:
-            df_info = pd.read_excel(temp_filepath, sheet_name='Info')
-        except ValueError:
-            df_info = None
-        else:
-            info_mapping = df_info.set_index('Key')['Value'].to_dict()
+        info_notices: list[str] = []
+        info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
+        if info_mapping:
             title_value = info_mapping.get('title')
             if title_value is not None:
                 course_set.title = str(title_value)
@@ -201,6 +199,8 @@ def _update_lessons_from_excel_file(container_id: int, excel_file) -> str:
             if ai_prompt_value is not None:
                 prompt_clean = str(ai_prompt_value).strip()
                 course_set.ai_prompt = prompt_clean or None
+        if info_warnings:
+            info_notices.extend(info_warnings)
 
         existing_items = (
             LearningItem.query.filter_by(container_id=container_id, item_type='LESSON')
@@ -385,7 +385,11 @@ def _update_lessons_from_excel_file(container_id: int, excel_file) -> str:
         if stats['reordered']:
             summary_parts.append(f"{stats['reordered']} thay đổi thứ tự")
 
-        return 'Đã xử lý Excel: ' + ', '.join(summary_parts) + '.'
+        summary_text = ', '.join(summary_parts)
+        if info_notices:
+            summary_text += ' Lưu ý: ' + format_info_warnings(info_notices)
+
+        return 'Đã xử lý Excel: ' + summary_text + '.'
 
     finally:
         if temp_filepath and os.path.exists(temp_filepath):
@@ -411,11 +415,14 @@ def process_excel_info():
             with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                 file.save(tmp_file.name)
                 temp_filepath = tmp_file.name
-            df_info = pd.read_excel(temp_filepath, sheet_name='Info')
-            info_data = df_info.set_index('Key')['Value'].dropna().to_dict()
-            return jsonify({'success': True, 'data': info_data})
-        except ValueError:
-            return jsonify({'success': False, 'message': "Không tìm thấy sheet 'Info' trong file."})
+            info_data, info_warnings = extract_info_sheet_mapping(temp_filepath)
+            if not info_data and info_warnings:
+                message = format_info_warnings(info_warnings)
+                return jsonify({'success': False, 'message': message}), 400
+            message = 'Đã đọc thông tin từ sheet Info.'
+            if info_warnings:
+                message += ' ' + format_info_warnings(info_warnings)
+            return jsonify({'success': True, 'data': info_data, 'message': message})
         except Exception as e:
             current_app.logger.error(f"Lỗi khi xử lý sheet Info (Course): {e}")
             return jsonify({'success': False, 'message': f'Lỗi đọc file Excel: {e}'}), 500

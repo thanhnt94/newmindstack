@@ -30,6 +30,7 @@ from mindstack_app.modules.shared.utils.media_paths import (
     build_relative_media_path,
 )
 from ....modules.shared.utils.db_session import safe_commit
+from ....modules.shared.utils.excel import extract_info_sheet_mapping, format_info_warnings
 import pandas as pd
 import tempfile
 import os
@@ -583,19 +584,18 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
 
         flashcard_set = LearningContainer.query.get(container_id)
 
+        info_notices: list[str] = []
         media_overrides: dict[str, str] = {}
-        try:
-            df_info = pd.read_excel(temp_filepath, sheet_name='Info')
-        except ValueError:
-            df_info = None
-        else:
-            info_mapping = df_info.set_index('Key')['Value'].dropna().to_dict()
+        info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
+        if info_mapping:
             image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
             audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))
             if image_folder_override:
                 media_overrides['image'] = image_folder_override
             if audio_folder_override:
                 media_overrides['audio'] = audio_folder_override
+        if info_warnings:
+            info_notices.extend(info_warnings)
 
         if media_overrides:
             flashcard_set.set_media_folders(media_overrides)
@@ -833,6 +833,8 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
         if stats['reordered']:
             summary_parts.append(f"{stats['reordered']} dòng có sắp xếp lại")
         summary_text = ', '.join(summary_parts)
+        if info_notices:
+            summary_text += ' Lưu ý: ' + format_info_warnings(info_notices)
         return f'Bộ thẻ đã được xử lý: {summary_text}.'
     finally:
         if temp_filepath and os.path.exists(temp_filepath):
@@ -858,14 +860,16 @@ def process_excel_info():
             with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                 file.save(tmp_file.name)
                 temp_filepath = tmp_file.name
-            
-            # Đọc sheet 'Info' từ file Excel
-            df_info = pd.read_excel(temp_filepath, sheet_name='Info')
-            info_data = df_info.set_index('Key')['Value'].dropna().to_dict()
-            return jsonify({'success': True, 'data': info_data})
-        except ValueError:
-            # Xử lý trường hợp không tìm thấy sheet 'Info'
-            return jsonify({'success': False, 'message': "Không tìm thấy sheet 'Info' trong file."})
+
+            info_data, info_warnings = extract_info_sheet_mapping(temp_filepath)
+            if not info_data and info_warnings:
+                message = format_info_warnings(info_warnings)
+                return jsonify({'success': False, 'message': message}), 400
+
+            message = 'Đã đọc thông tin từ sheet Info.'
+            if info_warnings:
+                message += ' ' + format_info_warnings(info_warnings)
+            return jsonify({'success': True, 'data': info_data, 'message': message})
         except Exception as e:
             # Xử lý các lỗi khác khi đọc file Excel
             current_app.logger.error(f"Lỗi khi xử lý sheet Info (Flashcard): {e}")
@@ -1225,19 +1229,19 @@ def add_flashcard_set():
                     temp_filepath = tmp_file.name
                 
                 # --- THÊM MỚI LOGIC XỬ LÝ SHEET INFO ---
+                info_notices: list[str] = []
                 media_overrides = {}
-                try:
-                    df_info = pd.read_excel(temp_filepath, sheet_name='Info')
-                    info_mapping = df_info.set_index('Key')['Value'].dropna().to_dict()
+                info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
+                if info_mapping:
                     image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
                     audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))
                     if image_folder_override:
                         media_overrides['image'] = image_folder_override
                     if audio_folder_override:
                         media_overrides['audio'] = audio_folder_override
-                except ValueError:
-                    current_app.logger.debug("Không tìm thấy sheet 'Info' trong file Excel. Bỏ qua media_overrides.")
-                
+                if info_warnings:
+                    info_notices.extend(info_warnings)
+
                 if media_overrides:
                     # Áp dụng media overrides và cập nhật local folders
                     new_set.set_media_folders(media_overrides)
@@ -1293,6 +1297,8 @@ def add_flashcard_set():
                         db.session.add(new_item)
                         items_added_count += 1
                 flash_message = f'Bộ thẻ và {items_added_count} thẻ từ Excel đã được tạo thành công!'
+                if info_notices:
+                    flash_message += ' Lưu ý: ' + format_info_warnings(info_notices)
                 flash_category = 'success'
             else:
                 flash_message = 'Bộ thẻ mới đã được tạo thành công!'
