@@ -143,6 +143,8 @@
         const fileMetaLabel = form.querySelector('[data-role="excel-file-meta"]');
         const clearButton = form.querySelector('[data-role="excel-clear"]');
         const statusLabel = form.querySelector('[data-role="excel-status"]');
+        const csrfInput = form.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
 
         const formatBytes = (bytes) => {
             if (!bytes && bytes !== 0) {
@@ -278,10 +280,15 @@
             formData.append('excel_file', file);
 
             try {
+                const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+                if (csrfToken) {
+                    headers['X-CSRFToken'] = csrfToken;
+                }
+
                 const response = await fetch("{{ url_for('content_management.content_management_quizzes.process_excel_info') }}", {
                     method: 'POST',
                     body: formData,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    headers
                 });
 
                 const result = await response.json();
