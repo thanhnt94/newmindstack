@@ -61,7 +61,7 @@ def _apply_action_dropdown(worksheet, data_columns):
         type='list',
         formula1=f'"{",".join(ACTION_OPTIONS)}"',
         allow_blank=True,
-        showDropDown=True,
+        showDropDown=False,
     )
     validation.errorTitle = 'Hành động không hợp lệ'
     validation.error = 'Vui lòng chọn một hành động hợp lệ hoặc để None nếu không thay đổi.'
