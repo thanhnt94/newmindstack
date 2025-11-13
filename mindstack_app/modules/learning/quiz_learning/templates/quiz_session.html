@@ -43,8 +43,8 @@
 
         .quiz-session-overview {
             display: grid;
-            grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
-            gap: 1.25rem;
+            grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+            gap: 1.5rem;
             align-items: stretch;
         }
 
@@ -55,46 +55,91 @@
         }
 
         .quiz-progress-card {
-            background: #1d4ed8;
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
             color: #ffffff;
-            border-radius: 1rem;
-            padding: 1.25rem 1.5rem;
-            min-width: 220px;
-            box-shadow: 0 20px 30px -24px rgba(37, 99, 235, 0.85);
+            border-radius: 1.15rem;
+            padding: 1.4rem 1.6rem;
+            box-shadow: 0 24px 38px -28px rgba(37, 99, 235, 0.85);
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
         }
 
-        .quiz-progress-label {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.16em;
-            opacity: 0.85;
-            font-weight: 600;
+        .progress-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
         }
 
-        .quiz-progress-value {
-            font-size: clamp(2rem, 1.5rem + 1vw, 2.75rem);
-            font-weight: 700;
-            margin-top: 0.35rem;
-            display: block;
-        }
-
-        .quiz-progress-range {
-            font-size: 0.9rem;
-            margin-top: 0.4rem;
+        .progress-card-title {
             display: inline-flex;
             align-items: center;
+            gap: 0.55rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            font-size: 1rem;
+        }
+
+        .progress-card-chip {
+            background: rgba(255, 255, 255, 0.16);
+            color: #e0e7ff;
+            border-radius: 9999px;
+            padding: 0.35rem 0.9rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .progress-metric {
+            display: flex;
+            flex-direction: column;
             gap: 0.35rem;
+        }
+
+        .progress-metric-value {
+            font-size: clamp(2rem, 1.65rem + 1vw, 2.85rem);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .progress-metric-label {
+            font-size: 0.9rem;
+            opacity: 0.85;
+        }
+
+        .progress-bar-track {
+            position: relative;
+            width: 100%;
+            height: 0.65rem;
+            border-radius: 9999px;
+            background: rgba(15, 23, 42, 0.28);
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            position: absolute;
+            inset: 0;
+            width: 0%;
+            border-radius: 9999px;
+            background: linear-gradient(135deg, #c084fc, #38bdf8);
+            transition: width 0.35s ease;
+        }
+
+        .progress-card-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
             opacity: 0.9;
         }
 
         .quiz-session-stats {
-            display: grid;
-            grid-auto-flow: column;
-            grid-auto-columns: minmax(150px, 1fr);
+            display: flex;
             gap: 0.9rem;
             align-items: stretch;
-            padding: 0.85rem 0.75rem;
-            border-radius: 1rem;
+            padding: 0.95rem;
+            border-radius: 1.15rem;
             border: 1px solid rgba(148, 163, 184, 0.25);
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.03), rgba(37, 99, 235, 0.05));
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -119,8 +164,8 @@
 
         @media (max-width: 640px) {
             .quiz-session-stats {
-                grid-auto-columns: minmax(140px, 1fr);
-                padding-bottom: 0.5rem;
+                flex-direction: column;
+                padding: 0.75rem;
             }
         }
 
@@ -289,18 +334,56 @@
             border-radius: 0.9rem;
             padding: 1rem 1.15rem;
             font-weight: 500;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+        }
+
+        .feedback-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .feedback-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .feedback-text strong {
+            font-size: 1rem;
+        }
+
+        .feedback-text span {
+            color: #1f2937;
         }
 
         .feedback-correct {
-            background: rgba(34, 197, 94, 0.15);
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(59, 130, 246, 0.08));
             color: #166534;
-            border: 1px solid rgba(22, 163, 74, 0.4);
+            border: 1px solid rgba(22, 163, 74, 0.35);
+        }
+
+        .feedback-correct .feedback-icon {
+            background: rgba(34, 197, 94, 0.25);
+            color: #15803d;
         }
 
         .feedback-incorrect {
-            background: rgba(248, 113, 113, 0.15);
-            color: #991b1b;
-            border: 1px solid rgba(220, 38, 38, 0.35);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(248, 113, 113, 0.12));
+            color: #b45309;
+            border: 1px solid rgba(251, 191, 36, 0.35);
+        }
+
+        .feedback-incorrect .feedback-icon {
+            background: rgba(251, 191, 36, 0.3);
+            color: #b45309;
         }
 
         .feedback-explanation {
@@ -313,15 +396,9 @@
         .question-insights {
             border-top: 1px dashed rgba(148, 163, 184, 0.45);
             padding-top: 1.25rem;
-            display: grid;
-            gap: 1rem;
-        }
-
-        @media (min-width: 1024px) {
-            .question-insights {
-                grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-                align-items: flex-start;
-            }
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
         }
 
         .question-stats-card {
@@ -369,10 +446,7 @@
         .question-stats-grid {
             display: grid;
             gap: 0.75rem;
-        }
-
-        .question-stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: minmax(0, 1fr);
         }
 
         .stat-item {
@@ -399,10 +473,38 @@
         }
 
         .question-stats-meta {
-            display: grid;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            color: #334155;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+        }
+
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            background: rgba(148, 163, 184, 0.15);
+            border-radius: 9999px;
+            padding: 0.35rem 0.8rem;
+            font-size: 0.82rem;
+            color: #1f2937;
+        }
+
+        .meta-badge i {
+            color: #2563eb;
+        }
+
+        .meta-badge .meta-label {
+            font-weight: 600;
+        }
+
+        .meta-badge .meta-value {
+            color: #475569;
+        }
+
+        .meta-text-group {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
         }
 
         .question-stats-history {
@@ -425,41 +527,50 @@
             list-style: none;
             padding: 0;
             margin: 0;
-            display: grid;
-            gap: 0.6rem;
-        }
-
-        .history-item {
             display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
             align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            background: #ffffff;
-            border-radius: 0.75rem;
-            padding: 0.65rem 0.85rem;
-            border: 1px solid rgba(226, 232, 240, 0.8);
         }
 
-        .history-item .history-answer {
-            font-weight: 600;
+        .history-pill {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
+            justify-content: center;
+            font-size: 0.95rem;
+            background: #e2e8f0;
+            color: #1f2937;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            cursor: default;
         }
 
-        .history-item.correct .history-answer {
+        .history-pill.correct {
+            background: rgba(187, 247, 208, 0.6);
             color: #15803d;
+            border-color: rgba(34, 197, 94, 0.4);
         }
 
-        .history-item.incorrect .history-answer {
+        .history-pill.incorrect {
+            background: rgba(254, 226, 226, 0.65);
             color: #b91c1c;
+            border-color: rgba(248, 113, 113, 0.5);
         }
 
-        .history-meta {
-            font-size: 0.8rem;
+        .history-pill:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 16px -14px rgba(15, 23, 42, 0.55);
+        }
+
+        .history-empty {
+            font-size: 0.85rem;
             color: #475569;
-            display: flex;
-            gap: 0.75rem;
+            padding: 0.25rem 0;
+            display: block;
+            width: 100%;
         }
 
         .extra-info-area {
@@ -537,6 +648,49 @@
             justify-content: flex-end;
         }
 
+        .quiz-toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 2000;
+            pointer-events: none;
+        }
+
+        .quiz-toast {
+            background: #1f2937;
+            color: #ffffff;
+            padding: 0.75rem 1.1rem;
+            border-radius: 0.85rem;
+            box-shadow: 0 18px 38px -25px rgba(15, 23, 42, 0.65);
+            font-size: 0.92rem;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: auto;
+            max-width: 320px;
+        }
+
+        .quiz-toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .quiz-toast--warning {
+            background: #f97316;
+        }
+
+        .quiz-toast--error {
+            background: #ef4444;
+        }
+
+        .quiz-toast--success {
+            background: #22c55e;
+        }
+
         .control-button {
             display: inline-flex;
             align-items: center;
@@ -585,7 +739,7 @@
             }
 
             .question-stats-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-columns: minmax(0, 1fr);
             }
         }
     </style>
@@ -602,9 +756,21 @@
             </div>
             <div class="quiz-session-overview">
                 <div class="quiz-progress-card">
-                    <span class="quiz-progress-label">Tiến độ nhóm câu hỏi</span>
-                    <span class="quiz-progress-value" id="quiz-progress-value">0</span>
-                    <span class="quiz-progress-range"><i class="fas fa-layer-group"></i> <span id="quiz-progress">0 / 0</span></span>
+                    <div class="progress-card-header">
+                        <span class="progress-card-title"><i class="fas fa-route"></i> Trạng thái phiên học</span>
+                        <span class="progress-card-chip" id="quiz-group-range">--</span>
+                    </div>
+                    <div class="progress-metric">
+                        <span class="progress-metric-value" id="quiz-answered-count">0</span>
+                        <span class="progress-metric-label">Câu đã trả lời</span>
+                    </div>
+                    <div class="progress-bar-track" aria-hidden="true">
+                        <div class="progress-bar-fill" id="quiz-progress-fill"></div>
+                    </div>
+                    <div class="progress-card-footer">
+                        <span id="quiz-total-label">0 / 0 câu</span>
+                        <span id="quiz-remaining-label">Còn lại: 0</span>
+                    </div>
                 </div>
                 <div class="quiz-session-stats">
                     <div class="session-stat">
@@ -655,10 +821,15 @@
         let currentBatchMeta = { startIndex: 0, totalItemsInSession: 0 };
         let userAnswers = {};
         let isBatchSubmitted = false;
+        let totalQuestionsInSession = 0;
+        let sessionTotalAnswered = 0;
 
         const quizContentDiv = document.getElementById('quiz-content');
-        const quizProgressValue = document.getElementById('quiz-progress-value');
-        const quizProgressSpan = document.getElementById('quiz-progress');
+        const quizGroupRangeEl = document.getElementById('quiz-group-range');
+        const quizAnsweredCountEl = document.getElementById('quiz-answered-count');
+        const quizProgressFillEl = document.getElementById('quiz-progress-fill');
+        const quizTotalLabelEl = document.getElementById('quiz-total-label');
+        const quizRemainingLabelEl = document.getElementById('quiz-remaining-label');
         const sessionTotalCountEl = document.getElementById('session-total-count');
         const sessionCorrectCountEl = document.getElementById('session-correct-count');
         const sessionAccuracyEl = document.getElementById('session-accuracy');
@@ -673,6 +844,7 @@
         const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}"; // URL mới cho AI
         const editQuizItemUrl = "{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=0, item_id=0) }}";
         const quizItemApiBaseUrl = "{{ url_for('learning.quiz_learning.get_quiz_item_api', item_id=0) }}";
+        const quizDashboardUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
 
         const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
         const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
@@ -740,9 +912,44 @@
             return numberFormatter.format(numeric);
         }
 
+        function updateProgressCard() {
+            const totalInSession = Number(totalQuestionsInSession) || 0;
+            const answered = Number(sessionTotalAnswered) || 0;
+            const hasTotal = totalInSession > 0;
+
+            if (quizAnsweredCountEl) {
+                quizAnsweredCountEl.textContent = numberFormatter.format(answered);
+            }
+
+            if (quizTotalLabelEl) {
+                if (hasTotal) {
+                    const cappedAnswered = Math.min(answered, totalInSession);
+                    const totalText = `${numberFormatter.format(cappedAnswered)} / ${numberFormatter.format(totalInSession)} câu`;
+                    quizTotalLabelEl.textContent = totalText;
+                } else {
+                    quizTotalLabelEl.textContent = `${numberFormatter.format(answered)} câu`;
+                }
+            }
+
+            if (quizRemainingLabelEl) {
+                if (hasTotal) {
+                    const remaining = Math.max(totalInSession - answered, 0);
+                    quizRemainingLabelEl.textContent = `Còn lại: ${numberFormatter.format(remaining)}`;
+                } else {
+                    quizRemainingLabelEl.textContent = 'Còn lại: --';
+                }
+            }
+
+            if (quizProgressFillEl) {
+                const progressWidth = hasTotal ? Math.min((answered / totalInSession) * 100, 100) : 0;
+                quizProgressFillEl.style.width = `${progressWidth}%`;
+            }
+        }
+
         function updateSessionSummary(correct = 0, total = 0) {
             const safeTotal = Number(total) || 0;
             const safeCorrect = Number(correct) || 0;
+            sessionTotalAnswered = safeTotal;
             if (sessionTotalCountEl) {
                 sessionTotalCountEl.textContent = numberFormatter.format(safeTotal);
             }
@@ -753,6 +960,8 @@
                 const accuracy = safeTotal > 0 ? (safeCorrect / safeTotal) * 100 : 0;
                 sessionAccuracyEl.textContent = `${percentageFormatter.format(accuracy)}%`;
             }
+
+            updateProgressCard();
         }
 
         function renderQuestionStatistics(questionCard, stats) {
@@ -786,7 +995,7 @@
 
             statsCard.dataset.hasStats = 'true';
             statsCard.style.display = 'flex';
-            if (insightsContainer) insightsContainer.style.display = 'grid';
+            if (insightsContainer) insightsContainer.style.display = 'flex';
             if (contentEl) contentEl.style.display = 'block';
             if (statusPill) {
                 const statusLabel = STATUS_LABELS[stats.status] || (stats.status ? stats.status.toString() : 'Đang học');
@@ -817,24 +1026,25 @@
                 const historyEntries = Array.isArray(stats.review_history) ? stats.review_history.slice(-5).reverse() : [];
                 if (historyEntries.length === 0) {
                     const li = document.createElement('li');
-                    li.className = 'history-item';
-                    li.innerHTML = '<span class="history-answer text-gray-500">Chưa có dữ liệu lịch sử.</span>';
+                    li.className = 'history-empty';
+                    li.textContent = 'Chưa có dữ liệu lịch sử.';
                     historyList.appendChild(li);
                 } else {
                     historyEntries.forEach(entry => {
                         const li = document.createElement('li');
-                        li.className = `history-item ${entry.is_correct ? 'correct' : 'incorrect'}`;
-                        const iconClass = entry.is_correct ? 'fa-check-circle' : 'fa-times-circle';
+                        li.className = `history-pill ${entry.is_correct ? 'correct' : 'incorrect'}`;
+                        const icon = document.createElement('i');
+                        icon.className = `fas ${entry.is_correct ? 'fa-check' : 'fa-times'}`;
+                        li.appendChild(icon);
+
                         const answer = entry.user_answer || '?';
                         const scoreChange = typeof entry.score_change === 'number' ? `${entry.score_change > 0 ? '+' : ''}${entry.score_change}` : '0';
                         const timestamp = entry.timestamp_formatted || formatDateTime(entry.timestamp);
-                        li.innerHTML = `
-                            <span class="history-answer"><i class="fas ${iconClass}"></i>${answer}</span>
-                            <div class="history-meta">
-                                <span><i class="far fa-clock"></i> ${timestamp}</span>
-                                <span><i class="fas fa-star"></i> ${scoreChange} điểm</span>
-                            </div>
-                        `;
+                        const statusLabel = entry.is_correct ? 'Đúng' : 'Sai';
+                        const tooltip = `${statusLabel} • ${answer} • ${timestamp} • ${scoreChange} điểm`;
+                        li.title = tooltip;
+                        li.setAttribute('aria-label', tooltip);
+
                         historyList.appendChild(li);
                     });
                 }
@@ -916,14 +1126,26 @@
                                         <span class="stat-value" data-stat="incorrect_streak">0</span>
                                     </div>
                                 </div>
-                                <div class="question-stats-meta">
-                                    <div><i class="far fa-clock"></i> Lần đầu làm: <span data-stat="first_seen">--</span></div>
-                                    <div><i class="far fa-history"></i> Ôn gần nhất: <span data-stat="last_reviewed">--</span></div>
-                                </div>
-                                <div class="question-stats-history">
-                                    <div class="history-title"><i class="fas fa-stream"></i> Lịch sử gần đây</div>
-                                    <ul class="history-list"></ul>
-                                </div>
+                    <div class="question-stats-meta">
+                        <div class="meta-badge">
+                            <i class="far fa-clock"></i>
+                            <div class="meta-text-group">
+                                <span class="meta-label">Lần đầu làm</span>
+                                <span class="meta-value" data-stat="first_seen">--</span>
+                            </div>
+                        </div>
+                        <div class="meta-badge">
+                            <i class="far fa-history"></i>
+                            <div class="meta-text-group">
+                                <span class="meta-label">Ôn gần nhất</span>
+                                <span class="meta-value" data-stat="last_reviewed">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question-stats-history">
+                        <div class="history-title"><i class="fas fa-stream"></i> Lịch sử gần đây</div>
+                        <ul class="history-list" aria-label="Kết quả gần nhất"></ul>
+                    </div>
                             </div>
                         </div>
 
@@ -980,6 +1202,7 @@
             };
             userAnswers = {};
             isBatchSubmitted = false;
+            totalQuestionsInSession = Number(currentBatchMeta.totalItemsInSession) || currentQuestionBatch.length;
             updateSessionSummary(batchData.session_correct_answers, batchData.session_total_answered);
             submitBatchBtn.style.display = 'block';
             submitBatchBtn.disabled = false;
@@ -993,12 +1216,12 @@
             const startRange = currentBatchMeta.startIndex + 1;
             const endRange = currentBatchMeta.startIndex + currentQuestionBatch.length;
             const totalInSession = currentBatchMeta.totalItemsInSession;
-            if (quizProgressSpan) {
-                quizProgressSpan.textContent = `${startRange}-${endRange} / ${totalInSession}`;
+            if (quizGroupRangeEl) {
+                const rangeText = totalInSession ? `Câu ${startRange}-${endRange}` : '---';
+                quizGroupRangeEl.textContent = rangeText;
             }
-            if (quizProgressValue) {
-                quizProgressValue.textContent = numberFormatter.format(currentQuestionBatch.length);
-            }
+
+            updateProgressCard();
 
             attachOptionHandlers(quizContentDiv);
         }
@@ -1032,7 +1255,28 @@
                     const questionCard = document.querySelector(`.question-card[data-item-id="${result.item_id}"]`);
                     if (questionCard) {
                         const feedbackArea = questionCard.querySelector('.feedback-area');
-                        let feedbackHtml = result.is_correct ? `<div class="feedback-box feedback-correct">Đáp án chính xác!</div>` : `<div class="feedback-box feedback-incorrect">Sai rồi. Đáp án đúng là ${formatTextForHtml(result.correct_answer)}.</div>`;
+                        let feedbackHtml;
+                        if (result.is_correct) {
+                            feedbackHtml = `
+                                <div class="feedback-box feedback-correct">
+                                    <span class="feedback-icon"><i class="fas fa-check-circle"></i></span>
+                                    <div class="feedback-text">
+                                        <strong>Tuyệt vời!</strong>
+                                        <span>Bạn đã trả lời chính xác.</span>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            feedbackHtml = `
+                                <div class="feedback-box feedback-incorrect">
+                                    <span class="feedback-icon"><i class="fas fa-lightbulb"></i></span>
+                                    <div class="feedback-text">
+                                        <strong>Sai rồi</strong>
+                                        <span>Đáp án đúng: ${formatTextForHtml(result.correct_answer)}.</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
                         if (result.explanation) {
                             feedbackHtml += `<div class="feedback-explanation"><strong>Giải thích:</strong> <div class="feedback-explanation-content mt-2"></div></div>`;
                         }
@@ -1053,7 +1297,7 @@
                         questionCard.querySelector('.question-toolbar').style.display = 'flex';
                         questionCard.querySelector('.extra-info-area').style.display = 'flex';
                         const insights = questionCard.querySelector('.question-insights');
-                        if (insights) insights.style.display = 'grid';
+                        if (insights) insights.style.display = 'flex';
                         questionCard.querySelector('.user-note-section').style.display = 'block';
                         questionCard.querySelector('.toggle-ai-btn').style.display = 'inline-flex';
                         renderQuestionStatistics(questionCard, result.statistics);
@@ -1082,10 +1326,11 @@
                     if (response.status === 404) {
                         const endMessage = await response.json();
                         quizContentDiv.innerHTML = `<div class="text-center py-12 px-6 text-gray-600"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-semibold text-gray-700 mb-2">Hoàn thành phiên học!</h3><p class="text-gray-500">${formatTextForHtml(endMessage.message)}</p><button id="return-to-dashboard-btn" class="control-button bg-blue-600 text-white hover:bg-blue-700 mt-6"><i class="fas fa-home mr-2"></i> Quay lại Dashboard</button></div>`;
-                        quizProgressSpan.textContent = '';
-                        if (quizProgressValue) {
-                            quizProgressValue.textContent = '0';
+                        if (quizGroupRangeEl) {
+                            quizGroupRangeEl.textContent = 'Hoàn thành';
                         }
+                        totalQuestionsInSession = sessionTotalAnswered;
+                        updateProgressCard();
                         submitBatchBtn.style.display = 'none';
                         nextBatchBtn.style.display = 'none';
                         endSessionBtn.style.display = 'none';
@@ -1105,9 +1350,77 @@
             }
         }
         
-        endSessionBtn.addEventListener('click', () => showCustomConfirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?', async () => { /* ... */ }));
-        function showCustomAlert(message) { /* ... */ }
-        function showCustomConfirm(message, onConfirm) { /* ... */ }
+        async function handleEndSession() {
+            try {
+                const response = await fetch(endSessionUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...csrfHeaders },
+                    body: JSON.stringify({})
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success === false) {
+                    showCustomAlert(result.message || 'Không thể kết thúc phiên học.', 'error');
+                    return;
+                }
+
+                const redirectUrl = result.redirect_url || quizDashboardUrl;
+                window.location.href = redirectUrl;
+            } catch (error) {
+                console.error('Lỗi khi kết thúc phiên học Quiz:', error);
+                showCustomAlert('Có lỗi xảy ra khi kết thúc phiên học.', 'error');
+            }
+        }
+
+        function ensureToastContainer() {
+            let container = document.querySelector('.quiz-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'quiz-toast-container';
+                document.body.appendChild(container);
+            }
+            return container;
+        }
+
+        function showCustomAlert(message, type = 'warning') {
+            if (typeof window.showFlashMessage === 'function') {
+                const flashType = type === 'error' ? 'danger' : type;
+                window.showFlashMessage(message, flashType);
+                return;
+            }
+
+            const container = ensureToastContainer();
+            const toast = document.createElement('div');
+            toast.className = `quiz-toast quiz-toast--${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => toast.classList.add('visible'));
+
+            setTimeout(() => {
+                toast.classList.remove('visible');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        function showCustomConfirm(message, onConfirm) {
+            if (typeof window.showConfirmationDialog === 'function') {
+                window.showConfirmationDialog(message, onConfirm);
+                return;
+            }
+
+            if (window.confirm(message)) {
+                Promise.resolve(onConfirm()).catch(error => {
+                    console.error('Lỗi khi xử lý xác nhận:', error);
+                    showCustomAlert('Có lỗi xảy ra khi xử lý yêu cầu.', 'error');
+                });
+            }
+        }
+
+        endSessionBtn.addEventListener('click', () => showCustomConfirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?', handleEndSession));
         
         submitBatchBtn.addEventListener('click', submitAnswerBatch);
         nextBatchBtn.addEventListener('click', getNextQuestionBatch);
