@@ -135,37 +135,21 @@
         }
 
         .quiz-session-stats {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
             gap: 0.9rem;
             align-items: stretch;
-            padding: 0.95rem;
+            padding: 1rem;
             border-radius: 1.15rem;
             border: 1px solid rgba(148, 163, 184, 0.25);
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.03), rgba(37, 99, 235, 0.05));
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-            overflow-x: auto;
-            scroll-snap-type: x proximity;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(37, 99, 235, 0.4) transparent;
-        }
-
-        .quiz-session-stats::-webkit-scrollbar {
-            height: 6px;
-        }
-
-        .quiz-session-stats::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .quiz-session-stats::-webkit-scrollbar-thumb {
-            background: rgba(37, 99, 235, 0.4);
-            border-radius: 9999px;
         }
 
         @media (max-width: 640px) {
             .quiz-session-stats {
-                flex-direction: column;
-                padding: 0.75rem;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                padding: 0.85rem;
             }
         }
 
@@ -174,13 +158,11 @@
             color: #0f172a;
             border-radius: 0.9rem;
             padding: 0.9rem 1rem;
-            min-width: 150px;
             display: grid;
             gap: 0.4rem;
             border: 1px solid rgba(148, 163, 184, 0.2);
             box-shadow: 0 16px 30px -25px rgba(15, 23, 42, 0.45);
             position: relative;
-            scroll-snap-align: start;
         }
 
         .session-stat::after {
@@ -446,7 +428,7 @@
         .question-stats-grid {
             display: grid;
             gap: 0.75rem;
-            grid-template-columns: minmax(0, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         }
 
         .stat-item {
@@ -476,6 +458,10 @@
             display: flex;
             flex-wrap: wrap;
             gap: 0.65rem;
+            padding: 0.85rem 1rem;
+            border-radius: 0.85rem;
+            background: rgba(226, 232, 240, 0.45);
+            border: 1px solid rgba(148, 163, 184, 0.3);
         }
 
         .meta-badge {
@@ -508,11 +494,19 @@
         }
 
         .question-stats-history {
-            border-top: 1px dashed rgba(148, 163, 184, 0.4);
-            padding-top: 0.75rem;
+            border-top: 1px dashed rgba(148, 163, 184, 0.2);
+            padding-top: 0.85rem;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.6rem;
+            padding-bottom: 0.85rem;
+        }
+
+        .question-stats-history .history-list-wrapper {
+            padding: 0.75rem 1rem;
+            border-radius: 0.85rem;
+            background: rgba(248, 250, 252, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.28);
         }
 
         .history-title {
@@ -521,6 +515,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            margin-bottom: 0.35rem;
         }
 
         .history-list {
@@ -1144,7 +1139,9 @@
                     </div>
                     <div class="question-stats-history">
                         <div class="history-title"><i class="fas fa-stream"></i> Lịch sử gần đây</div>
-                        <ul class="history-list" aria-label="Kết quả gần nhất"></ul>
+                        <div class="history-list-wrapper">
+                            <ul class="history-list" aria-label="Kết quả gần nhất"></ul>
+                        </div>
                     </div>
                             </div>
                         </div>
