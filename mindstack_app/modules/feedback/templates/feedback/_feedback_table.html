@@ -88,9 +88,11 @@
                         {# Các nút xử lý khác #}
                         {% if feedback.status == 'new' %}
                         <form action="{{ url_for('feedback.resolve_feedback', feedback_id=feedback.feedback_id) }}" method="POST" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="text-green-600 hover:text-green-900" title="Đánh dấu đã giải quyết"><i class="fas fa-check-circle"></i></button>
                         </form>
                         <form action="{{ url_for('feedback.ignore_feedback', feedback_id=feedback.feedback_id) }}" method="POST" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="text-gray-500 hover:text-gray-800" title="Bỏ qua"><i class="fas fa-ban"></i></button>
                         </form>
                         {% endif %}
