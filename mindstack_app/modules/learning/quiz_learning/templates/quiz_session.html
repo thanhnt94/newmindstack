@@ -1,6 +1,6 @@
 <!-- mindstack_app/modules/learning/quiz_learning/templates/quiz_session.html -->
-<!-- Phiên bản: 2.4 -->
-<!-- MỤC ĐÍCH: Sửa lỗi không hiển thị media (hình ảnh, audio) và nâng cấp tính năng tự động tạo giải thích AI. -->
+<!-- Phiên bản: 3.3 -->
+<!-- MỤC ĐÍCH: Nâng cấp giao diện: Sửa lỗi khoảng trống thừa bằng cách điều chỉnh chiều cao và bố cục của các thẻ thống kê nhỏ. -->
 
 {% extends "base.html" %}
 
@@ -41,11 +41,12 @@
             max-width: 38rem;
         }
 
+        /* THAY ĐỔI LỚN #1: Bố cục lại thanh trạng thái phiên học */
         .quiz-session-overview {
             display: grid;
             grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
             gap: 1.5rem;
-            align-items: stretch;
+            align-items: flex-start; /* SỬA: Căn chỉnh các phần tử ở trên cùng để tránh bị giãn chiều cao thừa */
         }
 
         @media (max-width: 1024px) {
@@ -96,6 +97,7 @@
             display: flex;
             flex-direction: column;
             gap: 0.35rem;
+            flex-grow: 1;
         }
 
         .progress-metric-value {
@@ -116,6 +118,7 @@
             border-radius: 9999px;
             background: rgba(15, 23, 42, 0.28);
             overflow: hidden;
+            margin-top: 0.5rem;
         }
 
         .progress-bar-fill {
@@ -133,67 +136,87 @@
             font-size: 0.9rem;
             opacity: 0.9;
         }
-
+        
+        /* THAY ĐỔI LỚN #1.2: Bố cục lại các chỉ số thống kê bên cạnh thành 1 hàng ngang */
         .quiz-session-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-            gap: 0.9rem;
-            align-items: stretch;
-            padding: 1rem;
-            border-radius: 1.15rem;
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.03), rgba(37, 99, 235, 0.05));
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0.75rem; 
+            align-items: flex-start; /* SỬA: Căn chỉnh các item ở trên cùng */
+            padding: 0; 
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            overflow-x: auto;
+            /* Thêm overflow-y: hidden để tránh cuộn ngang nội tại nếu container không giãn được */
+            overflow-y: hidden; 
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 1024px) {
             .quiz-session-stats {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-                padding: 0.85rem;
+                gap: 0.75rem;
+                flex-shrink: 0;
             }
         }
-
+        
         .session-stat {
             background: #ffffff;
-            color: #0f172a;
             border-radius: 0.9rem;
-            padding: 0.9rem 1rem;
-            display: grid;
-            gap: 0.4rem;
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            box-shadow: 0 16px 30px -25px rgba(15, 23, 42, 0.45);
+            padding: 0.8rem; /* GIẢM padding thêm chút */
+            box-shadow: 0 8px 15px -10px rgba(15, 23, 42, 0.2); 
+            border: 1px solid rgba(148, 163, 184, 0.15); 
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             position: relative;
+            overflow: hidden;
+            flex: 1 0 auto; /* Đặt lại thành auto để chiều cao chỉ vừa với nội dung */
+            min-width: 100px; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: space-between; 
         }
-
-        .session-stat::after {
+        
+        .session-stat::before {
             content: '';
             position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.08));
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(59, 130, 246, 0.05));
+            z-index: 0;
         }
-
-        .session-stat:hover::after,
-        .session-stat:focus-visible::after {
-            opacity: 1;
+        
+        .session-stat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px -20px rgba(15, 23, 42, 0.35);
         }
 
         .session-stat-value {
-            font-size: clamp(1.3rem, 1.05rem + 0.4vw, 1.75rem);
+            font-size: 1.4rem;
             font-weight: 700;
             line-height: 1.1;
+            position: relative;
+            z-index: 1;
+            color: #1d4ed8;
         }
 
         .session-stat-label {
-            font-size: 0.8rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            letter-spacing: 0.18em;
-            color: rgba(100, 116, 139, 0.9);
+            letter-spacing: 0.08em; 
+            font-weight: 600;
+            color: #64748b;
+            position: relative;
+            z-index: 1;
+            margin-top: 0.15rem;
         }
+        
+        /* Đảm bảo các chỉ số con có màu sắc phù hợp */
+        #session-correct-count { color: #10b981; }
+        #session-accuracy { color: #1d4ed8; }
+        #session-total-count { color: #0f172a; }
 
+        /* CSS cho các phần còn lại */
         .quiz-card {
             display: flex;
             flex-direction: column;
@@ -220,7 +243,170 @@
             position: relative;
             overflow: hidden;
         }
+        
+        /* THAY ĐỔI LỚN #2: Cấu trúc lại thống kê câu hỏi */
+        .question-insights {
+            border-top: 1px dashed rgba(148, 163, 184, 0.45);
+            padding-top: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
 
+        .question-stats-card {
+            background: #ffffff;
+            border-radius: 1rem; /* Đồng bộ bo tròn */
+            padding: 1.25rem; /* Tăng padding */
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 8px 15px -10px rgba(15, 23, 42, 0.35); /* Bóng đổ nhẹ hơn */
+        }
+        
+        .stat-icon-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        
+        .stat-icon-label i {
+            font-size: 0.95rem;
+            color: #1d4ed8;
+        }
+
+
+        .question-stats-grid {
+            display: grid;
+            gap: 1rem; /* Tăng khoảng cách giữa các card */
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            margin-top: 1rem;
+            padding-top: 0.5rem;
+        }
+
+        .stat-item {
+            background: #f8fafc; /* Nền nhẹ */
+            border-radius: 0.75rem;
+            padding: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            box-shadow: none;
+            transition: border-color 0.2s ease;
+        }
+        
+        .stat-item:hover {
+            border-color: #3b82f6;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.1;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .stat-time-detail {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px dashed #e2e8f0;
+        }
+        
+        .stat-time-card {
+            background: #fff;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            border: 1px solid #dbeafe;
+        }
+        
+        .stat-time-card span {
+            display: block;
+        }
+        
+        .stat-time-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #4f46e5;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-time-value {
+            font-size: 0.9rem;
+            color: #1f2937;
+        }
+        
+        .question-stats-history {
+            border-top: 1px dashed rgba(148, 163, 184, 0.2);
+            padding-top: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            padding-bottom: 0.85rem;
+        }
+
+        .history-list-wrapper {
+            padding: 0.75rem 1rem;
+            border-radius: 0.85rem;
+            background: rgba(248, 250, 252, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .history-pill {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            background: #e2e8f0;
+            color: #1f2937;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            cursor: default;
+        }
+
+        .history-pill.correct {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #34d399;
+        }
+
+        .history-pill.incorrect {
+            background: #fee2e2;
+            color: #b91c1c;
+            border-color: #ef4444;
+        }
+
+        .history-pill:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 10px -8px rgba(15, 23, 42, 0.4);
+        }
+        
+        /* CSS cho các phần còn lại */
         .question-card::before {
             content: '';
             position: absolute;
@@ -375,25 +561,6 @@
             margin-top: 0.75rem;
         }
 
-        .question-insights {
-            border-top: 1px dashed rgba(148, 163, 184, 0.45);
-            padding-top: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-        }
-
-        .question-stats-card {
-            background: #ffffff;
-            border-radius: 0.85rem;
-            padding: 1rem 1.1rem;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            box-shadow: 0 18px 30px -28px rgba(15, 23, 42, 0.35);
-        }
-
         .question-stats-header {
             display: flex;
             justify-content: space-between;
@@ -424,150 +591,7 @@
             background: rgba(148, 163, 184, 0.18);
             color: #475569;
         }
-
-        .question-stats-grid {
-            display: grid;
-            gap: 0.75rem;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        }
-
-        .stat-item {
-            background: #ffffff;
-            border-radius: 0.85rem;
-            padding: 0.95rem 1rem;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-        }
-
-        .stat-value {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: #0f172a;
-        }
-
-        .stat-label {
-            font-size: 0.82rem;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .question-stats-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.65rem;
-            padding: 0.85rem 1rem;
-            border-radius: 0.85rem;
-            background: rgba(226, 232, 240, 0.45);
-            border: 1px solid rgba(148, 163, 184, 0.3);
-        }
-
-        .meta-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.55rem;
-            background: rgba(148, 163, 184, 0.15);
-            border-radius: 9999px;
-            padding: 0.35rem 0.8rem;
-            font-size: 0.82rem;
-            color: #1f2937;
-        }
-
-        .meta-badge i {
-            color: #2563eb;
-        }
-
-        .meta-badge .meta-label {
-            font-weight: 600;
-        }
-
-        .meta-badge .meta-value {
-            color: #475569;
-        }
-
-        .meta-text-group {
-            display: flex;
-            flex-direction: column;
-            line-height: 1.2;
-        }
-
-        .question-stats-history {
-            border-top: 1px dashed rgba(148, 163, 184, 0.2);
-            padding-top: 0.85rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-            padding-bottom: 0.85rem;
-        }
-
-        .question-stats-history .history-list-wrapper {
-            padding: 0.75rem 1rem;
-            border-radius: 0.85rem;
-            background: rgba(248, 250, 252, 0.75);
-            border: 1px solid rgba(148, 163, 184, 0.28);
-        }
-
-        .history-title {
-            font-weight: 600;
-            color: #0f172a;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.35rem;
-        }
-
-        .history-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .history-pill {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.95rem;
-            background: #e2e8f0;
-            color: #1f2937;
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-            cursor: default;
-        }
-
-        .history-pill.correct {
-            background: rgba(187, 247, 208, 0.6);
-            color: #15803d;
-            border-color: rgba(34, 197, 94, 0.4);
-        }
-
-        .history-pill.incorrect {
-            background: rgba(254, 226, 226, 0.65);
-            color: #b91c1c;
-            border-color: rgba(248, 113, 113, 0.5);
-        }
-
-        .history-pill:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 16px -14px rgba(15, 23, 42, 0.55);
-        }
-
-        .history-empty {
-            font-size: 0.85rem;
-            color: #475569;
-            padding: 0.25rem 0;
-            display: block;
-            width: 100%;
-        }
-
+        
         .extra-info-area {
             display: none;
             gap: 0.85rem;
@@ -643,49 +667,6 @@
             justify-content: flex-end;
         }
 
-        .quiz-toast-container {
-            position: fixed;
-            top: 1.5rem;
-            right: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            z-index: 2000;
-            pointer-events: none;
-        }
-
-        .quiz-toast {
-            background: #1f2937;
-            color: #ffffff;
-            padding: 0.75rem 1.1rem;
-            border-radius: 0.85rem;
-            box-shadow: 0 18px 38px -25px rgba(15, 23, 42, 0.65);
-            font-size: 0.92rem;
-            font-weight: 500;
-            opacity: 0;
-            transform: translateY(-10px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            pointer-events: auto;
-            max-width: 320px;
-        }
-
-        .quiz-toast.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .quiz-toast--warning {
-            background: #f97316;
-        }
-
-        .quiz-toast--error {
-            background: #ef4444;
-        }
-
-        .quiz-toast--success {
-            background: #22c55e;
-        }
-
         .control-button {
             display: inline-flex;
             align-items: center;
@@ -737,6 +718,38 @@
                 grid-template-columns: minmax(0, 1fr);
             }
         }
+        
+        /* Thêm CSS cho các thành phần UI tạm thời bị ẩn */
+        .quiz-toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 2000;
+            pointer-events: none;
+        }
+
+        .quiz-toast {
+            background: #1f2937;
+            color: #ffffff;
+            padding: 0.75rem 1.1rem;
+            border-radius: 0.85rem;
+            box-shadow: 0 18px 38px -25px rgba(15, 23, 42, 0.65);
+            font-size: 0.92rem;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: auto;
+            max-width: 320px;
+        }
+
+        .quiz-toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 {% endblock %}
 
@@ -750,23 +763,29 @@
                 <p class="cm-subheading">Chọn đáp án chính xác cho mỗi câu hỏi và khám phá thống kê học tập chi tiết ngay bên dưới.</p>
             </div>
             <div class="quiz-session-overview">
+                <!-- THAY ĐỔI LỚN #1: Cải tiến quiz-progress-card -->
                 <div class="quiz-progress-card">
                     <div class="progress-card-header">
                         <span class="progress-card-title"><i class="fas fa-route"></i> Trạng thái phiên học</span>
                         <span class="progress-card-chip" id="quiz-group-range">--</span>
                     </div>
+                    
                     <div class="progress-metric">
                         <span class="progress-metric-value" id="quiz-answered-count">0</span>
                         <span class="progress-metric-label">Câu đã trả lời</span>
+                        <div class="progress-bar-track" aria-hidden="true">
+                            <div class="progress-bar-fill" id="quiz-progress-fill"></div>
+                        </div>
                     </div>
-                    <div class="progress-bar-track" aria-hidden="true">
-                        <div class="progress-bar-fill" id="quiz-progress-fill"></div>
-                    </div>
+                    
                     <div class="progress-card-footer">
                         <span id="quiz-total-label">0 / 0 câu</span>
                         <span id="quiz-remaining-label">Còn lại: 0</span>
                     </div>
                 </div>
+                <!-- KẾT THÚC THAY ĐỔI LỚN #1 -->
+                
+                <!-- THAY ĐỔI LỚN #1.2: Cải tiến quiz-session-stats -->
                 <div class="quiz-session-stats">
                     <div class="session-stat">
                         <span class="session-stat-label">Tổng đã trả lời</span>
@@ -774,13 +793,14 @@
                     </div>
                     <div class="session-stat">
                         <span class="session-stat-label">Đúng</span>
-                        <span class="session-stat-value" id="session-correct-count">0</span>
+                        <span class="session-stat-value" id="session-correct-count" style="color: #10b981;">0</span>
                     </div>
                     <div class="session-stat">
                         <span class="session-stat-label">Tỉ lệ chính xác</span>
-                        <span class="session-stat-value" id="session-accuracy">0%</span>
+                        <span class="session-stat-value" id="session-accuracy" style="color: #1d4ed8;">0%</span>
                     </div>
                 </div>
+                <!-- KẾT THÚC THAY ĐỔI LỚN #1.2 -->
             </div>
         </div>
 
@@ -836,7 +856,7 @@
         const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}";
         const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
         const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
-        const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}"; // URL mới cho AI
+        const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
         const editQuizItemUrl = "{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=0, item_id=0) }}";
         const quizItemApiBaseUrl = "{{ url_for('learning.quiz_learning.get_quiz_item_api', item_id=0) }}";
         const quizDashboardUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
@@ -850,6 +870,17 @@
             learning: 'Đang học',
             mastered: 'Đã thành thạo',
             hard: 'Khó'
+        };
+
+        const STAT_ICONS = {
+            total_attempts: 'fas fa-chart-bar',
+            times_correct: 'fas fa-check-circle',
+            times_incorrect: 'fas fa-times-circle',
+            correct_percentage: 'fas fa-percent',
+            correct_streak: 'fas fa-bolt',
+            incorrect_streak: 'fas fa-redo-alt',
+            first_seen: 'fas fa-calendar-alt',
+            last_reviewed: 'fas fa-history'
         };
 
         const numberFormatter = new Intl.NumberFormat('vi-VN');
@@ -964,61 +995,84 @@
             if (!statsCard) return;
 
             const insightsContainer = questionCard.querySelector('.question-insights');
-            const contentEl = statsCard.querySelector('.question-stats-content');
             const statusPill = statsCard.querySelector('[data-stat="status"]');
+            const metricsGrid = statsCard.querySelector('.question-stats-grid');
+            const timeDetail = statsCard.querySelector('.stat-time-detail');
+            const historyList = statsCard.querySelector('.history-list');
 
+            // Ẩn/hiện tổng thể
             if (!stats) {
                 statsCard.dataset.hasStats = 'false';
                 statsCard.style.display = 'none';
-                if (contentEl) contentEl.style.display = 'none';
                 if (statusPill) {
                     statusPill.textContent = 'Chưa có dữ liệu';
                     statusPill.classList.add('status-empty');
                 }
-                const historyList = statsCard.querySelector('.history-list');
                 if (historyList) historyList.innerHTML = '';
-                if (insightsContainer) {
-                    const extraInfoArea = questionCard.querySelector('.extra-info-area');
-                    const extraInfoVisible = extraInfoArea && extraInfoArea.style.display && extraInfoArea.style.display !== 'none';
-                    if (!extraInfoVisible) {
-                        insightsContainer.style.display = 'none';
-                    }
-                }
+                if (metricsGrid) metricsGrid.innerHTML = '';
                 questionCard.classList.remove('answered');
                 return;
             }
 
+            // Hiển thị và cập nhật trạng thái
             statsCard.dataset.hasStats = 'true';
             statsCard.style.display = 'flex';
             if (insightsContainer) insightsContainer.style.display = 'flex';
-            if (contentEl) contentEl.style.display = 'block';
             if (statusPill) {
                 const statusLabel = STATUS_LABELS[stats.status] || (stats.status ? stats.status.toString() : 'Đang học');
                 statusPill.textContent = statusLabel;
                 statusPill.classList.remove('status-empty');
             }
 
-            const statFields = ['total_attempts', 'times_correct', 'times_incorrect', 'correct_percentage', 'correct_streak', 'incorrect_streak'];
-            statFields.forEach(field => {
-                const element = statsCard.querySelector(`[data-stat="${field}"]`);
-                if (!element) return;
-                if (field === 'correct_percentage') {
-                    const percentage = typeof stats[field] === 'number' ? stats[field] : Number(stats[field]) || 0;
-                    element.textContent = `${percentageFormatter.format(percentage)}%`;
-                } else {
-                    element.textContent = formatStatValue(stats[field]);
-                }
-            });
+            const statFields = [
+                { key: 'total_attempts', label: 'Tổng lượt làm', icon: STAT_ICONS.total_attempts },
+                { key: 'times_correct', label: 'Đúng', icon: STAT_ICONS.times_correct },
+                { key: 'times_incorrect', label: 'Sai', icon: STAT_ICONS.times_incorrect },
+                { key: 'correct_percentage', label: 'Tỉ lệ đúng', icon: STAT_ICONS.correct_percentage },
+                { key: 'correct_streak', label: 'Chuỗi đúng', icon: STAT_ICONS.correct_streak },
+                { key: 'incorrect_streak', label: 'Chuỗi sai', icon: STAT_ICONS.incorrect_streak }
+            ];
+            
+            // Cập nhật Metrics Grid
+            if (metricsGrid) {
+                metricsGrid.innerHTML = statFields.map(field => {
+                    let value;
+                    if (field.key === 'correct_percentage') {
+                        const percentage = typeof stats[field.key] === 'number' ? stats[field.key] : Number(stats[field.key]) || 0;
+                        value = `${percentageFormatter.format(percentage)}%`;
+                    } else {
+                        value = formatStatValue(stats[field.key]);
+                    }
+                    return `
+                        <div class="stat-item">
+                            <span class="stat-icon-label"><i class="${field.icon}"></i> ${field.label}</span>
+                            <span class="stat-value">${value}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
 
-            const firstSeenEl = statsCard.querySelector('[data-stat="first_seen"]');
-            if (firstSeenEl) firstSeenEl.textContent = formatDateTime(stats.first_seen);
-            const lastReviewedEl = statsCard.querySelector('[data-stat="last_reviewed"]');
-            if (lastReviewedEl) lastReviewedEl.textContent = formatDateTime(stats.last_reviewed);
+            // Cập nhật Time Detail
+            if (timeDetail) {
+                timeDetail.innerHTML = `
+                    <div class="stat-time-card">
+                        <span class="stat-time-label"><i class="${STAT_ICONS.first_seen}"></i> LẦN ĐẦU LÀM</span>
+                        <span class="stat-time-value">${formatDateTime(stats.first_seen)}</span>
+                    </div>
+                    <div class="stat-time-card">
+                        <span class="stat-time-label"><i class="${STAT_ICONS.last_reviewed}"></i> ÔN GẦN NHẤT</span>
+                        <span class="stat-time-value">${formatDateTime(stats.last_reviewed)}</span>
+                    </div>
+                `;
+                timeDetail.style.display = 'grid';
+            }
 
-            const historyList = statsCard.querySelector('.history-list');
+
+            // Cập nhật History List
             if (historyList) {
                 historyList.innerHTML = '';
                 const historyEntries = Array.isArray(stats.review_history) ? stats.review_history.slice(-5).reverse() : [];
+                
                 if (historyEntries.length === 0) {
                     const li = document.createElement('li');
                     li.className = 'history-empty';
@@ -1027,16 +1081,14 @@
                 } else {
                     historyEntries.forEach(entry => {
                         const li = document.createElement('li');
-                        li.className = `history-pill ${entry.is_correct ? 'correct' : 'incorrect'}`;
-                        const icon = document.createElement('i');
-                        icon.className = `fas ${entry.is_correct ? 'fa-check' : 'fa-times'}`;
-                        li.appendChild(icon);
-
-                        const answer = entry.user_answer || '?';
-                        const scoreChange = typeof entry.score_change === 'number' ? `${entry.score_change > 0 ? '+' : ''}${entry.score_change}` : '0';
+                        const isCorrect = entry.is_correct || false;
+                        li.className = `history-pill ${isCorrect ? 'correct' : 'incorrect'}`;
+                        const iconClass = isCorrect ? 'fas fa-check' : 'fas fa-times';
+                        const scoreChange = typeof entry.score_change === 'number' ? `${entry.score_change > 0 ? '+' : ''}${entry.score_change}` : '';
                         const timestamp = entry.timestamp_formatted || formatDateTime(entry.timestamp);
-                        const statusLabel = entry.is_correct ? 'Đúng' : 'Sai';
-                        const tooltip = `${statusLabel} • ${answer} • ${timestamp} • ${scoreChange} điểm`;
+                        const tooltip = `${isCorrect ? 'Đúng' : 'Sai'} · ${timestamp} · ${scoreChange} điểm`;
+                        
+                        li.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i>`;
                         li.title = tooltip;
                         li.setAttribute('aria-label', tooltip);
 
@@ -1094,55 +1146,20 @@
                                 <div class="question-stats-title"><i class="fas fa-chart-line"></i> Thống kê câu hỏi</div>
                                 <span class="status-pill status-empty" data-stat="status">Chưa có dữ liệu</span>
                             </div>
+                            
+                            <div class="stat-time-detail" style="display: none;"></div>
+
                             <div class="question-stats-content">
                                 <div class="question-stats-grid">
-                                    <div class="stat-item">
-                                        <span class="stat-label">Tổng lượt làm</span>
-                                        <span class="stat-value" data-stat="total_attempts">0</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">Đúng</span>
-                                        <span class="stat-value" data-stat="times_correct">0</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">Sai</span>
-                                        <span class="stat-value" data-stat="times_incorrect">0</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">Tỉ lệ đúng</span>
-                                        <span class="stat-value" data-stat="correct_percentage">0%</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">Chuỗi đúng</span>
-                                        <span class="stat-value" data-stat="correct_streak">0</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">Chuỗi sai</span>
-                                        <span class="stat-value" data-stat="incorrect_streak">0</span>
-                                    </div>
+                                    {# Grid items will be rendered by renderQuestionStatistics #}
                                 </div>
-                    <div class="question-stats-meta">
-                        <div class="meta-badge">
-                            <i class="far fa-clock"></i>
-                            <div class="meta-text-group">
-                                <span class="meta-label">Lần đầu làm</span>
-                                <span class="meta-value" data-stat="first_seen">--</span>
                             </div>
-                        </div>
-                        <div class="meta-badge">
-                            <i class="far fa-history"></i>
-                            <div class="meta-text-group">
-                                <span class="meta-label">Ôn gần nhất</span>
-                                <span class="meta-value" data-stat="last_reviewed">--</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="question-stats-history">
-                        <div class="history-title"><i class="fas fa-stream"></i> Lịch sử gần đây</div>
-                        <div class="history-list-wrapper">
-                            <ul class="history-list" aria-label="Kết quả gần nhất"></ul>
-                        </div>
-                    </div>
+                            
+                            <div class="question-stats-history">
+                                <div class="history-title"><i class="fas fa-stream"></i> Lịch sử trả lời</div>
+                                <div class="history-list-wrapper">
+                                    <ul class="history-list" aria-label="Kết quả gần nhất"></ul>
+                                </div>
                             </div>
                         </div>
 
@@ -1275,7 +1292,7 @@
                             `;
                         }
                         if (result.explanation) {
-                            feedbackHtml += `<div class="feedback-explanation"><strong>Giải thích:</strong> <div class="feedback-explanation-content mt-2"></div></div>`;
+                            feedbackHtml += `<div class="feedback-explanation"><strong>Giải thích:</strong> <div class="feedback-explanation-content mt-2"></div>`;
                         }
                         feedbackArea.innerHTML = feedbackHtml;
 
@@ -1530,7 +1547,7 @@
             // THÊM MỚI: Xử lý nút mở modal Feedback
             if (event.target.closest('.open-feedback-modal-btn')) {
                 const itemId = event.target.closest('.open-feedback-modal-btn').dataset.itemId;
-                const itemTitle = event.target.closest('.open-feedback-modal-btn').dataset.itemTitle;
+                const itemTitle = currentQuestionBatch.find(q => q.item_id == itemId)?.content.question || 'Câu hỏi Quiz';
                 if (window.openFeedbackModal) {
                     window.openFeedbackModal(itemId, itemTitle);
                 }
