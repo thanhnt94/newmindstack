@@ -188,8 +188,19 @@ def _resolve_timeframe_dates(timeframe):
 def _normalize_datetime_range(start_date, end_date):
     """Return aware datetime boundaries for filtering timestamps."""
 
-    start_dt = datetime.combine(start_date, datetime.min.time()) if start_date else None
-    end_dt = datetime.combine(end_date + timedelta(days=1), datetime.min.time()) if end_date else None
+    if start_date:
+        start_dt = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+    else:
+        start_dt = None
+
+    if end_date:
+        end_dt = (
+            datetime.combine(end_date + timedelta(days=1), datetime.min.time())
+            .replace(tzinfo=timezone.utc)
+        )
+    else:
+        end_dt = None
+
     return start_dt, end_dt
 
 
