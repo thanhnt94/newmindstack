@@ -21,7 +21,43 @@
         .section-title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1.5rem; display: flex; align-items: center; }
         .section-title i { color: var(--primary-color); margin-right: 0.75rem; }
 
-        
+        .overview-section { margin-bottom: 2rem; }
+        .overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; }
+        .overview-card { background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.25rem 1.5rem; box-shadow: 0 10px 25px -20px rgba(15, 23, 42, 0.4); display: flex; flex-direction: column; gap: 0.45rem; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .overview-card:hover { transform: translateY(-2px); box-shadow: 0 18px 35px -18px rgba(15, 23, 42, 0.35); }
+        .overview-card.compact { padding: 1.1rem 1.25rem; }
+        .overview-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
+        .overview-value { font-size: 2rem; font-weight: 800; color: var(--text-primary); }
+        .overview-card.compact .overview-value { font-size: 1.6rem; }
+        .overview-subtitle { font-size: 0.95rem; color: var(--text-secondary); }
+        .overview-grid-secondary { margin-top: 1.5rem; }
+
+        .analytics-section { margin-bottom: 2rem; }
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+        .analytics-card { border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; background: var(--card-background); box-shadow: 0 10px 35px -25px rgba(15, 23, 42, 0.4); display: flex; flex-direction: column; gap: 1rem; }
+        .analytics-card .stat-chart-body { min-height: 260px; }
+
+        .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 1.75rem; }
+        .insight-card { border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.25rem 1.5rem; background: var(--card-background); display: flex; flex-direction: column; gap: 0.5rem; }
+        .insight-label { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; }
+        .insight-label i { color: var(--primary-color); }
+        .insight-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
+        .insight-meta { font-size: 0.9rem; color: var(--text-secondary); }
+
+        .insights-activity { border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.25rem 1.5rem; background: var(--card-background); box-shadow: 0 10px 30px -24px rgba(30, 64, 175, 0.25); }
+        .insights-activity-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; }
+        .activity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+        .activity-item { display: flex; gap: 1rem; align-items: flex-start; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-info { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; }
+        .activity-label { font-weight: 600; color: var(--text-primary); }
+        .activity-reason { color: var(--text-secondary); font-size: 0.95rem; }
+        .activity-meta { font-size: 0.85rem; color: var(--text-secondary); }
+        .activity-score { font-weight: 700; min-width: 90px; text-align: right; font-size: 1rem; }
+        .activity-score.positive { color: #16a34a; }
+        .activity-score.negative { color: #dc2626; }
+        .activity-empty { margin: 0; font-size: 0.95rem; color: var(--text-secondary); }
+
         /* Bảng xếp hạng */
         .leaderboard-controls { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
         .form-group { display: flex; align-items: center; gap: 0.5rem; }
@@ -105,6 +141,11 @@
         @media (max-width: 640px) {
             .stats-modal-dialog { width: 96%; }
             .stats-modal-header, .stats-modal-body, .stats-modal-pagination { padding-left: 1.25rem; padding-right: 1.25rem; }
+            .overview-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+            .analytics-grid { grid-template-columns: 1fr; }
+            .insights-grid { grid-template-columns: 1fr; }
+            .activity-item { flex-direction: column; align-items: flex-start; }
+            .activity-score { text-align: left; }
         }
     </style>
 {% endblock %}
@@ -112,6 +153,143 @@
 {% block content %}
 <div class="dashboard-container">
     <h1 class="dashboard-header"><i class="fas fa-chart-pie"></i> Thống kê</h1>
+
+    <div class="stats-section overview-section">
+        <h2 class="section-title"><i class="fas fa-chart-line"></i> Tổng quan nhanh</h2>
+        <div class="overview-grid">
+            <div class="overview-card">
+                <span class="overview-label">Tổng điểm tích lũy</span>
+                <span class="overview-value" data-number="{{ dashboard_data.total_score_all_time }}">{{ dashboard_data.total_score_all_time }}</span>
+                <span class="overview-subtitle">Từ trước tới nay</span>
+            </div>
+            <div class="overview-card">
+                <span class="overview-label">Điểm 30 ngày gần nhất</span>
+                <span class="overview-value" data-number="{{ dashboard_data.total_score_last_30_days }}">{{ dashboard_data.total_score_last_30_days }}</span>
+                <span class="overview-subtitle">Trung bình <span data-number="{{ dashboard_data.average_daily_score_recent }}" data-precision="1">{{ dashboard_data.average_daily_score_recent }}</span> điểm/ngày</span>
+            </div>
+            <div class="overview-card">
+                <span class="overview-label">Ngày hoạt động</span>
+                <span class="overview-value" data-number="{{ dashboard_data.active_days }}">{{ dashboard_data.active_days }}</span>
+                <span class="overview-subtitle">Điểm trung bình <span data-number="{{ dashboard_data.average_daily_score }}" data-precision="1">{{ dashboard_data.average_daily_score }}</span> điểm/ngày</span>
+            </div>
+            <div class="overview-card">
+                <span class="overview-label">Phiên học</span>
+                <span class="overview-value" data-number="{{ dashboard_data.total_activity_entries }}">{{ dashboard_data.total_activity_entries }}</span>
+                <span class="overview-subtitle">Hoạt động gần nhất: <span data-last-active="{{ dashboard_data.last_activity or '' }}">{{ dashboard_data.last_activity or '' }}</span></span>
+            </div>
+        </div>
+        <div class="overview-grid overview-grid-secondary">
+            <div class="overview-card compact">
+                <span class="overview-label">Chuỗi học hiện tại</span>
+                <span class="overview-value" data-number="{{ dashboard_data.current_learning_streak }}">{{ dashboard_data.current_learning_streak }}</span>
+                <span class="overview-subtitle">Dài nhất <span data-number="{{ dashboard_data.longest_learning_streak }}">{{ dashboard_data.longest_learning_streak }}</span> ngày</span>
+            </div>
+            <div class="overview-card compact">
+                <span class="overview-label">Flashcard thành thạo</span>
+                <span class="overview-value" data-number="{{ dashboard_data.flashcard_mastered_count }}">{{ dashboard_data.flashcard_mastered_count }}</span>
+                <span class="overview-subtitle">Độ chính xác <span data-percent="{{ dashboard_data.flashcard_accuracy_percent if dashboard_data.flashcard_accuracy_percent is not none else '' }}">{{ dashboard_data.flashcard_accuracy_percent if dashboard_data.flashcard_accuracy_percent is not none else '--' }}</span></span>
+            </div>
+            <div class="overview-card compact">
+                <span class="overview-label">Trắc nghiệm thành thạo</span>
+                <span class="overview-value" data-number="{{ dashboard_data.quiz_mastered_count }}">{{ dashboard_data.quiz_mastered_count }}</span>
+                <span class="overview-subtitle">Độ chính xác <span data-percent="{{ dashboard_data.quiz_accuracy_percent if dashboard_data.quiz_accuracy_percent is not none else '' }}">{{ dashboard_data.quiz_accuracy_percent if dashboard_data.quiz_accuracy_percent is not none else '--' }}</span></span>
+            </div>
+            <div class="overview-card compact">
+                <span class="overview-label">Khoá học đang học</span>
+                <span class="overview-value" data-number="{{ dashboard_data.courses_in_progress_count }}">{{ dashboard_data.courses_in_progress_count }}</span>
+                <span class="overview-subtitle">Hoàn thành TB <span data-percent="{{ dashboard_data.course_avg_completion_percent }}">{{ dashboard_data.course_avg_completion_percent }}</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-section analytics-section">
+        <div class="analytics-grid">
+            <div class="analytics-card">
+                <div class="stat-chart-header">
+                    <span class="stat-chart-title">Xu hướng điểm số</span>
+                    <select id="score-trend-range" class="stat-chart-range">
+                        <option value="7d">7 ngày</option>
+                        <option value="30d" selected>30 ngày</option>
+                        <option value="90d">90 ngày</option>
+                        <option value="180d">180 ngày</option>
+                        <option value="365d">365 ngày</option>
+                        <option value="all">Toàn bộ</option>
+                    </select>
+                </div>
+                <div class="stat-chart-body">
+                    <div class="loader-container" id="score-trend-loader" style="display: none;">
+                        <div class="loader"></div>
+                    </div>
+                    <p class="stat-chart-empty" id="score-trend-empty" style="display: none;">Không có dữ liệu điểm số để hiển thị.</p>
+                    <canvas id="score-trend-chart" aria-label="Biểu đồ xu hướng điểm số"></canvas>
+                </div>
+                <p class="stat-detail-note" id="score-trend-summary">--</p>
+            </div>
+            <div class="analytics-card">
+                <div class="stat-chart-header">
+                    <span class="stat-chart-title">Phân bổ hoạt động</span>
+                    <select id="activity-breakdown-range" class="stat-chart-range">
+                        <option value="7d">7 ngày</option>
+                        <option value="30d" selected>30 ngày</option>
+                        <option value="90d">90 ngày</option>
+                        <option value="365d">365 ngày</option>
+                        <option value="all">Toàn bộ</option>
+                    </select>
+                </div>
+                <div class="stat-chart-body">
+                    <div class="loader-container" id="activity-breakdown-loader" style="display: none;">
+                        <div class="loader"></div>
+                    </div>
+                    <p class="stat-chart-empty" id="activity-breakdown-empty" style="display: none;">Không có dữ liệu hoạt động.</p>
+                    <canvas id="activity-breakdown-chart" aria-label="Biểu đồ phân bổ hoạt động"></canvas>
+                </div>
+                <p class="stat-detail-note" id="activity-breakdown-summary">--</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-section insights-section">
+        <h2 class="section-title"><i class="fas fa-lightbulb"></i> Thông tin học tập nổi bật</h2>
+        <div class="insights-grid">
+            <div class="insight-card">
+                <span class="insight-label"><i class="fas fa-layer-group"></i> Flashcard</span>
+                <span class="insight-value" data-percent="{{ dashboard_data.flashcard_accuracy_percent if dashboard_data.flashcard_accuracy_percent is not none else '' }}">{{ dashboard_data.flashcard_accuracy_percent if dashboard_data.flashcard_accuracy_percent is not none else '--' }}</span>
+                <span class="insight-meta">Thành thạo <span data-number="{{ dashboard_data.flashcard_mastered_count }}">{{ dashboard_data.flashcard_mastered_count }}</span> thẻ</span>
+                <span class="insight-meta">Đúng <span data-number="{{ dashboard_data.flashcard_correct_total }}">{{ dashboard_data.flashcard_correct_total }}</span> / <span data-number="{{ dashboard_data.flashcard_attempt_total }}">{{ dashboard_data.flashcard_attempt_total }}</span> lượt • Chuỗi tốt nhất <span data-number="{{ dashboard_data.flashcard_best_streak_overall }}">{{ dashboard_data.flashcard_best_streak_overall }}</span></span>
+            </div>
+            <div class="insight-card">
+                <span class="insight-label"><i class="fas fa-question-circle"></i> Trắc nghiệm</span>
+                <span class="insight-value" data-percent="{{ dashboard_data.quiz_accuracy_percent if dashboard_data.quiz_accuracy_percent is not none else '' }}">{{ dashboard_data.quiz_accuracy_percent if dashboard_data.quiz_accuracy_percent is not none else '--' }}</span>
+                <span class="insight-meta">Thành thạo <span data-number="{{ dashboard_data.quiz_mastered_count }}">{{ dashboard_data.quiz_mastered_count }}</span> câu hỏi</span>
+                <span class="insight-meta">Đúng <span data-number="{{ dashboard_data.quiz_correct_total }}">{{ dashboard_data.quiz_correct_total }}</span> / <span data-number="{{ dashboard_data.quiz_attempt_total }}">{{ dashboard_data.quiz_attempt_total }}</span> lượt • Chuỗi tốt nhất <span data-number="{{ dashboard_data.quiz_best_streak_overall }}">{{ dashboard_data.quiz_best_streak_overall }}</span></span>
+            </div>
+            <div class="insight-card">
+                <span class="insight-label"><i class="fas fa-graduation-cap"></i> Khoá học</span>
+                <span class="insight-value" data-percent="{{ dashboard_data.course_avg_completion_percent }}">{{ dashboard_data.course_avg_completion_percent }}</span>
+                <span class="insight-meta">Đang học <span data-number="{{ dashboard_data.courses_in_progress_count }}">{{ dashboard_data.courses_in_progress_count }}</span> khoá • Hoàn thành <span data-number="{{ dashboard_data.lessons_completed_count }}">{{ dashboard_data.lessons_completed_count }}</span> bài</span>
+                <span class="insight-meta">Cập nhật gần nhất: <span data-course-progress="{{ dashboard_data.course_last_progress or '' }}">{{ dashboard_data.course_last_progress or '' }}</span></span>
+            </div>
+        </div>
+        <div class="insights-activity">
+            <h3 class="insights-activity-title">Hoạt động gần đây</h3>
+            {% if recent_activity %}
+                <ul class="activity-list">
+                    {% for entry in recent_activity %}
+                        <li class="activity-item">
+                            <span class="activity-score {% if entry.score_change >= 0 %}positive{% else %}negative{% endif %}">{{ '+' if entry.score_change >= 0 else '' }}{{ entry.score_change }} điểm</span>
+                            <div class="activity-info">
+                                <span class="activity-label">{{ entry.item_type_label }}</span>
+                                <span class="activity-reason">{{ entry.reason }}</span>
+                                <span class="activity-meta" data-activity-timestamp="{{ entry.timestamp or '' }}">{{ entry.timestamp or '' }}</span>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="activity-empty">Chưa có hoạt động nào để hiển thị.</p>
+            {% endif %}
+        </div>
+    </div>
 
     <div class="stats-section leaderboard-section">
         <h2 class="section-title"><i class="fas fa-trophy"></i> Bảng xếp hạng Người dùng</h2>
@@ -466,6 +644,8 @@
             const listContainer = document.getElementById('leaderboard-list-container');
             const loader = document.getElementById('leaderboard-loader');
             const emptyMessage = document.getElementById('leaderboard-empty-message');
+            const scoreTrendEndpoint = "{{ url_for('stats.get_score_trend_api') }}";
+            const activityBreakdownEndpoint = "{{ url_for('stats.get_activity_breakdown_api') }}";
 
             function fetchAndUpdateLeaderboard() {
                 if (!timeframeTabs) return;
@@ -749,6 +929,283 @@
                 });
             }
 
+            function setupScoreTrendChart() {
+                const canvas = document.getElementById('score-trend-chart');
+                if (!canvas || !scoreTrendEndpoint) return;
+
+                const ctx = canvas.getContext('2d');
+                const loaderEl = document.getElementById('score-trend-loader');
+                const emptyEl = document.getElementById('score-trend-empty');
+                const rangeEl = document.getElementById('score-trend-range');
+                const summaryEl = document.getElementById('score-trend-summary');
+                let chartInstance = null;
+
+                function showEmpty(message) {
+                    if (loaderEl) loaderEl.style.display = 'none';
+                    if (emptyEl) {
+                        emptyEl.textContent = message;
+                        emptyEl.style.display = 'flex';
+                    }
+                    if (summaryEl) summaryEl.textContent = message;
+                    canvas.style.display = 'none';
+                }
+
+                function render(data) {
+                    const series = Array.isArray(data.series) ? data.series : [];
+                    if (!series.length) {
+                        showEmpty('Chưa có dữ liệu điểm số.');
+                        return;
+                    }
+
+                    const labels = series.map(point => {
+                        const dateValue = new Date(point.date);
+                        return Number.isNaN(dateValue.getTime()) ? point.date : dateValue.toLocaleDateString('vi-VN');
+                    });
+                    const totalScores = series.map(point => point.total_score || 0);
+                    const flashcardScores = series.map(point => point.flashcard_score || 0);
+                    const quizScores = series.map(point => point.quiz_score || 0);
+                    const courseScores = series.map(point => (point.course_score || 0) + (point.other_score || 0));
+
+                    const datasets = [
+                        {
+                            label: 'Tổng điểm',
+                            data: totalScores,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2,
+                        },
+                        {
+                            label: 'Flashcard',
+                            data: flashcardScores,
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            borderWidth: 2,
+                        },
+                        {
+                            label: 'Trắc nghiệm',
+                            data: quizScores,
+                            borderColor: '#a855f7',
+                            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            borderWidth: 2,
+                        },
+                        {
+                            label: 'Khoá học & khác',
+                            data: courseScores,
+                            borderColor: '#f97316',
+                            backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            borderWidth: 2,
+                        },
+                    ];
+
+                    if (!chartInstance) {
+                        chartInstance = new Chart(ctx, {
+                            type: 'line',
+                            data: { labels, datasets },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: { mode: 'index', intersect: false },
+                                scales: {
+                                    y: { beginAtZero: true, title: { display: true, text: 'Điểm' } },
+                                },
+                                plugins: {
+                                    legend: { position: 'bottom' },
+                                    tooltip: {
+                                        callbacks: {
+                                            label(context) {
+                                                const label = context.dataset.label || '';
+                                                const value = formatNumber(context.parsed.y || 0);
+                                                return `${label}: ${value} điểm`;
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        });
+                    } else {
+                        chartInstance.data.labels = labels;
+                        chartInstance.data.datasets.forEach((dataset, index) => {
+                            dataset.data = datasets[index].data;
+                        });
+                        chartInstance.update();
+                    }
+
+                    const totalScore = data.total_score || 0;
+                    const averageScore = data.average_daily_score || 0;
+                    if (summaryEl) {
+                        summaryEl.textContent = `Tổng điểm: ${formatNumber(totalScore)} • Trung bình ${formatDecimal(averageScore, 1)} điểm/ngày (${series.length} ngày)`;
+                    }
+
+                    if (loaderEl) loaderEl.style.display = 'none';
+                    if (emptyEl) emptyEl.style.display = 'none';
+                    canvas.style.display = 'block';
+                }
+
+                function fetchData() {
+                    if (loaderEl) loaderEl.style.display = 'flex';
+                    if (emptyEl) emptyEl.style.display = 'none';
+                    canvas.style.display = 'none';
+
+                    const params = new URLSearchParams();
+                    if (rangeEl && rangeEl.value) {
+                        params.set('timeframe', rangeEl.value);
+                    }
+
+                    const url = params.toString() ? `${scoreTrendEndpoint}?${params.toString()}` : scoreTrendEndpoint;
+
+                    fetch(url)
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                render(result.data || {});
+                            } else {
+                                showEmpty('Không thể tải dữ liệu điểm số.');
+                            }
+                        })
+                        .catch(() => showEmpty('Không thể tải dữ liệu điểm số.'))
+                        .finally(() => {
+                            if (loaderEl) loaderEl.style.display = 'none';
+                        });
+                }
+
+                if (rangeEl) {
+                    rangeEl.addEventListener('change', fetchData);
+                }
+
+                fetchData();
+            }
+
+            function setupActivityBreakdownChart() {
+                const canvas = document.getElementById('activity-breakdown-chart');
+                if (!canvas || !activityBreakdownEndpoint) return;
+
+                const ctx = canvas.getContext('2d');
+                const loaderEl = document.getElementById('activity-breakdown-loader');
+                const emptyEl = document.getElementById('activity-breakdown-empty');
+                const rangeEl = document.getElementById('activity-breakdown-range');
+                const summaryEl = document.getElementById('activity-breakdown-summary');
+                let chartInstance = null;
+
+                function showEmpty(message) {
+                    if (loaderEl) loaderEl.style.display = 'none';
+                    if (emptyEl) {
+                        emptyEl.textContent = message;
+                        emptyEl.style.display = 'flex';
+                    }
+                    if (summaryEl) summaryEl.textContent = message;
+                    canvas.style.display = 'none';
+                }
+
+                function render(data) {
+                    const buckets = Array.isArray(data.buckets) ? data.buckets : [];
+                    if (!buckets.length) {
+                        showEmpty('Chưa có dữ liệu hoạt động.');
+                        return;
+                    }
+
+                    const labels = buckets.map(bucket => bucket.label || 'Hoạt động');
+                    const entries = buckets.map(bucket => Math.max(bucket.entries || 0, 0));
+                    const scores = buckets.map(bucket => bucket.score || 0);
+                    const palette = ['#3b82f6', '#22c55e', '#a855f7', '#f97316', '#ef4444', '#14b8a6', '#6366f1'];
+                    const colors = labels.map((_, index) => palette[index % palette.length]);
+
+                    if (!chartInstance) {
+                        chartInstance = new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels,
+                                datasets: [
+                                    {
+                                        label: 'Lượt hoạt động',
+                                        data: entries,
+                                        backgroundColor: colors,
+                                        borderColor: '#ffffff',
+                                        borderWidth: 2,
+                                        scores,
+                                    },
+                                ],
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { position: 'bottom' },
+                                    tooltip: {
+                                        callbacks: {
+                                            label(context) {
+                                                const datasetScores = context.dataset.scores || [];
+                                                const scoreValue = datasetScores[context.dataIndex] || 0;
+                                                const entriesValue = context.raw || 0;
+                                                return `${context.label || 'Hoạt động'}: ${formatNumber(entriesValue)} lượt • ${formatNumber(scoreValue)} điểm`;
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        });
+                    } else {
+                        chartInstance.data.labels = labels;
+                        const dataset = chartInstance.data.datasets[0];
+                        dataset.data = entries;
+                        dataset.backgroundColor = colors;
+                        dataset.scores = scores;
+                        chartInstance.update();
+                    }
+
+                    if (summaryEl) {
+                        const totalScore = data.total_score || 0;
+                        const totalEntries = data.total_entries || 0;
+                        const average = data.average_score_per_entry || 0;
+                        summaryEl.textContent = `Tổng điểm: ${formatNumber(totalScore)} • Tổng lượt: ${formatNumber(totalEntries)} • Trung bình ${formatDecimal(average, 2)} điểm/lượt`;
+                    }
+
+                    if (loaderEl) loaderEl.style.display = 'none';
+                    if (emptyEl) emptyEl.style.display = 'none';
+                    canvas.style.display = 'block';
+                }
+
+                function fetchData() {
+                    if (loaderEl) loaderEl.style.display = 'flex';
+                    if (emptyEl) emptyEl.style.display = 'none';
+                    canvas.style.display = 'none';
+
+                    const params = new URLSearchParams();
+                    if (rangeEl && rangeEl.value) {
+                        params.set('timeframe', rangeEl.value);
+                    }
+
+                    const url = params.toString() ? `${activityBreakdownEndpoint}?${params.toString()}` : activityBreakdownEndpoint;
+
+                    fetch(url)
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                render(result.data || {});
+                            } else {
+                                showEmpty('Không thể tải dữ liệu hoạt động.');
+                            }
+                        })
+                        .catch(() => showEmpty('Không thể tải dữ liệu hoạt động.'))
+                        .finally(() => {
+                            if (loaderEl) loaderEl.style.display = 'none';
+                        });
+                }
+
+                if (rangeEl) {
+                    rangeEl.addEventListener('change', fetchData);
+                }
+
+                fetchData();
+            }
+
             const numberFormatter = new Intl.NumberFormat('vi-VN');
 
             const STATUS_LABELS = {
@@ -790,6 +1247,16 @@
                 return numberFormatter.format(numeric);
             }
 
+            function formatDecimal(value, digits = 1) {
+                if (value === null || value === undefined) return '0';
+                const numeric = Number(value);
+                if (Number.isNaN(numeric)) return '0';
+                return new Intl.NumberFormat('vi-VN', {
+                    minimumFractionDigits: digits,
+                    maximumFractionDigits: digits,
+                }).format(numeric);
+            }
+
             function formatPercent(value) {
                 if (value === null || value === undefined) return '--';
                 const numeric = Number(value);
@@ -802,6 +1269,53 @@
                 const dateValue = new Date(value);
                 if (Number.isNaN(dateValue.getTime())) return '--';
                 return dateValue.toLocaleString('vi-VN');
+            }
+
+            function applyOverviewFormatting() {
+                document.querySelectorAll('[data-number]').forEach(element => {
+                    const raw = element.dataset.number ?? element.textContent;
+                    if (raw === undefined || raw === null || raw === '') {
+                        return;
+                    }
+                    const numeric = Number(raw);
+                    if (Number.isNaN(numeric)) {
+                        return;
+                    }
+                    const precision = element.dataset.precision ? Number(element.dataset.precision) : null;
+                    if (precision !== null && !Number.isNaN(precision)) {
+                        element.textContent = formatDecimal(numeric, precision);
+                    } else {
+                        element.textContent = formatNumber(numeric);
+                    }
+                });
+
+                document.querySelectorAll('[data-percent]').forEach(element => {
+                    const raw = element.dataset.percent;
+                    if (!raw) {
+                        element.textContent = '--';
+                        return;
+                    }
+                    element.textContent = formatPercent(raw);
+                });
+
+                const lastActiveElement = document.querySelector('[data-last-active]');
+                if (lastActiveElement) {
+                    const raw = lastActiveElement.dataset.lastActive;
+                    const formatted = raw ? formatDateTime(raw) : null;
+                    lastActiveElement.textContent = formatted && formatted !== '--' ? formatted : 'Chưa có dữ liệu';
+                }
+
+                document.querySelectorAll('[data-course-progress]').forEach(element => {
+                    const raw = element.dataset.courseProgress;
+                    const formatted = raw ? formatDateTime(raw) : null;
+                    element.textContent = formatted && formatted !== '--' ? formatted : 'Chưa có dữ liệu';
+                });
+
+                document.querySelectorAll('[data-activity-timestamp]').forEach(element => {
+                    const raw = element.dataset.activityTimestamp;
+                    const formatted = raw ? formatDateTime(raw) : null;
+                    element.textContent = formatted && formatted !== '--' ? formatted : 'Chưa có dữ liệu';
+                });
             }
 
             function resolveStatusLabel(type, status) {
@@ -1526,6 +2040,9 @@
                 });
             });
 
+            applyOverviewFormatting();
+            setupScoreTrendChart();
+            setupActivityBreakdownChart();
             setupFlashcardMetrics();
             setupQuizMetrics();
             setupCourseMetrics();
