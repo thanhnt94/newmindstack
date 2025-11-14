@@ -22,6 +22,14 @@ from ...models import (
 )
 
 
+ITEM_TYPE_LABELS = {
+    'FLASHCARD': 'Flashcard',
+    'QUIZ_MCQ': 'Trắc nghiệm',
+    'LESSON': 'Bài học',
+    'COURSE': 'Khoá học',
+}
+
+
 def get_leaderboard_data_internal(sort_by, timeframe, viewer=None):
     """Hàm nội bộ để lấy dữ liệu bảng xếp hạng động.
 
@@ -177,6 +185,14 @@ def _resolve_timeframe_dates(timeframe):
     return start_date, end_date
 
 
+def _normalize_datetime_range(start_date, end_date):
+    """Return aware datetime boundaries for filtering timestamps."""
+
+    start_dt = datetime.combine(start_date, datetime.min.time()) if start_date else None
+    end_dt = datetime.combine(end_date + timedelta(days=1), datetime.min.time()) if end_date else None
+    return start_dt, end_dt
+
+
 def _parse_history_datetime(raw_value):
     """Safely parse ISO formatted timestamps stored in JSON histories."""
 
@@ -206,6 +222,217 @@ def _date_range(start_date, end_date):
     while current <= end_date:
         yield current
         current += timedelta(days=1)
+
+
+def compute_learning_streaks(user_id):
+    """Return (current_streak, longest_streak) in days based on score logs."""
+
+    rows = (
+        db.session.query(func.date(ScoreLog.timestamp).label('activity_date'))
+        .filter(ScoreLog.user_id == user_id)
+        .group_by(func.date(ScoreLog.timestamp))
+        .order_by(func.date(ScoreLog.timestamp))
+        .all()
+    )
+
+    if not rows:
+        return 0, 0
+
+    dates = []
+    for row in rows:
+        value = row.activity_date
+        if isinstance(value, datetime):
+            value = value.date()
+        elif isinstance(value, str):
+            try:
+                value = date.fromisoformat(value)
+            except ValueError:
+                continue
+        if isinstance(value, date):
+            dates.append(value)
+
+    if not dates:
+        return 0, 0
+
+    date_set = set(dates)
+
+    # Current streak: count backwards from today until a gap appears.
+    today = date.today()
+    current_streak = 0
+    pointer = today
+    while pointer in date_set:
+        current_streak += 1
+        pointer -= timedelta(days=1)
+
+    # Longest streak: scan sorted dates.
+    longest = 1
+    run = 1
+    for previous, current in zip(dates, dates[1:]):
+        if current == previous + timedelta(days=1):
+            run += 1
+        else:
+            longest = max(longest, run)
+            run = 1
+    longest = max(longest, run)
+
+    return current_streak, longest
+
+
+def get_score_trend_series(user_id, timeframe='30d'):
+    """Return daily score aggregates for the requested timeframe."""
+
+    start_date, end_date = _resolve_timeframe_dates(timeframe)
+    if end_date is None:
+        end_date = date.today()
+
+    # Determine range when the user requests "all" but has limited history.
+    if start_date is None:
+        earliest_date = (
+            db.session.query(func.min(func.date(ScoreLog.timestamp)))
+            .filter(ScoreLog.user_id == user_id)
+            .scalar()
+        )
+        if earliest_date is None:
+            return {
+                'timeframe': timeframe,
+                'series': [],
+                'total_score': 0,
+                'average_daily_score': 0,
+            }
+        start_date = earliest_date
+
+    start_dt, end_dt = _normalize_datetime_range(start_date, end_date)
+
+    flashcard_case = case((ScoreLog.item_type == 'FLASHCARD', ScoreLog.score_change), else_=0)
+    quiz_case = case((ScoreLog.item_type == 'QUIZ_MCQ', ScoreLog.score_change), else_=0)
+    course_case = case((ScoreLog.item_type.in_(['LESSON', 'COURSE']), ScoreLog.score_change), else_=0)
+
+    rows = (
+        db.session.query(
+            func.date(ScoreLog.timestamp).label('activity_date'),
+            func.sum(ScoreLog.score_change).label('total_score'),
+            func.sum(flashcard_case).label('flashcard_score'),
+            func.sum(quiz_case).label('quiz_score'),
+            func.sum(course_case).label('course_score'),
+        )
+        .filter(ScoreLog.user_id == user_id)
+        .filter(ScoreLog.timestamp >= start_dt)
+        .filter(ScoreLog.timestamp < end_dt)
+        .group_by(func.date(ScoreLog.timestamp))
+        .order_by(func.date(ScoreLog.timestamp))
+        .all()
+    )
+
+    if not rows:
+        return {
+            'timeframe': timeframe,
+            'series': [],
+            'total_score': 0,
+            'average_daily_score': 0,
+        }
+
+    row_map = {row.activity_date: row for row in rows}
+
+    series = []
+    cumulative_total = 0
+    total_score = 0
+
+    for current_date in _date_range(start_date, end_date):
+        row = row_map.get(current_date)
+        total = int(row.total_score or 0) if row else 0
+        flashcard_total = int(row.flashcard_score or 0) if row else 0
+        quiz_total = int(row.quiz_score or 0) if row else 0
+        course_total = int(row.course_score or 0) if row else 0
+        other_total = total - flashcard_total - quiz_total - course_total
+
+        cumulative_total += total
+        total_score += total
+
+        series.append({
+            'date': current_date.isoformat(),
+            'total_score': total,
+            'flashcard_score': flashcard_total,
+            'quiz_score': quiz_total,
+            'course_score': course_total,
+            'other_score': other_total,
+            'cumulative_score': cumulative_total,
+        })
+
+    average_daily_score = round(total_score / len(series), 1) if series else 0
+
+    return {
+        'timeframe': timeframe,
+        'series': series,
+        'total_score': total_score,
+        'average_daily_score': average_daily_score,
+    }
+
+
+def get_activity_breakdown(user_id, timeframe='30d'):
+    """Aggregate score entries by item type for the timeframe."""
+
+    start_date, end_date = _resolve_timeframe_dates(timeframe)
+    if end_date is None:
+        end_date = date.today()
+
+    if start_date is None:
+        earliest_date = (
+            db.session.query(func.min(func.date(ScoreLog.timestamp)))
+            .filter(ScoreLog.user_id == user_id)
+            .scalar()
+        )
+        if earliest_date is None:
+            return {
+                'timeframe': timeframe,
+                'total_entries': 0,
+                'total_score': 0,
+                'average_score_per_entry': 0,
+                'buckets': [],
+            }
+        start_date = earliest_date
+
+    start_dt, end_dt = _normalize_datetime_range(start_date, end_date)
+
+    rows = (
+        db.session.query(
+            ScoreLog.item_type.label('item_type'),
+            func.count(ScoreLog.log_id).label('entry_count'),
+            func.sum(ScoreLog.score_change).label('score_total'),
+        )
+        .filter(ScoreLog.user_id == user_id)
+        .filter(ScoreLog.timestamp >= start_dt)
+        .filter(ScoreLog.timestamp < end_dt)
+        .group_by(ScoreLog.item_type)
+        .all()
+    )
+
+    buckets = []
+    total_entries = 0
+    total_score = 0
+
+    for row in rows:
+        item_type = row.item_type or 'OTHER'
+        entries = int(row.entry_count or 0)
+        score = int(row.score_total or 0)
+        total_entries += entries
+        total_score += score
+        buckets.append({
+            'item_type': item_type,
+            'label': ITEM_TYPE_LABELS.get(item_type, 'Hoạt động khác'),
+            'entries': entries,
+            'score': score,
+        })
+
+    buckets.sort(key=lambda bucket: bucket['score'], reverse=True)
+    average_score_per_entry = round(total_score / total_entries, 2) if total_entries else 0
+
+    return {
+        'timeframe': timeframe,
+        'total_entries': total_entries,
+        'total_score': total_score,
+        'average_score_per_entry': average_score_per_entry,
+        'buckets': buckets,
+    }
 
 
 def _build_flashcard_items_query(user_id):
@@ -1060,20 +1287,209 @@ def dashboard():
     initial_timeframe = request.args.get('timeframe', 'all_time')
     leaderboard_data = get_leaderboard_data_internal(initial_sort_by, initial_timeframe, viewer=current_user)
     
-    # Dữ liệu cho các thẻ thống kê tổng quan
+    score_summary = (
+        db.session.query(
+            func.sum(ScoreLog.score_change).label('total_score'),
+            func.count(func.distinct(func.date(ScoreLog.timestamp))).label('active_days'),
+            func.max(ScoreLog.timestamp).label('last_activity'),
+            func.count(ScoreLog.log_id).label('entry_count'),
+        )
+        .filter(ScoreLog.user_id == current_user.user_id)
+        .one()
+    )
+
+    total_score_all_time = int(score_summary.total_score or 0)
+    active_days = int(score_summary.active_days or 0)
+    last_activity_value = score_summary.last_activity.isoformat() if score_summary.last_activity else None
+    total_entries = int(score_summary.entry_count or 0)
+    average_daily_score = round(total_score_all_time / active_days, 1) if active_days else 0
+
+    last_30_start = date.today() - timedelta(days=29)
+    last_30_score = (
+        db.session.query(func.sum(ScoreLog.score_change))
+        .filter(
+            ScoreLog.user_id == current_user.user_id,
+            ScoreLog.timestamp >= datetime.combine(last_30_start, datetime.min.time()),
+        )
+        .scalar()
+        or 0
+    )
+    average_recent_score = round(last_30_score / 30, 1) if last_30_score else 0
+
+    current_streak, longest_streak = compute_learning_streaks(current_user.user_id)
+
+    flashcard_score_total = int(
+        db.session.query(func.sum(ScoreLog.score_change))
+        .filter(
+            ScoreLog.user_id == current_user.user_id,
+            ScoreLog.item_type == 'FLASHCARD',
+        )
+        .scalar()
+        or 0
+    )
+    flashcard_summary = (
+        db.session.query(
+            func.sum(FlashcardProgress.times_correct).label('correct'),
+            func.sum(FlashcardProgress.times_incorrect).label('incorrect'),
+            func.sum(FlashcardProgress.times_vague).label('vague'),
+            func.avg(FlashcardProgress.correct_streak).label('avg_streak'),
+            func.max(FlashcardProgress.correct_streak).label('best_streak'),
+        )
+        .filter(FlashcardProgress.user_id == current_user.user_id)
+        .one()
+    )
+    flashcard_correct_total = int(flashcard_summary.correct or 0)
+    flashcard_incorrect_total = int(flashcard_summary.incorrect or 0)
+    flashcard_vague_total = int(flashcard_summary.vague or 0)
+    flashcard_attempt_total = flashcard_correct_total + flashcard_incorrect_total + flashcard_vague_total
+    flashcard_accuracy_percent = (
+        round((flashcard_correct_total / flashcard_attempt_total) * 100, 1)
+        if flashcard_attempt_total
+        else None
+    )
+    flashcard_avg_streak = float(flashcard_summary.avg_streak or 0) if flashcard_summary.avg_streak is not None else 0.0
+    flashcard_best_streak = int(flashcard_summary.best_streak or 0) if flashcard_summary.best_streak is not None else 0
+    flashcard_mastered_count = FlashcardProgress.query.filter_by(user_id=current_user.user_id, status='mastered').count()
+    flashcard_total_cards = FlashcardProgress.query.filter_by(user_id=current_user.user_id).count()
+    flashcard_sets_count = (
+        db.session.query(func.count(func.distinct(LearningContainer.container_id)))
+        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
+        .join(FlashcardProgress, FlashcardProgress.item_id == LearningItem.item_id)
+        .filter(
+            FlashcardProgress.user_id == current_user.user_id,
+            LearningContainer.container_type == 'FLASHCARD_SET',
+            LearningItem.item_type == 'FLASHCARD',
+        )
+        .scalar()
+        or 0
+    )
+
+    quiz_score_total = int(
+        db.session.query(func.sum(ScoreLog.score_change))
+        .filter(
+            ScoreLog.user_id == current_user.user_id,
+            ScoreLog.item_type == 'QUIZ_MCQ',
+        )
+        .scalar()
+        or 0
+    )
+    quiz_summary = (
+        db.session.query(
+            func.sum(QuizProgress.times_correct).label('correct'),
+            func.sum(QuizProgress.times_incorrect).label('incorrect'),
+            func.avg(QuizProgress.correct_streak).label('avg_streak'),
+            func.max(QuizProgress.correct_streak).label('best_streak'),
+        )
+        .filter(QuizProgress.user_id == current_user.user_id)
+        .one()
+    )
+    quiz_correct_total = int(quiz_summary.correct or 0)
+    quiz_incorrect_total = int(quiz_summary.incorrect or 0)
+    quiz_attempt_total = quiz_correct_total + quiz_incorrect_total
+    quiz_accuracy_percent = (
+        round((quiz_correct_total / quiz_attempt_total) * 100, 1)
+        if quiz_attempt_total
+        else None
+    )
+    quiz_avg_streak = float(quiz_summary.avg_streak or 0) if quiz_summary.avg_streak is not None else 0.0
+    quiz_best_streak = int(quiz_summary.best_streak or 0) if quiz_summary.best_streak is not None else 0
+    quiz_questions_answered = QuizProgress.query.filter_by(user_id=current_user.user_id).count()
+    quiz_mastered_count = QuizProgress.query.filter_by(user_id=current_user.user_id, status='mastered').count()
+    quiz_sets_started_count = (
+        db.session.query(func.count(func.distinct(LearningContainer.container_id)))
+        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
+        .join(QuizProgress, QuizProgress.item_id == LearningItem.item_id)
+        .filter(
+            QuizProgress.user_id == current_user.user_id,
+            LearningContainer.container_type == 'QUIZ_SET',
+            LearningItem.item_type == 'QUIZ_MCQ',
+        )
+        .scalar()
+        or 0
+    )
+
+    courses_started_count = (
+        db.session.query(func.count(func.distinct(LearningContainer.container_id)))
+        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
+        .join(CourseProgress, CourseProgress.item_id == LearningItem.item_id)
+        .filter(
+            CourseProgress.user_id == current_user.user_id,
+            LearningContainer.container_type == 'COURSE',
+            LearningItem.item_type == 'LESSON',
+        )
+        .scalar()
+        or 0
+    )
+    lessons_completed_count = CourseProgress.query.filter_by(user_id=current_user.user_id, completion_percentage=100).count()
+    courses_in_progress_count = CourseProgress.query.filter(
+        CourseProgress.user_id == current_user.user_id,
+        CourseProgress.completion_percentage > 0,
+        CourseProgress.completion_percentage < 100,
+    ).count()
+    course_summary = (
+        db.session.query(
+            func.avg(CourseProgress.completion_percentage).label('avg_completion'),
+            func.max(CourseProgress.last_updated).label('last_progress'),
+        )
+        .filter(CourseProgress.user_id == current_user.user_id)
+        .one()
+    )
+    course_avg_completion = float(course_summary.avg_completion or 0)
+    course_last_progress = course_summary.last_progress.isoformat() if course_summary.last_progress else None
+
     dashboard_data = {
-        # Flashcard
-        'flashcard_score': db.session.query(func.sum(ScoreLog.score_change)).filter(ScoreLog.user_id == current_user.user_id, ScoreLog.item_type == 'FLASHCARD').scalar() or 0,
-        'learned_distinct_overall': FlashcardProgress.query.filter_by(user_id=current_user.user_id).count(),
-        'learned_sets_count': db.session.query(func.count(LearningContainer.container_id.distinct())).join(LearningItem).join(FlashcardProgress).filter(FlashcardProgress.user_id == current_user.user_id, LearningContainer.container_type == 'FLASHCARD_SET').scalar() or 0,
-        # Quiz
-        'quiz_score': db.session.query(func.sum(ScoreLog.score_change)).filter(ScoreLog.user_id == current_user.user_id, ScoreLog.item_type == 'QUIZ_MCQ').scalar() or 0,
-        'questions_answered_count': QuizProgress.query.filter_by(user_id=current_user.user_id).count(),
-        'quiz_sets_started_count': db.session.query(func.count(LearningContainer.container_id.distinct())).join(LearningItem).join(QuizProgress).filter(QuizProgress.user_id == current_user.user_id, LearningContainer.container_type == 'QUIZ_SET').scalar() or 0,
-        # Course (THÊM MỚI)
-        'courses_started_count': db.session.query(func.count(LearningContainer.container_id.distinct())).join(LearningItem).join(CourseProgress).filter(CourseProgress.user_id == current_user.user_id, LearningContainer.container_type == 'COURSE').scalar() or 0,
-        'lessons_completed_count': CourseProgress.query.filter_by(user_id=current_user.user_id, completion_percentage=100).count(),
+        'flashcard_score': flashcard_score_total,
+        'learned_distinct_overall': flashcard_total_cards,
+        'learned_sets_count': flashcard_sets_count,
+        'flashcard_accuracy_percent': flashcard_accuracy_percent,
+        'flashcard_attempt_total': flashcard_attempt_total,
+        'flashcard_correct_total': flashcard_correct_total,
+        'flashcard_incorrect_total': flashcard_incorrect_total,
+        'flashcard_mastered_count': flashcard_mastered_count,
+        'flashcard_avg_streak_overall': round(flashcard_avg_streak, 1) if flashcard_avg_streak else 0.0,
+        'flashcard_best_streak_overall': flashcard_best_streak,
+        'quiz_score': quiz_score_total,
+        'questions_answered_count': quiz_questions_answered,
+        'quiz_sets_started_count': quiz_sets_started_count,
+        'quiz_accuracy_percent': quiz_accuracy_percent,
+        'quiz_attempt_total': quiz_attempt_total,
+        'quiz_correct_total': quiz_correct_total,
+        'quiz_incorrect_total': quiz_incorrect_total,
+        'quiz_mastered_count': quiz_mastered_count,
+        'quiz_avg_streak_overall': round(quiz_avg_streak, 1) if quiz_avg_streak else 0.0,
+        'quiz_best_streak_overall': quiz_best_streak,
+        'courses_started_count': courses_started_count,
+        'lessons_completed_count': lessons_completed_count,
+        'courses_in_progress_count': courses_in_progress_count,
+        'course_avg_completion_percent': round(course_avg_completion, 1) if course_avg_completion else 0.0,
+        'course_last_progress': course_last_progress,
+        'total_score_all_time': total_score_all_time,
+        'total_activity_entries': total_entries,
+        'active_days': active_days,
+        'average_daily_score': average_daily_score,
+        'total_score_last_30_days': int(last_30_score),
+        'average_daily_score_recent': average_recent_score,
+        'last_activity': last_activity_value,
+        'current_learning_streak': current_streak,
+        'longest_learning_streak': longest_streak,
     }
+
+    recent_logs = (
+        ScoreLog.query.filter_by(user_id=current_user.user_id)
+        .order_by(ScoreLog.timestamp.desc())
+        .limit(6)
+        .all()
+    )
+    recent_activity = [
+        {
+            'timestamp': log.timestamp.isoformat() if log.timestamp else None,
+            'score_change': int(log.score_change or 0),
+            'reason': log.reason or 'Hoạt động học tập',
+            'item_type': log.item_type or 'OTHER',
+            'item_type_label': ITEM_TYPE_LABELS.get(log.item_type or '', 'Hoạt động khác'),
+        }
+        for log in recent_logs
+    ]
 
     flashcard_sets = _get_user_container_options(
         current_user.user_id,
@@ -1106,6 +1522,7 @@ def dashboard():
         flashcard_sets=flashcard_sets,
         quiz_sets=quiz_sets,
         course_sets=course_sets,
+        recent_activity=recent_activity,
     )
 
 @stats_bp.route('/api/leaderboard-data')
@@ -1132,6 +1549,22 @@ def get_heatmap_data_api():
     
     heatmap_data = {int(datetime.combine(row.date, datetime.min.time()).timestamp()): row.count for row in activity}
     return jsonify(heatmap_data)
+
+
+@stats_bp.route('/api/score-trend')
+@login_required
+def get_score_trend_api():
+    timeframe = request.args.get('timeframe', '30d')
+    data = get_score_trend_series(current_user.user_id, timeframe=timeframe)
+    return jsonify({'success': True, 'data': data})
+
+
+@stats_bp.route('/api/activity-breakdown')
+@login_required
+def get_activity_breakdown_api():
+    timeframe = request.args.get('timeframe', '30d')
+    data = get_activity_breakdown(current_user.user_id, timeframe=timeframe)
+    return jsonify({'success': True, 'data': data})
 
 
 @stats_bp.route('/api/flashcard-activity')
