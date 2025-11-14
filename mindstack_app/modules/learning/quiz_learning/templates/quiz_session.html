@@ -43,78 +43,171 @@
 
         /* THAY ĐỔI LỚN #1: Bố cục lại thanh trạng thái phiên học */
         .quiz-session-overview {
-            display: grid;
-            /* SỬA: Tăng chiều rộng tối đa của thẻ trạng thái */
-            grid-template-columns: minmax(0, 420px); 
-            justify-content: center; 
-            gap: 1.5rem;
-            align-items: flex-start;
-        }
-
-        @media (max-width: 1024px) {
-            .quiz-session-overview {
-                grid-template-columns: minmax(0, 1fr); /* Giữ nguyên 1 cột trên mobile */
-            }
+            display: flex;
+            justify-content: center;
+            width: 100%;
         }
 
         .quiz-progress-card {
-            background: linear-gradient(135deg, #1d4ed8, #2563eb);
-            color: #ffffff;
-            border-radius: 1.15rem;
-            padding: 1.4rem 1.6rem;
-            box-shadow: 0 24px 38px -28px rgba(37, 99, 235, 0.85);
-            display: flex;
-            flex-direction: column;
-            gap: 0; 
-            width: 100%; 
+            position: relative;
+            width: min(100%, 560px);
+            padding: 1.75rem 2rem;
+            border-radius: 1.35rem;
+            background: radial-gradient(145% 160% at 10% 10%, rgba(125, 211, 252, 0.38) 0%, rgba(59, 130, 246, 0.95) 38%, rgba(30, 64, 175, 0.98) 100%);
+            color: #f8fafc;
+            border: 1px solid rgba(191, 219, 254, 0.35);
+            box-shadow: 0 35px 65px -32px rgba(30, 64, 175, 0.7);
+            overflow: hidden;
         }
-        
-        .quiz-progress-card > .progress-card-header {
-             margin-bottom: 1.15rem;
+
+        .quiz-progress-card::before {
+            content: "";
+            position: absolute;
+            inset: -40% -25% auto auto;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(50% 50% at 50% 50%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 100%);
+            opacity: 0.75;
+            pointer-events: none;
+        }
+
+        .quiz-progress-card > * {
+            position: relative;
+            z-index: 1;
         }
 
         .progress-card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 0.75rem;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .progress-card-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .progress-card-icon {
+            width: 3.25rem;
+            height: 3.25rem;
             display: inline-flex;
             align-items: center;
-            gap: 0.55rem;
+            justify-content: center;
+            border-radius: 1.1rem;
+            background: rgba(15, 23, 42, 0.25);
+            color: #bfdbfe;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            font-size: 1.4rem;
+        }
+
+        .progress-card-title-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .progress-card-heading {
+            font-size: 1.2rem;
             font-weight: 700;
-            letter-spacing: 0.02em;
-            font-size: 1rem;
+            letter-spacing: 0.01em;
+            color: #f8fafc;
+        }
+
+        .progress-card-subtitle {
+            font-size: 0.85rem;
+            color: rgba(226, 232, 240, 0.85);
         }
 
         .progress-card-chip {
-            background: rgba(255, 255, 255, 0.16);
-            color: #e0e7ff;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.4rem 0.9rem;
             border-radius: 9999px;
-            padding: 0.35rem 0.9rem;
-            font-size: 0.82rem;
+            background: rgba(15, 23, 42, 0.28);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            color: #e0f2fe;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .progress-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+
+        .progress-card-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .progress-stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            padding: 1rem 1.1rem;
+            border-radius: 1rem;
+            background: linear-gradient(160deg, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.05) 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+            text-align: center;
+        }
+
+        .progress-stat-value {
+            font-size: 1.85rem;
+            font-weight: 700;
+            line-height: 1.1;
+            color: #f8fafc;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .progress-stat-value--answered {
+            color: #f8fafc;
+        }
+
+        .progress-stat-value--correct {
+            color: #bbf7d0;
+        }
+
+        .progress-stat-value--accuracy {
+            color: #fde68a;
+        }
+
+        .progress-stat-label {
+            font-size: 0.75rem;
             font-weight: 600;
             letter-spacing: 0.08em;
             text-transform: uppercase;
+            color: rgba(226, 232, 240, 0.85);
+            white-space: nowrap;
         }
 
         .progress-metric {
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
-            flex-grow: 1;
+            gap: 0.65rem;
         }
-        
+
+        .progress-metric-label {
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(226, 232, 240, 0.65);
+        }
+
         .progress-bar-track {
             position: relative;
             width: 100%;
-            height: 0.65rem;
+            height: 0.7rem;
             border-radius: 9999px;
-            background: rgba(15, 23, 42, 0.28);
+            background: rgba(15, 23, 42, 0.35);
             overflow: hidden;
-            margin-top: 0.5rem;
         }
 
         .progress-bar-fill {
@@ -122,45 +215,65 @@
             inset: 0;
             width: 0%;
             border-radius: 9999px;
-            background: linear-gradient(135deg, #c084fc, #38bdf8);
-            transition: width 0.35s ease;
+            background: linear-gradient(135deg, rgba(196, 181, 253, 0.95), rgba(56, 189, 248, 0.95));
+            box-shadow: 0 8px 18px -10px rgba(14, 116, 144, 0.6);
+            transition: width 0.4s ease;
         }
 
         .progress-card-footer {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        
-        .progress-card-stats-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.5rem; /* SỬA: Giảm khoảng cách cột */
-            margin-top: 1.15rem;
-            padding-top: 1.15rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.25);
-            margin-bottom: 1.15rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
         }
-        .progress-stat-item {
+
+        .progress-footer-item {
             display: flex;
             flex-direction: column;
-            gap: 0.25rem;
-            text-align: center;
+            gap: 0.3rem;
+            padding: 0.9rem 1.1rem;
+            border-radius: 1rem;
+            background: rgba(15, 23, 42, 0.22);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
         }
-        .progress-stat-value {
-            font-size: 1.5rem; 
-            font-weight: 700;
-            line-height: 1.1;
-            color: #ffffff;
-        }
-        .progress-stat-label {
-            font-size: 0.7rem; /* SỬA: Giảm cỡ chữ 1 chút */
-            font-weight: 600;
+
+        .progress-footer-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #e0e7ff;
-            white-space: nowrap; /* SỬA: Chống xuống dòng */
+            color: rgba(226, 232, 240, 0.65);
+        }
+
+        .progress-footer-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #f8fafc;
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-progress-card {
+                padding: 1.5rem 1.4rem;
+                border-radius: 1.1rem;
+            }
+
+            .progress-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .progress-card-chip {
+                align-self: stretch;
+                justify-content: center;
+                text-align: center;
+            }
+
+            .progress-card-stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .progress-card-footer {
+                grid-template-columns: 1fr;
+            }
         }
         
         .quiz-session-stats {
@@ -718,48 +831,56 @@
                 
                 <!-- THẺ TIẾN ĐỘ CHÍNH (THẺ XANH) -->
                 <div class="quiz-progress-card">
-                    <!-- Header: Tên và Số câu -->
                     <div class="progress-card-header">
-                        <span class="progress-card-title"><i class="fas fa-route"></i> Trạng thái phiên học</span>
+                        <div class="progress-card-title">
+                            <span class="progress-card-icon"><i class="fas fa-route"></i></span>
+                            <div class="progress-card-title-text">
+                                <span class="progress-card-heading">Trạng thái phiên học</span>
+                                <span class="progress-card-subtitle">Theo dõi hiệu suất hiện tại của bạn</span>
+                            </div>
+                        </div>
                         <span class="progress-card-chip" id="quiz-group-range">--</span>
                     </div>
-                    
-                    <!-- SỬA: Xóa bỏ số 9 lớn và text "Câu đã trả lời" ở đây -->
 
-                    <!-- THÊM MỚI: Grid 3 cột cho các chỉ số -->
-                    <div class="progress-card-stats-grid">
-                        <div class="progress-stat-item">
-                            <span class="progress-stat-value" id="session-total-count">0</span>
-                            <span class="progress-stat-label">Tổng đã trả lời</span>
+                    <div class="progress-card-body">
+                        <div class="progress-card-stats-grid">
+                            <div class="progress-stat-item">
+                                <span class="progress-stat-value progress-stat-value--answered" id="session-total-count">0</span>
+                                <span class="progress-stat-label">Tổng đã trả lời</span>
+                            </div>
+                            <div class="progress-stat-item">
+                                <span class="progress-stat-value progress-stat-value--correct" id="session-correct-count">0</span>
+                                <span class="progress-stat-label">Đúng</span>
+                            </div>
+                            <div class="progress-stat-item">
+                                <span class="progress-stat-value progress-stat-value--accuracy" id="session-accuracy">0%</span>
+                                <span class="progress-stat-label">Chính xác</span>
+                            </div>
                         </div>
-                        <div class="progress-stat-item">
-                            <!-- Thêm màu xanh lá cho đẹp -->
-                            <span class="progress-stat-value" id="session-correct-count" style="color: #6ee7b7;">0</span> 
-                            <span class="progress-stat-label">Đúng</span>
-                        </div>
-                        <div class="progress-stat-item">
-                            <!-- Thêm màu vàng -->
-                            <span class="progress-stat-value" id="session-accuracy" style="color: #fcd34d;">0%</span> 
-                            <span class="progress-stat-label">Chính xác</span>
-                        </div>
-                    </div>
 
-                    <!-- Giữ lại thanh tiến độ và footer -->
-                    <div class="progress-metric">
-                        <div class="progress-bar-track" aria-hidden="true">
-                            <div class="progress-bar-fill" id="quiz-progress-fill"></div>
+                        <div class="progress-metric">
+                            <span class="progress-metric-label">Mức độ hoàn thành</span>
+                            <div class="progress-bar-track" aria-hidden="true">
+                                <div class="progress-bar-fill" id="quiz-progress-fill"></div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="progress-card-footer">
-                        <span id="quiz-total-label">0 / 0 câu</span>
-                        <span id="quiz-remaining-label">Còn lại: 0</span>
+
+                        <div class="progress-card-footer">
+                            <div class="progress-footer-item">
+                                <span class="progress-footer-label">Tiến độ</span>
+                                <span class="progress-footer-value" id="quiz-total-label">0 / 0</span>
+                            </div>
+                            <div class="progress-footer-item">
+                                <span class="progress-footer-label">Còn lại</span>
+                                <span class="progress-footer-value" id="quiz-remaining-label">--</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <!-- KẾT THÚC THẺ TIẾN ĐỘ CHÍNH -->
 
                 <!-- XÓA BỎ: Các thẻ thống kê trắng (quiz-session-stats) đã bị xóa -->
-                
+
             </div>
             <!-- ================================================== -->
             <!-- KẾT THÚC PHẦN SỬA ĐỔI -->
@@ -804,7 +925,6 @@
 
         const quizContentDiv = document.getElementById('quiz-content');
         const quizGroupRangeEl = document.getElementById('quiz-group-range');
-        const quizAnsweredCountEl = document.getElementById('quiz-answered-count'); // SỬA: Biến này vẫn còn nhưng element đã bị xóa
         const quizProgressFillEl = document.getElementById('quiz-progress-fill');
         const quizTotalLabelEl = document.getElementById('quiz-total-label');
         const quizRemainingLabelEl = document.getElementById('quiz-remaining-label');
@@ -906,27 +1026,22 @@
             const answered = Number(sessionTotalAnswered) || 0;
             const hasTotal = totalInSession > 0;
 
-            // SỬA: Xóa logic cập nhật cho quizAnsweredCountEl vì nó đã bị xóa
-            // if (quizAnsweredCountEl) {
-            //     quizAnsweredCountEl.textContent = numberFormatter.format(answered);
-            // }
-
             if (quizTotalLabelEl) {
                 if (hasTotal) {
                     const cappedAnswered = Math.min(answered, totalInSession);
-                    const totalText = `${numberFormatter.format(cappedAnswered)} / ${numberFormatter.format(totalInSession)} câu`;
+                    const totalText = `${numberFormatter.format(cappedAnswered)} / ${numberFormatter.format(totalInSession)}`;
                     quizTotalLabelEl.textContent = totalText;
                 } else {
-                    quizTotalLabelEl.textContent = `${numberFormatter.format(answered)} câu`;
+                    quizTotalLabelEl.textContent = numberFormatter.format(answered);
                 }
             }
 
             if (quizRemainingLabelEl) {
                 if (hasTotal) {
                     const remaining = Math.max(totalInSession - answered, 0);
-                    quizRemainingLabelEl.textContent = `Còn lại: ${numberFormatter.format(remaining)}`;
+                    quizRemainingLabelEl.textContent = numberFormatter.format(remaining);
                 } else {
-                    quizRemainingLabelEl.textContent = 'Còn lại: --';
+                    quizRemainingLabelEl.textContent = '--';
                 }
             }
 
