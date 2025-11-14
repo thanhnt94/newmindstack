@@ -44,7 +44,7 @@
         /* THAY ĐỔI LỚN #1: Bố cục lại thanh trạng thái phiên học */
         .quiz-session-overview {
             display: flex;
-            justify-content: center;
+            justify-content: flex-end;
             width: 100%;
         }
 
@@ -245,28 +245,38 @@
         }
 
         @media (max-width: 640px) {
+            .quiz-session-overview {
+                justify-content: center;
+            }
+
             .quiz-progress-card {
-                padding: 1.35rem 1.25rem;
+                width: 100%;
+                padding: 1.1rem 1.25rem;
                 border-radius: 1rem;
             }
 
             .progress-card-header {
                 flex-direction: column;
                 align-items: flex-start;
+                gap: 0.65rem;
+            }
+
+            .progress-card-title {
+                width: 100%;
             }
 
             .progress-card-chip {
-                align-self: stretch;
+                align-self: flex-start;
                 justify-content: center;
                 text-align: center;
             }
 
             .progress-card-stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .progress-card-footer {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
         
@@ -760,17 +770,20 @@
             }
 
             .quiz-controls {
-                flex-direction: column;
-                align-items: stretch;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.75rem;
             }
 
             .control-button {
-                width: 100%;
+                flex: 1 1 calc(50% - 0.75rem);
+                min-width: 140px;
                 justify-content: center;
             }
 
             .question-stats-grid {
-                grid-template-columns: minmax(0, 1fr);
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
         
