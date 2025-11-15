@@ -40,24 +40,26 @@
         <div class="data-card-header px-6 py-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-slate-900">Xuất dữ liệu nội dung</h2>
-                <p class="text-sm text-slate-500">Tải về các gói dữ liệu liên quan đến bộ thẻ, bài quiz, khóa học hoặc tiến độ học tập để sao lưu cục bộ.</p>
+                <p class="text-sm text-slate-500">Chọn gói dữ liệu và tải về ngay để lưu trữ ngoại tuyến.</p>
             </div>
         </div>
         <div class="px-6 pb-6">
-            <div class="grid gap-4 md:grid-cols-2">
-                {% for option in dataset_options %}
-                <div class="rounded-lg border border-slate-200 p-4 flex flex-col justify-between bg-slate-50">
-                    <div class="space-y-1">
-                        <h3 class="text-base font-semibold text-slate-800">{{ option.label }}</h3>
-                        <p class="text-sm text-slate-600">{{ option.description }}</p>
-                    </div>
-                    <a href="{{ url_for('admin.export_dataset', dataset_key=option.key) }}" class="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-500 transition" target="_blank" rel="noopener">
-                        <i class="fas fa-file-archive"></i>
-                        Xuất &amp; tải về
-                    </a>
+            <form action="{{ url_for('admin.export_dataset_from_form') }}" method="post" class="space-y-4 md:flex md:items-end md:gap-4 md:space-y-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="flex-1 space-y-2">
+                    <label for="export-dataset-select" class="block text-sm font-medium text-slate-700">Chọn gói dữ liệu</label>
+                    <select id="export-dataset-select" name="dataset_key" class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        {% for option in dataset_options %}
+                        <option value="{{ option.key }}" data-description="{{ option.description }}">{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                    <p id="export-dataset-description" class="text-sm text-slate-500">{% if dataset_options %}{{ dataset_options[0].description }}{% endif %}</p>
                 </div>
-                {% endfor %}
-            </div>
+                <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow hover:bg-blue-500 transition">
+                    <i class="fas fa-file-archive"></i>
+                    Xuất &amp; tải về
+                </button>
+            </form>
         </div>
     </div>
 
@@ -82,25 +84,22 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        {% for file in backup_files %}
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-5 py-4 font-medium text-slate-900">{{ file }}</td>
-                            <td class="px-5 py-4 text-slate-600">{{ file.split('_')[1] }} {{ file.split('_')[2].split('.')[0] }}</td>
-                            <td class="px-5 py-4">
-                                <a href="{{ url_for('admin.download_backup_file', filename=file) }}" class="inline-flex items-center gap-2 rounded-md bg-slate-200 px-3 py-2 text-slate-700 hover:bg-slate-300 transition">
-                                    <i class="fas fa-download"></i> Tải về
-                                </a>
-                            </td>
-                            <td class="px-5 py-4">
-                                <form action="{{ url_for('admin.restore_backup', filename=file) }}" method="post" onsubmit="return confirm('Khôi phục sẽ ghi đè toàn bộ dữ liệu hiện tại. Bạn có chắc chắn muốn tiếp tục?');" class="inline-flex">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-md hover:bg-rose-200 transition">
-                                        <i class="fas fa-rotate"></i> Khôi phục
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
+            {% for file in backup_files %}
+            <tr class="hover:bg-slate-50">
+                <td class="px-5 py-4 font-medium text-slate-900">{{ file }}</td>
+                <td class="px-5 py-4 text-slate-600">{{ file.split('_')[1] }} {{ file.split('_')[2].split('.')[0] }}</td>
+                <td class="px-5 py-4">
+                    <a href="{{ url_for('admin.download_backup_file', filename=file) }}" class="inline-flex items-center gap-2 rounded-md bg-slate-200 px-3 py-2 text-slate-700 hover:bg-slate-300 transition">
+                        <i class="fas fa-download"></i> Tải về
+                    </a>
+                </td>
+                <td class="px-5 py-4">
+                    <button type="button" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-md hover:bg-rose-200 transition" onclick="openRestoreDialog('{{ file }}')">
+                        <i class="fas fa-rotate"></i> Khôi phục
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -113,32 +112,152 @@
     <div class="data-card">
         <div class="data-card-header px-6 py-5">
             <h2 class="text-xl font-semibold text-slate-900">Khôi phục theo từng phần</h2>
-            <p class="text-sm text-slate-500">Chọn file đã xuất tương ứng để khôi phục lại người dùng, nội dung hoặc tiến độ học tập.</p>
+            <p class="text-sm text-slate-500">Tải lên gói dữ liệu đã xuất và chọn chính xác phần cần khôi phục.</p>
         </div>
-        <div class="px-6 pb-6 space-y-6">
-            {% for option in dataset_options %}
-            <form action="{{ url_for('admin.restore_dataset', dataset_key=option.key) }}" method="post" enctype="multipart/form-data" class="rounded-lg border border-slate-200 p-4 bg-white shadow-sm">
+        <div class="px-6 pb-6">
+            <form action="{{ url_for('admin.restore_dataset') }}" method="post" enctype="multipart/form-data" class="space-y-4">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div class="space-y-1">
-                        <h3 class="text-base font-semibold text-slate-800">{{ option.label }}</h3>
-                        <p class="text-sm text-slate-600">{{ option.description }}</p>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="space-y-2">
+                        <label for="restore-dataset-select" class="block text-sm font-medium text-slate-700">Chọn phần dữ liệu</label>
+                        <select id="restore-dataset-select" name="dataset_key" class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200">
+                            {% for option in dataset_options %}
+                            <option value="{{ option.key }}" data-description="{{ option.description }}">{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <p id="restore-dataset-description" class="text-sm text-slate-500">{% if dataset_options %}{{ dataset_options[0].description }}{% endif %}</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="restore-dataset-file" class="block text-sm font-medium text-slate-700">Chọn file dữ liệu</label>
+                        <input id="restore-dataset-file" type="file" name="dataset_file" accept=".json,.zip" required class="block w-full rounded-md border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200">
                         <p class="text-xs text-slate-400">Hỗ trợ file <code>.json</code> hoặc <code>.zip</code> đã xuất từ hệ thống.</p>
                     </div>
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
-                        <label class="flex-1 sm:flex-none">
-                            <span class="sr-only">Chọn file</span>
-                            <input type="file" name="dataset_file" accept=".json,.zip" required class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-200 file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-800 hover:file:bg-slate-300" />
-                        </label>
-                        <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-emerald-500 transition" onclick="return confirm('Bạn có chắc chắn muốn khôi phục phần dữ liệu này không?');">
-                            <i class="fas fa-upload"></i>
-                            Khôi phục phần này
-                        </button>
-                    </div>
+                </div>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-sm text-slate-500">Hệ thống sẽ ghi đè phần dữ liệu đã chọn bằng nội dung trong file tải lên.</p>
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow hover:bg-emerald-500 transition">
+                        <i class="fas fa-upload"></i>
+                        Thực hiện khôi phục
+                    </button>
                 </div>
             </form>
-            {% endfor %}
         </div>
     </div>
 </div>
+
+<div id="restore-dialog" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 px-4">
+    <div class="w-full max-w-lg rounded-xl bg-white shadow-xl">
+        <div class="flex items-start justify-between border-b border-slate-200 px-6 py-4">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Chọn phần cần khôi phục</h3>
+                <p class="text-sm text-slate-500">Khôi phục dữ liệu từ <span id="restore-dialog-filename" class="font-medium text-slate-700"></span></p>
+            </div>
+            <button type="button" class="text-slate-400 transition hover:text-slate-600" onclick="closeRestoreDialog()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="restore-dialog-form" action="{{ url_for('admin.restore_backup') }}" method="post" class="space-y-4 px-6 py-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="filename" id="restore-dialog-filename-input">
+            <div class="space-y-3">
+                <label class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                    <input id="restore-database-checkbox" type="checkbox" name="restore_database" class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" checked>
+                    <span>
+                        <span class="font-semibold text-slate-900">Cơ sở dữ liệu</span>
+                        <span class="block text-xs text-slate-500">Khôi phục toàn bộ người dùng, nội dung, cấu hình và tiến độ học tập.</span>
+                    </span>
+                </label>
+                <label class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                    <input id="restore-uploads-checkbox" type="checkbox" name="restore_uploads" class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" checked>
+                    <span>
+                        <span class="font-semibold text-slate-900">Thư mục uploads</span>
+                        <span class="block text-xs text-slate-500">Khôi phục toàn bộ tệp media đã tải lên đi kèm bài học và quiz.</span>
+                    </span>
+                </label>
+            </div>
+            <div class="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
+                <button type="button" class="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition" onclick="closeRestoreDialog()">
+                    Hủy
+                </button>
+                <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-rose-500 transition">
+                    <i class="fas fa-rotate"></i>
+                    Tiến hành khôi phục
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block scripts %}
+{{ super() }}
+<script>
+    const datasetDescriptions = {
+        export: document.getElementById('export-dataset-description'),
+        restore: document.getElementById('restore-dataset-description'),
+    };
+
+    function updateDatasetDescription(selectElement, targetKey) {
+        if (!selectElement || !datasetDescriptions[targetKey]) {
+            return;
+        }
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const description = selectedOption ? selectedOption.getAttribute('data-description') : '';
+        datasetDescriptions[targetKey].textContent = description || '';
+    }
+
+    const exportSelect = document.getElementById('export-dataset-select');
+    if (exportSelect) {
+        updateDatasetDescription(exportSelect, 'export');
+        exportSelect.addEventListener('change', () => updateDatasetDescription(exportSelect, 'export'));
+    }
+
+    const restoreSelect = document.getElementById('restore-dataset-select');
+    if (restoreSelect) {
+        updateDatasetDescription(restoreSelect, 'restore');
+        restoreSelect.addEventListener('change', () => updateDatasetDescription(restoreSelect, 'restore'));
+    }
+
+    const restoreDialog = document.getElementById('restore-dialog');
+    const restoreFilenameInput = document.getElementById('restore-dialog-filename-input');
+    const restoreFilenameLabel = document.getElementById('restore-dialog-filename');
+    const restoreDatabaseCheckbox = document.getElementById('restore-database-checkbox');
+    const restoreUploadsCheckbox = document.getElementById('restore-uploads-checkbox');
+
+    function resetRestoreCheckboxes() {
+        if (restoreDatabaseCheckbox) {
+            restoreDatabaseCheckbox.checked = true;
+        }
+        if (restoreUploadsCheckbox) {
+            restoreUploadsCheckbox.checked = true;
+        }
+    }
+
+    window.openRestoreDialog = function(filename) {
+        if (!restoreDialog || !restoreFilenameInput || !restoreFilenameLabel) {
+            return;
+        }
+        resetRestoreCheckboxes();
+        restoreFilenameInput.value = filename;
+        restoreFilenameLabel.textContent = filename;
+        restoreDialog.classList.remove('hidden');
+        restoreDialog.classList.add('flex');
+    };
+
+    window.closeRestoreDialog = function() {
+        if (!restoreDialog) {
+            return;
+        }
+        restoreDialog.classList.add('hidden');
+        restoreDialog.classList.remove('flex');
+    };
+
+    if (restoreDialog) {
+        restoreDialog.addEventListener('click', (event) => {
+            if (event.target === restoreDialog) {
+                window.closeRestoreDialog();
+            }
+        });
+    }
+</script>
+{% endblock %}
 {% endblock %}

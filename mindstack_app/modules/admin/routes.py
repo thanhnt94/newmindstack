@@ -49,6 +49,7 @@ import tempfile
 from uuid import uuid4
 from werkzeug.utils import secure_filename, safe_join
 from collections import OrderedDict
+from typing import Optional
 from sqlalchemy.sql.sqltypes import DateTime, Date, Time
 from datetime import date, time
 
@@ -84,6 +85,21 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
                 UserNote,
                 UserFeedback,
             ],
+        },
+        'goals_notes': {
+            'label': 'Mục tiêu & ghi chú học tập',
+            'description': 'Chỉ bao gồm dữ liệu mục tiêu học tập và ghi chú cá nhân của người học.',
+            'models': [LearningGoal, UserNote],
+        },
+        'system_configs': {
+            'label': 'Cấu hình hệ thống & API',
+            'description': 'Các thiết lập hệ thống, tác vụ nền và khóa API tích hợp.',
+            'models': [SystemSetting, BackgroundTask, ApiKey],
+        },
+        'feedback_reports': {
+            'label': 'Phản hồi & báo cáo từ người dùng',
+            'description': 'Tập trung vào phản hồi, điểm số và lịch sử tương tác phục vụ phân tích.',
+            'models': [UserFeedback, ScoreLog],
         },
     }
 )
@@ -669,8 +685,7 @@ def download_backup_file(filename):
     return send_file(target_path, as_attachment=True, download_name=os.path.basename(target_path))
 
 
-@admin_bp.route('/backup/export/<string:dataset_key>')
-def export_dataset(dataset_key: str):
+def _build_dataset_export_response(dataset_key: str):
     if dataset_key not in DATASET_CATALOG:
         flash('Dataset không hợp lệ.', 'danger')
         return redirect(url_for('admin.manage_backup_restore'))
@@ -689,6 +704,21 @@ def export_dataset(dataset_key: str):
         as_attachment=True,
         download_name=filename,
     )
+
+
+@admin_bp.route('/backup/export', methods=['POST'])
+def export_dataset_from_form():
+    dataset_key = request.form.get('dataset_key', '')
+    if not dataset_key:
+        flash('Vui lòng chọn gói dữ liệu cần xuất.', 'warning')
+        return redirect(url_for('admin.manage_backup_restore'))
+
+    return _build_dataset_export_response(dataset_key)
+
+
+@admin_bp.route('/backup/export/<string:dataset_key>')
+def export_dataset(dataset_key: str):
+    return _build_dataset_export_response(dataset_key)
 
 
 @admin_bp.route('/backup/full', methods=['POST'])
@@ -747,7 +777,11 @@ def download_full_backup():
 
 
 @admin_bp.route('/restore-dataset/<string:dataset_key>', methods=['POST'])
-def restore_dataset(dataset_key: str):
+@admin_bp.route('/restore-dataset', methods=['POST'])
+def restore_dataset(dataset_key: Optional[str] = None):
+    if not dataset_key:
+        dataset_key = request.form.get('dataset_key', '')
+
     if dataset_key not in DATASET_CATALOG:
         flash('Dataset không hợp lệ.', 'danger')
         return redirect(url_for('admin.manage_backup_restore'))
@@ -772,11 +806,15 @@ def restore_dataset(dataset_key: str):
     return redirect(url_for('admin.manage_backup_restore'))
 
 @admin_bp.route('/restore/<string:filename>', methods=['POST'])
-def restore_backup(filename):
+@admin_bp.route('/restore', methods=['POST'])
+def restore_backup(filename: Optional[str] = None):
     """
     Mô tả: Khôi phục dữ liệu từ một bản sao lưu đã chọn.
     """
     try:
+        if not filename:
+            filename = request.form.get('filename', '')
+
         backup_folder = _get_backup_folder()
         backup_path = safe_join(backup_folder, filename)
 
@@ -784,32 +822,42 @@ def restore_backup(filename):
             flash('File sao lưu không tồn tại.', 'danger')
             return redirect(url_for('admin.manage_backup_restore'))
 
-        # Đóng database connection để có thể ghi đè file
-        db.session.close()
-        db.engine.dispose()
+        restore_database = request.form.get('restore_database', 'on') == 'on'
+        restore_uploads = request.form.get('restore_uploads', 'on') == 'on'
+        if not restore_database and not restore_uploads:
+            flash('Vui lòng chọn ít nhất một phần dữ liệu để khôi phục.', 'warning')
+            return redirect(url_for('admin.manage_backup_restore'))
 
-        db_path = _resolve_database_path()
+        db_path = None
+        if restore_database:
+            # Đóng database connection để có thể ghi đè file
+            db.session.close()
+            db.engine.dispose()
+
+            db_path = _resolve_database_path()
 
         with zipfile.ZipFile(backup_path, 'r') as zipf:
             members = zipf.namelist()
-            db_member = next((m for m in members if os.path.basename(db_path) in m), None)
-            if not db_member:
-                raise RuntimeError('Gói sao lưu không chứa file cơ sở dữ liệu hợp lệ.')
-
             temp_dir = tempfile.mkdtemp(prefix='mindstack_restore_')
             try:
-                zipf.extract(db_member, temp_dir)
-                extracted_db_path = os.path.join(temp_dir, db_member)
-                os.makedirs(os.path.dirname(db_path), exist_ok=True)
-                shutil.copy2(extracted_db_path, db_path)
+                if restore_database:
+                    db_member = next((m for m in members if db_path and os.path.basename(db_path) in m), None)
+                    if not db_member:
+                        raise RuntimeError('Gói sao lưu không chứa file cơ sở dữ liệu hợp lệ.')
 
-                uploads_folder = current_app.config.get('UPLOAD_FOLDER')
-                if uploads_folder and any(member.startswith('uploads/') for member in members):
-                    zipf.extractall(temp_dir)
-                    source_uploads = os.path.join(temp_dir, 'uploads')
-                    if os.path.exists(source_uploads):
-                        shutil.rmtree(uploads_folder, ignore_errors=True)
-                        shutil.copytree(source_uploads, uploads_folder, dirs_exist_ok=True)
+                    zipf.extract(db_member, temp_dir)
+                    extracted_db_path = os.path.join(temp_dir, db_member)
+                    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                    shutil.copy2(extracted_db_path, db_path)
+
+                if restore_uploads:
+                    uploads_folder = current_app.config.get('UPLOAD_FOLDER')
+                    if uploads_folder and any(member.startswith('uploads/') for member in members):
+                        zipf.extractall(temp_dir)
+                        source_uploads = os.path.join(temp_dir, 'uploads')
+                        if os.path.exists(source_uploads):
+                            shutil.rmtree(uploads_folder, ignore_errors=True)
+                            shutil.copytree(source_uploads, uploads_folder, dirs_exist_ok=True)
             finally:
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
@@ -817,5 +865,5 @@ def restore_backup(filename):
     except Exception as e:
         current_app.logger.error(f"Lỗi khi khôi phục dữ liệu: {e}")
         flash(f'Lỗi khi khôi phục dữ liệu: {e}', 'danger')
-    
+
     return redirect(url_for('admin.manage_backup_restore'))
