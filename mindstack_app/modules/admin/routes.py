@@ -169,6 +169,7 @@ def _collect_dataset_payload(dataset_key: str) -> dict[str, list[dict[str, objec
 
 def _write_dataset_to_zip(zipf: zipfile.ZipFile, dataset_key: str, payload: dict[str, list[dict[str, object]]]) -> None:
     manifest = {
+        'type': 'dataset',
         'dataset': dataset_key,
         'generated_at': datetime.utcnow().isoformat() + 'Z',
         'tables': list(payload.keys()),
@@ -187,38 +188,193 @@ def _write_dataset_to_zip(zipf: zipfile.ZipFile, dataset_key: str, payload: dict
             zipf.writestr(f'{dataset_key}/{table_name}.csv', output.getvalue())
 
 
-def _load_dataset_payload(file_storage, dataset_key: str) -> dict[str, list[dict[str, object]]]:
-    raw_bytes = file_storage.read()
+def _read_backup_manifest(zipf: zipfile.ZipFile) -> tuple[Optional[dict], Optional[str]]:
+    """Attempt to read a manifest.json file from the provided zip archive."""
+
+    candidates = ['manifest.json']
+    candidates.extend(name for name in zipf.namelist() if name.endswith('/manifest.json'))
+
+    for candidate in candidates:
+        try:
+            raw = zipf.read(candidate)
+        except KeyError:
+            continue
+
+        try:
+            return json.loads(raw.decode('utf-8')), candidate
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            continue
+
+    return None, None
+
+
+def _extract_dataset_payload_from_zip(zipf: zipfile.ZipFile, dataset_key: str) -> dict[str, list[dict[str, object]]]:
+    payload: dict[str, list[dict[str, object]]] = {}
+    members = set(zipf.namelist())
+
+    for model in DATASET_CATALOG[dataset_key]['models']:
+        table_name = model.__tablename__
+        for candidate in (f'{dataset_key}/{table_name}.json', f'{table_name}.json'):
+            if candidate not in members:
+                continue
+
+            try:
+                data = json.loads(zipf.read(candidate).decode('utf-8'))
+            except (KeyError, UnicodeDecodeError, json.JSONDecodeError):
+                continue
+
+            if isinstance(data, list):
+                payload[table_name] = data
+            break
+
+    return payload
+
+
+def _infer_dataset_key_from_zip(zipf: zipfile.ZipFile) -> Optional[str]:
+    members = set(zipf.namelist())
+    best_match: tuple[Optional[str], int] = (None, 0)
+
+    for dataset_key, config in DATASET_CATALOG.items():
+        table_names = {model.__tablename__ for model in config['models']}
+        available = {
+            table_name
+            for table_name in table_names
+            if f'{dataset_key}/{table_name}.json' in members or f'{table_name}.json' in members
+        }
+
+        if not available:
+            continue
+
+        if not available.issubset(table_names):
+            continue
+
+        if best_match[0] is None or len(table_names) < best_match[1]:
+            best_match = (dataset_key, len(table_names))
+
+    return best_match[0]
+
+
+def _infer_dataset_key_from_json(data: dict) -> Optional[str]:
+    available_tables = {key for key, value in data.items() if isinstance(value, list)}
+    if not available_tables:
+        return None
+
+    best_match: tuple[Optional[str], int] = (None, 0)
+
+    for dataset_key, config in DATASET_CATALOG.items():
+        table_names = {model.__tablename__ for model in config['models']}
+        if not available_tables.issubset(table_names):
+            continue
+        if best_match[0] is None or len(table_names) < best_match[1]:
+            best_match = (dataset_key, len(table_names))
+
+    return best_match[0]
+
+
+def _restore_backup_from_zip(zipf: zipfile.ZipFile, *, restore_database: bool = True, restore_uploads: bool = True) -> None:
+    members = zipf.namelist()
+
+    db_path: Optional[str] = None
+    if restore_database:
+        db.session.close()
+        db.engine.dispose()
+        db_path = _resolve_database_path()
+
+    temp_dir = tempfile.mkdtemp(prefix='mindstack_restore_')
+
+    try:
+        if restore_database:
+            if not db_path:
+                raise RuntimeError('Không thể xác định đường dẫn cơ sở dữ liệu để khôi phục.')
+
+            db_basename = os.path.basename(db_path)
+            db_member = next((m for m in members if os.path.basename(m) == db_basename), None)
+            if not db_member:
+                raise RuntimeError('Gói sao lưu không chứa file cơ sở dữ liệu hợp lệ.')
+
+            zipf.extract(db_member, temp_dir)
+            extracted_db_path = os.path.join(temp_dir, db_member)
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            shutil.copy2(extracted_db_path, db_path)
+
+        if restore_uploads:
+            uploads_folder = current_app.config.get('UPLOAD_FOLDER')
+            if uploads_folder and any(member.startswith('uploads/') for member in members):
+                zipf.extractall(temp_dir)
+                source_uploads = os.path.join(temp_dir, 'uploads')
+                if os.path.exists(source_uploads):
+                    shutil.rmtree(uploads_folder, ignore_errors=True)
+                    shutil.copytree(source_uploads, uploads_folder, dirs_exist_ok=True)
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def _restore_from_uploaded_bytes(raw_bytes: bytes, dataset_hint: Optional[str] = None) -> tuple[str, Optional[str]]:
     if not raw_bytes:
         raise ValueError('File tải lên rỗng.')
 
-    payload: dict[str, list[dict[str, object]]] = {}
     buffer = io.BytesIO(raw_bytes)
 
     if zipfile.is_zipfile(buffer):
         buffer.seek(0)
         with zipfile.ZipFile(buffer) as zipf:
-            members = set(zipf.namelist())
-            for model in DATASET_CATALOG[dataset_key]['models']:
-                table_name = model.__tablename__
-                candidates = [
-                    f'{dataset_key}/{table_name}.json',
-                    f'{table_name}.json',
-                ]
-                json_member = next((candidate for candidate in candidates if candidate in members), None)
-                if not json_member:
-                    continue
-                data = json.loads(zipf.read(json_member).decode('utf-8'))
-                if isinstance(data, list):
-                    payload[table_name] = data
-        return payload
+            manifest_data, _ = _read_backup_manifest(zipf)
 
-    buffer.seek(0)
-    text = buffer.read().decode('utf-8')
+            manifest_type = manifest_data.get('type') if isinstance(manifest_data, dict) else None
+
+            if manifest_type == 'full':
+                includes_uploads = bool(manifest_data.get('includes_uploads', False))
+                _restore_backup_from_zip(zipf, restore_database=True, restore_uploads=includes_uploads)
+                return 'full', None
+
+            if manifest_type == 'database':
+                _restore_backup_from_zip(zipf, restore_database=True, restore_uploads=False)
+                return 'database', None
+
+            dataset_key = None
+            if dataset_hint and dataset_hint in DATASET_CATALOG:
+                dataset_key = dataset_hint
+            elif manifest_data and isinstance(manifest_data, dict):
+                manifest_dataset = manifest_data.get('dataset')
+                if isinstance(manifest_dataset, str) and manifest_dataset in DATASET_CATALOG:
+                    dataset_key = manifest_dataset
+
+            if not dataset_key:
+                dataset_key = _infer_dataset_key_from_zip(zipf)
+
+            if dataset_key:
+                payload = _extract_dataset_payload_from_zip(zipf, dataset_key)
+                if not payload:
+                    raise ValueError('Không tìm thấy dữ liệu hợp lệ trong gói sao lưu.')
+                _apply_dataset_restore(dataset_key, payload)
+                return 'dataset', dataset_key
+
+        raise ValueError('Không thể xác định loại gói sao lưu từ file ZIP đã tải lên.')
+
+    try:
+        text = raw_bytes.decode('utf-8')
+    except UnicodeDecodeError as exc:
+        raise ValueError('File tải lên không phải là file ZIP hoặc JSON hợp lệ.') from exc
+
     data = json.loads(text)
-    if isinstance(data, dict):
-        return {k: v for k, v in data.items() if isinstance(v, list)}
-    raise ValueError('Định dạng file không hợp lệ. Hãy tải lên file JSON hoặc ZIP hợp lệ.')
+    if not isinstance(data, dict):
+        raise ValueError('Định dạng JSON không hợp lệ. Hãy tải lên file JSON chứa dữ liệu bảng.')
+
+    dataset_key = None
+    if dataset_hint and dataset_hint in DATASET_CATALOG:
+        dataset_key = dataset_hint
+    else:
+        dataset_key = _infer_dataset_key_from_json(data)
+
+    if not dataset_key:
+        raise ValueError('Không thể xác định dataset phù hợp cho dữ liệu đã tải lên.')
+
+    payload = {table: records for table, records in data.items() if isinstance(records, list)}
+    if not payload:
+        raise ValueError('Không tìm thấy dữ liệu hợp lệ trong file JSON đã tải lên.')
+
+    _apply_dataset_restore(dataset_key, payload)
+    return 'dataset', dataset_key
 
 
 def _apply_dataset_restore(dataset_key: str, payload: dict[str, list[dict[str, object]]]) -> None:
@@ -838,10 +994,9 @@ def download_full_backup():
 @admin_bp.route('/restore-dataset/<string:dataset_key>', methods=['POST'])
 @admin_bp.route('/restore-dataset', methods=['POST'])
 def restore_dataset(dataset_key: Optional[str] = None):
-    if not dataset_key:
-        dataset_key = request.form.get('dataset_key', '')
+    dataset_hint = dataset_key or request.form.get('dataset_key') or None
 
-    if dataset_key not in DATASET_CATALOG:
+    if dataset_hint and dataset_hint not in DATASET_CATALOG:
         flash('Dataset không hợp lệ.', 'danger')
         return redirect(url_for('admin.manage_backup_restore'))
 
@@ -851,15 +1006,20 @@ def restore_dataset(dataset_key: Optional[str] = None):
         return redirect(url_for('admin.manage_backup_restore'))
 
     try:
-        payload = _load_dataset_payload(upload, dataset_key)
-        if not payload:
-            flash('Không tìm thấy dữ liệu hợp lệ trong file đã tải lên.', 'warning')
-            return redirect(url_for('admin.manage_backup_restore'))
+        result_kind, result_dataset_key = _restore_from_uploaded_bytes(upload.read(), dataset_hint)
 
-        _apply_dataset_restore(dataset_key, payload)
-        flash('Đã khôi phục dữ liệu thành công cho phần được chọn!', 'success')
+        if result_kind == 'dataset' and result_dataset_key:
+            config = DATASET_CATALOG.get(result_dataset_key, {})
+            label = config.get('label', result_dataset_key)
+            flash(f"Đã khôi phục dữ liệu '{label}' từ file tải lên thành công!", 'success')
+        elif result_kind == 'full':
+            flash('Đã khôi phục toàn bộ dữ liệu từ gói sao lưu đã tải lên.', 'success')
+        elif result_kind == 'database':
+            flash('Đã khôi phục cơ sở dữ liệu từ gói sao lưu đã tải lên.', 'success')
+        else:
+            flash('Đã xử lý gói sao lưu thành công.', 'success')
     except Exception as exc:
-        current_app.logger.error('Lỗi khi khôi phục dataset %s: %s', dataset_key, exc)
+        current_app.logger.error('Lỗi khi khôi phục dữ liệu từ file tải lên: %s', exc)
         flash(f'Lỗi khi khôi phục dữ liệu: {exc}', 'danger')
 
     return redirect(url_for('admin.manage_backup_restore'))
@@ -884,38 +1044,8 @@ def restore_backup(filename: Optional[str] = None):
         restore_database = request.form.get('restore_database', 'on') == 'on'
         restore_uploads = request.form.get('restore_uploads', 'on') == 'on'
 
-        db_path = None
-        if restore_database:
-            # Đóng database connection để có thể ghi đè file
-            db.session.close()
-            db.engine.dispose()
-
-            db_path = _resolve_database_path()
-
         with zipfile.ZipFile(backup_path, 'r') as zipf:
-            members = zipf.namelist()
-            temp_dir = tempfile.mkdtemp(prefix='mindstack_restore_')
-            try:
-                if restore_database:
-                    db_member = next((m for m in members if db_path and os.path.basename(db_path) in m), None)
-                    if not db_member:
-                        raise RuntimeError('Gói sao lưu không chứa file cơ sở dữ liệu hợp lệ.')
-
-                    zipf.extract(db_member, temp_dir)
-                    extracted_db_path = os.path.join(temp_dir, db_member)
-                    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-                    shutil.copy2(extracted_db_path, db_path)
-
-                if restore_uploads:
-                    uploads_folder = current_app.config.get('UPLOAD_FOLDER')
-                    if uploads_folder and any(member.startswith('uploads/') for member in members):
-                        zipf.extractall(temp_dir)
-                        source_uploads = os.path.join(temp_dir, 'uploads')
-                        if os.path.exists(source_uploads):
-                            shutil.rmtree(uploads_folder, ignore_errors=True)
-                            shutil.copytree(source_uploads, uploads_folder, dirs_exist_ok=True)
-            finally:
-                shutil.rmtree(temp_dir, ignore_errors=True)
+            _restore_backup_from_zip(zipf, restore_database=restore_database, restore_uploads=restore_uploads)
 
         flash('Đã khôi phục dữ liệu thành công!', 'success')
     except Exception as e:
