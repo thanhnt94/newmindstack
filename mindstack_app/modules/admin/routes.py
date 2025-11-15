@@ -1045,7 +1045,46 @@ def restore_backup(filename: Optional[str] = None):
         restore_uploads = request.form.get('restore_uploads', 'on') == 'on'
 
         with zipfile.ZipFile(backup_path, 'r') as zipf:
-            _restore_backup_from_zip(zipf, restore_database=restore_database, restore_uploads=restore_uploads)
+            manifest_data, _ = _read_backup_manifest(zipf)
+            manifest_type = manifest_data.get('type') if isinstance(manifest_data, dict) else None
+
+            if manifest_type == 'dataset':
+                dataset_key = None
+                manifest_dataset = manifest_data.get('dataset') if isinstance(manifest_data, dict) else None
+                if isinstance(manifest_dataset, str) and manifest_dataset in DATASET_CATALOG:
+                    dataset_key = manifest_dataset
+                else:
+                    dataset_key = _infer_dataset_key_from_zip(zipf)
+
+                if not dataset_key:
+                    raise RuntimeError('Không thể xác định gói dữ liệu trong bản sao lưu.')
+
+                payload = _extract_dataset_payload_from_zip(zipf, dataset_key)
+                if not payload:
+                    raise RuntimeError('Không tìm thấy dữ liệu hợp lệ trong gói sao lưu.')
+
+                _apply_dataset_restore(dataset_key, payload)
+
+                config = DATASET_CATALOG.get(dataset_key, {})
+                label = config.get('label', dataset_key)
+                flash(f"Đã khôi phục gói dữ liệu '{label}' thành công!", 'success')
+                return redirect(url_for('admin.manage_backup_restore'))
+
+            try:
+                _restore_backup_from_zip(zipf, restore_database=restore_database, restore_uploads=restore_uploads)
+            except RuntimeError as exc:
+                message = str(exc)
+                if 'không chứa file cơ sở dữ liệu hợp lệ' in message.lower():
+                    dataset_key = _infer_dataset_key_from_zip(zipf)
+                    if dataset_key:
+                        payload = _extract_dataset_payload_from_zip(zipf, dataset_key)
+                        if payload:
+                            _apply_dataset_restore(dataset_key, payload)
+                            config = DATASET_CATALOG.get(dataset_key, {})
+                            label = config.get('label', dataset_key)
+                            flash(f"Đã khôi phục gói dữ liệu '{label}' thành công!", 'success')
+                            return redirect(url_for('admin.manage_backup_restore'))
+                raise
 
         flash('Đã khôi phục dữ liệu thành công!', 'success')
     except Exception as e:
