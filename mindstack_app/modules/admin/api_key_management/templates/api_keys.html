@@ -50,6 +50,7 @@
                                 <i class="fas fa-edit"></i>
                             </a>
                             <form action="{{ url_for('api_key_management.delete_api_key', key_id=key.key_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa API key này?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="text-rose-600 hover:text-rose-800" title="Xóa">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>

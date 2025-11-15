@@ -14,6 +14,7 @@
                 <p class="text-sm text-slate-500">Lưu lại cơ sở dữ liệu và toàn bộ thư mục uploads vào một gói zip duy nhất.</p>
             </div>
             <form action="{{ url_for('admin.create_backup') }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn tạo bản sao lưu mới không?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md shadow hover:bg-blue-500 transition">
                     <i class="fas fa-plus-circle"></i> Tạo bản sao lưu ngay
                 </button>
@@ -44,6 +45,7 @@
                             <td class="px-5 py-4 text-slate-600">{{ file.split('_')[1] }} {{ file.split('_')[2].split('.')[0] }}</td>
                             <td class="px-5 py-4">
                                 <form action="{{ url_for('admin.restore_backup', filename=file) }}" method="post" onsubmit="return confirm('Khôi phục sẽ ghi đè toàn bộ dữ liệu hiện tại. Bạn có chắc chắn muốn tiếp tục?');" class="inline-flex">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-md hover:bg-rose-200 transition">
                                         <i class="fas fa-rotate"></i> Khôi phục
                                     </button>
