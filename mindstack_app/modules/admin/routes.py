@@ -5,7 +5,7 @@
 
 from flask import render_template, redirect, url_for, flash, abort, jsonify, request, current_app
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, nullslast
 from ...models import db, User, LearningContainer, LearningItem, ApiKey, BackgroundTask, SystemSetting
 from datetime import datetime, timedelta
 import asyncio
@@ -22,7 +22,8 @@ from ..learning.flashcard_learning.image_service import ImageService
 audio_service = AudioService()
 image_service = ImageService()
 
-from . import admin_bp # Vẫn cần dòng này để các decorator như @admin_bp.route hoạt động chính xác.
+from . import admin_bp  # Vẫn cần dòng này để các decorator như @admin_bp.route hoạt động chính xác.
+from .context_processors import build_admin_sidebar_metrics
 
 ADMIN_ALLOWED_MEDIA_EXTENSIONS = {
     '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico',
@@ -118,7 +119,35 @@ def admin_dashboard():
         'exhausted_api_keys': exhausted_api_keys
     }
 
-    return render_template('dashboard.html', stats_data=stats_data)
+    recent_users = (
+        User.query.filter(User.last_seen.isnot(None))
+        .order_by(User.last_seen.desc())
+        .limit(5)
+        .all()
+    )
+
+    recent_containers = (
+        LearningContainer.query.order_by(LearningContainer.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    recent_tasks = (
+        BackgroundTask.query.order_by(nullslast(BackgroundTask.last_updated.desc()))
+        .limit(4)
+        .all()
+    )
+
+    overview_metrics = build_admin_sidebar_metrics()
+
+    return render_template(
+        'dashboard.html',
+        stats_data=stats_data,
+        recent_users=recent_users,
+        recent_containers=recent_containers,
+        recent_tasks=recent_tasks,
+        overview_metrics=overview_metrics,
+    )
 
 
 @admin_bp.route('/media-library', methods=['GET', 'POST'])
