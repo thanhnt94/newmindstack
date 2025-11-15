@@ -1,6 +1,6 @@
 # File: web/mindstack_app/config.py
-# Phiên bản: 1.6
-# MỤC ĐÍCH: Bổ sung cấu hình cache hình ảnh cho flashcard và chuẩn hóa việc khởi tạo thư mục.
+# Phiên bản: 1.7
+# MỤC ĐÍCH: Thêm cấu hình cho thư mục BACKUP_FOLDER.
 
 import os
 
@@ -39,6 +39,10 @@ class Config:
     # Cấu hình thư mục lưu trữ file tải lên (media)
     # Thư mục gốc cho tất cả các file tải lên
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+    
+    # THÊM MỚI: Cấu hình thư mục sao lưu (backup)
+    # Đặt thư mục backups ở thư mục gốc của dự án
+    BACKUP_FOLDER = os.path.join(BASE_DIR, 'backups')
 
     # Định nghĩa thư mục con cho cache audio và hình ảnh của flashcard
     FLASHCARD_AUDIO_CACHE_DIR = os.path.join(UPLOAD_FOLDER, 'flashcard', 'audio', 'cache')
@@ -53,3 +57,6 @@ class Config:
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     os.makedirs(FLASHCARD_AUDIO_CACHE_DIR, exist_ok=True)
     os.makedirs(FLASHCARD_IMAGE_CACHE_DIR, exist_ok=True)
+    
+    # THÊM MỚI: Đảm bảo thư mục backup tồn tại khi ứng dụng khởi chạy
+    os.makedirs(BACKUP_FOLDER, exist_ok=True)

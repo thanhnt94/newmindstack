@@ -17,6 +17,8 @@
 /env.bak/
 database/
 media/
+/backups/
+
 # /media/flashcard
 # media/flashcard/audio/
 # /media/flashcard/images/

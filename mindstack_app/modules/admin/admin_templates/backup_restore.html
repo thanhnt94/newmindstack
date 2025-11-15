@@ -1,3 +1,8 @@
+<!-- File: mindstack_app/modules/admin/admin_templates/backup_restore.html -->
+<!-- Phiên bản: 2.1 -->
+<!-- MỤC ĐÍCH: Sửa lỗi giao diện nút "Xuất dữ liệu" bị lệch hàng. -->
+<!-- THAY ĐỔI: Di chuyển thẻ <p> mô tả ra ngoài khối 'md:flex' của form. -->
+
 {% extends "admin_layout.html" %}
 {% set active_page = 'backup' %}
 
@@ -44,21 +49,28 @@
             </div>
         </div>
         <div class="px-6 pb-6">
-            <form action="{{ url_for('admin.export_dataset_from_form') }}" method="post" class="space-y-4 md:flex md:items-end md:gap-4 md:space-y-0">
+            <!-- SỬA LỖI GIAO DIỆN: Thay đổi class của form và di chuyển thẻ <p> mô tả ra ngoài -->
+            <form action="{{ url_for('admin.export_dataset_from_form') }}" method="post" class="space-y-4">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="flex-1 space-y-2">
-                    <label for="export-dataset-select" class="block text-sm font-medium text-slate-700">Chọn gói dữ liệu</label>
-                    <select id="export-dataset-select" name="dataset_key" class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                        {% for option in dataset_options %}
-                        <option value="{{ option.key }}" data-description="{{ option.description }}">{{ option.label }}</option>
-                        {% endfor %}
-                    </select>
-                    <p id="export-dataset-description" class="text-sm text-slate-500">{% if dataset_options %}{{ dataset_options[0].description }}{% endif %}</p>
+                <!-- Thêm md:flex md:items-end md:gap-4 md:space-y-0 vào div bọc này -->
+                <div class="space-y-4 md:flex md:items-end md:gap-4 md:space-y-0">
+                    <div class="flex-1 space-y-2">
+                        <label for="export-dataset-select" class="block text-sm font-medium text-slate-700">Chọn gói dữ liệu</label>
+                        <select id="export-dataset-select" name="dataset_key" class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            {% for option in dataset_options %}
+                            <option value="{{ option.key }}" data-description="{{ option.description }}">{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <!-- Thẻ <p> mô tả đã bị XÓA khỏi đây -->
+                    </div>
+                    <!-- Xóa md:self-end khỏi nút button -->
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow hover:bg-blue-500 transition w-full md:w-auto">
+                        <i class="fas fa-file-archive"></i>
+                        Xuất dữ liệu
+                    </button>
                 </div>
-                <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow hover:bg-blue-500 transition md:self-end">
-                    <i class="fas fa-file-archive"></i>
-                    Xuất dữ liệu
-                </button>
+                <!-- Thêm lại thẻ <p> mô tả ở đây, bên ngoài flex-layout -->
+                <p id="export-dataset-description" class="text-sm text-slate-500">{% if dataset_options %}{{ dataset_options[0].description }}{% endif %}</p>
             </form>
         </div>
     </div>

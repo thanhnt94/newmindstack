@@ -1,7 +1,8 @@
-# File: Mindstack/web/mindstack_app/modules/admin/routes.py
-# Version: 2.5
-# Mục đích: Chứa các route và logic cho bảng điều khiển admin tổng quan.
-# ĐÃ THÊM: Route và logic để quản lý việc sao lưu và khôi phục dữ liệu.
+# File: mindstack_app/modules/admin/routes.py
+# Phiên bản: 2.6
+# MỤC ĐÍCH: Sửa lỗi AttributeError: 'scoped_session' object has no attribute 'in_transaction'.
+#           Bằng cách thay thế db.session.in_transaction() bằng db.session.is_active.
+#           Đồng thời bổ sung chú thích tiếng Việt theo yêu cầu.
 
 from flask import (
     render_template,
@@ -105,7 +106,14 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
 )
 
 
-def _resolve_database_path() -> str:
+def _resolve_database_path():
+    """
+    Mô tả: Xác định đường dẫn tuyệt đối đến file cơ sở dữ liệu SQLite.
+    Returns:
+        str: Đường dẫn file.
+    Raises:
+        RuntimeError: Nếu URI không được cấu hình hoặc không phải là SQLite.
+    """
     uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
     if not uri:
         raise RuntimeError('Hệ thống chưa cấu hình kết nối cơ sở dữ liệu.')
@@ -114,16 +122,29 @@ def _resolve_database_path() -> str:
     raise RuntimeError('Chức năng sao lưu hiện chỉ hỗ trợ cơ sở dữ liệu SQLite.')
 
 
-def _get_backup_folder() -> str:
+def _get_backup_folder():
+    """
+    Mô tả: Lấy và tạo (nếu cần) đường dẫn đến thư mục chứa các bản sao lưu.
+    Returns:
+        str: Đường dẫn thư mục sao lưu.
+    """
     backup_folder = os.path.join(current_app.root_path, 'backups')
     os.makedirs(backup_folder, exist_ok=True)
     return backup_folder
 
 
-def _serialize_instance(instance) -> dict:
+def _serialize_instance(instance):
+    """
+    Mô tả: Chuyển đổi một đối tượng model SQLAlchemy thành dictionary.
+    Args:
+        instance: Đối tượng model (ví dụ: User, LearningContainer).
+    Returns:
+        dict: Dữ liệu của đối tượng dưới dạng dictionary.
+    """
     data: dict[str, object] = {}
     for column in instance.__table__.columns:
         value = getattr(instance, column.name)
+        # Xử lý các kiểu dữ liệu đặc biệt (datetime, date, time)
         if isinstance(value, datetime):
             data[column.name] = value.isoformat()
         elif isinstance(value, date):
@@ -136,11 +157,20 @@ def _serialize_instance(instance) -> dict:
 
 
 def _coerce_column_value(column, value):
+    """
+    Mô tả: Chuyển đổi giá trị (thường là từ JSON) về đúng kiểu dữ liệu của cột DB.
+    Args:
+        column: Cột SQLAlchemy.
+        value: Giá trị cần chuyển đổi.
+    Returns:
+        Giá trị đã được chuyển đổi (ví dụ: chuỗi ISO -> đối tượng datetime).
+    """
     if value is None:
         return None
 
     column_type = column.type
     try:
+        # Chuyển đổi các chuỗi thời gian về lại đối tượng
         if isinstance(column_type, DateTime):
             if isinstance(value, str):
                 return datetime.fromisoformat(value)
@@ -151,35 +181,54 @@ def _coerce_column_value(column, value):
             if isinstance(value, str):
                 return time.fromisoformat(value)
     except ValueError:
-        return value
+        return value # Trả về giá trị gốc nếu không thể chuyển đổi
     return value
 
 
-def _collect_dataset_payload(dataset_key: str) -> dict[str, list[dict[str, object]]]:
+def _collect_dataset_payload(dataset_key):
+    """
+    Mô tả: Thu thập toàn bộ dữ liệu từ các bảng được định nghĩa trong DATASET_CATALOG.
+    Args:
+        dataset_key (str): Tên của gói dataset (ví dụ: 'users', 'content').
+    Returns:
+        dict: Một dictionary với key là tên bảng và value là danh sách các record.
+    """
     config = DATASET_CATALOG.get(dataset_key)
     if not config:
         raise KeyError('Dataset không tồn tại.')
 
     payload: dict[str, list[dict[str, object]]] = {}
     for model in config['models']:
+        # Lấy tất cả bản ghi và sắp xếp theo khóa chính để đảm bảo thứ tự
         rows = model.query.order_by(*model.__table__.primary_key.columns).all()
         payload[model.__tablename__] = [_serialize_instance(row) for row in rows]
     return payload
 
 
-def _write_dataset_to_zip(zipf: zipfile.ZipFile, dataset_key: str, payload: dict[str, list[dict[str, object]]]) -> None:
+def _write_dataset_to_zip(zipf, dataset_key, payload):
+    """
+    Mô tả: Ghi dữ liệu payload của một dataset vào file zip.
+    Ghi cả manifest.json, file .json và file .csv cho mỗi bảng.
+    Args:
+        zipf (zipfile.ZipFile): Đối tượng file zip đang mở.
+        dataset_key (str): Tên của dataset.
+        payload (dict): Dữ liệu đã được thu thập từ _collect_dataset_payload.
+    """
     manifest = {
         'type': 'dataset',
         'dataset': dataset_key,
         'generated_at': datetime.utcnow().isoformat() + 'Z',
         'tables': list(payload.keys()),
     }
+    # Ghi file manifest
     zipf.writestr(f'{dataset_key}/manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
 
     for table_name, records in payload.items():
+        # Ghi file JSON
         json_bytes = json.dumps(records, ensure_ascii=False, indent=2).encode('utf-8')
         zipf.writestr(f'{dataset_key}/{table_name}.json', json_bytes)
 
+        # Ghi file CSV (nếu có dữ liệu)
         if records:
             output = io.StringIO()
             writer = csv.DictWriter(output, fieldnames=records[0].keys())
@@ -188,9 +237,15 @@ def _write_dataset_to_zip(zipf: zipfile.ZipFile, dataset_key: str, payload: dict
             zipf.writestr(f'{dataset_key}/{table_name}.csv', output.getvalue())
 
 
-def _read_backup_manifest(zipf: zipfile.ZipFile) -> tuple[Optional[dict], Optional[str]]:
-    """Attempt to read a manifest.json file from the provided zip archive."""
-
+def _read_backup_manifest(zipf):
+    """
+    Mô tả: Đọc file manifest.json từ một file zip.
+    Args:
+        zipf (zipfile.ZipFile): Đối tượng file zip.
+    Returns:
+        tuple: (dữ liệu manifest, đường dẫn manifest) hoặc (None, None).
+    """
+    # Các đường dẫn manifest có thể
     candidates = ['manifest.json']
     candidates.extend(name for name in zipf.namelist() if name.endswith('/manifest.json'))
 
@@ -198,44 +253,65 @@ def _read_backup_manifest(zipf: zipfile.ZipFile) -> tuple[Optional[dict], Option
         try:
             raw = zipf.read(candidate)
         except KeyError:
-            continue
+            continue # Thử file tiếp theo
 
         try:
+            # Trả về dữ liệu JSON và đường dẫn đã tìm thấy
             return json.loads(raw.decode('utf-8')), candidate
         except (json.JSONDecodeError, UnicodeDecodeError):
-            continue
+            continue # File hỏng, thử file tiếp theo
 
-    return None, None
+    return None, None # Không tìm thấy manifest
 
 
-def _extract_dataset_payload_from_zip(zipf: zipfile.ZipFile, dataset_key: str) -> dict[str, list[dict[str, object]]]:
+def _extract_dataset_payload_from_zip(zipf, dataset_key):
+    """
+    Mô tả: Trích xuất dữ liệu (payload) từ file zip dựa trên dataset_key.
+    Args:
+        zipf (zipfile.ZipFile): Đối tượng file zip.
+        dataset_key (str): Tên dataset (ví dụ: 'content').
+    Returns:
+        dict: Payload dữ liệu (giống _collect_dataset_payload).
+    """
     payload: dict[str, list[dict[str, object]]] = {}
-    members = set(zipf.namelist())
+    members = set(zipf.namelist()) # Danh sách các file trong zip
 
+    # Duyệt qua các model trong dataset
     for model in DATASET_CATALOG[dataset_key]['models']:
         table_name = model.__tablename__
+        # Thử tìm file json (cả có tiền tố thư mục hoặc không)
         for candidate in (f'{dataset_key}/{table_name}.json', f'{table_name}.json'):
             if candidate not in members:
-                continue
+                continue # Thử tên file tiếp theo
 
             try:
+                # Đọc và parse file JSON
                 data = json.loads(zipf.read(candidate).decode('utf-8'))
             except (KeyError, UnicodeDecodeError, json.JSONDecodeError):
-                continue
+                continue # File lỗi, bỏ qua
 
             if isinstance(data, list):
                 payload[table_name] = data
-            break
+            break # Đã tìm thấy file cho bảng này
 
     return payload
 
 
-def _infer_dataset_key_from_zip(zipf: zipfile.ZipFile) -> Optional[str]:
+def _infer_dataset_key_from_zip(zipf):
+    """
+    Mô tả: Đoán dataset_key từ nội dung file zip (nếu manifest thiếu).
+    Args:
+        zipf (zipfile.ZipFile): Đối tượng file zip.
+    Returns:
+        str | None: Tên dataset_key đoán được.
+    """
     members = set(zipf.namelist())
-    best_match: tuple[Optional[str], int] = (None, 0)
+    best_match: tuple[Optional[str], int] = (None, 0) # (key, số bảng)
 
+    # Duyệt qua tất cả các dataset
     for dataset_key, config in DATASET_CATALOG.items():
         table_names = {model.__tablename__ for model in config['models']}
+        # Tìm các file json có trong zip
         available = {
             table_name
             for table_name in table_names
@@ -243,24 +319,33 @@ def _infer_dataset_key_from_zip(zipf: zipfile.ZipFile) -> Optional[str]:
         }
 
         if not available:
-            continue
+            continue # Dataset này không có file nào
 
         if not available.issubset(table_names):
-            continue
+            continue # Tên file lạ, không khớp
 
+        # Chọn dataset nào có ít bảng nhất mà vẫn khớp
         if best_match[0] is None or len(table_names) < best_match[1]:
             best_match = (dataset_key, len(table_names))
 
     return best_match[0]
 
 
-def _infer_dataset_key_from_json(data: dict) -> Optional[str]:
+def _infer_dataset_key_from_json(data):
+    """
+    Mô tả: Đoán dataset_key từ file JSON (nếu người dùng tải lên file .json).
+    Args:
+        data (dict): Dữ liệu JSON đã parse.
+    Returns:
+        str | None: Tên dataset_key đoán được.
+    """
     available_tables = {key for key, value in data.items() if isinstance(value, list)}
     if not available_tables:
         return None
 
     best_match: tuple[Optional[str], int] = (None, 0)
 
+    # Logic tương tự _infer_dataset_key_from_zip
     for dataset_key, config in DATASET_CATALOG.items():
         table_names = {model.__tablename__ for model in config['models']}
         if not available_tables.issubset(table_names):
@@ -271,11 +356,19 @@ def _infer_dataset_key_from_json(data: dict) -> Optional[str]:
     return best_match[0]
 
 
-def _restore_backup_from_zip(zipf: zipfile.ZipFile, *, restore_database: bool = True, restore_uploads: bool = True) -> None:
+def _restore_backup_from_zip(zipf, restore_database=True, restore_uploads=True):
+    """
+    Mô tả: Ghi đè database và/hoặc thư mục uploads từ file zip.
+    Args:
+        zipf (zipfile.ZipFile): Đối tượng file zip.
+        restore_database (bool): Có ghi đè database không.
+        restore_uploads (bool): Có ghi đè thư mục uploads không.
+    """
     members = zipf.namelist()
 
     db_path: Optional[str] = None
     if restore_database:
+        # Đóng kết nối DB hiện tại
         db.session.close()
         db.engine.dispose()
         db_path = _resolve_database_path()
@@ -287,11 +380,13 @@ def _restore_backup_from_zip(zipf: zipfile.ZipFile, *, restore_database: bool = 
             if not db_path:
                 raise RuntimeError('Không thể xác định đường dẫn cơ sở dữ liệu để khôi phục.')
 
+            # Tìm file database trong zip
             db_basename = os.path.basename(db_path)
             db_member = next((m for m in members if os.path.basename(m) == db_basename), None)
             if not db_member:
                 raise RuntimeError('Gói sao lưu không chứa file cơ sở dữ liệu hợp lệ.')
 
+            # Giải nén và ghi đè
             zipf.extract(db_member, temp_dir)
             extracted_db_path = os.path.join(temp_dir, db_member)
             os.makedirs(os.path.dirname(db_path), exist_ok=True)
@@ -299,38 +394,53 @@ def _restore_backup_from_zip(zipf: zipfile.ZipFile, *, restore_database: bool = 
 
         if restore_uploads:
             uploads_folder = current_app.config.get('UPLOAD_FOLDER')
+            # Kiểm tra xem zip có thư mục uploads không
             if uploads_folder and any(member.startswith('uploads/') for member in members):
                 zipf.extractall(temp_dir)
                 source_uploads = os.path.join(temp_dir, 'uploads')
                 if os.path.exists(source_uploads):
+                    # Xóa thư mục uploads cũ và copy thư mục mới
                     shutil.rmtree(uploads_folder, ignore_errors=True)
                     shutil.copytree(source_uploads, uploads_folder, dirs_exist_ok=True)
     finally:
+        # Dọn dẹp thư mục tạm
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def _restore_from_uploaded_bytes(raw_bytes: bytes, dataset_hint: Optional[str] = None) -> tuple[str, Optional[str]]:
+def _restore_from_uploaded_bytes(raw_bytes, dataset_hint=None):
+    """
+    Mô tả: Xử lý file (zip hoặc json) người dùng tải lên để khôi phục.
+    Args:
+        raw_bytes (bytes): Nội dung file.
+        dataset_hint (str | None): Gợi ý loại dataset (nếu có).
+    Returns:
+        tuple: (loại khôi phục, dataset_key nếu có).
+    """
     if not raw_bytes:
         raise ValueError('File tải lên rỗng.')
 
     buffer = io.BytesIO(raw_bytes)
 
     if zipfile.is_zipfile(buffer):
+        # Xử lý file ZIP
         buffer.seek(0)
         with zipfile.ZipFile(buffer) as zipf:
             manifest_data, _ = _read_backup_manifest(zipf)
 
             manifest_type = manifest_data.get('type') if isinstance(manifest_data, dict) else None
 
+            # Khôi phục toàn bộ
             if manifest_type == 'full':
                 includes_uploads = bool(manifest_data.get('includes_uploads', False))
                 _restore_backup_from_zip(zipf, restore_database=True, restore_uploads=includes_uploads)
                 return 'full', None
 
+            # Khôi phục chỉ database
             if manifest_type == 'database':
                 _restore_backup_from_zip(zipf, restore_database=True, restore_uploads=False)
                 return 'database', None
 
+            # Khôi phục 1 phần (dataset)
             dataset_key = None
             if dataset_hint and dataset_hint in DATASET_CATALOG:
                 dataset_key = dataset_hint
@@ -351,6 +461,7 @@ def _restore_from_uploaded_bytes(raw_bytes: bytes, dataset_hint: Optional[str] =
 
         raise ValueError('Không thể xác định loại gói sao lưu từ file ZIP đã tải lên.')
 
+    # Xử lý file JSON (cho dataset)
     try:
         text = raw_bytes.decode('utf-8')
     except UnicodeDecodeError as exc:
@@ -377,36 +488,46 @@ def _restore_from_uploaded_bytes(raw_bytes: bytes, dataset_hint: Optional[str] =
     return 'dataset', dataset_key
 
 
-def _apply_dataset_restore(dataset_key: str, payload: dict[str, list[dict[str, object]]]) -> None:
+def _apply_dataset_restore(dataset_key, payload):
+    """
+    Mô tả: Áp dụng khôi phục một phần (dataset) vào database.
+    Xóa dữ liệu cũ trong các bảng liên quan và chèn dữ liệu mới.
+    Args:
+        dataset_key (str): Tên dataset (ví dụ: 'content').
+        payload (dict): Dữ liệu (từ file zip hoặc json).
+    """
     config = DATASET_CATALOG.get(dataset_key)
     if not config:
         raise KeyError('Dataset không tồn tại.')
 
-    # Ensure we are working with a clean session. SQLAlchemy automatically begins
-    # a transaction when the session is first used (autobegin). If any code before
-    # this function has already triggered that implicit transaction, attempting to
-    # call ``session.begin()`` again would raise ``InvalidRequestError`` with the
-    # message "A transaction is already begun on this Session.". Rolling back the
-    # existing transaction guarantees that our explicit transaction block below can
-    # start without conflicts.
-    if db.session.in_transaction():
+    # SỬA LỖI: Thay thế 'if db.session.in_transaction():' bằng 'if db.session.is_active:'
+    # 'scoped_session' không có thuộc tính 'in_transaction'.
+    # 'is_active' là cách đúng để kiểm tra xem session có đang trong một giao dịch hay không
+    # trước khi cố gắng bắt đầu một giao dịch mới.
+    if db.session.is_active:
         db.session.rollback()
 
+    # Bắt đầu một giao dịch mới
     with db.session.begin():
+        # Xóa dữ liệu cũ (theo thứ tự ngược lại để tránh lỗi khóa ngoại)
         for model in reversed(config['models']):
             db.session.execute(db.delete(model))
 
+        # Thêm dữ liệu mới
         for model in config['models']:
             records = payload.get(model.__tablename__, [])
             if not records:
                 continue
             for record in records:
                 instance = model()
+                # Duyệt qua các cột và gán dữ liệu, chuyển đổi kiểu nếu cần
                 for column in model.__table__.columns:
                     if column.name not in record:
                         continue
                     setattr(instance, column.name, _coerce_column_value(column, record[column.name]))
                 db.session.add(instance)
+
+# --- Các route (tuyến đường) ---
 
 from . import admin_bp  # Vẫn cần dòng này để các decorator như @admin_bp.route hoạt động chính xác.
 from .context_processors import build_admin_sidebar_metrics
@@ -419,7 +540,14 @@ ADMIN_ALLOWED_MEDIA_EXTENSIONS = {
 }
 
 
-def _format_file_size(num_bytes: int) -> str:
+def _format_file_size(num_bytes):
+    """
+    Mô tả: Định dạng kích thước file (bytes) thành chuỗi dễ đọc (KB, MB, GB).
+    Args:
+        num_bytes (int): Kích thước file (bytes).
+    Returns:
+        str: Chuỗi đã định dạng.
+    """
     units = ['B', 'KB', 'MB', 'GB', 'TB']
     size = float(num_bytes)
     for unit in units:
@@ -428,30 +556,47 @@ def _format_file_size(num_bytes: int) -> str:
                 return f"{int(size)} {unit}"
             return f"{size:.1f} {unit}"
         size /= 1024.0
-    return f"{size:.1f} PB"
+    return f"{size:.1f} PB" # Fallback
 
 
-def _normalize_subpath(path_value: str | None) -> str:
+def _normalize_subpath(path_value):
+    """
+    Mô tả: Chuẩn hóa đường dẫn thư mục con, loại bỏ các ký tự nguy hiểm.
+    Args:
+        path_value (str | None): Đường dẫn thô.
+    Returns:
+        str: Đường dẫn đã chuẩn hóa (an toàn).
+    """
     normalized = os.path.normpath(path_value or '').replace('\\', '/')
-    if normalized in ('', '.', '/'):  # Root folder
+    if normalized in ('', '.', '/'): # Thư mục gốc
         return ''
     if normalized.startswith('..'):
         raise ValueError('Đường dẫn không hợp lệ.')
     return normalized.strip('/')
 
 
-def _collect_directory_listing(base_dir: str, upload_root: str):
+def _collect_directory_listing(base_dir, upload_root):
+    """
+    Mô tả: Lấy danh sách các thư mục và file trong một thư mục.
+    Args:
+        base_dir (str): Đường dẫn thư mục cần quét.
+        upload_root (str): Đường dẫn gốc của thư mục uploads.
+    Returns:
+        tuple: (danh sách thư mục, danh sách file).
+    """
     directories = []
     files = []
 
     if not os.path.isdir(base_dir):
         return directories, files
 
+    # Quét các mục trong thư mục
     for entry in os.scandir(base_dir):
         if entry.name.startswith('.'):
-            continue
+            continue # Bỏ qua file/thư mục ẩn
         relative = os.path.relpath(entry.path, upload_root).replace('\\', '/')
         if entry.is_dir():
+            # Nếu là thư mục
             directories.append({
                 'name': entry.name,
                 'path': relative.strip('/'),
@@ -459,6 +604,7 @@ def _collect_directory_listing(base_dir: str, upload_root: str):
                 'modified': datetime.fromtimestamp(entry.stat().st_mtime)
             })
         elif entry.is_file():
+            # Nếu là file
             stat = entry.stat()
             files.append({
                 'name': entry.name,
@@ -470,6 +616,7 @@ def _collect_directory_listing(base_dir: str, upload_root: str):
                 'extension': os.path.splitext(entry.name)[1].lower()
             })
 
+    # Sắp xếp
     directories.sort(key=lambda item: item['name'].lower())
     files.sort(key=lambda item: item['modified'], reverse=True)
     return directories, files
@@ -478,13 +625,20 @@ def _collect_directory_listing(base_dir: str, upload_root: str):
 @admin_bp.before_request 
 @login_required 
 def admin_required():
+    """
+    Mô tả: Middleware (bộ lọc) chạy trước mọi request vào admin_bp.
+    Đảm bảo chỉ người dùng có vai trò 'admin' mới được truy cập.
+    """
     if not current_user.is_authenticated or current_user.user_role != User.ROLE_ADMIN:
         flash('Bạn không có quyền truy cập khu vực quản trị.', 'danger')
-        abort(403) 
+        abort(403) # Cấm truy cập
 
 @admin_bp.route('/')
 @admin_bp.route('/dashboard')
 def admin_dashboard():
+    """
+    Mô tả: Hiển thị trang dashboard admin tổng quan.
+    """
     # Lấy các chỉ số thống kê
     total_users = db.session.query(User).count()
     users_last_24h = db.session.query(User).filter(User.last_seen >= (datetime.utcnow() - timedelta(hours=24))).count()
@@ -505,6 +659,7 @@ def admin_dashboard():
         'exhausted_api_keys': exhausted_api_keys
     }
 
+    # Lấy 5 người dùng hoạt động gần nhất
     recent_users = (
         User.query.filter(User.last_seen.isnot(None))
         .order_by(User.last_seen.desc())
@@ -512,18 +667,21 @@ def admin_dashboard():
         .all()
     )
 
+    # Lấy 5 bộ học liệu mới tạo gần nhất
     recent_containers = (
         LearningContainer.query.order_by(LearningContainer.created_at.desc())
         .limit(5)
         .all()
     )
 
+    # Lấy các tác vụ nền
     recent_tasks = (
         BackgroundTask.query.order_by(nullslast(BackgroundTask.last_updated.desc()))
         .limit(4)
         .all()
     )
 
+    # Lấy các chỉ số chung cho sidebar (từ context processor)
     overview_metrics = build_admin_sidebar_metrics()
 
     return render_template(
@@ -538,12 +696,16 @@ def admin_dashboard():
 
 @admin_bp.route('/media-library', methods=['GET', 'POST'])
 def media_library():
+    """
+    Mô tả: Hiển thị trang quản lý thư viện media (tải file, tạo thư mục).
+    """
     upload_root = current_app.config.get('UPLOAD_FOLDER')
     if not upload_root:
         flash('Hệ thống chưa cấu hình thư mục lưu trữ uploads.', 'danger')
         return redirect(url_for('admin.admin_dashboard'))
 
     try:
+        # Lấy thư mục hiện tại (từ form post hoặc query param)
         current_folder = _normalize_subpath(
             request.form.get('current_folder') if request.method == 'POST' else request.args.get('folder')
         )
@@ -551,6 +713,7 @@ def media_library():
         flash('Đường dẫn thư mục không hợp lệ.', 'danger')
         return redirect(url_for('admin.media_library'))
 
+    # Xác định đường dẫn tuyệt đối an toàn
     target_dir = safe_join(upload_root, current_folder) if current_folder else upload_root
     if target_dir is None:
         flash('Đường dẫn thư mục không hợp lệ.', 'danger')
@@ -561,6 +724,7 @@ def media_library():
     if request.method == 'POST':
         action = request.form.get('action', 'upload')
         if action == 'create_folder':
+            # Xử lý tạo thư mục mới
             new_folder_name = secure_filename(request.form.get('folder_name', '').strip())
             if not new_folder_name:
                 flash('Tên thư mục không hợp lệ.', 'warning')
@@ -571,6 +735,7 @@ def media_library():
                 normalized_new_dir = _normalize_subpath(os.path.relpath(new_dir, upload_root))
                 return redirect(url_for('admin.media_library', folder=normalized_new_dir))
         else:
+            # Xử lý tải file lên
             uploaded_files = request.files.getlist('media_files')
             if not uploaded_files:
                 flash('Vui lòng chọn ít nhất một file để tải lên.', 'warning')
@@ -590,6 +755,7 @@ def media_library():
                         skipped.append(original_name)
                         continue
 
+                    # Xử lý trùng tên file
                     candidate_name = filename
                     destination = os.path.join(target_dir, candidate_name)
                     while os.path.exists(destination):
@@ -600,7 +766,7 @@ def media_library():
                     try:
                         file.save(destination)
                         saved.append(candidate_name)
-                    except Exception as exc:  # pragma: no cover - lỗi IO hiếm gặp
+                    except Exception as exc:
                         current_app.logger.exception('Không thể lưu file %s: %s', candidate_name, exc)
                         skipped.append(original_name)
 
@@ -611,6 +777,7 @@ def media_library():
 
         return redirect(url_for('admin.media_library', folder=current_folder or None))
 
+    # Xử lý GET request (hiển thị file/thư mục)
     directories, files = _collect_directory_listing(target_dir, upload_root)
     breadcrumb = []
     if current_folder:
@@ -636,6 +803,9 @@ def media_library():
 
 @admin_bp.route('/media-library/delete', methods=['POST'])
 def delete_media_item():
+    """
+    Mô tả: Xử lý yêu cầu xóa một file media.
+    """
     upload_root = current_app.config.get('UPLOAD_FOLDER')
     if not upload_root:
         flash('Hệ thống chưa cấu hình thư mục lưu trữ uploads.', 'danger')
@@ -656,7 +826,7 @@ def delete_media_item():
     try:
         os.remove(full_path)
         flash('Đã xóa file thành công.', 'success')
-    except Exception as exc:  # pragma: no cover - lỗi IO hiếm gặp
+    except Exception as exc:
         current_app.logger.exception('Không thể xóa file %s: %s', full_path, exc)
         flash('Không thể xóa file. Vui lòng thử lại.', 'danger')
 
@@ -667,9 +837,10 @@ def delete_media_item():
 @admin_bp.route('/tasks')
 def manage_background_tasks():
     """
-    Mô tả: Hiển thị trang quản lý các tác vụ nền.
+    Mô tả: Hiển thị trang quản lý các tác vụ nền (ví dụ: tạo cache audio).
     """
     tasks = BackgroundTask.query.all()
+    # Đảm bảo các tác vụ mong muốn tồn tại trong DB
     desired_tasks = [
         'generate_audio_cache',
         'clean_audio_cache',
@@ -685,6 +856,7 @@ def manage_background_tasks():
         db.session.commit()
         tasks = BackgroundTask.query.all()
 
+    # Lấy danh sách bộ thẻ để lọc phạm vi
     flashcard_containers = LearningContainer.query.filter_by(container_type='FLASHCARD_SET').order_by(LearningContainer.title.asc()).all()
 
     return render_template('background_tasks.html', tasks=tasks, flashcard_containers=flashcard_containers)
@@ -728,7 +900,7 @@ def start_task(task_id):
         task.message = f"Đang khởi chạy cho {scope_label}..."
         db.session.commit()
 
-        # Chạy tác vụ trong một thread hoặc process riêng
+        # Chạy tác vụ (hiện tại là đồng bộ, nên nâng cấp lên thread/process)
         if task.task_name == 'generate_audio_cache':
             asyncio.run(audio_service.generate_cache_for_all_cards(task, container_ids=container_scope_ids))
         elif task.task_name == 'clean_audio_cache':
@@ -757,7 +929,7 @@ def stop_task(task_id):
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 def manage_system_settings():
     """
-    Mô tả: Quản lý các cài đặt hệ thống.
+    Mô tả: Quản lý các cài đặt hệ thống (ví dụ: chế độ bảo trì).
     """
     if request.method == 'POST':
         maintenance_mode = 'maintenance_mode' in request.form
@@ -774,6 +946,7 @@ def manage_system_settings():
         flash('Cài đặt hệ thống đã được cập nhật thành công!', 'success')
         return redirect(url_for('admin.manage_system_settings'))
 
+    # Lấy trạng thái hiện tại
     system_status_setting = SystemSetting.query.filter_by(key='system_status').first()
     maintenance_mode = False
     if system_status_setting and isinstance(system_status_setting.value, dict):
@@ -798,10 +971,12 @@ def manage_backup_restore():
         has_uploads = False
 
         try:
+            # Kiểm tra file zip xem có thư mục uploads không
             with zipfile.ZipFile(file_path, 'r') as zipf:
                 members = zipf.namelist()
                 has_uploads = any(member.startswith('uploads/') for member in members)
 
+                # Kiểm tra manifest (cho các bản sao lưu toàn bộ mới)
                 if not has_uploads and 'manifest.json' in members:
                     try:
                         manifest_raw = zipf.read('manifest.json')
@@ -826,6 +1001,7 @@ def manage_backup_restore():
     # Sắp xếp theo ngày tạo mới nhất
     backup_entries.sort(key=lambda entry: entry['created_at'], reverse=True)
 
+    # Lấy các tùy chọn dataset
     dataset_options = [
         {
             'key': key,
@@ -843,8 +1019,9 @@ def manage_backup_restore():
 
 @admin_bp.route('/backup/database', methods=['POST'])
 def create_database_backup():
-    """Tạo bản sao lưu cơ sở dữ liệu và lưu trên máy chủ."""
-
+    """
+    Mô tả: Tạo bản sao lưu cơ sở dữ liệu và lưu trên máy chủ.
+    """
     try:
         backup_folder = _get_backup_folder()
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -855,8 +1032,10 @@ def create_database_backup():
         if not os.path.exists(db_path):
             raise FileNotFoundError('Không tìm thấy file cơ sở dữ liệu để sao lưu.')
 
+        # Nén file database
         with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             zipf.write(db_path, os.path.basename(db_path))
+            # Ghi file manifest
             manifest = {
                 'type': 'database',
                 'generated_at': datetime.utcnow().isoformat() + 'Z',
@@ -874,6 +1053,9 @@ def create_database_backup():
 
 @admin_bp.route('/backup/files/<path:filename>')
 def download_backup_file(filename):
+    """
+    Mô tả: Cho phép tải xuống một file sao lưu.
+    """
     backup_folder = _get_backup_folder()
     target_path = safe_join(backup_folder, filename)
 
@@ -884,7 +1066,10 @@ def download_backup_file(filename):
     return send_file(target_path, as_attachment=True, download_name=os.path.basename(target_path))
 
 
-def _build_dataset_export_response(dataset_key: str):
+def _build_dataset_export_response(dataset_key):
+    """
+    Mô tả: Xử lý logic xuất một dataset (gói dữ liệu) cụ thể.
+    """
     if dataset_key not in DATASET_CATALOG:
         flash('Dataset không hợp lệ.', 'danger')
         return redirect(url_for('admin.manage_backup_restore'))
@@ -892,12 +1077,14 @@ def _build_dataset_export_response(dataset_key: str):
     config = DATASET_CATALOG[dataset_key]
 
     try:
+        # Thu thập dữ liệu
         payload = _collect_dataset_payload(dataset_key)
         backup_folder = _get_backup_folder()
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'mindstack_{dataset_key}_dataset_{timestamp}.zip'
         file_path = os.path.join(backup_folder, filename)
 
+        # Ghi ra file zip
         with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             _write_dataset_to_zip(zipf, dataset_key, payload)
 
@@ -914,6 +1101,9 @@ def _build_dataset_export_response(dataset_key: str):
 
 @admin_bp.route('/backup/export', methods=['POST'])
 def export_dataset_from_form():
+    """
+    Mô tả: Route xử lý khi người dùng bấm nút "Xuất dữ liệu" từ form.
+    """
     dataset_key = request.form.get('dataset_key', '')
     if not dataset_key:
         flash('Vui lòng chọn gói dữ liệu cần xuất.', 'warning')
@@ -923,12 +1113,18 @@ def export_dataset_from_form():
 
 
 @admin_bp.route('/backup/export/<string:dataset_key>')
-def export_dataset(dataset_key: str):
+def export_dataset(dataset_key):
+    """
+    Mô tả: Route xử lý khi người dùng bấm link xuất (nếu có).
+    """
     return _build_dataset_export_response(dataset_key)
 
 
 @admin_bp.route('/backup/delete/<path:filename>', methods=['POST'])
-def delete_backup_file(filename: str):
+def delete_backup_file(filename):
+    """
+    Mô tả: Xóa một file sao lưu khỏi máy chủ.
+    """
     backup_folder = _get_backup_folder()
     target_path = safe_join(backup_folder, filename)
 
@@ -948,29 +1144,35 @@ def delete_backup_file(filename: str):
 
 @admin_bp.route('/backup/full', methods=['POST'])
 def download_full_backup():
-    """Tạo gói sao lưu toàn bộ dữ liệu (database + uploads) và trả về cho trình duyệt."""
-
+    """
+    Mô tả: Tạo gói sao lưu toàn bộ (DB + Uploads) và trả về cho người dùng tải xuống.
+    """
     try:
         db_path = _resolve_database_path()
         uploads_folder = current_app.config.get('UPLOAD_FOLDER')
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         backup_filename = f'mindstack_full_backup_{timestamp}.zip'
 
+        # Tạo file zip tạm
         temp_file = tempfile.NamedTemporaryFile(suffix='.zip', delete=False)
         temp_file.close()
 
         with zipfile.ZipFile(temp_file.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # Nén database
             if os.path.exists(db_path):
                 zipf.write(db_path, os.path.basename(db_path))
 
+            # Nén thư mục uploads (nếu có)
             if uploads_folder and os.path.exists(uploads_folder):
                 base_dir = os.path.dirname(uploads_folder)
                 for foldername, _, filenames in os.walk(uploads_folder):
                     for fname in filenames:
                         file_path = os.path.join(foldername, fname)
+                        # Giữ nguyên cấu trúc thư mục (vd: uploads/images/...)
                         arcname = os.path.relpath(file_path, base_dir)
                         zipf.write(file_path, arcname)
 
+            # Ghi manifest
             manifest = {
                 'type': 'full',
                 'generated_at': datetime.utcnow().isoformat() + 'Z',
@@ -978,6 +1180,7 @@ def download_full_backup():
             }
             zipf.writestr('manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
 
+        # Gửi file cho người dùng
         response = send_file(
             temp_file.name,
             mimetype='application/zip',
@@ -985,12 +1188,13 @@ def download_full_backup():
             download_name=backup_filename,
         )
 
+        # Đăng ký hàm dọn dẹp file tạm sau khi request hoàn tất
         @after_this_request
         def _cleanup_temp_file(response):
             try:
                 os.remove(temp_file.name)
             except OSError:
-                pass
+                pass # Bỏ qua nếu không xóa được
             return response
 
         response.headers['X-Mindstack-Backup'] = 'full'
@@ -1003,7 +1207,10 @@ def download_full_backup():
 
 @admin_bp.route('/restore-dataset/<string:dataset_key>', methods=['POST'])
 @admin_bp.route('/restore-dataset', methods=['POST'])
-def restore_dataset(dataset_key: Optional[str] = None):
+def restore_dataset(dataset_key = None):
+    """
+    Mô tả: Khôi phục dữ liệu từ file (zip/json) do người dùng tải lên.
+    """
     dataset_hint = dataset_key or request.form.get('dataset_key') or None
 
     if dataset_hint and dataset_hint not in DATASET_CATALOG:
@@ -1016,8 +1223,10 @@ def restore_dataset(dataset_key: Optional[str] = None):
         return redirect(url_for('admin.manage_backup_restore'))
 
     try:
+        # Gọi hàm xử lý chính
         result_kind, result_dataset_key = _restore_from_uploaded_bytes(upload.read(), dataset_hint)
 
+        # Thông báo thành công
         if result_kind == 'dataset' and result_dataset_key:
             config = DATASET_CATALOG.get(result_dataset_key, {})
             label = config.get('label', result_dataset_key)
@@ -1036,9 +1245,9 @@ def restore_dataset(dataset_key: Optional[str] = None):
 
 @admin_bp.route('/restore/<string:filename>', methods=['POST'])
 @admin_bp.route('/restore', methods=['POST'])
-def restore_backup(filename: Optional[str] = None):
+def restore_backup(filename = None):
     """
-    Mô tả: Khôi phục dữ liệu từ một bản sao lưu đã chọn.
+    Mô tả: Khôi phục dữ liệu từ một bản sao lưu đã chọn (lưu trên server).
     """
     try:
         if not filename:
@@ -1051,6 +1260,7 @@ def restore_backup(filename: Optional[str] = None):
             flash('File sao lưu không tồn tại.', 'danger')
             return redirect(url_for('admin.manage_backup_restore'))
 
+        # Lấy tùy chọn từ form (nếu có)
         restore_database = request.form.get('restore_database', 'on') == 'on'
         restore_uploads = request.form.get('restore_uploads', 'on') == 'on'
 
@@ -1058,6 +1268,7 @@ def restore_backup(filename: Optional[str] = None):
             manifest_data, _ = _read_backup_manifest(zipf)
             manifest_type = manifest_data.get('type') if isinstance(manifest_data, dict) else None
 
+            # Trường hợp 1: Khôi phục 1 phần (dataset)
             if manifest_type == 'dataset':
                 dataset_key = None
                 manifest_dataset = manifest_data.get('dataset') if isinstance(manifest_data, dict) else None
@@ -1080,9 +1291,11 @@ def restore_backup(filename: Optional[str] = None):
                 flash(f"Đã khôi phục gói dữ liệu '{label}' thành công!", 'success')
                 return redirect(url_for('admin.manage_backup_restore'))
 
+            # Trường hợp 2: Khôi phục toàn bộ (full) hoặc chỉ DB (database)
             try:
                 _restore_backup_from_zip(zipf, restore_database=restore_database, restore_uploads=restore_uploads)
             except RuntimeError as exc:
+                # Xử lý trường hợp file zip cũ (không có manifest)
                 message = str(exc)
                 if 'không chứa file cơ sở dữ liệu hợp lệ' in message.lower():
                     dataset_key = _infer_dataset_key_from_zip(zipf)
@@ -1094,7 +1307,7 @@ def restore_backup(filename: Optional[str] = None):
                             label = config.get('label', dataset_key)
                             flash(f"Đã khôi phục gói dữ liệu '{label}' thành công!", 'success')
                             return redirect(url_for('admin.manage_backup_restore'))
-                raise
+                raise # Ném lại lỗi nếu không xử lý được
 
         flash('Đã khôi phục dữ liệu thành công!', 'success')
     except Exception as e:
