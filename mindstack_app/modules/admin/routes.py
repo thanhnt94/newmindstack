@@ -723,20 +723,27 @@ def _build_dataset_export_response(dataset_key: str):
         flash('Dataset không hợp lệ.', 'danger')
         return redirect(url_for('admin.manage_backup_restore'))
 
-    payload = _collect_dataset_payload(dataset_key)
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        _write_dataset_to_zip(zipf, dataset_key, payload)
+    config = DATASET_CATALOG[dataset_key]
 
-    buffer.seek(0)
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f'mindstack_{dataset_key}_dataset_{timestamp}.zip'
-    return send_file(
-        buffer,
-        mimetype='application/zip',
-        as_attachment=True,
-        download_name=filename,
-    )
+    try:
+        payload = _collect_dataset_payload(dataset_key)
+        backup_folder = _get_backup_folder()
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'mindstack_{dataset_key}_dataset_{timestamp}.zip'
+        file_path = os.path.join(backup_folder, filename)
+
+        with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            _write_dataset_to_zip(zipf, dataset_key, payload)
+
+        flash(
+            f"Đã xuất dữ liệu '{config['label']}' và lưu thành công dưới tên file {filename}.",
+            'success',
+        )
+    except Exception as exc:
+        current_app.logger.error('Lỗi khi xuất dataset %s: %s', dataset_key, exc)
+        flash(f'Lỗi khi xuất dữ liệu: {exc}', 'danger')
+
+    return redirect(url_for('admin.manage_backup_restore'))
 
 
 @admin_bp.route('/backup/export', methods=['POST'])
@@ -752,6 +759,25 @@ def export_dataset_from_form():
 @admin_bp.route('/backup/export/<string:dataset_key>')
 def export_dataset(dataset_key: str):
     return _build_dataset_export_response(dataset_key)
+
+
+@admin_bp.route('/backup/delete/<path:filename>', methods=['POST'])
+def delete_backup_file(filename: str):
+    backup_folder = _get_backup_folder()
+    target_path = safe_join(backup_folder, filename)
+
+    if not target_path or not os.path.isfile(target_path):
+        flash('File sao lưu không tồn tại.', 'danger')
+        return redirect(url_for('admin.manage_backup_restore'))
+
+    try:
+        os.remove(target_path)
+        flash('Đã xóa bản sao lưu thành công.', 'success')
+    except OSError as exc:
+        current_app.logger.error('Lỗi khi xóa bản sao lưu %s: %s', filename, exc)
+        flash(f'Lỗi khi xóa bản sao lưu: {exc}', 'danger')
+
+    return redirect(url_for('admin.manage_backup_restore'))
 
 
 @admin_bp.route('/backup/full', methods=['POST'])
@@ -857,9 +883,6 @@ def restore_backup(filename: Optional[str] = None):
 
         restore_database = request.form.get('restore_database', 'on') == 'on'
         restore_uploads = request.form.get('restore_uploads', 'on') == 'on'
-        if not restore_database and not restore_uploads:
-            flash('Vui lòng chọn ít nhất một phần dữ liệu để khôi phục.', 'warning')
-            return redirect(url_for('admin.manage_backup_restore'))
 
         db_path = None
         if restore_database:
