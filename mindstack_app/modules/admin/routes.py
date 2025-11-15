@@ -622,10 +622,43 @@ def manage_backup_restore():
     """
     # Lấy danh sách các file sao lưu hiện có
     backup_folder = _get_backup_folder()
-    backup_files = [f for f in os.listdir(backup_folder) if f.endswith('.zip')]
+    backup_entries: list[dict[str, object]] = []
+    for filename in os.listdir(backup_folder):
+        if not filename.endswith('.zip'):
+            continue
+
+        file_path = os.path.join(backup_folder, filename)
+        created_at = datetime.fromtimestamp(os.path.getmtime(file_path))
+        has_uploads = False
+
+        try:
+            with zipfile.ZipFile(file_path, 'r') as zipf:
+                members = zipf.namelist()
+                has_uploads = any(member.startswith('uploads/') for member in members)
+
+                if not has_uploads and 'manifest.json' in members:
+                    try:
+                        manifest_raw = zipf.read('manifest.json')
+                        manifest_data = json.loads(manifest_raw.decode('utf-8'))
+                        has_uploads = bool(manifest_data.get('includes_uploads', False))
+                    except (KeyError, ValueError, UnicodeDecodeError) as exc:
+                        current_app.logger.warning(
+                            'Không thể đọc manifest của bản sao lưu %s: %s', filename, exc
+                        )
+        except zipfile.BadZipFile as exc:
+            current_app.logger.warning('Không thể đọc nội dung bản sao lưu %s: %s', filename, exc)
+
+        backup_entries.append(
+            {
+                'name': filename,
+                'created_at': created_at,
+                'created_at_label': created_at.strftime('%d/%m/%Y %H:%M:%S'),
+                'has_uploads': has_uploads,
+            }
+        )
 
     # Sắp xếp theo ngày tạo mới nhất
-    backup_files.sort(key=lambda x: os.path.getmtime(os.path.join(backup_folder, x)), reverse=True)
+    backup_entries.sort(key=lambda entry: entry['created_at'], reverse=True)
 
     dataset_options = [
         {
@@ -638,7 +671,7 @@ def manage_backup_restore():
 
     return render_template(
         'backup_restore.html',
-        backup_files=backup_files,
+        backup_entries=backup_entries,
         dataset_options=dataset_options,
     )
 

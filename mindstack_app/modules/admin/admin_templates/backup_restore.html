@@ -69,10 +69,10 @@
                 <h2 class="text-xl font-semibold text-slate-900">Các bản sao lưu cơ sở dữ liệu</h2>
                 <p class="text-sm text-slate-500">Tải xuống hoặc khôi phục trực tiếp từ các bản sao lưu đã lưu trên máy chủ.</p>
             </div>
-            <span class="text-sm text-slate-500">{{ backup_files|length }} bản sao lưu được lưu trữ</span>
+            <span class="text-sm text-slate-500">{{ backup_entries|length }} bản sao lưu được lưu trữ</span>
         </div>
         <div class="px-6 py-6">
-            {% if backup_files %}
+            {% if backup_entries %}
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -84,17 +84,17 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-            {% for file in backup_files %}
+            {% for entry in backup_entries %}
             <tr class="hover:bg-slate-50">
-                <td class="px-5 py-4 font-medium text-slate-900">{{ file }}</td>
-                <td class="px-5 py-4 text-slate-600">{{ file.split('_')[1] }} {{ file.split('_')[2].split('.')[0] }}</td>
+                <td class="px-5 py-4 font-medium text-slate-900">{{ entry.name }}</td>
+                <td class="px-5 py-4 text-slate-600">{{ entry.created_at_label }}</td>
                 <td class="px-5 py-4">
-                    <a href="{{ url_for('admin.download_backup_file', filename=file) }}" class="inline-flex items-center gap-2 rounded-md bg-slate-200 px-3 py-2 text-slate-700 hover:bg-slate-300 transition">
+                    <a href="{{ url_for('admin.download_backup_file', filename=entry.name) }}" class="inline-flex items-center gap-2 rounded-md bg-slate-200 px-3 py-2 text-slate-700 hover:bg-slate-300 transition">
                         <i class="fas fa-download"></i> Tải về
                     </a>
                 </td>
                 <td class="px-5 py-4">
-                    <button type="button" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-md hover:bg-rose-200 transition" onclick="openRestoreDialog('{{ file }}')">
+                    <button type="button" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-md hover:bg-rose-200 transition" onclick="openRestoreDialog('{{ entry.name }}', {{ 'true' if entry.has_uploads else 'false' }})">
                         <i class="fas fa-rotate"></i> Khôi phục
                     </button>
                 </td>
@@ -167,11 +167,11 @@
                         <span class="block text-xs text-slate-500">Khôi phục toàn bộ người dùng, nội dung, cấu hình và tiến độ học tập.</span>
                     </span>
                 </label>
-                <label class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                <label id="restore-uploads-container" class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                     <input id="restore-uploads-checkbox" type="checkbox" name="restore_uploads" class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" checked>
                     <span>
                         <span class="font-semibold text-slate-900">Thư mục uploads</span>
-                        <span class="block text-xs text-slate-500">Khôi phục toàn bộ tệp media đã tải lên đi kèm bài học và quiz.</span>
+                        <span id="restore-uploads-hint" data-default-text="Khôi phục toàn bộ tệp media đã tải lên đi kèm bài học và quiz." class="block text-xs text-slate-500">Khôi phục toàn bộ tệp media đã tải lên đi kèm bài học và quiz.</span>
                     </span>
                 </label>
             </div>
@@ -222,23 +222,48 @@
     const restoreFilenameLabel = document.getElementById('restore-dialog-filename');
     const restoreDatabaseCheckbox = document.getElementById('restore-database-checkbox');
     const restoreUploadsCheckbox = document.getElementById('restore-uploads-checkbox');
+    const restoreUploadsContainer = document.getElementById('restore-uploads-container');
+    const restoreUploadsHint = document.getElementById('restore-uploads-hint');
+    const defaultUploadsHint = restoreUploadsHint ? (restoreUploadsHint.dataset.defaultText || restoreUploadsHint.textContent) : '';
 
-    function resetRestoreCheckboxes() {
-        if (restoreDatabaseCheckbox) {
-            restoreDatabaseCheckbox.checked = true;
+    function applyUploadsState(hasUploads) {
+        if (!restoreUploadsCheckbox) {
+            return;
         }
-        if (restoreUploadsCheckbox) {
+
+        if (hasUploads) {
+            restoreUploadsCheckbox.disabled = false;
             restoreUploadsCheckbox.checked = true;
+            restoreUploadsCheckbox.removeAttribute('title');
+            if (restoreUploadsContainer) {
+                restoreUploadsContainer.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            if (restoreUploadsHint) {
+                restoreUploadsHint.textContent = defaultUploadsHint;
+            }
+        } else {
+            restoreUploadsCheckbox.checked = false;
+            restoreUploadsCheckbox.disabled = true;
+            restoreUploadsCheckbox.setAttribute('title', 'Bản sao lưu này không chứa thư mục uploads.');
+            if (restoreUploadsContainer) {
+                restoreUploadsContainer.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            if (restoreUploadsHint) {
+                restoreUploadsHint.textContent = 'Bản sao lưu này không bao gồm thư mục uploads. Chỉ có dữ liệu cơ sở dữ liệu sẽ được khôi phục.';
+            }
         }
     }
 
-    window.openRestoreDialog = function(filename) {
+    window.openRestoreDialog = function(filename, hasUploads = false) {
         if (!restoreDialog || !restoreFilenameInput || !restoreFilenameLabel) {
             return;
         }
-        resetRestoreCheckboxes();
         restoreFilenameInput.value = filename;
         restoreFilenameLabel.textContent = filename;
+        if (restoreDatabaseCheckbox) {
+            restoreDatabaseCheckbox.checked = true;
+        }
+        applyUploadsState(Boolean(hasUploads));
         restoreDialog.classList.remove('hidden');
         restoreDialog.classList.add('flex');
     };
