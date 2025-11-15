@@ -178,7 +178,6 @@
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: #64748b;
-            white-space: nowrap;
         }
 
         .progress-metric {
@@ -273,6 +272,10 @@
 
             .progress-card-stats-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .progress-card-stats-grid .progress-stat-item:last-child {
+                grid-column: 1 / -1;
             }
 
             .progress-card-footer {
