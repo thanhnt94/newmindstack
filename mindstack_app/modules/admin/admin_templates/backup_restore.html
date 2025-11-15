@@ -8,23 +8,65 @@
 {% block content %}
 <div class="space-y-8">
     <div class="data-card">
-        <div class="data-card-header px-6 py-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-                <h2 class="text-xl font-semibold text-slate-900">Tạo bản sao lưu mới</h2>
-                <p class="text-sm text-slate-500">Lưu lại cơ sở dữ liệu và toàn bộ thư mục uploads vào một gói zip duy nhất.</p>
+        <div class="data-card-header px-6 py-5 space-y-4 md:space-y-0 md:flex md:flex-row md:items-center md:justify-between">
+            <div class="space-y-1">
+                <h2 class="text-xl font-semibold text-slate-900">Tùy chọn sao lưu nhanh</h2>
+                <p class="text-sm text-slate-500">Chọn loại sao lưu phù hợp với nhu cầu của bạn.</p>
             </div>
-            <form action="{{ url_for('admin.create_backup') }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn tạo bản sao lưu mới không?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md shadow hover:bg-blue-500 transition">
-                    <i class="fas fa-plus-circle"></i> Tạo bản sao lưu ngay
-                </button>
-            </form>
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                <form action="{{ url_for('admin.create_database_backup') }}" method="post" class="inline-flex" onsubmit="return confirm('Bạn có chắc chắn muốn tạo bản sao lưu cơ sở dữ liệu mới không?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-md shadow hover:bg-indigo-500 transition">
+                        <i class="fas fa-database"></i>
+                        Sao lưu cơ sở dữ liệu
+                    </button>
+                </form>
+                <form action="{{ url_for('admin.download_full_backup') }}" method="post" class="inline-flex" onsubmit="return confirm('Gói sao lưu toàn bộ có thể lớn và sẽ ghi đè dữ liệu khi khôi phục. Bạn có chắc chắn muốn tiếp tục không?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="inline-flex items-center gap-2 bg-amber-500 text-white px-4 py-2.5 rounded-md shadow hover:bg-amber-400 transition">
+                        <i class="fas fa-cloud-download-alt"></i>
+                        Tải bản sao lưu toàn bộ
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="px-6 pb-6 space-y-2 text-sm text-slate-600">
+            <p>Bản sao lưu cơ sở dữ liệu sẽ được lưu tại máy chủ và xuất hiện trong danh sách bên dưới để bạn khôi phục bất cứ lúc nào.</p>
+            <p class="text-amber-600 font-medium">Bản sao lưu toàn bộ sẽ được tải xuống trình duyệt và bao gồm cả cơ sở dữ liệu lẫn toàn bộ thư mục uploads. Hãy lưu trữ file này ở nơi an toàn.</p>
         </div>
     </div>
 
     <div class="data-card">
-        <div class="data-card-header px-6 py-5 flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-slate-900">Các bản sao lưu hiện có</h2>
+        <div class="data-card-header px-6 py-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Xuất dữ liệu nội dung</h2>
+                <p class="text-sm text-slate-500">Tải về các gói dữ liệu liên quan đến bộ thẻ, bài quiz, khóa học hoặc tiến độ học tập để sao lưu cục bộ.</p>
+            </div>
+        </div>
+        <div class="px-6 pb-6">
+            <div class="grid gap-4 md:grid-cols-2">
+                {% for option in dataset_options %}
+                <div class="rounded-lg border border-slate-200 p-4 flex flex-col justify-between bg-slate-50">
+                    <div class="space-y-1">
+                        <h3 class="text-base font-semibold text-slate-800">{{ option.label }}</h3>
+                        <p class="text-sm text-slate-600">{{ option.description }}</p>
+                    </div>
+                    <a href="{{ url_for('admin.export_dataset', dataset_key=option.key) }}" class="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-500 transition" target="_blank" rel="noopener">
+                        <i class="fas fa-file-archive"></i>
+                        Xuất &amp; tải về
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="data-card">
+        <div class="data-card-header px-6 py-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Các bản sao lưu cơ sở dữ liệu</h2>
+                <p class="text-sm text-slate-500">Tải xuống hoặc khôi phục trực tiếp từ các bản sao lưu đã lưu trên máy chủ.</p>
+            </div>
             <span class="text-sm text-slate-500">{{ backup_files|length }} bản sao lưu được lưu trữ</span>
         </div>
         <div class="px-6 py-6">
@@ -35,6 +77,7 @@
                         <tr>
                             <th class="px-5 py-3 text-left font-semibold">Tên file</th>
                             <th class="px-5 py-3 text-left font-semibold">Ngày tạo</th>
+                            <th class="px-5 py-3 text-left font-semibold">Tải xuống</th>
                             <th class="px-5 py-3 text-left font-semibold">Thao tác</th>
                         </tr>
                     </thead>
@@ -43,6 +86,11 @@
                         <tr class="hover:bg-slate-50">
                             <td class="px-5 py-4 font-medium text-slate-900">{{ file }}</td>
                             <td class="px-5 py-4 text-slate-600">{{ file.split('_')[1] }} {{ file.split('_')[2].split('.')[0] }}</td>
+                            <td class="px-5 py-4">
+                                <a href="{{ url_for('admin.download_backup_file', filename=file) }}" class="inline-flex items-center gap-2 rounded-md bg-slate-200 px-3 py-2 text-slate-700 hover:bg-slate-300 transition">
+                                    <i class="fas fa-download"></i> Tải về
+                                </a>
+                            </td>
                             <td class="px-5 py-4">
                                 <form action="{{ url_for('admin.restore_backup', filename=file) }}" method="post" onsubmit="return confirm('Khôi phục sẽ ghi đè toàn bộ dữ liệu hiện tại. Bạn có chắc chắn muốn tiếp tục?');" class="inline-flex">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -59,6 +107,37 @@
             {% else %}
             <p class="text-sm text-slate-500">Hiện chưa có bản sao lưu nào. Hãy tạo bản sao lưu đầu tiên để đảm bảo an toàn dữ liệu.</p>
             {% endif %}
+        </div>
+    </div>
+
+    <div class="data-card">
+        <div class="data-card-header px-6 py-5">
+            <h2 class="text-xl font-semibold text-slate-900">Khôi phục theo từng phần</h2>
+            <p class="text-sm text-slate-500">Chọn file đã xuất tương ứng để khôi phục lại người dùng, nội dung hoặc tiến độ học tập.</p>
+        </div>
+        <div class="px-6 pb-6 space-y-6">
+            {% for option in dataset_options %}
+            <form action="{{ url_for('admin.restore_dataset', dataset_key=option.key) }}" method="post" enctype="multipart/form-data" class="rounded-lg border border-slate-200 p-4 bg-white shadow-sm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div class="space-y-1">
+                        <h3 class="text-base font-semibold text-slate-800">{{ option.label }}</h3>
+                        <p class="text-sm text-slate-600">{{ option.description }}</p>
+                        <p class="text-xs text-slate-400">Hỗ trợ file <code>.json</code> hoặc <code>.zip</code> đã xuất từ hệ thống.</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+                        <label class="flex-1 sm:flex-none">
+                            <span class="sr-only">Chọn file</span>
+                            <input type="file" name="dataset_file" accept=".json,.zip" required class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-200 file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-800 hover:file:bg-slate-300" />
+                        </label>
+                        <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-emerald-500 transition" onclick="return confirm('Bạn có chắc chắn muốn khôi phục phần dữ liệu này không?');">
+                            <i class="fas fa-upload"></i>
+                            Khôi phục phần này
+                        </button>
+                    </div>
+                </div>
+            </form>
+            {% endfor %}
         </div>
     </div>
 </div>
