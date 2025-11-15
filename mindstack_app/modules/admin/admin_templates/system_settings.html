@@ -13,7 +13,7 @@
     </div>
     <div class="px-6 py-6">
         <form action="{{ url_for('admin.manage_system_settings') }}" method="post" class="space-y-6">
-            {{ csrf_token }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-lg font-semibold text-slate-900">Chế độ bảo trì</h3>
