@@ -4,12 +4,17 @@
 
 from flask import Blueprint
 
+from ..context_processors import admin_context_processor
+
 # Tạo đối tượng Blueprint
 api_key_management_bp = Blueprint(
-    'api_key_management', 
-    __name__, 
+    'api_key_management',
+    __name__,
     template_folder='templates'
 )
+
+# Dùng chung context processor để giao diện admin luôn đầy đủ dữ liệu
+api_key_management_bp.app_context_processor(admin_context_processor)
 
 # Import các routes để chúng được đăng ký với Blueprint
 from . import routes

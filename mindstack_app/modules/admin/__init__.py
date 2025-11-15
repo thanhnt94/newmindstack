@@ -4,9 +4,14 @@
 
 from flask import Blueprint
 
+from .context_processors import admin_context_processor
+
 # 1. Tạo đối tượng Blueprint cho module admin
 # Chỉ định tên thư mục template mới
 admin_bp = Blueprint('admin', __name__, template_folder='admin_templates')
+
+# Đăng ký context processor dùng chung cho toàn bộ khu vực admin
+admin_bp.app_context_processor(admin_context_processor)
 
 # 2. Import các routes ở cuối để chúng được đăng ký với Blueprint.
 # Điều này đảm bảo admin_bp đã được định nghĩa trước khi routes.py sử dụng nó.

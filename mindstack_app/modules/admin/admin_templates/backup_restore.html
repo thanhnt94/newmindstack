@@ -1,64 +1,63 @@
-{% extends "base.html" %}
+{% extends "admin/admin_layout.html" %}
+{% set active_page = 'backup' %}
 
-{% block title %}Sao lưu và Khôi phục{% endblock %}
+{% block title %}Sao lưu & khôi phục{% endblock %}
+{% block page_title %}Sao lưu và khôi phục dữ liệu{% endblock %}
+{% block page_subtitle %}Tạo bản sao lưu toàn bộ dữ liệu và khôi phục nhanh chóng khi cần thiết.{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <h1 class="text-3xl font-semibold text-gray-800 flex items-center">
-             <a href="{{ url_for('admin.admin_dashboard') }}" class="text-blue-500 hover:text-blue-700 mr-3" title="Quay lại Admin Dashboard">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-            Sao lưu và Khôi phục
-        </h1>
+<div class="space-y-8">
+    <div class="data-card">
+        <div class="data-card-header px-6 py-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Tạo bản sao lưu mới</h2>
+                <p class="text-sm text-slate-500">Lưu lại cơ sở dữ liệu và toàn bộ thư mục uploads vào một gói zip duy nhất.</p>
+            </div>
+            <form action="{{ url_for('admin.create_backup') }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn tạo bản sao lưu mới không?');">
+                <button type="submit" class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md shadow hover:bg-blue-500 transition">
+                    <i class="fas fa-plus-circle"></i> Tạo bản sao lưu ngay
+                </button>
+            </form>
+        </div>
     </div>
 
-    <div class="bg-white shadow-md rounded-lg overflow-hidden p-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Tạo bản sao lưu mới</h2>
-        <p class="text-gray-600 mb-4">Tạo một bản sao lưu toàn bộ cơ sở dữ liệu và các file đã tải lên. Quá trình này có thể mất một chút thời gian.</p>
-        <form action="{{ url_for('admin.create_backup') }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn tạo bản sao lưu mới không?');">
-            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
-                <i class="fas fa-plus-circle mr-2"></i> Tạo bản sao lưu ngay
-            </button>
-        </form>
-        
-        <hr class="my-8">
-
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Các bản sao lưu hiện có</h2>
-        {% if backup_files %}
-        <div class="overflow-x-auto">
-            <table class="min-w-full leading-normal">
-                <thead>
-                    <tr>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tên file</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ngày tạo</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for file in backup_files %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                            {{ file }}
-                        </td>
-                        <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                            {{ file.split('_')[1] }} {{ file.split('_')[2].split('.')[0] }}
-                        </td>
-                        <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                            <form action="{{ url_for('admin.restore_backup', filename=file) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn khôi phục dữ liệu từ bản sao lưu này không? Thao tác này sẽ ghi đè toàn bộ dữ liệu hiện tại.');" class="inline">
-                                <button type="submit" class="bg-red-100 text-red-600 px-3 py-1 rounded-md hover:bg-red-200 transition duration-300 text-sm flex items-center">
-                                    <i class="fas fa-redo mr-2"></i> Khôi phục
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="data-card">
+        <div class="data-card-header px-6 py-5 flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-slate-900">Các bản sao lưu hiện có</h2>
+            <span class="text-sm text-slate-500">{{ backup_files|length }} bản sao lưu được lưu trữ</span>
         </div>
-        {% else %}
-        <p class="text-gray-500">Không có bản sao lưu nào được tìm thấy.</p>
-        {% endif %}
+        <div class="px-6 py-6">
+            {% if backup_files %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                        <tr>
+                            <th class="px-5 py-3 text-left font-semibold">Tên file</th>
+                            <th class="px-5 py-3 text-left font-semibold">Ngày tạo</th>
+                            <th class="px-5 py-3 text-left font-semibold">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for file in backup_files %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-5 py-4 font-medium text-slate-900">{{ file }}</td>
+                            <td class="px-5 py-4 text-slate-600">{{ file.split('_')[1] }} {{ file.split('_')[2].split('.')[0] }}</td>
+                            <td class="px-5 py-4">
+                                <form action="{{ url_for('admin.restore_backup', filename=file) }}" method="post" onsubmit="return confirm('Khôi phục sẽ ghi đè toàn bộ dữ liệu hiện tại. Bạn có chắc chắn muốn tiếp tục?');" class="inline-flex">
+                                    <button type="submit" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-md hover:bg-rose-200 transition">
+                                        <i class="fas fa-rotate"></i> Khôi phục
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-500">Hiện chưa có bản sao lưu nào. Hãy tạo bản sao lưu đầu tiên để đảm bảo an toàn dữ liệu.</p>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

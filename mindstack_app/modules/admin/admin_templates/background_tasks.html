@@ -1,100 +1,112 @@
-{% extends "base.html" %}
+{% extends "admin/admin_layout.html" %}
+{% set active_page = 'tasks' %}
 
-{% block title %}Quản lý Tác vụ nền{% endblock %}
+{% block title %}Quản lý tác vụ nền{% endblock %}
+{% block page_title %}Tác vụ hệ thống & xử lý nền{% endblock %}
+{% block page_subtitle %}Theo dõi, khởi chạy và kiểm soát các tác vụ nền phục vụ việc tối ưu dữ liệu học tập.{% endblock %}
 
-{% block head %}
-    {{ super() }}
+{% block extra_head %}
     <style>
+        .data-card {
+            border-radius: 1rem;
+            background-color: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: 0 18px 40px -30px rgba(15, 23, 42, 0.45);
+        }
+        .data-card-header {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
         .progress-bar-container {
             width: 100%;
-            background-color: #e5e7eb;
+            background-color: rgba(148, 163, 184, 0.2);
             border-radius: 9999px;
             overflow: hidden;
-            height: 1.25rem;
+            height: 1.1rem;
         }
         .progress-bar-fill {
             height: 100%;
-            background-color: #3b82f6;
+            background: linear-gradient(90deg, rgba(37,99,235,0.9), rgba(59,130,246,0.8));
             transition: width 0.3s ease-in-out;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 0.75rem;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.7rem;
         }
         .task-status-badge {
-            padding: 0.25rem 0.75rem;
+            padding: 0.35rem 0.85rem;
             border-radius: 9999px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
-        .status-idle { background-color: #e5e7eb; color: #4b5563; }
-        .status-running { background-color: #dbeafe; color: #1e40af; }
-        .status-completed { background-color: #dcfce7; color: #16a34a; }
+        .status-idle { background-color: #f1f5f9; color: #475569; }
+        .status-running { background-color: #dbeafe; color: #1d4ed8; }
+        .status-completed { background-color: #dcfce7; color: #15803d; }
         .status-error { background-color: #fee2e2; color: #dc2626; }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <h1 class="text-3xl font-semibold text-gray-800 flex items-center">
-             <a href="{{ url_for('admin.admin_dashboard') }}" class="text-blue-500 hover:text-blue-700 mr-3" title="Quay lại Admin Dashboard">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-            Quản lý Tác vụ nền
-        </h1>
+<div class="data-card">
+    <div class="data-card-header px-6 py-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h2 class="text-xl font-semibold text-slate-900">Trạng thái tác vụ</h2>
+            <p class="text-sm text-slate-500">Giữ cho thư viện nội dung luôn tối ưu bằng cách chủ động kích hoạt các tiến trình cần thiết.</p>
+        </div>
+        <a href="{{ url_for('admin.manage_background_tasks') }}" class="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800">
+            <i class="fas fa-rotate-right"></i> Làm mới danh sách
+        </a>
     </div>
 
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
-        <table class="min-w-full leading-normal">
-            <thead>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tên tác vụ</th>
-                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
-                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tiến độ</th>
-                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Thông điệp</th>
-                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Bật/Tắt</th>
-                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hành động</th>
+                    <th class="px-6 py-3 text-left font-semibold">Tên tác vụ</th>
+                    <th class="px-6 py-3 text-left font-semibold">Trạng thái</th>
+                    <th class="px-6 py-3 text-left font-semibold">Tiến độ</th>
+                    <th class="px-6 py-3 text-left font-semibold">Thông tin</th>
+                    <th class="px-6 py-3 text-left font-semibold">Bật/Tắt</th>
+                    <th class="px-6 py-3 text-left font-semibold">Hành động</th>
                 </tr>
             </thead>
-            <tbody id="tasks-table-body">
+            <tbody id="tasks-table-body" class="divide-y divide-slate-100 text-sm">
                 {% for task in tasks %}
-                <tr class="hover:bg-gray-50" data-task-id="{{ task.task_id }}" data-task-name="{{ task.task_name }}">
-                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">{{ task.task_name }}</td>
-                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                        <span class="task-status-badge status-{{ task.status }}">
-                            {{ task.status }}
-                        </span>
+                <tr class="hover:bg-slate-50" data-task-id="{{ task.task_id }}" data-task-name="{{ task.task_name }}">
+                    <td class="px-6 py-4 font-medium text-slate-900">{{ task.task_name }}</td>
+                    <td class="px-6 py-4">
+                        <span class="task-status-badge status-{{ task.status }}">{{ task.status }}</span>
                     </td>
-                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
+                    <td class="px-6 py-4">
                         {% set progress_percentage = (task.progress / task.total * 100) if task.total > 0 else 0 %}
                         <div class="progress-bar-container">
                             <div class="progress-bar-fill" style="width: {{ progress_percentage }}%;">{{ progress_percentage|int }}%</div>
                         </div>
                     </td>
-                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">{{ task.message }}</td>
-                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
+                    <td class="px-6 py-4 text-slate-600">{{ task.message }}</td>
+                    <td class="px-6 py-4">
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" value="" class="sr-only peer toggle-task-checkbox" {% if task.is_enabled %}checked{% endif %} {% if task.status == 'running' %}disabled{% endif %}>
-                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <div class="w-11 h-6 bg-slate-300 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-200 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                     </td>
-                    <td class="px-5 py-4 border-b border-gray-200 bg-white text-sm">
-                        <div class="flex flex-col space-y-3">
+                    <td class="px-6 py-4">
+                        <div class="flex flex-col gap-3">
                             {% if task.task_name in ['generate_audio_cache', 'generate_image_cache'] %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-600 mb-1">
+                                <label class="block text-xs font-semibold text-slate-500 mb-2">
                                     {{ 'Phạm vi tạo ảnh minh họa' if task.task_name == 'generate_image_cache' else 'Phạm vi tạo cache audio' }}
                                 </label>
-                                <select class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 flashcard-scope-select" data-default-label="tất cả bộ thẻ Flashcard" {% if task.status == 'running' %}disabled{% endif %}>
+                                <select class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 flashcard-scope-select" data-default-label="tất cả bộ thẻ Flashcard" {% if task.status == 'running' %}disabled{% endif %}>
                                     <option value="">Tất cả bộ thẻ Flashcard</option>
                                     {% for container in flashcard_containers %}
-                                    <option value="{{ container.container_id }}">{{ container.title }}</option>
+                                        <option value="{{ container.container_id }}">{{ container.title }}</option>
                                     {% endfor %}
                                 </select>
-                                <p class="text-xs text-gray-500 mt-1">
+                                <p class="text-xs text-slate-400 mt-1">
                                     {% if task.task_name == 'generate_image_cache' %}
                                         Chọn một bộ thẻ cụ thể nếu chỉ muốn bổ sung ảnh minh họa cho bộ đó.
                                     {% else %}
@@ -103,11 +115,11 @@
                                 </p>
                             </div>
                             {% endif %}
-                            <div class="flex space-x-3">
-                                <button type="button" class="bg-green-100 text-green-600 px-3 py-1 rounded-md hover:bg-green-200 transition duration-300 text-sm start-task-btn" {% if task.status == 'running' or not task.is_enabled %}disabled{% endif %}>
+                            <div class="flex items-center gap-2">
+                                <button type="button" class="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md hover:bg-emerald-200 transition start-task-btn" {% if task.status == 'running' or not task.is_enabled %}disabled{% endif %}>
                                     <i class="fas fa-play"></i>
                                 </button>
-                                <button type="button" class="bg-red-100 text-red-600 px-3 py-1 rounded-md hover:bg-red-200 transition duration-300 text-sm stop-task-btn" {% if task.status != 'running' %}disabled{% endif %}>
+                                <button type="button" class="bg-rose-100 text-rose-700 px-3 py-1.5 rounded-md hover:bg-rose-200 transition stop-task-btn" {% if task.status != 'running' %}disabled{% endif %}>
                                     <i class="fas fa-stop"></i>
                                 </button>
                             </div>
@@ -116,7 +128,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="text-center py-10 text-gray-500">Chưa có tác vụ nền nào được tạo.</td>
+                    <td colspan="6" class="text-center py-10 text-slate-500">Chưa có tác vụ nền nào được tạo.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -126,149 +138,118 @@
 
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const tableBody = document.getElementById('tasks-table-body');
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableBody = document.getElementById('tasks-table-body');
 
-    function updateTaskRow(row, taskData) {
-        const statusBadge = row.querySelector('.task-status-badge');
-        const progressBarFill = row.querySelector('.progress-bar-fill');
-        const startBtn = row.querySelector('.start-task-btn');
-        const stopBtn = row.querySelector('.stop-task-btn');
-        const toggleCheckbox = row.querySelector('.toggle-task-checkbox');
-        const progressPercentage = taskData.total > 0 ? Math.round((taskData.progress / taskData.total) * 100) : 0;
+        function updateTaskRow(row, taskData) {
+            const statusBadge = row.querySelector('.task-status-badge');
+            const progressBarFill = row.querySelector('.progress-bar-fill');
+            const startBtn = row.querySelector('.start-task-btn');
+            const stopBtn = row.querySelector('.stop-task-btn');
+            const toggleCheckbox = row.querySelector('.toggle-task-checkbox');
+            const progressPercentage = taskData.total > 0 ? Math.round((taskData.progress / taskData.total) * 100) : 0;
 
-        statusBadge.textContent = taskData.status;
-        statusBadge.className = `task-status-badge status-${taskData.status}`;
-        row.querySelector('td:nth-child(4)').textContent = taskData.message;
+            statusBadge.textContent = taskData.status;
+            statusBadge.className = `task-status-badge status-${taskData.status}`;
+            row.querySelector('td:nth-child(4)').textContent = taskData.message;
 
-        progressBarFill.style.width = `${progressPercentage}%`;
-        progressBarFill.textContent = `${progressPercentage}%`;
+            progressBarFill.style.width = `${progressPercentage}%`;
+            progressBarFill.textContent = `${progressPercentage}%`;
 
-        startBtn.disabled = taskData.status === 'running' || !taskData.is_enabled;
-        stopBtn.disabled = taskData.status !== 'running';
-        toggleCheckbox.disabled = taskData.status === 'running';
-        toggleCheckbox.checked = taskData.is_enabled;
+            startBtn.disabled = taskData.status === 'running' || !taskData.is_enabled;
+            stopBtn.disabled = taskData.status !== 'running';
+            toggleCheckbox.disabled = taskData.status === 'running';
+            toggleCheckbox.checked = taskData.is_enabled;
 
-        const scopeSelect = row.querySelector('.flashcard-scope-select');
-        if (scopeSelect) {
-            scopeSelect.disabled = taskData.status === 'running';
+            const scopeSelect = row.querySelector('.flashcard-scope-select');
+            if (scopeSelect) {
+                scopeSelect.disabled = taskData.status === 'running';
+            }
+
+            if (typeof taskData.progress === 'number') {
+                row.dataset.progress = taskData.progress;
+            } else if (!row.dataset.progress) {
+                row.dataset.progress = 0;
+            }
+
+            if (typeof taskData.total === 'number') {
+                row.dataset.total = taskData.total;
+            } else if (!row.dataset.total) {
+                row.dataset.total = 0;
+            }
         }
 
-        if (typeof taskData.progress === 'number') {
-            row.dataset.progress = taskData.progress;
-        } else if (!row.dataset.progress) {
-            row.dataset.progress = 0;
-        }
+        tableBody.addEventListener('change', async function(event) {
+            if (event.target.classList.contains('toggle-task-checkbox')) {
+                const row = event.target.closest('tr');
+                const taskId = row.dataset.taskId;
+                try {
+                    const response = await axios.post(`/admin/tasks/toggle/${taskId}`);
+                    if (response.data.success) {
+                        showFlashMessage(`Tác vụ đã được ${response.data.is_enabled ? 'bật' : 'tắt'}.`, 'success');
+                        row.querySelector('.start-task-btn').disabled = !response.data.is_enabled || response.data.status === 'running';
+                    }
+                } catch (error) {
+                    console.error('Error toggling task:', error);
+                    showFlashMessage('Lỗi khi thay đổi trạng thái tác vụ.', 'danger');
+                }
+            }
+        });
 
-        if (typeof taskData.total === 'number') {
-            row.dataset.total = taskData.total;
-        } else if (!row.dataset.total) {
-            row.dataset.total = 0;
-        }
-    }
-
-    tableBody.addEventListener('change', async function(event) {
-        if (event.target.classList.contains('toggle-task-checkbox')) {
+        tableBody.addEventListener('click', async function(event) {
+            const startBtn = event.target.closest('.start-task-btn');
+            const stopBtn = event.target.closest('.stop-task-btn');
             const row = event.target.closest('tr');
             const taskId = row.dataset.taskId;
-            try {
-                const response = await axios.post(`/admin/tasks/toggle/${taskId}`);
-                if (response.data.success) {
-                    showFlashMessage(`Tác vụ đã được ${response.data.is_enabled ? 'bật' : 'tắt'}.`, 'success');
-                    row.querySelector('.start-task-btn').disabled = !response.data.is_enabled || response.data.status === 'running';
-                }
-            } catch (error) {
-                console.error('Error toggling task:', error);
-                showFlashMessage('Lỗi khi thay đổi trạng thái tác vụ.', 'danger');
-            }
-        }
-    });
 
-    tableBody.addEventListener('click', async function(event) {
-        const startBtn = event.target.closest('.start-task-btn');
-        const stopBtn = event.target.closest('.stop-task-btn');
-        const row = event.target.closest('tr');
-        const taskId = row.dataset.taskId;
+            if (startBtn && !startBtn.disabled) {
+                const scopeSelect = row.querySelector('.flashcard-scope-select');
+                const defaultScopeLabel = scopeSelect ? scopeSelect.dataset.defaultLabel || 'tất cả bộ thẻ Flashcard' : 'tất cả tác vụ';
+                let containerId = null;
+                let scopeLabel = defaultScopeLabel;
 
-        if (startBtn && !startBtn.disabled) {
-            const scopeSelect = row.querySelector('.flashcard-scope-select');
-            const defaultScopeLabel = scopeSelect ? scopeSelect.dataset.defaultLabel || 'tất cả bộ thẻ Flashcard' : 'tất cả tác vụ';
-            let containerId = null;
-            let scopeLabel = defaultScopeLabel;
-
-            if (scopeSelect) {
-                const rawValue = scopeSelect.value;
-                if (rawValue) {
-                    const parsed = parseInt(rawValue, 10);
-                    if (!Number.isNaN(parsed)) {
-                        containerId = parsed;
-                        scopeLabel = scopeSelect.options[scopeSelect.selectedIndex]?.text || scopeLabel;
-                    }
-                } else {
-                    scopeLabel = defaultScopeLabel;
-                }
-            }
-
-            startBtn.disabled = true;
-            if (scopeSelect) {
-                scopeSelect.disabled = true;
-            }
-            try {
-                const response = await axios.post(`/admin/tasks/start/${taskId}`, {
-                    container_id: containerId
-                });
-                if (response.data.success) {
-                    const responseScopeLabel = response.data.scope_label || scopeLabel;
-                    showFlashMessage(`Tác vụ đã được khởi chạy cho ${responseScopeLabel}.`, 'success');
-                    // Cập nhật trạng thái ngay lập tức trên UI
-                    updateTaskRow(row, {
-                        status: 'running',
-                        message: `Đang khởi chạy cho ${responseScopeLabel}...`,
-                        progress: 0,
-                        total: 0,
-                        is_enabled: true
-                    });
-                } else {
-                    const infoMessage = response.data.message || 'Không thể khởi chạy tác vụ.';
-                    showFlashMessage(infoMessage, 'warning');
-                    startBtn.disabled = false;
-                    if (scopeSelect) {
-                        scopeSelect.disabled = false;
-                    }
-                }
-            } catch (error) {
-                console.error('Error starting task:', error);
-                const errorMessage = error.response?.data?.message || 'Lỗi khi khởi chạy tác vụ.';
-                showFlashMessage(errorMessage, 'danger');
-                startBtn.disabled = false;
                 if (scopeSelect) {
-                    scopeSelect.disabled = false;
+                    const rawValue = scopeSelect.value;
+                    if (rawValue) {
+                        containerId = rawValue;
+                        const selectedOption = scopeSelect.options[scopeSelect.selectedIndex];
+                        scopeLabel = selectedOption.textContent.trim();
+                    }
                 }
-            }
-            return;
-        }
 
-        if (stopBtn && !stopBtn.disabled) {
-             try {
-                const response = await axios.post(`/admin/tasks/stop/${taskId}`);
-                if (response.data.success) {
-                    showFlashMessage('Yêu cầu dừng đã được gửi.', 'info');
-                    // Cập nhật trạng thái ngay lập tức trên UI
-                    updateTaskRow(row, {
-                        status: 'running',
-                        message: 'Yêu cầu dừng đã được gửi...',
-                        progress: row.dataset.progress,
-                        total: row.dataset.total,
-                        is_enabled: true
+                try {
+                    const response = await axios.post(`/admin/tasks/start/${taskId}`, {
+                        container_id: containerId
                     });
-                }
-            } catch (error) {
-                console.error('Error stopping task:', error);
-                showFlashMessage('Lỗi khi gửi yêu cầu dừng.', 'danger');
-            }
-        }
-    });
 
-});
+                    if (response.data.success) {
+                        showFlashMessage(`Đã khởi chạy tác vụ cho ${response.data.scope_label || scopeLabel}.`, 'success');
+                        row.querySelector('.start-task-btn').disabled = true;
+                        row.querySelector('.stop-task-btn').disabled = false;
+                        const toggleCheckbox = row.querySelector('.toggle-task-checkbox');
+                        if (toggleCheckbox) {
+                            toggleCheckbox.disabled = true;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error starting task:', error);
+                    showFlashMessage('Không thể khởi chạy tác vụ. Vui lòng thử lại.', 'danger');
+                }
+            }
+
+            if (stopBtn && !stopBtn.disabled) {
+                try {
+                    const response = await axios.post(`/admin/tasks/stop/${taskId}`);
+                    if (response.data.success) {
+                        showFlashMessage(response.data.message, 'info');
+                        row.querySelector('.stop-task-btn').disabled = true;
+                    }
+                } catch (error) {
+                    console.error('Error stopping task:', error);
+                    showFlashMessage('Không thể dừng tác vụ. Vui lòng thử lại.', 'danger');
+                }
+            }
+        });
+    });
 </script>
 {% endblock %}
