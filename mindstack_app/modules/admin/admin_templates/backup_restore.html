@@ -40,7 +40,7 @@
         <div class="data-card-header px-6 py-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-slate-900">Xuất dữ liệu nội dung</h2>
-                <p class="text-sm text-slate-500">Chọn gói dữ liệu và tải về ngay để lưu trữ ngoại tuyến.</p>
+                <p class="text-sm text-slate-500">Chọn gói dữ liệu và lưu lại thành file sao lưu ngay trong danh sách bên dưới.</p>
             </div>
         </div>
         <div class="px-6 pb-6">
@@ -57,7 +57,7 @@
                 </div>
                 <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow hover:bg-blue-500 transition">
                     <i class="fas fa-file-archive"></i>
-                    Xuất &amp; tải về
+                    Xuất &amp; lưu lại
                 </button>
             </form>
         </div>
@@ -94,9 +94,17 @@
                     </a>
                 </td>
                 <td class="px-5 py-4">
-                    <button type="button" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-md hover:bg-rose-200 transition" onclick="openRestoreDialog('{{ entry.name }}', {{ 'true' if entry.has_uploads else 'false' }})">
-                        <i class="fas fa-rotate"></i> Khôi phục
-                    </button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-4 py-2 rounded-md hover:bg-rose-200 transition" onclick="openRestoreDialog('{{ entry.name }}', {{ 'true' if entry.has_uploads else 'false' }})">
+                            <i class="fas fa-rotate"></i> Khôi phục
+                        </button>
+                        <form action="{{ url_for('admin.delete_backup_file', filename=entry.name) }}" method="post" class="inline-flex" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bản sao lưu này không?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-slate-200 px-3 py-2 text-slate-600 hover:bg-slate-300 transition">
+                                <i class="fas fa-trash"></i> Xóa
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
@@ -159,21 +167,15 @@
         <form id="restore-dialog-form" action="{{ url_for('admin.restore_backup') }}" method="post" class="space-y-4 px-6 py-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="filename" id="restore-dialog-filename-input">
-            <div class="space-y-3">
-                <label class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                    <input id="restore-database-checkbox" type="checkbox" name="restore_database" class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" checked>
-                    <span>
-                        <span class="font-semibold text-slate-900">Cơ sở dữ liệu</span>
-                        <span class="block text-xs text-slate-500">Khôi phục toàn bộ người dùng, nội dung, cấu hình và tiến độ học tập.</span>
-                    </span>
-                </label>
-                <label id="restore-uploads-container" class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                    <input id="restore-uploads-checkbox" type="checkbox" name="restore_uploads" class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" checked>
-                    <span>
-                        <span class="font-semibold text-slate-900">Thư mục uploads</span>
-                        <span id="restore-uploads-hint" data-default-text="Khôi phục toàn bộ tệp media đã tải lên đi kèm bài học và quiz." class="block text-xs text-slate-500">Khôi phục toàn bộ tệp media đã tải lên đi kèm bài học và quiz.</span>
-                    </span>
-                </label>
+            <input type="hidden" name="restore_database" value="on">
+            <input type="hidden" name="restore_uploads" id="restore-dialog-uploads-input" value="on">
+            <div class="space-y-3 text-sm text-slate-600">
+                <p id="restore-dialog-summary" class="leading-relaxed">
+                    Hệ thống sẽ khôi phục toàn bộ dữ liệu có trong bản sao lưu này. Dữ liệu hiện tại sẽ được ghi đè bằng nội dung từ file đã chọn.
+                </p>
+                <p id="restore-dialog-uploads" class="text-xs text-slate-500" data-with-uploads="Bản sao lưu này bao gồm cả thư mục uploads. Các tệp media sẽ được khôi phục cùng với cơ sở dữ liệu." data-without-uploads="Bản sao lưu này không chứa thư mục uploads. Chỉ dữ liệu cơ sở dữ liệu sẽ được khôi phục.">
+                    Chọn bản sao lưu để xem chi tiết về thư mục uploads.
+                </p>
             </div>
             <div class="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
                 <button type="button" class="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition" onclick="closeRestoreDialog()">
@@ -220,39 +222,8 @@
     const restoreDialog = document.getElementById('restore-dialog');
     const restoreFilenameInput = document.getElementById('restore-dialog-filename-input');
     const restoreFilenameLabel = document.getElementById('restore-dialog-filename');
-    const restoreDatabaseCheckbox = document.getElementById('restore-database-checkbox');
-    const restoreUploadsCheckbox = document.getElementById('restore-uploads-checkbox');
-    const restoreUploadsContainer = document.getElementById('restore-uploads-container');
-    const restoreUploadsHint = document.getElementById('restore-uploads-hint');
-    const defaultUploadsHint = restoreUploadsHint ? (restoreUploadsHint.dataset.defaultText || restoreUploadsHint.textContent) : '';
-
-    function applyUploadsState(hasUploads) {
-        if (!restoreUploadsCheckbox) {
-            return;
-        }
-
-        if (hasUploads) {
-            restoreUploadsCheckbox.disabled = false;
-            restoreUploadsCheckbox.checked = true;
-            restoreUploadsCheckbox.removeAttribute('title');
-            if (restoreUploadsContainer) {
-                restoreUploadsContainer.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-            if (restoreUploadsHint) {
-                restoreUploadsHint.textContent = defaultUploadsHint;
-            }
-        } else {
-            restoreUploadsCheckbox.checked = false;
-            restoreUploadsCheckbox.disabled = true;
-            restoreUploadsCheckbox.setAttribute('title', 'Bản sao lưu này không chứa thư mục uploads.');
-            if (restoreUploadsContainer) {
-                restoreUploadsContainer.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-            if (restoreUploadsHint) {
-                restoreUploadsHint.textContent = 'Bản sao lưu này không bao gồm thư mục uploads. Chỉ có dữ liệu cơ sở dữ liệu sẽ được khôi phục.';
-            }
-        }
-    }
+    const restoreUploadsNotice = document.getElementById('restore-dialog-uploads');
+    const restoreUploadsInput = document.getElementById('restore-dialog-uploads-input');
 
     window.openRestoreDialog = function(filename, hasUploads = false) {
         if (!restoreDialog || !restoreFilenameInput || !restoreFilenameLabel) {
@@ -260,10 +231,14 @@
         }
         restoreFilenameInput.value = filename;
         restoreFilenameLabel.textContent = filename;
-        if (restoreDatabaseCheckbox) {
-            restoreDatabaseCheckbox.checked = true;
+        if (restoreUploadsNotice) {
+            const withUploadsText = restoreUploadsNotice.dataset.withUploads || '';
+            const withoutUploadsText = restoreUploadsNotice.dataset.withoutUploads || '';
+            restoreUploadsNotice.textContent = hasUploads ? withUploadsText : withoutUploadsText;
         }
-        applyUploadsState(Boolean(hasUploads));
+        if (restoreUploadsInput) {
+            restoreUploadsInput.value = hasUploads ? 'on' : 'off';
+        }
         restoreDialog.classList.remove('hidden');
         restoreDialog.classList.add('flex');
     };
