@@ -93,3 +93,14 @@ class UserForm(FlaskForm):
         if existing_user and (existing_user.user_id != user_id_to_exclude):
             raise ValidationError('Tên đăng nhập này đã được sử dụng.')
 
+    def validate_email(self, email_field):
+        """Đảm bảo địa chỉ email là duy nhất cho cả thao tác thêm và sửa người dùng."""
+
+        user_id_to_exclude = None
+        if hasattr(self, 'user') and self.user:
+            user_id_to_exclude = self.user.user_id
+
+        existing_user = User.query.filter(User.email == email_field.data).first()
+        if existing_user and (existing_user.user_id != user_id_to_exclude):
+            raise ValidationError('Email này đã được sử dụng.')
+
