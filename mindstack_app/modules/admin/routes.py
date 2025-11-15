@@ -382,6 +382,16 @@ def _apply_dataset_restore(dataset_key: str, payload: dict[str, list[dict[str, o
     if not config:
         raise KeyError('Dataset không tồn tại.')
 
+    # Ensure we are working with a clean session. SQLAlchemy automatically begins
+    # a transaction when the session is first used (autobegin). If any code before
+    # this function has already triggered that implicit transaction, attempting to
+    # call ``session.begin()`` again would raise ``InvalidRequestError`` with the
+    # message "A transaction is already begun on this Session.". Rolling back the
+    # existing transaction guarantees that our explicit transaction block below can
+    # start without conflicts.
+    if db.session.in_transaction():
+        db.session.rollback()
+
     with db.session.begin():
         for model in reversed(config['models']):
             db.session.execute(db.delete(model))
