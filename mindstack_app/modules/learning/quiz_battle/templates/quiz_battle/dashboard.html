@@ -367,7 +367,8 @@
         const timedConfig = document.getElementById('timed-config');
         const creationForm = document.getElementById('battle-settings-form');
         const resultBox = document.getElementById('room-creation-result');
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const csrfMetaTag = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfMetaTag ? csrfMetaTag.getAttribute('content') : '';
         const selectedContainerInput = document.getElementById('selected-container-id');
         const selectedQuizLabel = document.getElementById('selected-quiz-label');
         const quizSelectionGrid = document.getElementById('quiz-selection-grid');
@@ -519,12 +520,15 @@
             const cleanedCode = roomCode.trim().toUpperCase();
             const joinUrl = joinRoomUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(cleanedCode));
             try {
+                const joinHeaders = {
+                    'Content-Type': 'application/json',
+                };
+                if (csrfToken) {
+                    joinHeaders['X-CSRFToken'] = csrfToken;
+                }
                 const response = await fetch(joinUrl, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                    },
+                    headers: joinHeaders,
                 });
                 if (!response.ok) {
                     throw new Error(await response.text());
@@ -698,12 +702,15 @@
             }
             payload.container_id = Number(payload.container_id);
             try {
+                const creationHeaders = {
+                    'Content-Type': 'application/json',
+                };
+                if (csrfToken) {
+                    creationHeaders['X-CSRFToken'] = csrfToken;
+                }
                 const response = await fetch(createRoomUrl, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                    },
+                    headers: creationHeaders,
                     body: JSON.stringify(payload),
                 });
                 if (!response.ok) {
