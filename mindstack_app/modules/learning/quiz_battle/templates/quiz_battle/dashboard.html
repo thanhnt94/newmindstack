@@ -87,6 +87,20 @@
                         <input type="number" min="1" name="question_limit" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Để trống nếu muốn dùng toàn bộ bộ quiz">
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-slate-700">Hiển thị phòng</label>
+                        <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6 text-sm text-slate-600">
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="visibility" value="public" class="text-indigo-600" checked>
+                                <span>Công khai · hiện ở dashboard</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="visibility" value="private" class="text-indigo-600">
+                                <span>Riêng tư · chỉ vào được bằng mã</span>
+                            </label>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-500">Bạn vẫn có thể gửi mã phòng cho người khác kể cả khi đặt chế độ công khai.</p>
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-slate-700">Chế độ thi</label>
                         <select name="mode" id="battle-mode" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="SLOW">Test chậm</option>
@@ -103,6 +117,51 @@
                     </button>
                 </form>
                 <div id="room-creation-result" class="text-sm"></div>
+            </div>
+        </section>
+
+        <section class="grid gap-6 lg:grid-cols-3">
+            <div class="bg-white rounded-3xl border border-slate-100 p-8 space-y-4">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-xl font-semibold text-slate-900">Phòng công khai</h2>
+                        <p class="text-sm text-slate-500">Nhìn thấy ngay những phòng đang mở để tham gia nhanh.</p>
+                    </div>
+                    <button type="button" id="refresh-public-rooms" class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                        <i class="fa-solid fa-rotate"></i> Tải lại
+                    </button>
+                </div>
+                <div id="public-rooms-list" class="space-y-3 text-sm text-slate-600">
+                    <p class="text-slate-500">Đang tải danh sách phòng...</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-3xl border border-slate-100 p-8 space-y-4">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-xl font-semibold text-slate-900">Phòng của bạn</h2>
+                        <p class="text-sm text-slate-500">Các phòng bạn đang tham gia hoặc chủ trì.</p>
+                    </div>
+                    <button type="button" id="refresh-my-rooms" class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                        <i class="fa-solid fa-rotate"></i> Tải lại
+                    </button>
+                </div>
+                <div id="my-rooms-list" class="space-y-3 text-sm text-slate-600">
+                    <p class="text-slate-500">Đang kiểm tra phòng bạn đã tham gia...</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-3xl border border-slate-100 p-8 space-y-4">
+                <h2 class="text-xl font-semibold text-slate-900">Tham gia bằng mã</h2>
+                <p class="text-sm text-slate-500">Nhập mã phòng mà bạn bè gửi cho bạn để vào ngay cả phòng riêng tư.</p>
+                <form id="join-room-form" class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Mã phòng</label>
+                        <input type="text" id="join-room-code" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 uppercase tracking-widest focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ví dụ: ABC123" maxlength="12" required>
+                    </div>
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-slate-900 text-white font-semibold shadow hover:bg-slate-800">
+                        <i class="fa-solid fa-right-to-bracket"></i> Vào phòng
+                    </button>
+                </form>
+                <p id="join-room-feedback" class="text-sm"></p>
             </div>
         </section>
 
@@ -147,11 +206,131 @@
         const quizSearchStatus = document.getElementById('quiz-search-status');
         const refreshQuizBtn = document.getElementById('refresh-quiz-list');
         const clearQuizSelectionBtn = document.getElementById('clear-quiz-selection');
+        const publicRoomsContainer = document.getElementById('public-rooms-list');
+        const myRoomsContainer = document.getElementById('my-rooms-list');
+        const refreshPublicRoomsBtn = document.getElementById('refresh-public-rooms');
+        const refreshMyRoomsBtn = document.getElementById('refresh-my-rooms');
+        const joinRoomForm = document.getElementById('join-room-form');
+        const joinRoomCodeInput = document.getElementById('join-room-code');
+        const joinRoomFeedback = document.getElementById('join-room-feedback');
         const quizSetsEndpoint = "{{ url_for('learning.quiz_battle.list_available_quizzes') }}";
         const createRoomUrl = "{{ url_for('learning.quiz_battle.create_room') }}";
+        const publicRoomsUrl = "{{ url_for('learning.quiz_battle.list_public_rooms') }}";
+        const myRoomsUrl = "{{ url_for('learning.quiz_battle.list_my_active_rooms') }}";
+        const joinRoomUrlTemplate = "{{ url_for('learning.quiz_battle.join_room', room_code='__ROOM_CODE__') }}";
         let quizCache = new Map();
         let selectedQuizId = null;
         let searchTimeout = null;
+
+        const statusLabels = {
+            lobby: 'Đang mở sảnh',
+            in_progress: 'Đang thi',
+            awaiting_host: 'Chờ chủ phòng',
+            completed: 'Đã kết thúc',
+        };
+
+        function formatStatus(status) {
+            return statusLabels[status] || status;
+        }
+
+        function formatMode(mode) {
+            return mode === 'TIMED' ? 'Giới hạn thời gian' : 'Test chậm';
+        }
+
+        function renderRoomList(rooms, container, { emptyMessage = 'Không có phòng nào.' } = {}) {
+            if (!container) {
+                return;
+            }
+            container.innerHTML = '';
+            if (!rooms.length) {
+                container.innerHTML = `<p class="text-slate-500">${emptyMessage}</p>`;
+                return;
+            }
+
+            rooms.forEach((room) => {
+                const activePlayers = (room.participants || []).filter((p) => p.status === 'active').length;
+                const card = document.createElement('div');
+                card.className = 'rounded-2xl border border-slate-200 p-4';
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-900">${room.title}</p>
+                            <p class="text-xs text-slate-500">Mã phòng: <span class="font-mono tracking-widest">${room.room_code}</span></p>
+                        </div>
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full ${room.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}">${formatStatus(room.status)}</span>
+                    </div>
+                    <div class="mt-3 flex flex-col gap-1 text-xs text-slate-500">
+                        <span><i class="fa-solid fa-users"></i> ${activePlayers} người đang hoạt động</span>
+                        <span><i class="fa-solid fa-layer-group"></i> ${room.question_total} câu · ${formatMode(room.mode)}</span>
+                        <span><i class="fa-solid fa-eye${room.is_public ? '' : '-slash'}"></i> ${room.is_public ? 'Công khai' : 'Riêng tư'}</span>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button type="button" class="join-room-button inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl text-sm font-semibold ${room.is_public ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}" data-room-code="${room.room_code}">
+                            <i class="fa-solid fa-right-to-bracket"></i> Tham gia
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function loadPublicRooms() {
+            if (!publicRoomsContainer) {
+                return;
+            }
+            publicRoomsContainer.innerHTML = '<p class="text-slate-500">Đang tải phòng công khai...</p>';
+            try {
+                const response = await fetch(publicRoomsUrl);
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                const data = await response.json();
+                renderRoomList(data.rooms || [], publicRoomsContainer, { emptyMessage: 'Chưa có phòng công khai nào.' });
+            } catch (error) {
+                publicRoomsContainer.innerHTML = '<p class="text-rose-500">Không thể tải phòng công khai.</p>';
+            }
+        }
+
+        async function loadMyRooms() {
+            if (!myRoomsContainer) {
+                return;
+            }
+            myRoomsContainer.innerHTML = '<p class="text-slate-500">Đang tải phòng của bạn...</p>';
+            try {
+                const response = await fetch(myRoomsUrl);
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                const data = await response.json();
+                renderRoomList(data.rooms || [], myRoomsContainer, { emptyMessage: 'Bạn chưa ở phòng nào.' });
+            } catch (error) {
+                myRoomsContainer.innerHTML = '<p class="text-rose-500">Không thể tải danh sách phòng của bạn.</p>';
+            }
+        }
+
+        async function attemptJoinRoom(roomCode) {
+            if (!roomCode) {
+                return { ok: false, message: 'Vui lòng nhập mã phòng.' };
+            }
+            const cleanedCode = roomCode.trim().toUpperCase();
+            const joinUrl = joinRoomUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(cleanedCode));
+            try {
+                const response = await fetch(joinUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                });
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                await response.json();
+                return { ok: true, message: `✅ Đã tham gia phòng ${cleanedCode}. Mở phòng trong tab khác để bắt đầu.` };
+            } catch (error) {
+                return { ok: false, message: `❌ Không thể tham gia phòng: ${error.message}` };
+            }
+        }
 
         function updateSelectedQuizDisplay() {
             if (selectedQuizId && quizCache.has(selectedQuizId)) {
@@ -253,11 +432,44 @@
             loadQuizSets(quizSearchInput.value.trim());
         });
 
+        refreshPublicRoomsBtn?.addEventListener('click', loadPublicRooms);
+        refreshMyRoomsBtn?.addEventListener('click', loadMyRooms);
+
         modeSelect.addEventListener('change', function() {
             if (this.value === 'TIMED') {
                 timedConfig.classList.remove('hidden');
             } else {
                 timedConfig.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('click', async (event) => {
+            const button = event.target.closest('.join-room-button');
+            if (!button) {
+                return;
+            }
+            const roomCode = button.dataset.roomCode;
+            const result = await attemptJoinRoom(roomCode);
+            if (joinRoomFeedback) {
+                joinRoomFeedback.innerHTML = result.message;
+            }
+            if (result.ok) {
+                loadPublicRooms();
+                loadMyRooms();
+            }
+        });
+
+        joinRoomForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const roomCode = joinRoomCodeInput.value;
+            const result = await attemptJoinRoom(roomCode);
+            if (joinRoomFeedback) {
+                joinRoomFeedback.innerHTML = result.message;
+            }
+            if (result.ok) {
+                joinRoomCodeInput.value = '';
+                loadPublicRooms();
+                loadMyRooms();
             }
         });
 
@@ -294,7 +506,9 @@
                     throw new Error(await response.text());
                 }
                 const data = await response.json();
-                resultBox.innerHTML = `✅ Đã tạo phòng <strong>${data.room.title}</strong> với mã <strong>${data.room.room_code}</strong>. Chia sẻ mã này với bạn bè để bắt đầu!`;
+                resultBox.innerHTML = `✅ Đã tạo phòng <strong>${data.room.title}</strong> với mã <strong>${data.room.room_code}</strong>. ${data.room.is_public ? 'Phòng đang hiển thị ở mục Phòng công khai.' : 'Gửi mã này cho bạn bè để họ tham gia.'}`;
+                loadPublicRooms();
+                loadMyRooms();
             } catch (error) {
                 resultBox.innerHTML = `❌ Không thể tạo phòng: ${error.message}`;
             }
@@ -302,6 +516,8 @@
 
         loadQuizSets();
         updateSelectedQuizDisplay();
+        loadPublicRooms();
+        loadMyRooms();
     })();
 </script>
 {% endblock %}

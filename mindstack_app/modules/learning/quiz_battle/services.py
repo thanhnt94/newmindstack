@@ -254,6 +254,7 @@ def serialize_room(room: QuizBattleRoom, *, include_round_history: bool = False)
         'title': room.title,
         'status': room.status,
         'is_locked': room.is_locked,
+        'is_public': room.is_public,
         'host_user_id': room.host_user_id,
         'container_id': room.container_id,
         'max_players': room.max_players,
@@ -262,6 +263,8 @@ def serialize_room(room: QuizBattleRoom, *, include_round_history: bool = False)
         'time_per_question_seconds': room.time_per_question_seconds,
         'question_total': len(question_order),
         'current_round_number': room.current_round_number,
+        'created_at': room.created_at.isoformat() if room.created_at else None,
+        'updated_at': room.updated_at.isoformat() if room.updated_at else None,
         'participants': [serialize_participant(p) for p in room.participants],
     }
 
