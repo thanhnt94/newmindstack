@@ -6,10 +6,13 @@ from typing import Optional
 
 from flask import Blueprint, abort, jsonify, render_template, request
 from flask_login import current_user, login_required
+from sqlalchemy import or_
 from sqlalchemy.sql import func
 
 from ....models import (
+    ContainerContributor,
     LearningContainer,
+    LearningItem,
     QuizBattleAnswer,
     QuizBattleMessage,
     QuizBattleParticipant,
@@ -52,6 +55,29 @@ def _get_room_or_404(room_code: str) -> QuizBattleRoom:
 def _require_host(room: QuizBattleRoom) -> None:
     if current_user.user_id != room.host_user_id and current_user.user_role != User.ROLE_ADMIN:
         abort(403, description='Bạn không có quyền quản lý phòng này.')
+
+
+def _build_accessible_quiz_query():
+    """Return a query for quiz sets that the current user can use."""
+
+    base_query = LearningContainer.query.filter(
+        LearningContainer.container_type == 'QUIZ_SET'
+    )
+
+    if current_user.user_role == User.ROLE_ADMIN:
+        return base_query
+
+    contributor_ids = db.session.query(ContainerContributor.container_id).filter(
+        ContainerContributor.user_id == current_user.user_id
+    )
+
+    return base_query.filter(
+        or_(
+            LearningContainer.creator_user_id == current_user.user_id,
+            LearningContainer.is_public.is_(True),
+            LearningContainer.container_id.in_(contributor_ids),
+        )
+    )
 
 
 def _generate_unique_room_code() -> str:
@@ -143,6 +169,63 @@ def create_room():
 
     db.session.commit()
     return jsonify({'room': serialize_room(room)}), 201
+
+
+@quiz_battle_bp.route('/available-quizzes', methods=['GET'])
+@login_required
+def list_available_quizzes():
+    """Return quiz sets that the current user can host battles with."""
+
+    search_query = (request.args.get('q') or '').strip()
+    limit = request.args.get('limit', default=12, type=int)
+    if not limit or limit < 1:
+        limit = 12
+    limit = min(limit, 50)
+
+    query = _build_accessible_quiz_query().order_by(
+        LearningContainer.updated_at.desc().nullslast(),
+        LearningContainer.title.asc(),
+    )
+
+    if search_query:
+        like_pattern = f"%{search_query}%"
+        query = query.filter(
+            or_(
+                LearningContainer.title.ilike(like_pattern),
+                LearningContainer.description.ilike(like_pattern),
+                LearningContainer.tags.ilike(like_pattern),
+            )
+        )
+
+    containers = query.limit(limit).all()
+    container_ids = [container.container_id for container in containers]
+    question_counts: dict[int, int] = {}
+    if container_ids:
+        question_counts = dict(
+            db.session.query(
+                LearningItem.container_id,
+                func.count(LearningItem.item_id),
+            )
+            .filter(LearningItem.container_id.in_(container_ids))
+            .group_by(LearningItem.container_id)
+            .all()
+        )
+
+    return jsonify(
+        {
+            'containers': [
+                {
+                    'container_id': container.container_id,
+                    'title': container.title,
+                    'description': container.description,
+                    'is_public': container.is_public,
+                    'tags': container.tags,
+                    'question_count': question_counts.get(container.container_id, 0),
+                }
+                for container in containers
+            ]
+        }
+    )
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>', methods=['GET'])
