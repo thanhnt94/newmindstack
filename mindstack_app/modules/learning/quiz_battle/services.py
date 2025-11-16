@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import random
 import string
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.sql import func
 
 from ....models import (
     LearningItem,
+    QuizBattleMessage,
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
@@ -60,6 +62,48 @@ def get_active_round(room: QuizBattleRoom) -> Optional[QuizBattleRound]:
         if round_obj.status == QuizBattleRound.STATUS_ACTIVE:
             return round_obj
     return None
+
+
+def _now_utc() -> datetime:
+    """Return the current UTC time as an aware datetime."""
+
+    return datetime.now(timezone.utc)
+
+
+def _ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def auto_advance_round_if_needed(room: QuizBattleRoom) -> bool:
+    """Advance the active round if the timer has elapsed in timed mode."""
+
+    if room.mode != QuizBattleRoom.MODE_TIMED or not room.time_per_question_seconds:
+        return False
+
+    round_obj = get_active_round(room)
+    if not round_obj or round_obj.status != QuizBattleRound.STATUS_ACTIVE:
+        return False
+
+    started_at = _ensure_utc(round_obj.started_at)
+    if not started_at:
+        return False
+
+    deadline = started_at + timedelta(seconds=room.time_per_question_seconds)
+    if _now_utc() < deadline:
+        return False
+
+    round_obj.status = QuizBattleRound.STATUS_COMPLETED
+    round_obj.ended_at = func.now()
+
+    next_round = start_round(room, round_obj.sequence_number + 1)
+    if not next_round:
+        room.current_round_number = round_obj.sequence_number
+        room.status = QuizBattleRoom.STATUS_AWAITING_HOST
+    return True
 
 
 def start_round(room: QuizBattleRoom, sequence_number: int) -> Optional[QuizBattleRound]:
@@ -172,6 +216,20 @@ def serialize_round(round_obj: QuizBattleRound, *, include_answers: bool = False
         'question': _serialize_question(round_obj),
     }
 
+    room = round_obj.room
+    if (
+        room
+        and room.mode == QuizBattleRoom.MODE_TIMED
+        and room.time_per_question_seconds
+        and round_obj.started_at
+        and round_obj.status == QuizBattleRound.STATUS_ACTIVE
+    ):
+        started = _ensure_utc(round_obj.started_at)
+        if started:
+            deadline = started + timedelta(seconds=room.time_per_question_seconds)
+            remaining = (deadline - _now_utc()).total_seconds()
+            payload['time_remaining_seconds'] = max(0, int(remaining))
+
     if include_answers:
         payload['answers'] = [
             {
@@ -200,6 +258,8 @@ def serialize_room(room: QuizBattleRoom, *, include_round_history: bool = False)
         'container_id': room.container_id,
         'max_players': room.max_players,
         'question_limit': room.question_limit,
+        'mode': room.mode,
+        'time_per_question_seconds': room.time_per_question_seconds,
         'question_total': len(question_order),
         'current_round_number': room.current_round_number,
         'participants': [serialize_participant(p) for p in room.participants],
@@ -212,3 +272,16 @@ def serialize_room(room: QuizBattleRoom, *, include_round_history: bool = False)
         payload['round_history'] = [serialize_round(r, include_answers=True) for r in room.rounds]
 
     return payload
+
+
+def serialize_message(message: QuizBattleMessage) -> dict[str, object]:
+    """Serialize a chat message so the frontend can render it."""
+
+    return {
+        'message_id': message.message_id,
+        'room_id': message.room_id,
+        'user_id': message.user_id,
+        'username': getattr(message.user, 'username', None),
+        'content': message.content,
+        'created_at': message.created_at.isoformat() if message.created_at else None,
+    }

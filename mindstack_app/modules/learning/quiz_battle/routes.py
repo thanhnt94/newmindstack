@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import Optional
 
-from flask import Blueprint, abort, jsonify, request
+from flask import Blueprint, abort, jsonify, render_template, request
 from flask_login import current_user, login_required
 from sqlalchemy.sql import func
 
 from ....models import (
     LearningContainer,
     QuizBattleAnswer,
+    QuizBattleMessage,
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
@@ -19,16 +20,26 @@ from ....models import (
 )
 from ..quiz_learning.quiz_logic import process_quiz_answer
 from .services import (
+    auto_advance_round_if_needed,
     complete_round_if_ready,
     ensure_question_order,
     generate_room_code,
     get_active_participants,
     get_active_round,
+    serialize_message,
     serialize_room,
     start_round,
 )
 
-quiz_battle_bp = Blueprint('quiz_battle', __name__)
+quiz_battle_bp = Blueprint('quiz_battle', __name__, template_folder='templates')
+
+
+@quiz_battle_bp.route('/')
+@login_required
+def quiz_battle_dashboard():
+    """Simple landing page that explains the quiz battle feature."""
+
+    return render_template('quiz_battle/dashboard.html')
 
 
 def _get_room_or_404(room_code: str) -> QuizBattleRoom:
@@ -87,6 +98,25 @@ def create_room():
 
     title = payload.get('title') or f'Thi đấu: {container.title}'
 
+    mode = payload.get('mode') or QuizBattleRoom.MODE_SLOW
+    if isinstance(mode, str):
+        mode = mode.strip().upper()
+    if mode not in (QuizBattleRoom.MODE_SLOW, QuizBattleRoom.MODE_TIMED):
+        abort(400, description='Chế độ thi đấu không hợp lệ.')
+
+    time_per_question = payload.get('time_per_question_seconds')
+    if mode == QuizBattleRoom.MODE_TIMED:
+        if question_limit is None:
+            abort(400, description='Vui lòng chọn số lượng câu hỏi cho chế độ giới hạn thời gian.')
+        try:
+            time_per_question = int(time_per_question)
+        except (TypeError, ValueError):
+            abort(400, description='Thời gian cho mỗi câu phải là số nguyên dương.')
+        if time_per_question <= 0:
+            abort(400, description='Thời gian cho mỗi câu phải lớn hơn 0.')
+    else:
+        time_per_question = None
+
     room = QuizBattleRoom(
         room_code=_generate_unique_room_code(),
         title=title,
@@ -94,6 +124,8 @@ def create_room():
         container_id=container_id,
         max_players=max_players,
         question_limit=question_limit,
+        mode=mode,
+        time_per_question_seconds=time_per_question,
     )
     db.session.add(room)
 
@@ -119,6 +151,8 @@ def get_room(room_code: str):
     """Trả về trạng thái hiện tại của phòng thi đấu."""
 
     room = _get_room_or_404(room_code)
+    if auto_advance_round_if_needed(room):
+        db.session.commit()
     return jsonify({'room': serialize_room(room, include_round_history=True)})
 
 
@@ -245,12 +279,55 @@ def end_room(room_code: str):
     return jsonify({'room': serialize_room(room, include_round_history=True)})
 
 
+@quiz_battle_bp.route('/rooms/<string:room_code>/messages', methods=['GET'])
+@login_required
+def list_messages(room_code: str):
+    """Return the newest chat messages in a room."""
+
+    room = _get_room_or_404(room_code)
+    limit = request.args.get('limit', default=50, type=int)
+    limit = max(1, min(limit, 200))
+
+    messages = (
+        QuizBattleMessage.query.filter_by(room_id=room.room_id)
+        .order_by(QuizBattleMessage.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    payload = [serialize_message(message) for message in reversed(messages)]
+    return jsonify({'messages': payload})
+
+
+@quiz_battle_bp.route('/rooms/<string:room_code>/messages', methods=['POST'])
+@login_required
+def post_message(room_code: str):
+    """Allow a room participant to send a chat message."""
+
+    room = _get_room_or_404(room_code)
+    participant = QuizBattleParticipant.query.filter_by(room_id=room.room_id, user_id=current_user.user_id).first()
+    if not participant or participant.status == QuizBattleParticipant.STATUS_KICKED:
+        abort(403, description='Bạn cần tham gia phòng để trò chuyện cùng mọi người.')
+
+    payload = request.get_json() or {}
+    content = payload.get('content')
+    if not content or not str(content).strip():
+        abort(400, description='Tin nhắn không được để trống.')
+
+    message = QuizBattleMessage(room_id=room.room_id, user_id=current_user.user_id, content=str(content).strip())
+    db.session.add(message)
+    db.session.commit()
+
+    return jsonify({'message': serialize_message(message)})
+
+
 @quiz_battle_bp.route('/rooms/<string:room_code>/rounds/<int:sequence_number>/answer', methods=['POST'])
 @login_required
 def submit_round_answer(room_code: str, sequence_number: int):
     """Ghi nhận câu trả lời cho một vòng đấu cụ thể."""
 
     room = _get_room_or_404(room_code)
+    if auto_advance_round_if_needed(room):
+        db.session.commit()
     participant = QuizBattleParticipant.query.filter_by(room_id=room.room_id, user_id=current_user.user_id).first()
     if not participant or participant.status != QuizBattleParticipant.STATUS_ACTIVE:
         abort(403, description='Bạn không thể trả lời trong phòng này.')
@@ -259,6 +336,8 @@ def submit_round_answer(room_code: str, sequence_number: int):
     if not round_obj:
         abort(404, description='Không tìm thấy vòng thi đấu.')
     if round_obj.status != QuizBattleRound.STATUS_ACTIVE:
+        if room.mode == QuizBattleRoom.MODE_TIMED:
+            abort(400, description='Vòng thi này đã kết thúc do hết thời gian.')
         abort(400, description='Vòng thi này đã kết thúc hoặc chưa mở.')
 
     existing_answer = QuizBattleAnswer.query.filter_by(round_id=round_obj.round_id, participant_id=participant.participant_id).first()

@@ -206,7 +206,7 @@
                         <h3 class="mt-2 text-xl font-semibold text-slate-900">Chọn hoạt động để tiếp tục đà học tập</h3>
                     </div>
 
-                    <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-5">
                         <a href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}" class="group bg-indigo-50 border border-indigo-100 rounded-2xl p-6 hover:border-indigo-200 transition-all">
                             <div class="flex items-center justify-between">
                                 <span class="text-lg font-semibold text-indigo-700">Flashcard</span>
@@ -241,6 +241,15 @@
                             </div>
                             <p class="mt-3 text-sm text-slate-600">Tạo, chỉnh sửa và quản lý tài nguyên học tập của riêng bạn.</p>
                             <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 group-hover:text-slate-800">Mở trang quản trị <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
+                        </a>
+
+                        <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}" class="group bg-rose-50 border border-rose-100 rounded-2xl p-6 hover:border-rose-200 transition-all">
+                            <div class="flex items-center justify-between">
+                                <span class="text-lg font-semibold text-rose-700">Quiz Battle</span>
+                                <i class="fa-solid fa-gamepad text-rose-500"></i>
+                            </div>
+                            <p class="mt-3 text-sm text-rose-600">Thách đấu bạn bè với chế độ test chậm và giới hạn thời gian.</p>
+                            <span class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-rose-600 group-hover:text-rose-800">Vào phòng đấu <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
                         </a>
                     </div>
                 </div>

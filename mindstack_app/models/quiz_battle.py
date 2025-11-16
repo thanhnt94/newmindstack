@@ -18,6 +18,9 @@ class QuizBattleRoom(db.Model):
     STATUS_AWAITING_HOST = 'awaiting_host'
     STATUS_COMPLETED = 'completed'
 
+    MODE_SLOW = 'SLOW'
+    MODE_TIMED = 'TIMED'
+
     room_id = db.Column(db.Integer, primary_key=True)
     room_code = db.Column(db.String(12), unique=True, nullable=False)
     title = db.Column(db.String(120), nullable=False)
@@ -31,6 +34,8 @@ class QuizBattleRoom(db.Model):
     is_locked = db.Column(db.Boolean, default=False, nullable=False)
     max_players = db.Column(db.Integer, nullable=True)
     question_limit = db.Column(db.Integer, nullable=True)
+    mode = db.Column(db.String(20), default=MODE_SLOW, nullable=False)
+    time_per_question_seconds = db.Column(db.Integer, nullable=True)
     question_order = db.Column(JSON, nullable=True)
     current_round_number = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
@@ -49,6 +54,13 @@ class QuizBattleRoom(db.Model):
         backref='room',
         cascade='all, delete-orphan',
         order_by='QuizBattleRound.sequence_number',
+        lazy=True,
+    )
+    messages = db.relationship(
+        'QuizBattleMessage',
+        backref='room',
+        cascade='all, delete-orphan',
+        order_by='QuizBattleMessage.created_at',
         lazy=True,
     )
 
@@ -126,3 +138,17 @@ class QuizBattleAnswer(db.Model):
     participant = db.relationship('QuizBattleParticipant', backref='answers')
 
     __table_args__ = (db.UniqueConstraint('round_id', 'participant_id', name='uq_quiz_battle_answer'),)
+
+
+class QuizBattleMessage(db.Model):
+    """Chat message shared between participants inside a quiz battle room."""
+
+    __tablename__ = 'quiz_battle_messages'
+
+    message_id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('quiz_battle_rooms.room_id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = db.relationship('User', backref='quiz_battle_messages')
