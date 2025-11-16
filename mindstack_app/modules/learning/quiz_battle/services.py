@@ -15,6 +15,7 @@ from ....models import (
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
+    UserNote,
     db,
 )
 
@@ -179,7 +180,11 @@ def serialize_participant(participant: QuizBattleParticipant) -> dict[str, objec
     }
 
 
-def _serialize_question(round_obj: QuizBattleRound) -> Optional[dict[str, object]]:
+def _serialize_question(
+    round_obj: QuizBattleRound,
+    *,
+    user_id: Optional[int] = None,
+) -> Optional[dict[str, object]]:
     item = round_obj.item
     if not item:
         item = LearningItem.query.get(round_obj.item_id)
@@ -195,16 +200,29 @@ def _serialize_question(round_obj: QuizBattleRound) -> Optional[dict[str, object
             if content.get(f'option_{key.lower()}') is not None
         }
 
+    note_content = ''
+    if user_id:
+        note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
+        note_content = note.content if note else ''
+
     return {
         'item_id': item.item_id,
         'question': content.get('question'),
         'pre_question_text': content.get('pre_question_text'),
         'options': options,
         'passage_text': content.get('passage_text'),
+        'explanation': content.get('explanation'),
+        'ai_explanation': item.ai_explanation,
+        'note_content': note_content,
     }
 
 
-def serialize_round(round_obj: QuizBattleRound, *, include_answers: bool = False) -> dict[str, object]:
+def serialize_round(
+    round_obj: QuizBattleRound,
+    *,
+    include_answers: bool = False,
+    user_id: Optional[int] = None,
+) -> dict[str, object]:
     """Serialize a round with optional answer details."""
 
     payload: dict[str, object] = {
@@ -213,7 +231,7 @@ def serialize_round(round_obj: QuizBattleRound, *, include_answers: bool = False
         'status': round_obj.status,
         'started_at': round_obj.started_at.isoformat() if round_obj.started_at else None,
         'ended_at': round_obj.ended_at.isoformat() if round_obj.ended_at else None,
-        'question': _serialize_question(round_obj),
+        'question': _serialize_question(round_obj, user_id=user_id),
     }
 
     room = round_obj.room
@@ -246,7 +264,12 @@ def serialize_round(round_obj: QuizBattleRound, *, include_answers: bool = False
     return payload
 
 
-def serialize_room(room: QuizBattleRoom, *, include_round_history: bool = False) -> dict[str, object]:
+def serialize_room(
+    room: QuizBattleRoom,
+    *,
+    include_round_history: bool = False,
+    user_id: Optional[int] = None,
+) -> dict[str, object]:
     """Serialize a room and optionally include the entire round history."""
 
     question_order = ensure_question_order(room)
@@ -270,10 +293,17 @@ def serialize_room(room: QuizBattleRoom, *, include_round_history: bool = False)
     }
 
     active_round = get_active_round(room)
-    payload['active_round'] = serialize_round(active_round, include_answers=True) if active_round else None
+    payload['active_round'] = (
+        serialize_round(active_round, include_answers=True, user_id=user_id)
+        if active_round
+        else None
+    )
 
     if include_round_history:
-        payload['round_history'] = [serialize_round(r, include_answers=True) for r in room.rounds]
+        payload['round_history'] = [
+            serialize_round(r, include_answers=True, user_id=user_id)
+            for r in room.rounds
+        ]
 
     return payload
 
