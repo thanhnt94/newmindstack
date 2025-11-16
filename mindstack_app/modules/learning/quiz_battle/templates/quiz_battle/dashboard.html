@@ -391,6 +391,7 @@
         const publicRoomsUrl = "{{ url_for('learning.quiz_battle.list_public_rooms') }}";
         const myRoomsUrl = "{{ url_for('learning.quiz_battle.list_my_active_rooms') }}";
         const joinRoomUrlTemplate = "{{ url_for('learning.quiz_battle.join_room', room_code='__ROOM_CODE__') }}";
+        const roomViewUrlTemplate = "{{ url_for('learning.quiz_battle.view_room', room_code='__ROOM_CODE__') }}";
         let quizCache = new Map();
         let selectedQuizId = null;
         let searchTimeout = null;
@@ -440,7 +441,7 @@
             return mode === 'TIMED' ? 'Giới hạn thời gian' : 'Test chậm';
         }
 
-        function renderRoomList(rooms, container, { emptyMessage = 'Không có phòng nào.' } = {}) {
+        function renderRoomList(rooms, container, { emptyMessage = 'Không có phòng nào.', canVisitDirectly = false } = {}) {
             if (!container) {
                 return;
             }
@@ -452,6 +453,7 @@
 
             rooms.forEach((room) => {
                 const activePlayers = (room.participants || []).filter((p) => p.status === 'active').length;
+                const viewUrl = roomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(room.room_code));
                 const card = document.createElement('div');
                 card.className = 'qb-room-card';
                 const statusClass = room.status === 'in_progress' ? 'qb-room-card__status qb-room-card__status--live' : 'qb-room-card__status';
@@ -473,6 +475,9 @@
                         <button type="button" class="join-room-button ${joinClass}" data-room-code="${room.room_code}">
                             <i class="fa-solid fa-right-to-bracket"></i> Tham gia
                         </button>
+                        ${canVisitDirectly ? `<a href="${viewUrl}" class="qb-room-card__join">
+                            <i class="fa-solid fa-door-open"></i> Vào phòng
+                        </a>` : ''}
                     </div>
                 `;
                 container.appendChild(card);
@@ -507,7 +512,7 @@
                     throw new Error(await response.text());
                 }
                 const data = await response.json();
-                renderRoomList(data.rooms || [], myRoomsContainer, { emptyMessage: 'Bạn chưa ở phòng nào.' });
+                renderRoomList(data.rooms || [], myRoomsContainer, { emptyMessage: 'Bạn chưa ở phòng nào.', canVisitDirectly: true });
             } catch (error) {
                 myRoomsContainer.innerHTML = '<p class="text-rose-500">Không thể tải danh sách phòng của bạn.</p>';
             }
@@ -534,7 +539,8 @@
                     throw new Error(await response.text());
                 }
                 await response.json();
-                return { ok: true, message: `✅ Đã tham gia phòng ${cleanedCode}. Mở phòng trong tab khác để bắt đầu.` };
+                const redirectUrl = roomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(cleanedCode));
+                return { ok: true, message: `✅ Đã tham gia phòng ${cleanedCode}. Đang chuyển đến giao diện phòng...`, redirectUrl };
             } catch (error) {
                 return { ok: false, message: `❌ Không thể tham gia phòng: ${error.message}` };
             }
@@ -662,6 +668,10 @@
                 joinRoomFeedback.innerHTML = result.message;
             }
             if (result.ok) {
+                if (result.redirectUrl) {
+                    window.location.href = result.redirectUrl;
+                    return;
+                }
                 loadPublicRooms();
                 loadMyRooms();
             }
@@ -676,6 +686,10 @@
             }
             if (result.ok) {
                 joinRoomCodeInput.value = '';
+                if (result.redirectUrl) {
+                    window.location.href = result.redirectUrl;
+                    return;
+                }
                 loadPublicRooms();
                 loadMyRooms();
             }

@@ -309,6 +309,28 @@ def get_room(room_code: str):
     return jsonify({'room': serialize_room(room, include_round_history=True)})
 
 
+@quiz_battle_bp.route('/rooms/<string:room_code>/view', methods=['GET'])
+@login_required
+def view_room(room_code: str):
+    """Giao diện trực quan của một phòng quiz battle đang diễn ra."""
+
+    room = _get_room_or_404(room_code)
+    participant = next((p for p in room.participants if p.user_id == current_user.user_id), None)
+    if current_user.user_role != User.ROLE_ADMIN and not participant:
+        abort(403, description='Bạn cần tham gia phòng này trước khi xem giao diện thi đấu.')
+
+    room_payload = serialize_room(room, include_round_history=True)
+    return render_template(
+        'quiz_battle/room.html',
+        room_code=room.room_code,
+        room_title=room.title,
+        initial_room=room_payload,
+        is_host=bool(participant and participant.is_host),
+        participant_id=participant.participant_id if participant else None,
+        current_user_id=current_user.user_id,
+    )
+
+
 @quiz_battle_bp.route('/rooms/<string:room_code>/join', methods=['POST'])
 @login_required
 def join_room(room_code: str):
