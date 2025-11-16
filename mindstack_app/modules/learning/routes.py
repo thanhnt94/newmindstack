@@ -10,6 +10,7 @@ from flask_login import login_required, current_user
 from .quiz_learning.routes import quiz_learning_bp
 from .flashcard_learning.routes import flashcard_learning_bp
 from .course_learning.routes import course_learning_bp
+from .quiz_battle.routes import quiz_battle_bp
 
 # Định nghĩa Blueprint chính cho learning
 learning_bp = Blueprint('learning', __name__,
@@ -19,6 +20,7 @@ learning_bp = Blueprint('learning', __name__,
 learning_bp.register_blueprint(quiz_learning_bp)
 learning_bp.register_blueprint(flashcard_learning_bp)
 learning_bp.register_blueprint(course_learning_bp)
+learning_bp.register_blueprint(quiz_battle_bp, url_prefix='/quiz-battle')
 
 
 @learning_bp.route('/')
