@@ -143,6 +143,15 @@ def create_room():
     else:
         time_per_question = None
 
+    visibility = payload.get('visibility')
+    if isinstance(visibility, str):
+        visibility = visibility.strip().lower()
+    is_public = False
+    if visibility in {'public', 'private'}:
+        is_public = visibility == 'public'
+    elif 'is_public' in payload:
+        is_public = bool(payload.get('is_public'))
+
     room = QuizBattleRoom(
         room_code=_generate_unique_room_code(),
         title=title,
@@ -150,6 +159,7 @@ def create_room():
         container_id=container_id,
         max_players=max_players,
         question_limit=question_limit,
+        is_public=is_public,
         mode=mode,
         time_per_question_seconds=time_per_question,
     )
@@ -226,6 +236,66 @@ def list_available_quizzes():
             ]
         }
     )
+
+
+@quiz_battle_bp.route('/rooms/public', methods=['GET'])
+@login_required
+def list_public_rooms():
+    """Danh sách phòng công khai đang hoạt động."""
+
+    limit = request.args.get('limit', default=12, type=int)
+    limit = max(1, min(limit or 12, 50))
+
+    active_statuses = (
+        QuizBattleRoom.STATUS_LOBBY,
+        QuizBattleRoom.STATUS_IN_PROGRESS,
+        QuizBattleRoom.STATUS_AWAITING_HOST,
+    )
+    rooms = (
+        QuizBattleRoom.query.filter(
+            QuizBattleRoom.is_public.is_(True),
+            QuizBattleRoom.status.in_(active_statuses),
+        )
+        .order_by(func.coalesce(QuizBattleRoom.updated_at, QuizBattleRoom.created_at).desc())
+        .limit(limit)
+        .all()
+    )
+
+    return jsonify({'rooms': [serialize_room(room) for room in rooms]})
+
+
+@quiz_battle_bp.route('/rooms/my-active', methods=['GET'])
+@login_required
+def list_my_active_rooms():
+    """Trả về các phòng mà người dùng hiện đang tham gia."""
+
+    active_statuses = (
+        QuizBattleRoom.STATUS_LOBBY,
+        QuizBattleRoom.STATUS_IN_PROGRESS,
+        QuizBattleRoom.STATUS_AWAITING_HOST,
+    )
+
+    participations = (
+        QuizBattleParticipant.query.join(QuizBattleRoom)
+        .filter(
+            QuizBattleParticipant.user_id == current_user.user_id,
+            QuizBattleParticipant.status == QuizBattleParticipant.STATUS_ACTIVE,
+            QuizBattleRoom.status.in_(active_statuses),
+        )
+        .order_by(func.coalesce(QuizBattleRoom.updated_at, QuizBattleRoom.created_at).desc())
+        .all()
+    )
+
+    seen_room_ids: set[int] = set()
+    rooms: list[QuizBattleRoom] = []
+    for participation in participations:
+        if participation.room_id in seen_room_ids:
+            continue
+        if participation.room:
+            rooms.append(participation.room)
+            seen_room_ids.add(participation.room_id)
+
+    return jsonify({'rooms': [serialize_room(room) for room in rooms]})
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>', methods=['GET'])

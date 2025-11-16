@@ -34,6 +34,7 @@ class QuizBattleRoom(db.Model):
     is_locked = db.Column(db.Boolean, default=False, nullable=False)
     max_players = db.Column(db.Integer, nullable=True)
     question_limit = db.Column(db.Integer, nullable=True)
+    is_public = db.Column(db.Boolean, default=False, nullable=False)
     mode = db.Column(db.String(20), default=MODE_SLOW, nullable=False)
     time_per_question_seconds = db.Column(db.Integer, nullable=True)
     question_order = db.Column(JSON, nullable=True)
