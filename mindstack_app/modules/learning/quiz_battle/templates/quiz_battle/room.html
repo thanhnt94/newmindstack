@@ -1,0 +1,689 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Battle · {{ room_title }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .qb-session-shell {
+        padding: 2rem clamp(1rem, 4vw, 3rem);
+        background: #0f172a;
+        min-height: calc(100vh - 80px);
+    }
+
+    .qb-session-panel {
+        background: #ffffff;
+        border-radius: 1.5rem;
+        border: 1px solid #e2e8f0;
+        padding: 1.5rem;
+        box-shadow: 0 20px 45px -20px rgba(15, 23, 42, 0.4);
+    }
+
+    .qb-session-header {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        color: #e2e8f0;
+    }
+
+    @media (min-width: 768px) {
+        .qb-session-header {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+        }
+    }
+
+    .qb-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: rgba(148, 163, 184, 0.2);
+        color: #e2e8f0;
+    }
+
+    .qb-status-badge[data-status="in_progress"] {
+        background: rgba(250, 204, 21, 0.2);
+        color: #facc15;
+    }
+
+    .qb-status-badge[data-status="completed"] {
+        background: rgba(22, 163, 74, 0.2);
+        color: #4ade80;
+    }
+
+    .qb-room-grid {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    @media (min-width: 960px) {
+        .qb-room-grid {
+            grid-template-columns: 2fr 1fr;
+        }
+    }
+
+    .qb-question-card {
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        padding: 1.25rem;
+        background: #f8fafc;
+        margin-bottom: 1rem;
+    }
+
+    .qb-question-options {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .qb-option {
+        border: 1px solid #cbd5f5;
+        border-radius: 1rem;
+        padding: 0.85rem 1rem;
+        display: flex;
+        gap: 0.75rem;
+        background: #ffffff;
+        align-items: center;
+    }
+
+    .qb-option input {
+        accent-color: #6366f1;
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+
+    .qb-sidebar-card {
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        padding: 1rem;
+        background: #ffffff;
+    }
+
+    .qb-participant-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .qb-participant-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.95rem;
+    }
+
+    .qb-chat-box {
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .qb-chat-messages {
+        padding: 1rem;
+        flex: 1;
+        overflow-y: auto;
+        border-bottom: 1px solid #e2e8f0;
+        max-height: 320px;
+    }
+
+    .qb-chat-message {
+        margin-bottom: 0.75rem;
+    }
+
+    .qb-chat-message strong {
+        color: #0f172a;
+    }
+
+    .qb-chat-form {
+        padding: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .qb-chat-form input {
+        flex: 1;
+        border: 1px solid #cbd5f5;
+        border-radius: 999px;
+        padding: 0.75rem 1rem;
+    }
+
+    .qb-chat-form button {
+        border: none;
+        border-radius: 999px;
+        padding: 0.75rem 1.25rem;
+        background: #6366f1;
+        color: #ffffff;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .qb-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .qb-action-btn {
+        border-radius: 999px;
+        padding: 0.65rem 1.25rem;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        background: transparent;
+        color: #e2e8f0;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        gap: 0.35rem;
+        align-items: center;
+    }
+
+    .qb-action-btn--danger {
+        border-color: rgba(248, 113, 113, 0.6);
+        color: #fecaca;
+    }
+
+    .qb-alert {
+        margin-bottom: 1rem;
+        color: #fef3c7;
+        min-height: 1.25rem;
+    }
+
+    .qb-alert[data-variant="error"] {
+        color: #fecaca;
+    }
+
+    .qb-timer {
+        font-weight: 600;
+        color: #ea580c;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="qb-session-shell">
+    <div class="qb-session-header">
+        <div>
+            <p class="uppercase tracking-[0.3em] text-sm text-slate-300">Quiz Battle</p>
+            <h1 class="text-3xl font-bold text-white" id="room-title">{{ room_title }}</h1>
+            <p class="text-slate-300 mt-1">Mã phòng: <span class="font-mono tracking-widest" id="room-code">{{ room_code }}</span></p>
+        </div>
+        <div class="text-right space-y-3">
+            <span class="qb-status-badge" id="room-status" data-status="{{ initial_room.status }}">{{ initial_room.status|upper }}</span>
+            <div class="qb-actions">
+                <button type="button" class="qb-action-btn" id="copy-room-code">
+                    <i class="fa-solid fa-copy"></i> Sao chép mã
+                </button>
+                <button type="button" class="qb-action-btn" id="start-room-btn">
+                    <i class="fa-solid fa-play"></i> Bắt đầu trận
+                </button>
+                <button type="button" class="qb-action-btn qb-action-btn--danger" id="end-room-btn">
+                    <i class="fa-solid fa-flag-checkered"></i> Kết thúc
+                </button>
+                <button type="button" class="qb-action-btn qb-action-btn--danger" id="leave-room-btn">
+                    <i class="fa-solid fa-person-walking-arrow-right"></i> Rời phòng
+                </button>
+            </div>
+        </div>
+    </div>
+    <p class="qb-alert" id="room-alert"></p>
+    <div class="qb-room-grid">
+        <div>
+            <div class="qb-session-panel">
+                <div class="qb-question-card">
+                    <p class="text-xs uppercase tracking-[0.35em] text-slate-500">Câu hỏi hiện tại</p>
+                    <h2 class="text-2xl font-semibold text-slate-900 mt-2" id="question-title">Đang tải dữ liệu...</h2>
+                    <p class="text-sm text-slate-600 mt-2" id="question-detail"></p>
+                    <p class="text-sm qb-timer mt-2" id="question-timer"></p>
+                    <form id="answer-form" class="mt-4 space-y-3">
+                        <div class="qb-question-options" id="question-options"></div>
+                        <button type="submit" class="cm-action cm-action--primary" id="submit-answer-btn">
+                            <i class="fa-solid fa-check"></i> Gửi đáp án
+                        </button>
+                    </form>
+                    <p class="text-sm mt-2" id="answer-feedback"></p>
+                </div>
+                <div class="qb-sidebar-card">
+                    <h3 class="text-lg font-semibold text-slate-900">Diễn biến</h3>
+                    <p class="text-sm text-slate-600 mt-1" id="round-progress"></p>
+                    <p class="text-sm text-slate-600" id="room-mode"></p>
+                </div>
+            </div>
+        </div>
+        <div class="space-y-4">
+            <div class="qb-session-panel">
+                <h3 class="text-lg font-semibold text-slate-900">Người tham gia</h3>
+                <ul class="qb-participant-list mt-3" id="participants-list"></ul>
+            </div>
+            <div class="qb-chat-box">
+                <div class="qb-chat-messages" id="chat-messages">
+                    <p class="text-sm text-slate-500">Đang tải tin nhắn...</p>
+                </div>
+                <form class="qb-chat-form" id="chat-form">
+                    <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." autocomplete="off">
+                    <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function() {
+        const initialRoom = {{ initial_room | tojson }};
+        const roomCode = {{ room_code | tojson }};
+        const currentUserId = {{ current_user_id | tojson }};
+        const participantId = {{ participant_id | tojson }};
+        const isHost = {{ is_host | tojson }};
+        const fetchRoomUrl = {{ url_for('learning.quiz_battle.get_room', room_code=room_code) | tojson }};
+        const leaveRoomUrl = {{ url_for('learning.quiz_battle.leave_room', room_code=room_code) | tojson }};
+        const startRoomUrl = {{ url_for('learning.quiz_battle.start_room', room_code=room_code) | tojson }};
+        const endRoomUrl = {{ url_for('learning.quiz_battle.end_room', room_code=room_code) | tojson }};
+        const messagesUrl = {{ url_for('learning.quiz_battle.list_messages', room_code=room_code) | tojson }};
+        const postMessageUrl = {{ url_for('learning.quiz_battle.post_message', room_code=room_code) | tojson }};
+        const answerUrlTemplate = {{ url_for('learning.quiz_battle.submit_round_answer', room_code=room_code, sequence_number=0) | tojson }};
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        let roomState = initialRoom || {};
+        let lastRenderedRound = roomState?.active_round?.sequence_number || null;
+        let roomPollInterval = null;
+        let chatPollInterval = null;
+        const statusLabelMap = {
+            lobby: 'Đang mở sảnh',
+            in_progress: 'Đang thi đấu',
+            awaiting_host: 'Chờ chủ phòng',
+            completed: 'Đã kết thúc'
+        };
+
+        const statusBadge = document.getElementById('room-status');
+        const roundProgress = document.getElementById('round-progress');
+        const roomMode = document.getElementById('room-mode');
+        const questionTitle = document.getElementById('question-title');
+        const questionDetail = document.getElementById('question-detail');
+        const questionOptions = document.getElementById('question-options');
+        const questionTimer = document.getElementById('question-timer');
+        const answerFeedback = document.getElementById('answer-feedback');
+        const participantsList = document.getElementById('participants-list');
+        const alertBox = document.getElementById('room-alert');
+        const answerForm = document.getElementById('answer-form');
+        const submitAnswerBtn = document.getElementById('submit-answer-btn');
+        const startRoomBtn = document.getElementById('start-room-btn');
+        const leaveRoomBtn = document.getElementById('leave-room-btn');
+        const endRoomBtn = document.getElementById('end-room-btn');
+        const copyCodeBtn = document.getElementById('copy-room-code');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+
+        function setAlert(message, variant = 'info') {
+            if (!alertBox) {
+                return;
+            }
+            alertBox.dataset.variant = variant;
+            alertBox.textContent = message || '';
+        }
+
+        function formatMode(room) {
+            if (!room) {
+                return '';
+            }
+            if (room.mode === 'TIMED' && room.time_per_question_seconds) {
+                return `Chế độ giới hạn thời gian · ${room.time_per_question_seconds}s mỗi câu`;
+            }
+            return 'Chế độ test chậm · chuyển câu khi mọi người trả lời xong';
+        }
+
+        function formatStatus(status) {
+            return statusLabelMap[status] || status;
+        }
+
+        function renderParticipants(participants) {
+            if (!participantsList) {
+                return;
+            }
+            participantsList.innerHTML = '';
+            if (!participants?.length) {
+                participantsList.innerHTML = '<li class="text-sm text-slate-500">Chưa có người tham gia.</li>';
+                return;
+            }
+            for (const participant of participants) {
+                const item = document.createElement('li');
+                item.className = 'qb-participant-item';
+                const nameSpan = document.createElement('span');
+                const nameText = participant.username || `User #${participant.user_id}`;
+                const roleText = participant.is_host ? ' · Chủ phòng' : '';
+                const statusText = participant.status === 'active' ? '' : ` (${participant.status})`;
+                nameSpan.textContent = `${nameText}${roleText}${statusText}`;
+                const scoreSpan = document.createElement('span');
+                scoreSpan.className = 'font-semibold';
+                scoreSpan.textContent = `${participant.session_score || 0}đ`;
+                if (participant.user_id === currentUserId) {
+                    nameSpan.style.color = '#4f46e5';
+                }
+                item.appendChild(nameSpan);
+                item.appendChild(scoreSpan);
+                participantsList.appendChild(item);
+            }
+        }
+
+        function renderQuestion(round) {
+            if (!round || !round.question) {
+                questionTitle.textContent = 'Chưa có câu hỏi nào được mở.';
+                questionDetail.textContent = 'Đợi chủ phòng bắt đầu hoặc vòng kế tiếp được tạo.';
+                questionOptions.innerHTML = '';
+                submitAnswerBtn.disabled = true;
+                questionTimer.textContent = '';
+                if (lastRenderedRound !== null) {
+                    answerFeedback.textContent = '';
+                }
+                lastRenderedRound = null;
+                return;
+            }
+            questionTitle.textContent = round.question.question || 'Câu hỏi chưa có nội dung';
+            questionDetail.textContent = round.question.passage_text || '';
+            questionOptions.innerHTML = '';
+            const answeredByMe = round.answers?.some((answer) => answer.participant_id === participantId);
+            const canAnswer = Boolean(participantId);
+            const isNewRound = round.sequence_number !== lastRenderedRound;
+            const options = round.question.options || {};
+            const optionKeys = Object.keys(options);
+            optionKeys.forEach((optionKey) => {
+                const wrapper = document.createElement('label');
+                wrapper.className = 'qb-option';
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = 'selected_option';
+                input.value = optionKey;
+                const textWrap = document.createElement('div');
+                const title = document.createElement('p');
+                title.className = 'text-sm font-semibold text-slate-900';
+                title.textContent = optionKey;
+                const description = document.createElement('p');
+                description.className = 'text-sm text-slate-600';
+                description.textContent = options[optionKey] || 'Không có nội dung';
+                textWrap.appendChild(title);
+                textWrap.appendChild(description);
+                wrapper.appendChild(input);
+                wrapper.appendChild(textWrap);
+                questionOptions.appendChild(wrapper);
+            });
+            if (!optionKeys.length) {
+                const emptyState = document.createElement('p');
+                emptyState.className = 'text-sm text-slate-500';
+                emptyState.textContent = 'Câu hỏi này chưa có đáp án lựa chọn.';
+                questionOptions.appendChild(emptyState);
+            }
+            submitAnswerBtn.disabled = answeredByMe || !canAnswer;
+            if (round.time_remaining_seconds != null) {
+                questionTimer.textContent = `Thời gian còn lại: ${round.time_remaining_seconds}s`;
+            } else {
+                questionTimer.textContent = '';
+            }
+            if (isNewRound) {
+                answerFeedback.textContent = '';
+            }
+            lastRenderedRound = round.sequence_number;
+        }
+
+        function updateRoundMeta(room) {
+            if (!room) {
+                return;
+            }
+            const current = room.current_round_number || 0;
+            const total = room.question_total || 0;
+            roundProgress.textContent = `Tiến độ: ${current}/${total} câu hỏi`;
+            roomMode.textContent = formatMode(room);
+        }
+
+        function updateStatusBadge(status) {
+            if (!statusBadge) {
+                return;
+            }
+            statusBadge.dataset.status = status;
+            statusBadge.textContent = formatStatus(status);
+        }
+
+        function getAnswerUrl(sequenceNumber) {
+            return answerUrlTemplate.replace('/0/', `/${sequenceNumber}/`);
+        }
+
+        async function postJson(url, payload) {
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+            const response = await fetch(url, {
+                method: 'POST',
+                headers,
+                body: payload ? JSON.stringify(payload) : '{}'
+            });
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+            return response.json();
+        }
+
+        async function fetchRoomState() {
+            try {
+                const response = await fetch(fetchRoomUrl);
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                const data = await response.json();
+                roomState = data.room;
+                hydrateUi();
+            } catch (error) {
+                setAlert(`Không thể cập nhật phòng: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadMessages() {
+            try {
+                const response = await fetch(messagesUrl);
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                const data = await response.json();
+                renderMessages(data.messages || []);
+            } catch (error) {
+                if (!messagesLoaded) {
+                    chatMessages.innerHTML = '';
+                    const errorMsg = document.createElement('p');
+                    errorMsg.className = 'text-sm text-rose-500';
+                    errorMsg.textContent = error.message;
+                    chatMessages.appendChild(errorMsg);
+                }
+            }
+        }
+
+        function renderMessages(messages) {
+            if (!chatMessages) {
+                return;
+            }
+            messagesLoaded = true;
+            chatMessages.innerHTML = '';
+            if (!messages.length) {
+                chatMessages.innerHTML = '<p class="text-sm text-slate-500">Chưa có tin nhắn nào.</p>';
+                return;
+            }
+            for (const message of messages) {
+                const bubble = document.createElement('div');
+                bubble.className = 'qb-chat-message';
+                const timestamp = message.created_at ? new Date(message.created_at).toLocaleTimeString() : '';
+                const meta = document.createElement('p');
+                const strong = document.createElement('strong');
+                strong.textContent = message.username || 'Ẩn danh';
+                const time = document.createElement('span');
+                time.className = 'text-xs text-slate-500';
+                time.textContent = timestamp;
+                meta.appendChild(strong);
+                if (timestamp) {
+                    meta.append(' ');
+                    meta.appendChild(time);
+                }
+                const body = document.createElement('p');
+                body.className = 'text-sm text-slate-700';
+                body.textContent = message.content;
+                bubble.appendChild(meta);
+                bubble.appendChild(body);
+                chatMessages.appendChild(bubble);
+            }
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hydrateUi() {
+            if (!roomState) {
+                return;
+            }
+            updateStatusBadge(roomState.status);
+            renderParticipants(roomState.participants);
+            renderQuestion(roomState.active_round);
+            updateRoundMeta(roomState);
+            if (roomState.status === 'completed') {
+                submitAnswerBtn.disabled = true;
+            }
+            setAlert('');
+            updateControlStates();
+        }
+
+        function updateControlStates() {
+            const status = roomState?.status;
+            const canStart = isHost && status === 'lobby';
+            const canEnd = isHost && status !== 'completed';
+            startRoomBtn.disabled = !canStart;
+            endRoomBtn.disabled = !canEnd;
+            if (status === 'completed') {
+                leaveRoomBtn.textContent = 'Thoát khỏi phòng';
+            }
+        }
+
+        answerForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!roomState?.active_round) {
+                return;
+            }
+            const formData = new FormData(answerForm);
+            const selected = formData.get('selected_option');
+            if (!selected) {
+                setAlert('Vui lòng chọn đáp án trước khi gửi.', 'error');
+                return;
+            }
+            try {
+                submitAnswerBtn.disabled = true;
+                const answerUrl = getAnswerUrl(roomState.active_round.sequence_number);
+                const data = await postJson(answerUrl, { selected_option: selected });
+                roomState = data.room;
+                hydrateUi();
+                answerFeedback.textContent = data.answer.is_correct
+                    ? `✅ Chính xác! +${data.answer.score_delta} điểm.`
+                    : `⚠️ Sai rồi. Đáp án đúng: ${data.answer.correct_option}.`;
+            } catch (error) {
+                submitAnswerBtn.disabled = false;
+                setAlert(`Không thể gửi đáp án: ${error.message}`, 'error');
+            }
+        });
+
+        startRoomBtn?.addEventListener('click', async () => {
+            if (!isHost) {
+                return;
+            }
+            try {
+                startRoomBtn.disabled = true;
+                const data = await postJson(startRoomUrl);
+                roomState = data.room;
+                hydrateUi();
+                setAlert('✅ Đã khởi động trận đấu.');
+            } catch (error) {
+                startRoomBtn.disabled = false;
+                setAlert(`Không thể bắt đầu: ${error.message}`, 'error');
+            }
+        });
+
+        endRoomBtn?.addEventListener('click', async () => {
+            if (!isHost) {
+                return;
+            }
+            if (!confirm('Kết thúc trận đấu ngay bây giờ?')) {
+                return;
+            }
+            try {
+                endRoomBtn.disabled = true;
+                const data = await postJson(endRoomUrl);
+                roomState = data.room;
+                hydrateUi();
+                setAlert('Trận đấu đã kết thúc.');
+            } catch (error) {
+                endRoomBtn.disabled = false;
+                setAlert(`Không thể kết thúc: ${error.message}`, 'error');
+            }
+        });
+
+        leaveRoomBtn?.addEventListener('click', async () => {
+            if (!confirm('Bạn chắc chắn muốn rời phòng?')) {
+                return;
+            }
+            try {
+                await postJson(leaveRoomUrl);
+                setAlert('Bạn đã rời phòng. Hãy đóng tab này.', 'info');
+            } catch (error) {
+                setAlert(`Không thể rời phòng: ${error.message}`, 'error');
+            }
+        });
+
+        copyCodeBtn?.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(roomCode);
+                setAlert('Đã sao chép mã phòng.', 'info');
+            } catch (_) {
+                setAlert('Không thể sao chép mã.', 'error');
+            }
+        });
+
+        chatForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const content = chatInput.value.trim();
+            if (!content) {
+                return;
+            }
+            try {
+                await postJson(postMessageUrl, { content });
+                chatInput.value = '';
+                loadMessages();
+            } catch (error) {
+                setAlert(`Không thể gửi tin nhắn: ${error.message}`, 'error');
+            }
+        });
+
+        hydrateUi();
+        loadMessages();
+        roomPollInterval = setInterval(fetchRoomState, 5000);
+        chatPollInterval = setInterval(loadMessages, 7000);
+
+        window.addEventListener('beforeunload', () => {
+            if (roomPollInterval) {
+                clearInterval(roomPollInterval);
+            }
+            if (chatPollInterval) {
+                clearInterval(chatPollInterval);
+            }
+        });
+    })();
+</script>
+{% endblock %}
