@@ -238,6 +238,7 @@ def serialize_round(round_obj: QuizBattleRound, *, include_answers: bool = False
                 'selected_option': answer.selected_option,
                 'is_correct': answer.is_correct,
                 'score_delta': answer.score_delta,
+                'correct_option': answer.correct_option,
                 'answered_at': answer.answered_at.isoformat() if answer.answered_at else None,
             }
             for answer in round_obj.answers

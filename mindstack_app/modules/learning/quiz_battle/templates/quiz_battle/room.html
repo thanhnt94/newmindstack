@@ -7,16 +7,16 @@
 <style>
     .qb-session-shell {
         padding: 2rem clamp(1rem, 4vw, 3rem);
-        background: #0f172a;
+        background: #f8fafc;
         min-height: calc(100vh - 80px);
     }
 
     .qb-session-panel {
         background: #ffffff;
-        border-radius: 1.5rem;
+        border-radius: 1.25rem;
         border: 1px solid #e2e8f0;
         padding: 1.5rem;
-        box-shadow: 0 20px 45px -20px rgba(15, 23, 42, 0.4);
+        box-shadow: 0 25px 45px -30px rgba(15, 23, 42, 0.25);
     }
 
     .qb-session-header {
@@ -24,7 +24,7 @@
         flex-direction: column;
         gap: 1rem;
         margin-bottom: 1.5rem;
-        color: #e2e8f0;
+        color: #0f172a;
     }
 
     @media (min-width: 768px) {
@@ -45,18 +45,18 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        background: rgba(148, 163, 184, 0.2);
-        color: #e2e8f0;
+        background: rgba(148, 163, 184, 0.18);
+        color: #0f172a;
     }
 
     .qb-status-badge[data-status="in_progress"] {
-        background: rgba(250, 204, 21, 0.2);
-        color: #facc15;
+        background: rgba(251, 191, 36, 0.2);
+        color: #b45309;
     }
 
     .qb-status-badge[data-status="completed"] {
-        background: rgba(22, 163, 74, 0.2);
-        color: #4ade80;
+        background: rgba(16, 185, 129, 0.16);
+        color: #047857;
     }
 
     .qb-room-grid {
@@ -73,14 +73,13 @@
     .qb-question-card {
         border-radius: 1rem;
         border: 1px solid #e2e8f0;
-        padding: 1.25rem;
-        background: #f8fafc;
-        margin-bottom: 1rem;
+        padding: 1.5rem;
+        background: #fdfdfd;
     }
 
     .qb-question-options {
         display: grid;
-        gap: 0.75rem;
+        gap: 0.85rem;
         margin-top: 1rem;
     }
 
@@ -89,9 +88,15 @@
         border-radius: 1rem;
         padding: 0.85rem 1rem;
         display: flex;
-        gap: 0.75rem;
+        gap: 0.85rem;
         background: #ffffff;
         align-items: center;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .qb-option:hover {
+        border-color: #818cf8;
+        box-shadow: 0 10px 20px -15px rgba(99, 102, 241, 0.6);
     }
 
     .qb-option input {
@@ -103,7 +108,7 @@
     .qb-sidebar-card {
         border-radius: 1rem;
         border: 1px solid #e2e8f0;
-        padding: 1rem;
+        padding: 1.25rem;
         background: #ffffff;
     }
 
@@ -175,39 +180,263 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
+        justify-content: flex-end;
     }
 
     .qb-action-btn {
         border-radius: 999px;
         padding: 0.65rem 1.25rem;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        background: transparent;
-        color: #e2e8f0;
+        border: 1px solid #cbd5f5;
+        background: #ffffff;
+        color: #0f172a;
         font-weight: 600;
         cursor: pointer;
         display: inline-flex;
         gap: 0.35rem;
         align-items: center;
+        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .qb-action-btn:hover {
+        border-color: #6366f1;
+        color: #4338ca;
+        background: #eef2ff;
     }
 
     .qb-action-btn--danger {
-        border-color: rgba(248, 113, 113, 0.6);
-        color: #fecaca;
+        border-color: #fecaca;
+        color: #b91c1c;
     }
 
     .qb-alert {
         margin-bottom: 1rem;
-        color: #fef3c7;
+        color: #b91c1c;
         min-height: 1.25rem;
     }
 
-    .qb-alert[data-variant="error"] {
-        color: #fecaca;
+    .qb-alert[data-variant="info"] {
+        color: #2563eb;
     }
 
     .qb-timer {
         font-weight: 600;
         color: #ea580c;
+    }
+
+    .qb-inline-feedback {
+        font-size: 0.9rem;
+        color: #475569;
+    }
+
+    .qb-feedback-card {
+        margin-top: 1rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .qb-feedback-status {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .qb-feedback-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .qb-feedback-card[data-state="correct"] .qb-feedback-icon {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .qb-feedback-card[data-state="incorrect"] .qb-feedback-icon {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .qb-feedback-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .qb-feedback-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .qb-feedback-meta-item {
+        padding: 0.75rem 1rem;
+        border-radius: 0.85rem;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        color: #475569;
+    }
+
+    .qb-feedback-meta-item strong {
+        font-size: 1.2rem;
+        color: #0f172a;
+    }
+
+    .qb-feedback-explanation {
+        border-radius: 0.85rem;
+        border: 1px dashed #cbd5f5;
+        padding: 1rem;
+        background: #f9fafb;
+        font-size: 0.95rem;
+        color: #1f2937;
+    }
+
+    .qb-guidance-card ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .qb-guidance-card li {
+        display: flex;
+        gap: 0.65rem;
+        font-size: 0.95rem;
+        color: #475569;
+    }
+
+    .qb-guidance-step {
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #4c1d95;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .qb-question-stats-card {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .qb-question-stats-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .qb-question-stats-chip {
+        padding: 0.2rem 0.65rem;
+        background: #eef2ff;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #4338ca;
+    }
+
+    .qb-question-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .qb-question-stat {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.9rem;
+        padding: 0.9rem 1rem;
+        background: #f8fafc;
+    }
+
+    .qb-question-stat-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: #64748b;
+        letter-spacing: 0.08em;
+    }
+
+    .qb-question-stat-value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .qb-question-stat-value--accent {
+        color: #0ea5e9;
+    }
+
+    .qb-option-distribution {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .qb-option-distribution-row {
+        display: grid;
+        grid-template-columns: 1fr minmax(140px, 2fr) auto;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .qb-option-distribution-label span {
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .qb-option-distribution-label small {
+        display: block;
+        color: #64748b;
+        font-size: 0.8rem;
+    }
+
+    .qb-option-distribution-track {
+        width: 100%;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+    }
+
+    .qb-option-distribution-bar {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #c7d2fe, #6366f1);
+    }
+
+    .qb-option-distribution-row[data-correct="true"] .qb-option-distribution-bar {
+        background: linear-gradient(90deg, #86efac, #16a34a);
+    }
+
+    .qb-option-distribution-meta {
+        font-size: 0.85rem;
+        color: #475569;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .qb-empty-state {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        text-align: center;
     }
 </style>
 {% endblock %}
@@ -216,12 +445,12 @@
 <div class="qb-session-shell">
     <div class="qb-session-header">
         <div>
-            <p class="uppercase tracking-[0.3em] text-sm text-slate-300">Quiz Battle</p>
-            <h1 class="text-3xl font-bold text-white" id="room-title">{{ room_title }}</h1>
-            <p class="text-slate-300 mt-1">Mã phòng: <span class="font-mono tracking-widest" id="room-code">{{ room_code }}</span></p>
+            <p class="uppercase tracking-[0.3em] text-sm text-slate-500">Quiz Battle</p>
+            <h1 class="text-3xl font-bold text-slate-900" id="room-title">{{ room_title }}</h1>
+            <p class="text-slate-600 mt-1">Mã phòng: <span class="font-mono tracking-widest font-semibold text-slate-900" id="room-code">{{ room_code }}</span></p>
         </div>
         <div class="text-right space-y-3">
-            <span class="qb-status-badge" id="room-status" data-status="{{ initial_room.status }}">{{ initial_room.status|upper }}</span>
+            <span class="qb-status-badge" id="room-status" data-status="{{ initial_room.status }}">{{ initial_room.status|upper}}</span>
             <div class="qb-actions">
                 <button type="button" class="qb-action-btn" id="copy-room-code">
                     <i class="fa-solid fa-copy"></i> Sao chép mã
@@ -240,7 +469,7 @@
     </div>
     <p class="qb-alert" id="room-alert"></p>
     <div class="qb-room-grid">
-        <div>
+        <div class="space-y-4">
             <div class="qb-session-panel">
                 <div class="qb-question-card">
                     <p class="text-xs uppercase tracking-[0.35em] text-slate-500">Câu hỏi hiện tại</p>
@@ -253,19 +482,70 @@
                             <i class="fa-solid fa-check"></i> Gửi đáp án
                         </button>
                     </form>
-                    <p class="text-sm mt-2" id="answer-feedback"></p>
+                    <p class="text-sm mt-2 qb-inline-feedback" id="answer-inline-feedback"></p>
                 </div>
-                <div class="qb-sidebar-card">
-                    <h3 class="text-lg font-semibold text-slate-900">Diễn biến</h3>
-                    <p class="text-sm text-slate-600 mt-1" id="round-progress"></p>
-                    <p class="text-sm text-slate-600" id="room-mode"></p>
+                <div class="qb-feedback-card" id="answer-feedback-panel" hidden>
+                    <div class="qb-feedback-status">
+                        <div class="qb-feedback-icon" id="answer-feedback-icon">✨</div>
+                        <div>
+                            <p class="qb-feedback-title" id="answer-feedback-title">Kết quả</p>
+                            <p class="text-sm text-slate-600" id="answer-feedback-detail"></p>
+                        </div>
+                    </div>
+                    <div class="qb-feedback-meta">
+                        <div class="qb-feedback-meta-item">
+                            <span>Đáp án đúng</span>
+                            <strong id="answer-feedback-correct">--</strong>
+                        </div>
+                        <div class="qb-feedback-meta-item">
+                            <span>Điểm số</span>
+                            <strong id="answer-feedback-score">0</strong>
+                        </div>
+                    </div>
+                    <div class="qb-feedback-explanation" id="answer-feedback-explanation"></div>
                 </div>
+                <div class="qb-sidebar-card qb-guidance-card">
+                    <h3 class="text-lg font-semibold text-slate-900">Hướng dẫn thi đấu</h3>
+                    <ul class="mt-3">
+                        <li><span class="qb-guidance-step">1</span> Kiểm tra mã phòng và đảm bảo kết nối ổn định trước khi bắt đầu.</li>
+                        <li><span class="qb-guidance-step">2</span> Đọc kỹ câu hỏi, chọn đáp án và nhấn “Gửi đáp án”.</li>
+                        <li><span class="qb-guidance-step">3</span> Theo dõi bảng thống kê để xem hiệu suất của cả đội.</li>
+                        <li><span class="qb-guidance-step">4</span> Trao đổi nhanh qua khung chat và chờ chủ phòng chuyển câu.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="qb-session-panel">
+                <h3 class="text-lg font-semibold text-slate-900">Diễn biến</h3>
+                <p class="text-sm text-slate-600 mt-1" id="round-progress"></p>
+                <p class="text-sm text-slate-600" id="room-mode"></p>
             </div>
         </div>
         <div class="space-y-4">
             <div class="qb-session-panel">
                 <h3 class="text-lg font-semibold text-slate-900">Người tham gia</h3>
                 <ul class="qb-participant-list mt-3" id="participants-list"></ul>
+            </div>
+            <div class="qb-session-panel qb-question-stats-card" id="question-stats-card">
+                <div class="qb-question-stats-header">
+                    <h3 class="text-lg font-semibold text-slate-900">Thống kê câu hỏi</h3>
+                    <span class="qb-question-stats-chip" id="question-stats-round">Chưa bắt đầu</span>
+                </div>
+                <div class="qb-question-stats-grid">
+                    <div class="qb-question-stat">
+                        <p class="qb-question-stat-label">Lượt trả lời</p>
+                        <p class="qb-question-stat-value" id="question-stats-total">0</p>
+                    </div>
+                    <div class="qb-question-stat">
+                        <p class="qb-question-stat-label">Trả lời đúng</p>
+                        <p class="qb-question-stat-value" id="question-stats-correct">0</p>
+                    </div>
+                    <div class="qb-question-stat">
+                        <p class="qb-question-stat-label">Độ chính xác</p>
+                        <p class="qb-question-stat-value qb-question-stat-value--accent" id="question-stats-accuracy">--</p>
+                    </div>
+                </div>
+                <p class="qb-empty-state" id="question-stats-empty">Chưa có ai trả lời câu hỏi này.</p>
+                <div class="qb-option-distribution" id="option-distribution"></div>
             </div>
             <div class="qb-chat-box">
                 <div class="qb-chat-messages" id="chat-messages">
@@ -303,6 +583,7 @@
         let lastRenderedRound = roomState?.active_round?.sequence_number || null;
         let roomPollInterval = null;
         let chatPollInterval = null;
+        let messagesLoaded = false;
         const statusLabelMap = {
             lobby: 'Đang mở sảnh',
             in_progress: 'Đang thi đấu',
@@ -317,7 +598,20 @@
         const questionDetail = document.getElementById('question-detail');
         const questionOptions = document.getElementById('question-options');
         const questionTimer = document.getElementById('question-timer');
-        const answerFeedback = document.getElementById('answer-feedback');
+        const answerInlineFeedback = document.getElementById('answer-inline-feedback');
+        const answerFeedbackPanel = document.getElementById('answer-feedback-panel');
+        const answerFeedbackTitle = document.getElementById('answer-feedback-title');
+        const answerFeedbackDetail = document.getElementById('answer-feedback-detail');
+        const answerFeedbackCorrect = document.getElementById('answer-feedback-correct');
+        const answerFeedbackScore = document.getElementById('answer-feedback-score');
+        const answerFeedbackExplanation = document.getElementById('answer-feedback-explanation');
+        const answerFeedbackIcon = document.getElementById('answer-feedback-icon');
+        const questionStatsRound = document.getElementById('question-stats-round');
+        const questionStatsTotal = document.getElementById('question-stats-total');
+        const questionStatsCorrect = document.getElementById('question-stats-correct');
+        const questionStatsAccuracy = document.getElementById('question-stats-accuracy');
+        const questionStatsEmpty = document.getElementById('question-stats-empty');
+        const optionDistribution = document.getElementById('option-distribution');
         const participantsList = document.getElementById('participants-list');
         const alertBox = document.getElementById('room-alert');
         const answerForm = document.getElementById('answer-form');
@@ -338,6 +632,27 @@
             alertBox.textContent = message || '';
         }
 
+        function setExplanationContent(target, text) {
+            if (!target) {
+                return;
+            }
+            target.innerHTML = '';
+            const cleaned = typeof text === 'string' ? text.trim() : '';
+            if (!cleaned) {
+                const emptyParagraph = document.createElement('p');
+                emptyParagraph.className = 'text-sm text-slate-500';
+                emptyParagraph.textContent = 'Chưa có giải thích cho câu hỏi này.';
+                target.appendChild(emptyParagraph);
+                return;
+            }
+            const paragraphs = cleaned.split(/\n\n+/);
+            paragraphs.forEach((chunk) => {
+                const paragraph = document.createElement('p');
+                paragraph.textContent = chunk.replace(/\n+/g, ' ');
+                target.appendChild(paragraph);
+            });
+        }
+
         function formatMode(room) {
             if (!room) {
                 return '';
@@ -350,6 +665,131 @@
 
         function formatStatus(status) {
             return statusLabelMap[status] || status;
+        }
+
+        function renderAnswerFeedbackPanel(result) {
+            if (!answerFeedbackPanel) {
+                return;
+            }
+            if (!result) {
+                answerFeedbackPanel.hidden = true;
+                return;
+            }
+            const isCorrect = Boolean(result.is_correct);
+            answerFeedbackPanel.hidden = false;
+            answerFeedbackPanel.dataset.state = isCorrect ? 'correct' : 'incorrect';
+            if (answerFeedbackIcon) {
+                answerFeedbackIcon.textContent = isCorrect ? '🎉' : '💡';
+            }
+            if (answerFeedbackTitle) {
+                answerFeedbackTitle.textContent = isCorrect ? 'Tuyệt vời!' : 'Chưa chính xác';
+            }
+            if (answerFeedbackDetail) {
+                answerFeedbackDetail.textContent = isCorrect
+                    ? `Bạn được +${result.score_delta} điểm cho câu này.`
+                    : 'Hãy xem lại đáp án đúng và tự tin ở câu tiếp theo.';
+            }
+            if (answerFeedbackCorrect) {
+                answerFeedbackCorrect.textContent = result.correct_option || '--';
+            }
+            if (answerFeedbackScore) {
+                const delta = Number(result.score_delta) || 0;
+                answerFeedbackScore.textContent = delta >= 0 ? `+${delta}` : `${delta}`;
+            }
+            setExplanationContent(answerFeedbackExplanation, result.explanation || '');
+        }
+
+        function renderQuestionStats(round) {
+            if (!questionStatsRound) {
+                return;
+            }
+            if (!round || !round.question) {
+                questionStatsRound.textContent = 'Chưa bắt đầu';
+                if (questionStatsTotal) {
+                    questionStatsTotal.textContent = '0';
+                }
+                if (questionStatsCorrect) {
+                    questionStatsCorrect.textContent = '0';
+                }
+                if (questionStatsAccuracy) {
+                    questionStatsAccuracy.textContent = '--';
+                }
+                if (questionStatsEmpty) {
+                    questionStatsEmpty.hidden = false;
+                    questionStatsEmpty.textContent = 'Chưa có câu hỏi nào được mở.';
+                }
+                if (optionDistribution) {
+                    optionDistribution.innerHTML = '';
+                }
+                return;
+            }
+            questionStatsRound.textContent = `Câu #${round.sequence_number}`;
+            const answers = round.answers || [];
+            const total = answers.length;
+            const correct = answers.filter((answer) => answer.is_correct).length;
+            if (questionStatsTotal) {
+                questionStatsTotal.textContent = `${total}`;
+            }
+            if (questionStatsCorrect) {
+                questionStatsCorrect.textContent = `${correct}`;
+            }
+            if (questionStatsAccuracy) {
+                questionStatsAccuracy.textContent = total ? `${Math.round((correct / total) * 100)}%` : '--';
+            }
+            if (questionStatsEmpty) {
+                questionStatsEmpty.hidden = total > 0;
+                if (!total) {
+                    questionStatsEmpty.textContent = 'Chưa có ai trả lời câu hỏi này.';
+                }
+            }
+            if (!optionDistribution) {
+                return;
+            }
+            optionDistribution.innerHTML = '';
+            const options = round.question.options || {};
+            const optionKeys = Object.keys(options);
+            if (!optionKeys.length || !total) {
+                return;
+            }
+            const optionCounts = answers.reduce((accumulator, answer) => {
+                const key = answer.selected_option;
+                if (key) {
+                    accumulator[key] = (accumulator[key] || 0) + 1;
+                }
+                return accumulator;
+            }, {});
+            const myAnswer = answers.find((answer) => answer.participant_id === participantId);
+            const correctOption = myAnswer?.correct_option;
+            optionKeys.forEach((key) => {
+                const count = optionCounts[key] || 0;
+                const percent = total ? Math.round((count / total) * 100) : 0;
+                const row = document.createElement('div');
+                row.className = 'qb-option-distribution-row';
+                if (correctOption && key === correctOption) {
+                    row.dataset.correct = 'true';
+                }
+                const label = document.createElement('div');
+                label.className = 'qb-option-distribution-label';
+                const labelTitle = document.createElement('span');
+                labelTitle.textContent = key;
+                const labelDesc = document.createElement('small');
+                labelDesc.textContent = options[key] || '';
+                label.appendChild(labelTitle);
+                label.appendChild(labelDesc);
+                const track = document.createElement('div');
+                track.className = 'qb-option-distribution-track';
+                const bar = document.createElement('span');
+                bar.className = 'qb-option-distribution-bar';
+                bar.style.width = `${percent}%`;
+                track.appendChild(bar);
+                const meta = document.createElement('div');
+                meta.className = 'qb-option-distribution-meta';
+                meta.textContent = `${count} (${percent}%)`;
+                row.appendChild(label);
+                row.appendChild(track);
+                row.appendChild(meta);
+                optionDistribution.appendChild(row);
+            });
         }
 
         function renderParticipants(participants) {
@@ -388,9 +828,11 @@
                 questionOptions.innerHTML = '';
                 submitAnswerBtn.disabled = true;
                 questionTimer.textContent = '';
-                if (lastRenderedRound !== null) {
-                    answerFeedback.textContent = '';
+                if (answerInlineFeedback) {
+                    answerInlineFeedback.textContent = '';
                 }
+                renderAnswerFeedbackPanel(null);
+                renderQuestionStats(null);
                 lastRenderedRound = null;
                 return;
             }
@@ -434,10 +876,23 @@
             } else {
                 questionTimer.textContent = '';
             }
+            if (answerInlineFeedback) {
+                if (answeredByMe) {
+                    answerInlineFeedback.textContent = 'Bạn đã gửi đáp án cho câu hỏi này.';
+                } else if (!canAnswer) {
+                    answerInlineFeedback.textContent = 'Bạn không thể trả lời câu hỏi này.';
+                } else {
+                    answerInlineFeedback.textContent = '';
+                }
+            }
             if (isNewRound) {
-                answerFeedback.textContent = '';
+                if (answerInlineFeedback) {
+                    answerInlineFeedback.textContent = '';
+                }
+                renderAnswerFeedbackPanel(null);
             }
             lastRenderedRound = round.sequence_number;
+            renderQuestionStats(round);
         }
 
         function updateRoundMeta(room) {
@@ -591,9 +1046,7 @@
                 const data = await postJson(answerUrl, { selected_option: selected });
                 roomState = data.room;
                 hydrateUi();
-                answerFeedback.textContent = data.answer.is_correct
-                    ? `✅ Chính xác! +${data.answer.score_delta} điểm.`
-                    : `⚠️ Sai rồi. Đáp án đúng: ${data.answer.correct_option}.`;
+                renderAnswerFeedbackPanel(data.answer);
             } catch (error) {
                 submitAnswerBtn.disabled = false;
                 setAlert(`Không thể gửi đáp án: ${error.message}`, 'error');
