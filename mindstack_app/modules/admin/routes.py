@@ -1,8 +1,8 @@
 # File: mindstack_app/modules/admin/routes.py
-# Phiên bản: 2.6
-# MỤC ĐÍCH: Sửa lỗi AttributeError: 'scoped_session' object has no attribute 'in_transaction'.
-#           Bằng cách thay thế db.session.in_transaction() bằng db.session.is_active.
-#           Đồng thời bổ sung chú thích tiếng Việt theo yêu cầu.
+# Phiên bản: 2.8
+# MỤC ĐÍCH: Cập nhật hàm _get_backup_folder để CHỈ đọc đường dẫn từ config.py,
+#           loại bỏ code dự phòng (fallback) để đảm bảo đường dẫn luôn đúng.
+#           Bổ sung chú thích tiếng Việt cho tất cả các hàm.
 
 from flask import (
     render_template,
@@ -60,7 +60,7 @@ from ..learning.flashcard_learning.image_service import ImageService
 audio_service = AudioService()
 image_service = ImageService()
 
-
+# Danh mục các gói dữ liệu có thể sao lưu/khôi phục
 DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
     {
         'users': {
@@ -124,11 +124,21 @@ def _resolve_database_path():
 
 def _get_backup_folder():
     """
-    Mô tả: Lấy và tạo (nếu cần) đường dẫn đến thư mục chứa các bản sao lưu.
+    Mô tả: Lấy đường dẫn thư mục sao lưu từ file config (đã cấu hình trong config.py).
+    Đảm bảo thư mục tồn tại.
     Returns:
         str: Đường dẫn thư mục sao lưu.
+    Raises:
+        RuntimeError: Nếu biến BACKUP_FOLDER không được cấu hình trong config.py.
     """
-    backup_folder = os.path.join(current_app.root_path, 'backups')
+    # SỬA: Chỉ lấy đường dẫn từ config, không dùng fallback
+    backup_folder = current_app.config.get('BACKUP_FOLDER')
+    if not backup_folder:
+        # Nếu config.py không định nghĩa, đây là một lỗi nghiêm trọng
+        current_app.logger.error("LỖI CẤU HÌNH: BACKUP_FOLDER không được định nghĩa trong config.py.")
+        raise RuntimeError("Lỗi cấu hình: BACKUP_FOLDER chưa được thiết lập.")
+    
+    # Đảm bảo thư mục tồn tại (config.py đã làm, nhưng an toàn)
     os.makedirs(backup_folder, exist_ok=True)
     return backup_folder
 
@@ -501,9 +511,6 @@ def _apply_dataset_restore(dataset_key, payload):
         raise KeyError('Dataset không tồn tại.')
 
     # SỬA LỖI: Thay thế 'if db.session.in_transaction():' bằng 'if db.session.is_active:'
-    # 'scoped_session' không có thuộc tính 'in_transaction'.
-    # 'is_active' là cách đúng để kiểm tra xem session có đang trong một giao dịch hay không
-    # trước khi cố gắng bắt đầu một giao dịch mới.
     if db.session.is_active:
         db.session.rollback()
 
