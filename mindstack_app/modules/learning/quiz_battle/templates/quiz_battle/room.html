@@ -169,11 +169,27 @@
     .qb-chat-form button {
         border: none;
         border-radius: 999px;
-        padding: 0.75rem 1.25rem;
-        background: #6366f1;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(120deg, #6366f1, #8b5cf6);
         color: #ffffff;
         font-weight: 600;
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        box-shadow: 0 18px 30px -18px rgba(79, 70, 229, 0.85);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.3s ease;
+    }
+
+    .qb-chat-form button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 20px 35px -18px rgba(79, 70, 229, 0.9);
+    }
+
+    .qb-chat-form button:focus-visible {
+        outline: 2px solid #c7d2fe;
+        outline-offset: 2px;
     }
 
     .qb-actions {
@@ -239,6 +255,158 @@
         gap: 1rem;
     }
 
+    .qb-knowledge-panel {
+        margin-top: 1.25rem;
+        display: grid;
+        gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .qb-knowledge-panel {
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        }
+    }
+
+    .qb-knowledge-card,
+    .qb-note-card {
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        padding: 1.25rem;
+        box-shadow: 0 18px 35px -25px rgba(15, 23, 42, 0.4);
+    }
+
+    .qb-knowledge-card__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .qb-knowledge-label {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.7rem;
+        color: #94a3b8;
+        font-weight: 700;
+    }
+
+    .qb-knowledge-chip {
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #4338ca;
+        font-weight: 600;
+        padding: 0.2rem 0.85rem;
+        font-size: 0.75rem;
+    }
+
+    .qb-knowledge-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin: 0.15rem 0 0;
+    }
+
+    .qb-knowledge-text {
+        font-size: 0.95rem;
+        color: #475569;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .qb-note-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .qb-note-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .qb-note-btn {
+        border: none;
+        border-radius: 999px;
+        background: #111827;
+        color: #ffffff;
+        font-weight: 600;
+        padding: 0.4rem 1.1rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .qb-note-btn--ghost {
+        background: transparent;
+        color: #475569;
+        border: 1px solid #cbd5f5;
+        box-shadow: none;
+    }
+
+    .qb-note-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .qb-note-btn:not(:disabled):hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px -12px rgba(15, 23, 42, 0.3);
+    }
+
+    .qb-note-link {
+        font-size: 0.85rem;
+        color: #6366f1;
+        text-decoration: underline;
+    }
+
+    .qb-note-view {
+        min-height: 3rem;
+        font-size: 0.95rem;
+        color: #334155;
+    }
+
+    .qb-note-editor {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .qb-note-textarea,
+    .qb-feedback-textarea {
+        width: 100%;
+        border-radius: 0.85rem;
+        border: 1px solid #cbd5f5;
+        padding: 0.75rem 1rem;
+        resize: vertical;
+        min-height: 110px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        color: #0f172a;
+    }
+
+    .qb-note-editor-actions,
+    .qb-feedback-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .qb-feedback-hint {
+        font-size: 0.8rem;
+        color: #94a3b8;
+    }
+
+    .qb-feedback-lite .qb-note-btn {
+        background: #2563eb;
+    }
+
     .qb-feedback-status {
         display: flex;
         gap: 1rem;
@@ -301,35 +469,6 @@
         background: #f9fafb;
         font-size: 0.95rem;
         color: #1f2937;
-    }
-
-    .qb-guidance-card ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.65rem;
-    }
-
-    .qb-guidance-card li {
-        display: flex;
-        gap: 0.65rem;
-        font-size: 0.95rem;
-        color: #475569;
-    }
-
-    .qb-guidance-step {
-        width: 1.6rem;
-        height: 1.6rem;
-        border-radius: 999px;
-        background: #eef2ff;
-        color: #4c1d95;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
     }
 
     .qb-question-stats-card {
@@ -504,14 +643,59 @@
                     </div>
                     <div class="qb-feedback-explanation" id="answer-feedback-explanation"></div>
                 </div>
-                <div class="qb-sidebar-card qb-guidance-card">
-                    <h3 class="text-lg font-semibold text-slate-900">Hướng dẫn thi đấu</h3>
-                    <ul class="mt-3">
-                        <li><span class="qb-guidance-step">1</span> Kiểm tra mã phòng và đảm bảo kết nối ổn định trước khi bắt đầu.</li>
-                        <li><span class="qb-guidance-step">2</span> Đọc kỹ câu hỏi, chọn đáp án và nhấn “Gửi đáp án”.</li>
-                        <li><span class="qb-guidance-step">3</span> Theo dõi bảng thống kê để xem hiệu suất của cả đội.</li>
-                        <li><span class="qb-guidance-step">4</span> Trao đổi nhanh qua khung chat và chờ chủ phòng chuyển câu.</li>
-                    </ul>
+                <div class="qb-knowledge-panel" id="question-insight-panel" hidden>
+                    <div class="qb-knowledge-card">
+                        <div class="qb-knowledge-card__header">
+                            <div>
+                                <p class="qb-knowledge-label">Gợi ý chính thức</p>
+                                <p class="qb-knowledge-title">Giải thích của bộ đề</p>
+                            </div>
+                            <span class="qb-knowledge-chip text-xs text-slate-400">Mở khi bạn đã trả lời</span>
+                        </div>
+                        <div class="qb-knowledge-text" id="question-guidance-content"></div>
+                    </div>
+                    <div class="qb-knowledge-card">
+                        <div class="qb-knowledge-card__header">
+                            <div>
+                                <p class="qb-knowledge-label">AI Coach</p>
+                                <p class="qb-knowledge-title">Giải thích của AI</p>
+                            </div>
+                        </div>
+                        <div class="qb-knowledge-text" id="question-ai-content"></div>
+                    </div>
+                    <div class="qb-note-card" id="question-note-card">
+                        <div class="qb-knowledge-card__header">
+                            <div>
+                                <p class="qb-knowledge-label">Ghi chú cá nhân</p>
+                                <p class="qb-knowledge-title">Ghi chú của bạn</p>
+                            </div>
+                            <div class="qb-note-actions">
+                                <button type="button" class="qb-note-btn qb-note-btn--ghost" id="question-note-edit"><i class="fa-solid fa-pen"></i> Sửa</button>
+                                <a href="{{ url_for('notes.manage_notes') }}" target="_blank" rel="noopener" class="qb-note-link">Quản lý ghi chú</a>
+                            </div>
+                        </div>
+                        <div class="qb-note-view" id="question-note-content"></div>
+                        <div class="qb-note-editor" id="question-note-editor" hidden>
+                            <textarea id="question-note-input" class="qb-note-textarea" rows="3" placeholder="Ghi lại điều bạn muốn ghi nhớ..."></textarea>
+                            <div class="qb-note-editor-actions">
+                                <button type="button" class="qb-note-btn qb-note-btn--ghost" id="question-note-cancel">Hủy</button>
+                                <button type="button" class="qb-note-btn" id="question-note-save">Lưu</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="qb-knowledge-card qb-feedback-lite" id="question-feedback-card" hidden>
+                        <div class="qb-knowledge-card__header">
+                            <div>
+                                <p class="qb-knowledge-label">Phản hồi nhanh</p>
+                                <p class="qb-knowledge-title">Giúp chúng tôi cải thiện</p>
+                            </div>
+                        </div>
+                        <textarea class="qb-feedback-textarea" id="question-feedback-input" rows="3" placeholder="Có điểm nào chưa hợp lý? Chia sẻ với chúng tôi..."></textarea>
+                        <div class="qb-feedback-actions">
+                            <button type="button" class="qb-note-btn" id="question-feedback-submit"><i class="fa-solid fa-paper-plane"></i> Gửi phản hồi</button>
+                            <p class="qb-feedback-hint">Phản hồi của bạn chỉ hiển thị với đội ngũ biên soạn.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="qb-session-panel">
@@ -577,6 +761,8 @@
         const messagesUrl = {{ url_for('learning.quiz_battle.list_messages', room_code=room_code) | tojson }};
         const postMessageUrl = {{ url_for('learning.quiz_battle.post_message', room_code=room_code) | tojson }};
         const answerUrlTemplate = {{ url_for('learning.quiz_battle.submit_round_answer', room_code=room_code, sequence_number=0) | tojson }};
+        const noteSaveUrlTemplate = {{ url_for('notes.save_note', item_id=0) | tojson }};
+        const feedbackSubmitUrl = {{ url_for('feedback.submit_feedback') | tojson }};
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         let roomState = initialRoom || {};
@@ -623,6 +809,20 @@
         const chatMessages = document.getElementById('chat-messages');
         const chatForm = document.getElementById('chat-form');
         const chatInput = document.getElementById('chat-input');
+        const insightsPanel = document.getElementById('question-insight-panel');
+        const guidanceContent = document.getElementById('question-guidance-content');
+        const aiContent = document.getElementById('question-ai-content');
+        const noteView = document.getElementById('question-note-content');
+        const noteEditor = document.getElementById('question-note-editor');
+        const noteTextarea = document.getElementById('question-note-input');
+        const noteEditBtn = document.getElementById('question-note-edit');
+        const noteCancelBtn = document.getElementById('question-note-cancel');
+        const noteSaveBtn = document.getElementById('question-note-save');
+        const feedbackCard = document.getElementById('question-feedback-card');
+        const feedbackInput = document.getElementById('question-feedback-input');
+        const feedbackSubmitBtn = document.getElementById('question-feedback-submit');
+
+        let currentQuestionItemId = null;
 
         function setAlert(message, variant = 'info') {
             if (!alertBox) {
@@ -632,7 +832,7 @@
             alertBox.textContent = message || '';
         }
 
-        function setExplanationContent(target, text) {
+        function setExplanationContent(target, text, emptyMessage = 'Chưa có giải thích cho câu hỏi này.') {
             if (!target) {
                 return;
             }
@@ -641,7 +841,7 @@
             if (!cleaned) {
                 const emptyParagraph = document.createElement('p');
                 emptyParagraph.className = 'text-sm text-slate-500';
-                emptyParagraph.textContent = 'Chưa có giải thích cho câu hỏi này.';
+                emptyParagraph.textContent = emptyMessage;
                 target.appendChild(emptyParagraph);
                 return;
             }
@@ -652,6 +852,130 @@
                 target.appendChild(paragraph);
             });
         }
+
+        function toggleNoteEditor(show) {
+            if (!noteEditor || !noteView) {
+                return;
+            }
+            if (show) {
+                noteEditor.hidden = false;
+                noteView.hidden = true;
+                noteTextarea?.focus();
+            } else {
+                noteEditor.hidden = true;
+                noteView.hidden = false;
+            }
+        }
+
+        function getNoteSaveUrl(itemId) {
+            if (!noteSaveUrlTemplate || !itemId) {
+                return null;
+            }
+            return noteSaveUrlTemplate.replace(/0$/, String(itemId));
+        }
+
+        function setInsightControlsEnabled(enabled) {
+            [noteEditBtn, noteCancelBtn, noteSaveBtn].forEach((button) => {
+                if (button) {
+                    button.disabled = !enabled;
+                }
+            });
+            if (noteTextarea) {
+                noteTextarea.disabled = !enabled;
+            }
+        }
+
+        function setFeedbackControlsEnabled(enabled) {
+            if (feedbackInput) {
+                feedbackInput.disabled = !enabled;
+                if (!enabled) {
+                    feedbackInput.value = '';
+                }
+            }
+            if (feedbackSubmitBtn) {
+                feedbackSubmitBtn.disabled = !enabled;
+            }
+        }
+
+        function updateNoteView(content) {
+            if (!noteView) {
+                return;
+            }
+            setExplanationContent(noteView, content || '', 'Bạn chưa có ghi chú.');
+            if (noteTextarea) {
+                noteTextarea.value = content || '';
+            }
+        }
+
+        function toggleInsightPanel(show) {
+            if (!insightsPanel) {
+                return;
+            }
+            insightsPanel.hidden = !show;
+            if (!show) {
+                toggleNoteEditor(false);
+                if (feedbackCard) {
+                    feedbackCard.hidden = true;
+                }
+            }
+        }
+
+        function updateInsightPanel(question, answeredByMe) {
+            if (!question || !answeredByMe) {
+                toggleInsightPanel(false);
+                return;
+            }
+            toggleInsightPanel(true);
+            if (guidanceContent) {
+                setExplanationContent(
+                    guidanceContent,
+                    question.explanation || '',
+                    'Câu hỏi này chưa có gợi ý chi tiết.'
+                );
+            }
+            if (aiContent) {
+                setExplanationContent(
+                    aiContent,
+                    question.ai_explanation || '',
+                    'Chưa có giải thích từ AI cho câu hỏi này.'
+                );
+            }
+            updateNoteView(question.note_content || '');
+            if (feedbackCard) {
+                feedbackCard.hidden = false;
+            }
+        }
+
+        async function saveCurrentNote() {
+            if (!currentQuestionItemId || !noteTextarea || !noteSaveBtn) {
+                return;
+            }
+            const content = noteTextarea.value || '';
+            const url = getNoteSaveUrl(currentQuestionItemId);
+            if (!url) {
+                return;
+            }
+            try {
+                noteSaveBtn.disabled = true;
+                const response = await postJson(url, { content });
+                if (!response?.success) {
+                    throw new Error(response?.message || 'Không thể lưu ghi chú.');
+                }
+                if (roomState?.active_round?.question) {
+                    roomState.active_round.question.note_content = content;
+                }
+                updateNoteView(content);
+                toggleNoteEditor(false);
+                setAlert('Đã lưu ghi chú của bạn.', 'info');
+            } catch (error) {
+                setAlert(`Không thể lưu ghi chú: ${error.message}`, 'error');
+            } finally {
+                noteSaveBtn.disabled = false;
+            }
+        }
+
+        setInsightControlsEnabled(false);
+        setFeedbackControlsEnabled(false);
 
         function formatMode(room) {
             if (!room) {
@@ -834,15 +1158,20 @@
                 renderAnswerFeedbackPanel(null);
                 renderQuestionStats(null);
                 lastRenderedRound = null;
+                currentQuestionItemId = null;
+                setInsightControlsEnabled(false);
+                setFeedbackControlsEnabled(false);
+                updateInsightPanel(null, false);
                 return;
             }
-            questionTitle.textContent = round.question.question || 'Câu hỏi chưa có nội dung';
-            questionDetail.textContent = round.question.passage_text || '';
+            const question = round.question;
+            questionTitle.textContent = question.question || 'Câu hỏi chưa có nội dung';
+            questionDetail.textContent = question.passage_text || '';
             questionOptions.innerHTML = '';
             const answeredByMe = round.answers?.some((answer) => answer.participant_id === participantId);
             const canAnswer = Boolean(participantId);
             const isNewRound = round.sequence_number !== lastRenderedRound;
-            const options = round.question.options || {};
+            const options = question.options || {};
             const optionKeys = Object.keys(options);
             optionKeys.forEach((optionKey) => {
                 const wrapper = document.createElement('label');
@@ -876,6 +1205,15 @@
             } else {
                 questionTimer.textContent = '';
             }
+            const questionId = Number(question.item_id);
+            currentQuestionItemId = Number.isFinite(questionId) && questionId > 0 ? questionId : null;
+            const canUseInsights = Boolean(answeredByMe && currentQuestionItemId);
+            setInsightControlsEnabled(canUseInsights);
+            setFeedbackControlsEnabled(canUseInsights);
+            if (!canUseInsights) {
+                toggleInsightPanel(false);
+            }
+            updateInsightPanel(question, answeredByMe);
             if (answerInlineFeedback) {
                 if (answeredByMe) {
                     answerInlineFeedback.textContent = 'Bạn đã gửi đáp án cho câu hỏi này.';
@@ -1028,6 +1366,52 @@
                 leaveRoomBtn.textContent = 'Thoát khỏi phòng';
             }
         }
+
+        noteEditBtn?.addEventListener('click', () => {
+            if (!currentQuestionItemId) {
+                return;
+            }
+            toggleNoteEditor(true);
+        });
+
+        noteCancelBtn?.addEventListener('click', () => {
+            if (!noteTextarea) {
+                toggleNoteEditor(false);
+                return;
+            }
+            const content = roomState?.active_round?.question?.note_content || '';
+            noteTextarea.value = content;
+            toggleNoteEditor(false);
+        });
+
+        noteSaveBtn?.addEventListener('click', saveCurrentNote);
+
+        feedbackSubmitBtn?.addEventListener('click', async () => {
+            if (!currentQuestionItemId || !feedbackInput) {
+                return;
+            }
+            const feedbackText = feedbackInput.value.trim();
+            if (!feedbackText) {
+                setAlert('Vui lòng nhập nội dung phản hồi trước khi gửi.', 'error');
+                return;
+            }
+            try {
+                feedbackSubmitBtn.disabled = true;
+                const response = await postJson(feedbackSubmitUrl, {
+                    item_id: currentQuestionItemId,
+                    feedback_text: feedbackText,
+                });
+                if (!response?.success) {
+                    throw new Error(response?.message || 'Không thể gửi phản hồi.');
+                }
+                feedbackInput.value = '';
+                setAlert('Cảm ơn bạn! Phản hồi đã được ghi nhận.', 'info');
+            } catch (error) {
+                setAlert(`Không thể gửi phản hồi: ${error.message}`, 'error');
+            } finally {
+                feedbackSubmitBtn.disabled = false;
+            }
+        });
 
         answerForm?.addEventListener('submit', async (event) => {
             event.preventDefault();

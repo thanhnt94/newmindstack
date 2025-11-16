@@ -178,7 +178,7 @@ def create_room():
         abort(400, description='Bộ quiz này chưa có câu hỏi để thi đấu.')
 
     db.session.commit()
-    return jsonify({'room': serialize_room(room)}), 201
+    return jsonify({'room': serialize_room(room, user_id=current_user.user_id)}), 201
 
 
 @quiz_battle_bp.route('/available-quizzes', methods=['GET'])
@@ -261,7 +261,7 @@ def list_public_rooms():
         .all()
     )
 
-    return jsonify({'rooms': [serialize_room(room) for room in rooms]})
+    return jsonify({'rooms': [serialize_room(room, user_id=current_user.user_id) for room in rooms]})
 
 
 @quiz_battle_bp.route('/rooms/my-active', methods=['GET'])
@@ -295,7 +295,7 @@ def list_my_active_rooms():
             rooms.append(participation.room)
             seen_room_ids.add(participation.room_id)
 
-    return jsonify({'rooms': [serialize_room(room) for room in rooms]})
+    return jsonify({'rooms': [serialize_room(room, user_id=current_user.user_id) for room in rooms]})
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>', methods=['GET'])
@@ -306,7 +306,15 @@ def get_room(room_code: str):
     room = _get_room_or_404(room_code)
     if auto_advance_round_if_needed(room):
         db.session.commit()
-    return jsonify({'room': serialize_room(room, include_round_history=True)})
+    return jsonify(
+        {
+            'room': serialize_room(
+                room,
+                include_round_history=True,
+                user_id=current_user.user_id,
+            )
+        }
+    )
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>/view', methods=['GET'])
@@ -319,7 +327,11 @@ def view_room(room_code: str):
     if current_user.user_role != User.ROLE_ADMIN and not participant:
         abort(403, description='Bạn cần tham gia phòng này trước khi xem giao diện thi đấu.')
 
-    room_payload = serialize_room(room, include_round_history=True)
+    room_payload = serialize_room(
+        room,
+        include_round_history=True,
+        user_id=current_user.user_id,
+    )
     return render_template(
         'quiz_battle/room.html',
         room_code=room.room_code,
@@ -345,7 +357,7 @@ def join_room(room_code: str):
         if existing.status == QuizBattleParticipant.STATUS_KICKED:
             abort(403, description='Bạn đã bị loại khỏi phòng này.')
         if existing.status == QuizBattleParticipant.STATUS_ACTIVE:
-            return jsonify({'room': serialize_room(room)})
+            return jsonify({'room': serialize_room(room, user_id=current_user.user_id)})
         existing.status = QuizBattleParticipant.STATUS_ACTIVE
         existing.left_at = None
     else:
@@ -355,7 +367,7 @@ def join_room(room_code: str):
         db.session.add(participant)
 
     db.session.commit()
-    return jsonify({'room': serialize_room(room)})
+    return jsonify({'room': serialize_room(room, user_id=current_user.user_id)})
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>/leave', methods=['POST'])
@@ -376,7 +388,7 @@ def leave_room(room_code: str):
         room.status = QuizBattleRoom.STATUS_AWAITING_HOST
 
     db.session.commit()
-    return jsonify({'room': serialize_room(room)})
+    return jsonify({'room': serialize_room(room, user_id=current_user.user_id)})
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>/kick', methods=['POST'])
@@ -408,7 +420,7 @@ def kick_participant(room_code: str):
     complete_round_if_ready(active_round)
 
     db.session.commit()
-    return jsonify({'room': serialize_room(room)})
+    return jsonify({'room': serialize_room(room, user_id=current_user.user_id)})
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>/start', methods=['POST'])
@@ -434,7 +446,7 @@ def start_room(room_code: str):
     start_round(room, 1)
 
     db.session.commit()
-    return jsonify({'room': serialize_room(room)})
+    return jsonify({'room': serialize_room(room, user_id=current_user.user_id)})
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>/end', methods=['POST'])
@@ -451,7 +463,15 @@ def end_room(room_code: str):
     room.current_round_number = max(room.current_round_number, len(room.question_order or []))
 
     db.session.commit()
-    return jsonify({'room': serialize_room(room, include_round_history=True)})
+    return jsonify(
+        {
+            'room': serialize_room(
+                room,
+                include_round_history=True,
+                user_id=current_user.user_id,
+            )
+        }
+    )
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>/messages', methods=['GET'])
@@ -563,7 +583,7 @@ def submit_round_answer(room_code: str, sequence_number: int):
                 'explanation': explanation,
                 'updated_total_score': updated_total_score,
             },
-            'room': serialize_room(room),
+            'room': serialize_room(room, user_id=current_user.user_id),
             'next_round_number': next_round.sequence_number if next_round else None,
             'room_status': room.status,
         }
