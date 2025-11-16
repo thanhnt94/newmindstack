@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Battle{% endblock %}
+
+{% block content %}
+<div class="bg-slate-50 min-h-screen py-10">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <header class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Quiz Battle</p>
+                <h1 class="mt-3 text-3xl sm:text-4xl font-bold text-slate-900">Thách đấu quiz theo thời gian thực</h1>
+                <p class="mt-4 text-slate-600 max-w-2xl">
+                    Rủ bạn bè vào phòng Quiz Battle để so tài kiến thức. Bạn có thể chọn chế độ Test chậm để chờ mọi người hoàn thành
+                    hoặc bật chế độ Giới hạn thời gian để tự động chuyển câu hỏi khi hết giờ.
+                </p>
+            </div>
+            <div class="flex gap-3 flex-wrap">
+                <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 text-white font-semibold shadow-md hover:bg-indigo-500">
+                    <i class="fa-solid fa-layer-group"></i> Chọn bộ quiz
+                </a>
+                <a href="{{ url_for('stats.dashboard') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-800 font-semibold hover:bg-slate-50">
+                    <i class="fa-solid fa-chart-line"></i> Xem thành tích
+                </a>
+            </div>
+        </header>
+
+        <section class="grid gap-6 md:grid-cols-2">
+            <div class="bg-white rounded-3xl border border-slate-100 p-8 space-y-4">
+                <h2 class="text-xl font-semibold text-slate-900">Hai chế độ thi đấu</h2>
+                <div class="space-y-4">
+                    <article class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50">
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-emerald-600"><i class="fa-solid fa-users"></i></span>
+                            <div>
+                                <h3 class="font-semibold text-emerald-700">Test chậm</h3>
+                                <p class="text-sm text-emerald-600">Mỗi câu hỏi chỉ chuyển khi tất cả thành viên đã trả lời xong, phù hợp để thảo luận kỹ.</p>
+                            </div>
+                        </div>
+                    </article>
+                    <article class="p-4 rounded-2xl border border-amber-100 bg-amber-50">
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-amber-600"><i class="fa-solid fa-stopwatch"></i></span>
+                            <div>
+                                <h3 class="font-semibold text-amber-700">Giới hạn thời gian</h3>
+                                <p class="text-sm text-amber-600">Đặt số lượng câu hỏi và thời gian trả lời mỗi câu. Khi hết giờ hệ thống tự động chuyển câu.</p>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                <p class="text-sm text-slate-500">Bạn có thể cấu hình chế độ ngay khi tạo phòng để phù hợp với tốc độ của cả nhóm.</p>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-100 p-8 space-y-6">
+                <div>
+                    <h2 class="text-xl font-semibold text-slate-900">Tạo phòng mới</h2>
+                    <p class="text-sm text-slate-500">Chọn bộ quiz và cấu hình chế độ thi đấu bên dưới, sau đó chia sẻ mã phòng cho bạn bè.</p>
+                </div>
+                <form id="battle-settings-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">ID bộ quiz</label>
+                        <input type="number" name="container_id" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ví dụ: 42" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Tiêu đề phòng</label>
+                        <input type="text" name="title" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Quiz Battle tối nay" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Số lượng câu hỏi</label>
+                        <input type="number" min="1" name="question_limit" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Để trống nếu muốn dùng toàn bộ bộ quiz">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Chế độ thi</label>
+                        <select name="mode" id="battle-mode" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="SLOW">Test chậm</option>
+                            <option value="TIMED">Giới hạn thời gian</option>
+                        </select>
+                    </div>
+                    <div id="timed-config" class="hidden">
+                        <label class="block text-sm font-medium text-slate-700">Thời gian cho mỗi câu (giây)</label>
+                        <input type="number" min="5" name="time_per_question_seconds" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ví dụ: 30">
+                        <p class="mt-2 text-xs text-slate-500">Ở chế độ giới hạn thời gian, câu hỏi sẽ tự chuyển sau khi hết số giây này.</p>
+                    </div>
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-500">
+                        <i class="fa-solid fa-plus"></i> Tạo phòng ngay
+                    </button>
+                </form>
+                <div id="room-creation-result" class="text-sm"></div>
+            </div>
+        </section>
+
+        <section class="grid gap-6 md:grid-cols-2">
+            <div class="bg-white rounded-3xl border border-slate-100 p-8 space-y-4">
+                <h2 class="text-xl font-semibold text-slate-900">Chat trong phòng</h2>
+                <p class="text-sm text-slate-500">Nhập mã phòng để trò chuyện cùng các thành viên. Tin nhắn được đồng bộ theo thời gian thực khi mọi người tải lại trạng thái phòng.</p>
+                <div class="space-y-3">
+                    <div class="flex gap-3 items-center">
+                        <input type="text" id="chat-room-code" placeholder="Nhập mã phòng" class="flex-1 rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500">
+                        <button id="load-chat" class="px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold">Tải chat</button>
+                    </div>
+                    <div id="chat-messages" class="h-64 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm space-y-2"></div>
+                    <form id="chat-form" class="flex gap-3">
+                        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." class="flex-1 rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" disabled>
+                        <button type="submit" class="px-4 py-2 rounded-2xl bg-indigo-600 text-white font-semibold disabled:opacity-50" disabled>Gửi</button>
+                    </form>
+                    <p id="chat-status" class="text-xs text-slate-500"></p>
+                </div>
+            </div>
+            <div class="bg-white rounded-3xl border border-slate-100 p-8 space-y-4">
+                <h2 class="text-xl font-semibold text-slate-900">Mẹo sử dụng</h2>
+                <ul class="list-disc pl-5 text-sm text-slate-600 space-y-2">
+                    <li>Chia sẻ mã phòng sau khi tạo để mọi người tham gia qua nút “Join”.</li>
+                    <li>Ở chế độ giới hạn thời gian, hệ thống tự động khóa câu hỏi khi hết giờ nên hãy trả lời thật nhanh.</li>
+                    <li>Chat giúp mọi người trao đổi chiến thuật hoặc giải thích đáp án ngay trong phòng.</li>
+                    <li>Có thể xem lịch sử battle của bạn ở endpoint <code class="px-2 py-1 bg-slate-100 rounded">/learning/quiz-battle/history</code>.</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function() {
+        const modeSelect = document.getElementById('battle-mode');
+        const timedConfig = document.getElementById('timed-config');
+        const creationForm = document.getElementById('battle-settings-form');
+        const resultBox = document.getElementById('room-creation-result');
+        const chatRoomInput = document.getElementById('chat-room-code');
+        const loadChatBtn = document.getElementById('load-chat');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatStatus = document.getElementById('chat-status');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        let activeRoomCode = null;
+
+        function setChatEnabled(enabled) {
+            chatInput.disabled = !enabled;
+            chatForm.querySelector('button[type="submit"]').disabled = !enabled;
+        }
+
+        function renderMessages(messages) {
+            chatMessages.innerHTML = '';
+            if (!messages.length) {
+                chatMessages.innerHTML = '<p class="text-slate-500">Chưa có tin nhắn nào.</p>';
+                return;
+            }
+            for (const message of messages) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'bg-white rounded-2xl px-3 py-2 shadow-sm border border-slate-100';
+                wrapper.innerHTML = `<p class="text-xs text-slate-500">${message.username || 'Ẩn danh'} · ${new Date(message.created_at).toLocaleTimeString()}</p>
+                    <p class="mt-1 text-slate-800">${message.content}</p>`;
+                chatMessages.appendChild(wrapper);
+            }
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function loadMessages() {
+            if (!activeRoomCode) {
+                return;
+            }
+            chatStatus.textContent = 'Đang tải tin nhắn...';
+            try {
+                const response = await fetch(`/learning/quiz-battle/rooms/${activeRoomCode}/messages`);
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                const data = await response.json();
+                renderMessages(data.messages || []);
+                chatStatus.textContent = 'Đã cập nhật chat.';
+            } catch (error) {
+                chatStatus.textContent = 'Không thể tải tin nhắn. Vui lòng kiểm tra mã phòng.';
+                renderMessages([]);
+                setChatEnabled(false);
+            }
+        }
+
+        modeSelect.addEventListener('change', function() {
+            if (this.value === 'TIMED') {
+                timedConfig.classList.remove('hidden');
+            } else {
+                timedConfig.classList.add('hidden');
+            }
+        });
+
+        creationForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            resultBox.textContent = 'Đang tạo phòng...';
+            const formData = new FormData(creationForm);
+            const payload = Object.fromEntries(formData.entries());
+            if (!payload.question_limit) {
+                delete payload.question_limit;
+            } else {
+                payload.question_limit = Number(payload.question_limit);
+            }
+            if (!payload.time_per_question_seconds || payload.mode !== 'TIMED') {
+                delete payload.time_per_question_seconds;
+            } else {
+                payload.time_per_question_seconds = Number(payload.time_per_question_seconds);
+            }
+            payload.container_id = Number(payload.container_id);
+            try {
+                const response = await fetch('/learning/quiz-battle/rooms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                const data = await response.json();
+                resultBox.innerHTML = `✅ Đã tạo phòng <strong>${data.room.title}</strong> với mã <strong>${data.room.room_code}</strong>. Chia sẻ mã này với bạn bè để bắt đầu!`;
+            } catch (error) {
+                resultBox.innerHTML = `❌ Không thể tạo phòng: ${error.message}`;
+            }
+        });
+
+        loadChatBtn.addEventListener('click', async function(event) {
+            event.preventDefault();
+            const code = (chatRoomInput.value || '').trim().toUpperCase();
+            if (!code) {
+                chatStatus.textContent = 'Vui lòng nhập mã phòng.';
+                return;
+            }
+            activeRoomCode = code;
+            setChatEnabled(true);
+            await loadMessages();
+        });
+
+        chatForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            if (!activeRoomCode) {
+                chatStatus.textContent = 'Chưa chọn mã phòng để chat.';
+                return;
+            }
+            const content = chatInput.value.trim();
+            if (!content) {
+                return;
+            }
+            chatStatus.textContent = 'Đang gửi tin nhắn...';
+            try {
+                const response = await fetch(`/learning/quiz-battle/rooms/${activeRoomCode}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ content }),
+                });
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                chatInput.value = '';
+                await loadMessages();
+            } catch (error) {
+                chatStatus.textContent = 'Không thể gửi tin nhắn. Đảm bảo bạn đang ở trong phòng.';
+            }
+        });
+    })();
+</script>
+{% endblock %}

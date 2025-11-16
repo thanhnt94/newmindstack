@@ -5,6 +5,7 @@ from ..db_instance import db
 from .learning import LearningContainer, LearningGroup, LearningItem
 from .quiz_battle import (
     QuizBattleAnswer,
+    QuizBattleMessage,
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
@@ -29,6 +30,7 @@ __all__ = [
     'LearningGroup',
     'LearningItem',
     'QuizBattleAnswer',
+    'QuizBattleMessage',
     'QuizBattleParticipant',
     'QuizBattleRoom',
     'QuizBattleRound',
