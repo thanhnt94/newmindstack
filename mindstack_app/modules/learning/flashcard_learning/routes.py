@@ -120,7 +120,8 @@ def flashcard_learning_dashboard():
         'search_field': search_field,
         'flashcard_set_search_options': flashcard_set_search_options,
         'current_filter': current_filter,
-        'user_button_count': user_button_count
+        'user_button_count': user_button_count,
+        'flashcard_modes': FlashcardLearningConfig.FLASHCARD_MODES,
     }
     return render_template('flashcard_learning_dashboard.html', **template_vars)
 
