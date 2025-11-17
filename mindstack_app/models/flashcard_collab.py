@@ -32,6 +32,9 @@ class FlashcardCollabRoom(db.Model):
     participants = db.relationship(
         'FlashcardCollabParticipant', backref='room', cascade='all, delete-orphan', lazy=True
     )
+    rounds = db.relationship(
+        'FlashcardCollabRound', backref='room', cascade='all, delete-orphan', lazy=True
+    )
 
 
 class FlashcardCollabParticipant(db.Model):
@@ -54,3 +57,43 @@ class FlashcardCollabParticipant(db.Model):
     user = db.relationship('User', backref='flashcard_collab_participations', foreign_keys=[user_id])
 
     __table_args__ = (db.UniqueConstraint('room_id', 'user_id', name='uq_flashcard_collab_participant'),)
+
+
+class FlashcardCollabRound(db.Model):
+    """Represents a shared flashcard round within a room."""
+
+    __tablename__ = 'flashcard_collab_rounds'
+
+    STATUS_ACTIVE = 'active'
+    STATUS_COMPLETED = 'completed'
+
+    round_id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('flashcard_collab_rooms.room_id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
+    status = db.Column(db.String(20), default=STATUS_ACTIVE, nullable=False)
+    scheduled_for_user_id = db.Column(db.Integer, nullable=True)
+    scheduled_due_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    started_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    answers = db.relationship(
+        'FlashcardCollabAnswer', backref='round', cascade='all, delete-orphan', lazy=True
+    )
+
+
+class FlashcardCollabAnswer(db.Model):
+    """Tracks each participant's answer in a collaborative round."""
+
+    __tablename__ = 'flashcard_collab_answers'
+
+    answer_id = db.Column(db.Integer, primary_key=True)
+    round_id = db.Column(db.Integer, db.ForeignKey('flashcard_collab_rounds.round_id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    answer_label = db.Column(db.String(50), nullable=True)
+    answer_quality = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+
+    user = db.relationship('User', backref='flashcard_collab_answers', foreign_keys=[user_id])
+
+    __table_args__ = (db.UniqueConstraint('round_id', 'user_id', name='uq_flashcard_collab_answer'),)

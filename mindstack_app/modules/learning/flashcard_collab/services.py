@@ -10,8 +10,10 @@ from typing import Callable, Iterable, Optional
 from flask import url_for
 
 from ....models import (
+    FlashcardCollabAnswer,
     FlashcardCollabParticipant,
     FlashcardCollabRoom,
+    FlashcardCollabRound,
     FlashcardProgress,
     LearningContainer,
     LearningItem,
@@ -134,8 +136,8 @@ def _pick_next_item_for_user(user_id: int, container_id: int, mode: str) -> Opti
     return _first_item(new_query)
 
 
-def get_next_shared_item(room: FlashcardCollabRoom) -> Optional[dict[str, object]]:
-    """Pick the next flashcard that the room should study together."""
+def _select_next_item(room: FlashcardCollabRoom) -> Optional[tuple[LearningItem, int, datetime]]:
+    """Select the next flashcard item shared across participants."""
 
     candidates: list[tuple[LearningItem, int, datetime]] = []
     for participant in room.participants:
@@ -153,11 +155,87 @@ def get_next_shared_item(room: FlashcardCollabRoom) -> Optional[dict[str, object
 
     candidates.sort(key=lambda item_tuple: (item_tuple[2], item_tuple[0].item_id))
     next_item, scheduled_for_user_id, due_time = candidates[0]
+    return next_item, scheduled_for_user_id, due_time
 
+
+def get_next_shared_item(room: FlashcardCollabRoom) -> Optional[dict[str, object]]:
+    """Pick the next flashcard that the room should study together."""
+
+    selection = _select_next_item(room)
+    if not selection:
+        return None
+
+    next_item, scheduled_for_user_id, due_time = selection
     return {
         'item': _build_item_payload(next_item),
         'scheduled_for_user_id': scheduled_for_user_id,
         'scheduled_due_at': due_time.isoformat() if due_time else None,
+    }
+
+
+def ensure_active_round(room: FlashcardCollabRoom) -> Optional[FlashcardCollabRound]:
+    """Return the active round for a room or create one if missing."""
+
+    active_round = (
+        FlashcardCollabRound.query.filter_by(room_id=room.room_id, status=FlashcardCollabRound.STATUS_ACTIVE)
+        .order_by(FlashcardCollabRound.started_at.desc())
+        .first()
+    )
+    if active_round:
+        return active_round
+
+    selection = _select_next_item(room)
+    if not selection:
+        return None
+
+    next_item, scheduled_for_user_id, due_time = selection
+    active_round = FlashcardCollabRound(
+        room_id=room.room_id,
+        item_id=next_item.item_id,
+        status=FlashcardCollabRound.STATUS_ACTIVE,
+        scheduled_for_user_id=scheduled_for_user_id,
+        scheduled_due_at=due_time,
+    )
+    db.session.add(active_round)
+    db.session.commit()
+    return active_round
+
+
+def build_round_payload(round_obj: FlashcardCollabRound, room: FlashcardCollabRoom) -> Optional[dict[str, object]]:
+    """Serialize current round state including who has answered."""
+
+    item = LearningItem.query.get(round_obj.item_id)
+    if not item:
+        return None
+
+    answers_by_user = {answer.user_id: answer for answer in (round_obj.answers or [])}
+    participants_payload: list[dict[str, object]] = []
+    active_participants = [
+        participant for participant in room.participants if participant.status == FlashcardCollabParticipant.STATUS_ACTIVE
+    ]
+
+    for participant in active_participants:
+        answer = answers_by_user.get(participant.user_id)
+        participants_payload.append(
+            {
+                'user_id': participant.user_id,
+                'username': getattr(participant.user, 'username', None),
+                'has_answered': answer is not None,
+                'answered_at': answer.created_at.isoformat() if answer and answer.created_at else None,
+            }
+        )
+
+    all_answered = bool(active_participants) and all(p['has_answered'] for p in participants_payload)
+
+    return {
+        'round_id': round_obj.round_id,
+        'item': _build_item_payload(item),
+        'scheduled_for_user_id': round_obj.scheduled_for_user_id,
+        'scheduled_due_at': round_obj.scheduled_due_at.isoformat() if round_obj.scheduled_due_at else None,
+        'participants': participants_payload,
+        'all_answered': all_answered,
+        'status': round_obj.status,
+        'completed_at': round_obj.completed_at.isoformat() if round_obj.completed_at else None,
     }
 
 

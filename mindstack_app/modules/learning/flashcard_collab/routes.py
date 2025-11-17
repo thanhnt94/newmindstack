@@ -2,24 +2,25 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from flask import Blueprint, abort, jsonify, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy.sql import func
 
 from ....models import (
+    FlashcardCollabAnswer,
     FlashcardCollabParticipant,
     FlashcardCollabRoom,
+    FlashcardCollabRound,
     LearningContainer,
     User,
     db,
 )
 from ..flashcard_learning.algorithms import get_accessible_flashcard_set_ids
 from ..flashcard_learning.config import FlashcardLearningConfig
-from .services import (
-    generate_room_code,
-    get_next_shared_item,
-    serialize_room,
-)
+from ..flashcard_learning.flashcard_logic import process_flashcard_answer
+from .services import build_round_payload, ensure_active_round, generate_room_code, serialize_room
 
 flashcard_collab_bp = Blueprint(
     'flashcard_collab', __name__, url_prefix='/flashcard-collab', template_folder='templates'
@@ -211,11 +212,132 @@ def get_next_card(room_code: str):
     if not room:
         abort(404, description='Không tìm thấy phòng học chung.')
 
-    payload = get_next_shared_item(room)
+    active_round = ensure_active_round(room)
+    if not active_round:
+        abort(404, description='Không tìm thấy thẻ phù hợp cho phòng này.')
+
+    payload = build_round_payload(active_round, room)
     if not payload:
         abort(404, description='Không tìm thấy thẻ phù hợp cho phòng này.')
 
     return jsonify(payload)
+
+
+def _map_answer_to_quality(raw_answer: str, button_count: int | None) -> int | None:
+    """Map textual answer labels to a numeric quality value."""
+
+    normalized = (raw_answer or '').strip().lower()
+    if not normalized or normalized == 'continue':
+        return None
+
+    if button_count == 4:
+        mapping = {'again': 0, 'hard': 1, 'good': 3, 'easy': 5}
+    elif button_count == 6:
+        mapping = {'fail': 0, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 4, 'very_easy': 5}
+    else:
+        mapping = {'quên': 0, 'mơ_hồ': 3, 'nhớ': 5}
+
+    return mapping.get(normalized)
+
+
+@flashcard_collab_bp.route('/rooms/<room_code>/answer', methods=['POST'])
+@login_required
+def submit_collab_answer(room_code: str):
+    """Submit an answer for the current shared flashcard round."""
+
+    room = FlashcardCollabRoom.query.filter_by(room_code=room_code).first()
+    if not room:
+        abort(404, description='Không tìm thấy phòng học chung.')
+
+    participant = FlashcardCollabParticipant.query.filter_by(
+        room_id=room.room_id, user_id=current_user.user_id
+    ).first()
+    if not participant or participant.status != FlashcardCollabParticipant.STATUS_ACTIVE:
+        abort(403, description='Bạn không có quyền trả lời trong phòng này.')
+
+    payload = request.get_json(silent=True) or {}
+    item_id = payload.get('item_id')
+    answer_label = payload.get('answer')
+    answer_quality = payload.get('answer_quality')
+
+    try:
+        item_id = int(item_id)
+    except (TypeError, ValueError):
+        abort(400, description='Thiếu thông tin thẻ cần trả lời.')
+
+    active_round = ensure_active_round(room)
+    if not active_round or active_round.item_id != item_id:
+        abort(400, description='Phòng đang hiển thị một thẻ khác. Hãy đồng bộ lại.')
+
+    if isinstance(answer_quality, str):
+        try:
+            answer_quality = int(answer_quality)
+        except ValueError:
+            answer_quality = None
+
+    if not isinstance(answer_quality, int):
+        answer_quality = _map_answer_to_quality(answer_label, participant.user.flashcard_button_count)
+
+    score_change, updated_total_score, answer_result, progress_status, item_stats = process_flashcard_answer(
+        current_user.user_id,
+        item_id,
+        answer_quality,
+        getattr(current_user, 'total_score', 0) or 0,
+        mode=room.mode,
+    )
+
+    existing_answer = FlashcardCollabAnswer.query.filter_by(
+        round_id=active_round.round_id, user_id=current_user.user_id
+    ).first()
+
+    now = datetime.now(timezone.utc)
+    if existing_answer:
+        existing_answer.answer_label = answer_label
+        existing_answer.answer_quality = answer_quality
+        existing_answer.updated_at = now
+    else:
+        new_answer = FlashcardCollabAnswer(
+            round_id=active_round.round_id,
+            user_id=current_user.user_id,
+            answer_label=answer_label,
+            answer_quality=answer_quality,
+            created_at=now,
+        )
+        db.session.add(new_answer)
+
+    db.session.commit()
+
+    active_participant_ids = {
+        participant.user_id
+        for participant in room.participants
+        if participant.status == FlashcardCollabParticipant.STATUS_ACTIVE
+    }
+    answered_user_ids = {
+        answer.user_id
+        for answer in FlashcardCollabAnswer.query.filter_by(round_id=active_round.round_id).all()
+        if answer.user_id in active_participant_ids
+    }
+
+    if active_participant_ids and answered_user_ids >= active_participant_ids:
+        active_round.status = FlashcardCollabRound.STATUS_COMPLETED
+        active_round.completed_at = now
+        room.updated_at = now
+        db.session.commit()
+
+    round_payload = build_round_payload(active_round, room)
+
+    return jsonify(
+        {
+            'round': round_payload,
+            'result': {
+                'score_change': score_change,
+                'updated_total_score': updated_total_score,
+                'answer_result': answer_result,
+                'progress_status': progress_status,
+                'statistics': item_stats,
+            },
+        }
+    )
 
 
 @flashcard_collab_bp.route('/available-sets', methods=['GET'])
