@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from flask import Blueprint, abort, jsonify, render_template, request
 from flask_login import current_user, login_required
+from sqlalchemy.sql import func
 
 from ....models import (
     FlashcardCollabParticipant,
@@ -83,6 +84,58 @@ def create_room():
     db.session.commit()
 
     return jsonify({'room': serialize_room(room)}), 201
+
+
+@flashcard_collab_bp.route('/rooms/public', methods=['GET'])
+@login_required
+def list_public_rooms():
+    """Danh sách phòng công khai đang hoạt động."""
+
+    limit = request.args.get('limit', default=12, type=int)
+    limit = max(1, min(limit or 12, 50))
+
+    active_statuses = (FlashcardCollabRoom.STATUS_LOBBY, FlashcardCollabRoom.STATUS_ACTIVE)
+    rooms = (
+        FlashcardCollabRoom.query.filter(
+            FlashcardCollabRoom.is_public.is_(True),
+            FlashcardCollabRoom.status.in_(active_statuses),
+        )
+        .order_by(func.coalesce(FlashcardCollabRoom.updated_at, FlashcardCollabRoom.created_at).desc())
+        .limit(limit)
+        .all()
+    )
+
+    return jsonify({'rooms': [serialize_room(room) for room in rooms]})
+
+
+@flashcard_collab_bp.route('/rooms/my-active', methods=['GET'])
+@login_required
+def list_my_active_rooms():
+    """Trả về các phòng mà người dùng hiện đang tham gia."""
+
+    active_statuses = (FlashcardCollabRoom.STATUS_LOBBY, FlashcardCollabRoom.STATUS_ACTIVE)
+
+    participations = (
+        FlashcardCollabParticipant.query.join(FlashcardCollabRoom)
+        .filter(
+            FlashcardCollabParticipant.user_id == current_user.user_id,
+            FlashcardCollabParticipant.status == FlashcardCollabParticipant.STATUS_ACTIVE,
+            FlashcardCollabRoom.status.in_(active_statuses),
+        )
+        .order_by(func.coalesce(FlashcardCollabRoom.updated_at, FlashcardCollabRoom.created_at).desc())
+        .all()
+    )
+
+    seen_room_ids: set[int] = set()
+    rooms: list[FlashcardCollabRoom] = []
+    for participation in participations:
+        if participation.room_id in seen_room_ids:
+            continue
+        if participation.room:
+            rooms.append(participation.room)
+            seen_room_ids.add(participation.room_id)
+
+    return jsonify({'rooms': [serialize_room(room) for room in rooms]})
 
 
 @flashcard_collab_bp.route('/rooms/<room_code>', methods=['GET'])

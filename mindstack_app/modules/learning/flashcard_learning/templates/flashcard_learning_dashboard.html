@@ -201,6 +201,74 @@
             cursor: pointer;
         }
 
+        .collab-room-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.85rem;
+            padding: 1rem;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            height: 100%;
+        }
+
+        .collab-room-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            background: #e2e8f0;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .collab-room-badge--live {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .collab-join-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #0f172a;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .collab-join-btn:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+        }
+
+        .collab-set-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.85rem;
+            padding: 0.9rem;
+            background: #fff;
+            text-align: left;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+        }
+
+        .collab-set-card:hover {
+            border-color: #93c5fd;
+            box-shadow: 0 10px 25px -12px rgba(59, 130, 246, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .collab-set-card[data-selected="true"] {
+            border-color: #2563eb;
+            box-shadow: 0 15px 35px -18px rgba(37, 99, 235, 0.55);
+            background: #eff6ff;
+        }
+
         /* THÊM MỚI: CSS tối ưu cho màn hình di động */
         @media (max-width: 640px) {
             .container {
@@ -305,42 +373,128 @@
         </div>
     </div>
 
-    <div id="flashcard-group-section" class="hidden">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
-                <div class="flex items-start gap-3 mb-4">
-                    <div class="p-3 rounded-full bg-blue-100 text-blue-700"><i class="fas fa-people-group"></i></div>
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-800">Phòng học Flashcard</h2>
-                        <p class="text-sm text-gray-600">Ôn tập cùng bạn bè với cùng bộ thẻ và chế độ học. Tất cả thành viên sẽ thấy thẻ ưu tiên theo lịch học chung.</p>
-                    </div>
+    <div id="flashcard-group-section" class="hidden space-y-6">
+        <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold uppercase tracking-[0.25em] text-blue-500">Học theo nhóm</p>
+                    <h2 class="text-2xl font-bold text-gray-900">Theo dõi phòng đang mở và vào ngay tại đây</h2>
+                    <p class="text-sm text-gray-600">Danh sách phòng công khai và phòng bạn đang tham gia luôn hiển thị ngay trên tab này. Không cần chuyển trang để tạo phòng mới.</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="p-4 rounded-lg border border-blue-100 bg-blue-50">
-                        <h3 class="font-semibold text-blue-800 mb-2"><i class="fas fa-wifi mr-2"></i>Phòng công khai</h3>
-                        <p class="text-sm text-gray-700">Tạo phòng nhanh để mọi người tham gia bằng mã. Phù hợp khi muốn ôn tập linh hoạt.</p>
-                    </div>
-                    <div class="p-4 rounded-lg border border-indigo-100 bg-indigo-50">
-                        <h3 class="font-semibold text-indigo-800 mb-2"><i class="fas fa-lock mr-2"></i>Phòng riêng</h3>
-                        <p class="text-sm text-gray-700">Chỉ thành viên được mời mới có thể vào. Dùng để học cùng nhóm cố định hoặc lớp học.</p>
-                    </div>
-                </div>
-                <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="{{ url_for('learning.flashcard_collab.dashboard') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
-                        <i class="fas fa-door-open mr-2"></i> Vào phòng học nhóm
-                    </a>
-                    <a href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}#flashcard-solo-section" class="inline-flex items-center px-4 py-2 bg-white text-blue-700 border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 transition">
-                        <i class="fas fa-user mr-2"></i> Quay lại học một mình
-                    </a>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" id="collab-refresh-public" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+                        <i class="fas fa-rotate"></i><span>Tải phòng công khai</span>
+                    </button>
+                    <button type="button" id="collab-refresh-my" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100">
+                        <i class="fas fa-user-group"></i><span>Tải phòng của bạn</span>
+                    </button>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
-                <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-lightbulb text-yellow-500"></i> Mẹo cho nhóm</h3>
-                <ul class="space-y-3 text-sm text-gray-700 list-disc list-inside">
-                    <li>Chia sẻ mã phòng cho cả nhóm để vào nhanh.</li>
-                    <li>Chọn cùng chế độ (Ôn thẻ đến hạn, Học thẻ mới...) để giữ nhịp chung.</li>
-                    <li>Sau buổi học, xem lại thống kê để theo dõi tiến độ từng người.</li>
-                </ul>
+
+            <div class="grid gap-4 lg:grid-cols-3">
+                <div class="lg:col-span-2 grid gap-4 md:grid-cols-2">
+                    <div class="p-4 rounded-xl border border-blue-100 bg-blue-50">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <div>
+                                <h3 class="font-semibold text-blue-800 flex items-center gap-2"><i class="fas fa-wifi"></i> Phòng công khai</h3>
+                                <p class="text-sm text-blue-900/80">Bấm vào phòng để tham gia nhanh mà không cần nhập mã.</p>
+                            </div>
+                        </div>
+                        <div id="collab-public-rooms" class="space-y-3 text-sm text-slate-600">
+                            <p class="text-slate-500">Đang tải danh sách phòng...</p>
+                        </div>
+                    </div>
+                    <div class="p-4 rounded-xl border border-indigo-100 bg-indigo-50">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <div>
+                                <h3 class="font-semibold text-indigo-800 flex items-center gap-2"><i class="fas fa-user-check"></i> Phòng của bạn</h3>
+                                <p class="text-sm text-indigo-900/80">Phòng bạn đã tham gia hoặc đang là chủ phòng.</p>
+                            </div>
+                        </div>
+                        <div id="collab-my-rooms" class="space-y-3 text-sm text-slate-600">
+                            <p class="text-slate-500">Đang kiểm tra phòng bạn đã tham gia...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                    <h3 class="font-semibold text-slate-800 flex items-center gap-2"><i class="fas fa-right-to-bracket"></i> Tham gia bằng mã</h3>
+                    <form id="collab-join-form" class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">Mã phòng</label>
+                            <input type="text" id="collab-join-code" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 uppercase tracking-widest focus:border-blue-500 focus:ring-blue-500" placeholder="Ví dụ: ABC123" maxlength="12" required>
+                        </div>
+                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
+                            <i class="fas fa-door-open"></i><span>Vào phòng</span>
+                        </button>
+                    </form>
+                    <p id="collab-join-feedback" class="text-sm"></p>
+                    <ul class="list-disc list-inside text-xs text-slate-600 space-y-1">
+                        <li>Chia sẻ mã cho bạn bè để vào cùng phòng.</li>
+                        <li>Phòng riêng cũng có thể tham gia bằng mã.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
+            <div class="space-y-1">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2"><i class="fas fa-plus-circle text-blue-600"></i> Tạo phòng học nhóm mới</h2>
+                <p class="text-sm text-gray-600">Chọn bộ flashcard, chế độ học và hiển thị phòng trực tiếp từ tab này.</p>
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-3">
+                <div class="lg:col-span-2 space-y-3">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-slate-700">Tìm bộ thẻ</label>
+                            <input type="text" id="collab-set-search" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-blue-500 focus:ring-blue-500" placeholder="Nhập tên bộ thẻ hoặc từ khóa">
+                        </div>
+                        <button type="button" id="collab-refresh-sets" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
+                            <i class="fas fa-rotate"></i> Tải danh sách
+                        </button>
+                    </div>
+                    <p id="collab-set-status" class="text-xs text-slate-500">Đang tải danh sách bộ thẻ khả dụng...</p>
+                    <div id="collab-set-grid" class="grid gap-3 sm:grid-cols-2"></div>
+                    <div class="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                        <span class="font-semibold">Đã chọn:</span>
+                        <span id="collab-selected-set-label" class="text-gray-500 italic">Chưa chọn bộ nào</span>
+                        <button type="button" id="collab-clear-set" class="text-xs font-semibold text-rose-600 hidden">Bỏ chọn</button>
+                    </div>
+                </div>
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                    <form id="collab-create-room-form" class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">Tiêu đề phòng</label>
+                            <input type="text" id="collab-room-title" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-blue-500 focus:ring-blue-500" placeholder="Học chung tối nay">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">Chế độ học</label>
+                            <select id="collab-mode-select" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
+                                {% for mode in flashcard_modes %}
+                                    <option value="{{ mode.id }}">{{ mode.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">Hiển thị phòng</label>
+                            <div class="mt-2 space-y-2 text-sm text-slate-700">
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="collab-visibility" id="collab-visibility-public" value="public" class="text-blue-600">
+                                    <span>Công khai · hiển thị ở danh sách</span>
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="collab-visibility" value="private" class="text-blue-600" checked>
+                                    <span>Riêng tư · chỉ vào bằng mã</span>
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
+                            <i class="fas fa-plus"></i><span>Tạo phòng</span>
+                        </button>
+                        <p id="collab-create-feedback" class="text-sm"></p>
+                        <input type="hidden" id="collab-selected-container-id">
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -389,6 +543,20 @@
     const toggleArchiveUrl = "{{ url_for('learning.flashcard_learning.toggle_archive_flashcard', set_id=0) or '#' }}";
     const bulkUnarchiveUrl = "{{ url_for('learning.flashcard_learning.bulk_unarchive_flashcard') }}";
     const saveFlashcardSettingsUrl = "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}";
+    const collabPublicRoomsUrl = "{{ url_for('learning.flashcard_collab.list_public_rooms') }}";
+    const collabMyRoomsUrl = "{{ url_for('learning.flashcard_collab.list_my_active_rooms') }}";
+    const collabAvailableSetsUrl = "{{ url_for('learning.flashcard_collab.list_available_sets') }}";
+    const collabCreateRoomUrl = "{{ url_for('learning.flashcard_collab.create_room') }}";
+    const collabJoinRoomTemplate = "{{ url_for('learning.flashcard_collab.join_room', room_code='__ROOM_CODE__') }}";
+    const collabModeDefinitions = {{ flashcard_modes | tojson }};
+    const collabModeLabels = {};
+    collabModeDefinitions.forEach((mode) => {
+        if (mode && mode.id) {
+            collabModeLabels[mode.id] = mode.name || mode.id;
+        }
+    });
+    let collabSelectedSetId = null;
+    let collabSearchTimeout = null;
 
     studyModeTabs.forEach((tab) => {
         tab.addEventListener('click', () => {
@@ -1081,12 +1249,296 @@
         }
     }
 
+    function renderCollabRoomCard(room) {
+        const participants = room.participants || [];
+        const statusLabelMap = {
+            lobby: 'Đang mở',
+            active: 'Đang học',
+            completed: 'Đã đóng',
+        };
+        const statusClass = room.status === 'active' ? 'collab-room-badge collab-room-badge--live' : 'collab-room-badge';
+        const modeLabel = collabModeLabels[room.mode] || room.mode;
+        const visibilityLabel = room.is_public ? 'Công khai' : 'Riêng tư';
+        const hostLabel = room.host_username ? `Chủ phòng: ${room.host_username}` : 'Chủ phòng: --';
+        const containerTitle = room.container_title || `Bộ #${room.container_id}`;
+
+        return `
+            <div class="collab-room-card">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="space-y-1 min-w-0">
+                        <p class="text-xs text-slate-500 uppercase tracking-[0.2em]">${visibilityLabel}</p>
+                        <h4 class="text-base font-semibold text-slate-900 line-clamp-2">${room.title || 'Phòng học Flashcard'}</h4>
+                        <p class="text-sm text-slate-600 truncate">Bộ thẻ: ${containerTitle}</p>
+                    </div>
+                    <span class="${statusClass}">${statusLabelMap[room.status] || room.status}</span>
+                </div>
+                <div class="text-sm text-slate-700 space-y-1">
+                    <p class="flex items-center gap-2"><i class="fas fa-circle-play text-blue-600"></i> ${modeLabel}</p>
+                    <p class="flex items-center gap-2"><i class="fas fa-user-group text-slate-500"></i> ${participants.length} người tham gia · ${hostLabel}</p>
+                    <p class="text-xs text-slate-500">Mã phòng: <span class="font-mono font-semibold">${room.room_code}</span></p>
+                </div>
+                <div class="flex justify-between items-center gap-2">
+                    <button type="button" class="collab-join-btn" data-collab-join="${room.room_code}"><i class="fas fa-door-open"></i><span>Vào phòng</span></button>
+                    <button type="button" class="text-xs text-slate-500" data-collab-copy="${room.room_code}"><i class="fas fa-copy"></i> Sao chép mã</button>
+                </div>
+            </div>
+        `;
+    }
+
+    async function loadCollabRooms(targetEl, url, emptyText) {
+        if (!targetEl || !url) return;
+        targetEl.innerHTML = '<p class="text-slate-500">Đang tải...</p>';
+        try {
+            const res = await fetch(url);
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || 'Không thể tải danh sách phòng.');
+            }
+            const data = await res.json();
+            const rooms = data.rooms || [];
+            if (!rooms.length) {
+                targetEl.innerHTML = `<p class="text-slate-500">${emptyText}</p>`;
+                return;
+            }
+            targetEl.innerHTML = rooms.map(renderCollabRoomCard).join('');
+        } catch (err) {
+            targetEl.innerHTML = `<p class="text-rose-600">${err.message}</p>`;
+        }
+    }
+
+    function handleCopyRoomCode(code) {
+        if (!code) return;
+        navigator.clipboard.writeText(code).catch(() => {});
+    }
+
+    async function joinCollabRoom(code, feedbackEl, onSuccess) {
+        if (!code) return;
+        const joinUrl = collabJoinRoomTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
+        try {
+            const res = await fetch(joinUrl, { method: 'POST' });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || 'Không thể tham gia phòng.');
+            }
+            const data = await res.json();
+            if (feedbackEl) {
+                feedbackEl.textContent = `Đã tham gia phòng ${code}.`;
+                feedbackEl.className = 'text-sm text-green-700';
+            }
+            if (onSuccess) {
+                onSuccess();
+            }
+            return data.room;
+        } catch (err) {
+            if (feedbackEl) {
+                feedbackEl.textContent = err.message;
+                feedbackEl.className = 'text-sm text-rose-600';
+            }
+            return null;
+        }
+    }
+
+    function updateCollabSelection(container) {
+        const labelEl = document.getElementById('collab-selected-set-label');
+        const hiddenInput = document.getElementById('collab-selected-container-id');
+        const clearBtn = document.getElementById('collab-clear-set');
+        collabSelectedSetId = container ? container.container_id : null;
+        if (labelEl) {
+            labelEl.textContent = container ? container.title : 'Chưa chọn bộ nào';
+            labelEl.classList.toggle('italic', !container);
+        }
+        if (hiddenInput) {
+            hiddenInput.value = collabSelectedSetId || '';
+        }
+        if (clearBtn) {
+            clearBtn.classList.toggle('hidden', !container);
+        }
+
+        if (container) {
+            document.getElementById('collab-set-grid')?.querySelectorAll('[data-collab-container]')?.forEach((card) => {
+                card.dataset.selected = String(card.dataset.collabContainer === String(container.container_id));
+            });
+        } else {
+            document.getElementById('collab-set-grid')?.querySelectorAll('[data-collab-container]')?.forEach((card) => {
+                card.dataset.selected = 'false';
+            });
+        }
+    }
+
+    function renderCollabSetCards(containers) {
+        const grid = document.getElementById('collab-set-grid');
+        if (!grid) return;
+        if (!containers.length) {
+            grid.innerHTML = '<p class="text-sm text-slate-500">Không tìm thấy bộ thẻ phù hợp.</p>';
+            return;
+        }
+        grid.innerHTML = containers
+            .map((container) => {
+                const isSelected = collabSelectedSetId && String(collabSelectedSetId) === String(container.container_id);
+                const privacyLabel = container.is_public ? 'Công khai' : 'Riêng tư';
+                return `
+                    <button type="button" class="collab-set-card" data-collab-container="${container.container_id}" data-selected="${isSelected}">
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <p class="text-xs font-semibold text-slate-600 uppercase tracking-[0.2em]">${privacyLabel}</p>
+                        </div>
+                        <p class="font-semibold text-slate-900">${container.title}</p>
+                        <p class="text-sm text-slate-600 line-clamp-2">${container.description || 'Không có mô tả'}</p>
+                    </button>
+                `;
+            })
+            .join('');
+    }
+
+    async function loadCollabSets(query = '') {
+        const statusEl = document.getElementById('collab-set-status');
+        if (statusEl) {
+            statusEl.textContent = 'Đang tải danh sách bộ thẻ khả dụng...';
+        }
+        try {
+            const url = query ? `${collabAvailableSetsUrl}?q=${encodeURIComponent(query)}` : collabAvailableSetsUrl;
+            const res = await fetch(url);
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || 'Không thể tải danh sách bộ thẻ.');
+            }
+            const data = await res.json();
+            renderCollabSetCards(data.containers || []);
+            if (statusEl) {
+                statusEl.textContent = 'Chọn một bộ thẻ để mở phòng học nhóm.';
+            }
+        } catch (err) {
+            renderCollabSetCards([]);
+            if (statusEl) {
+                statusEl.textContent = err.message;
+                statusEl.classList.add('text-rose-600');
+            }
+        }
+    }
+
+    function initializeCollabSection() {
+        const publicRoomsContainer = document.getElementById('collab-public-rooms');
+        const myRoomsContainer = document.getElementById('collab-my-rooms');
+        const joinForm = document.getElementById('collab-join-form');
+        const joinCodeInput = document.getElementById('collab-join-code');
+        const joinFeedback = document.getElementById('collab-join-feedback');
+        const refreshPublicBtn = document.getElementById('collab-refresh-public');
+        const refreshMyBtn = document.getElementById('collab-refresh-my');
+        const setGrid = document.getElementById('collab-set-grid');
+        const setSearchInput = document.getElementById('collab-set-search');
+        const refreshSetsBtn = document.getElementById('collab-refresh-sets');
+        const clearSetBtn = document.getElementById('collab-clear-set');
+        const createForm = document.getElementById('collab-create-room-form');
+        const createFeedback = document.getElementById('collab-create-feedback');
+        const modeSelect = document.getElementById('collab-mode-select');
+        const roomTitleInput = document.getElementById('collab-room-title');
+
+        if (!publicRoomsContainer || !myRoomsContainer) {
+            return;
+        }
+
+        const loadPublicRooms = () => loadCollabRooms(publicRoomsContainer, collabPublicRoomsUrl, 'Chưa có phòng công khai nào.');
+        const loadMyRooms = () => loadCollabRooms(myRoomsContainer, collabMyRoomsUrl, 'Bạn chưa tham gia phòng nào.');
+
+        loadPublicRooms();
+        loadMyRooms();
+
+        refreshPublicBtn?.addEventListener('click', loadPublicRooms);
+        refreshMyBtn?.addEventListener('click', loadMyRooms);
+
+        document.addEventListener('click', (event) => {
+            const joinBtn = event.target.closest('[data-collab-join]');
+            if (joinBtn) {
+                const code = joinBtn.getAttribute('data-collab-join');
+                joinCollabRoom(code, joinFeedback, loadMyRooms);
+                return;
+            }
+            const copyBtn = event.target.closest('[data-collab-copy]');
+            if (copyBtn) {
+                handleCopyRoomCode(copyBtn.getAttribute('data-collab-copy'));
+            }
+        });
+
+        if (joinForm && joinCodeInput) {
+            joinForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const code = joinCodeInput.value.trim().toUpperCase();
+                if (!code) return;
+                joinCollabRoom(code, joinFeedback, loadMyRooms).then((room) => {
+                    if (room) {
+                        joinCodeInput.value = '';
+                    }
+                });
+            });
+        }
+
+        if (setGrid) {
+            setGrid.addEventListener('click', (event) => {
+                const card = event.target.closest('[data-collab-container]');
+                if (!card) return;
+                const containerId = parseInt(card.dataset.collabContainer, 10);
+                if (Number.isNaN(containerId)) return;
+                const title = card.querySelector('p.font-semibold')?.textContent || `Bộ #${containerId}`;
+                updateCollabSelection({ container_id: containerId, title });
+            });
+        }
+
+        refreshSetsBtn?.addEventListener('click', () => loadCollabSets(setSearchInput?.value?.trim() || ''));
+        setSearchInput?.addEventListener('input', () => {
+            clearTimeout(collabSearchTimeout);
+            collabSearchTimeout = setTimeout(() => {
+                loadCollabSets(setSearchInput.value.trim());
+            }, 350);
+        });
+        clearSetBtn?.addEventListener('click', () => updateCollabSelection(null));
+
+        loadCollabSets();
+
+        createForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const visibility = document.querySelector('input[name="collab-visibility"]:checked');
+            const payload = {
+                container_id: collabSelectedSetId,
+                mode: modeSelect?.value || 'mixed_srs',
+                title: roomTitleInput?.value?.trim(),
+                is_public: visibility ? visibility.value === 'public' : false,
+            };
+
+            if (!payload.container_id) {
+                createFeedback.textContent = 'Vui lòng chọn bộ thẻ trước khi tạo phòng.';
+                createFeedback.className = 'text-sm text-rose-600';
+                return;
+            }
+
+            try {
+                const res = await fetch(collabCreateRoomUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text || 'Không thể tạo phòng mới.');
+                }
+                const data = await res.json();
+                const room = data.room;
+                createFeedback.textContent = `Đã tạo phòng: ${room.room_code}. Chia sẻ mã để mọi người vào nhanh.`;
+                createFeedback.className = 'text-sm text-green-700';
+                roomTitleInput.value = '';
+                loadMyRooms();
+            } catch (err) {
+                createFeedback.textContent = err.message;
+                createFeedback.className = 'text-sm text-rose-600';
+            }
+        });
+    }
+
 
     document.addEventListener('DOMContentLoaded', function(){
-        isMultiSelectMode = true; 
+        isMultiSelectMode = true;
         updateStep2Content();
-        
+
         loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+        initializeCollabSection();
     });
     
     window.addEventListener('beforeunload', function() {

@@ -184,9 +184,13 @@ def serialize_room(room: FlashcardCollabRoom) -> dict[str, object]:
         'title': room.title,
         'mode': room.mode,
         'container_id': room.container_id,
+        'container_title': getattr(room.container, 'title', None),
         'host_user_id': room.host_user_id,
+        'host_username': getattr(room.host, 'username', None),
         'is_public': room.is_public,
         'status': room.status,
         'created_at': room.created_at.isoformat() if room.created_at else None,
+        'updated_at': room.updated_at.isoformat() if room.updated_at else None,
+        'participant_count': len(room.participants) if room.participants else 0,
         'participants': [serialize_participant(p) for p in room.participants],
     }
