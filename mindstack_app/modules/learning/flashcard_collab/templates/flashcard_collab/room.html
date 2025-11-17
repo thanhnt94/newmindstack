@@ -51,13 +51,49 @@
     </div>
 
     <div class="space-y-4">
-      <div class="bg-white rounded-xl shadow p-5 space-y-3">
-        <h3 class="text-lg font-semibold text-slate-900">Bắt đầu học</h3>
-        <p class="text-sm text-slate-600">Bắt đầu phiên học ngay với bộ thẻ này. Các thành viên khác nên mở cùng mã phòng để đồng bộ.</p>
-        <a href="{{ start_session_url }}" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
-          <i class="fas fa-circle-play"></i> Vào phiên học
-        </a>
-        <p class="text-xs text-slate-500">Sau khi vào phòng, hãy chia sẻ mã <strong>{{ room_payload.room_code }}</strong> cho bạn bè.</p>
+      <div class="bg-white rounded-xl shadow p-5 space-y-4" id="collab-learning-card">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-900">Học chung ngay tại đây</h3>
+            <p class="text-sm text-slate-600">Thẻ mới chỉ xuất hiện khi tất cả thành viên đã trả lời.</p>
+          </div>
+          <button type="button" id="collab-refresh-round" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold hover:bg-slate-50">
+            <i class="fas fa-rotate"></i> Làm mới
+          </button>
+        </div>
+
+        <div id="collab-round-status" class="text-sm text-slate-600">Đang tải thẻ đầu tiên...</div>
+
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2" id="collab-card-wrapper">
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Mặt trước</p>
+          <p id="collab-card-front" class="font-semibold text-slate-900">—</p>
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500 mt-3">Mặt sau</p>
+          <p id="collab-card-back" class="text-slate-800">—</p>
+        </div>
+
+        <div class="space-y-2">
+          <p class="text-sm font-semibold text-slate-800">Câu trả lời của bạn</p>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" data-answer="quên" class="collab-answer-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-rose-50 text-rose-700 font-semibold hover:bg-rose-100">
+              <i class="fas fa-times-circle"></i> Quên
+            </button>
+            <button type="button" data-answer="mơ_hồ" class="collab-answer-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-50 text-amber-700 font-semibold hover:bg-amber-100">
+              <i class="fas fa-minus-circle"></i> Mơ hồ
+            </button>
+            <button type="button" data-answer="nhớ" class="collab-answer-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-50 text-green-700 font-semibold hover:bg-green-100">
+              <i class="fas fa-check-circle"></i> Nhớ
+            </button>
+          </div>
+          <p id="collab-answer-feedback" class="text-xs text-slate-600"></p>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-semibold text-slate-800">Trạng thái lượt hiện tại</p>
+            <span id="collab-round-step" class="text-xs font-mono text-slate-500"></span>
+          </div>
+          <ul id="collab-round-participants" class="divide-y divide-slate-200 text-sm text-slate-700"></ul>
+        </div>
       </div>
     </div>
   </div>
@@ -71,5 +107,159 @@
       const code = {{ room_payload.room_code | tojson }};
       navigator.clipboard.writeText(code).catch(() => {});
     });
+
+    (() => {
+      const nextCardUrl = {{ url_for('learning.flashcard_collab.get_next_card', room_code=room_payload.room_code) | tojson }};
+      const submitAnswerUrl = {{ url_for('learning.flashcard_collab.submit_collab_answer', room_code=room_payload.room_code) | tojson }};
+      const currentUserId = {{ current_user.user_id }};
+
+      const cardFrontEl = document.getElementById('collab-card-front');
+      const cardBackEl = document.getElementById('collab-card-back');
+      const statusEl = document.getElementById('collab-round-status');
+      const participantsEl = document.getElementById('collab-round-participants');
+      const answerButtons = document.querySelectorAll('.collab-answer-btn');
+      const feedbackEl = document.getElementById('collab-answer-feedback');
+      const refreshBtn = document.getElementById('collab-refresh-round');
+      const roundStepEl = document.getElementById('collab-round-step');
+
+      let currentRound = null;
+      let isFetching = false;
+      let pollHandle = null;
+
+      const setLoadingState = (message) => {
+        statusEl.textContent = message || 'Đang tải...';
+      };
+
+      const renderParticipants = (participants = []) => {
+        if (!participants.length) {
+          participantsEl.innerHTML = '<li class="py-2 text-slate-500">Chưa có thành viên đang hoạt động.</li>';
+          return;
+        }
+
+        participantsEl.innerHTML = participants.map((participant) => {
+          const statusLabel = participant.has_answered ? 'Đã trả lời' : 'Chưa trả lời';
+          const statusClass = participant.has_answered ? 'text-green-600' : 'text-slate-500';
+          return `
+            <li class="py-2 flex items-center justify-between">
+              <div>
+                <p class="font-semibold">${participant.username || 'Người dùng #' + participant.user_id}</p>
+                <p class="text-xs text-slate-500">ID: ${participant.user_id}</p>
+              </div>
+              <span class="text-xs font-semibold ${statusClass}">${statusLabel}</span>
+            </li>
+          `;
+        }).join('');
+      };
+
+      const renderRound = (roundPayload) => {
+        currentRound = roundPayload;
+        const { item, participants = [], all_answered: allAnswered, status } = roundPayload;
+
+        cardFrontEl.textContent = (item?.content?.front || 'Không có nội dung mặt trước').trim();
+        cardBackEl.textContent = (item?.content?.back || 'Không có nội dung mặt sau').trim();
+        renderParticipants(participants);
+
+        const currentUserParticipation = participants.find((p) => Number(p.user_id) === Number(currentUserId));
+        const hasAnswered = currentUserParticipation?.has_answered;
+        feedbackEl.textContent = hasAnswered ? 'Bạn đã trả lời, vui lòng chờ mọi người hoàn tất.' : '';
+        answerButtons.forEach((btn) => {
+          btn.disabled = !!hasAnswered;
+          btn.classList.toggle('opacity-60', !!hasAnswered);
+        });
+
+        if (status === 'completed' && allAnswered) {
+          statusEl.textContent = 'Tất cả thành viên đã trả lời. Đang chuẩn bị thẻ tiếp theo...';
+        } else if (!allAnswered) {
+          statusEl.textContent = 'Đang chờ tất cả thành viên trả lời...';
+        } else {
+          statusEl.textContent = 'Đang hiển thị thẻ mới.';
+        }
+
+        roundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
+      };
+
+      const fetchRound = async (showLoader = false) => {
+        if (isFetching) return;
+        isFetching = true;
+        if (showLoader) setLoadingState('Đang tải thẻ...');
+        try {
+          const response = await fetch(nextCardUrl, { credentials: 'same-origin' });
+          if (!response.ok) {
+            throw new Error('Không thể tải thẻ.');
+          }
+          const payload = await response.json();
+          if (payload) {
+            renderRound(payload);
+          }
+        } catch (err) {
+          statusEl.textContent = err.message || 'Không thể tải thẻ.';
+        } finally {
+          isFetching = false;
+        }
+      };
+
+      const submitAnswer = async (answerLabel) => {
+        if (!currentRound?.item?.item_id || isFetching) return;
+        isFetching = true;
+        feedbackEl.textContent = 'Đang gửi câu trả lời...';
+
+        try {
+          const response = await fetch(submitAnswerUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              item_id: currentRound.item.item_id,
+              answer: answerLabel,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorPayload = await response.json().catch(() => ({}));
+            throw new Error(errorPayload?.description || 'Không thể gửi câu trả lời.');
+          }
+
+          const payload = await response.json();
+          if (payload?.round) {
+            renderRound(payload.round);
+          }
+
+          const result = payload?.result;
+          if (result?.answer_result === 'correct') {
+            feedbackEl.textContent = 'Bạn đã trả lời đúng. Chờ các thành viên khác để chuyển thẻ.';
+          } else if (result?.answer_result === 'incorrect') {
+            feedbackEl.textContent = 'Bạn đã trả lời sai. Chờ các thành viên khác để chuyển thẻ.';
+          } else {
+            feedbackEl.textContent = 'Đã ghi nhận câu trả lời của bạn.';
+          }
+        } catch (err) {
+          feedbackEl.textContent = err.message || 'Có lỗi xảy ra.';
+        } finally {
+          isFetching = false;
+        }
+      };
+
+      const startPolling = () => {
+        if (pollHandle) return;
+        pollHandle = setInterval(() => fetchRound(false), 4000);
+      };
+
+      const stopPolling = () => {
+        if (!pollHandle) return;
+        clearInterval(pollHandle);
+        pollHandle = null;
+      };
+
+      answerButtons.forEach((btn) => {
+        btn.addEventListener('click', () => submitAnswer(btn.dataset.answer));
+      });
+
+      refreshBtn?.addEventListener('click', () => fetchRound(true));
+
+      fetchRound(true);
+      startPolling();
+
+      window.addEventListener('beforeunload', stopPolling);
+    })();
   </script>
 {% endblock %}

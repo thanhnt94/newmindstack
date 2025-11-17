@@ -112,17 +112,11 @@ def view_room(room_code: str):
     db.session.commit()
 
     room_payload = serialize_room(room)
-    start_session_url = url_for(
-        'learning.flashcard_learning.start_flashcard_session_by_id',
-        set_id=room.container_id,
-        mode=room.mode,
-    )
 
     return render_template(
         'flashcard_collab/room.html',
         room=room,
         room_payload=room_payload,
-        start_session_url=start_session_url,
     )
 
 
