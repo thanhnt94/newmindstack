@@ -548,6 +548,7 @@
     const collabAvailableSetsUrl = "{{ url_for('learning.flashcard_collab.list_available_sets') }}";
     const collabCreateRoomUrl = "{{ url_for('learning.flashcard_collab.create_room') }}";
     const collabJoinRoomTemplate = "{{ url_for('learning.flashcard_collab.join_room', room_code='__ROOM_CODE__') }}";
+    const collabCsrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const collabModeDefinitions = {{ flashcard_modes | tojson }};
     const collabModeLabels = {};
     collabModeDefinitions.forEach((mode) => {
@@ -1315,7 +1316,11 @@
         if (!code) return;
         const joinUrl = collabJoinRoomTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
         try {
-            const res = await fetch(joinUrl, { method: 'POST' });
+            const headers = {};
+            if (collabCsrfToken) {
+                headers['X-CSRFToken'] = collabCsrfToken;
+            }
+            const res = await fetch(joinUrl, { method: 'POST', headers });
             if (!res.ok) {
                 const text = await res.text();
                 throw new Error(text || 'Không thể tham gia phòng.');
@@ -1510,9 +1515,13 @@
             }
 
             try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (collabCsrfToken) {
+                    headers['X-CSRFToken'] = collabCsrfToken;
+                }
                 const res = await fetch(collabCreateRoomUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify(payload),
                 });
                 if (!res.ok) {
