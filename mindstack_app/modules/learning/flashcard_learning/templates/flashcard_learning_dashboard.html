@@ -548,6 +548,7 @@
     const collabAvailableSetsUrl = "{{ url_for('learning.flashcard_collab.list_available_sets') }}";
     const collabCreateRoomUrl = "{{ url_for('learning.flashcard_collab.create_room') }}";
     const collabJoinRoomTemplate = "{{ url_for('learning.flashcard_collab.join_room', room_code='__ROOM_CODE__') }}";
+    const collabRoomViewUrlTemplate = "{{ url_for('learning.flashcard_collab.view_room', room_code='__ROOM_CODE__') }}";
     const collabCsrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const collabModeDefinitions = {{ flashcard_modes | tojson }};
     const collabModeLabels = {};
@@ -1312,8 +1313,9 @@
         navigator.clipboard.writeText(code).catch(() => {});
     }
 
-    async function joinCollabRoom(code, feedbackEl, onSuccess) {
+    async function joinCollabRoom(code, feedbackEl, options = {}) {
         if (!code) return;
+        const { onSuccess, redirectToRoom } = options;
         const joinUrl = collabJoinRoomTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
         try {
             const headers = {};
@@ -1332,6 +1334,10 @@
             }
             if (onSuccess) {
                 onSuccess();
+            }
+            if (redirectToRoom && collabRoomViewUrlTemplate) {
+                const viewUrl = collabRoomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
+                window.location.href = viewUrl;
             }
             return data.room;
         } catch (err) {
@@ -1454,7 +1460,7 @@
             const joinBtn = event.target.closest('[data-collab-join]');
             if (joinBtn) {
                 const code = joinBtn.getAttribute('data-collab-join');
-                joinCollabRoom(code, joinFeedback, loadMyRooms);
+                joinCollabRoom(code, joinFeedback, { onSuccess: loadMyRooms, redirectToRoom: true });
                 return;
             }
             const copyBtn = event.target.closest('[data-collab-copy]');
@@ -1468,7 +1474,7 @@
                 event.preventDefault();
                 const code = joinCodeInput.value.trim().toUpperCase();
                 if (!code) return;
-                joinCollabRoom(code, joinFeedback, loadMyRooms).then((room) => {
+                joinCollabRoom(code, joinFeedback, { onSuccess: loadMyRooms, redirectToRoom: true }).then((room) => {
                     if (room) {
                         joinCodeInput.value = '';
                     }
@@ -1533,7 +1539,12 @@
                 createFeedback.textContent = `Đã tạo phòng: ${room.room_code}. Chia sẻ mã để mọi người vào nhanh.`;
                 createFeedback.className = 'text-sm text-green-700';
                 roomTitleInput.value = '';
-                loadMyRooms();
+                if (collabRoomViewUrlTemplate) {
+                    const viewUrl = collabRoomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(room.room_code));
+                    window.location.href = viewUrl;
+                } else {
+                    loadMyRooms();
+                }
             } catch (err) {
                 createFeedback.textContent = err.message;
                 createFeedback.className = 'text-sm text-rose-600';

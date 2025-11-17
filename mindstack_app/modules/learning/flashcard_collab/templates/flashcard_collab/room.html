@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Phòng học Flashcard chung - {{ room_payload.room_code }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 space-y-6">
+  <div class="flex items-center justify-between gap-3">
+    <div>
+      <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Phòng học chung</p>
+      <h1 class="text-2xl font-bold text-slate-900">{{ room_payload.title or 'Phòng học Flashcard' }}</h1>
+      <p class="text-sm text-slate-600">Mã phòng: <span class="font-mono tracking-widest font-semibold">{{ room_payload.room_code }}</span></p>
+    </div>
+    <a href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}" class="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800">
+      <i class="fas fa-arrow-left"></i> Quay lại danh sách phòng
+    </a>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="lg:col-span-2 space-y-4">
+      <div class="bg-white rounded-xl shadow p-5 space-y-3">
+        <h2 class="text-lg font-semibold text-slate-900">Thông tin phòng</h2>
+        <p class="text-slate-700"><strong>Bộ thẻ:</strong> {{ room_payload.container_title or ('Bộ #' ~ room_payload.container_id) }}</p>
+        <p class="text-slate-700"><strong>Chế độ:</strong> {{ room_payload.mode }}</p>
+        <p class="text-slate-700"><strong>Chủ phòng:</strong> {{ room_payload.host_username or '—' }}</p>
+        <p class="text-slate-700"><strong>Trạng thái:</strong> {{ room_payload.status }}</p>
+      </div>
+
+      <div class="bg-white rounded-xl shadow p-5 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-900">Thành viên</h3>
+            <p class="text-sm text-slate-600">Tự động thêm bạn vào phòng khi mở trang này.</p>
+          </div>
+          <button type="button" id="copy-room-code" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold hover:bg-slate-50">
+            <i class="fas fa-copy"></i> Sao chép mã
+          </button>
+        </div>
+        <ul class="divide-y divide-slate-100" id="participant-list">
+          {% for participant in room_payload.participants %}
+            <li class="py-2 flex items-center justify-between">
+              <div>
+                <p class="font-semibold text-slate-800">{{ participant.username or 'Người dùng #' ~ participant.user_id }}</p>
+                <p class="text-xs text-slate-500">Vai trò: {{ 'Chủ phòng' if participant.is_host else 'Thành viên' }}</p>
+              </div>
+              <span class="text-xs text-slate-500 uppercase tracking-wide">{{ participant.status }}</span>
+            </li>
+          {% else %}
+            <li class="py-2 text-slate-600">Chưa có thành viên nào.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl shadow p-5 space-y-3">
+        <h3 class="text-lg font-semibold text-slate-900">Bắt đầu học</h3>
+        <p class="text-sm text-slate-600">Bắt đầu phiên học ngay với bộ thẻ này. Các thành viên khác nên mở cùng mã phòng để đồng bộ.</p>
+        <a href="{{ start_session_url }}" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
+          <i class="fas fa-circle-play"></i> Vào phiên học
+        </a>
+        <p class="text-xs text-slate-500">Sau khi vào phòng, hãy chia sẻ mã <strong>{{ room_payload.room_code }}</strong> cho bạn bè.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    document.getElementById('copy-room-code')?.addEventListener('click', () => {
+      const code = {{ room_payload.room_code | tojson }};
+      navigator.clipboard.writeText(code).catch(() => {});
+    });
+  </script>
+{% endblock %}
