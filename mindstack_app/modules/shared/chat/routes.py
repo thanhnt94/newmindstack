@@ -8,8 +8,8 @@ from typing import Callable, Type
 from flask import abort, jsonify, request
 from flask_login import current_user, login_required
 
-from ...db_instance import db
-from ...models import (
+from ....db_instance import db
+from ....models import (
     FlashcardCollabMessage,
     FlashcardCollabParticipant,
     FlashcardCollabRoom,
