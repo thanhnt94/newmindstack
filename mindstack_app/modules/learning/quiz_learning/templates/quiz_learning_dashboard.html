@@ -69,10 +69,35 @@
             margin-right: .75rem;
             font-size: 2.25rem;
         }
-        .quiz-title-badge:hover { 
+        .quiz-title-badge:hover {
             box-shadow: 0 6px 14px rgba(30,58,138,0.20);
             border-color: #60a5fa;
             transform: translateY(-2px);
+        }
+
+        .study-mode-tabs {
+            display: inline-flex;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            padding: 0.25rem;
+            gap: 0.25rem;
+        }
+
+        .study-mode-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            color: #4b5563;
+            border: 1px solid transparent;
+            background: transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .study-mode-tab.active {
+            background: #ffffff;
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.06);
         }
         
         .quiz-set-item {
@@ -220,51 +245,100 @@
         <div id="quizTitle" class="quiz-title-badge"><i class="fas fa-question-circle"></i>Quiz</div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
-        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
-                <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ câu hỏi
-            </h2>
-            <div class="mb-4">
-                <div class="tabs-and-toggle-wrapper">
-                    <div class="tab-group">
-                        <button id="filter-doing" class="tab-filter-button flex items-center justify-center {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang làm</span></button>
-                        <button id="filter-explore" class="tab-filter-button flex items-center justify-center {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
-                        <button id="filter-archive" class="tab-filter-button flex items-center justify-center {% if current_filter == 'archive' %}active{% endif %}" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
-                    </div>
-                </div>
-            </div>
-            <div id="selected-sets-display" class="selected-sets-container hidden">
-                <span class="text-gray-500">Bộ quiz đã chọn:</span>
-            </div>
-            <div id="quiz-sets-container" class="flex-grow">
-                <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
-                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                    <p>Đang tải danh sách bộ câu hỏi...</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-            <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
-                <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học
-            </h2>
-            <div id="quiz-modes-container" class="flex-grow">
-                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
-                    <i class="fas fa-info-circle text-4xl mb-3"></i>
-                    <p>Vui lòng chọn một bộ câu hỏi trước.</p>
-                </div>
-            </div>
+    <div class="flex justify-center mb-6">
+        <div class="study-mode-tabs" role="tablist" aria-label="Chế độ làm quiz">
+            <button class="study-mode-tab active" data-study-tab="solo" role="tab" aria-selected="true">Học 1 mình</button>
+            <button class="study-mode-tab" data-study-tab="group" role="tab" aria-selected="false">Thi đấu nhóm</button>
         </div>
     </div>
 
-    <div class="mt-8 text-center">
-        <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-            <i class="fas fa-play-circle mr-3"></i> Bắt đầu làm bài
-        </button>
-        <button id="bulk-unarchive-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-            <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
-        </button>
+    <div id="quiz-solo-section" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                    <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ câu hỏi
+                </h2>
+                <div class="mb-4">
+                    <div class="tabs-and-toggle-wrapper">
+                        <div class="tab-group">
+                            <button id="filter-doing" class="tab-filter-button flex items-center justify-center {% if current_filter == 'doing' %}active{% endif %}" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang làm</span></button>
+                            <button id="filter-explore" class="tab-filter-button flex items-center justify-center {% if current_filter == 'explore' %}active{% endif %}" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
+                            <button id="filter-archive" class="tab-filter-button flex items-center justify-center {% if current_filter == 'archive' %}active{% endif %}" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
+                        </div>
+                    </div>
+                </div>
+                <div id="selected-sets-display" class="selected-sets-container hidden">
+                    <span class="text-gray-500">Bộ quiz đã chọn:</span>
+                </div>
+                <div id="quiz-sets-container" class="flex-grow">
+                    <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                        <p>Đang tải danh sách bộ câu hỏi...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+                <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                    <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Chọn chế độ học
+                </h2>
+                <div id="quiz-modes-container" class="flex-grow">
+                    <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                        <i class="fas fa-info-circle text-4xl mb-3"></i>
+                        <p>Vui lòng chọn một bộ câu hỏi trước.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center">
+            <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
+                <i class="fas fa-play-circle mr-3"></i> Bắt đầu làm bài
+            </button>
+            <button id="bulk-unarchive-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
+                <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
+            </button>
+        </div>
+    </div>
+
+    <div id="quiz-group-section" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-start gap-3 mb-4">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-700"><i class="fas fa-swords"></i></div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Quiz Battle</h2>
+                        <p class="text-sm text-gray-600">Thách đấu theo nhóm với kho câu hỏi có sẵn. Vào nhanh phòng công khai hoặc mở phòng riêng để mời bạn bè.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-lg border border-purple-100 bg-purple-50">
+                        <h3 class="font-semibold text-purple-800 mb-2"><i class="fas fa-bolt mr-2"></i>Tham gia tức thì</h3>
+                        <p class="text-sm text-gray-700">Xem danh sách phòng đang mở và vào ngay để so điểm theo thời gian thực.</p>
+                    </div>
+                    <div class="p-4 rounded-lg border border-indigo-100 bg-indigo-50">
+                        <h3 class="font-semibold text-indigo-800 mb-2"><i class="fas fa-lock mr-2"></i>Trận riêng tư</h3>
+                        <p class="text-sm text-gray-700">Tạo phòng đặt mật khẩu, chọn bộ câu hỏi và luật chơi riêng cho đội của bạn.</p>
+                    </div>
+                </div>
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <a href="{{ url_for('learning.quiz_battle.dashboard') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">
+                        <i class="fas fa-trophy mr-2"></i> Mở Quiz Battle
+                    </a>
+                    <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}#quiz-solo-section" class="inline-flex items-center px-4 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-lg shadow-sm hover:bg-indigo-50 transition">
+                        <i class="fas fa-user mr-2"></i> Quay lại học một mình
+                    </a>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
+                <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-lightbulb text-yellow-500"></i> Mẹo thi đấu</h3>
+                <ul class="space-y-3 text-sm text-gray-700 list-disc list-inside">
+                    <li>Kiểm tra kết nối và mic trước trận để trao đổi nhanh.</li>
+                    <li>Chia đội cân bằng và thống nhất thời gian mỗi lượt.</li>
+                    <li>Sau trận, truy cập thống kê để xem điểm và câu sai phổ biến.</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -283,6 +357,7 @@
     let currentSearchQuery = "{{ search_query | default('') }}";
     let currentSearchField = "{{ search_field | default('all') }}";
     let isMultiSelectMode = true;
+    let currentStudyMode = 'solo';
 
     const quizSetsContainer = document.getElementById('quiz-sets-container');
     const quizModesContainer = document.getElementById('quiz-modes-container');
@@ -290,6 +365,9 @@
     const bulkUnarchiveBtn = document.getElementById('bulk-unarchive-btn');
     const selectedSetsDisplay = document.getElementById('selected-sets-display');
     const step2Title = document.getElementById('step-2-title');
+    const studyModeTabs = document.querySelectorAll('[data-study-tab]');
+    const soloSection = document.getElementById('quiz-solo-section');
+    const groupSection = document.getElementById('quiz-group-section');
     
     const rightPanel = document.querySelector('.lg\\:grid-cols-2 > div:nth-child(2)');
 
@@ -307,6 +385,31 @@
     const bulkUnarchiveUrl = "{{ url_for('learning.quiz_learning.bulk_unarchive') }}";
     const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
     const csrfHeaders = csrfTokenMeta ? { 'X-CSRFToken': csrfTokenMeta.getAttribute('content') } : {};
+
+    studyModeTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const selectedMode = tab.dataset.studyTab;
+            if (!selectedMode || selectedMode === currentStudyMode) return;
+
+            currentStudyMode = selectedMode;
+            studyModeTabs.forEach((btn) => {
+                const isActive = btn.dataset.studyTab === selectedMode;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+
+            if (selectedMode === 'solo') {
+                soloSection.classList.remove('hidden');
+                groupSection.classList.add('hidden');
+                updateActionButtons();
+            } else {
+                soloSection.classList.add('hidden');
+                groupSection.classList.remove('hidden');
+                startLearningBtn.style.display = 'none';
+                bulkUnarchiveBtn.style.display = 'none';
+            }
+        });
+    });
 
     function toggleAllSetsButtonVisibility() {
         if (!allSetsButton) {
@@ -681,7 +784,13 @@
         const selectedCount = selectedQuizSetIds.length;
         const isSelected = selectedCount > 0;
 
-        if (currentFilter === 'archive') {
+        if (currentStudyMode === 'group') {
+            startLearningBtn.style.display = 'none';
+            bulkUnarchiveBtn.style.display = 'none';
+            return;
+        }
+
+        if (currentFilter === 'archive') {                
             startLearningBtn.style.display = 'none';
             bulkUnarchiveBtn.style.display = 'block';
             if (isSelected) {
