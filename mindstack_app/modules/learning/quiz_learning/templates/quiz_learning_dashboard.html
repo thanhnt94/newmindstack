@@ -302,41 +302,166 @@
     </div>
 
     <div id="quiz-group-section" class="hidden">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
-                <div class="flex items-start gap-3 mb-4">
-                    <div class="p-3 rounded-full bg-purple-100 text-purple-700"><i class="fas fa-swords"></i></div>
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-800">Quiz Battle</h2>
-                        <p class="text-sm text-gray-600">Thách đấu theo nhóm với kho câu hỏi có sẵn. Vào nhanh phòng công khai hoặc mở phòng riêng để mời bạn bè.</p>
+        <div class="space-y-6">
+            <div class="p-6 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 shadow-inner flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 text-indigo-700 shadow-sm text-sm font-semibold">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Thi đấu nhóm</span>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-900">Vào phòng nhanh, tạo trận riêng ngay trên dashboard</h2>
+                    <p class="text-sm md:text-base text-slate-600 max-w-4xl">Danh sách phòng công khai và phòng bạn tham gia luôn hiển thị. Chỉ cần chọn một phòng hoặc tạo phòng mới để mời đội của bạn.</p>
+                    <div class="flex flex-wrap gap-2 text-xs font-semibold">
+                        <span class="px-3 py-1 rounded-full bg-white/80 text-emerald-600"><i class="fa-solid fa-shield-heart mr-2"></i>Khóa phòng linh hoạt</span>
+                        <span class="px-3 py-1 rounded-full bg-white/80 text-amber-600"><i class="fa-solid fa-stopwatch mr-2"></i>Hai chế độ thi</span>
+                        <span class="px-3 py-1 rounded-full bg-white/80 text-indigo-700"><i class="fa-solid fa-chart-line mr-2"></i>Điểm real-time</span>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="p-4 rounded-lg border border-purple-100 bg-purple-50">
-                        <h3 class="font-semibold text-purple-800 mb-2"><i class="fas fa-bolt mr-2"></i>Tham gia tức thì</h3>
-                        <p class="text-sm text-gray-700">Xem danh sách phòng đang mở và vào ngay để so điểm theo thời gian thực.</p>
+                <div class="grid grid-cols-2 gap-3 text-center text-sm">
+                    <div class="px-4 py-3 rounded-2xl bg-white/80 shadow-sm">
+                        <p class="text-slate-500">Phòng đang mở</p>
+                        <p id="group-stat-public" class="text-2xl font-bold text-indigo-700">—</p>
                     </div>
-                    <div class="p-4 rounded-lg border border-indigo-100 bg-indigo-50">
-                        <h3 class="font-semibold text-indigo-800 mb-2"><i class="fas fa-lock mr-2"></i>Trận riêng tư</h3>
-                        <p class="text-sm text-gray-700">Tạo phòng đặt mật khẩu, chọn bộ câu hỏi và luật chơi riêng cho đội của bạn.</p>
+                    <div class="px-4 py-3 rounded-2xl bg-white/80 shadow-sm">
+                        <p class="text-slate-500">Phòng của bạn</p>
+                        <p id="group-stat-mine" class="text-2xl font-bold text-purple-700">—</p>
                     </div>
-                </div>
-                <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">
-                        <i class="fas fa-trophy mr-2"></i> Mở Quiz Battle
-                    </a>
-                    <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}#quiz-solo-section" class="inline-flex items-center px-4 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-lg shadow-sm hover:bg-indigo-50 transition">
-                        <i class="fas fa-user mr-2"></i> Quay lại học một mình
-                    </a>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
-                <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-lightbulb text-yellow-500"></i> Mẹo thi đấu</h3>
-                <ul class="space-y-3 text-sm text-gray-700 list-disc list-inside">
-                    <li>Kiểm tra kết nối và mic trước trận để trao đổi nhanh.</li>
-                    <li>Chia đội cân bằng và thống nhất thời gian mỗi lượt.</li>
-                    <li>Sau trận, truy cập thống kê để xem điểm và câu sai phổ biến.</li>
-                </ul>
+
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div class="xl:col-span-2 space-y-6">
+                    <section class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 space-y-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Phòng công khai</p>
+                                <h3 class="text-xl font-semibold text-slate-900">Vào trận tức thì</h3>
+                                <p class="text-sm text-slate-500">Cập nhật liên tục các phòng mở để bạn có thể tham gia ngay.</p>
+                            </div>
+                            <button id="group-refresh-public" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-slate-200 rounded-xl hover:bg-slate-50">
+                                <i class="fa-solid fa-rotate"></i> Tải lại
+                            </button>
+                        </div>
+                        <div id="group-public-rooms" class="space-y-3 text-sm text-slate-600">
+                            <div class="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100"><i class="fas fa-spinner fa-spin text-indigo-600"></i> Đang tải phòng công khai...</div>
+                        </div>
+                    </section>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <section class="bg-white rounded-2xl shadow-lg border border-slate-100 p-5 space-y-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-purple-600">Phòng của bạn</p>
+                                    <h4 class="text-lg font-semibold text-slate-900">Tiếp tục trận đang chơi</h4>
+                                </div>
+                                <button id="group-refresh-mine" class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl hover:bg-slate-50">
+                                    <i class="fa-solid fa-rotate"></i> Làm mới
+                                </button>
+                            </div>
+                            <div id="group-my-rooms" class="space-y-3 text-sm text-slate-600">
+                                <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100"><i class="fas fa-spinner fa-spin text-purple-600"></i> Đang kiểm tra phòng của bạn...</div>
+                            </div>
+                        </section>
+
+                        <section class="bg-white rounded-2xl shadow-lg border border-slate-100 p-5 space-y-3">
+                            <div class="flex items-center gap-2 text-sm font-semibold text-slate-800"><i class="fa-solid fa-key text-amber-500"></i> Tham gia bằng mã</div>
+                            <form id="group-join-room-form" class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600">Mã phòng</label>
+                                    <input type="text" id="group-join-room-code" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 uppercase tracking-[0.35em] focus:border-indigo-500 focus:ring-indigo-500" placeholder="ABC123" maxlength="12" required>
+                                </div>
+                                <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700">
+                                    <i class="fa-solid fa-right-to-bracket"></i> Vào ngay
+                                </button>
+                            </form>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <section class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="p-3 rounded-full bg-indigo-50 text-indigo-600"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Tạo phòng nhanh</p>
+                                <h4 class="text-xl font-bold text-slate-900">Chọn bộ quiz &amp; mở trận riêng</h4>
+                                <p class="text-sm text-slate-500">Cấu hình thời gian, giới hạn người chơi và chế độ hiển thị ngay tại đây.</p>
+                            </div>
+                        </div>
+                        <form id="group-create-room-form" class="space-y-4">
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                                    <i class="fa-solid fa-layer-group text-indigo-500"></i>
+                                    <span>Bộ câu hỏi</span>
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <input type="text" id="group-quiz-search" class="rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Tìm nhanh tên bộ quiz hoặc tag...">
+                                    <select id="group-quiz-select" class="rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white" required>
+                                        <option>Đang tải danh sách bộ quiz...</option>
+                                    </select>
+                                </div>
+                                <p id="group-quiz-helper" class="text-xs text-slate-500">Chọn bộ quiz để mở phòng. Chỉ hiển thị những bộ bạn có quyền truy cập.</p>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-semibold text-slate-600">Tiêu đề phòng</label>
+                                <input type="text" id="group-room-title" class="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Quiz Battle tối nay" required>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-semibold text-slate-600">Số câu hỏi (tuỳ chọn)</label>
+                                    <input type="number" id="group-question-limit" min="1" class="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Để trống dùng toàn bộ">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-semibold text-slate-600">Giới hạn người chơi</label>
+                                    <input type="number" id="group-max-players" min="2" class="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Mặc định không giới hạn">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-semibold text-slate-600">Chế độ</label>
+                                    <select id="group-battle-mode" class="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="SLOW">Test chậm (đợi mọi người)</option>
+                                        <option value="TIMED">Giới hạn thời gian</option>
+                                    </select>
+                                </div>
+                                <div id="group-time-wrapper" class="space-y-2 hidden">
+                                    <label class="block text-xs font-semibold text-slate-600">Thời gian mỗi câu (giây)</label>
+                                    <input type="number" id="group-time-per-question" min="5" class="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ví dụ: 20">
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-semibold text-slate-600">Hiển thị phòng</label>
+                                <select id="group-room-visibility" class="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="private">Riêng tư (chia sẻ mã)</option>
+                                    <option value="public">Công khai</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700">
+                                <i class="fa-solid fa-plus"></i> Tạo phòng &amp; vào ngay
+                            </button>
+                            <p id="group-room-feedback" class="text-sm"></p>
+                        </form>
+                    </section>
+
+                    <section class="bg-white rounded-2xl shadow-lg border border-slate-100 p-5 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-lightbulb"></i></span>
+                            <div>
+                                <h5 class="font-semibold text-slate-900">Mẹo thi đấu đẹp mắt</h5>
+                                <p class="text-sm text-slate-500">Tối ưu trải nghiệm nhóm với vài gợi ý nhỏ.</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-2 text-sm text-slate-600 list-disc list-inside">
+                            <li>Tạo phòng công khai khi muốn tuyển thêm người chơi lạ.</li>
+                            <li>Chọn chế độ giới hạn thời gian để so kè phản xạ.</li>
+                            <li>Đặt tiêu đề ngắn gọn kèm tên đội để mọi người dễ nhận ra.</li>
+                        </ul>
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm text-slate-700 flex items-start gap-3">
+                            <i class="fa-solid fa-circle-info text-indigo-500 mt-0.5"></i>
+                            <div>Tất cả thao tác tham gia, rời phòng và xem lịch sử đều gói gọn ngay tại bảng này.</div>
+                        </div>
+                    </section>
+                </div>
             </div>
         </div>
     </div>
@@ -386,6 +511,36 @@
     const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
     const csrfHeaders = csrfTokenMeta ? { 'X-CSRFToken': csrfTokenMeta.getAttribute('content') } : {};
 
+    const groupPublicRoomsContainer = document.getElementById('group-public-rooms');
+    const groupMyRoomsContainer = document.getElementById('group-my-rooms');
+    const groupRefreshPublicBtn = document.getElementById('group-refresh-public');
+    const groupRefreshMineBtn = document.getElementById('group-refresh-mine');
+    const groupJoinRoomForm = document.getElementById('group-join-room-form');
+    const groupJoinRoomCodeInput = document.getElementById('group-join-room-code');
+    const groupCreateRoomForm = document.getElementById('group-create-room-form');
+    const groupQuizSelect = document.getElementById('group-quiz-select');
+    const groupQuizSearch = document.getElementById('group-quiz-search');
+    const groupRoomTitleInput = document.getElementById('group-room-title');
+    const groupQuestionLimitInput = document.getElementById('group-question-limit');
+    const groupMaxPlayersInput = document.getElementById('group-max-players');
+    const groupBattleModeSelect = document.getElementById('group-battle-mode');
+    const groupTimeWrapper = document.getElementById('group-time-wrapper');
+    const groupTimePerQuestionInput = document.getElementById('group-time-per-question');
+    const groupRoomVisibilitySelect = document.getElementById('group-room-visibility');
+    const groupRoomFeedback = document.getElementById('group-room-feedback');
+    const groupStatPublic = document.getElementById('group-stat-public');
+    const groupStatMine = document.getElementById('group-stat-mine');
+    const groupQuizHelper = document.getElementById('group-quiz-helper');
+
+    const quizBattlePublicRoomsUrl = "{{ url_for('learning.quiz_battle.list_public_rooms') }}";
+    const quizBattleMyRoomsUrl = "{{ url_for('learning.quiz_battle.list_my_active_rooms') }}";
+    const quizBattleJoinRoomUrlTemplate = "{{ url_for('learning.quiz_battle.join_room', room_code='__ROOM_CODE__') }}";
+    const quizBattleRoomViewUrlTemplate = "{{ url_for('learning.quiz_battle.view_room', room_code='__ROOM_CODE__') }}";
+    const quizBattleCreateRoomUrl = "{{ url_for('learning.quiz_battle.create_room') }}";
+    const quizBattleAvailableQuizzesUrl = "{{ url_for('learning.quiz_battle.list_available_quizzes') }}";
+
+    let groupBattleInitialized = false;
+
     studyModeTabs.forEach((tab) => {
         tab.addEventListener('click', () => {
             const selectedMode = tab.dataset.studyTab;
@@ -407,6 +562,11 @@
                 groupSection.classList.remove('hidden');
                 startLearningBtn.style.display = 'none';
                 bulkUnarchiveBtn.style.display = 'none';
+                if (!groupBattleInitialized) {
+                    initGroupBattleDeck();
+                } else {
+                    refreshGroupRoomLists();
+                }
             }
         });
     });
@@ -883,6 +1043,270 @@
         }
     });
 
+    function setGroupFeedback(message, tone = 'info') {
+        if (!groupRoomFeedback) return;
+        groupRoomFeedback.textContent = message || '';
+        groupRoomFeedback.className = 'text-sm mt-1';
+        if (!message) return;
+        const toneClass = {
+            success: 'text-emerald-600',
+            danger: 'text-rose-600',
+            info: 'text-slate-600'
+        }[tone] || 'text-slate-600';
+        groupRoomFeedback.classList.add(toneClass);
+    }
+
+    function toggleTimedFields() {
+        const isTimed = groupBattleModeSelect?.value === 'TIMED';
+        if (!groupTimeWrapper) return;
+        groupTimeWrapper.classList.toggle('hidden', !isTimed);
+    }
+
+    function formatBattleStatus(status) {
+        const statusLabels = {
+            lobby: 'Sảnh chờ',
+            in_progress: 'Đang diễn ra',
+            awaiting_host: 'Chờ chủ phòng',
+            completed: 'Đã kết thúc'
+        };
+        return statusLabels[status] || status || 'Không rõ';
+    }
+
+    function formatBattleMode(mode) {
+        return mode === 'TIMED' ? 'Giới hạn thời gian' : 'Test chậm';
+    }
+
+    function updateGroupStats(publicCount = null, myCount = null) {
+        if (groupStatPublic && publicCount !== null) {
+            groupStatPublic.textContent = publicCount;
+        }
+        if (groupStatMine && myCount !== null) {
+            groupStatMine.textContent = myCount;
+        }
+    }
+
+    function renderGroupRooms(rooms, container, { emptyMessage = 'Chưa có phòng nào.', highlightPrivate = false } = {}) {
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (!rooms?.length) {
+            container.innerHTML = `<div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-slate-500">${emptyMessage}</div>`;
+            return;
+        }
+
+        rooms.forEach((room) => {
+            const activePlayers = (room.participants || []).filter((p) => p.status === 'active').length;
+            const viewUrl = quizBattleRoomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(room.room_code));
+            const statusColor = room.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700';
+            const visibilityBadge = room.is_public ? '<span class="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-semibold"><i class="fa-solid fa-earth-americas mr-1"></i>Công khai</span>' : '<span class="px-2 py-1 rounded-lg bg-rose-50 text-rose-700 text-[11px] font-semibold"><i class="fa-solid fa-lock mr-1"></i>Riêng tư</span>';
+
+            const card = document.createElement('article');
+            card.className = 'p-4 rounded-2xl border border-slate-100 shadow-sm bg-white';
+            card.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900">${room.title || 'Quiz Battle'}</p>
+                        <p class="text-xs text-slate-500">Mã phòng: <span class="font-mono tracking-widest">${room.room_code}</span></p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-[11px] font-semibold ${statusColor}">${formatBattleStatus(room.status)}</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-600 mt-2">${visibilityBadge}</div>
+                <div class="grid grid-cols-2 gap-3 text-xs text-slate-600 mt-3">
+                    <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><i class="fa-solid fa-users"></i></span><div><p class="font-semibold">${activePlayers}${room.max_players ? '/' + room.max_players : ''}</p><p class="text-[11px] text-slate-500">Đang hoạt động</p></div></div>
+                    <div class="flex items-center gap-2"><span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-layer-group"></i></span><div><p class="font-semibold">${room.question_total || 0} câu</p><p class="text-[11px] text-slate-500">${formatBattleMode(room.mode)}</p></div></div>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button type="button" class="group-join-room inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 font-semibold text-sm hover:bg-indigo-50" data-room-code="${room.room_code}"><i class="fa-solid fa-right-to-bracket"></i> Tham gia</button>
+                    <a class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800" href="${viewUrl}"><i class="fa-solid fa-door-open"></i> Vào phòng</a>
+                </div>
+            `;
+            if (!room.is_public && highlightPrivate) {
+                card.classList.add('border-rose-100', 'bg-rose-50/50');
+            }
+            container.appendChild(card);
+        });
+    }
+
+    async function handleJoinRoom(roomCode) {
+        const normalizedCode = (roomCode || '').trim();
+        if (!normalizedCode) {
+            setGroupFeedback('Vui lòng nhập mã phòng.', 'danger');
+            return;
+        }
+        setGroupFeedback('Đang vào phòng...', 'info');
+        const joinUrl = quizBattleJoinRoomUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(normalizedCode));
+        try {
+            const response = await fetch(joinUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...csrfHeaders },
+            });
+            if (!response.ok) {
+                const message = (await response.text()) || 'Không thể vào phòng.';
+                throw new Error(message);
+            }
+            const data = await response.json();
+            const targetUrl = quizBattleRoomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(data.room.room_code));
+            setGroupFeedback('Tham gia thành công, đang chuyển hướng...', 'success');
+            window.location.href = targetUrl;
+        } catch (error) {
+            console.error('Join room failed:', error);
+            setGroupFeedback(error.message || 'Không thể vào phòng.', 'danger');
+        }
+    }
+
+    async function loadGroupPublicRooms() {
+        if (!groupPublicRoomsContainer) return;
+        groupPublicRoomsContainer.innerHTML = '<div class="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100"><i class="fas fa-spinner fa-spin text-indigo-600"></i> Đang tải phòng công khai...</div>';
+        try {
+            const response = await fetch(quizBattlePublicRoomsUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error('Không thể tải phòng công khai.');
+            const data = await response.json();
+            renderGroupRooms(data.rooms || [], groupPublicRoomsContainer, { emptyMessage: 'Chưa có phòng công khai nào.' });
+            updateGroupStats(data.rooms?.length ?? 0, null);
+        } catch (error) {
+            console.error(error);
+            groupPublicRoomsContainer.innerHTML = '<div class="p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-600">Không thể tải phòng công khai.</div>';
+        }
+    }
+
+    async function loadGroupMyRooms() {
+        if (!groupMyRoomsContainer) return;
+        groupMyRoomsContainer.innerHTML = '<div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100"><i class="fas fa-spinner fa-spin text-purple-600"></i> Đang kiểm tra phòng của bạn...</div>';
+        try {
+            const response = await fetch(quizBattleMyRoomsUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error('Không thể tải phòng của bạn.');
+            const data = await response.json();
+            renderGroupRooms(data.rooms || [], groupMyRoomsContainer, { emptyMessage: 'Bạn chưa tham gia phòng nào.', highlightPrivate: true });
+            updateGroupStats(null, data.rooms?.length ?? 0);
+        } catch (error) {
+            console.error(error);
+            groupMyRoomsContainer.innerHTML = '<div class="p-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-600">Không thể tải phòng của bạn.</div>';
+        }
+    }
+
+    async function loadAvailableBattleQuizzes(searchTerm = '') {
+        if (!groupQuizSelect) return;
+        groupQuizSelect.innerHTML = '<option>Đang tải danh sách bộ quiz...</option>';
+        try {
+            const url = new URL(quizBattleAvailableQuizzesUrl, window.location.origin);
+            url.searchParams.append('limit', '30');
+            if (searchTerm) {
+                url.searchParams.append('q', searchTerm);
+            }
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error('Không thể tải bộ quiz.');
+            const data = await response.json();
+            const containers = data.containers || [];
+            groupQuizSelect.innerHTML = '';
+            if (!containers.length) {
+                groupQuizSelect.innerHTML = '<option value="">Không tìm thấy bộ quiz phù hợp</option>';
+                if (groupQuizHelper) groupQuizHelper.textContent = 'Thử tìm kiếm tên khác hoặc kiểm tra quyền truy cập.';
+                return;
+            }
+
+            containers.forEach((container) => {
+                const option = document.createElement('option');
+                option.value = container.container_id;
+                const badge = container.tags ? ` • ${container.tags}` : '';
+                option.textContent = `${container.title} • ${container.question_count || 0} câu${badge}`;
+                groupQuizSelect.appendChild(option);
+            });
+
+            if (groupRoomTitleInput && !groupRoomTitleInput.value) {
+                groupRoomTitleInput.value = `Quiz Battle: ${containers[0].title}`;
+            }
+            if (groupQuizHelper) groupQuizHelper.textContent = 'Đã lọc sẵn các bộ bạn có thể sử dụng.';
+        } catch (error) {
+            console.error(error);
+            groupQuizSelect.innerHTML = '<option value="">Không thể tải danh sách bộ quiz</option>';
+            if (groupQuizHelper) groupQuizHelper.textContent = 'Vui lòng thử lại sau hoặc làm mới trang.';
+        }
+    }
+
+    function refreshGroupRoomLists() {
+        loadGroupPublicRooms();
+        loadGroupMyRooms();
+    }
+
+    function initGroupBattleDeck() {
+        groupBattleInitialized = true;
+        toggleTimedFields();
+        loadAvailableBattleQuizzes();
+        refreshGroupRoomLists();
+
+        groupBattleModeSelect?.addEventListener('change', toggleTimedFields);
+        groupRefreshPublicBtn?.addEventListener('click', loadGroupPublicRooms);
+        groupRefreshMineBtn?.addEventListener('click', loadGroupMyRooms);
+
+        groupPublicRoomsContainer?.addEventListener('click', (event) => {
+            const joinButton = event.target.closest('.group-join-room');
+            if (joinButton?.dataset?.roomCode) {
+                handleJoinRoom(joinButton.dataset.roomCode);
+            }
+        });
+        groupMyRoomsContainer?.addEventListener('click', (event) => {
+            const joinButton = event.target.closest('.group-join-room');
+            if (joinButton?.dataset?.roomCode) {
+                handleJoinRoom(joinButton.dataset.roomCode);
+            }
+        });
+
+        groupJoinRoomForm?.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const roomCode = (groupJoinRoomCodeInput?.value || '').trim();
+            handleJoinRoom(roomCode);
+        });
+
+        let quizSearchTimeout;
+        groupQuizSearch?.addEventListener('input', (event) => {
+            clearTimeout(quizSearchTimeout);
+            quizSearchTimeout = setTimeout(() => {
+                loadAvailableBattleQuizzes(event.target.value.trim());
+            }, 300);
+        });
+
+        groupCreateRoomForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!quizBattleCreateRoomUrl) return;
+            const payload = {
+                container_id: groupQuizSelect?.value,
+                title: groupRoomTitleInput?.value,
+                question_limit: groupQuestionLimitInput?.value || undefined,
+                max_players: groupMaxPlayersInput?.value || undefined,
+                mode: groupBattleModeSelect?.value || 'SLOW',
+                visibility: groupRoomVisibilitySelect?.value || 'private',
+            };
+
+            if (payload.mode === 'TIMED') {
+                payload.time_per_question_seconds = groupTimePerQuestionInput?.value || undefined;
+            }
+
+            setGroupFeedback('Đang tạo phòng...', 'info');
+
+            try {
+                const response = await fetch(quizBattleCreateRoomUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...csrfHeaders },
+                    body: JSON.stringify(payload),
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                const data = contentType.includes('application/json') ? await response.json() : { message: await response.text() };
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Không thể tạo phòng.');
+                }
+
+                const redirectUrl = quizBattleRoomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(data.room.room_code));
+                setGroupFeedback('Tạo phòng thành công, đang chuyển hướng...', 'success');
+                window.location.href = redirectUrl;
+            } catch (error) {
+                console.error(error);
+                setGroupFeedback(error.message || 'Không thể tạo phòng.', 'danger');
+            }
+        });
+    }
+
     document.querySelectorAll('.tab-filter-button').forEach(function(button) {
         button.addEventListener('click', function() {
             const newFilter = this.dataset.filter;
@@ -947,9 +1371,13 @@
 
 
     document.addEventListener('DOMContentLoaded', function(){
-        isMultiSelectMode = true; 
+        isMultiSelectMode = true;
         updateStep2Content();
-        
+
+        if (groupSection && !groupSection.classList.contains('hidden')) {
+            initGroupBattleDeck();
+        }
+
         loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
     });
     
