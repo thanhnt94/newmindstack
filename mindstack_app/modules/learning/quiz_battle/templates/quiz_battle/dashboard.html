@@ -4,357 +4,168 @@
 
 {% block head %}
 {{ super() }}
-{% include 'content_management/_shared_styles.html' %}
 <style>
-    .qb-room-card {
-        border: 1px solid var(--cm-border-color);
-        border-radius: 1rem;
-        padding: 1.25rem;
-        background: #ffffff;
-        display: flex;
-        flex-direction: column;
-        gap: 0.85rem;
-        min-height: 10rem;
-    }
-
-    .qb-room-card__title {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 0.75rem;
-    }
-
-    .qb-room-card__title p {
-        margin: 0;
-    }
-
-    .qb-room-card__status {
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        padding: 0.35rem 0.85rem;
+    .qb-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
         border-radius: 999px;
-        background: #f8fafc;
-        color: #475569;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
     }
 
-    .qb-room-card__status--live {
+    .qb-status-live {
         background: #fef3c7;
         color: #92400e;
     }
 
-    .qb-room-card__meta {
-        font-size: 0.85rem;
-        color: #475569;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-    }
-
-    .qb-room-card__join {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.4rem 0.9rem;
-        border-radius: 999px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        border: 1px solid var(--cm-border-color);
-        background: #f8fafc;
-        color: #0f172a;
-        transition: background 0.2s ease, border-color 0.2s ease;
-    }
-
-    .qb-room-card__join:hover {
-        background: #edf2ff;
-        border-color: #c7d2fe;
-    }
-
-    .qb-room-card__join--private {
-        background: #fff7ed;
-        border-color: #fed7aa;
-        color: #9a3412;
-    }
-
-    .qb-room-card__list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .qb-modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.45);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-        z-index: 50;
-    }
-
-    .qb-modal.hidden {
-        display: none;
-    }
-
-    .qb-modal__panel {
-        width: min(640px, 100%);
-        background: #ffffff;
-        border-radius: 1.25rem;
-        border: 1px solid var(--cm-border-color);
-        padding: 2rem;
-        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.45);
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-
-    .qb-modal__header {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: flex-start;
-        margin-bottom: 1.5rem;
-    }
-
-    .qb-modal__close {
-        border: none;
-        background: #f1f5f9;
-        color: #0f172a;
-        border-radius: 999px;
-        width: 2.5rem;
-        height: 2.5rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-    }
-
-    .qb-modal__close:hover {
-        background: #e2e8f0;
-    }
-
-    .qb-room-info {
-        display: grid;
-        gap: 1rem;
-    }
-
-    .qb-room-info__item {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.85rem 1rem;
-        border-radius: 0.85rem;
-        background: #f8fafc;
-        color: #475569;
-        font-size: 0.9rem;
-    }
-
-    .qb-room-info__icon {
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #e0e7ff;
-        color: #3730a3;
+    .qb-status-lobby {
+        background: #e0f2fe;
+        color: #075985;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="cm-shell" data-accent="indigo">
-    <div class="cm-container space-y-8">
-        <section class="cm-section-header">
-            <div class="cm-heading-group">
-                <p class="cm-eyebrow">Quiz Battle</p>
-                <h1 class="cm-heading">Theo dõi phòng đang mở và tạo phòng riêng chỉ với một nút</h1>
-                <p class="cm-subheading">Danh sách phòng công khai và phòng của bạn luôn hiển thị ngay đầu trang để bạn vào nhanh nhất. Khi cần mở một trận riêng tư, nhấn nút Tạo phòng riêng để bật bảng cấu hình chi tiết.</p>
-                <div class="cm-tag-group">
-                    <span class="cm-tag"><i class="fa-solid fa-bolt"></i> Trực tiếp</span>
-                    <span class="cm-tag"><i class="fa-solid fa-lock"></i> Quyền riêng tư</span>
-                    <span class="cm-tag"><i class="fa-solid fa-chart-line"></i> Theo dõi thành tích</span>
-                </div>
+<div class="container mx-auto px-4 py-6 lg:px-8 lg:py-8 space-y-6">
+    <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="space-y-1">
+                <p class="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-600">Học theo nhóm</p>
+                <h1 class="text-2xl font-bold text-slate-900">Thi đấu quiz cùng đội của bạn</h1>
+                <p class="text-sm text-slate-600 max-w-3xl">Danh sách phòng công khai và phòng bạn tham gia hiển thị ngay tại đây. Chọn phòng có sẵn, nhập mã hoặc tạo phòng mới tương tự trải nghiệm học nhóm flashcard.</p>
             </div>
-            <div class="cm-actions">
-                <button type="button" id="open-create-room-modal" class="cm-action cm-action--primary">
-                    <i class="fa-solid fa-lock"></i>
-                    <span>Tạo phòng riêng</span>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" id="open-create-room" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700">
+                    <i class="fa-solid fa-plus"></i><span>Tạo phòng mới</span>
                 </button>
-                <a href="{{ url_for('stats.dashboard') }}" class="cm-action cm-action--ghost">
-                    <i class="fa-solid fa-chart-line"></i>
-                    <span>Xem thống kê</span>
-                </a>
+                <button type="button" id="refresh-public-rooms" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100">
+                    <i class="fa-solid fa-rotate"></i><span>Tải phòng công khai</span>
+                </button>
+                <button type="button" id="refresh-my-rooms" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 font-semibold hover:bg-slate-100">
+                    <i class="fa-solid fa-user-group"></i><span>Tải phòng của bạn</span>
+                </button>
             </div>
-        </section>
+        </div>
 
-        <div class="cm-grid cm-grid--three">
-            <section class="cm-card cm-card--padded space-y-4">
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <h2 class="text-xl font-semibold text-slate-900">Phòng công khai</h2>
-                        <p class="text-sm text-slate-500">Luôn cập nhật các phòng đang mở để bạn có thể nhảy vào ngay.</p>
+        <div class="grid gap-4 lg:grid-cols-3">
+            <div class="lg:col-span-2 grid gap-4 md:grid-cols-2">
+                <section class="p-4 rounded-xl border border-blue-100 bg-blue-50 space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Phòng công khai</p>
+                            <h2 class="text-lg font-semibold text-slate-900">Vào nhanh không cần mã</h2>
+                            <p class="text-sm text-blue-900/80">Danh sách cập nhật liên tục. Bấm để vào ngay.</p>
+                        </div>
                     </div>
-                    <button type="button" id="refresh-public-rooms" class="cm-action cm-action--ghost text-sm">
-                        <i class="fa-solid fa-rotate"></i>
-                        <span>Tải lại</span>
-                    </button>
-                </div>
-                <div id="public-rooms-list" class="qb-room-card__list text-sm text-slate-600">
-                    <p class="text-slate-500">Đang tải danh sách phòng...</p>
-                </div>
-            </section>
-
-            <section class="cm-card cm-card--padded space-y-4">
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <h2 class="text-xl font-semibold text-slate-900">Phòng của bạn</h2>
-                        <p class="text-sm text-slate-500">Các phòng bạn đang làm chủ hoặc đã tham gia sẽ hiển thị tại đây.</p>
+                    <div id="public-rooms-list" class="space-y-3 text-sm text-slate-600">
+                        <p class="text-slate-500">Đang tải danh sách phòng...</p>
                     </div>
-                    <button type="button" id="refresh-my-rooms" class="cm-action cm-action--ghost text-sm">
-                        <i class="fa-solid fa-rotate"></i>
-                        <span>Tải lại</span>
-                    </button>
-                </div>
-                <div id="my-rooms-list" class="qb-room-card__list text-sm text-slate-600">
-                    <p class="text-slate-500">Đang kiểm tra phòng bạn đã tham gia...</p>
-                </div>
-            </section>
+                </section>
 
-            <section class="cm-card cm-card--padded space-y-4">
-                <div>
-                    <h2 class="text-xl font-semibold text-slate-900">Tham gia bằng mã</h2>
-                    <p class="text-sm text-slate-500">Nhập mã được chủ phòng chia sẻ, kể cả đối với trận riêng tư.</p>
-                </div>
+                <section class="p-4 rounded-xl border border-indigo-100 bg-indigo-50 space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Phòng của bạn</p>
+                            <h2 class="text-lg font-semibold text-slate-900">Tiếp tục trận đang chơi</h2>
+                            <p class="text-sm text-indigo-900/80">Những phòng bạn làm chủ hoặc đã tham gia.</p>
+                        </div>
+                    </div>
+                    <div id="my-rooms-list" class="space-y-3 text-sm text-slate-600">
+                        <p class="text-slate-500">Đang kiểm tra phòng bạn đã tham gia...</p>
+                    </div>
+                </section>
+            </div>
+
+            <section class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                <h3 class="font-semibold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-right-to-bracket"></i> Tham gia bằng mã</h3>
+                <p class="text-sm text-slate-600">Nhập mã do chủ phòng chia sẻ (kể cả phòng riêng tư).</p>
                 <form id="join-room-form" class="space-y-3">
                     <div>
                         <label class="block text-sm font-medium text-slate-700">Mã phòng</label>
-                        <input type="text" id="join-room-code" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 uppercase tracking-widest focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ví dụ: ABC123" maxlength="12" required>
+                        <input type="text" id="join-room-code" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 uppercase tracking-widest focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ví dụ: ABC123" maxlength="12" required>
                     </div>
-                    <button type="submit" class="cm-action cm-action--primary w-full justify-center">
-                        <i class="fa-solid fa-right-to-bracket"></i>
-                        <span>Vào phòng</span>
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
+                        <i class="fa-solid fa-door-open"></i><span>Vào phòng</span>
                     </button>
                 </form>
                 <p id="join-room-feedback" class="text-sm"></p>
+                <ul class="list-disc list-inside text-xs text-slate-600 space-y-1">
+                    <li>Phòng công khai và phòng riêng đều vào được bằng mã.</li>
+                    <li>Chia sẻ mã này cho bạn bè để học cùng.</li>
+                </ul>
             </section>
         </div>
 
-        <section class="grid gap-6 md:grid-cols-2">
-            <div class="cm-card cm-card--padded space-y-4">
-                <h2 class="text-xl font-semibold text-slate-900">Hai chế độ thi đấu</h2>
-                <div class="space-y-4">
-                    <article class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50">
-                        <div class="flex items-center gap-3">
-                            <span class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-emerald-600"><i class="fa-solid fa-users"></i></span>
-                            <div>
-                                <h3 class="font-semibold text-emerald-700">Test chậm</h3>
-                                <p class="text-sm text-emerald-600">Chỉ chuyển câu hỏi khi mọi người đã trả lời xong, phù hợp để thảo luận kỹ.</p>
-                            </div>
-                        </div>
-                    </article>
-                    <article class="p-4 rounded-2xl border border-amber-100 bg-amber-50">
-                        <div class="flex items-center gap-3">
-                            <span class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-amber-600"><i class="fa-solid fa-stopwatch"></i></span>
-                            <div>
-                                <h3 class="font-semibold text-amber-700">Giới hạn thời gian</h3>
-                                <p class="text-sm text-amber-600">Đặt số lượng câu hỏi và thời gian trả lời mỗi câu để tạo áp lực cạnh tranh.</p>
-                            </div>
-                        </div>
-                    </article>
-                </div>
-                <p class="text-sm text-slate-500">Tùy chỉnh chế độ ngay trong bảng tạo phòng để phù hợp tốc độ của nhóm.</p>
+        <section id="create-room-section" class="bg-white rounded-xl shadow-lg p-6 space-y-4">
+            <div class="space-y-1">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-plus-circle text-indigo-600"></i> Tạo phòng Quiz Battle mới</h2>
+                <p class="text-sm text-gray-600">Chọn bộ quiz, điều chỉnh chế độ và quyết định hiển thị phòng tương tự cách tạo phòng học nhóm flashcard.</p>
             </div>
 
-            <div class="cm-card cm-card--padded space-y-4">
-                <h2 class="text-xl font-semibold text-slate-900">Mẹo sử dụng</h2>
-                <ul class="list-disc pl-5 text-sm text-slate-600 space-y-2">
-                    <li>Nhấp vào phòng trong danh sách bên trái để vào nhanh, không cần nhập mã.</li>
-                    <li>Phòng riêng tư vẫn có thể chia sẻ mã để người ngoài bảng điều khiển tham gia.</li>
-                    <li>Chủ phòng có thể khóa, chuyển chế độ hoặc kết thúc trận ngay trong giao diện phòng.</li>
-                    <li>Xem lại lịch sử và điểm số ở trang thống kê để phân tích năng lực đội nhóm.</li>
-                </ul>
-            </div>
-        </section>
-    </div>
-</div>
-
-<div id="create-room-modal" class="qb-modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-room-title">
-    <div class="qb-modal__panel">
-        <div class="qb-modal__header">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Phòng riêng</p>
-                <h2 id="create-room-title" class="text-2xl font-bold text-slate-900 mt-1">Tạo phòng Quiz Battle mới</h2>
-                <p class="text-sm text-slate-500 mt-2">Chọn bộ quiz, tùy biến chế độ thi và quyết định chế độ hiển thị. Bạn có thể giữ mặc định riêng tư rồi gửi mã cho người cần tham gia.</p>
-            </div>
-            <button type="button" id="close-create-room-modal" class="qb-modal__close" aria-label="Đóng">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>
-        <form id="battle-settings-form" class="space-y-5">
-            <div class="space-y-3">
-                <label class="block text-sm font-medium text-slate-700">Chọn bộ quiz</label>
-                <div class="space-y-3">
+            <div class="grid gap-4 lg:grid-cols-3">
+                <div class="lg:col-span-2 space-y-3">
                     <div class="flex flex-col sm:flex-row gap-3">
                         <div class="flex-1">
-                            <input type="text" id="quiz-search-input" class="w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Nhập tên bộ quiz, thẻ hoặc từ khóa">
+                            <label class="block text-sm font-medium text-slate-700">Tìm bộ quiz</label>
+                            <input type="text" id="quiz-search-input" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Nhập tên bộ quiz hoặc từ khóa">
                         </div>
-                        <button type="button" id="refresh-quiz-list" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
+                        <button type="button" id="refresh-quiz-list" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
                             <i class="fa-solid fa-rotate"></i> Tải danh sách
                         </button>
                     </div>
                     <p id="quiz-search-status" class="text-xs text-slate-500">Đang tải danh sách bộ quiz khả dụng...</p>
                     <div id="quiz-selection-grid" class="grid gap-3 sm:grid-cols-2"></div>
-                    <p class="text-xs text-slate-500">Bấm vào một bộ quiz để sử dụng ngay. Hệ thống tự lọc các bộ bạn có quyền truy cập.</p>
-                    <div class="flex flex-wrap items-center gap-3 text-sm">
-                        <span class="font-semibold text-slate-700">Đã chọn:</span>
-                        <span id="selected-quiz-label" class="text-slate-500 italic">Chưa chọn bộ nào</span>
+                    <div class="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                        <span class="font-semibold">Đã chọn:</span>
+                        <span id="selected-quiz-label" class="text-gray-500 italic">Chưa chọn bộ nào</span>
                         <button type="button" id="clear-quiz-selection" class="text-xs font-semibold text-rose-600 hidden">Bỏ chọn</button>
                     </div>
                 </div>
-                <input type="hidden" name="container_id" id="selected-container-id">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Tiêu đề phòng</label>
-                <input type="text" name="title" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Quiz Battle tối nay" required>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Số lượng câu hỏi</label>
-                <input type="number" min="1" name="question_limit" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Để trống nếu muốn dùng toàn bộ bộ quiz">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Hiển thị phòng</label>
-                <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6 text-sm text-slate-600">
-                    <label class="inline-flex items-center gap-2">
-                        <input type="radio" name="visibility" value="public" class="text-indigo-600">
-                        <span>Công khai · hiện ở dashboard</span>
-                    </label>
-                    <label class="inline-flex items-center gap-2">
-                        <input type="radio" name="visibility" value="private" class="text-indigo-600" checked>
-                        <span>Riêng tư · chỉ vào được bằng mã</span>
-                    </label>
+
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                    <form id="battle-settings-form" class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">Tiêu đề phòng</label>
+                            <input type="text" name="title" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Quiz Battle tối nay" required>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700">Số câu hỏi (tuỳ chọn)</label>
+                                <input type="number" min="1" name="question_limit" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Để trống dùng toàn bộ">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700">Hiển thị phòng</label>
+                                <select name="visibility" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="private">Riêng tư (chia sẻ mã)</option>
+                                    <option value="public">Công khai</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">Chế độ thi</label>
+                            <select name="mode" id="battle-mode" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="SLOW">Test chậm</option>
+                                <option value="TIMED">Giới hạn thời gian</option>
+                            </select>
+                        </div>
+                        <div id="timed-config" class="hidden">
+                            <label class="block text-sm font-medium text-slate-700">Thời gian mỗi câu (giây)</label>
+                            <input type="number" min="5" name="time_per_question_seconds" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ví dụ: 30">
+                            <p class="mt-1 text-xs text-slate-500">Câu hỏi sẽ tự chuyển sau số giây này ở chế độ giới hạn thời gian.</p>
+                        </div>
+                        <input type="hidden" name="container_id" id="selected-container-id">
+                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
+                            <i class="fa-solid fa-plus"></i><span>Tạo phòng</span>
+                        </button>
+                        <div id="room-creation-result" class="text-sm"></div>
+                    </form>
                 </div>
-                <p class="mt-2 text-xs text-slate-500">Mặc định là phòng riêng để bạn kiểm soát danh sách người chơi.</p>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Chế độ thi</label>
-                <select name="mode" id="battle-mode" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="SLOW">Test chậm</option>
-                    <option value="TIMED">Giới hạn thời gian</option>
-                </select>
-            </div>
-            <div id="timed-config" class="hidden">
-                <label class="block text-sm font-medium text-slate-700">Thời gian cho mỗi câu (giây)</label>
-                <input type="number" min="5" name="time_per_question_seconds" class="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ví dụ: 30">
-                <p class="mt-2 text-xs text-slate-500">Ở chế độ giới hạn thời gian, câu hỏi sẽ tự chuyển sau khi hết số giây này.</p>
-            </div>
-            <button type="submit" class="cm-action cm-action--primary w-full justify-center">
-                <i class="fa-solid fa-plus"></i>
-                <span>Tạo phòng</span>
-            </button>
-            <div id="room-creation-result" class="text-sm"></div>
-        </form>
+        </section>
     </div>
 </div>
 {% endblock %}
@@ -383,9 +194,8 @@
         const joinRoomForm = document.getElementById('join-room-form');
         const joinRoomCodeInput = document.getElementById('join-room-code');
         const joinRoomFeedback = document.getElementById('join-room-feedback');
-        const createRoomModal = document.getElementById('create-room-modal');
-        const openCreateRoomBtn = document.getElementById('open-create-room-modal');
-        const closeCreateRoomBtn = document.getElementById('close-create-room-modal');
+        const createRoomSection = document.getElementById('create-room-section');
+        const openCreateRoomBtn = document.getElementById('open-create-room');
         const quizSetsEndpoint = "{{ url_for('learning.quiz_battle.list_available_quizzes') }}";
         const createRoomUrl = "{{ url_for('learning.quiz_battle.create_room') }}";
         const publicRoomsUrl = "{{ url_for('learning.quiz_battle.list_public_rooms') }}";
@@ -403,33 +213,13 @@
             completed: 'Đã kết thúc',
         };
 
-        function openCreateRoomModal() {
-            if (!createRoomModal) {
-                return;
-            }
-            createRoomModal.classList.remove('hidden');
-            document.body.classList.add('overflow-hidden');
+        openCreateRoomBtn?.addEventListener('click', () => {
             resultBox.textContent = '';
-        }
-
-        function closeCreateRoomModal() {
-            if (!createRoomModal) {
-                return;
+            if (createRoomSection) {
+                createRoomSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-            createRoomModal.classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
-        }
-
-        openCreateRoomBtn?.addEventListener('click', openCreateRoomModal);
-        closeCreateRoomBtn?.addEventListener('click', closeCreateRoomModal);
-        createRoomModal?.addEventListener('click', (event) => {
-            if (event.target === createRoomModal) {
-                closeCreateRoomModal();
-            }
-        });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && !createRoomModal?.classList.contains('hidden')) {
-                closeCreateRoomModal();
+            if (quizSearchInput) {
+                quizSearchInput.focus();
             }
         });
 
@@ -455,27 +245,29 @@
                 const activePlayers = (room.participants || []).filter((p) => p.status === 'active').length;
                 const viewUrl = roomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(room.room_code));
                 const card = document.createElement('div');
-                card.className = 'qb-room-card';
-                const statusClass = room.status === 'in_progress' ? 'qb-room-card__status qb-room-card__status--live' : 'qb-room-card__status';
-                const joinClass = room.is_public ? 'qb-room-card__join' : 'qb-room-card__join qb-room-card__join--private';
+                card.className = 'p-4 rounded-xl border border-slate-200 bg-white shadow-sm space-y-3';
+                const statusClass = room.status === 'in_progress' ? 'qb-badge qb-status-live' : 'qb-badge qb-status-lobby';
+                const joinClass = room.is_public
+                    ? 'join-room-button inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700'
+                    : 'join-room-button inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100';
                 card.innerHTML = `
-                    <div class="qb-room-card__title">
+                    <div class="flex items-start justify-between gap-3">
                         <div>
                             <p class="text-sm font-semibold text-slate-900">${room.title}</p>
                             <p class="text-xs text-slate-500">Mã phòng: <span class="font-mono tracking-widest">${room.room_code}</span></p>
                         </div>
                         <span class="${statusClass}">${formatStatus(room.status)}</span>
                     </div>
-                    <div class="qb-room-card__meta">
-                        <span><i class="fa-solid fa-users"></i> ${activePlayers} người đang hoạt động</span>
-                        <span><i class="fa-solid fa-layer-group"></i> ${room.question_total} câu · ${formatMode(room.mode)}</span>
-                        <span><i class="fa-solid fa-eye${room.is_public ? '' : '-slash'}"></i> ${room.is_public ? 'Công khai' : 'Riêng tư'}</span>
+                    <div class="text-sm text-slate-600 space-y-1">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-users"></i> ${activePlayers} người đang hoạt động</span>
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-layer-group"></i> ${room.question_total} câu · ${formatMode(room.mode)}</span>
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-eye${room.is_public ? '' : '-slash'}"></i> ${room.is_public ? 'Công khai' : 'Riêng tư'}</span>
                     </div>
                     <div class="flex flex-wrap gap-2 mt-auto">
-                        <button type="button" class="join-room-button ${joinClass}" data-room-code="${room.room_code}">
+                        <button type="button" class="${joinClass}" data-room-code="${room.room_code}">
                             <i class="fa-solid fa-right-to-bracket"></i> Tham gia
                         </button>
-                        ${canVisitDirectly ? `<a href="${viewUrl}" class="qb-room-card__join">
+                        ${canVisitDirectly ? `<a href="${viewUrl}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 font-semibold hover:bg-slate-100">
                             <i class="fa-solid fa-door-open"></i> Vào phòng
                         </a>` : ''}
                     </div>
