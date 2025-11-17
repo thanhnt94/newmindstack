@@ -3,6 +3,7 @@
 from ..db_instance import db
 
 from .learning import LearningContainer, LearningGroup, LearningItem
+from .flashcard_collab import FlashcardCollabParticipant, FlashcardCollabRoom
 from .quiz_battle import (
     QuizBattleAnswer,
     QuizBattleMessage,
@@ -29,6 +30,8 @@ __all__ = [
     'LearningContainer',
     'LearningGroup',
     'LearningItem',
+    'FlashcardCollabParticipant',
+    'FlashcardCollabRoom',
     'QuizBattleAnswer',
     'QuizBattleMessage',
     'QuizBattleParticipant',

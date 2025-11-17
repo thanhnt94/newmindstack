@@ -1,0 +1,1 @@
+"""Collaborative flashcard learning module."""
