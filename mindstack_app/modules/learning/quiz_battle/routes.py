@@ -14,7 +14,6 @@ from ....models import (
     LearningContainer,
     LearningItem,
     QuizBattleAnswer,
-    QuizBattleMessage,
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
@@ -29,7 +28,6 @@ from .services import (
     generate_room_code,
     get_active_participants,
     get_active_round,
-    serialize_message,
     serialize_room,
     start_round,
 )
@@ -472,47 +470,6 @@ def end_room(room_code: str):
             )
         }
     )
-
-
-@quiz_battle_bp.route('/rooms/<string:room_code>/messages', methods=['GET'])
-@login_required
-def list_messages(room_code: str):
-    """Return the newest chat messages in a room."""
-
-    room = _get_room_or_404(room_code)
-    limit = request.args.get('limit', default=50, type=int)
-    limit = max(1, min(limit, 200))
-
-    messages = (
-        QuizBattleMessage.query.filter_by(room_id=room.room_id)
-        .order_by(QuizBattleMessage.created_at.desc())
-        .limit(limit)
-        .all()
-    )
-    payload = [serialize_message(message) for message in reversed(messages)]
-    return jsonify({'messages': payload})
-
-
-@quiz_battle_bp.route('/rooms/<string:room_code>/messages', methods=['POST'])
-@login_required
-def post_message(room_code: str):
-    """Allow a room participant to send a chat message."""
-
-    room = _get_room_or_404(room_code)
-    participant = QuizBattleParticipant.query.filter_by(room_id=room.room_id, user_id=current_user.user_id).first()
-    if not participant or participant.status == QuizBattleParticipant.STATUS_KICKED:
-        abort(403, description='Bạn cần tham gia phòng để trò chuyện cùng mọi người.')
-
-    payload = request.get_json() or {}
-    content = payload.get('content')
-    if not content or not str(content).strip():
-        abort(400, description='Tin nhắn không được để trống.')
-
-    message = QuizBattleMessage(room_id=room.room_id, user_id=current_user.user_id, content=str(content).strip())
-    db.session.add(message)
-    db.session.commit()
-
-    return jsonify({'message': serialize_message(message)})
 
 
 @quiz_battle_bp.route('/rooms/<string:room_code>/rounds/<int:sequence_number>/answer', methods=['POST'])

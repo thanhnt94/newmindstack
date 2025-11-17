@@ -95,6 +95,24 @@
           <ul id="collab-round-participants" class="divide-y divide-slate-200 text-sm text-slate-700"></ul>
         </div>
       </div>
+
+      <div class="bg-white rounded-xl shadow p-5 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-900">Trò chuyện</h3>
+            <p class="text-sm text-slate-600">Trao đổi nhanh với các thành viên phòng.</p>
+          </div>
+        </div>
+        <div id="collab-chat-messages" class="h-72 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2 text-sm text-slate-800">
+          <p class="text-slate-500">Đang tải tin nhắn...</p>
+        </div>
+        <form id="collab-chat-form" class="flex gap-2">
+          <input id="collab-chat-input" type="text" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-200" placeholder="Nhập tin nhắn..." autocomplete="off">
+          <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+            <i class="fas fa-paper-plane"></i> Gửi
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 </div>
@@ -259,6 +277,114 @@
       fetchRound(true);
       startPolling();
 
+      window.addEventListener('beforeunload', stopPolling);
+    })();
+
+    (() => {
+      const messagesUrl = {{ url_for('shared.list_chat_messages', room_type='flashcard-collab', room_code=room_payload.room_code) | tojson }};
+      const postMessageUrl = {{ url_for('shared.post_chat_message', room_type='flashcard-collab', room_code=room_payload.room_code) | tojson }};
+      const chatMessages = document.getElementById('collab-chat-messages');
+      const chatForm = document.getElementById('collab-chat-form');
+      const chatInput = document.getElementById('collab-chat-input');
+
+      let pollHandle = null;
+
+      const renderMessages = (messages = []) => {
+        chatMessages.innerHTML = '';
+
+        if (!messages.length) {
+          chatMessages.innerHTML = '<p class="text-slate-500">Chưa có tin nhắn nào.</p>';
+          return;
+        }
+
+        messages.forEach((message) => {
+          const bubble = document.createElement('div');
+          bubble.className = 'rounded-lg border border-slate-200 bg-white p-2 shadow-sm';
+
+          const author = document.createElement('p');
+          author.className = 'text-sm font-semibold text-slate-800';
+          author.textContent = message.username || `Người dùng #${message.user_id}`;
+
+          const content = document.createElement('p');
+          content.className = 'text-sm text-slate-700';
+          content.textContent = message.content;
+
+          const meta = document.createElement('p');
+          meta.className = 'text-xs text-slate-500';
+          meta.textContent = message.created_at
+            ? new Date(message.created_at).toLocaleTimeString('vi-VN')
+            : '';
+
+          bubble.appendChild(author);
+          bubble.appendChild(content);
+          bubble.appendChild(meta);
+          chatMessages.appendChild(bubble);
+        });
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      };
+
+      const loadMessages = async () => {
+        try {
+          const response = await fetch(messagesUrl, { credentials: 'same-origin' });
+          if (!response.ok) {
+            throw new Error('Không thể tải tin nhắn.');
+          }
+          const payload = await response.json();
+          renderMessages(payload?.messages || []);
+        } catch (err) {
+          chatMessages.innerHTML = `<p class="text-sm text-rose-600">${err.message || 'Không thể tải tin nhắn.'}</p>`;
+        }
+      };
+
+      const sendMessage = async (content) => {
+        if (!content.trim()) return;
+
+        chatInput.disabled = true;
+        try {
+          const response = await fetch(postMessageUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ content }),
+          });
+
+          if (!response.ok) {
+            const errorPayload = await response.json().catch(() => ({}));
+            throw new Error(errorPayload?.description || 'Không thể gửi tin nhắn.');
+          }
+
+          chatInput.value = '';
+          await loadMessages();
+        } catch (err) {
+          chatMessages.insertAdjacentHTML(
+            'beforeend',
+            `<p class="text-sm text-rose-600">${err.message || 'Không thể gửi tin nhắn.'}</p>`
+          );
+        } finally {
+          chatInput.disabled = false;
+          chatInput.focus();
+        }
+      };
+
+      chatForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        sendMessage(chatInput.value || '');
+      });
+
+      const startPolling = () => {
+        if (pollHandle) return;
+        pollHandle = setInterval(loadMessages, 7000);
+      };
+
+      const stopPolling = () => {
+        if (!pollHandle) return;
+        clearInterval(pollHandle);
+        pollHandle = null;
+      };
+
+      loadMessages();
+      startPolling();
       window.addEventListener('beforeunload', stopPolling);
     })();
   </script>

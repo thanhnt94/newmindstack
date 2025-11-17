@@ -11,7 +11,6 @@ from sqlalchemy.sql import func
 
 from ....models import (
     LearningItem,
-    QuizBattleMessage,
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
@@ -307,15 +306,3 @@ def serialize_room(
 
     return payload
 
-
-def serialize_message(message: QuizBattleMessage) -> dict[str, object]:
-    """Serialize a chat message so the frontend can render it."""
-
-    return {
-        'message_id': message.message_id,
-        'room_id': message.room_id,
-        'user_id': message.user_id,
-        'username': getattr(message.user, 'username', None),
-        'content': message.content,
-        'created_at': message.created_at.isoformat() if message.created_at else None,
-    }

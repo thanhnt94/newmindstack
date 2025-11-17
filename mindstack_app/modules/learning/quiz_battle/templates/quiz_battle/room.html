@@ -758,8 +758,8 @@
         const leaveRoomUrl = {{ url_for('learning.quiz_battle.leave_room', room_code=room_code) | tojson }};
         const startRoomUrl = {{ url_for('learning.quiz_battle.start_room', room_code=room_code) | tojson }};
         const endRoomUrl = {{ url_for('learning.quiz_battle.end_room', room_code=room_code) | tojson }};
-        const messagesUrl = {{ url_for('learning.quiz_battle.list_messages', room_code=room_code) | tojson }};
-        const postMessageUrl = {{ url_for('learning.quiz_battle.post_message', room_code=room_code) | tojson }};
+        const messagesUrl = {{ url_for('shared.list_chat_messages', room_type='quiz-battle', room_code=room_code) | tojson }};
+        const postMessageUrl = {{ url_for('shared.post_chat_message', room_type='quiz-battle', room_code=room_code) | tojson }};
         const answerUrlTemplate = {{ url_for('learning.quiz_battle.submit_round_answer', room_code=room_code, sequence_number=0) | tojson }};
         const noteSaveUrlTemplate = {{ url_for('notes.save_note', item_id=0) | tojson }};
         const feedbackSubmitUrl = {{ url_for('feedback.submit_feedback') | tojson }};

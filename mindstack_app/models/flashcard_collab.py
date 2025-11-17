@@ -59,6 +59,20 @@ class FlashcardCollabParticipant(db.Model):
     __table_args__ = (db.UniqueConstraint('room_id', 'user_id', name='uq_flashcard_collab_participant'),)
 
 
+class FlashcardCollabMessage(db.Model):
+    """Chat messages exchanged inside a collaborative flashcard room."""
+
+    __tablename__ = 'flashcard_collab_messages'
+
+    message_id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('flashcard_collab_rooms.room_id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = db.relationship('User', backref='flashcard_collab_messages', foreign_keys=[user_id])
+
+
 class FlashcardCollabRound(db.Model):
     """Represents a shared flashcard round within a room."""
 
