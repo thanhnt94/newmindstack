@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, abort, jsonify, render_template, request
+from flask import Blueprint, abort, jsonify, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy.sql import func
 
@@ -84,6 +84,45 @@ def create_room():
     db.session.commit()
 
     return jsonify({'room': serialize_room(room)}), 201
+
+
+@flashcard_collab_bp.route('/rooms/<room_code>/view', methods=['GET'])
+@login_required
+def view_room(room_code: str):
+    """Hiển thị trang phòng học nhóm và tự động thêm người dùng vào phòng."""
+
+    room = FlashcardCollabRoom.query.filter_by(room_code=room_code).first()
+    if not room:
+        abort(404, description='Không tìm thấy phòng học chung.')
+
+    accessible_ids = set(get_accessible_flashcard_set_ids(current_user.user_id))
+    if current_user.user_role != User.ROLE_ADMIN and room.container_id not in accessible_ids:
+        abort(403, description='Bạn chưa có quyền sử dụng bộ flashcard này.')
+
+    participant = FlashcardCollabParticipant.query.filter_by(
+        room_id=room.room_id, user_id=current_user.user_id
+    ).first()
+    if participant:
+        participant.status = FlashcardCollabParticipant.STATUS_ACTIVE
+    else:
+        participant = FlashcardCollabParticipant(room=room, user_id=current_user.user_id)
+        db.session.add(participant)
+
+    db.session.commit()
+
+    room_payload = serialize_room(room)
+    start_session_url = url_for(
+        'learning.flashcard_learning.start_flashcard_session_by_id',
+        set_id=room.container_id,
+        mode=room.mode,
+    )
+
+    return render_template(
+        'flashcard_collab/room.html',
+        room=room,
+        room_payload=room_payload,
+        start_session_url=start_session_url,
+    )
 
 
 @flashcard_collab_bp.route('/rooms/public', methods=['GET'])
