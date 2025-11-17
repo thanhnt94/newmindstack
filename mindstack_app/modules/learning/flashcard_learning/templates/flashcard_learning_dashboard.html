@@ -69,10 +69,35 @@
             margin-right: .75rem;
             font-size: 2.25rem;
         }
-        .flashcard-title-badge:hover { 
+        .flashcard-title-badge:hover {
             box-shadow: 0 6px 14px rgba(30,58,138,0.20);
             border-color: #60a5fa;
             transform: translateY(-2px);
+        }
+
+        .study-mode-tabs {
+            display: inline-flex;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            padding: 0.25rem;
+            gap: 0.25rem;
+        }
+
+        .study-mode-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            color: #4b5563;
+            border: 1px solid transparent;
+            background: transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .study-mode-tab.active {
+            background: #ffffff;
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.06);
         }
         
         .flashcard-set-item {
@@ -224,51 +249,100 @@
         <div id="flashcardTitle" class="flashcard-title-badge"><i class="fas fa-clone"></i>Flashcard</div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
-        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
-                <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ thẻ
-            </h2>
-            <div class="mb-4">
-                <div class="tabs-and-toggle-wrapper">
-                    <div class="tab-group">
-                        <button id="filter-doing" class="tab-filter-button flex items-center justify-center active" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang học</span></button>
-                        <button id="filter-explore" class="tab-filter-button flex items-center justify-center" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
-                        <button id="filter-archive" class="tab-filter-button flex items-center justify-center" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
-                    </div>
-                </div>
-            </div>
-            <div id="selected-sets-display" class="selected-sets-container hidden">
-                <span class="text-gray-500">Bộ thẻ đã chọn:</span>
-            </div>
-            <div id="flashcard-sets-container" class="flex-grow">
-                <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
-                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                    <p>Đang tải danh sách bộ thẻ...</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-            <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
-                <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
-            </h2>
-            <div id="flashcard-options-container" class="flex-grow">
-                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
-                    <i class="fas fa-info-circle text-4xl mb-3"></i>
-                    <p>Vui lòng chọn một bộ thẻ trước.</p>
-                </div>
-            </div>
+    <div class="flex justify-center mb-6">
+        <div class="study-mode-tabs" role="tablist" aria-label="Chế độ học flashcard">
+            <button class="study-mode-tab active" data-study-tab="solo" role="tab" aria-selected="true">Học 1 mình</button>
+            <button class="study-mode-tab" data-study-tab="group" role="tab" aria-selected="false">Học theo nhóm</button>
         </div>
     </div>
 
-    <div class="mt-8 text-center">
-        <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-            <i class="fas fa-play-circle mr-3"></i> Bắt đầu học
-        </button>
-        <button id="bulk-unarchive-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-            <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
-        </button>
+    <div id="flashcard-solo-section" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                    <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ thẻ
+                </h2>
+                <div class="mb-4">
+                    <div class="tabs-and-toggle-wrapper">
+                        <div class="tab-group">
+                            <button id="filter-doing" class="tab-filter-button flex items-center justify-center active" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang học</span></button>
+                            <button id="filter-explore" class="tab-filter-button flex items-center justify-center" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
+                            <button id="filter-archive" class="tab-filter-button flex items-center justify-center" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
+                        </div>
+                    </div>
+                </div>
+                <div id="selected-sets-display" class="selected-sets-container hidden">
+                    <span class="text-gray-500">Bộ thẻ đã chọn:</span>
+                </div>
+                <div id="flashcard-sets-container" class="flex-grow">
+                    <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                        <p>Đang tải danh sách bộ thẻ...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+                <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                    <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
+                </h2>
+                <div id="flashcard-options-container" class="flex-grow">
+                    <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                        <i class="fas fa-info-circle text-4xl mb-3"></i>
+                        <p>Vui lòng chọn một bộ thẻ trước.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center">
+            <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
+                <i class="fas fa-play-circle mr-3"></i> Bắt đầu học
+            </button>
+            <button id="bulk-unarchive-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
+                <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
+            </button>
+        </div>
+    </div>
+
+    <div id="flashcard-group-section" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-start gap-3 mb-4">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-700"><i class="fas fa-people-group"></i></div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Phòng học Flashcard</h2>
+                        <p class="text-sm text-gray-600">Ôn tập cùng bạn bè với cùng bộ thẻ và chế độ học. Tất cả thành viên sẽ thấy thẻ ưu tiên theo lịch học chung.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-lg border border-blue-100 bg-blue-50">
+                        <h3 class="font-semibold text-blue-800 mb-2"><i class="fas fa-wifi mr-2"></i>Phòng công khai</h3>
+                        <p class="text-sm text-gray-700">Tạo phòng nhanh để mọi người tham gia bằng mã. Phù hợp khi muốn ôn tập linh hoạt.</p>
+                    </div>
+                    <div class="p-4 rounded-lg border border-indigo-100 bg-indigo-50">
+                        <h3 class="font-semibold text-indigo-800 mb-2"><i class="fas fa-lock mr-2"></i>Phòng riêng</h3>
+                        <p class="text-sm text-gray-700">Chỉ thành viên được mời mới có thể vào. Dùng để học cùng nhóm cố định hoặc lớp học.</p>
+                    </div>
+                </div>
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <a href="{{ url_for('learning.flashcard_collab.dashboard') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
+                        <i class="fas fa-door-open mr-2"></i> Vào phòng học nhóm
+                    </a>
+                    <a href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}#flashcard-solo-section" class="inline-flex items-center px-4 py-2 bg-white text-blue-700 border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 transition">
+                        <i class="fas fa-user mr-2"></i> Quay lại học một mình
+                    </a>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
+                <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-lightbulb text-yellow-500"></i> Mẹo cho nhóm</h3>
+                <ul class="space-y-3 text-sm text-gray-700 list-disc list-inside">
+                    <li>Chia sẻ mã phòng cho cả nhóm để vào nhanh.</li>
+                    <li>Chọn cùng chế độ (Ôn thẻ đến hạn, Học thẻ mới...) để giữ nhịp chung.</li>
+                    <li>Sau buổi học, xem lại thống kê để theo dõi tiến độ từng người.</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -289,6 +363,7 @@
     let selectedButtonCount = parseInt("{{ user_button_count | default(3) }}");
     let selectedAutoplayMode = localStorage.getItem('flashcardAutoplayScope') || 'autoplay_learned';
     let autoplayDelaySeconds = parseInt(localStorage.getItem('flashcardAutoplayDelay') || '2', 10);
+    let currentStudyMode = 'solo';
     if (Number.isNaN(autoplayDelaySeconds) || autoplayDelaySeconds < 0) {
         autoplayDelaySeconds = 2;
     }
@@ -299,6 +374,9 @@
     const bulkUnarchiveBtn = document.getElementById('bulk-unarchive-btn');
     const selectedSetsDisplay = document.getElementById('selected-sets-display');
     const step2Title = document.getElementById('step-2-title');
+    const studyModeTabs = document.querySelectorAll('[data-study-tab]');
+    const soloSection = document.getElementById('flashcard-solo-section');
+    const groupSection = document.getElementById('flashcard-group-section');
     
     const rightPanel = document.querySelector('.lg\\:grid-cols-2 > div:nth-child(2)');
     let allSetsButton = null;
@@ -311,6 +389,31 @@
     const toggleArchiveUrl = "{{ url_for('learning.flashcard_learning.toggle_archive_flashcard', set_id=0) or '#' }}";
     const bulkUnarchiveUrl = "{{ url_for('learning.flashcard_learning.bulk_unarchive_flashcard') }}";
     const saveFlashcardSettingsUrl = "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}";
+
+    studyModeTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const selectedMode = tab.dataset.studyTab;
+            if (!selectedMode || selectedMode === currentStudyMode) return;
+
+            currentStudyMode = selectedMode;
+            studyModeTabs.forEach((btn) => {
+                const isActive = btn.dataset.studyTab === selectedMode;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+
+            if (selectedMode === 'solo') {
+                soloSection.classList.remove('hidden');
+                groupSection.classList.add('hidden');
+                updateActionButtons();
+            } else {
+                soloSection.classList.add('hidden');
+                groupSection.classList.remove('hidden');
+                startLearningBtn.style.display = 'none';
+                bulkUnarchiveBtn.style.display = 'none';
+            }
+        });
+    });
     
     // Gán event listener cho dropdown số nút
     document.addEventListener('change', async function(event) {
@@ -822,6 +925,12 @@
     function updateActionButtons() {
         const selectedCount = selectedFlashcardSetIds.length;
         const isSelected = selectedCount > 0;
+
+        if (currentStudyMode === 'group') {
+            startLearningBtn.style.display = 'none';
+            bulkUnarchiveBtn.style.display = 'none';
+            return;
+        }
 
         if (currentFilter === 'archive') {
             startLearningBtn.style.display = 'none';
