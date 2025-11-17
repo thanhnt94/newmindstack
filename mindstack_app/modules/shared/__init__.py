@@ -9,4 +9,6 @@ from flask import Blueprint
 # template_folder='templates' để Flask biết nơi tìm base.html và các includes
 shared_bp = Blueprint('shared', __name__, template_folder='templates')
 
-# Module này không cần import routes vì nó không có trang web nào để hiển thị
+# Đăng ký các routes dùng chung (chat,...)
+from .chat import routes as chat_routes  # noqa: E402,F401
+
