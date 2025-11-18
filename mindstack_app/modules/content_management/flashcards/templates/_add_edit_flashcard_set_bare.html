@@ -348,6 +348,9 @@
             showStatus('Đang xử lý file Excel, vui lòng chờ...', 'info');
             const formData = new FormData();
             formData.append('excel_file', file);
+            if (csrfToken) {
+                formData.append('csrf_token', csrfToken);
+            }
 
             try {
                 const headers = { 'X-Requested-With': 'XMLHttpRequest' };
