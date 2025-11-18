@@ -355,12 +355,17 @@
                     headers['X-CSRFToken'] = csrfToken;
                 }
 
-                const response = await fetch("{{ url_for('content_management.content_management_flashcards.process_excel_info') }}", {
+                const processExcelUrl = new URL(
+                    "{{ url_for('content_management.content_management_flashcards.process_excel_info') }}",
+                    window.location.origin
+                ).toString();
+
+                const response = await fetch(processExcelUrl, {
                     method: 'POST',
                     body: formData,
-                    headers
+                    headers,
+                    credentials: 'same-origin'
                 });
-
                 const result = await response.json();
 
                 if (response.ok && result.success) {
