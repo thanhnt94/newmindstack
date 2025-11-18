@@ -1157,19 +1157,39 @@ def add_quiz_set():
                     excel_file.save(tmp_file.name)
                     temp_filepath = tmp_file.name
                 df = pd.read_excel(temp_filepath, sheet_name='Data')
+
+                def _parse_excel_int(value, row_index, field_name):
+                    if value is None:
+                        return None
+                    value_str = str(value).strip()
+                    if value_str == '':
+                        return None
+                    try:
+                        return int(float(value_str))
+                    except (TypeError, ValueError):
+                        raise ValueError(
+                            f"Hàng {row_index}: {field_name} '{value}' không hợp lệ."
+                        )
+
                 group_cache = {}
                 items_added_count = 0
                 for index, row in df.iterrows():
+                    row_number = index + 2  # Bắt đầu từ hàng 2 trong Excel (sau tiêu đề)
                     group_passage_text = None
                     group_audio_file = None
                     group_image_file = None
 
-                    passage_order = str(row['passage_order']) if 'passage_order' in df.columns and pd.notna(row['passage_order']) else None
+                    raw_passage_order = (
+                        row['passage_order']
+                        if 'passage_order' in df.columns and pd.notna(row['passage_order'])
+                        else None
+                    )
+                    passage_order = _parse_excel_int(raw_passage_order, row_number, 'passage_order')
                     group_db_id = None
                     group_content = {}
                     group_type = ''
 
-                    if passage_order:
+                    if passage_order is not None:
                         group_passage_text = str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None
                         group_audio_file = str(row['group_audio_file']) if 'group_audio_file' in df.columns and pd.notna(row['group_audio_file']) else None
                         group_image_file = str(row['group_image_file']) if 'group_image_file' in df.columns and pd.notna(row['group_image_file']) else None
@@ -1228,7 +1248,7 @@ def add_quiz_set():
                         'explanation': str(row['guidance']) if 'guidance' in df.columns and pd.notna(row['guidance']) else None,
                         'pre_question_text': str(row['pre_question_text']) if 'pre_question_text' in df.columns and pd.notna(row['pre_question_text']) else None,
                         'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None,
-                        'passage_order': int(passage_order) if passage_order else None,
+                        'passage_order': passage_order,
                         'question_image_file': _process_relative_url(item_image_file, image_folder) if item_image_file else None,
                         'question_audio_file': _process_relative_url(item_audio_file, audio_folder) if item_audio_file else None,
                     }
@@ -1243,7 +1263,7 @@ def add_quiz_set():
                         group_id=group_db_id,
                         item_type='QUIZ_MCQ',
                         content=item_content,
-                        order_in_container=int(passage_order) if passage_order else index + 1
+                        order_in_container=passage_order if passage_order is not None else index + 1
                     )
                     db.session.add(new_item)
                     items_added_count += 1
