@@ -97,6 +97,7 @@
 
                     {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
                     <form action="{{ url_for('content_management.content_management_quizzes.delete_quiz_set', set_id=set.container_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ câu hỏi này và tất cả các câu hỏi của nó?');" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="cm-icon-button" title="Xoá bộ câu hỏi">
                             <i class="fas fa-trash-alt"></i>
                         </button>
