@@ -54,15 +54,10 @@ QUIZ_DATA_COLUMNS = [
     'guidance',
     'question_image_file',
     'question_audio_file',
-    'passage_text',
-    'passage_order',
     'ai_prompt',
     'group_id',
-    'group_ref',
-    'group_type',
-    'group_passage_text',
-    'group_audio_file',
-    'group_image_file',
+    'group_shared_components',
+    'group_item_order',
     'action',
 ]
 
@@ -77,6 +72,13 @@ QUIZ_INFO_KEYS = [
 ]
 
 ACTION_OPTIONS = ['None', 'Update', 'Create', 'Delete', 'Skip']
+
+GROUP_SHARED_COMPONENT_MAP = {
+    'image': 'question_image_file',
+    'audio': 'question_audio_file',
+    'explanation': 'explanation',
+    'prompt': 'ai_prompt',
+}
 
 
 def _apply_action_dropdown(worksheet, data_columns):
@@ -131,6 +133,64 @@ def _create_quiz_excel(info_rows, data_rows, *, output_path: Optional[str] = Non
 
     target.seek(0)
     return target
+
+
+def _build_sample_quiz_template():
+    info_rows = [
+        ('title', 'Mẫu bộ Quiz - thay tiêu đề ở đây'),
+        ('description', 'Ví dụ ngắn để minh hoạ bộ 3 cột group_id/group_shared_components/group_item_order'),
+        ('tags', 'sample,template'),
+        ('is_public', 'False'),
+        ('image_base_folder', 'quiz/images'),
+        ('audio_base_folder', 'quiz/audio'),
+        ('ai_prompt', ''),
+    ]
+
+    def _row(**kwargs):
+        base = {column: '' for column in QUIZ_DATA_COLUMNS}
+        base.update(kwargs)
+        return base
+
+    data_rows = [
+        _row(
+            order_in_container=1,
+            question='Câu hỏi độc lập (không thuộc group)',
+            option_a='Đáp án A',
+            option_b='Đáp án B',
+            correct_answer_text='A',
+            guidance='Giải thích riêng cho câu hỏi này',
+            question_image_file='uploads/quiz/images/question-1.png',
+            action='create',
+        ),
+        _row(
+            order_in_container=2,
+            question='Bước 1 trong group chung',
+            option_a='Lựa chọn 1',
+            option_b='Lựa chọn 2',
+            correct_answer_text='A',
+            guidance='Giải thích chung cho cả group',
+            question_image_file='uploads/quiz/images/shared.png',
+            question_audio_file='uploads/quiz/audio/shared.mp3',
+            ai_prompt='Gợi ý dùng chung cho cả group',
+            group_id=1001,
+            group_shared_components='image,audio,explanation,prompt',
+            group_item_order=1,
+            action='create',
+        ),
+        _row(
+            order_in_container=3,
+            question='Bước 2 trong group chung (kế thừa media/prompt)',
+            option_a='Lựa chọn 1',
+            option_b='Lựa chọn 2',
+            correct_answer_text='B',
+            group_id=1001,
+            group_shared_components='image,audio,explanation,prompt',
+            group_item_order=2,
+            action='create',
+        ),
+    ]
+
+    return info_rows, data_rows
 
 
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
@@ -197,6 +257,15 @@ def _process_relative_url(url, media_folder: Optional[str] = None):
         return ''
 
     return normalize_media_value_for_storage(normalized, media_folder)
+
+
+def _parse_shared_components(raw_value) -> set[str]:
+    if raw_value is None:
+        return set()
+    tokens = [
+        token.strip().lower() for token in str(raw_value).split(',') if token and str(token).strip()
+    ]
+    return {token for token in tokens if token in GROUP_SHARED_COMPONENT_MAP}
 
 
 def _build_absolute_media_url(file_path, media_folder: Optional[str] = None):
@@ -403,11 +472,16 @@ def _build_quiz_export_payload(
         for key in QUIZ_INFO_KEYS
     ]
 
+    group_shared_tracker: dict[int, set[str]] = {}
     data_rows = []
     for item in items:
         content = item.content or {}
         group = groups.get(item.group_id) if item.group_id else None
         group_content = group.content if group else {}
+        shared_components = set()
+        if isinstance(group_content, dict):
+            shared_components = set(group_content.get('shared_components') or [])
+
         row = {column: '' for column in QUIZ_DATA_COLUMNS}
         row['item_id'] = item.item_id
         row['order_in_container'] = item.order_in_container if item.order_in_container is not None else ''
@@ -420,51 +494,48 @@ def _build_quiz_export_payload(
         row['option_d'] = options.get('D') or ''
         row['correct_answer_text'] = content.get('correct_answer') or ''
         row['guidance'] = content.get('explanation') or ''
-        row['question_image_file'] = _copy_media_into_package(
-            content.get('question_image_file'),
-            media_dir,
-            media_cache,
-            media_subdir='images',
-            media_folder=image_folder,
-            export_mode=export_mode,
-        ) or ''
-        row['question_audio_file'] = _copy_media_into_package(
-            content.get('question_audio_file'),
-            media_dir,
-            media_cache,
-            media_subdir='audio',
-            media_folder=audio_folder,
-            export_mode=export_mode,
-        ) or ''
-        row['passage_text'] = content.get('passage_text') or ''
-        row['passage_order'] = content.get('passage_order') if content.get('passage_order') is not None else ''
-        row['ai_prompt'] = content.get('ai_prompt') or ''
 
-        row['group_id'] = group.group_id if group else ''
-        row['group_ref'] = f"group-{group.group_id}" if group else ''
-        row['group_type'] = group.group_type if group else ''
-        if isinstance(group_content, dict):
-            row['group_passage_text'] = group_content.get('passage_text') or ''
-            row['group_audio_file'] = _copy_media_into_package(
-                group_content.get('question_audio_file'),
-                media_dir,
-                media_cache,
-                media_subdir='audio',
-                media_folder=audio_folder,
-                export_mode=export_mode,
-            ) or ''
-            row['group_image_file'] = _copy_media_into_package(
-                group_content.get('question_image_file'),
+        def _shared_value(token: str, field_name: str, raw_value):
+            if not group or token not in shared_components:
+                return raw_value
+            seen = group_shared_tracker.setdefault(group.group_id, set())
+            canonical_value = group_content.get(field_name) or raw_value or ''
+            if token in seen:
+                return ''
+            seen.add(token)
+            return canonical_value
+
+        row['question_image_file'] = _shared_value(
+            'image',
+            'question_image_file',
+            _copy_media_into_package(
+                content.get('question_image_file'),
                 media_dir,
                 media_cache,
                 media_subdir='images',
                 media_folder=image_folder,
                 export_mode=export_mode,
             ) or ''
-        else:
-            row['group_passage_text'] = ''
-            row['group_audio_file'] = ''
-            row['group_image_file'] = ''
+        )
+        row['question_audio_file'] = _shared_value(
+            'audio',
+            'question_audio_file',
+            _copy_media_into_package(
+                content.get('question_audio_file'),
+                media_dir,
+                media_cache,
+                media_subdir='audio',
+                media_folder=audio_folder,
+                export_mode=export_mode,
+            ) or ''
+        )
+        row['ai_prompt'] = _shared_value('prompt', 'ai_prompt', content.get('ai_prompt') or '')
+        row['guidance'] = _shared_value('explanation', 'explanation', row['guidance'])
+
+        row['group_id'] = group.group_id if group else ''
+        if shared_components:
+            row['group_shared_components'] = ','.join(sorted(shared_components))
+        row['group_item_order'] = content.get('group_item_order') if content.get('group_item_order') is not None else ''
 
         row['action'] = 'None'
         data_rows.append(row)
@@ -499,6 +570,19 @@ def _serialize_quiz_item_for_response(item, user_id=None):
         note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
         note_content = note.content if note else ''
 
+    group_details = None
+    if item.group_id and getattr(item, 'group', None):
+        group_content = item.group.content or {}
+        group_details = {
+            'group_id': item.group_id,
+            'shared_components': group_content.get('shared_components') or [],
+            'shared_values': {
+                token: group_content.get(field)
+                for token, field in GROUP_SHARED_COMPONENT_MAP.items()
+                if token in (group_content.get('shared_components') or [])
+            }
+        }
+
     return {
         'item_id': item.item_id,
         'container_id': item.container_id,
@@ -506,7 +590,7 @@ def _serialize_quiz_item_for_response(item, user_id=None):
         'ai_explanation': item.ai_explanation,
         'note_content': note_content,
         'group_id': item.group_id,
-        'group_details': None
+        'group_details': group_details
     }
 
 def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
@@ -605,73 +689,49 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
             except (TypeError, ValueError):
                 raise ValueError(f"Hàng {row_index}: {field_name} '{value}' không hợp lệ.")
 
-        def _resolve_group(row_data, row_index):
+        group_state = {}
+
+        def _get_or_create_group(row_data, row_index):
             group_id_value = _get_cell(row_data, 'group_id')
-            group_ref_value = _get_cell(row_data, 'group_ref')
-            group_passage = _get_cell(row_data, 'group_passage_text')
-            group_audio = _get_cell(row_data, 'group_audio_file')
-            group_image = _get_cell(row_data, 'group_image_file')
+            if group_id_value in (None, ''):
+                return None
 
-            group_id_local = None
-            if group_id_value:
-                group_id_local = _parse_int(group_id_value, row_index, 'group_id')
-            elif group_ref_value and group_ref_value.lower().startswith('group-'):
-                try:
-                    group_id_local = int(group_ref_value.split('-', 1)[1])
-                except (ValueError, IndexError):
-                    group_id_local = None
+            provided_group_id = _parse_int(group_id_value, row_index, 'group_id')
+            if provided_group_id is None:
+                return None
 
-            if group_id_local and group_id_local in existing_groups:
-                group_obj = existing_groups[group_id_local]
-                content_dict = dict(group_obj.content or {})
-                updated = False
-                if group_passage:
-                    content_dict['passage_text'] = group_passage
-                    updated = True
-                if group_audio:
-                    content_dict['question_audio_file'] = _process_relative_url(group_audio, audio_folder)
-                    updated = True
-                if group_image:
-                    content_dict['question_image_file'] = _process_relative_url(group_image, image_folder)
-                    updated = True
-                if updated:
-                    group_obj.content = content_dict
-                    flag_modified(group_obj, 'content')
-                return group_obj
+            if provided_group_id in group_state:
+                return group_state[provided_group_id]
 
-            if group_ref_value and group_ref_value in group_cache:
-                return group_cache[group_ref_value]
+            if provided_group_id in existing_groups:
+                existing_group = existing_groups[provided_group_id]
+                content_dict = dict(existing_group.content or {})
+                entry = {
+                    'group': existing_group,
+                    'shared_components': set(content_dict.get('shared_components') or []),
+                    'shared_values': {
+                        field: content_dict.get(field)
+                        for field in GROUP_SHARED_COMPONENT_MAP.values()
+                        if content_dict.get(field) is not None
+                    }
+                }
+                group_state[provided_group_id] = entry
+                return entry
 
-            if any([group_passage, group_audio, group_image]):
-                group_content = {}
-                if group_passage:
-                    group_content['passage_text'] = group_passage
-                if group_audio:
-                    group_content['question_audio_file'] = _process_relative_url(group_audio, audio_folder)
-                if group_image:
-                    group_content['question_image_file'] = _process_relative_url(group_image, image_folder)
-
-                if group_passage:
-                    group_type = 'PASSAGE'
-                elif group_audio:
-                    group_type = 'AUDIO'
-                elif group_image:
-                    group_type = 'IMAGE'
-                else:
-                    group_type = 'PASSAGE'
-
-                new_group = LearningGroup(
-                    container_id=container_id,
-                    group_type=group_type,
-                    content=group_content,
-                )
-                db.session.add(new_group)
-                db.session.flush()
-                if group_ref_value:
-                    group_cache[group_ref_value] = new_group
-                return new_group
-
-            return None
+            new_group = LearningGroup(
+                container_id=container_id,
+                group_type='PASSAGE',
+                content={},
+            )
+            db.session.add(new_group)
+            db.session.flush()
+            entry = {
+                'group': new_group,
+                'shared_components': set(),
+                'shared_values': {},
+            }
+            group_state[provided_group_id] = entry
+            return entry
 
         for index, row in df.iterrows():
             row_number = index + 2
@@ -687,6 +747,11 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
             option_c = _get_cell(row, 'option_c')
             option_d = _get_cell(row, 'option_d')
             correct_answer = _get_cell(row, 'correct_answer_text')
+            group_item_order = _parse_int(_get_cell(row, 'group_item_order'), row_number, 'group_item_order')
+            shared_components = _parse_shared_components(_get_cell(row, 'group_shared_components'))
+            group_entry = _get_or_create_group(row, row_number)
+            if group_entry and shared_components:
+                group_entry['shared_components'].update(shared_components)
 
             item_id = None
             if item_id_value:
@@ -725,25 +790,42 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 content_dict['options']['B'] = option_b
                 content_dict['options']['C'] = option_c
                 content_dict['options']['D'] = option_d
-                content_dict['correct_answer'] = correct_answer
-                content_dict['explanation'] = _get_cell(row, 'guidance')
-                content_dict['pre_question_text'] = _get_cell(row, 'pre_question_text')
-                passage_text = _get_cell(row, 'passage_text')
-                content_dict['passage_text'] = passage_text
-                passage_order = _parse_int(_get_cell(row, 'passage_order'), row_number, 'passage_order')
-                content_dict['passage_order'] = passage_order
+
+                def _value_with_group(token: str, field_name: str, raw_value):
+                    if not group_entry or token not in group_entry['shared_components']:
+                        return raw_value
+                    cached_value = group_entry['shared_values'].get(field_name)
+                    chosen = raw_value if raw_value not in (None, '') else cached_value
+                    if chosen not in (None, ''):
+                        group_entry['shared_values'][field_name] = chosen
+                    return chosen
+
+                guidance_value = _get_cell(row, 'guidance')
+                pre_question_value = _get_cell(row, 'pre_question_text')
                 image_value = _get_cell(row, 'question_image_file')
                 audio_value = _get_cell(row, 'question_audio_file')
-                content_dict['question_image_file'] = _process_relative_url(image_value, image_folder) if image_value else None
-                content_dict['question_audio_file'] = _process_relative_url(audio_value, audio_folder) if audio_value else None
                 ai_prompt_value = _get_cell(row, 'ai_prompt')
-                if ai_prompt_value:
-                    content_dict['ai_prompt'] = ai_prompt_value
+
+                content_dict['correct_answer'] = correct_answer
+                content_dict['explanation'] = _value_with_group('explanation', 'explanation', guidance_value)
+                content_dict['pre_question_text'] = pre_question_value
+                image_processed = _process_relative_url(image_value, image_folder) if image_value else None
+                audio_processed = _process_relative_url(audio_value, audio_folder) if audio_value else None
+                content_dict['question_image_file'] = _value_with_group('image', 'question_image_file', image_processed)
+                content_dict['question_audio_file'] = _value_with_group('audio', 'question_audio_file', audio_processed)
+
+                prompt_value = _value_with_group('prompt', 'ai_prompt', ai_prompt_value)
+                if prompt_value:
+                    content_dict['ai_prompt'] = prompt_value
                 else:
                     content_dict.pop('ai_prompt', None)
 
-                item_group = _resolve_group(row, row_number)
-                item.group_id = item_group.group_id if item_group else None
+                if group_item_order is not None:
+                    content_dict['group_item_order'] = group_item_order
+                else:
+                    content_dict.pop('group_item_order', None)
+
+                item.group_id = group_entry['group'].group_id if group_entry else None
 
                 item.content = content_dict
                 flag_modified(item, 'content')
@@ -764,6 +846,21 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                     stats['skipped'] += 1
                     continue
 
+                def _value_with_group(token: str, field_name: str, raw_value):
+                    if not group_entry or token not in group_entry['shared_components']:
+                        return raw_value
+                    cached_value = group_entry['shared_values'].get(field_name)
+                    chosen = raw_value if raw_value not in (None, '') else cached_value
+                    if chosen not in (None, ''):
+                        group_entry['shared_values'][field_name] = chosen
+                    return chosen
+
+                image_value = _get_cell(row, 'question_image_file')
+                audio_value = _get_cell(row, 'question_audio_file')
+                ai_prompt_value = _get_cell(row, 'ai_prompt')
+                guidance_value = _get_cell(row, 'guidance')
+                pre_question_value = _get_cell(row, 'pre_question_text')
+
                 new_content = {
                     'question': question_text,
                     'options': {
@@ -773,31 +870,31 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                         'D': option_d,
                     },
                     'correct_answer': correct_answer,
-                    'explanation': _get_cell(row, 'guidance'),
-                    'pre_question_text': _get_cell(row, 'pre_question_text'),
+                    'explanation': _value_with_group('explanation', 'explanation', guidance_value),
+                    'pre_question_text': pre_question_value,
                 }
-                passage_text = _get_cell(row, 'passage_text')
-                if passage_text:
-                    new_content['passage_text'] = passage_text
-                passage_order = _parse_int(_get_cell(row, 'passage_order'), row_number, 'passage_order')
-                if passage_order is not None:
-                    new_content['passage_order'] = passage_order
-                image_value = _get_cell(row, 'question_image_file')
-                audio_value = _get_cell(row, 'question_audio_file')
-                if image_value:
-                    new_content['question_image_file'] = _process_relative_url(image_value, image_folder)
-                if audio_value:
-                    new_content['question_audio_file'] = _process_relative_url(audio_value, audio_folder)
-                ai_prompt_value = _get_cell(row, 'ai_prompt')
-                if ai_prompt_value:
-                    new_content['ai_prompt'] = ai_prompt_value
 
-                item_group = _resolve_group(row, row_number)
+                image_processed = _process_relative_url(image_value, image_folder) if image_value else None
+                audio_processed = _process_relative_url(audio_value, audio_folder) if audio_value else None
+                shared_image = _value_with_group('image', 'question_image_file', image_processed)
+                shared_audio = _value_with_group('audio', 'question_audio_file', audio_processed)
+                if shared_image:
+                    new_content['question_image_file'] = shared_image
+                if shared_audio:
+                    new_content['question_audio_file'] = shared_audio
+
+                prompt_value = _value_with_group('prompt', 'ai_prompt', ai_prompt_value)
+                if prompt_value:
+                    new_content['ai_prompt'] = prompt_value
+
+                if group_item_order is not None:
+                    new_content['group_item_order'] = group_item_order
+
                 ordered_entries.append({
                     'type': 'new',
                     'data': new_content,
-                    'group_id': item_group.group_id if item_group else None,
-                    'group_obj': item_group,
+                    'group_id': group_entry['group'].group_id if group_entry else None,
+                    'group_obj': group_entry['group'] if group_entry else None,
                     'order': order_number,
                     'sequence': index,
                 })
@@ -842,6 +939,18 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 )
                 db.session.add(new_item)
             next_order += 1
+
+        for group_entry in group_state.values():
+            group_obj = group_entry['group']
+            content_dict = dict(group_obj.content or {})
+            content_dict['shared_components'] = sorted(group_entry['shared_components'])
+            for token, field_name in GROUP_SHARED_COMPONENT_MAP.items():
+                if token in group_entry['shared_components']:
+                    value = group_entry['shared_values'].get(field_name)
+                    if value not in (None, ''):
+                        content_dict[field_name] = value
+            group_obj.content = content_dict
+            flag_modified(group_obj, 'content')
 
         summary_parts = [
             f"{stats['updated']} cập nhật",
@@ -1080,6 +1189,21 @@ def export_quiz_set_excel(set_id):
     )
 
 
+@quizzes_bp.route('/quizzes/template-excel', methods=['GET'])
+@login_required
+def download_quiz_template():
+    """Tạo nhanh file Excel mẫu (không phụ thuộc bộ quiz cụ thể)."""
+
+    info_rows, data_rows = _build_sample_quiz_template()
+    excel_buffer = _create_quiz_excel(info_rows, data_rows)
+    return send_file(
+        excel_buffer,
+        as_attachment=True,
+        download_name='quiz_template.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
 @quizzes_bp.route('/quizzes/<int:set_id>/manage-excel', methods=['GET', 'POST'])
 @login_required
 def manage_quiz_excel(set_id):
@@ -1109,12 +1233,14 @@ def manage_quiz_excel(set_id):
         return redirect(url_for('content_management.content_management_quizzes.manage_quiz_excel', set_id=set_id))
 
     export_excel_url = url_for('content_management.content_management_quizzes.export_quiz_set_excel', set_id=set_id)
+    template_excel_url = url_for('content_management.content_management_quizzes.download_quiz_template')
     export_zip_url = url_for('content_management.content_management_quizzes.export_quiz_set', set_id=set_id)
     item_count = LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ').count()
     return render_template(
         'manage_quiz_excel.html',
         quiz_set=quiz_set,
         export_excel_url=export_excel_url,
+        template_excel_url=template_excel_url,
         export_zip_url=export_zip_url,
         item_count=item_count,
     )
@@ -1171,57 +1297,32 @@ def add_quiz_set():
                             f"Hàng {row_index}: {field_name} '{value}' không hợp lệ."
                         )
 
-                group_cache = {}
+                group_state = {}
                 items_added_count = 0
+
+                def _get_or_create_group(group_id_value):
+                    if group_id_value in (None, ''):
+                        return None
+                    if group_id_value in group_state:
+                        return group_state[group_id_value]
+
+                    new_group = LearningGroup(
+                        container_id=new_set.container_id,
+                        group_type='PASSAGE',
+                        content={},
+                    )
+                    db.session.add(new_group)
+                    db.session.flush()
+                    entry = {
+                        'group': new_group,
+                        'shared_components': set(),
+                        'shared_values': {},
+                    }
+                    group_state[group_id_value] = entry
+                    return entry
+
                 for index, row in df.iterrows():
                     row_number = index + 2  # Bắt đầu từ hàng 2 trong Excel (sau tiêu đề)
-                    group_passage_text = None
-                    group_audio_file = None
-                    group_image_file = None
-
-                    raw_passage_order = (
-                        row['passage_order']
-                        if 'passage_order' in df.columns and pd.notna(row['passage_order'])
-                        else None
-                    )
-                    passage_order = _parse_excel_int(raw_passage_order, row_number, 'passage_order')
-                    group_db_id = None
-                    group_content = {}
-                    group_type = ''
-
-                    if passage_order is not None:
-                        group_passage_text = str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None
-                        group_audio_file = str(row['group_audio_file']) if 'group_audio_file' in df.columns and pd.notna(row['group_audio_file']) else None
-                        group_image_file = str(row['group_image_file']) if 'group_image_file' in df.columns and pd.notna(row['group_image_file']) else None
-                        
-                        group_key = None
-                        if group_passage_text:
-                            group_key = group_passage_text
-                            group_content['passage_text'] = group_passage_text
-                            group_type = 'PASSAGE'
-
-                        if group_audio_file:
-                            group_key = group_audio_file
-                            group_content['question_audio_file'] = _process_relative_url(group_audio_file, audio_folder)
-                            group_type = 'AUDIO'
-
-                        if group_image_file:
-                            group_key = group_image_file
-                            group_content['question_image_file'] = _process_relative_url(group_image_file, image_folder)
-                            group_type = 'IMAGE'
-
-                        if group_key and group_key not in group_cache:
-                            new_group = LearningGroup(
-                                container_id=new_set.container_id,
-                                group_type=group_type,
-                                content=group_content
-                            )
-                            db.session.add(new_group)
-                            db.session.flush()
-                            group_cache[group_key] = new_group.group_id
-                            group_db_id = new_group.group_id
-                        elif group_key:
-                            group_db_id = group_cache[group_key]
 
                     option_a = str(row['option_a']) if 'option_a' in df.columns and pd.notna(row['option_a']) else None
                     option_b = str(row['option_b']) if 'option_b' in df.columns and pd.notna(row['option_b']) else None
@@ -1231,11 +1332,31 @@ def add_quiz_set():
                         continue
 
                     question_text = str(row['question']) if 'question' in df.columns and pd.notna(row['question']) else ''
-                    
+
+                    group_id_value = _parse_excel_int(row.get('group_id'), row_number, 'group_id')
+                    group_item_order = _parse_excel_int(row.get('group_item_order'), row_number, 'group_item_order')
+                    shared_components = _parse_shared_components(row.get('group_shared_components'))
+                    group_entry = _get_or_create_group(group_id_value)
+                    if group_entry and shared_components:
+                        group_entry['shared_components'].update(shared_components)
+
+                    def _value_with_group(token: str, field_name: str, raw_value):
+                        if not group_entry or token not in group_entry['shared_components']:
+                            return raw_value
+                        cached_value = group_entry['shared_values'].get(field_name)
+                        chosen = raw_value if raw_value not in (None, '') else cached_value
+                        if chosen not in (None, ''):
+                            group_entry['shared_values'][field_name] = chosen
+                        return chosen
+
                     item_image_file = str(row['question_image_file']) if 'question_image_file' in df.columns and pd.notna(row['question_image_file']) else None
                     item_audio_file = str(row['question_audio_file']) if 'question_audio_file' in df.columns and pd.notna(row['question_audio_file']) else None
-                    
                     item_ai_prompt = str(row['ai_prompt']) if 'ai_prompt' in df.columns and pd.notna(row['ai_prompt']) else None
+                    item_guidance = str(row['guidance']) if 'guidance' in df.columns and pd.notna(row['guidance']) else None
+                    item_pre_text = str(row['pre_question_text']) if 'pre_question_text' in df.columns and pd.notna(row['pre_question_text']) else None
+
+                    image_processed = _process_relative_url(item_image_file, image_folder) if item_image_file else None
+                    audio_processed = _process_relative_url(item_audio_file, audio_folder) if item_audio_file else None
 
                     item_content = {
                         'question': question_text,
@@ -1245,28 +1366,38 @@ def add_quiz_set():
                             'D': str(row['option_d']) if 'option_d' in df.columns and pd.notna(row['option_d']) else None
                         },
                         'correct_answer': correct_answer,
-                        'explanation': str(row['guidance']) if 'guidance' in df.columns and pd.notna(row['guidance']) else None,
-                        'pre_question_text': str(row['pre_question_text']) if 'pre_question_text' in df.columns and pd.notna(row['pre_question_text']) else None,
-                        'passage_text': str(row['passage_text']) if 'passage_text' in df.columns and pd.notna(row['passage_text']) else None,
-                        'passage_order': passage_order,
-                        'question_image_file': _process_relative_url(item_image_file, image_folder) if item_image_file else None,
-                        'question_audio_file': _process_relative_url(item_audio_file, audio_folder) if item_audio_file else None,
+                        'explanation': _value_with_group('explanation', 'explanation', item_guidance),
+                        'pre_question_text': item_pre_text,
+                        'question_image_file': _value_with_group('image', 'question_image_file', image_processed),
+                        'question_audio_file': _value_with_group('audio', 'question_audio_file', audio_processed),
                     }
-                    if item_ai_prompt:
-                        item_content['ai_prompt'] = item_ai_prompt
-
-                    current_app.logger.debug(f"Hàng {index + 2}: Item Image: '{item_image_file}', Item Audio: '{item_audio_file}'")
-                    current_app.logger.debug(f"Hàng {index + 2}: Group Image: '{group_image_file}', Group Audio: '{group_audio_file}'")
+                    prompt_value = _value_with_group('prompt', 'ai_prompt', item_ai_prompt)
+                    if prompt_value:
+                        item_content['ai_prompt'] = prompt_value
+                    if group_item_order is not None:
+                        item_content['group_item_order'] = group_item_order
 
                     new_item = LearningItem(
                         container_id=new_set.container_id,
-                        group_id=group_db_id,
+                        group_id=group_entry['group'].group_id if group_entry else None,
                         item_type='QUIZ_MCQ',
                         content=item_content,
-                        order_in_container=passage_order if passage_order is not None else index + 1
+                        order_in_container=row_number - 1
                     )
                     db.session.add(new_item)
                     items_added_count += 1
+
+                for group_entry in group_state.values():
+                    group_obj = group_entry['group']
+                    content_dict = dict(group_obj.content or {})
+                    content_dict['shared_components'] = sorted(group_entry['shared_components'])
+                    for token, field_name in GROUP_SHARED_COMPONENT_MAP.items():
+                        if token in group_entry['shared_components']:
+                            value = group_entry['shared_values'].get(field_name)
+                            if value not in (None, ''):
+                                content_dict[field_name] = value
+                    group_obj.content = content_dict
+                    flag_modified(group_obj, 'content')
                 flash_message = f'Bộ câu hỏi và {items_added_count} câu hỏi từ Excel đã được tạo thành công!'
                 flash_category = 'success'
             else:
@@ -1386,10 +1517,10 @@ def list_quiz_items(set_id):
         'correct_answer': LearningItem.content['correct_answer'],
         'guidance': LearningItem.content['explanation'],
         'pre_question_text': LearningItem.content['pre_question_text'],
-        'passage_text': LearningItem.content['passage_text'],
         'question_image_file': LearningItem.content['question_image_file'],
         'question_audio_file': LearningItem.content['question_audio_file'],
-        'ai_prompt': LearningItem.content['ai_prompt']
+        'ai_prompt': LearningItem.content['ai_prompt'],
+        'group_item_order': LearningItem.content['group_item_order'],
     }
 
     base_query = apply_search_filter(base_query, search_query, item_search_field_map, search_field)
@@ -1493,17 +1624,38 @@ def add_quiz_item(set_id):
             'correct_answer': form.correct_answer_text.data,
             'explanation': form.guidance.data,
             'pre_question_text': form.pre_question_text.data,
-            'passage_text': form.passage_text.data,
-            'passage_order': form.passage_order.data,
             'question_image_file': _process_relative_url(form.question_image_file.data, image_folder),
             'question_audio_file': _process_relative_url(form.question_audio_file.data, audio_folder)
         }
         if form.ai_prompt.data:
             content_dict['ai_prompt'] = form.ai_prompt.data
+        if form.group_item_order.data is not None:
+            content_dict['group_item_order'] = form.group_item_order.data
+
+        target_group = None
+        shared_components = _parse_shared_components(form.group_shared_components.data)
+        if form.group_id.data:
+            target_group = LearningGroup.query.get(form.group_id.data)
+            if not target_group:
+                target_group = LearningGroup(
+                    container_id=set_id,
+                    group_type='PASSAGE',
+                    content={}
+                )
+                db.session.add(target_group)
+                db.session.flush()
+            group_content = dict(target_group.content or {})
+            if shared_components:
+                group_content['shared_components'] = sorted(shared_components)
+                for token, field_name in GROUP_SHARED_COMPONENT_MAP.items():
+                    if token in shared_components and content_dict.get(field_name) not in (None, ''):
+                        group_content[field_name] = content_dict.get(field_name)
+            target_group.content = group_content
+            flag_modified(target_group, 'content')
 
         new_item = LearningItem(
             container_id=set_id,
-            group_id=None,
+            group_id=target_group.group_id if target_group else None,
             item_type='QUIZ_MCQ',
             content=content_dict,
             order_in_container=new_order
@@ -1561,11 +1713,14 @@ def edit_quiz_item(set_id, item_id):
         form.guidance.data = quiz_item.content.get('explanation')
         form.question_image_file.data = quiz_item.content.get('question_image_file')
         form.question_audio_file.data = quiz_item.content.get('question_audio_file')
-        form.passage_text.data = quiz_item.content.get('passage_text')
-        form.passage_order.data = quiz_item.content.get('passage_order')
         form.ai_explanation.data = quiz_item.ai_explanation
         form.ai_prompt.data = quiz_item.content.get('ai_prompt')
         form.order_in_container.data = quiz_item.order_in_container
+        form.group_id.data = quiz_item.group_id
+        form.group_item_order.data = quiz_item.content.get('group_item_order')
+        group_content = quiz_item.group.content if quiz_item.group else {}
+        if isinstance(group_content, dict):
+            form.group_shared_components.data = ','.join(group_content.get('shared_components') or [])
 
     if form.validate_on_submit():
         old_order = quiz_item.order_in_container
@@ -1603,14 +1758,41 @@ def edit_quiz_item(set_id, item_id):
         quiz_item.content['explanation'] = form.guidance.data
         quiz_item.content['question_image_file'] = _process_relative_url(form.question_image_file.data, image_folder)
         quiz_item.content['question_audio_file'] = _process_relative_url(form.question_audio_file.data, audio_folder)
-        quiz_item.content['passage_text'] = form.passage_text.data
-        quiz_item.content['passage_order'] = form.passage_order.data
         quiz_item.ai_explanation = form.ai_explanation.data
 
         if form.ai_prompt.data:
             quiz_item.content['ai_prompt'] = form.ai_prompt.data
         elif 'ai_prompt' in quiz_item.content:
             del quiz_item.content['ai_prompt']
+
+        if form.group_item_order.data is not None:
+            quiz_item.content['group_item_order'] = form.group_item_order.data
+        elif 'group_item_order' in quiz_item.content:
+            del quiz_item.content['group_item_order']
+
+        target_group = None
+        shared_components = _parse_shared_components(form.group_shared_components.data)
+        if form.group_id.data:
+            target_group = LearningGroup.query.get(form.group_id.data)
+            if not target_group:
+                target_group = LearningGroup(
+                    container_id=set_id,
+                    group_type='PASSAGE',
+                    content={},
+                )
+                db.session.add(target_group)
+                db.session.flush()
+            group_content = dict(target_group.content or {})
+            if shared_components:
+                group_content['shared_components'] = sorted(shared_components)
+                for token, field_name in GROUP_SHARED_COMPONENT_MAP.items():
+                    if token in shared_components and quiz_item.content.get(field_name) not in (None, ''):
+                        group_content[field_name] = quiz_item.content.get(field_name)
+            target_group.content = group_content
+            flag_modified(target_group, 'content')
+            quiz_item.group_id = target_group.group_id
+        else:
+            quiz_item.group_id = None
 
         flag_modified(quiz_item, "content")
         db.session.commit()

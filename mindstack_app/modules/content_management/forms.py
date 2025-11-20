@@ -234,8 +234,13 @@ class QuizItemForm(FlaskForm):
     guidance = TextAreaField('Giải thích/Gợi ý', validators=[Optional()])
     question_image_file = StringField('URL hình ảnh câu hỏi', validators=[Optional()])
     question_audio_file = StringField('URL file âm thanh câu hỏi', validators=[Optional()])
-    passage_text = TextAreaField('Đoạn văn liên quan', validators=[Optional()])
-    passage_order = StringField('Thứ tự đoạn văn (ví dụ: 1, 2)', validators=[Optional()])
+    group_id = IntegerField('Group ID', validators=[Optional()])
+    group_shared_components = StringField(
+        'Thành phần chung',
+        description='Khai báo các thành phần chia sẻ trong group, ví dụ: image,audio,explanation,prompt',
+        validators=[Optional()],
+    )
+    group_item_order = IntegerField('Thứ tự trong group', validators=[Optional()])
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
     ai_prompt = TextAreaField('AI Prompt tùy chỉnh (cho câu hỏi này)', 
                               description='Nhập prompt tùy chỉnh để ghi đè prompt của bộ quiz hoặc mặc định hệ thống. Nếu để trống, hệ thống sẽ tự động sử dụng prompt cấp trên.',

@@ -30,6 +30,9 @@
             <a href="{{ export_excel_url }}" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-300 flex items-center shadow-md">
                 <i class="fas fa-file-export mr-2"></i> Xuất file Excel
             </a>
+            <a href="{{ template_excel_url }}" class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-md hover:border-purple-400 hover:text-purple-600 transition duration-300 flex items-center shadow-sm">
+                <i class="fas fa-download mr-2"></i> Tải template trống
+            </a>
         </div>
     </div>
 
@@ -138,9 +141,19 @@
                                 <td class="px-4 py-3 text-gray-500">Hỗ trợ URL tuyệt đối hoặc đường dẫn tương đối trong thư mục media.</td>
                             </tr>
                             <tr>
-                                <td class="px-4 py-3 font-medium text-gray-800">group_*</td>
-                                <td class="px-4 py-3 text-gray-600">Thông tin đoạn văn/âm thanh/hình ảnh dùng chung.</td>
-                                <td class="px-4 py-3 text-gray-500">Có thể liên kết theo <code>group_id</code> hoặc tự tạo mới bằng <code>group_ref</code>.</td>
+                                <td class="px-4 py-3 font-medium text-gray-800">group_id</td>
+                                <td class="px-4 py-3 text-gray-600">Mã nhận diện để gom các câu hỏi vào cùng một group.</td>
+                                <td class="px-4 py-3 text-gray-500">Cùng một <code>group_id</code> sẽ chia sẻ nội dung theo cấu hình <code>group_shared_components</code>.</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">group_shared_components</td>
+                                <td class="px-4 py-3 text-gray-600">Liệt kê các phần sẽ dùng chung giữa các câu (ví dụ: <code>image,audio,explanation,prompt</code>).</td>
+                                <td class="px-4 py-3 text-gray-500">Importer sẽ lấy giá trị đầu tiên của từng thành phần và áp cho các dòng còn lại cùng <code>group_id</code>.</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">group_item_order</td>
+                                <td class="px-4 py-3 text-gray-600">Thứ tự câu hỏi bên trong group.</td>
+                                <td class="px-4 py-3 text-gray-500">Tách biệt với <code>order_in_container</code> để thể hiện trình tự nhiều bước.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -189,8 +202,9 @@
                     <li>Xuất file Excel hiện tại để tham khảo cấu trúc chuẩn.</li>
                     <li>Cột <strong>action</strong> hỗ trợ <code>update</code>, <code>keep</code>/<code>skip</code>, <code>create</code>, <code>delete</code> để thao tác nhanh.</li>
                     <li>Sheet <code>Info</code> có thể khai báo <code>image_base_folder</code> và <code>audio_base_folder</code>; hệ thống sẽ áp dụng tự động khi nhập.</li>
-                    <li>Khai báo thông tin nhóm (<code>group_passage_text</code>, <code>group_audio_file</code>, <code>group_image_file</code>) khi nhiều câu dùng chung ngữ cảnh.</li>
+                    <li>Dùng bộ 3 cột <code>group_id</code>, <code>group_shared_components</code> và <code>group_item_order</code> để gom nhóm và sắp xếp câu hỏi nhiều bước.</li>
                     <li>Sau khi nhập thành công hệ thống sẽ tự động chuẩn hóa lại thứ tự.</li>
+                    <li>Dùng nút <strong>Tải template trống</strong> ở đầu trang để lấy file mẫu đúng cấu trúc (không kèm dữ liệu).</li>
                 </ul>
             </div>
 
