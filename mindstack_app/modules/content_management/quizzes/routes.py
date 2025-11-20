@@ -75,9 +75,12 @@ QUIZ_INFO_KEYS = [
 ACTION_OPTIONS = ['None', 'Update', 'Create', 'Delete', 'Skip']
 
 GROUP_SHARED_COMPONENT_MAP = {
+    'question': 'question',
+    'pre_question_text': 'pre_question_text',
+    'correct_answer': 'correct_answer',
+    'explanation': 'explanation',
     'image': 'question_image_file',
     'audio': 'question_audio_file',
-    'explanation': 'explanation',
     'prompt': 'ai_prompt',
 }
 
@@ -103,7 +106,7 @@ def _apply_action_dropdown(worksheet, data_columns):
     validation.add(f"{action_letter}2:{action_letter}1048576")
 
 
-def _create_quiz_excel(info_rows, data_rows, *, output_path: Optional[str] = None):
+def _create_quiz_excel(info_rows, data_rows, *, output_path: Optional[str] = None, readme_rows: Optional[list[tuple[str, str]]] = None):
     info_df = pd.DataFrame(info_rows, columns=['Key', 'Value'])
     if not info_df.empty:
         info_df['Value'] = info_df['Value'].apply(lambda value: '' if value is None else str(value))
@@ -128,6 +131,9 @@ def _create_quiz_excel(info_rows, data_rows, *, output_path: Optional[str] = Non
         data_sheet = writer.sheets.get('Data')
         if data_sheet is not None:
             _apply_action_dropdown(data_sheet, QUIZ_DATA_COLUMNS)
+        if readme_rows:
+            readme_df = pd.DataFrame(readme_rows, columns=['Hướng dẫn', 'Chi tiết'])
+            readme_df.to_excel(writer, sheet_name='ReadMe', index=False)
 
     if output_path:
         return output_path
@@ -174,7 +180,7 @@ def _build_sample_quiz_template():
             question_audio_file='uploads/quiz/audio/shared.mp3',
             ai_prompt='Gợi ý dùng chung cho cả group',
             group_id=1001,
-            group_shared_components='image,audio,explanation,prompt',
+            group_shared_components='question,pre_question_text,correct_answer,explanation,image,audio,prompt',
             group_item_order=1,
             action='create',
         ),
@@ -185,13 +191,51 @@ def _build_sample_quiz_template():
             option_b='Lựa chọn 2',
             correct_answer_text='B',
             group_id=1001,
-            group_shared_components='image,audio,explanation,prompt',
+            group_shared_components='question,pre_question_text,correct_answer,explanation,image,audio,prompt',
             group_item_order=2,
             action='create',
         ),
     ]
 
     return info_rows, data_rows
+
+
+def _build_quiz_readme_rows():
+    shared_tokens = ', '.join(sorted(GROUP_SHARED_COMPONENT_MAP.keys()))
+    return [
+        (
+            'Mục đích file',
+            'Sử dụng sheet Data để thêm/sửa/xoá câu hỏi; sheet Info để cập nhật thông tin bộ Quiz.',
+        ),
+        (
+            'Cấu trúc bắt buộc',
+            'Data phải có option_a, option_b, correct_answer_text. Mỗi dòng (trừ Delete/Skip) cần đủ các cột này.',
+        ),
+        (
+            'group_id',
+            'Dùng để gom các câu hỏi thành một nhóm. Có thể là số hoặc chuỗi. Khi trùng group_id/external_id sẽ gộp chung.',
+        ),
+        (
+            'group_shared_components',
+            f'Theo danh sách hợp lệ: {shared_tokens}. Có thể ghi nhiều giá trị, ngăn cách bằng dấu phẩy.',
+        ),
+        (
+            'Cách hoạt động shared components',
+            'Nhập giá trị một lần ở bất kỳ dòng nào của group; các dòng khác có thể để trống cột tương ứng nếu đã đánh dấu chia sẻ.',
+        ),
+        (
+            'group_item_order',
+            'Thứ tự trong cùng group (khác với order_in_container). Có thể để trống nếu không cần sắp xếp nội bộ.',
+        ),
+        (
+            'Hành động',
+            "Cột action hỗ trợ: None/Update (mặc định), Create, Delete, Skip. Không phân biệt hoa thường.",
+        ),
+        (
+            'Đường dẫn media',
+            "Nếu dùng thư mục cơ sở (image_base_folder/audio_base_folder) trong sheet Info, chỉ cần nhập tên file, hệ thống sẽ tự ghép đường dẫn.",
+        ),
+    ]
 
 
 quizzes_bp = Blueprint('content_management_quizzes', __name__,
@@ -506,6 +550,10 @@ def _build_quiz_export_payload(
             seen.add(token)
             return canonical_value
 
+        row['question'] = _shared_value('question', 'question', row['question'])
+        row['pre_question_text'] = _shared_value('pre_question_text', 'pre_question_text', row['pre_question_text'])
+        row['correct_answer_text'] = _shared_value('correct_answer', 'correct_answer', row['correct_answer_text'])
+        row['guidance'] = _shared_value('explanation', 'explanation', row['guidance'])
         row['question_image_file'] = _shared_value(
             'image',
             'question_image_file',
@@ -531,7 +579,6 @@ def _build_quiz_export_payload(
             ) or ''
         )
         row['ai_prompt'] = _shared_value('prompt', 'ai_prompt', content.get('ai_prompt') or '')
-        row['guidance'] = _shared_value('explanation', 'explanation', row['guidance'])
 
         row['group_id'] = (group_content.get('external_id') if group_content else None) or (group.group_id if group else '')
         if shared_components:
@@ -799,7 +846,15 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
 
             action_value = _normalize_action(_get_cell(row, 'action'), has_item_id=bool(item_id))
 
-            if not (option_a and option_b and correct_answer) and action_value not in {'delete', 'skip'}:
+            def _has_value_or_shared(token: str, field_name: str, raw_value):
+                if raw_value not in (None, ''):
+                    return True
+                if not group_entry or token not in group_entry['shared_components']:
+                    return False
+                return group_entry['shared_values'].get(field_name) not in (None, '')
+
+            has_correct_answer = _has_value_or_shared('correct_answer', 'correct_answer', correct_answer)
+            if not (option_a and option_b and has_correct_answer) and action_value not in {'delete', 'skip'}:
                 raise ValueError(f"Hàng {row_number}: Thiếu option A/B hoặc đáp án đúng.")
 
             if item_id:
@@ -824,7 +879,6 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                     continue
 
                 content_dict = item.content or {}
-                content_dict['question'] = question_text
                 content_dict.setdefault('options', {})
                 content_dict['options']['A'] = option_a
                 content_dict['options']['B'] = option_b
@@ -846,9 +900,10 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 audio_value = _get_cell(row, 'question_audio_file')
                 ai_prompt_value = _get_cell(row, 'ai_prompt')
 
-                content_dict['correct_answer'] = correct_answer
+                content_dict['question'] = _value_with_group('question', 'question', question_text)
+                content_dict['correct_answer'] = _value_with_group('correct_answer', 'correct_answer', correct_answer)
                 content_dict['explanation'] = _value_with_group('explanation', 'explanation', guidance_value)
-                content_dict['pre_question_text'] = pre_question_value
+                content_dict['pre_question_text'] = _value_with_group('pre_question_text', 'pre_question_text', pre_question_value)
                 image_processed = _process_relative_url(image_value, image_folder) if image_value else None
                 audio_processed = _process_relative_url(audio_value, audio_folder) if audio_value else None
                 content_dict['question_image_file'] = _value_with_group('image', 'question_image_file', image_processed)
@@ -901,17 +956,21 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 guidance_value = _get_cell(row, 'guidance')
                 pre_question_value = _get_cell(row, 'pre_question_text')
 
+                question_value = _value_with_group('question', 'question', question_text)
+                pre_question_shared = _value_with_group('pre_question_text', 'pre_question_text', pre_question_value)
+                correct_answer_value = _value_with_group('correct_answer', 'correct_answer', correct_answer)
+
                 new_content = {
-                    'question': question_text,
+                    'question': question_value,
                     'options': {
                         'A': option_a,
                         'B': option_b,
                         'C': option_c,
                         'D': option_d,
                     },
-                    'correct_answer': correct_answer,
+                    'correct_answer': correct_answer_value,
                     'explanation': _value_with_group('explanation', 'explanation', guidance_value),
-                    'pre_question_text': pre_question_value,
+                    'pre_question_text': pre_question_shared,
                 }
 
                 image_processed = _process_relative_url(image_value, image_folder) if image_value else None
@@ -1237,7 +1296,11 @@ def download_quiz_template():
     """Tạo nhanh file Excel mẫu (không phụ thuộc bộ quiz cụ thể)."""
 
     info_rows, data_rows = _build_sample_quiz_template()
-    excel_buffer = _create_quiz_excel(info_rows, data_rows)
+    excel_buffer = _create_quiz_excel(
+        info_rows,
+        data_rows,
+        readme_rows=_build_quiz_readme_rows(),
+    )
     return send_file(
         excel_buffer,
         as_attachment=True,
@@ -1391,9 +1454,6 @@ def add_quiz_set():
                     option_a = str(row['option_a']) if 'option_a' in df.columns and pd.notna(row['option_a']) else None
                     option_b = str(row['option_b']) if 'option_b' in df.columns and pd.notna(row['option_b']) else None
                     correct_answer = str(row['correct_answer_text']) if 'correct_answer_text' in df.columns and pd.notna(row['correct_answer_text']) else None
-                    if not (option_a and option_b and correct_answer):
-                        current_app.logger.warning(f"Bỏ qua hàng {index + 2} trong Excel: Thiếu thông tin cốt lõi (option_a, option_b, correct_answer_text).")
-                        continue
 
                     question_text = str(row['question']) if 'question' in df.columns and pd.notna(row['question']) else ''
 
@@ -1403,6 +1463,20 @@ def add_quiz_set():
                     group_entry = _get_or_create_group(group_id_value)
                     if group_entry and shared_components:
                         group_entry['shared_components'].update(shared_components)
+
+                    def _has_value_or_shared(token: str, field_name: str, raw_value):
+                        if raw_value not in (None, ''):
+                            return True
+                        if not group_entry or token not in group_entry['shared_components']:
+                            return False
+                        return group_entry['shared_values'].get(field_name) not in (None, '')
+
+                    has_correct_answer = _has_value_or_shared('correct_answer', 'correct_answer', correct_answer)
+                    if not (option_a and option_b and has_correct_answer):
+                        current_app.logger.warning(
+                            f"Bỏ qua hàng {index + 2} trong Excel: Thiếu thông tin cốt lõi (option_a, option_b, correct_answer_text)."
+                        )
+                        continue
 
                     def _value_with_group(token: str, field_name: str, raw_value):
                         if not group_entry or token not in group_entry['shared_components']:
@@ -1422,16 +1496,20 @@ def add_quiz_set():
                     image_processed = _process_relative_url(item_image_file, image_folder) if item_image_file else None
                     audio_processed = _process_relative_url(item_audio_file, audio_folder) if item_audio_file else None
 
+                    question_value = _value_with_group('question', 'question', question_text)
+                    pre_question_shared = _value_with_group('pre_question_text', 'pre_question_text', item_pre_text)
+                    correct_answer_value = _value_with_group('correct_answer', 'correct_answer', correct_answer)
+
                     item_content = {
-                        'question': question_text,
+                        'question': question_value,
                         'options': {
                             'A': option_a, 'B': option_b,
                             'C': str(row['option_c']) if 'option_c' in df.columns and pd.notna(row['option_c']) else None,
                             'D': str(row['option_d']) if 'option_d' in df.columns and pd.notna(row['option_d']) else None
                         },
-                        'correct_answer': correct_answer,
+                        'correct_answer': correct_answer_value,
                         'explanation': _value_with_group('explanation', 'explanation', item_guidance),
-                        'pre_question_text': item_pre_text,
+                        'pre_question_text': pre_question_shared,
                         'question_image_file': _value_with_group('image', 'question_image_file', image_processed),
                         'question_audio_file': _value_with_group('audio', 'question_audio_file', audio_processed),
                     }
