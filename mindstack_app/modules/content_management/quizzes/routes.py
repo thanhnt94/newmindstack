@@ -690,22 +690,40 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
             except (TypeError, ValueError):
                 raise ValueError(f"Hàng {row_index}: {field_name} '{value}' không hợp lệ.")
 
+        def _parse_excel_group_id(value, row_index, field_name):
+            if value is None:
+                return None
+
+            value_str = str(value).strip()
+            if value_str in ('', 'nan', 'NaN', 'None'):
+                return None
+
+            return value_str
+
         group_state = {}
 
-        def _get_or_create_group(row_data, row_index):
-            group_id_value = _get_cell(row_data, 'group_id')
+        def _normalize_numeric_group_id(raw_value: str):
+            try:
+                numeric_value = float(raw_value)
+            except (TypeError, ValueError):
+                return None
+
+            if math.isnan(numeric_value):
+                return None
+            if numeric_value.is_integer():
+                return int(numeric_value)
+            return None
+
+        def _get_or_create_group(group_id_value):
             if group_id_value in (None, ''):
                 return None
 
-            provided_group_id = _parse_int(group_id_value, row_index, 'group_id')
-            if provided_group_id is None:
-                return None
+            if group_id_value in group_state:
+                return group_state[group_id_value]
 
-            if provided_group_id in group_state:
-                return group_state[provided_group_id]
-
-            if provided_group_id in existing_groups:
-                existing_group = existing_groups[provided_group_id]
+            numeric_group_id = _normalize_numeric_group_id(group_id_value)
+            if numeric_group_id is not None and numeric_group_id in existing_groups:
+                existing_group = existing_groups[numeric_group_id]
                 content_dict = dict(existing_group.content or {})
                 entry = {
                     'group': existing_group,
@@ -716,7 +734,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                         if content_dict.get(field) is not None
                     }
                 }
-                group_state[provided_group_id] = entry
+                group_state[group_id_value] = entry
                 return entry
 
             new_group = LearningGroup(
@@ -731,7 +749,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 'shared_components': set(),
                 'shared_values': {},
             }
-            group_state[provided_group_id] = entry
+            group_state[group_id_value] = entry
             return entry
 
         for index, row in df.iterrows():
@@ -750,7 +768,11 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
             correct_answer = _get_cell(row, 'correct_answer_text')
             group_item_order = _parse_int(_get_cell(row, 'group_item_order'), row_number, 'group_item_order')
             shared_components = _parse_shared_components(_get_cell(row, 'group_shared_components'))
-            group_entry = _get_or_create_group(row, row_number)
+            group_id_value = _parse_excel_group_id(_get_cell(row, 'group_id'), row_number, 'group_id')
+            if order_number is None and group_id_value not in (None, ''):
+                order_number = index + 1
+                stats['reordered'] += 1
+            group_entry = _get_or_create_group(group_id_value)
             if group_entry and shared_components:
                 group_entry['shared_components'].update(shared_components)
 
