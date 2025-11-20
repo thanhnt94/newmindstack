@@ -1193,6 +1193,7 @@ def add_flashcard_set():
     và thêm các thẻ Flashcard liên quan.
     """
     form = FlashcardSetForm()
+    template_url = url_for('content_management.content_management_flashcards.download_flashcard_excel_template')
     _apply_is_public_restrictions(form)
     if form.validate_on_submit():
         flash_message = ''
@@ -1326,8 +1327,8 @@ def add_flashcard_set():
     
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_flashcard_set_bare.html', form=form, title='Thêm Bộ thẻ ghi nhớ')
-    return render_template('add_edit_flashcard_set.html', form=form, title='Thêm Bộ thẻ ghi nhớ')
+        return render_template('_add_edit_flashcard_set_bare.html', form=form, title='Thêm Bộ thẻ ghi nhớ', template_url=template_url)
+    return render_template('add_edit_flashcard_set.html', form=form, title='Thêm Bộ thẻ ghi nhớ', template_url=template_url)
 
 @flashcards_bp.route('/flashcards/edit/<int:set_id>', methods=['GET', 'POST'])
 @login_required

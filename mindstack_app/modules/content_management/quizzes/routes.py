@@ -40,6 +40,7 @@ import zipfile
 import shutil
 import re
 import io
+import math
 
 QUIZ_DATA_COLUMNS = [
     'item_id',
@@ -1253,6 +1254,7 @@ def add_quiz_set():
     Thêm một bộ Quiz mới.
     """
     form = QuizSetForm()
+    template_excel_url = url_for('content_management.content_management_quizzes.download_quiz_template')
     _apply_is_public_restrictions(form)
     if form.validate_on_submit():
         flash_message = ''
@@ -1297,6 +1299,26 @@ def add_quiz_set():
                             f"Hàng {row_index}: {field_name} '{value}' không hợp lệ."
                         )
 
+                def _parse_excel_group_id(value, row_index, field_name):
+                    """Chấp nhận mọi giá trị chuỗi (hoặc số) cho group_id."""
+                    if value is None or pd.isna(value):
+                        return None
+
+                    value_str = str(value).strip()
+                    if value_str == '' or value_str.lower() == 'nan':
+                        return None
+
+                    try:
+                        numeric_value = float(value)
+                        if math.isnan(numeric_value):
+                            return None
+                        if numeric_value.is_integer():
+                            return str(int(numeric_value))
+                    except (TypeError, ValueError):
+                        pass
+
+                    return value_str
+
                 group_state = {}
                 items_added_count = 0
 
@@ -1333,7 +1355,7 @@ def add_quiz_set():
 
                     question_text = str(row['question']) if 'question' in df.columns and pd.notna(row['question']) else ''
 
-                    group_id_value = _parse_excel_int(row.get('group_id'), row_number, 'group_id')
+                    group_id_value = _parse_excel_group_id(row.get('group_id'), row_number, 'group_id')
                     group_item_order = _parse_excel_int(row.get('group_item_order'), row_number, 'group_item_order')
                     shared_components = _parse_shared_components(row.get('group_shared_components'))
                     group_entry = _get_or_create_group(group_id_value)
@@ -1423,8 +1445,8 @@ def add_quiz_set():
         return jsonify({'success': False, 'errors': form.errors}), 400
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_quiz_set_bare.html', form=form, title='Thêm Bộ câu hỏi mới')
-    return render_template('add_edit_quiz_set.html', form=form, title='Thêm Bộ câu hỏi mới')
+        return render_template('_add_edit_quiz_set_bare.html', form=form, title='Thêm Bộ câu hỏi mới', template_excel_url=template_excel_url)
+    return render_template('add_edit_quiz_set.html', form=form, title='Thêm Bộ câu hỏi mới', template_excel_url=template_excel_url)
 
 @quizzes_bp.route('/quizzes/edit/<int:set_id>', methods=['GET', 'POST'])
 @login_required
