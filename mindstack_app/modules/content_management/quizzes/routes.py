@@ -1364,26 +1364,26 @@ def add_quiz_set():
                 items_added_count = 0
 
                 def _get_or_create_group(group_id_value):
-                if group_id_value in (None, ''):
-                    return None
-                if group_id_value in group_state:
-                    return group_state[group_id_value]
+                    if group_id_value in (None, ''):
+                        return None
+                    if group_id_value in group_state:
+                        return group_state[group_id_value]
 
-                new_group = LearningGroup(
-                    container_id=new_set.container_id,
-                    group_type='PASSAGE',
-                    content={'external_id': group_id_value},
-                )
-                db.session.add(new_group)
-                db.session.flush()
-                entry = {
-                    'group': new_group,
-                    'shared_components': set(),
-                    'shared_values': {},
-                    'external_id': group_id_value,
-                }
-                group_state[group_id_value] = entry
-                return entry
+                    new_group = LearningGroup(
+                        container_id=new_set.container_id,
+                        group_type='PASSAGE',
+                        content={'external_id': group_id_value},
+                    )
+                    db.session.add(new_group)
+                    db.session.flush()
+                    entry = {
+                        'group': new_group,
+                        'shared_components': set(),
+                        'shared_values': {},
+                        'external_id': group_id_value,
+                    }
+                    group_state[group_id_value] = entry
+                    return entry
 
                 for index, row in df.iterrows():
                     row_number = index + 2  # Bắt đầu từ hàng 2 trong Excel (sau tiêu đề)
