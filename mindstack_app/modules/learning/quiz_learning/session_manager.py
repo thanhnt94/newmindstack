@@ -306,10 +306,34 @@ class QuizSessionManager:
             LearningItem.item_id.notin_(self.processed_item_ids)
         )
         
-        new_items_to_add_to_session = unprocessed_items_query.order_by(func.random()).limit(requested_batch_size).all()
-        
-        if not new_items_to_add_to_session:
+        unprocessed_items = unprocessed_items_query.order_by(func.random()).all()
+
+        if not unprocessed_items:
             current_app.logger.debug("Không còn câu hỏi mới nào để lấy.")
+            return None
+
+        grouped_candidates: dict[str, list[LearningItem]] = {}
+        for item in unprocessed_items:
+            if item.group_id:
+                key = f"group-{item.group_id}"
+            else:
+                key = f"single-{item.item_id}"
+            grouped_candidates.setdefault(key, []).append(item)
+
+        group_keys = list(grouped_candidates.keys())
+        random.shuffle(group_keys)
+
+        new_items_to_add_to_session: list[LearningItem] = []
+        selected_group_count = 0
+
+        for key in group_keys:
+            if selected_group_count >= requested_batch_size:
+                break
+            new_items_to_add_to_session.extend(grouped_candidates[key])
+            selected_group_count += 1
+
+        if not new_items_to_add_to_session:
+            current_app.logger.debug("Không chọn được nhóm câu hỏi nào để thêm.")
             return None
 
         items_data = []
