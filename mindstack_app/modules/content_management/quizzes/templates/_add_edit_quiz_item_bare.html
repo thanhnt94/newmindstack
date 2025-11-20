@@ -140,12 +140,16 @@
                             </div>
                         </div>
                         <div>
-                            {{ form.passage_text.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.passage_text(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Đoạn văn liên quan (nếu có)", rows="3") }}
+                            {{ form.group_id.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.group_id(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Nhập ID group nếu câu hỏi thuộc nhóm") }}
                         </div>
                         <div>
-                            {{ form.passage_order.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.passage_order(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Thứ tự đoạn văn (ví dụ: 1, 2)") }}
+                            {{ form.group_item_order.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.group_item_order(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Thứ tự của câu trong group") }}
+                        </div>
+                        <div>
+                            {{ form.group_shared_components.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.group_shared_components(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="VD: image,audio,explanation,prompt") }}
                         </div>
                     </div>
                 </div>
