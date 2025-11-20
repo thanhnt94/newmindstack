@@ -239,6 +239,16 @@ class LearningGroup(db.Model):
     group_type = db.Column(db.String(50), nullable=False)
     content = db.Column(JSON, nullable=False)
 
+    container = db.relationship(
+        'LearningContainer',
+        backref=db.backref(
+            'groups',
+            lazy=True,
+            cascade='all, delete-orphan',
+        ),
+        lazy=True,
+    )
+
 
 class LearningItem(db.Model):
     """Represents a single learning artefact."""
@@ -256,3 +266,9 @@ class LearningItem(db.Model):
     content = db.Column(JSON, nullable=False)
     order_in_container = db.Column(db.Integer, default=0)
     ai_explanation = db.Column(db.Text, nullable=True)
+
+    group = db.relationship(
+        'LearningGroup',
+        backref=db.backref('items', lazy=True),
+        lazy=True,
+    )
