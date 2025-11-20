@@ -533,7 +533,7 @@ def _build_quiz_export_payload(
         row['ai_prompt'] = _shared_value('prompt', 'ai_prompt', content.get('ai_prompt') or '')
         row['guidance'] = _shared_value('explanation', 'explanation', row['guidance'])
 
-        row['group_id'] = group.group_id if group else ''
+        row['group_id'] = (group_content.get('external_id') if group_content else None) or (group.group_id if group else '')
         if shared_components:
             row['group_shared_components'] = ','.join(sorted(shared_components))
         row['group_item_order'] = content.get('group_item_order') if content.get('group_item_order') is not None else ''
@@ -571,16 +571,17 @@ def _serialize_quiz_item_for_response(item, user_id=None):
         note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
         note_content = note.content if note else ''
 
-    group_details = None
-    if item.group_id and getattr(item, 'group', None):
-        group_content = item.group.content or {}
-        group_details = {
-            'group_id': item.group_id,
-            'shared_components': group_content.get('shared_components') or [],
-            'shared_values': {
-                token: group_content.get(field)
-                for token, field in GROUP_SHARED_COMPONENT_MAP.items()
-                if token in (group_content.get('shared_components') or [])
+        group_details = None
+        if item.group_id and getattr(item, 'group', None):
+            group_content = item.group.content or {}
+            group_details = {
+                'group_id': item.group_id,
+                'external_id': group_content.get('external_id'),
+                'shared_components': group_content.get('shared_components') or [],
+                'shared_values': {
+                    token: group_content.get(field)
+                    for token, field in GROUP_SHARED_COMPONENT_MAP.items()
+                    if token in (group_content.get('shared_components') or [])
             }
         }
 
@@ -641,6 +642,11 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
         existing_groups = {
             group.group_id: group
             for group in LearningGroup.query.filter_by(container_id=container_id).all()
+        }
+        existing_groups_by_external = {
+            (group.content or {}).get('external_id'): group
+            for group in existing_groups.values()
+            if (group.content or {}).get('external_id') not in (None, '')
         }
 
         processed_ids = set()
@@ -722,8 +728,13 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 return group_state[group_id_value]
 
             numeric_group_id = _normalize_numeric_group_id(group_id_value)
+            existing_group = None
             if numeric_group_id is not None and numeric_group_id in existing_groups:
                 existing_group = existing_groups[numeric_group_id]
+            elif group_id_value in existing_groups_by_external:
+                existing_group = existing_groups_by_external[group_id_value]
+
+            if existing_group:
                 content_dict = dict(existing_group.content or {})
                 entry = {
                     'group': existing_group,
@@ -732,15 +743,20 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                         field: content_dict.get(field)
                         for field in GROUP_SHARED_COMPONENT_MAP.values()
                         if content_dict.get(field) is not None
-                    }
+                    },
+                    'external_id': content_dict.get('external_id') or group_id_value
                 }
+                if content_dict.get('external_id') in (None, ''):
+                    content_dict['external_id'] = group_id_value
+                    existing_group.content = content_dict
+                    flag_modified(existing_group, 'content')
                 group_state[group_id_value] = entry
                 return entry
 
             new_group = LearningGroup(
                 container_id=container_id,
                 group_type='PASSAGE',
-                content={},
+                content={'external_id': group_id_value},
             )
             db.session.add(new_group)
             db.session.flush()
@@ -748,6 +764,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 'group': new_group,
                 'shared_components': set(),
                 'shared_values': {},
+                'external_id': group_id_value,
             }
             group_state[group_id_value] = entry
             return entry
@@ -966,6 +983,8 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
         for group_entry in group_state.values():
             group_obj = group_entry['group']
             content_dict = dict(group_obj.content or {})
+            if group_entry.get('external_id'):
+                content_dict['external_id'] = group_entry['external_id']
             content_dict['shared_components'] = sorted(group_entry['shared_components'])
             for token, field_name in GROUP_SHARED_COMPONENT_MAP.items():
                 if token in group_entry['shared_components']:
@@ -1345,25 +1364,26 @@ def add_quiz_set():
                 items_added_count = 0
 
                 def _get_or_create_group(group_id_value):
-                    if group_id_value in (None, ''):
-                        return None
-                    if group_id_value in group_state:
-                        return group_state[group_id_value]
+                if group_id_value in (None, ''):
+                    return None
+                if group_id_value in group_state:
+                    return group_state[group_id_value]
 
-                    new_group = LearningGroup(
-                        container_id=new_set.container_id,
-                        group_type='PASSAGE',
-                        content={},
-                    )
-                    db.session.add(new_group)
-                    db.session.flush()
-                    entry = {
-                        'group': new_group,
-                        'shared_components': set(),
-                        'shared_values': {},
-                    }
-                    group_state[group_id_value] = entry
-                    return entry
+                new_group = LearningGroup(
+                    container_id=new_set.container_id,
+                    group_type='PASSAGE',
+                    content={'external_id': group_id_value},
+                )
+                db.session.add(new_group)
+                db.session.flush()
+                entry = {
+                    'group': new_group,
+                    'shared_components': set(),
+                    'shared_values': {},
+                    'external_id': group_id_value,
+                }
+                group_state[group_id_value] = entry
+                return entry
 
                 for index, row in df.iterrows():
                     row_number = index + 2  # Bắt đầu từ hàng 2 trong Excel (sau tiêu đề)
@@ -1434,6 +1454,8 @@ def add_quiz_set():
                 for group_entry in group_state.values():
                     group_obj = group_entry['group']
                     content_dict = dict(group_obj.content or {})
+                    if group_entry.get('external_id'):
+                        content_dict['external_id'] = group_entry['external_id']
                     content_dict['shared_components'] = sorted(group_entry['shared_components'])
                     for token, field_name in GROUP_SHARED_COMPONENT_MAP.items():
                         if token in group_entry['shared_components']:

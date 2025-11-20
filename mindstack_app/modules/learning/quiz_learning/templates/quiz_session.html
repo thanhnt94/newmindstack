@@ -1188,8 +1188,8 @@
         updateSessionSummary(0, 0);
 
         function buildQuestionCardHtml(questionData, index, batchMeta) {
-            const questionNumber = (batchMeta.startIndex || 0) + index + 1;
-            const totalQuestions = batchMeta.totalItemsInSession || questionNumber;
+            const questionNumber = questionData.display_number || ((batchMeta.startIndex || 0) + index + 1);
+            const totalQuestions = batchMeta.totalQuestionGroupsInSession || batchMeta.totalItemsInSession || questionNumber;
             const content = questionData.content || {};
             let optionsHtml = '';
             const options = content.options || {};
@@ -1297,11 +1297,13 @@
             currentQuestionBatch = batchData.items;
             currentBatchMeta = {
                 startIndex: batchData.start_index || 0,
-                totalItemsInSession: batchData.total_items_in_session || batchData.items.length
+                totalItemsInSession: batchData.total_items_in_session || batchData.items.length,
+                totalQuestionGroupsInSession: batchData.total_question_groups_in_session || null,
             };
             userAnswers = {};
             isBatchSubmitted = false;
-            totalQuestionsInSession = Number(currentBatchMeta.totalItemsInSession) || currentQuestionBatch.length;
+            const totalGroupsFallback = currentBatchMeta.totalQuestionGroupsInSession || currentBatchMeta.totalItemsInSession;
+            totalQuestionsInSession = Number(totalGroupsFallback) || currentQuestionBatch.length;
             updateSessionSummary(batchData.session_correct_answers, batchData.session_total_answered);
             submitBatchBtn.style.display = 'block';
             submitBatchBtn.disabled = false;
@@ -1312,9 +1314,9 @@
                 .join('');
 
             quizContentDiv.innerHTML = fullBatchContentHtml;
-            const startRange = currentBatchMeta.startIndex + 1;
-            const endRange = currentBatchMeta.startIndex + currentQuestionBatch.length;
-            const totalInSession = currentBatchMeta.totalItemsInSession;
+            const startRange = batchData.question_number_min || (currentBatchMeta.startIndex + 1);
+            const endRange = batchData.question_number_max || (currentBatchMeta.startIndex + currentQuestionBatch.length);
+            const totalInSession = currentBatchMeta.totalQuestionGroupsInSession || currentBatchMeta.totalItemsInSession;
             if (quizGroupRangeEl) {
                 const rangeText = totalInSession ? `Câu ${startRange}-${endRange}` : '---';
                 quizGroupRangeEl.textContent = rangeText;
@@ -1547,6 +1549,9 @@
                 const updatedItem = payload.item;
                 const questionIndex = currentQuestionBatch.findIndex(q => q.item_id === updatedItem.item_id);
                 if (questionIndex !== -1) {
+                    updatedItem.display_number = currentQuestionBatch[questionIndex].display_number;
+                    updatedItem.main_number = currentQuestionBatch[questionIndex].main_number;
+                    updatedItem.sub_index = currentQuestionBatch[questionIndex].sub_index;
                     currentQuestionBatch[questionIndex] = updatedItem;
                 } else {
                     currentQuestionBatch.push(updatedItem);
