@@ -958,6 +958,20 @@
         const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
         const csrfHeaders = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
 
+        document.addEventListener('play', (event) => {
+            const target = event.target;
+
+            if (!(target instanceof HTMLAudioElement)) {
+                return;
+            }
+
+            document.querySelectorAll('audio').forEach(audio => {
+                if (audio !== target) {
+                    audio.pause();
+                }
+            });
+        }, true);
+
         const STATUS_LABELS = {
             new: 'Mới',
             learning: 'Đang học',
