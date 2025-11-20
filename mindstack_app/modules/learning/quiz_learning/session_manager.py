@@ -31,7 +31,9 @@ class QuizSessionManager:
 
     def __init__(self, user_id, set_id, mode, batch_size,
                  total_items_in_session, processed_item_ids,
-                 correct_answers, incorrect_answers, start_time, common_pre_question_text_global):
+                 correct_answers, incorrect_answers, start_time, common_pre_question_text_global,
+                 *, total_question_groups_in_session=None,
+                 processed_question_count=0, group_numbering=None, group_sub_counters=None):
         """
         Khởi tạo một phiên QuizSessionManager.
         """
@@ -40,11 +42,15 @@ class QuizSessionManager:
         self.mode = mode
         self.batch_size = batch_size
         self.total_items_in_session = total_items_in_session
+        self.total_question_groups_in_session = total_question_groups_in_session
         self.processed_item_ids = processed_item_ids
         self.correct_answers = correct_answers
         self.incorrect_answers = incorrect_answers
         self.start_time = start_time
         self.common_pre_question_text_global = common_pre_question_text_global
+        self.processed_question_count = processed_question_count or 0
+        self.group_numbering = group_numbering or {}
+        self.group_sub_counters = group_sub_counters or {}
         self._media_folders_cache: Optional[dict[str, str]] = None
         current_app.logger.debug(f"QuizSessionManager: Instance được khởi tạo/tải. User: {self.user_id}, Set: {self.set_id}, Mode: {self.mode}")
 
@@ -63,7 +69,11 @@ class QuizSessionManager:
             correct_answers=session_dict['correct_answers'],
             incorrect_answers=session_dict['incorrect_answers'],
             start_time=session_dict['start_time'],
-            common_pre_question_text_global=session_dict['common_pre_question_text_global']
+            common_pre_question_text_global=session_dict['common_pre_question_text_global'],
+            total_question_groups_in_session=session_dict.get('total_question_groups_in_session'),
+            processed_question_count=session_dict.get('processed_question_count', 0),
+            group_numbering=session_dict.get('group_numbering') or {},
+            group_sub_counters=session_dict.get('group_sub_counters') or {},
         )
         instance._media_folders_cache = None
         return instance
@@ -78,12 +88,16 @@ class QuizSessionManager:
             'mode': self.mode,
             'batch_size': self.batch_size,
             'total_items_in_session': self.total_items_in_session,
+            'total_question_groups_in_session': self.total_question_groups_in_session,
             'processed_item_ids': self.processed_item_ids,
             'current_batch_start_index': len(self.processed_item_ids),
             'correct_answers': self.correct_answers,
             'incorrect_answers': self.incorrect_answers,
             'start_time': self.start_time,
-            'common_pre_question_text_global': self.common_pre_question_text_global
+            'common_pre_question_text_global': self.common_pre_question_text_global,
+            'processed_question_count': self.processed_question_count,
+            'group_numbering': self.group_numbering,
+            'group_sub_counters': self.group_sub_counters,
         }
 
     @classmethod
@@ -163,6 +177,19 @@ class QuizSessionManager:
         total_items_in_session_query = algorithm_func(user_id, normalized_set_id, None)
         total_items_in_session = total_items_in_session_query.count()
 
+        group_counts = (
+            total_items_in_session_query
+            .with_entities(LearningItem.group_id, func.count())
+            .group_by(LearningItem.group_id)
+            .all()
+        )
+        total_question_groups_in_session = 0
+        for gid, count in group_counts:
+            if gid is None:
+                total_question_groups_in_session += count
+            else:
+                total_question_groups_in_session += 1
+
         if total_items_in_session == 0:
             cls.end_quiz_session()
             print(">>> SESSION_MANAGER: Không có câu hỏi nào được tìm thấy cho phiên học mới. <<<")
@@ -187,11 +214,15 @@ class QuizSessionManager:
             mode=mode,
             batch_size=batch_size,
             total_items_in_session=total_items_in_session,
+            total_question_groups_in_session=total_question_groups_in_session,
             processed_item_ids=[],
             correct_answers=0,
             incorrect_answers=0,
             start_time=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            common_pre_question_text_global=common_pre_question_text_global
+            common_pre_question_text_global=common_pre_question_text_global,
+            processed_question_count=0,
+            group_numbering={},
+            group_sub_counters={},
         )
         session[cls.SESSION_KEY] = new_session_manager.to_dict()
         session.modified = True
@@ -283,10 +314,54 @@ class QuizSessionManager:
 
         items_data = []
         newly_processed_item_ids = []
+        next_main_number = self.processed_question_count + 1
+        group_sub_counters = dict(self.group_sub_counters or {})
+        group_numbering = dict(self.group_numbering or {})
+        main_numbers_in_batch: list[int] = []
 
         for item in new_items_to_add_to_session:
             # Lấy ghi chú cho câu hỏi này
             note = UserNote.query.filter_by(user_id=self.user_id, item_id=item.item_id).first()
+
+            group_details = None
+            group_key = None
+            if item.group_id and getattr(item, 'group', None):
+                group_obj = item.group
+                group_content = group_obj.content or {}
+                group_details = {
+                    'group_id': group_obj.group_id,
+                    'external_id': group_content.get('external_id'),
+                    'shared_components': group_content.get('shared_components') or [],
+                    'shared_values': {
+                        token: group_content.get(field)
+                        for token, field in {
+                            'image': 'question_image_file',
+                            'audio': 'question_audio_file',
+                            'explanation': 'explanation',
+                            'prompt': 'ai_prompt',
+                        }.items()
+                        if token in (group_content.get('shared_components') or [])
+                    }
+                }
+                group_key = str(group_obj.group_id)
+
+            if group_key and group_key in group_numbering:
+                main_number = group_numbering[group_key]
+            else:
+                main_number = next_main_number
+                next_main_number += 1
+                if group_key:
+                    group_numbering[group_key] = main_number
+
+            if group_key:
+                sub_index = group_sub_counters.get(group_key, 0) + 1
+                group_sub_counters[group_key] = sub_index
+                display_number = f"{main_number}.{sub_index}"
+            else:
+                display_number = str(main_number)
+                sub_index = None
+
+            main_numbers_in_batch.append(main_number)
 
             item_dict = {
                 'item_id': item.item_id,
@@ -296,7 +371,10 @@ class QuizSessionManager:
                 'ai_explanation': item.ai_explanation,
                 'note_content': note.content if note else '',
                 'group_id': item.group_id,
-                'group_details': None
+                'group_details': group_details,
+                'display_number': display_number,
+                'main_number': main_number,
+                'sub_index': sub_index,
             }
             container_obj = item.container if hasattr(item, 'container') else None
             if item_dict['content'].get('question_image_file'):
@@ -310,8 +388,12 @@ class QuizSessionManager:
 
             items_data.append(item_dict)
             newly_processed_item_ids.append(item.item_id)
-        
+
         self.processed_item_ids.extend(newly_processed_item_ids)
+        self.group_sub_counters = group_sub_counters
+        self.group_numbering = group_numbering
+        if main_numbers_in_batch:
+            self.processed_question_count = max(self.processed_question_count, max(main_numbers_in_batch))
         session[self.SESSION_KEY] = self.to_dict()
         session.modified = True
 
@@ -320,6 +402,9 @@ class QuizSessionManager:
             'common_pre_question_text_global': self.common_pre_question_text_global,
             'start_index': len(self.processed_item_ids) - len(items_data),
             'total_items_in_session': self.total_items_in_session,
+            'total_question_groups_in_session': self.total_question_groups_in_session,
+            'question_number_min': min(main_numbers_in_batch) if main_numbers_in_batch else None,
+            'question_number_max': max(main_numbers_in_batch) if main_numbers_in_batch else None,
             'session_correct_answers': self.correct_answers,
             'session_total_answered': self.correct_answers + self.incorrect_answers
         }
