@@ -541,7 +541,7 @@ def _build_flashcard_export_payload(
             media_folder=image_folder,
             export_mode=export_mode,
         ) or ''
-        row['ai_explanation'] = content.get('ai_explanation') or ''
+        row['ai_explanation'] = item.ai_explanation or content.get('ai_explanation') or ''
         row['ai_prompt'] = content.get('ai_prompt') or ''
 
         for capability_key in CAPABILITY_FLAGS:
@@ -614,19 +614,18 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
         delete_ids = set()
         ordered_entries = []
 
-        optional_fields = [
-            'front_audio_content',
-            'back_audio_content',
-            'front_img',
-            'back_img',
-            'front_audio_url',
-            'back_audio_url',
-            'ai_explanation',
-            'ai_prompt',
-            'supports_pronunciation',
-            'supports_writing',
-            'supports_quiz',
-            'supports_essay',
+    optional_fields = [
+        'front_audio_content',
+        'back_audio_content',
+        'front_img',
+        'back_img',
+        'front_audio_url',
+        'back_audio_url',
+        'ai_prompt',
+        'supports_pronunciation',
+        'supports_writing',
+        'supports_quiz',
+        'supports_essay',
             'supports_listening',
             'supports_speaking',
         ]
@@ -725,6 +724,8 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                 content_dict = item.content or {}
                 content_dict['front'] = front_content
                 content_dict['back'] = back_content
+                ai_explanation_value = _get_cell(row, 'ai_explanation')
+                content_dict.pop('ai_explanation', None)
                 for field in optional_fields:
                     cell_value = _get_cell(row, field)
                     if cell_value:
@@ -744,6 +745,7 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                     content_dict.setdefault(capability_flag, True)
                 item.content = content_dict
                 flag_modified(item, 'content')
+                item.ai_explanation = ai_explanation_value or None
                 ordered_entries.append({
                     'type': 'existing',
                     'item': item,
@@ -762,6 +764,7 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                     continue
 
                 content_dict = {'front': front_content, 'back': back_content}
+                ai_explanation_value = _get_cell(row, 'ai_explanation')
                 for field in optional_fields:
                     cell_value = _get_cell(row, field)
                     if cell_value:
@@ -782,6 +785,7 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                 ordered_entries.append({
                     'type': 'new',
                     'data': content_dict,
+                    'ai_explanation': ai_explanation_value or None,
                     'order': order_number,
                     'sequence': index,
                 })
@@ -819,6 +823,7 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
                     container_id=container_id,
                     item_type='FLASHCARD',
                     content=entry['data'],
+                    ai_explanation=entry.get('ai_explanation'),
                     order_in_container=next_order,
                 )
                 db.session.add(new_item)

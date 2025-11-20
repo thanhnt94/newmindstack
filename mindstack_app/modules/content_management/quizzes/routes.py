@@ -53,6 +53,7 @@ QUIZ_DATA_COLUMNS = [
     'option_d',
     'correct_answer_text',
     'guidance',
+    'ai_explanation',
     'question_image_file',
     'question_audio_file',
     'ai_prompt',
@@ -166,6 +167,7 @@ def _build_sample_quiz_template():
             option_b='Đáp án B',
             correct_answer_text='A',
             guidance='Giải thích riêng cho câu hỏi này',
+            ai_explanation='',
             question_image_file='uploads/quiz/images/question-1.png',
             action='create',
         ),
@@ -176,6 +178,7 @@ def _build_sample_quiz_template():
             option_b='Lựa chọn 2',
             correct_answer_text='A',
             guidance='Giải thích chung cho cả group',
+            ai_explanation='',
             question_image_file='uploads/quiz/images/shared.png',
             question_audio_file='uploads/quiz/audio/shared.mp3',
             ai_prompt='Gợi ý dùng chung cho cả group',
@@ -190,6 +193,7 @@ def _build_sample_quiz_template():
             option_a='Lựa chọn 1',
             option_b='Lựa chọn 2',
             correct_answer_text='B',
+            ai_explanation='',
             group_id=1001,
             group_shared_components='question,pre_question_text,correct_answer,explanation,image,audio,prompt',
             group_item_order=2,
@@ -539,6 +543,7 @@ def _build_quiz_export_payload(
         row['option_d'] = options.get('D') or ''
         row['correct_answer_text'] = content.get('correct_answer') or ''
         row['guidance'] = content.get('explanation') or ''
+        row['ai_explanation'] = item.ai_explanation or ''
 
         def _shared_value(token: str, field_name: str, raw_value):
             if not group or token not in shared_components:
@@ -899,6 +904,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 image_value = _get_cell(row, 'question_image_file')
                 audio_value = _get_cell(row, 'question_audio_file')
                 ai_prompt_value = _get_cell(row, 'ai_prompt')
+                ai_explanation_value = _get_cell(row, 'ai_explanation')
 
                 content_dict['question'] = _value_with_group('question', 'question', question_text)
                 content_dict['correct_answer'] = _value_with_group('correct_answer', 'correct_answer', correct_answer)
@@ -908,6 +914,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 audio_processed = _process_relative_url(audio_value, audio_folder) if audio_value else None
                 content_dict['question_image_file'] = _value_with_group('image', 'question_image_file', image_processed)
                 content_dict['question_audio_file'] = _value_with_group('audio', 'question_audio_file', audio_processed)
+                content_dict.pop('ai_explanation', None)
 
                 prompt_value = _value_with_group('prompt', 'ai_prompt', ai_prompt_value)
                 if prompt_value:
@@ -921,6 +928,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                     content_dict.pop('group_item_order', None)
 
                 item.group_id = group_entry['group'].group_id if group_entry else None
+                item.ai_explanation = ai_explanation_value or None
 
                 item.content = content_dict
                 flag_modified(item, 'content')
@@ -953,6 +961,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 image_value = _get_cell(row, 'question_image_file')
                 audio_value = _get_cell(row, 'question_audio_file')
                 ai_prompt_value = _get_cell(row, 'ai_prompt')
+                ai_explanation_value = _get_cell(row, 'ai_explanation')
                 guidance_value = _get_cell(row, 'guidance')
                 pre_question_value = _get_cell(row, 'pre_question_text')
 
@@ -994,6 +1003,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                     'data': new_content,
                     'group_id': group_entry['group'].group_id if group_entry else None,
                     'group_obj': group_entry['group'] if group_entry else None,
+                    'ai_explanation': ai_explanation_value or None,
                     'order': order_number,
                     'sequence': index,
                 })
@@ -1034,6 +1044,7 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                     group_id=group_id_value if group_id_value else (group_obj.group_id if group_obj else None),
                     item_type='QUIZ_MCQ',
                     content=entry['data'],
+                    ai_explanation=entry.get('ai_explanation'),
                     order_in_container=next_order,
                 )
                 db.session.add(new_item)
