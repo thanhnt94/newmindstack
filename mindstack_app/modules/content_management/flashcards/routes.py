@@ -614,18 +614,18 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
         delete_ids = set()
         ordered_entries = []
 
-    optional_fields = [
-        'front_audio_content',
-        'back_audio_content',
-        'front_img',
-        'back_img',
-        'front_audio_url',
-        'back_audio_url',
-        'ai_prompt',
-        'supports_pronunciation',
-        'supports_writing',
-        'supports_quiz',
-        'supports_essay',
+        optional_fields = [
+            'front_audio_content',
+            'back_audio_content',
+            'front_img',
+            'back_img',
+            'front_audio_url',
+            'back_audio_url',
+            'ai_prompt',
+            'supports_pronunciation',
+            'supports_writing',
+            'supports_quiz',
+            'supports_essay',
             'supports_listening',
             'supports_speaking',
         ]
