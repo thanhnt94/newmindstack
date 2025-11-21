@@ -191,8 +191,19 @@ def _validate_setting_value(parsed_value: object, data_type: str, *, key: str) -
     if normalized_type == "path":
         if not isinstance(parsed_value, str) or not parsed_value:
             raise ValueError("Đường dẫn không được bỏ trống.")
-        os.makedirs(parsed_value, exist_ok=True)
-        current_app.logger.info("Đảm bảo thư mục tồn tại cho %s: %s", key, parsed_value)
+
+        abs_path = os.path.abspath(parsed_value)
+        try:
+            os.makedirs(abs_path, exist_ok=True)
+        except OSError as exc:  # pragma: no cover - phụ thuộc môi trường
+            raise ValueError(
+                f"Không thể tạo hoặc truy cập thư mục cho {key}: {abs_path}"
+            ) from exc
+
+        if not os.path.isdir(abs_path):
+            raise ValueError(f"Đường dẫn không hợp lệ cho {key}: {abs_path}")
+
+        current_app.logger.info("Đảm bảo thư mục tồn tại cho %s: %s", key, abs_path)
 
 
 def _refresh_runtime_settings(force: bool = True) -> None:
@@ -201,6 +212,23 @@ def _refresh_runtime_settings(force: bool = True) -> None:
     service = current_app.extensions.get("config_service")
     if service:
         service.load_settings(force=force)
+
+
+def _log_setting_change(action: str, *, key: str, old_value: object, new_value: object) -> None:
+    """Ghi nhận log audit cho thay đổi cấu hình."""
+
+    user_label = "anonymous"
+    if getattr(current_user, "is_authenticated", False):
+        user_label = f"{current_user.username} (id={current_user.user_id})"
+
+    current_app.logger.info(
+        "AUDIT CẤU HÌNH - %s bởi %s: %s từ %r thành %r",
+        action,
+        user_label,
+        key,
+        old_value,
+        new_value,
+    )
 
 
 def _serialize_instance(instance):
@@ -1002,6 +1030,7 @@ def manage_system_settings():
         maintenance_mode = 'maintenance_mode' in request.form
 
         setting = SystemSetting.query.filter_by(key='system_status').first()
+        previous_value = setting.value.copy() if setting and hasattr(setting.value, "copy") else setting.value if setting else None
         if setting:
             setting.value['maintenance_mode'] = maintenance_mode
             setting.data_type = 'bool'
@@ -1013,6 +1042,9 @@ def manage_system_settings():
             db.session.add(setting)
 
         db.session.commit()
+        _log_setting_change(
+            "update", key="system_status", old_value=previous_value, new_value=setting.value
+        )
         _refresh_runtime_settings()
         flash('Cài đặt hệ thống đã được cập nhật thành công!', 'success')
         return redirect(url_for('admin.manage_system_settings'))
@@ -1072,6 +1104,7 @@ def create_system_setting():
     db.session.add(setting)
     db.session.commit()
 
+    _log_setting_change("create", key=key, old_value=None, new_value=parsed_value)
     _refresh_runtime_settings()
     flash('Đã thêm cấu hình mới thành công.', 'success')
     return redirect(url_for('admin.manage_system_settings'))
@@ -1102,10 +1135,14 @@ def update_system_setting(setting_id):
 
     setting.data_type = data_type
     setting.description = description
+    old_value = setting.value
     setting.value = parsed_value
     flag_modified(setting, 'value')
 
     db.session.commit()
+    _log_setting_change(
+        "update", key=setting.key, old_value=old_value, new_value=parsed_value
+    )
     _refresh_runtime_settings()
     flash('Đã cập nhật cấu hình thành công.', 'success')
     return redirect(url_for('admin.manage_system_settings'))
@@ -1123,10 +1160,12 @@ def delete_system_setting(setting_id):
         flash('Không thể xóa khóa cấu hình được bảo vệ.', 'danger')
         return redirect(url_for('admin.manage_system_settings'))
 
+    old_value = setting.value
     db.session.delete(setting)
     db.session.commit()
 
     current_app.config.pop(setting.key, None)
+    _log_setting_change("delete", key=setting.key, old_value=old_value, new_value=None)
     _refresh_runtime_settings()
 
     flash('Đã xóa cấu hình.', 'info')
