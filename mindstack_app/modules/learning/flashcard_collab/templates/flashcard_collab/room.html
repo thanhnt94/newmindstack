@@ -35,6 +35,15 @@
         #f8fafc;
     }
 
+    @media (max-width: 1024px) {
+      .page-shell {
+        min-height: 100vh;
+        padding: 0;
+        gap: 0;
+        background: #f8fafc;
+      }
+    }
+
     .hero-card {
       background: #ffffff;
       border-radius: 20px;
@@ -58,7 +67,7 @@
       .session-layout {
         display: flex;
         flex-direction: column;
-        height: calc(100vh - var(--header-h, 0px));
+        height: 100vh;
         padding: 0 !important;
         overflow: hidden;
       }
@@ -339,6 +348,7 @@
     .chat-panel { position: relative; }
     .mobile-chat-toggle { display: none; position: fixed; bottom: 1rem; right: 1rem; z-index: 30; box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2); }
     .chat-panel .close-chat-btn { display: none; }
+    .mobile-score-banner { display: none; }
 
     @media (max-width: 1024px) {
       .chat-panel { display: none; }
@@ -348,25 +358,34 @@
         position: fixed;
         inset: 0;
         z-index: 40;
-        background: rgba(15, 23, 42, 0.45);
-        padding: 1rem;
-        align-items: center;
+        background: rgba(15, 23, 42, 0.35);
+        align-items: flex-end;
         justify-content: center;
+        padding: 0;
       }
 
       .chat-panel.open .chat-box {
-        max-width: 720px;
         width: 100%;
-        max-height: 90vh;
+        max-width: 720px;
+        max-height: 72vh;
         background: #ffffff;
+        border-radius: 18px 18px 0 0;
+        box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.25);
+        padding-bottom: 1.5rem;
       }
 
       .chat-panel.open .close-chat-btn { display: inline-flex; }
       .mobile-chat-toggle { display: inline-flex; }
 
+      .hero-card,
+      .session-sidebar,
+      .collab-room-meta {
+        display: none;
+      }
+
       .card-surface.flashcard-panel {
         height: 100%;
-        padding: 0.75rem;
+        padding: 0.75rem 0.75rem 1.25rem;
       }
 
       .flashcard-card-container {
@@ -380,6 +399,16 @@
       .actions {
         position: sticky;
         bottom: 0;
+      }
+
+      .mobile-score-banner {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #eef2ff, #ffffff);
+        border: 1px solid #e2e8f0;
       }
     }
   </style>
@@ -412,7 +441,7 @@
 
   <div class="session-layout">
     <div class="card-surface flashcard-panel" id="collab-learning-card">
-      <div class="flex items-start justify-between gap-3">
+      <div class="flex items-start justify-between gap-3 collab-room-meta">
         <div>
           <p class="text-sm text-slate-500">Thẻ tiếp theo sẽ xuất hiện khi tất cả thành viên đã trả lời.</p>
           <div class="flex items-center gap-2 mt-2 text-sm text-slate-600">
@@ -553,6 +582,18 @@
               <i class="fas fa-times"></i> Đóng
             </button>
           </div>
+          <div class="mobile-score-banner text-sm text-slate-700">
+            <div>
+              <p class="text-xs uppercase tracking-[0.08em] text-slate-500">Điểm của bạn</p>
+              <p class="text-2xl font-extrabold text-indigo-600" id="collab-user-score-mobile">{{ current_user.total_score or 0 }}</p>
+              <p class="text-xs text-slate-500">Cập nhật theo lượt trả lời</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs uppercase tracking-[0.08em] text-slate-500">Mã phòng</p>
+              <p class="text-sm font-semibold text-slate-900">{{ room_payload.room_code }}</p>
+              <p class="text-xs text-slate-500">Nhấn menu để xem chi tiết khác</p>
+            </div>
+          </div>
           <div id="collab-chat-messages" class="chat-messages space-y-2 text-sm text-slate-800">
             <p class="text-slate-500">Đang tải tin nhắn...</p>
           </div>
@@ -609,6 +650,7 @@
       const flipBtn = document.getElementById('collab-flip-btn');
       const roundStepEl = document.getElementById('collab-round-step');
       const userScoreEl = document.getElementById('collab-user-score');
+      const mobileUserScoreEl = document.getElementById('collab-user-score-mobile');
       const participantCountEls = [
         document.getElementById('collab-participant-count'),
         document.getElementById('collab-participant-count-static'),
@@ -775,8 +817,9 @@
           }
 
           const result = payload?.result;
-          if (result && typeof result.updated_total_score === 'number' && userScoreEl) {
-            userScoreEl.textContent = result.updated_total_score;
+          if (result && typeof result.updated_total_score === 'number') {
+            if (userScoreEl) userScoreEl.textContent = result.updated_total_score;
+            if (mobileUserScoreEl) mobileUserScoreEl.textContent = result.updated_total_score;
           }
           if (result?.answer_result === 'correct') {
             feedbackEl.textContent = 'Bạn đã trả lời đúng. Chờ các thành viên khác để chuyển thẻ.';
