@@ -16,11 +16,11 @@ class Config:
     """
     Lớp cấu hình cho ứng dụng Flask.
     """
-    # Khóa bí mật để bảo vệ session
+    # Khóa bí mật để bảo vệ session (luôn ưu tiên biến môi trường)
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'a_very_secret_key_for_the_new_app'
 
-    # Cấu hình đường dẫn đến cơ sở dữ liệu
-    SQLALCHEMY_DATABASE_URI = f'sqlite:///{DATABASE_PATH}'
+    # Cấu hình đường dẫn đến cơ sở dữ liệu (ưu tiên biến môi trường)
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or f'sqlite:///{DATABASE_PATH}'
 
     # Tăng thời gian chờ kết nối để giảm lỗi "database is locked" của SQLite
     SQLALCHEMY_ENGINE_OPTIONS = {

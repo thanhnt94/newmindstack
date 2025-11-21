@@ -39,6 +39,10 @@
     <div class="data-card-header px-6 py-5">
         <h2 class="text-xl font-semibold text-slate-900">Cấu hình động</h2>
         <p class="text-sm text-slate-500 mt-1">Thêm, chỉnh sửa hoặc xóa các biến cấu hình được lưu trong cơ sở dữ liệu.</p>
+        <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+            <p class="font-semibold">Lưu ý bảo mật</p>
+            <p class="mt-1">Các khóa nhạy cảm như <code>SECRET_KEY</code> và <code>SQLALCHEMY_DATABASE_URI</code> chỉ được thiết lập qua biến môi trường và không hiển thị tại đây.</p>
+        </div>
     </div>
     <div class="px-6 py-6 space-y-6">
         <form action="{{ url_for('admin.create_system_setting') }}" method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
