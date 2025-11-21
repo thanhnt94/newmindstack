@@ -108,6 +108,35 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
 )
 
 
+# Các cấu hình cốt lõi muốn cho phép chỉnh sửa nhanh trên giao diện admin
+CORE_SETTING_FIELDS: list[dict[str, object]] = [
+    {
+        "key": "ITEMS_PER_PAGE",
+        "label": "Số mục trên mỗi trang",
+        "data_type": "int",
+        "placeholder": "12",
+        "description": "Điều chỉnh số lượng bản ghi hiển thị mặc định trong bảng và danh sách.",
+        "default": Config.ITEMS_PER_PAGE,
+    },
+    {
+        "key": "UPLOAD_FOLDER",
+        "label": "Thư mục lưu file tải lên",
+        "data_type": "path",
+        "placeholder": Config.UPLOAD_FOLDER,
+        "description": "Vị trí lưu trữ tệp do người dùng tải lên (ảnh, âm thanh, tài liệu...).",
+        "default": Config.UPLOAD_FOLDER,
+    },
+    {
+        "key": "BACKUP_FOLDER",
+        "label": "Thư mục sao lưu",
+        "data_type": "path",
+        "placeholder": Config.BACKUP_FOLDER,
+        "description": "Nơi lưu trữ các gói backup được tạo từ trang quản trị.",
+        "default": Config.BACKUP_FOLDER,
+    },
+]
+
+
 def _resolve_database_path():
     """
     Mô tả: Xác định đường dẫn tuyệt đối đến file cơ sở dữ liệu SQLite.
@@ -204,6 +233,17 @@ def _validate_setting_value(parsed_value: object, data_type: str, *, key: str) -
             raise ValueError(f"Đường dẫn không hợp lệ cho {key}: {abs_path}")
 
         current_app.logger.info("Đảm bảo thư mục tồn tại cho %s: %s", key, abs_path)
+
+
+def _get_core_settings() -> list[dict[str, object]]:
+    """Đọc giá trị hiện tại của các cấu hình cốt lõi."""
+
+    resolved_settings: list[dict[str, object]] = []
+    for field in CORE_SETTING_FIELDS:
+        current_value = get_runtime_config(field["key"], field["default"])
+        resolved_settings.append({**field, "value": current_value})
+
+    return resolved_settings
 
 
 def _refresh_runtime_settings(force: bool = True) -> None:
@@ -1065,9 +1105,66 @@ def manage_system_settings():
     return render_template(
         'system_settings.html',
         maintenance_mode=maintenance_mode,
+        core_settings=_get_core_settings(),
         settings=settings,
         data_type_options=data_type_options,
     )
+
+
+@admin_bp.route('/settings/core', methods=['POST'])
+def update_core_settings():
+    """Cập nhật nhanh các cấu hình vận hành quan trọng."""
+
+    updated_count = 0
+    pending_logs: list[tuple[str, object, object]] = []
+
+    for field in CORE_SETTING_FIELDS:
+        key = field["key"]
+        data_type = str(field.get("data_type", "string")).lower()
+        description = field.get("description")
+        raw_value = request.form.get(key)
+
+        if raw_value is None:
+            current_app.logger.debug("Bỏ qua %s vì không có dữ liệu từ form", key)
+            continue
+
+        try:
+            parsed_value = _parse_setting_value(raw_value, data_type, key=key)
+            _validate_setting_value(parsed_value, data_type, key=key)
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+            return redirect(url_for('admin.manage_system_settings'))
+
+        setting = SystemSetting.query.filter_by(key=key).first()
+        old_value = setting.value if setting else None
+
+        if setting:
+            setting.value = parsed_value
+            setting.data_type = data_type
+            setting.description = description
+            flag_modified(setting, 'value')
+        else:
+            setting = SystemSetting(
+                key=key,
+                value=parsed_value,
+                data_type=data_type,
+                description=description,
+            )
+            db.session.add(setting)
+
+        pending_logs.append((key, old_value, parsed_value))
+        updated_count += 1
+
+    if updated_count:
+        db.session.commit()
+        for key, old_value, parsed_value in pending_logs:
+            _log_setting_change("update", key=key, old_value=old_value, new_value=parsed_value)
+        _refresh_runtime_settings()
+        flash('Đã lưu cấu hình vận hành.', 'success')
+    else:
+        flash('Không có thay đổi nào được ghi nhận.', 'info')
+
+    return redirect(url_for('admin.manage_system_settings'))
 
 
 @admin_bp.route('/settings/create', methods=['POST'])

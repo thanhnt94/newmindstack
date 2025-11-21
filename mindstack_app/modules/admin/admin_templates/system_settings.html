@@ -37,6 +37,44 @@
 
 <div class="data-card mt-8">
     <div class="data-card-header px-6 py-5">
+        <h2 class="text-xl font-semibold text-slate-900">Cấu hình vận hành nhanh</h2>
+        <p class="text-sm text-slate-500 mt-1">Điều chỉnh các tham số quan trọng như phân trang và thư mục lưu trữ.</p>
+    </div>
+    <div class="px-6 py-6">
+        <form action="{{ url_for('admin.update_core_settings') }}" method="post" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for field in core_settings %}
+                <div class="border border-slate-200 rounded-lg p-4 bg-slate-50/60">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-900">{{ field.label }}</p>
+                            <p class="text-xs text-slate-500 mt-1">{{ field.description }}</p>
+                        </div>
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700">{{ field.data_type|upper }}</span>
+                    </div>
+                    <div class="mt-3">
+                        <label class="block text-xs text-slate-500">Giá trị hiện tại</label>
+                        {% if field.data_type == 'int' %}
+                            <input type="number" name="{{ field.key }}" value="{{ field.value }}" class="mt-1 w-full rounded-md border-slate-200" placeholder="{{ field.placeholder }}" required>
+                        {% else %}
+                            <input name="{{ field.key }}" value="{{ field.value }}" class="mt-1 w-full rounded-md border-slate-200" placeholder="{{ field.placeholder }}" required>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md shadow hover:bg-blue-700 transition">
+                    <i class="fas fa-save"></i> Lưu cấu hình
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="data-card mt-8">
+    <div class="data-card-header px-6 py-5">
         <h2 class="text-xl font-semibold text-slate-900">Cấu hình động</h2>
         <p class="text-sm text-slate-500 mt-1">Thêm, chỉnh sửa hoặc xóa các biến cấu hình được lưu trong cơ sở dữ liệu.</p>
         <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
