@@ -47,6 +47,14 @@ def get_accessible_flashcard_set_ids(user_id):
     if current_user.user_role == User.ROLE_ADMIN:
         return [container.container_id for container in base_query.all()]
 
+    if current_user.user_role == User.ROLE_FREE:
+        return [
+            container.container_id
+            for container in base_query.filter(
+                LearningContainer.creator_user_id == user_id
+            ).all()
+        ]
+
     contributed_ids_subquery = db.session.query(ContainerContributor.container_id).filter(
         ContainerContributor.user_id == user_id,
         ContainerContributor.permission_level == 'editor',
