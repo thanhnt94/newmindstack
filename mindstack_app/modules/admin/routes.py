@@ -57,7 +57,7 @@ from datetime import date, time
 from ...config import Config
 from ..learning.flashcard_learning.audio_service import AudioService
 from ..learning.flashcard_learning.image_service import ImageService
-from ...services.config_service import get_runtime_config
+from ...services.config_service import SENSITIVE_SETTING_KEYS, get_runtime_config
 
 audio_service = AudioService()
 image_service = ImageService()
@@ -171,6 +171,12 @@ def _parse_setting_value(raw_value: str | None, data_type: str, *, key: str) -> 
         return os.path.abspath(value_to_use)
 
     return value_to_use.strip()
+
+
+def _is_sensitive_setting(key: str) -> bool:
+    """Kiểm tra khóa cấu hình có nhạy cảm hay không."""
+
+    return key.upper() in SENSITIVE_SETTING_KEYS
 
 
 def _validate_setting_value(parsed_value: object, data_type: str, *, key: str) -> None:
@@ -1017,7 +1023,11 @@ def manage_system_settings():
     if system_status_setting and isinstance(system_status_setting.value, dict):
         maintenance_mode = system_status_setting.value.get('maintenance_mode', False)
         
-    settings = SystemSetting.query.order_by(SystemSetting.key.asc()).all()
+    settings = [
+        setting
+        for setting in SystemSetting.query.order_by(SystemSetting.key.asc()).all()
+        if not _is_sensitive_setting(setting.key)
+    ]
     data_type_options = ['string', 'int', 'bool', 'path', 'json']
 
     return render_template(
@@ -1041,6 +1051,10 @@ def create_system_setting():
 
     if not key:
         flash('Khóa cấu hình không được bỏ trống.', 'danger')
+        return redirect(url_for('admin.manage_system_settings'))
+
+    if _is_sensitive_setting(key):
+        flash('Khóa cấu hình này được bảo vệ và chỉ thiết lập qua biến môi trường.', 'warning')
         return redirect(url_for('admin.manage_system_settings'))
 
     if SystemSetting.query.filter_by(key=key).first():
@@ -1071,6 +1085,10 @@ def update_system_setting(setting_id):
 
     setting = SystemSetting.query.get_or_404(setting_id)
 
+    if _is_sensitive_setting(setting.key):
+        flash('Khóa cấu hình này được bảo vệ và không thể chỉnh sửa từ giao diện.', 'danger')
+        return redirect(url_for('admin.manage_system_settings'))
+
     data_type = (request.form.get('data_type') or setting.data_type or 'string').lower()
     description = (request.form.get('description') or '').strip() or None
     raw_value = request.form.get('value')
@@ -1100,6 +1118,11 @@ def delete_system_setting(setting_id):
     """
 
     setting = SystemSetting.query.get_or_404(setting_id)
+
+    if _is_sensitive_setting(setting.key):
+        flash('Không thể xóa khóa cấu hình được bảo vệ.', 'danger')
+        return redirect(url_for('admin.manage_system_settings'))
+
     db.session.delete(setting)
     db.session.commit()
 

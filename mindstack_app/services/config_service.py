@@ -10,6 +10,9 @@ from flask import current_app, has_app_context
 
 from ..models import SystemSetting
 
+# Các khóa nhạy cảm không được ghi đè từ DB
+SENSITIVE_SETTING_KEYS = {"SECRET_KEY", "SQLALCHEMY_DATABASE_URI"}
+
 
 class ConfigService:
     """Đồng bộ cấu hình giữa DB và current_app.config."""
@@ -70,6 +73,10 @@ class ConfigService:
 
         settings = SystemSetting.query.all()
         for setting in settings:
+            if setting.key.upper() in SENSITIVE_SETTING_KEYS:
+                current_app.logger.info("Bỏ qua cấu hình nhạy cảm %s từ DB", setting.key)
+                continue
+
             self.app.config[setting.key] = self._parse_value(setting)
 
         self._last_loaded = now
