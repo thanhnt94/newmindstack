@@ -59,6 +59,7 @@
       perspective: 1200px;
       width: 100%;
       height: 100%;
+      min-height: 300px;
     }
 
     .flashcard-card {
@@ -69,39 +70,125 @@
       background: #ffffff;
       border: 1px solid rgba(148, 163, 184, 0.25);
       box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+      overflow: hidden;
+      transform-style: preserve-3d;
+      transition: transform .6s ease, box-shadow .2s ease;
+    }
+
+    .flashcard-card:hover {
+      box-shadow: 0 20px 44px rgba(15, 23, 42, 0.14);
+    }
+
+    .card-toolbar {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-      gap: 1.25rem;
-      padding: 1.25rem;
-    }
-
-    .face-title {
-      font-size: 0.75rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #64748b;
-      font-weight: 700;
-      display: flex;
+      grid-template-columns: auto 1fr auto;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      position: absolute;
+      inset: 0 0 auto 0;
+      background: rgba(255, 255, 255, 0.94);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      backdrop-filter: blur(6px);
+      z-index: 5;
     }
 
-    .flashcard-text {
-      font-size: 1.15rem;
+    .card-toolbar .label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .card-toolbar .pill {
+      background: #eef2ff;
+      color: #4338ca;
+      padding: 0.45rem 0.85rem;
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      padding: 64px 1.5rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1rem;
+      backface-visibility: hidden;
+      transition: transform .6s ease, opacity .3s ease;
+    }
+
+    .face .flashcard-text {
+      font-size: 2rem;
+      font-weight: 700;
       color: #0f172a;
-      line-height: 1.75;
-      font-weight: 600;
+      text-align: center;
+      line-height: 1.4;
     }
 
-    .flashcard-text.back {
+    .face.back .flashcard-text {
+      font-size: 1.1rem;
       font-weight: 500;
-      color: #1e293b;
+      color: #1f2937;
+      text-align: left;
+      white-space: pre-wrap;
+    }
+
+    .face.back {
+      transform: rotateY(180deg);
+    }
+
+    .flashcard-card.flipped .front {
+      transform: rotateY(180deg);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .flashcard-card.flipped .back {
+      transform: rotateY(360deg);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .flashcard-card:not(.flipped) .back {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .flip-card-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.6rem;
+      border-radius: 0.85rem;
+      font-weight: 700;
+      border: none;
+      background: linear-gradient(135deg, #6366f1, #2563eb);
+      color: white;
+      box-shadow: 0 12px 28px rgba(99, 102, 241, 0.25);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .flip-card-btn:hover {
+      transform: translateY(-1px);
+      background: linear-gradient(135deg, #4f46e5, #1d4ed8);
+      box-shadow: 0 16px 32px rgba(79, 70, 229, 0.28);
+    }
+
+    .flip-card-btn:focus-visible {
+      outline: 3px solid rgba(79, 70, 229, 0.35);
+      outline-offset: 3px;
     }
 
     .answer-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 0.75rem;
+    }
+
+    .answer-grid.visible {
+      display: grid;
     }
 
     .answer-button {
@@ -110,11 +197,17 @@
       font-weight: 700;
       border: 1px solid transparent;
       transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      width: 100%;
     }
 
-    .answer-button:hover {
+    .answer-button:hover:not(:disabled) {
       transform: translateY(-1px);
       box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .answer-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .pill {
@@ -198,21 +291,34 @@
       </div>
 
       <div class="flashcard-card-container">
-        <div class="flashcard-card" id="collab-card-wrapper">
-          <div class="space-y-2">
-            <p class="face-title"><i class="fas fa-rectangle-list"></i> Mặt trước</p>
+        <div class="flashcard-card" id="collab-card">
+          <div class="card-toolbar">
+            <span class="label">Flashcard</span>
+            <div class="text-sm text-center text-slate-600">
+              <i class="fas fa-eye"></i> Lật thẻ để xem đáp án
+            </div>
+            <span class="pill text-xs"><i class="fas fa-rotate"></i> Ấn để lật</span>
+          </div>
+          <div class="face front">
+            <p class="label text-sm text-slate-500">Mặt trước</p>
             <p id="collab-card-front" class="flashcard-text">—</p>
           </div>
-          <div class="space-y-2">
-            <p class="face-title"><i class="fas fa-clipboard-check"></i> Mặt sau</p>
-            <p id="collab-card-back" class="flashcard-text back">—</p>
+          <div class="face back">
+            <p class="label text-sm text-slate-500">Mặt sau</p>
+            <p id="collab-card-back" class="flashcard-text">—</p>
           </div>
         </div>
       </div>
 
+      <div class="flex justify-center pt-2">
+        <button type="button" id="collab-flip-btn" class="flip-card-btn">
+          <i class="fas fa-sync-alt"></i> Lật thẻ
+        </button>
+      </div>
+
       <div class="space-y-2">
         <p class="text-sm font-semibold text-slate-800">Câu trả lời của bạn</p>
-        <div class="answer-grid">
+        <div class="answer-grid" id="collab-answer-actions">
           <button type="button" data-answer="quên" class="collab-answer-btn answer-button bg-rose-50 text-rose-700">
             <i class="fas fa-times-circle"></i> Quên
           </button>
@@ -342,17 +448,48 @@
 
       const cardFrontEl = document.getElementById('collab-card-front');
       const cardBackEl = document.getElementById('collab-card-back');
+      const cardEl = document.getElementById('collab-card');
       const statusEl = document.getElementById('collab-round-status');
       const participantsEl = document.getElementById('collab-round-participants');
       const answerButtons = document.querySelectorAll('.collab-answer-btn');
+      const answerActionsEl = document.getElementById('collab-answer-actions');
       const feedbackEl = document.getElementById('collab-answer-feedback');
       const refreshBtn = document.getElementById('collab-refresh-round');
+      const flipBtn = document.getElementById('collab-flip-btn');
       const roundStepEl = document.getElementById('collab-round-step');
       const userScoreEl = document.getElementById('collab-user-score');
 
       let currentRound = null;
+      let currentCardId = null;
       let isFetching = false;
       let pollHandle = null;
+      let hasAnsweredCurrentCard = false;
+
+      const syncAnswerButtonsAvailability = () => {
+        const shouldDisable = hasAnsweredCurrentCard || !cardEl?.classList.contains('flipped');
+        answerButtons.forEach((btn) => {
+          btn.disabled = shouldDisable;
+          btn.classList.toggle('opacity-60', shouldDisable);
+        });
+      };
+
+      const showFrontSide = () => {
+        if (!cardEl) return;
+        cardEl.classList.remove('flipped');
+        answerActionsEl?.classList.remove('visible');
+        flipBtn?.classList.remove('hidden');
+        feedbackEl.textContent = '';
+        hasAnsweredCurrentCard = false;
+        syncAnswerButtonsAvailability();
+      };
+
+      const showBackSide = () => {
+        if (!cardEl) return;
+        cardEl.classList.add('flipped');
+        answerActionsEl?.classList.add('visible');
+        flipBtn?.classList.add('hidden');
+        syncAnswerButtonsAvailability();
+      };
 
       const setLoadingState = (message) => {
         statusEl.innerHTML = message || 'Đang tải...';
@@ -383,17 +520,24 @@
         currentRound = roundPayload;
         const { item, participants = [], all_answered: allAnswered, status } = roundPayload;
 
+        const itemId = item?.item_id || null;
+        if (itemId !== currentCardId) {
+          currentCardId = itemId;
+          showFrontSide();
+        }
+
         cardFrontEl.textContent = (item?.content?.front || 'Không có nội dung mặt trước').trim();
         cardBackEl.textContent = (item?.content?.back || 'Không có nội dung mặt sau').trim();
         renderParticipants(participants);
 
         const currentUserParticipation = participants.find((p) => Number(p.user_id) === Number(currentUserId));
-        const hasAnswered = currentUserParticipation?.has_answered;
-        feedbackEl.textContent = hasAnswered ? 'Bạn đã trả lời, vui lòng chờ mọi người hoàn tất.' : '';
-        answerButtons.forEach((btn) => {
-          btn.disabled = !!hasAnswered;
-          btn.classList.toggle('opacity-60', !!hasAnswered);
-        });
+        hasAnsweredCurrentCard = !!currentUserParticipation?.has_answered;
+        feedbackEl.textContent = hasAnsweredCurrentCard ? 'Bạn đã trả lời, vui lòng chờ mọi người hoàn tất.' : 'Nhấn “Lật thẻ” để xem đáp án.';
+        if (hasAnsweredCurrentCard) {
+          showBackSide();
+        } else {
+          syncAnswerButtonsAvailability();
+        }
 
         if (status === 'completed' && allAnswered) {
           statusEl.innerHTML = '<span class="pill bg-emerald-50 text-emerald-700"><i class="fas fa-check-circle"></i> Tất cả thành viên đã trả lời. Đang chuẩn bị thẻ tiếp theo...</span>';
@@ -431,6 +575,10 @@
         isFetching = true;
         feedbackEl.textContent = 'Đang gửi câu trả lời...';
 
+        if (cardEl && !cardEl.classList.contains('flipped')) {
+          showBackSide();
+        }
+
         try {
           const response = await fetch(submitAnswerUrl, {
             method: 'POST',
@@ -463,6 +611,8 @@
           } else {
             feedbackEl.textContent = 'Đã ghi nhận câu trả lời của bạn.';
           }
+          hasAnsweredCurrentCard = true;
+          syncAnswerButtonsAvailability();
         } catch (err) {
           feedbackEl.textContent = err.message || 'Có lỗi xảy ra.';
           fetchRound(true);
@@ -485,6 +635,8 @@
       answerButtons.forEach((btn) => {
         btn.addEventListener('click', () => submitAnswer(btn.dataset.answer));
       });
+
+      flipBtn?.addEventListener('click', showBackSide);
 
       refreshBtn?.addEventListener('click', () => fetchRound(true));
 
