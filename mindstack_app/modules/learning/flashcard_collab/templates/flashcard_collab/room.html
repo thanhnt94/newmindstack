@@ -1,109 +1,309 @@
 {% extends 'base.html' %}
 {% block title %}Phòng học Flashcard chung - {{ room_payload.room_code }}{% endblock %}
 
+{% block head %}
+  {{ super() }}
+  <style>
+    body.flashcard-session-active > main {
+      padding: 0 !important;
+      margin: 0;
+      max-width: none;
+    }
+
+    .page-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: calc(100vh - 64px);
+      padding: 1.5rem 1.25rem 2rem;
+      background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08), transparent 25%),
+        radial-gradient(circle at 90% 30%, rgba(59, 130, 246, 0.06), transparent 25%),
+        #f8fafc;
+    }
+
+    .session-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2.4fr) minmax(360px, 1fr);
+      gap: 1.25rem;
+      width: 100%;
+      margin: 0 auto;
+      max-width: 1440px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .session-layout {
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
+    .card-surface {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
+      overflow: hidden;
+    }
+
+    .flashcard-panel {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 1rem;
+      height: 100%;
+      padding: 1.25rem;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+    }
+
+    .flashcard-card-container {
+      perspective: 1200px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .flashcard-card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      background: #ffffff;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+      gap: 1.25rem;
+      padding: 1.25rem;
+    }
+
+    .face-title {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #64748b;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .flashcard-text {
+      font-size: 1.15rem;
+      color: #0f172a;
+      line-height: 1.75;
+      font-weight: 600;
+    }
+
+    .flashcard-text.back {
+      font-weight: 500;
+      color: #1e293b;
+    }
+
+    .answer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .answer-button {
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .answer-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .sidebar-card {
+      padding: 1.1rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chat-box {
+      height: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      padding: 0.75rem;
+    }
+  </style>
+{% endblock %}
+
 {% block content %}
-<div class="container mx-auto px-4 py-6 space-y-6">
-  <div class="flex items-center justify-between gap-3">
-    <div>
-      <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Phòng học chung</p>
-      <h1 class="text-2xl font-bold text-slate-900">{{ room_payload.title or 'Phòng học Flashcard' }}</h1>
-      <p class="text-sm text-slate-600">Mã phòng: <span class="font-mono tracking-widest font-semibold">{{ room_payload.room_code }}</span></p>
+<div class="page-shell">
+  <div class="flex flex-col gap-3">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Phòng học Flashcard</p>
+        <h1 class="text-3xl font-extrabold text-slate-900">{{ room_payload.title or 'Phòng học chung' }}</h1>
+        <div class="flex items-center flex-wrap gap-2 mt-2 text-sm text-slate-600">
+          <span class="pill bg-slate-100 text-slate-700"><i class="fas fa-layer-group"></i> {{ room_payload.container_title or ('Bộ #' ~ room_payload.container_id) }}</span>
+          <span class="pill bg-indigo-50 text-indigo-700"><i class="fas fa-bolt"></i> Chế độ: {{ room_payload.mode }}</span>
+          <span class="pill bg-emerald-50 text-emerald-700"><i class="fas fa-user"></i> Chủ phòng: {{ room_payload.host_username or '—' }}</span>
+          <span class="pill bg-slate-200 text-slate-800 font-mono">Mã: {{ room_payload.room_code }}</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" id="copy-room-code" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold bg-white shadow-sm hover:bg-slate-50">
+          <i class="fas fa-copy"></i> Sao chép mã
+        </button>
+        <a href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold bg-white shadow-sm hover:bg-slate-50">
+          <i class="fas fa-arrow-left"></i> Quay lại danh sách phòng
+        </a>
+      </div>
     </div>
-    <a href="{{ url_for('learning.flashcard_learning.flashcard_learning_dashboard') }}" class="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800">
-      <i class="fas fa-arrow-left"></i> Quay lại danh sách phòng
-    </a>
   </div>
 
-  <div class="grid gap-6 lg:grid-cols-3">
-    <div class="lg:col-span-2 space-y-4">
-      <div class="bg-white rounded-xl shadow p-5 space-y-3">
-        <h2 class="text-lg font-semibold text-slate-900">Thông tin phòng</h2>
-        <p class="text-slate-700"><strong>Bộ thẻ:</strong> {{ room_payload.container_title or ('Bộ #' ~ room_payload.container_id) }}</p>
-        <p class="text-slate-700"><strong>Chế độ:</strong> {{ room_payload.mode }}</p>
-        <p class="text-slate-700"><strong>Chủ phòng:</strong> {{ room_payload.host_username or '—' }}</p>
-        <p class="text-slate-700"><strong>Trạng thái:</strong> {{ room_payload.status }}</p>
+  <div class="session-layout">
+    <div class="card-surface flashcard-panel" id="collab-learning-card">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="text-sm text-slate-500">Thẻ tiếp theo sẽ xuất hiện khi tất cả thành viên đã trả lời.</p>
+          <div class="flex items-center gap-2 mt-2 text-sm" id="collab-round-status">
+            <span class="pill bg-amber-50 text-amber-700"><i class="fas fa-circle-notch animate-spin"></i> Đang tải thẻ đầu tiên...</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="text-right">
+            <p class="text-xs text-slate-500">Điểm của bạn</p>
+            <p class="text-2xl font-extrabold text-indigo-600" id="collab-user-score">{{ current_user.total_score or 0 }}</p>
+          </div>
+          <button type="button" id="collab-refresh-round" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold bg-white shadow-sm hover:bg-slate-50">
+            <i class="fas fa-rotate"></i> Làm mới thẻ
+          </button>
+        </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow p-5 space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <h3 class="text-lg font-semibold text-slate-900">Thành viên</h3>
-            <p class="text-sm text-slate-600">Tự động thêm bạn vào phòng khi mở trang này.</p>
+      <div class="flashcard-card-container">
+        <div class="flashcard-card" id="collab-card-wrapper">
+          <div class="space-y-2">
+            <p class="face-title"><i class="fas fa-rectangle-list"></i> Mặt trước</p>
+            <p id="collab-card-front" class="flashcard-text">—</p>
           </div>
-          <button type="button" id="copy-room-code" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold hover:bg-slate-50">
-            <i class="fas fa-copy"></i> Sao chép mã
+          <div class="space-y-2">
+            <p class="face-title"><i class="fas fa-clipboard-check"></i> Mặt sau</p>
+            <p id="collab-card-back" class="flashcard-text back">—</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <p class="text-sm font-semibold text-slate-800">Câu trả lời của bạn</p>
+        <div class="answer-grid">
+          <button type="button" data-answer="quên" class="collab-answer-btn answer-button bg-rose-50 text-rose-700">
+            <i class="fas fa-times-circle"></i> Quên
           </button>
+          <button type="button" data-answer="mơ_hồ" class="collab-answer-btn answer-button bg-amber-50 text-amber-700">
+            <i class="fas fa-minus-circle"></i> Mơ hồ
+          </button>
+          <button type="button" data-answer="nhớ" class="collab-answer-btn answer-button bg-emerald-50 text-emerald-700">
+            <i class="fas fa-check-circle"></i> Nhớ
+          </button>
+        </div>
+        <p id="collab-answer-feedback" class="text-xs text-slate-600"></p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-3">
+        <div class="bg-slate-50 rounded-xl border border-slate-200 p-3">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-semibold text-slate-800">Trạng thái lượt</p>
+            <span id="collab-round-step" class="text-xs font-mono text-slate-500"></span>
+          </div>
+          <ul id="collab-round-participants" class="divide-y divide-slate-200 text-sm text-slate-700"></ul>
+        </div>
+        <div class="bg-slate-50 rounded-xl border border-slate-200 p-3">
+          <p class="text-sm font-semibold text-slate-800 mb-2">Hướng dẫn nhanh</p>
+          <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+            <li>Chọn mức độ ghi nhớ giống như khi học cá nhân.</li>
+            <li>Phòng tự động chuyển thẻ khi mọi người đã trả lời.</li>
+            <li>Sử dụng trò chuyện bên phải để phối hợp cùng nhóm.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="session-sidebar space-y-3">
+      <div class="card-surface sidebar-card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Thông tin phòng</p>
+            <p class="text-lg font-semibold text-slate-900">{{ room_payload.container_title or ('Bộ #' ~ room_payload.container_id) }}</p>
+          </div>
+          <span class="pill bg-indigo-50 text-indigo-700"><i class="fas fa-bolt"></i> {{ room_payload.mode }}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-sm text-slate-700">
+          <div class="bg-slate-50 rounded-lg p-3">
+            <p class="text-xs text-slate-500">Chủ phòng</p>
+            <p class="font-semibold">{{ room_payload.host_username or '—' }}</p>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3">
+            <p class="text-xs text-slate-500">Trạng thái</p>
+            <p class="font-semibold capitalize">{{ room_payload.status }}</p>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3">
+            <p class="text-xs text-slate-500">Mã phòng</p>
+            <p class="font-mono tracking-widest text-sm">{{ room_payload.room_code }}</p>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3">
+            <p class="text-xs text-slate-500">Tổng thành viên</p>
+            <p class="font-semibold" id="collab-participant-count">{{ room_payload.participants | length }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-surface sidebar-card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Thành viên</p>
+            <p class="text-lg font-semibold text-slate-900">Tình trạng tham gia</p>
+          </div>
         </div>
         <ul class="divide-y divide-slate-100" id="participant-list">
           {% for participant in room_payload.participants %}
-            <li class="py-2 flex items-center justify-between">
+            <li class="py-3 flex items-center justify-between">
               <div>
                 <p class="font-semibold text-slate-800">{{ participant.username or 'Người dùng #' ~ participant.user_id }}</p>
-                <p class="text-xs text-slate-500">Vai trò: {{ 'Chủ phòng' if participant.is_host else 'Thành viên' }}</p>
+                <p class="text-xs text-slate-500">{{ 'Chủ phòng' if participant.is_host else 'Thành viên' }}</p>
               </div>
-              <span class="text-xs text-slate-500 uppercase tracking-wide">{{ participant.status }}</span>
+              <span class="pill bg-slate-100 text-slate-700 text-xs">{{ participant.status }}</span>
             </li>
           {% else %}
             <li class="py-2 text-slate-600">Chưa có thành viên nào.</li>
           {% endfor %}
         </ul>
       </div>
-    </div>
 
-    <div class="space-y-4">
-      <div class="bg-white rounded-xl shadow p-5 space-y-4" id="collab-learning-card">
-        <div class="flex items-center justify-between gap-2">
+      <div class="card-surface sidebar-card chat-box">
+        <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-lg font-semibold text-slate-900">Học chung ngay tại đây</h3>
-            <p class="text-sm text-slate-600">Thẻ mới chỉ xuất hiện khi tất cả thành viên đã trả lời.</p>
-          </div>
-          <button type="button" id="collab-refresh-round" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold hover:bg-slate-50">
-            <i class="fas fa-rotate"></i> Làm mới
-          </button>
-        </div>
-
-        <div id="collab-round-status" class="text-sm text-slate-600">Đang tải thẻ đầu tiên...</div>
-
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2" id="collab-card-wrapper">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Mặt trước</p>
-          <p id="collab-card-front" class="font-semibold text-slate-900">—</p>
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-500 mt-3">Mặt sau</p>
-          <p id="collab-card-back" class="text-slate-800">—</p>
-        </div>
-
-        <div class="space-y-2">
-          <p class="text-sm font-semibold text-slate-800">Câu trả lời của bạn</p>
-          <div class="grid grid-cols-3 gap-2">
-            <button type="button" data-answer="quên" class="collab-answer-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-rose-50 text-rose-700 font-semibold hover:bg-rose-100">
-              <i class="fas fa-times-circle"></i> Quên
-            </button>
-            <button type="button" data-answer="mơ_hồ" class="collab-answer-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-50 text-amber-700 font-semibold hover:bg-amber-100">
-              <i class="fas fa-minus-circle"></i> Mơ hồ
-            </button>
-            <button type="button" data-answer="nhớ" class="collab-answer-btn inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-50 text-green-700 font-semibold hover:bg-green-100">
-              <i class="fas fa-check-circle"></i> Nhớ
-            </button>
-          </div>
-          <p id="collab-answer-feedback" class="text-xs text-slate-600"></p>
-        </div>
-
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <p class="text-sm font-semibold text-slate-800">Trạng thái lượt hiện tại</p>
-            <span id="collab-round-step" class="text-xs font-mono text-slate-500"></span>
-          </div>
-          <ul id="collab-round-participants" class="divide-y divide-slate-200 text-sm text-slate-700"></ul>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-xl shadow p-5 space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <h3 class="text-lg font-semibold text-slate-900">Trò chuyện</h3>
-            <p class="text-sm text-slate-600">Trao đổi nhanh với các thành viên phòng.</p>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Trò chuyện</p>
+            <p class="text-lg font-semibold text-slate-900">Trao đổi trong phòng</p>
           </div>
         </div>
-        <div id="collab-chat-messages" class="h-72 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2 text-sm text-slate-800">
+        <div id="collab-chat-messages" class="chat-messages space-y-2 text-sm text-slate-800">
           <p class="text-slate-500">Đang tải tin nhắn...</p>
         </div>
         <form id="collab-chat-form" class="flex gap-2">
@@ -121,6 +321,13 @@
 {% block scripts %}
   {{ super() }}
   <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('flashcard-session-active');
+    });
+    window.addEventListener('beforeunload', () => {
+      document.body.classList.remove('flashcard-session-active');
+    });
+
     document.getElementById('copy-room-code')?.addEventListener('click', () => {
       const code = {{ room_payload.room_code | tojson }};
       navigator.clipboard.writeText(code).catch(() => {});
@@ -130,6 +337,8 @@
       const nextCardUrl = {{ url_for('learning.flashcard_collab.get_next_card', room_code=room_payload.room_code) | tojson }};
       const submitAnswerUrl = {{ url_for('learning.flashcard_collab.submit_collab_answer', room_code=room_payload.room_code) | tojson }};
       const currentUserId = {{ current_user.user_id }};
+      const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+      const csrfHeaders = csrfTokenMeta ? { 'X-CSRFToken': csrfTokenMeta.getAttribute('content') } : {};
 
       const cardFrontEl = document.getElementById('collab-card-front');
       const cardBackEl = document.getElementById('collab-card-back');
@@ -139,13 +348,14 @@
       const feedbackEl = document.getElementById('collab-answer-feedback');
       const refreshBtn = document.getElementById('collab-refresh-round');
       const roundStepEl = document.getElementById('collab-round-step');
+      const userScoreEl = document.getElementById('collab-user-score');
 
       let currentRound = null;
       let isFetching = false;
       let pollHandle = null;
 
       const setLoadingState = (message) => {
-        statusEl.textContent = message || 'Đang tải...';
+        statusEl.innerHTML = message || 'Đang tải...';
       };
 
       const renderParticipants = (participants = []) => {
@@ -186,11 +396,11 @@
         });
 
         if (status === 'completed' && allAnswered) {
-          statusEl.textContent = 'Tất cả thành viên đã trả lời. Đang chuẩn bị thẻ tiếp theo...';
+          statusEl.innerHTML = '<span class="pill bg-emerald-50 text-emerald-700"><i class="fas fa-check-circle"></i> Tất cả thành viên đã trả lời. Đang chuẩn bị thẻ tiếp theo...</span>';
         } else if (!allAnswered) {
-          statusEl.textContent = 'Đang chờ tất cả thành viên trả lời...';
+          statusEl.innerHTML = '<span class="pill bg-amber-50 text-amber-700"><i class="fas fa-hourglass-half"></i> Đang chờ tất cả thành viên trả lời...</span>';
         } else {
-          statusEl.textContent = 'Đang hiển thị thẻ mới.';
+          statusEl.innerHTML = '<span class="pill bg-indigo-50 text-indigo-700"><i class="fas fa-circle"></i> Đang hiển thị thẻ mới.</span>';
         }
 
         roundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
@@ -210,7 +420,7 @@
             renderRound(payload);
           }
         } catch (err) {
-          statusEl.textContent = err.message || 'Không thể tải thẻ.';
+          statusEl.innerHTML = `<span class="text-rose-600">${err.message || 'Không thể tải thẻ.'}</span>`;
         } finally {
           isFetching = false;
         }
@@ -224,7 +434,7 @@
         try {
           const response = await fetch(submitAnswerUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...csrfHeaders },
             credentials: 'same-origin',
             body: JSON.stringify({
               item_id: currentRound.item.item_id,
@@ -243,6 +453,9 @@
           }
 
           const result = payload?.result;
+          if (result && typeof result.updated_total_score === 'number' && userScoreEl) {
+            userScoreEl.textContent = result.updated_total_score;
+          }
           if (result?.answer_result === 'correct') {
             feedbackEl.textContent = 'Bạn đã trả lời đúng. Chờ các thành viên khác để chuyển thẻ.';
           } else if (result?.answer_result === 'incorrect') {
@@ -252,6 +465,7 @@
           }
         } catch (err) {
           feedbackEl.textContent = err.message || 'Có lỗi xảy ra.';
+          fetchRound(true);
         } finally {
           isFetching = false;
         }
@@ -286,6 +500,8 @@
       const chatMessages = document.getElementById('collab-chat-messages');
       const chatForm = document.getElementById('collab-chat-form');
       const chatInput = document.getElementById('collab-chat-input');
+      const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+      const csrfHeaders = csrfTokenMeta ? { 'X-CSRFToken': csrfTokenMeta.getAttribute('content') } : {};
 
       let pollHandle = null;
 
@@ -344,7 +560,7 @@
         try {
           const response = await fetch(postMessageUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...csrfHeaders },
             credentials: 'same-origin',
             body: JSON.stringify({ content }),
           });
