@@ -30,6 +30,7 @@ except ModuleNotFoundError:  # Fallback cho môi trường chưa nâng cấp
 from sqlalchemy.orm.attributes import flag_modified
 
 from ....config import Config
+from ....services.config_service import get_runtime_config
 from ....db_instance import db
 from ....models import LearningContainer, LearningItem
 
@@ -47,18 +48,16 @@ class ImageService:
 
     def __init__(self) -> None:
         try:
-            os.makedirs(Config.FLASHCARD_IMAGE_CACHE_DIR, exist_ok=True)
-            self._relative_cache_dir = os.path.relpath(
-                Config.FLASHCARD_IMAGE_CACHE_DIR, Config.UPLOAD_FOLDER
-            ).replace(os.path.sep, "/")
+            cache_dir = self._ensure_cache_dir()
+            self._relative_cache_dir = os.path.relpath(cache_dir, self._get_upload_dir()).replace(os.path.sep, "/")
             logger.info(
                 "ImageService khởi tạo thành công. Thư mục cache: %s",
-                Config.FLASHCARD_IMAGE_CACHE_DIR,
+                cache_dir,
             )
         except OSError as exc:
             logger.critical(
                 "Không thể tạo thư mục cache ảnh tại %s: %s",
-                Config.FLASHCARD_IMAGE_CACHE_DIR,
+                self._get_cache_dir(),
                 exc,
                 exc_info=True,
             )
@@ -70,8 +69,19 @@ class ImageService:
     # ------------------------------------------------------------------
     # Các hàm tiện ích nội bộ
     # ------------------------------------------------------------------
+    def _get_cache_dir(self) -> str:
+        return get_runtime_config('FLASHCARD_IMAGE_CACHE_DIR', Config.FLASHCARD_IMAGE_CACHE_DIR)
+
+    def _get_upload_dir(self) -> str:
+        return get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
+
+    def _ensure_cache_dir(self) -> str:
+        cache_dir = self._get_cache_dir()
+        os.makedirs(cache_dir, exist_ok=True)
+        return cache_dir
+
     def _find_existing_cache(self, content_hash: str) -> Optional[str]:
-        pattern = os.path.join(Config.FLASHCARD_IMAGE_CACHE_DIR, f"{content_hash}.*")
+        pattern = os.path.join(self._get_cache_dir(), f"{content_hash}.*")
         matches = glob.glob(pattern)
         if matches:
             matches.sort(key=os.path.getmtime, reverse=True)
@@ -106,7 +116,7 @@ class ImageService:
             return None, False, "Không xác định được định dạng ảnh."
 
         extension = self._guess_extension(image_url, content_type)
-        cache_path = os.path.join(Config.FLASHCARD_IMAGE_CACHE_DIR, f"{content_hash}{extension}")
+        cache_path = os.path.join(self._ensure_cache_dir(), f"{content_hash}{extension}")
 
         total_bytes = 0
         try:
@@ -139,13 +149,13 @@ class ImageService:
 
     def _to_relative_cache_path(self, absolute_path: str) -> Optional[str]:
         try:
-            relative_path = os.path.relpath(absolute_path, Config.UPLOAD_FOLDER)
+            relative_path = os.path.relpath(absolute_path, self._get_upload_dir())
             return relative_path.replace(os.path.sep, "/")
         except ValueError:
             logger.error(
                 "Không thể chuyển đường dẫn ảnh %s về tương đối từ %s",
                 absolute_path,
-                Config.UPLOAD_FOLDER,
+                self._get_upload_dir(),
             )
             return None
 
@@ -354,7 +364,8 @@ class ImageService:
         db.session.commit()
 
         try:
-            if not os.path.exists(Config.FLASHCARD_IMAGE_CACHE_DIR):
+            cache_dir = self._get_cache_dir()
+            if not os.path.exists(cache_dir):
                 task.message = "Thư mục cache ảnh không tồn tại."
                 task.status = "completed"
                 db.session.commit()
@@ -369,11 +380,7 @@ class ImageService:
                     if relative_path and relative_path.startswith(self._relative_cache_dir):
                         active_filenames.add(os.path.basename(relative_path))
 
-            all_files = [
-                name
-                for name in os.listdir(Config.FLASHCARD_IMAGE_CACHE_DIR)
-                if os.path.isfile(os.path.join(Config.FLASHCARD_IMAGE_CACHE_DIR, name))
-            ]
+            all_files = [name for name in os.listdir(cache_dir) if os.path.isfile(os.path.join(cache_dir, name))]
             task.total = len(all_files)
             db.session.commit()
 
@@ -388,7 +395,7 @@ class ImageService:
 
                 if filename not in active_filenames:
                     try:
-                        os.remove(os.path.join(Config.FLASHCARD_IMAGE_CACHE_DIR, filename))
+                        os.remove(os.path.join(cache_dir, filename))
                         deleted_count += 1
                     except OSError as exc:
                         logger.error(

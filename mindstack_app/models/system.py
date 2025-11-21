@@ -16,6 +16,7 @@ class SystemSetting(db.Model):
     setting_id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(JSON, nullable=False)
+    data_type = db.Column(db.String(50), default='string')
     description = db.Column(db.Text)
 
 

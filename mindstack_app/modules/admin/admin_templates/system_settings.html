@@ -34,4 +34,106 @@
         </form>
     </div>
 </div>
+
+<div class="data-card mt-8">
+    <div class="data-card-header px-6 py-5">
+        <h2 class="text-xl font-semibold text-slate-900">Cấu hình động</h2>
+        <p class="text-sm text-slate-500 mt-1">Thêm, chỉnh sửa hoặc xóa các biến cấu hình được lưu trong cơ sở dữ liệu.</p>
+    </div>
+    <div class="px-6 py-6 space-y-6">
+        <form action="{{ url_for('admin.create_system_setting') }}" method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Khóa cấu hình</label>
+                <input name="key" class="mt-1 w-full rounded-md border-slate-200" placeholder="UPLOAD_FOLDER" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Kiểu dữ liệu</label>
+                <select name="data_type" class="mt-1 w-full rounded-md border-slate-200">
+                    {% for option in data_type_options %}
+                        <option value="{{ option }}">{{ option|upper }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700">Giá trị</label>
+                <input name="value" class="mt-1 w-full rounded-md border-slate-200" placeholder="/absolute/path">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700">Mô tả</label>
+                <textarea name="description" class="mt-1 w-full rounded-md border-slate-200" rows="2" placeholder="Giải thích mục đích cấu hình"></textarea>
+            </div>
+            <div class="md:col-span-2 flex justify-end">
+                <button type="submit" class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md shadow hover:bg-blue-700 transition">
+                    <i class="fas fa-plus"></i> Thêm cấu hình
+                </button>
+            </div>
+        </form>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Khóa</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Kiểu</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Giá trị</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Mô tả</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for setting in settings %}
+                    <tr>
+                        <td class="px-4 py-3 align-top text-sm font-semibold text-slate-900">{{ setting.key }}</td>
+                        <td class="px-4 py-3 align-top text-sm text-slate-600">{{ (setting.data_type or 'string')|upper }}</td>
+                        <td class="px-4 py-3 align-top text-sm text-slate-700">
+                            {% if setting.data_type == 'json' %}
+                                <pre class="text-xs bg-slate-50 p-2 rounded border border-slate-200">{{ setting.value | tojson(indent=2) }}</pre>
+                            {% else %}
+                                {{ setting.value }}
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 align-top text-sm text-slate-600 w-64">{{ setting.description or '—' }}</td>
+                        <td class="px-4 py-3 align-top text-sm text-slate-600 space-y-2 w-64">
+                            <form action="{{ url_for('admin.update_system_setting', setting_id=setting.setting_id) }}" method="post" class="space-y-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div>
+                                    <label class="block text-xs text-slate-500">Giá trị mới</label>
+                                    <input name="value" class="mt-1 w-full rounded-md border-slate-200" value="{{ setting.value }}">
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs text-slate-500">Kiểu dữ liệu</label>
+                                        <select name="data_type" class="mt-1 w-full rounded-md border-slate-200">
+                                            {% for option in data_type_options %}
+                                                <option value="{{ option }}" {% if option == (setting.data_type or 'string') %}selected{% endif %}>{{ option|upper }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-500">Mô tả</label>
+                                        <input name="description" class="mt-1 w-full rounded-md border-slate-200" value="{{ setting.description }}">
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="submit" class="inline-flex items-center gap-1 bg-slate-900 text-white px-3 py-1.5 rounded hover:bg-slate-800 transition">
+                                        <i class="fas fa-save"></i> Lưu
+                                    </button>
+                                    <button type="submit" formaction="{{ url_for('admin.delete_system_setting', setting_id=setting.setting_id) }}" class="inline-flex items-center gap-1 bg-red-50 text-red-700 px-3 py-1.5 rounded hover:bg-red-100 transition" onclick="return confirm('Bạn có chắc muốn xóa cấu hình này?');">
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </button>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-4 text-sm text-slate-500">Chưa có cấu hình nào được lưu trong cơ sở dữ liệu.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}

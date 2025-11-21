@@ -54,8 +54,10 @@ from typing import Optional
 from sqlalchemy.sql.sqltypes import DateTime, Date, Time
 from datetime import date, time
 
+from ...config import Config
 from ..learning.flashcard_learning.audio_service import AudioService
 from ..learning.flashcard_learning.image_service import ImageService
+from ...services.config_service import get_runtime_config
 
 audio_service = AudioService()
 image_service = ImageService()
@@ -114,7 +116,7 @@ def _resolve_database_path():
     Raises:
         RuntimeError: Nếu URI không được cấu hình hoặc không phải là SQLite.
     """
-    uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    uri = get_runtime_config('SQLALCHEMY_DATABASE_URI', Config.SQLALCHEMY_DATABASE_URI)
     if not uri:
         raise RuntimeError('Hệ thống chưa cấu hình kết nối cơ sở dữ liệu.')
     if uri.startswith('sqlite:///'):
@@ -131,8 +133,7 @@ def _get_backup_folder():
     Raises:
         RuntimeError: Nếu biến BACKUP_FOLDER không được cấu hình trong config.py.
     """
-    # SỬA: Chỉ lấy đường dẫn từ config, không dùng fallback
-    backup_folder = current_app.config.get('BACKUP_FOLDER')
+    backup_folder = get_runtime_config('BACKUP_FOLDER', Config.BACKUP_FOLDER)
     if not backup_folder:
         # Nếu config.py không định nghĩa, đây là một lỗi nghiêm trọng
         current_app.logger.error("LỖI CẤU HÌNH: BACKUP_FOLDER không được định nghĩa trong config.py.")
@@ -141,6 +142,59 @@ def _get_backup_folder():
     # Đảm bảo thư mục tồn tại (config.py đã làm, nhưng an toàn)
     os.makedirs(backup_folder, exist_ok=True)
     return backup_folder
+
+
+def _parse_setting_value(raw_value: str | None, data_type: str, *, key: str) -> object:
+    """
+    Chuyển đổi giá trị form về đúng kiểu dữ liệu khai báo.
+    """
+
+    normalized_type = (data_type or "string").lower()
+    value_to_use = raw_value or ""
+
+    if normalized_type == "bool":
+        return str(value_to_use).strip().lower() in {"1", "true", "yes", "on", "bật", "bat"}
+
+    if normalized_type == "int":
+        try:
+            return int(str(value_to_use).strip())
+        except ValueError as exc:  # pragma: no cover - validation
+            raise ValueError(f"Giá trị của {key} phải là số nguyên.") from exc
+
+    if normalized_type == "json":
+        try:
+            return json.loads(value_to_use)
+        except json.JSONDecodeError as exc:  # pragma: no cover - validation
+            raise ValueError("Định dạng JSON không hợp lệ.") from exc
+
+    if normalized_type == "path":
+        return os.path.abspath(value_to_use)
+
+    return value_to_use.strip()
+
+
+def _validate_setting_value(parsed_value: object, data_type: str, *, key: str) -> None:
+    """Áp dụng các ràng buộc đơn giản cho giá trị cấu hình."""
+
+    normalized_type = (data_type or "string").lower()
+
+    if normalized_type == "int":
+        if isinstance(parsed_value, int) and parsed_value < 0:
+            raise ValueError("Giá trị số phải lớn hơn hoặc bằng 0.")
+
+    if normalized_type == "path":
+        if not isinstance(parsed_value, str) or not parsed_value:
+            raise ValueError("Đường dẫn không được bỏ trống.")
+        os.makedirs(parsed_value, exist_ok=True)
+        current_app.logger.info("Đảm bảo thư mục tồn tại cho %s: %s", key, parsed_value)
+
+
+def _refresh_runtime_settings(force: bool = True) -> None:
+    """Đồng bộ lại app.config sau khi ghi DB."""
+
+    service = current_app.extensions.get("config_service")
+    if service:
+        service.load_settings(force=force)
 
 
 def _serialize_instance(instance):
@@ -403,7 +457,7 @@ def _restore_backup_from_zip(zipf, restore_database=True, restore_uploads=True):
             shutil.copy2(extracted_db_path, db_path)
 
         if restore_uploads:
-            uploads_folder = current_app.config.get('UPLOAD_FOLDER')
+            uploads_folder = get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
             # Kiểm tra xem zip có thư mục uploads không
             if uploads_folder and any(member.startswith('uploads/') for member in members):
                 zipf.extractall(temp_dir)
@@ -706,7 +760,7 @@ def media_library():
     """
     Mô tả: Hiển thị trang quản lý thư viện media (tải file, tạo thư mục).
     """
-    upload_root = current_app.config.get('UPLOAD_FOLDER')
+    upload_root = get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
     if not upload_root:
         flash('Hệ thống chưa cấu hình thư mục lưu trữ uploads.', 'danger')
         return redirect(url_for('admin.admin_dashboard'))
@@ -813,7 +867,7 @@ def delete_media_item():
     """
     Mô tả: Xử lý yêu cầu xóa một file media.
     """
-    upload_root = current_app.config.get('UPLOAD_FOLDER')
+    upload_root = get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
     if not upload_root:
         flash('Hệ thống chưa cấu hình thư mục lưu trữ uploads.', 'danger')
         return redirect(url_for('admin.admin_dashboard'))
@@ -940,16 +994,20 @@ def manage_system_settings():
     """
     if request.method == 'POST':
         maintenance_mode = 'maintenance_mode' in request.form
-        
+
         setting = SystemSetting.query.filter_by(key='system_status').first()
         if setting:
             setting.value['maintenance_mode'] = maintenance_mode
+            setting.data_type = 'bool'
             flag_modified(setting, 'value')
         else:
-            setting = SystemSetting(key='system_status', value={'maintenance_mode': maintenance_mode})
+            setting = SystemSetting(
+                key='system_status', value={'maintenance_mode': maintenance_mode}, data_type='bool'
+            )
             db.session.add(setting)
-        
+
         db.session.commit()
+        _refresh_runtime_settings()
         flash('Cài đặt hệ thống đã được cập nhật thành công!', 'success')
         return redirect(url_for('admin.manage_system_settings'))
 
@@ -959,7 +1017,97 @@ def manage_system_settings():
     if system_status_setting and isinstance(system_status_setting.value, dict):
         maintenance_mode = system_status_setting.value.get('maintenance_mode', False)
         
-    return render_template('system_settings.html', maintenance_mode=maintenance_mode)
+    settings = SystemSetting.query.order_by(SystemSetting.key.asc()).all()
+    data_type_options = ['string', 'int', 'bool', 'path', 'json']
+
+    return render_template(
+        'system_settings.html',
+        maintenance_mode=maintenance_mode,
+        settings=settings,
+        data_type_options=data_type_options,
+    )
+
+
+@admin_bp.route('/settings/create', methods=['POST'])
+def create_system_setting():
+    """
+    Mô tả: Thêm mới một cấu hình hệ thống từ biểu mẫu admin.
+    """
+
+    key = (request.form.get('key') or '').strip().upper()
+    value = request.form.get('value')
+    data_type = (request.form.get('data_type') or 'string').lower()
+    description = (request.form.get('description') or '').strip() or None
+
+    if not key:
+        flash('Khóa cấu hình không được bỏ trống.', 'danger')
+        return redirect(url_for('admin.manage_system_settings'))
+
+    if SystemSetting.query.filter_by(key=key).first():
+        flash('Khóa cấu hình đã tồn tại. Vui lòng chọn tên khác.', 'warning')
+        return redirect(url_for('admin.manage_system_settings'))
+
+    try:
+        parsed_value = _parse_setting_value(value, data_type, key=key)
+        _validate_setting_value(parsed_value, data_type, key=key)
+    except ValueError as exc:
+        flash(str(exc), 'danger')
+        return redirect(url_for('admin.manage_system_settings'))
+
+    setting = SystemSetting(key=key, value=parsed_value, data_type=data_type, description=description)
+    db.session.add(setting)
+    db.session.commit()
+
+    _refresh_runtime_settings()
+    flash('Đã thêm cấu hình mới thành công.', 'success')
+    return redirect(url_for('admin.manage_system_settings'))
+
+
+@admin_bp.route('/settings/<int:setting_id>/update', methods=['POST'])
+def update_system_setting(setting_id):
+    """
+    Mô tả: Cập nhật giá trị cấu hình hiện có.
+    """
+
+    setting = SystemSetting.query.get_or_404(setting_id)
+
+    data_type = (request.form.get('data_type') or setting.data_type or 'string').lower()
+    description = (request.form.get('description') or '').strip() or None
+    raw_value = request.form.get('value')
+
+    try:
+        parsed_value = _parse_setting_value(raw_value, data_type, key=setting.key)
+        _validate_setting_value(parsed_value, data_type, key=setting.key)
+    except ValueError as exc:
+        flash(str(exc), 'danger')
+        return redirect(url_for('admin.manage_system_settings'))
+
+    setting.data_type = data_type
+    setting.description = description
+    setting.value = parsed_value
+    flag_modified(setting, 'value')
+
+    db.session.commit()
+    _refresh_runtime_settings()
+    flash('Đã cập nhật cấu hình thành công.', 'success')
+    return redirect(url_for('admin.manage_system_settings'))
+
+
+@admin_bp.route('/settings/<int:setting_id>/delete', methods=['POST'])
+def delete_system_setting(setting_id):
+    """
+    Mô tả: Xóa một cấu hình khỏi hệ thống.
+    """
+
+    setting = SystemSetting.query.get_or_404(setting_id)
+    db.session.delete(setting)
+    db.session.commit()
+
+    current_app.config.pop(setting.key, None)
+    _refresh_runtime_settings()
+
+    flash('Đã xóa cấu hình.', 'info')
+    return redirect(url_for('admin.manage_system_settings'))
     
 @admin_bp.route('/backup-restore')
 def manage_backup_restore():
@@ -1156,7 +1304,7 @@ def download_full_backup():
     """
     try:
         db_path = _resolve_database_path()
-        uploads_folder = current_app.config.get('UPLOAD_FOLDER')
+        uploads_folder = get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         backup_filename = f'mindstack_full_backup_{timestamp}.zip'
 

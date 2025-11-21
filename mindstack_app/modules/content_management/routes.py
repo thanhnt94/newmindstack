@@ -11,6 +11,9 @@ from werkzeug.utils import secure_filename
 from uuid import uuid4
 import os
 
+from ...config import Config
+from ...services.config_service import get_runtime_config
+
 # Import các blueprint con
 from .courses.routes import courses_bp
 from .flashcards.routes import flashcards_bp
@@ -44,7 +47,7 @@ def upload_rich_text_media():
     if current_user.user_role == User.ROLE_FREE:
         return jsonify({'success': False, 'message': 'Tài khoản của bạn không có quyền tải media.'}), 403
 
-    upload_root = current_app.config.get('UPLOAD_FOLDER')
+    upload_root = get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
     if not upload_root:
         current_app.logger.error('UPLOAD_FOLDER chưa được cấu hình.')
         return jsonify({'success': False, 'message': 'Máy chủ chưa cấu hình thư mục lưu trữ.'}), 500

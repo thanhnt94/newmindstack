@@ -31,6 +31,8 @@ from mindstack_app.modules.shared.utils.media_paths import (
 )
 from ....modules.shared.utils.db_session import safe_commit
 from ....modules.shared.utils.excel import extract_info_sheet_mapping, format_info_warnings
+from ....config import Config
+from ....services.config_service import get_runtime_config
 import pandas as pd
 import tempfile
 import os
@@ -367,7 +369,7 @@ def _resolve_local_media_path(path_value: str, *, media_folder: Optional[str] = 
         else:
             relative_candidates.insert(0, normalized)
 
-    upload_folder = current_app.config.get('UPLOAD_FOLDER')
+    upload_folder = get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
     for rel_path in relative_candidates:
         if upload_folder:
             candidates.append(os.path.join(upload_folder, rel_path))

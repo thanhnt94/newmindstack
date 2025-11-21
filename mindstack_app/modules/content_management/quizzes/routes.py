@@ -22,6 +22,8 @@ from sqlalchemy import or_
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import QuizSetForm, QuizItemForm
 from ....models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User, UserNote
+from ....config import Config
+from ....services.config_service import get_runtime_config
 import pandas as pd
 import tempfile
 import os
@@ -382,7 +384,7 @@ def _resolve_local_media_path(path_value: str, *, media_folder: Optional[str] = 
         normalized = normalized[len('uploads/'):]
 
     base_static = os.path.join(current_app.root_path, 'static')
-    upload_folder = current_app.config.get('UPLOAD_FOLDER')
+    upload_folder = get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
     candidates = []
 
     relative_candidates = [normalized]
