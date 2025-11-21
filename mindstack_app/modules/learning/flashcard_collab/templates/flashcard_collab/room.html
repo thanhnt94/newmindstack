@@ -21,6 +21,14 @@
         #f8fafc;
     }
 
+    .hero-card {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+      padding: 1.25rem 1.5rem;
+    }
+
     .session-layout {
       display: grid;
       grid-template-columns: minmax(0, 2.4fr) minmax(360px, 1fr);
@@ -53,6 +61,7 @@
       height: 100%;
       padding: 1.25rem;
       background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+      position: relative;
     }
 
     .flashcard-card-container {
@@ -60,6 +69,32 @@
       width: 100%;
       height: 100%;
       min-height: 300px;
+    }
+
+    .card-actions-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .pill-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.65rem 1rem;
+      border-radius: 999px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #0f172a;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .pill-button:hover {
+      background: #e2e8f0;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
     }
 
     .flashcard-card {
@@ -227,6 +262,12 @@
       gap: 0.75rem;
     }
 
+    .combined-status {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
     .chat-box {
       height: 420px;
       display: flex;
@@ -242,12 +283,61 @@
       background: #f8fafc;
       padding: 0.75rem;
     }
+
+    .chat-panel {
+      position: relative;
+    }
+
+    .mobile-chat-toggle {
+      display: none;
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      z-index: 30;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2);
+    }
+
+    .chat-panel .close-chat-btn {
+      display: none;
+    }
+
+    @media (max-width: 1024px) {
+      .chat-panel {
+        display: none;
+      }
+
+      .chat-panel.open {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: rgba(15, 23, 42, 0.45);
+        padding: 1rem;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .chat-panel.open .chat-box {
+        max-width: 720px;
+        width: 100%;
+        max-height: 90vh;
+        background: #ffffff;
+      }
+
+      .chat-panel.open .close-chat-btn {
+        display: inline-flex;
+      }
+
+      .mobile-chat-toggle {
+        display: inline-flex;
+      }
+    }
   </style>
 {% endblock %}
 
 {% block content %}
 <div class="page-shell">
-  <div class="flex flex-col gap-3">
+  <div class="hero-card">
     <div class="flex items-center justify-between flex-wrap gap-3">
       <div>
         <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Phòng học Flashcard</p>
@@ -316,6 +406,12 @@
         </button>
       </div>
 
+      <div class="card-actions-bar">
+        <button type="button" id="collab-note-btn" class="pill-button"><i class="fas fa-sticky-note"></i> Ghi chú</button>
+        <button type="button" id="collab-ai-btn" class="pill-button"><i class="fas fa-robot"></i> Mindstack AI</button>
+        <button type="button" id="collab-audio-btn" class="pill-button"><i class="fas fa-headphones"></i> Nghe nội dung</button>
+      </div>
+
       <div class="space-y-2">
         <p class="text-sm font-semibold text-slate-800">Câu trả lời của bạn</p>
         <div class="answer-grid" id="collab-answer-actions">
@@ -333,12 +429,27 @@
       </div>
 
       <div class="grid md:grid-cols-2 gap-3">
-        <div class="bg-slate-50 rounded-xl border border-slate-200 p-3">
+        <div class="bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-3">
           <div class="flex items-center justify-between">
-            <p class="text-sm font-semibold text-slate-800">Trạng thái lượt</p>
+            <div>
+              <p class="text-sm font-semibold text-slate-800">Trạng thái lượt & thành viên</p>
+              <p class="text-xs text-slate-500">Theo dõi tiến trình và tình trạng tham gia</p>
+            </div>
             <span id="collab-round-step" class="text-xs font-mono text-slate-500"></span>
           </div>
-          <ul id="collab-round-participants" class="divide-y divide-slate-200 text-sm text-slate-700"></ul>
+          <div class="combined-status">
+            <div class="space-y-2">
+              <p class="text-sm font-semibold text-slate-800">Diễn biến lượt</p>
+              <div id="collab-round-status" class="flex flex-col gap-2 text-sm text-slate-700"></div>
+            </div>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-sm font-semibold text-slate-800">
+                <span>Danh sách tham gia</span>
+                <span class="pill bg-slate-100 text-slate-700 text-xs" id="collab-participant-count">{{ room_payload.participants | length }}</span>
+              </div>
+              <ul id="collab-round-participants" class="divide-y divide-slate-200 text-sm text-slate-700"></ul>
+            </div>
+          </div>
         </div>
         <div class="bg-slate-50 rounded-xl border border-slate-200 p-3">
           <p class="text-sm font-semibold text-slate-800 mb-2">Hướng dẫn nhanh</p>
@@ -375,52 +486,40 @@
           </div>
           <div class="bg-slate-50 rounded-lg p-3">
             <p class="text-xs text-slate-500">Tổng thành viên</p>
-            <p class="font-semibold" id="collab-participant-count">{{ room_payload.participants | length }}</p>
+            <p class="font-semibold" id="collab-participant-count-static">{{ room_payload.participants | length }}</p>
           </div>
         </div>
       </div>
 
-      <div class="card-surface sidebar-card">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Thành viên</p>
-            <p class="text-lg font-semibold text-slate-900">Tình trạng tham gia</p>
+      <div id="collab-chat-panel" class="chat-panel">
+        <div class="card-surface sidebar-card chat-box">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Trò chuyện</p>
+              <p class="text-lg font-semibold text-slate-900">Trao đổi trong phòng</p>
+            </div>
+            <button type="button" class="close-chat-btn inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-sm font-semibold text-slate-700 hover:bg-slate-200">
+              <i class="fas fa-times"></i> Đóng
+            </button>
           </div>
-        </div>
-        <ul class="divide-y divide-slate-100" id="participant-list">
-          {% for participant in room_payload.participants %}
-            <li class="py-3 flex items-center justify-between">
-              <div>
-                <p class="font-semibold text-slate-800">{{ participant.username or 'Người dùng #' ~ participant.user_id }}</p>
-                <p class="text-xs text-slate-500">{{ 'Chủ phòng' if participant.is_host else 'Thành viên' }}</p>
-              </div>
-              <span class="pill bg-slate-100 text-slate-700 text-xs">{{ participant.status }}</span>
-            </li>
-          {% else %}
-            <li class="py-2 text-slate-600">Chưa có thành viên nào.</li>
-          {% endfor %}
-        </ul>
-      </div>
-
-      <div class="card-surface sidebar-card chat-box">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Trò chuyện</p>
-            <p class="text-lg font-semibold text-slate-900">Trao đổi trong phòng</p>
+          <div id="collab-chat-messages" class="chat-messages space-y-2 text-sm text-slate-800">
+            <p class="text-slate-500">Đang tải tin nhắn...</p>
           </div>
+          <form id="collab-chat-form" class="flex gap-2">
+            <input id="collab-chat-input" type="text" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-200" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+              <i class="fas fa-paper-plane"></i> Gửi
+            </button>
+          </form>
         </div>
-        <div id="collab-chat-messages" class="chat-messages space-y-2 text-sm text-slate-800">
-          <p class="text-slate-500">Đang tải tin nhắn...</p>
-        </div>
-        <form id="collab-chat-form" class="flex gap-2">
-          <input id="collab-chat-input" type="text" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-200" placeholder="Nhập tin nhắn..." autocomplete="off">
-          <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-            <i class="fas fa-paper-plane"></i> Gửi
-          </button>
-        </form>
       </div>
     </div>
   </div>
+
+  <button type="button" id="open-chat-btn" class="mobile-chat-toggle pill-button"><i class="fas fa-comments"></i> Mở chat</button>
+
+  {% include 'notes/_note_panel.html' %}
+  {% include 'ai_services/_ai_modal.html' %}
 </div>
 {% endblock %}
 
@@ -458,12 +557,24 @@
       const flipBtn = document.getElementById('collab-flip-btn');
       const roundStepEl = document.getElementById('collab-round-step');
       const userScoreEl = document.getElementById('collab-user-score');
+      const participantCountEls = [
+        document.getElementById('collab-participant-count'),
+        document.getElementById('collab-participant-count-static'),
+      ].filter(Boolean);
+      const noteBtn = document.getElementById('collab-note-btn');
+      const aiBtn = document.getElementById('collab-ai-btn');
+      const audioBtn = document.getElementById('collab-audio-btn');
+      const notePanel = document.getElementById('note-panel');
+      const noteTextarea = document.getElementById('note-textarea');
+      const saveNoteBtn = document.getElementById('save-note-btn');
+      const cancelNoteBtn = document.getElementById('cancel-note-btn');
 
       let currentRound = null;
       let currentCardId = null;
       let isFetching = false;
       let pollHandle = null;
       let hasAnsweredCurrentCard = false;
+      let isSpeaking = false;
 
       const syncAnswerButtonsAvailability = () => {
         const shouldDisable = hasAnsweredCurrentCard || !cardEl?.classList.contains('flipped');
@@ -498,6 +609,9 @@
       const renderParticipants = (participants = []) => {
         if (!participants.length) {
           participantsEl.innerHTML = '<li class="py-2 text-slate-500">Chưa có thành viên đang hoạt động.</li>';
+          participantCountEls.forEach((el) => {
+            el.textContent = '0';
+          });
           return;
         }
 
@@ -514,6 +628,10 @@
             </li>
           `;
         }).join('');
+
+        participantCountEls.forEach((el) => {
+          el.textContent = participants.length;
+        });
       };
 
       const renderRound = (roundPayload) => {
@@ -640,6 +758,88 @@
 
       refreshBtn?.addEventListener('click', () => fetchRound(true));
 
+      const stopSpeaking = () => {
+        if (window.speechSynthesis && isSpeaking) {
+          window.speechSynthesis.cancel();
+          isSpeaking = false;
+        }
+      };
+
+      const speakCard = () => {
+        if (!window.speechSynthesis || !currentRound?.item) return;
+        stopSpeaking();
+        const utterFront = new SpeechSynthesisUtterance(cardFrontEl.textContent || '');
+        const utterBack = new SpeechSynthesisUtterance(cardBackEl.textContent || '');
+        utterFront.lang = 'vi-VN';
+        utterBack.lang = 'vi-VN';
+        utterBack.onend = () => { isSpeaking = false; };
+        isSpeaking = true;
+        window.speechSynthesis.speak(utterFront);
+        window.speechSynthesis.speak(utterBack);
+      };
+
+      audioBtn?.addEventListener('click', () => {
+        if (!isSpeaking) {
+          speakCard();
+        } else {
+          stopSpeaking();
+        }
+      });
+
+      const toggleNotePanel = (isOpen) => {
+        if (!notePanel) return;
+        notePanel.classList.toggle('open', isOpen);
+      };
+
+      const loadNote = async (itemId) => {
+        if (!itemId || !noteTextarea) return;
+        noteTextarea.value = 'Đang tải ghi chú...';
+        try {
+          const response = await fetch(`{{ url_for('notes.get_note', item_id=0) }}`.replace('0', itemId), { credentials: 'same-origin' });
+          const payload = await response.json();
+          noteTextarea.value = payload?.content || '';
+        } catch (err) {
+          noteTextarea.value = 'Không thể tải ghi chú.';
+        }
+      };
+
+      const saveNote = async (itemId) => {
+        if (!itemId || !noteTextarea) return;
+        try {
+          const response = await fetch(`{{ url_for('notes.save_note', item_id=0) }}`.replace('0', itemId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+            credentials: 'same-origin',
+            body: JSON.stringify({ content: noteTextarea.value || '' }),
+          });
+          const payload = await response.json();
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.message || 'Không thể lưu ghi chú.');
+          }
+          feedbackEl.textContent = 'Đã lưu ghi chú của bạn.';
+          toggleNotePanel(false);
+        } catch (err) {
+          feedbackEl.textContent = err.message || 'Có lỗi khi lưu ghi chú.';
+        }
+      };
+
+      noteBtn?.addEventListener('click', () => {
+        if (!currentCardId) {
+          feedbackEl.textContent = 'Chưa có thẻ để tạo ghi chú.';
+          return;
+        }
+        toggleNotePanel(true);
+        loadNote(currentCardId);
+      });
+
+      cancelNoteBtn?.addEventListener('click', () => toggleNotePanel(false));
+      saveNoteBtn?.addEventListener('click', () => saveNote(currentCardId));
+
+      aiBtn?.addEventListener('click', () => {
+        if (!currentCardId) return;
+        openAiModal(currentCardId, cardFrontEl.textContent || '');
+      });
+
       fetchRound(true);
       startPolling();
 
@@ -652,6 +852,9 @@
       const chatMessages = document.getElementById('collab-chat-messages');
       const chatForm = document.getElementById('collab-chat-form');
       const chatInput = document.getElementById('collab-chat-input');
+      const chatPanel = document.getElementById('collab-chat-panel');
+      const openChatBtn = document.getElementById('open-chat-btn');
+      const closeChatBtn = chatPanel?.querySelector('.close-chat-btn');
       const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
       const csrfHeaders = csrfTokenMeta ? { 'X-CSRFToken': csrfTokenMeta.getAttribute('content') } : {};
 
@@ -738,6 +941,19 @@
       chatForm?.addEventListener('submit', (event) => {
         event.preventDefault();
         sendMessage(chatInput.value || '');
+      });
+
+      const setChatOpen = (isOpen) => {
+        if (!chatPanel) return;
+        chatPanel.classList.toggle('open', isOpen);
+      };
+
+      openChatBtn?.addEventListener('click', () => setChatOpen(true));
+      closeChatBtn?.addEventListener('click', () => setChatOpen(false));
+      chatPanel?.addEventListener('click', (event) => {
+        if (event.target === chatPanel) {
+          setChatOpen(false);
+        }
       });
 
       const startPolling = () => {
