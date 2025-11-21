@@ -390,20 +390,41 @@
       position: fixed;
       bottom: 1rem;
       right: 1rem;
-      z-index: 30;
+      z-index: 80;
       box-shadow: 0 14px 30px rgba(59, 130, 246, 0.3);
       background: linear-gradient(135deg, #4f46e5, #0ea5e9);
       color: #fff;
       border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 16px;
-      padding: 0.85rem 1.25rem;
-      gap: 0.6rem;
+      border-radius: 999px;
+      padding: 0.65rem;
+      gap: 0.4rem;
       font-weight: 700;
       letter-spacing: 0.01em;
       transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      min-width: 0;
+      width: 3.25rem;
+      height: 3.25rem;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      pointer-events: auto;
+      touch-action: manipulation;
     }
 
     .mobile-chat-toggle i { font-size: 1.05rem; }
+    .mobile-chat-label { display: none; }
+
+    @media (min-width: 520px) and (max-width: 1024px) {
+      .mobile-chat-toggle {
+        width: auto;
+        height: auto;
+        padding: 0.65rem 0.95rem;
+        border-radius: 999px;
+        gap: 0.5rem;
+      }
+
+      .mobile-chat-label { display: inline; }
+    }
 
     .mobile-chat-toggle:hover {
       transform: translateY(-2px) scale(1.01);
@@ -724,7 +745,15 @@
     </div>
   </div>
 
-  <button type="button" id="open-chat-btn" class="mobile-chat-toggle pill-button"><i class="fas fa-comments"></i> Mở chat</button>
+  <button
+    type="button"
+    id="open-chat-btn"
+    class="mobile-chat-toggle pill-button"
+    aria-label="Mở chat"
+  >
+    <i class="fas fa-comments" aria-hidden="true"></i>
+    <span class="mobile-chat-label">Mở chat</span>
+  </button>
 
   <div id="collab-mobile-info-panel" class="mobile-info-panel">
     <div class="mobile-info-sheet space-y-4">
@@ -1289,7 +1318,11 @@
         }
       };
 
-      openChatBtn?.addEventListener('click', () => setChatOpen(!chatPanel?.classList.contains('open')));
+      openChatBtn?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setChatOpen(!chatPanel?.classList.contains('open'));
+      });
       closeChatBtn?.addEventListener('click', () => setChatOpen(false));
       chatPanel?.addEventListener('click', (event) => {
         if (event.target === chatPanel) {
