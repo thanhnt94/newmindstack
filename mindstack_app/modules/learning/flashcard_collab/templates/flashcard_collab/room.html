@@ -4,6 +4,20 @@
 {% block head %}
   {{ super() }}
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #f9fafb;
+    }
+
+    @media (max-width: 1024px) {
+      body > footer {
+        display: none !important;
+      }
+    }
+
     body.flashcard-session-active > main {
       padding: 0 !important;
       margin: 0;
@@ -44,6 +58,9 @@
       .session-layout {
         display: flex;
         flex-direction: column;
+        height: calc(100vh - var(--header-h, 0px));
+        padding: 0 !important;
+        overflow: hidden;
       }
     }
 
@@ -75,6 +92,7 @@
       flex: 1 1 auto;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
 
     .flashcard-card {
@@ -345,6 +363,24 @@
 
       .chat-panel.open .close-chat-btn { display: inline-flex; }
       .mobile-chat-toggle { display: inline-flex; }
+
+      .card-surface.flashcard-panel {
+        height: 100%;
+        padding: 0.75rem;
+      }
+
+      .flashcard-card-container {
+        min-height: 60vh;
+      }
+
+      .face {
+        padding: 56px 0.75rem 1rem 0.75rem;
+      }
+
+      .actions {
+        position: sticky;
+        bottom: 0;
+      }
     }
   </style>
 {% endblock %}
@@ -404,6 +440,8 @@
               </div>
               <span class="label">Mặt trước</span>
               <div class="toolbar-right">
+                <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
+                <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
                 <button type="button" class="play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-headphones"></i></button>
               </div>
             </div>
@@ -424,6 +462,8 @@
               </div>
               <span class="label">Mặt sau</span>
               <div class="toolbar-right">
+                <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
+                <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
                 <button type="button" class="play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-headphones"></i></button>
               </div>
             </div>
@@ -531,6 +571,7 @@
 
   {% include 'notes/_note_panel.html' %}
   {% include 'ai_services/_ai_modal.html' %}
+  {% include 'feedback/_feedback_modal.html' %}
 </div>
 {% endblock %}
 
@@ -574,11 +615,15 @@
       ].filter(Boolean);
       const noteButtons = document.querySelectorAll('.collab-note-btn');
       const aiButtons = document.querySelectorAll('.collab-ai-btn');
+      const feedbackButtons = document.querySelectorAll('.collab-feedback-btn');
+      const editButtons = document.querySelectorAll('.collab-edit-btn');
       const audioButtons = document.querySelectorAll('.collab-audio-btn');
       const notePanel = document.getElementById('note-panel');
       const noteTextarea = document.getElementById('note-textarea');
       const saveNoteBtn = document.getElementById('save-note-btn');
       const cancelNoteBtn = document.getElementById('cancel-note-btn');
+
+      const editUrlTemplate = {{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=room_payload.container_id, item_id=0) | tojson }};
 
       let currentRound = null;
       let currentCardId = null;
@@ -854,6 +899,25 @@
         btn.addEventListener('click', () => {
           if (!currentCardId) return;
           openAiModal(currentCardId, cardFrontEl.textContent || '');
+        });
+      });
+
+      feedbackButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!currentCardId || !window.openFeedbackModal) return;
+          openFeedbackModal(currentCardId, cardFrontEl.textContent || '');
+        });
+      });
+
+      editButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!currentCardId || !editUrlTemplate) return;
+          const url = editUrlTemplate.replace('/0', `/${currentCardId}`);
+          if (window.parent && typeof window.parent.openModal === 'function') {
+            window.parent.openModal(url);
+          } else {
+            window.open(url, '_blank');
+          }
         });
       });
 
