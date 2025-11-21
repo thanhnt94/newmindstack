@@ -9,6 +9,8 @@ from typing import Callable
 from flask import Flask
 from flask_login import current_user
 
+from sqlalchemy import or_
+
 from ..config import BASE_DIR
 from ..extensions import csrf_protect, db, login_manager
 from ..modules.shared.utils.bbcode_parser import bbcode_to_html
@@ -77,13 +79,21 @@ def initialize_database(app: Flask) -> None:
 
     db.create_all()
 
-    admin_user = User.query.filter_by(username="admin").first()
+    admin_user = User.query.filter(
+        or_(
+            User.user_role == User.ROLE_ADMIN,
+            User.username == "admin",
+            User.email == "admin@example.com",
+        )
+    ).first()
     if admin_user is None:
         admin = User(username="admin", email="admin@example.com", user_role=User.ROLE_ADMIN)
         admin.set_password("admin")
         db.session.add(admin)
         db.session.commit()
         app.logger.info("Đã tạo user admin mặc định.")
+    else:
+        app.logger.info("Đã phát hiện user admin sẵn có, bỏ qua bước khởi tạo mặc định.")
 
     for task_name in [
         "generate_audio_cache",
