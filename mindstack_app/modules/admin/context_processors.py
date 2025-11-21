@@ -12,7 +12,9 @@ from typing import Any
 from flask import current_app
 from flask_login import current_user
 
+from ...config import Config
 from ...models import ApiKey, BackgroundTask, LearningContainer, SystemSetting, User
+from ...services.config_service import get_runtime_config
 
 
 def _latest_backup_timestamp() -> str | None:
@@ -22,8 +24,7 @@ def _latest_backup_timestamp() -> str | None:
     Returns:
         str | None: Chuỗi thời gian (dd/mm/YYYY HH:MM) hoặc None.
     """
-    # SỬA: Chỉ lấy đường dẫn từ config, không dùng fallback
-    backup_dir_path = current_app.config.get('BACKUP_FOLDER')
+    backup_dir_path = get_runtime_config('BACKUP_FOLDER', Config.BACKUP_FOLDER)
     if not backup_dir_path:
         current_app.logger.warning("BACKUP_FOLDER chưa được cấu hình, không thể tìm backup.")
         return None # Không có thư mục config

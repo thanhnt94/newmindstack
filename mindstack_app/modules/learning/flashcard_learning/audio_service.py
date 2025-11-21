@@ -20,6 +20,7 @@ from pydub import AudioSegment
 from ....db_instance import db
 from ....models import LearningContainer, LearningItem, User, BackgroundTask
 from ....config import Config
+from ....services.config_service import get_runtime_config
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +30,22 @@ class AudioService:
         Mô tả: Khởi tạo dịch vụ AudioService, đảm bảo thư mục cache audio tồn tại.
         """
         try:
-            os.makedirs(Config.FLASHCARD_AUDIO_CACHE_DIR, exist_ok=True)
-            logger.info(f"AudioService khởi tạo thành công. Thư mục cache: {Config.FLASHCARD_AUDIO_CACHE_DIR}")
+            cache_dir = self._ensure_cache_dir()
+            logger.info("AudioService khởi tạo thành công. Thư mục cache: %s", cache_dir)
         except OSError as e:
-            logger.critical(f"Lỗi: Không thể tạo thư mục cache audio tại {Config.FLASHCARD_AUDIO_CACHE_DIR}: {e}", exc_info=True)
+            logger.critical(
+                "Lỗi: Không thể tạo thư mục cache audio tại %s: %s", self._get_cache_dir(), e, exc_info=True
+            )
         except Exception as e:
             logger.critical(f"Lỗi không mong muốn khi khởi tạo AudioService: {e}", exc_info=True)
+
+    def _get_cache_dir(self) -> str:
+        return get_runtime_config('FLASHCARD_AUDIO_CACHE_DIR', Config.FLASHCARD_AUDIO_CACHE_DIR)
+
+    def _ensure_cache_dir(self) -> str:
+        cache_dir = self._get_cache_dir()
+        os.makedirs(cache_dir, exist_ok=True)
+        return cache_dir
 
     def _generate_tts_sync(self, text, lang='en'):
         """
@@ -196,7 +207,8 @@ class AudioService:
         try:
             content_hash = hashlib.sha1(audio_content_string.encode('utf-8')).hexdigest()
             cache_filename = f"{content_hash}.{output_format}"
-            cached_file_path = os.path.join(Config.FLASHCARD_AUDIO_CACHE_DIR, cache_filename)
+            cache_dir = self._ensure_cache_dir()
+            cached_file_path = os.path.join(cache_dir, cache_filename)
             
             if os.path.exists(cached_file_path):
                 logger.info(f"{log_prefix} Cache HIT: {cached_file_path}")
@@ -282,11 +294,12 @@ class AudioService:
                     all_audio_contents.add(card.content.get('front_audio_content').strip())
                 if card.content.get('back_audio_content'):
                     all_audio_contents.add(card.content.get('back_audio_content').strip())
-            
+
+            cache_dir = self._ensure_cache_dir()
             contents_to_generate = []
             for content in all_audio_contents:
                 content_hash = hashlib.sha1(content.encode('utf-8')).hexdigest()
-                cached_file_path = os.path.join(Config.FLASHCARD_AUDIO_CACHE_DIR, f"{content_hash}.mp3")
+                cached_file_path = os.path.join(cache_dir, f"{content_hash}.mp3")
                 if not os.path.exists(cached_file_path):
                     contents_to_generate.append(content)
 
@@ -383,18 +396,19 @@ class AudioService:
             for content in active_audio_contents:
                 content_hash = hashlib.sha1(content.encode('utf-8')).hexdigest()
                 valid_cache_files.add(f"{content_hash}.mp3")
-            
+
             logger.info(f"{log_prefix} Tìm thấy {len(valid_cache_files)} file cache hợp lệ trong database.")
 
             deleted_count = 0
-            if not os.path.exists(Config.FLASHCARD_AUDIO_CACHE_DIR):
-                logger.warning(f"{log_prefix} Thư mục cache không tồn tại: {Config.FLASHCARD_AUDIO_CACHE_DIR}")
+            cache_dir = self._get_cache_dir()
+            if not os.path.exists(cache_dir):
+                logger.warning(f"{log_prefix} Thư mục cache không tồn tại: {cache_dir}")
                 task.message = f"Thư mục cache không tồn tại. Hoàn tất."
                 task.status = 'completed'
                 db.session.commit()
                 return
 
-            all_files = os.listdir(Config.FLASHCARD_AUDIO_CACHE_DIR)
+            all_files = os.listdir(cache_dir)
             task.total = len(all_files)
             db.session.commit()
 
@@ -406,7 +420,7 @@ class AudioService:
 
                 if filename.endswith('.mp3') and filename not in valid_cache_files:
                     try:
-                        file_path = os.path.join(Config.FLASHCARD_AUDIO_CACHE_DIR, filename)
+                        file_path = os.path.join(cache_dir, filename)
                         os.remove(file_path)
                         deleted_count += 1
                         logger.info(f"{log_prefix} Đã xóa file cache mồ côi: {filename}")
@@ -464,7 +478,8 @@ class AudioService:
         try:
             content_hash = hashlib.sha1(audio_content.encode('utf-8')).hexdigest()
             cache_filename = f"{content_hash}.mp3"
-            cached_file_path = os.path.join(Config.FLASHCARD_AUDIO_CACHE_DIR, cache_filename)
+            cache_dir = self._ensure_cache_dir()
+            cached_file_path = os.path.join(cache_dir, cache_filename)
             if os.path.exists(cached_file_path):
                 os.remove(cached_file_path)
                 logger.info(f"{log_prefix} Đã xóa file cache cũ: {cache_filename}")
