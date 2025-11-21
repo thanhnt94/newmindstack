@@ -14,6 +14,7 @@ from ....models import (
     FlashcardCollabRoom,
     FlashcardCollabRound,
     LearningContainer,
+    UserContainerState,
     User,
     db,
 )
@@ -109,6 +110,8 @@ def view_room(room_code: str):
         participant = FlashcardCollabParticipant(room=room, user_id=current_user.user_id)
         db.session.add(participant)
 
+    _touch_user_container_state(room.container_id)
+
     db.session.commit()
 
     room_payload = serialize_room(room)
@@ -195,6 +198,8 @@ def join_room(room_code: str):
         participant = FlashcardCollabParticipant(room=room, user_id=current_user.user_id)
         db.session.add(participant)
 
+    _touch_user_container_state(room.container_id)
+
     db.session.commit()
     return jsonify({'room': serialize_room(room)})
 
@@ -232,6 +237,29 @@ def _map_answer_to_quality(raw_answer: str, button_count: int | None) -> int | N
         mapping = {'quên': 0, 'mơ_hồ': 3, 'nhớ': 5}
 
     return mapping.get(normalized)
+
+
+def _touch_user_container_state(container_id: int) -> None:
+    """Đảm bảo bộ thẻ được đánh dấu là đang học và cập nhật thời điểm truy cập."""
+
+    state = UserContainerState.query.filter_by(
+        user_id=current_user.user_id, container_id=container_id
+    ).first()
+
+    now = func.now()
+    if state:
+        state.is_archived = False
+        state.last_accessed = now
+    else:
+        db.session.add(
+            UserContainerState(
+                user_id=current_user.user_id,
+                container_id=container_id,
+                is_archived=False,
+                is_favorite=False,
+                last_accessed=now,
+            )
+        )
 
 
 @flashcard_collab_bp.route('/rooms/<room_code>/answer', methods=['POST'])
@@ -298,6 +326,8 @@ def submit_collab_answer(room_code: str):
             created_at=now,
         )
         db.session.add(new_answer)
+
+    _touch_user_container_state(room.container_id)
 
     db.session.commit()
 
