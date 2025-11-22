@@ -1,317 +1,138 @@
 {# =============================== #}
-{# File: mindstack_app/modules/learning/flashcard/templates/dashboard.html #}
-{# Phiên bản: 3.0 #}
-{# Mục đích: Dashboard dùng chung cho học Flashcard cá nhân và cộng tác. #}
+{# File: mindstack_app/modules/learning/flashcard/templates/flashcard/dashboard.html #}
+{# Phiên bản: 3.1.1 (Fix include path) #}
+{# Mục đích: Dashboard chính, container chứa 2 chế độ Individual và Collab. #}
 {# =============================== #}
 
 {% extends "base.html" %}
-{% from 'includes/_search_form.html' import render_search_form %}
 
 {% block title %}Học Flashcard - MindStack{% endblock %}
 
 {% block head %}
     {{ super() }}
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f9fafb;
-        }
-        .selected-item {
-            border-color: #3b82f6 !important;
-            background-color: #eff6ff !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-        }
-        .selected-mode {
-            border-color: #3b82f6 !important;
-            background-color: #eff6ff !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-        }
-        .start-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .tab-filter-button.active { 
-            border-bottom: 2px solid #3b82f6; 
-            color: #3b82f6; 
-        }
-        .tab-filter-button {
-            transition: all 0.2s ease-in-out;
-            color: #6b7280;
-            font-weight: 500;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
         
-        .flashcard-title-wrapper { 
-            display: flex; 
-            justify-content: center; 
-            margin-bottom: 2rem; 
-            width: 100%;
-        }
+        /* === Styles dùng chung và Container === */
+        .flashcard-title-wrapper { display: flex; justify-content: center; margin-bottom: 2rem; width: 100%; }
         .flashcard-title-badge {
-            width: 100%;
-            max-width: 100%;
-            background: #e0f2fe;
-            color: #1e3a8a;
-            font-size: 2rem;
-            font-weight: 800;
-            padding: 0.75rem 2.5rem;
-            border-radius: 9999px;
-            border: 2px solid #bfdbfe;
+            width: 100%; max-width: 100%; background: #e0f2fe; color: #1e3a8a;
+            font-size: 2rem; font-weight: 800; padding: 0.75rem 2.5rem;
+            border-radius: 9999px; border: 2px solid #bfdbfe;
             box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-            text-shadow: none;
-            letter-spacing: 0.05em;
-            transition: all .3s ease;
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center;
+            letter-spacing: 0.05em; transition: all .3s ease;
+            display: inline-flex; align-items: center; justify-content: center;
         }
-        .flashcard-title-badge .fa-clone { 
-            margin-right: .75rem;
-            font-size: 2.25rem;
-        }
+        .flashcard-title-badge .fa-clone { margin-right: .75rem; font-size: 2.25rem; }
         .flashcard-title-badge:hover {
             box-shadow: 0 6px 14px rgba(30,58,138,0.20);
-            border-color: #60a5fa;
-            transform: translateY(-2px);
+            border-color: #60a5fa; transform: translateY(-2px);
         }
 
-        .study-mode-tabs {
-            display: inline-flex;
-            background: #e5e7eb;
-            border-radius: 9999px;
-            padding: 0.25rem;
-            gap: 0.25rem;
-        }
-
+        .study-mode-tabs { display: inline-flex; background: #e5e7eb; border-radius: 9999px; padding: 0.25rem; gap: 0.25rem; }
         .study-mode-tab {
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            font-weight: 600;
-            color: #4b5563;
-            border: 1px solid transparent;
-            background: transparent;
-            transition: all 0.2s ease-in-out;
+            padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 600; color: #4b5563;
+            border: 1px solid transparent; background: transparent; transition: all 0.2s ease-in-out;
+        }
+        .study-mode-tab.active {
+            background: #ffffff; color: #1d4ed8; border-color: #bfdbfe; box-shadow: 0 4px 6px rgba(0,0,0,0.06);
         }
 
-        .study-mode-tab.active {
-            background: #ffffff;
-            color: #1d4ed8;
-            border-color: #bfdbfe;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.06);
-        }
+        /* === Styles cho Individual Mode === */
+        .selected-item { border-color: #3b82f6 !important; background-color: #eff6ff !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
+        .selected-mode { border-color: #3b82f6 !important; background-color: #eff6ff !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
+        .start-button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .tab-filter-button.active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .tab-filter-button { transition: all 0.2s ease-in-out; color: #6b7280; font-weight: 500; }
         
         .flashcard-set-item {
-            position: relative;
-            background-color: #ffffff;
-            border-radius: 0.75rem;
+            position: relative; background-color: #ffffff; border-radius: 0.75rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border: 1px solid #e5e7eb;
-            overflow: hidden;
-            padding: 1rem;
-            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb; overflow: hidden; padding: 1rem; transition: all 0.3s ease;
         }
         .flashcard-set-item:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05); transform: translateY(-2px); }
 
-        .archive-icon {
-            cursor: pointer;
-            color: #9ca3af;
-            transition: color 0.2s ease;
-        }
-        .archive-icon:hover {
-            color: #3b82f6;
-        }
-        .archived .archive-icon {
-            color: #3b82f6;
-        }
+        .archive-icon { cursor: pointer; color: #9ca3af; transition: color 0.2s ease; }
+        .archive-icon:hover { color: #3b82f6; }
+        .archived .archive-icon { color: #3b82f6; }
         
         .tabs-and-toggle-wrapper {
-            display: flex;
-            flex-wrap: nowrap;
-            align-items: center;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 0.5rem;
-            margin-bottom: 1rem;
+            display: flex; flex-wrap: nowrap; align-items: center;
+            border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem;
         }
-        .tab-group {
-            display: flex;
-            flex-grow: 1;
-            min-width: 0;
-            overflow: hidden;
-            flex-wrap: nowrap; /* ĐÃ SỬA */
-        }
+        .tab-group { display: flex; flex-grow: 1; min-width: 0; overflow: hidden; flex-wrap: nowrap; }
         .tab-filter-button {
-            flex-grow: 1;
-            flex-shrink: 1;
-            padding: 0.75rem 0.5rem;
-            text-align: center;
-            white-space: nowrap;
-            font-size: 0.875rem;
-            overflow: hidden; /* THÊM MỚI */
-            text-overflow: ellipsis; /* THÊM MỚI */
+            flex-grow: 1; flex-shrink: 1; padding: 0.75rem 0.5rem; text-align: center;
+            white-space: nowrap; font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis;
         }
-        .tab-filter-button i {
-            margin-right: 0.5rem;
-        }
-        .tab-filter-button span {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        @media (max-width: 639px) {
-            .tab-filter-button {
-                font-size: 0.875rem !important; /* ĐÃ SỬA: Tăng font size */
-                padding: 0.5rem 0.25rem !important;
-            }
-        }
-        @media (min-width: 640px) {
-            .tab-group {
-                justify-content: space-between;
-            }
-            .tab-filter-button {
-                font-size: 1rem;
-            }
-        }
+        .tab-filter-button i { margin-right: 0.5rem; }
+        .tab-filter-button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .selected-sets-container {
-            margin-bottom: 1rem;
-            min-height: 2.5rem;
-            border-radius: 0.5rem;
-            background-color: #e5e7eb;
-            padding: 0.5rem;
-            color: #4b5563;
-            font-size: 0.875rem;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
+            margin-bottom: 1rem; min-height: 2.5rem; border-radius: 0.5rem; background-color: #e5e7eb;
+            padding: 0.5rem; color: #4b5563; font-size: 0.875rem; display: flex; flex-wrap: wrap; align-items: center;
         }
         .selected-set-item {
-            background-color: #dbeafe;
-            color: #1e3a8a;
-            border-radius: 9999px;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin: 0.25rem;
-            display: inline-flex;
-            align-items: center;
+            background-color: #dbeafe; color: #1e3a8a; border-radius: 9999px;
+            padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 600;
+            margin: 0.25rem; display: inline-flex; align-items: center;
         }
-        .selected-set-item i {
-            margin-left: 0.5rem;
-            font-size: 0.6rem;
-            cursor: pointer;
-        }
+        .selected-set-item i { margin-left: 0.5rem; font-size: 0.6rem; cursor: pointer; }
 
+        /* === Styles cho Collab Mode === */
         .collab-room-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 0.85rem;
-            padding: 1rem;
-            background: #f8fafc;
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-            height: 100%;
+            border: 1px solid #e2e8f0; border-radius: 0.85rem; padding: 1rem;
+            background: #f8fafc; display: flex; flex-direction: column; gap: 0.6rem; height: 100%;
         }
-
         .collab-room-badge {
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
-            padding: 0.3rem 0.8rem;
-            border-radius: 999px;
-            background: #e2e8f0;
-            color: #475569;
-            white-space: nowrap;
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
+            padding: 0.3rem 0.8rem; border-radius: 999px; background: #e2e8f0; color: #475569; white-space: nowrap;
         }
-
-        .collab-room-badge--live {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
+        .collab-room-badge--live { background: #fef3c7; color: #92400e; }
         .collab-join-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.5rem 0.9rem;
-            border-radius: 999px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            border: 1px solid #cbd5e1;
-            background: #fff;
-            color: #0f172a;
-            transition: background 0.2s ease, border-color 0.2s ease;
+            display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.9rem;
+            border-radius: 999px; font-weight: 600; font-size: 0.85rem; border: 1px solid #cbd5e1;
+            background: #fff; color: #0f172a; transition: background 0.2s ease, border-color 0.2s ease;
         }
-
-        .collab-join-btn:hover {
-            background: #eef2ff;
-            border-color: #c7d2fe;
-        }
-
+        .collab-join-btn:hover { background: #eef2ff; border-color: #c7d2fe; }
         .collab-set-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 0.85rem;
-            padding: 0.9rem;
-            background: #fff;
-            text-align: left;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+            border: 1px solid #e2e8f0; border-radius: 0.85rem; padding: 0.9rem; background: #fff;
+            text-align: left; transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
         }
-
         .collab-set-card:hover {
-            border-color: #93c5fd;
-            box-shadow: 0 10px 25px -12px rgba(59, 130, 246, 0.35);
-            transform: translateY(-1px);
+            border-color: #93c5fd; box-shadow: 0 10px 25px -12px rgba(59, 130, 246, 0.35); transform: translateY(-1px);
         }
-
         .collab-set-card[data-selected="true"] {
-            border-color: #2563eb;
-            box-shadow: 0 15px 35px -18px rgba(37, 99, 235, 0.55);
-            background: #eff6ff;
+            border-color: #2563eb; box-shadow: 0 15px 35px -18px rgba(37, 99, 235, 0.55); background: #eff6ff;
         }
 
-        /* THÊM MỚI: CSS tối ưu cho màn hình di động */
-        @media (max-width: 640px) {
-            .container {
-                padding: 0.5rem;
-            }
-            .flashcard-title-wrapper {
-                margin-bottom: 1rem;
-            }
-            .flashcard-title-badge {
-                font-size: 1.25rem;
-                padding: 0.5rem 1rem;
-            }
-            .flashcard-title-badge .fa-clone {
-                font-size: 1.5rem;
-                margin-right: 0.5rem;
-            }
-            .grid > div {
-                padding: 0.5rem;
-            }
-            h2.sm\:text-2xl {
-                font-size: 1.125rem; /* text-lg */
-            }
-            .h2 .text-xl {
-                font-size: 1rem; /* text-base */
-            }
-            .p-6 {
-                padding: 1rem;
-            }
-            .mb-4 {
-                margin-bottom: 0.75rem;
-            }
-            .flashcard-set-item {
-                padding: 0.75rem;
-            }
-            .flashcard-set-item .text-lg {
-                font-size: 0.9rem;
-            }
+        /* === Responsive === */
+        @media (max-width: 639px) {
+            .container { padding: 0.5rem; }
+            .flashcard-title-wrapper { margin-bottom: 1rem; }
+            .flashcard-title-badge { font-size: 1.25rem; padding: 0.5rem 1rem; }
+            .flashcard-title-badge .fa-clone { font-size: 1.5rem; margin-right: 0.5rem; }
+            .grid > div { padding: 0.5rem; }
+            h2.sm\:text-2xl { font-size: 1.125rem; }
+            .h2 .text-xl { font-size: 1rem; }
+            .p-6 { padding: 1rem; }
+            .mb-4 { margin-bottom: 0.75rem; }
+            .flashcard-set-item { padding: 0.75rem; }
+            .flashcard-set-item .text-lg { font-size: 0.9rem; }
+            .tab-filter-button { font-size: 0.875rem !important; padding: 0.5rem 0.25rem !important; }
         }
-
+        @media (min-width: 640px) {
+            .tab-group { justify-content: space-between; }
+            .tab-filter-button { font-size: 1rem; }
+        }
     </style>
 {% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    {# Biến trạng thái dùng chung cho JS #}
+    <script>var currentStudyMode = 'solo';</script>
+
     <div class="flashcard-title-wrapper">
         <div id="flashcardTitle" class="flashcard-title-badge"><i class="fas fa-clone"></i>Flashcard</div>
     </div>
@@ -323,242 +144,29 @@
         </div>
     </div>
 
-    <div id="flashcard-solo-section" class="space-y-6">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
-            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
-                    <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ thẻ
-                </h2>
-                <div class="mb-4">
-                    <div class="tabs-and-toggle-wrapper">
-                        <div class="tab-group">
-                            <button id="filter-doing" class="tab-filter-button flex items-center justify-center active" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang học</span></button>
-                            <button id="filter-explore" class="tab-filter-button flex items-center justify-center" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
-                            <button id="filter-archive" class="tab-filter-button flex items-center justify-center" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
-                        </div>
-                    </div>
-                </div>
-                <div id="selected-sets-display" class="selected-sets-container hidden">
-                    <span class="text-gray-500">Bộ thẻ đã chọn:</span>
-                </div>
-                <div id="flashcard-sets-container" class="flex-grow">
-                    <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
-                        <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                        <p>Đang tải danh sách bộ thẻ...</p>
-                    </div>
-                </div>
-            </div>
+    {# --- Chế độ Individual --- #}
+    {# Đã sửa đường dẫn include ở đây #}
+    {% include 'flashcard/_dashboard_individual.html' %}
 
-            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-                <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
-                    <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
-                </h2>
-                <div id="flashcard-options-container" class="flex-grow">
-                    <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
-                        <i class="fas fa-info-circle text-4xl mb-3"></i>
-                        <p>Vui lòng chọn một bộ thẻ trước.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+    {# --- Chế độ Collab --- #}
+    {# Đã sửa đường dẫn include ở đây #}
+    {% include 'flashcard/_dashboard_collab.html' %}
 
-        <div class="mt-4 text-center">
-            <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-                <i class="fas fa-play-circle mr-3"></i> Bắt đầu học
-            </button>
-            <button id="bulk-unarchive-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-                <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
-            </button>
-        </div>
-    </div>
-
-    <div id="flashcard-group-section" class="hidden space-y-6">
-        <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div class="space-y-1">
-                    <p class="text-xs font-semibold uppercase tracking-[0.25em] text-blue-500">Học theo nhóm</p>
-                    <h2 class="text-2xl font-bold text-gray-900">Theo dõi phòng đang mở và vào ngay tại đây</h2>
-                    <p class="text-sm text-gray-600">Danh sách phòng công khai và phòng bạn đang tham gia luôn hiển thị ngay trên tab này. Không cần chuyển trang để tạo phòng mới.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" id="collab-refresh-public" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
-                        <i class="fas fa-rotate"></i><span>Tải phòng công khai</span>
-                    </button>
-                    <button type="button" id="collab-refresh-my" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100">
-                        <i class="fas fa-user-group"></i><span>Tải phòng của bạn</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="grid gap-4 lg:grid-cols-3">
-                <div class="lg:col-span-2 grid gap-4 md:grid-cols-2">
-                    <div class="p-4 rounded-xl border border-blue-100 bg-blue-50">
-                        <div class="flex items-start justify-between gap-3 mb-2">
-                            <div>
-                                <h3 class="font-semibold text-blue-800 flex items-center gap-2"><i class="fas fa-wifi"></i> Phòng công khai</h3>
-                                <p class="text-sm text-blue-900/80">Bấm vào phòng để tham gia nhanh mà không cần nhập mã.</p>
-                            </div>
-                        </div>
-                        <div id="collab-public-rooms" class="space-y-3 text-sm text-slate-600">
-                            <p class="text-slate-500">Đang tải danh sách phòng...</p>
-                        </div>
-                    </div>
-                    <div class="p-4 rounded-xl border border-indigo-100 bg-indigo-50">
-                        <div class="flex items-start justify-between gap-3 mb-2">
-                            <div>
-                                <h3 class="font-semibold text-indigo-800 flex items-center gap-2"><i class="fas fa-user-check"></i> Phòng của bạn</h3>
-                                <p class="text-sm text-indigo-900/80">Phòng bạn đã tham gia hoặc đang là chủ phòng.</p>
-                            </div>
-                        </div>
-                        <div id="collab-my-rooms" class="space-y-3 text-sm text-slate-600">
-                            <p class="text-slate-500">Đang kiểm tra phòng bạn đã tham gia...</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
-                    <h3 class="font-semibold text-slate-800 flex items-center gap-2"><i class="fas fa-right-to-bracket"></i> Tham gia bằng mã</h3>
-                    <form id="collab-join-form" class="space-y-3">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700">Mã phòng</label>
-                            <input type="text" id="collab-join-code" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 uppercase tracking-widest focus:border-blue-500 focus:ring-blue-500" placeholder="Ví dụ: ABC123" maxlength="12" required>
-                        </div>
-                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
-                            <i class="fas fa-door-open"></i><span>Vào phòng</span>
-                        </button>
-                    </form>
-                    <p id="collab-join-feedback" class="text-sm"></p>
-                    <ul class="list-disc list-inside text-xs text-slate-600 space-y-1">
-                        <li>Chia sẻ mã cho bạn bè để vào cùng phòng.</li>
-                        <li>Phòng riêng cũng có thể tham gia bằng mã.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
-            <div class="space-y-1">
-                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2"><i class="fas fa-plus-circle text-blue-600"></i> Tạo phòng học nhóm mới</h2>
-                <p class="text-sm text-gray-600">Chọn bộ flashcard, chế độ học và hiển thị phòng trực tiếp từ tab này.</p>
-            </div>
-
-            <div class="grid gap-4 lg:grid-cols-3">
-                <div class="lg:col-span-2 space-y-3">
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <div class="flex-1">
-                            <label class="block text-sm font-medium text-slate-700">Tìm bộ thẻ</label>
-                            <input type="text" id="collab-set-search" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-blue-500 focus:ring-blue-500" placeholder="Nhập tên bộ thẻ hoặc từ khóa">
-                        </div>
-                        <button type="button" id="collab-refresh-sets" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
-                            <i class="fas fa-rotate"></i> Tải danh sách
-                        </button>
-                    </div>
-                    <p id="collab-set-status" class="text-xs text-slate-500">Đang tải danh sách bộ thẻ khả dụng...</p>
-                    <div id="collab-set-grid" class="grid gap-3 sm:grid-cols-2"></div>
-                    <div class="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-                        <span class="font-semibold">Đã chọn:</span>
-                        <span id="collab-selected-set-label" class="text-gray-500 italic">Chưa chọn bộ nào</span>
-                        <button type="button" id="collab-clear-set" class="text-xs font-semibold text-rose-600 hidden">Bỏ chọn</button>
-                    </div>
-                </div>
-                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                    <form id="collab-create-room-form" class="space-y-3">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700">Tiêu đề phòng</label>
-                            <input type="text" id="collab-room-title" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-blue-500 focus:ring-blue-500" placeholder="Học chung tối nay">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700">Chế độ học</label>
-                            <select id="collab-mode-select" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-blue-500 focus:ring-blue-500">
-                                {% for mode in flashcard_modes %}
-                                    <option value="{{ mode.id }}">{{ mode.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700">Hiển thị phòng</label>
-                            <div class="mt-2 space-y-2 text-sm text-slate-700">
-                                <label class="inline-flex items-center gap-2">
-                                    <input type="radio" name="collab-visibility" id="collab-visibility-public" value="public" class="text-blue-600">
-                                    <span>Công khai · hiển thị ở danh sách</span>
-                                </label>
-                                <label class="inline-flex items-center gap-2">
-                                    <input type="radio" name="collab-visibility" value="private" class="text-blue-600" checked>
-                                    <span>Riêng tư · chỉ vào bằng mã</span>
-                                </label>
-                            </div>
-                        </div>
-                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
-                            <i class="fas fa-plus"></i><span>Tạo phòng</span>
-                        </button>
-                        <p id="collab-create-feedback" class="text-sm"></p>
-                        <input type="hidden" id="collab-selected-container-id">
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
     {{ super() }}
     <script>
-    console.log('>>> flashcard_learning_dashboard.js: init');
-
-    {# ==== Biến trạng thái ==== #}
-    let selectedFlashcardSetIds = [];
-    let selectedFlashcardMode = null;
-    let currentFilter = "{{ current_filter | default('doing') }}";
-    let doingPage = 1; let explorePage = 1; let archivePage = 1; let currentPage = (currentFilter === 'doing' ? doingPage : (currentFilter === 'explore' ? explorePage : archivePage));
-    let currentSearchQuery = "{{ search_query | default('') }}";
-    let currentSearchField = "{{ search_field | default('all') }}";
-    let isMultiSelectMode = true;
-    let selectedButtonCount = parseInt("{{ user_button_count | default(3) }}");
-    let selectedAutoplayMode = localStorage.getItem('flashcardAutoplayScope') || 'autoplay_learned';
-    let autoplayDelaySeconds = parseInt(localStorage.getItem('flashcardAutoplayDelay') || '2', 10);
-    let currentStudyMode = 'solo';
-    if (Number.isNaN(autoplayDelaySeconds) || autoplayDelaySeconds < 0) {
-        autoplayDelaySeconds = 2;
-    }
-
-    const flashcardSetsContainer = document.getElementById('flashcard-sets-container');
-    const flashcardOptionsContainer = document.getElementById('flashcard-options-container');
-    const startLearningBtn = document.getElementById('start-learning-btn');
-    const bulkUnarchiveBtn = document.getElementById('bulk-unarchive-btn');
-    const selectedSetsDisplay = document.getElementById('selected-sets-display');
-    const step2Title = document.getElementById('step-2-title');
+    console.log('>>> flashcard/dashboard.js: init');
+    
     const studyModeTabs = document.querySelectorAll('[data-study-tab]');
     const soloSection = document.getElementById('flashcard-solo-section');
     const groupSection = document.getElementById('flashcard-group-section');
-    
-    const rightPanel = document.querySelector('.lg\\:grid-cols-2 > div:nth-child(2)');
-    let allSetsButton = null;
+    const startLearningBtn = document.getElementById('start-learning-btn');
+    const bulkUnarchiveBtn = document.getElementById('bulk-unarchive-btn');
 
-    const flashcardOptionsPartialBaseUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_options_partial', set_identifier='0') or '#' }}";
-    const startFlashcardSessionBaseUrlAllTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_all', mode='MODE_PLACEHOLDER') }}";
-    const startFlashcardSessionBaseUrlMultiTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_multi', mode='MODE_PLACEHOLDER') }}";
-    const startFlashcardSessionBaseUrlByIdTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_by_id', set_id=0, mode='MODE_PLACEHOLDER') }}";
-    const getFlashcardSetsPartialUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_sets_partial') or '#' }}";
-    const toggleArchiveUrl = "{{ url_for('learning.flashcard_learning.toggle_archive_flashcard', set_id=0) or '#' }}";
-    const bulkUnarchiveUrl = "{{ url_for('learning.flashcard_learning.bulk_unarchive_flashcard') }}";
-    const saveFlashcardSettingsUrl = "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}";
-    const collabPublicRoomsUrl = "{{ url_for('learning.flashcard_collab.list_public_rooms') }}";
-    const collabMyRoomsUrl = "{{ url_for('learning.flashcard_collab.list_my_active_rooms') }}";
-    const collabAvailableSetsUrl = "{{ url_for('learning.flashcard_collab.list_available_sets') }}";
-    const collabCreateRoomUrl = "{{ url_for('learning.flashcard_collab.create_room') }}";
-    const collabJoinRoomTemplate = "{{ url_for('learning.flashcard_collab.join_room', room_code='__ROOM_CODE__') }}";
-    const collabRoomViewUrlTemplate = "{{ url_for('learning.flashcard_collab.view_room', room_code='__ROOM_CODE__') }}";
-    const collabCsrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-    const collabModeDefinitions = {{ flashcard_modes | tojson }};
-    const collabModeLabels = {};
-    collabModeDefinitions.forEach((mode) => {
-        if (mode && mode.id) {
-            collabModeLabels[mode.id] = mode.name || mode.id;
-        }
-    });
-    let collabSelectedSetId = null;
-    let collabSearchTimeout = null;
-
+    // Logic chuyển Tab
     studyModeTabs.forEach((tab) => {
         tab.addEventListener('click', () => {
             const selectedMode = tab.dataset.studyTab;
@@ -572,997 +180,21 @@
             });
 
             if (selectedMode === 'solo') {
-                soloSection.classList.remove('hidden');
-                groupSection.classList.add('hidden');
-                updateActionButtons();
-            } else {
-                soloSection.classList.add('hidden');
-                groupSection.classList.remove('hidden');
-                startLearningBtn.style.display = 'none';
-                bulkUnarchiveBtn.style.display = 'none';
-            }
-        });
-    });
-    
-    // Gán event listener cho dropdown số nút
-    document.addEventListener('change', async function(event) {
-        if (event.target.id === 'button-count-select') {
-            selectedButtonCount = parseInt(event.target.value);
-            updateActionButtons();
-            try {
-                const res = await fetch(saveFlashcardSettingsUrl, { 
-                    method: 'POST', 
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'X-Requested-With': 'XMLHttpRequest' 
-                    }, 
-                    body: JSON.stringify({ button_count: selectedButtonCount }) 
-                });
-                const js = await res.json();
-                if (!js.success) { console.error('Lưu button_count lỗi:', js.message); }
-            } catch (err) { console.error('AJAX lưu button_count lỗi:', err); }
-        }
-    });
-
-    function saveAutoplaySettingsToStorage() {
-        const settings = { scope: selectedAutoplayMode, delaySeconds: autoplayDelaySeconds };
-        try {
-            localStorage.setItem('flashcardAutoplaySettings', JSON.stringify(settings));
-        } catch (e) {
-            console.warn('Không thể lưu cấu hình AutoPlay vào localStorage:', e);
-        }
-        if (selectedAutoplayMode) {
-            localStorage.setItem('flashcardAutoplayScope', selectedAutoplayMode);
-        } else {
-            localStorage.removeItem('flashcardAutoplayScope');
-        }
-        localStorage.setItem('flashcardAutoplayDelay', String(autoplayDelaySeconds));
-    }
-
-    function toggleAutoplaySettingsVisibility(isAutoplaySelected) {
-        const autoplayContainer = document.getElementById('autoplay-settings-container');
-        const buttonCountContainer = document.getElementById('button-count-container');
-        if (autoplayContainer) {
-            if (isAutoplaySelected) {
-                autoplayContainer.classList.remove('hidden');
-            } else {
-                autoplayContainer.classList.add('hidden');
-            }
-        }
-        if (buttonCountContainer) {
-            if (isAutoplaySelected) {
-                buttonCountContainer.classList.add('hidden');
-            } else {
-                buttonCountContainer.classList.remove('hidden');
-            }
-        }
-    }
-
-    function initializeAutoplaySettings() {
-        const autoplayContainer = document.getElementById('autoplay-settings-container');
-        if (!autoplayContainer) return;
-
-        const delaySelect = document.getElementById('autoplay-delay-select');
-        if (delaySelect) {
-            const availableValues = Array.from(delaySelect.options).map(opt => opt.value);
-            if (!availableValues.includes(String(autoplayDelaySeconds))) {
-                autoplayDelaySeconds = parseInt(availableValues[0], 10) || 2;
-            }
-            delaySelect.value = String(autoplayDelaySeconds);
-            if (delaySelect.dataset.listenerAttached !== 'true') {
-                delaySelect.addEventListener('change', () => {
-                    autoplayDelaySeconds = parseInt(delaySelect.value, 10);
-                    if (Number.isNaN(autoplayDelaySeconds) || autoplayDelaySeconds < 0) {
-                        autoplayDelaySeconds = 2;
-                    }
-                    saveAutoplaySettingsToStorage();
-                });
-                delaySelect.dataset.listenerAttached = 'true';
-            }
-        }
-
-        const scopeInputs = autoplayContainer.querySelectorAll('input[name="autoplay-scope"]');
-        let matchedScope = null;
-        let fallbackScope = null;
-
-        scopeInputs.forEach(input => {
-            const count = parseInt(input.dataset.count || '0', 10);
-            const parentLabel = input.closest('label');
-
-            if (count <= 0) {
-                input.disabled = true;
-                if (parentLabel) {
-                    parentLabel.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-                }
-            } else {
-                input.disabled = false;
-                if (!fallbackScope) fallbackScope = input;
-                if (parentLabel) {
-                    parentLabel.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-                }
-                if (selectedAutoplayMode === input.value) {
-                    matchedScope = input;
-                }
-            }
-
-            if (input.dataset.listenerAttached !== 'true') {
-                input.addEventListener('change', () => {
-                    if (input.disabled) return;
-                    selectedAutoplayMode = input.value;
-                    saveAutoplaySettingsToStorage();
-                    if (selectedFlashcardMode && selectedFlashcardMode.startsWith('autoplay_')) {
-                        selectedFlashcardMode = selectedAutoplayMode;
-                        updateActionButtons();
-                    }
-                });
-                input.dataset.listenerAttached = 'true';
-            }
-        });
-
-        if (matchedScope) {
-            matchedScope.checked = true;
-        } else if (fallbackScope) {
-            fallbackScope.checked = true;
-            selectedAutoplayMode = fallbackScope.value;
-        } else {
-            selectedAutoplayMode = null;
-        }
-
-        saveAutoplaySettingsToStorage();
-        if (selectedFlashcardMode && selectedFlashcardMode.startsWith('autoplay_')) {
-            selectedFlashcardMode = selectedAutoplayMode;
-            updateActionButtons();
-        }
-    }
-
-    function toggleAllSetsButtonVisibility() {
-        if (!allSetsButton) {
-            allSetsButton = document.querySelector('.flashcard-set-item[data-set-id="all"]');
-        }
-        if (allSetsButton) {
-            allSetsButton.style.display = (currentFilter === 'doing') ? 'flex' : 'none';
-        }
-    }
-    
-    async function loadFlashcardSets(page, searchQuery, searchField, filter) {
-        console.log('loadFlashcardSets', page, searchQuery, searchField, filter);
-        flashcardSetsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải danh sách bộ thẻ...</p></div>';
-        
-        if (localStorage.getItem('selectedFlashcardSetIds')) {
-            selectedFlashcardSetIds = JSON.parse(localStorage.getItem('selectedFlashcardSetIds'));
-        } else {
-            selectedFlashcardSetIds = [];
-        }
-
-        updateSelectedSetsDisplay();
-        updateActionButtons();
-
-        if (!getFlashcardSetsPartialUrl || getFlashcardSetsPartialUrl === '#') {
-            console.error('getFlashcardSetsPartialUrl không hợp lệ.');
-            flashcardSetsContainer.innerHTML = '<p class="text-red-500 text-center">Lỗi cấu hình URL. Vui lòng liên hệ quản trị viên.</p>';
-            return;
-        }
-        try {
-            const url = new URL(getFlashcardSetsPartialUrl, window.location.origin);
-            url.searchParams.append('page', page);
-            url.searchParams.append('q', searchQuery || '');
-            url.searchParams.append('search_field', searchField || 'all');
-            url.searchParams.append('filter', filter || 'doing');
-            url.searchParams.append('is_multi_select_mode', 'true');
-
-            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            if (!response.ok) { throw new Error('HTTP ' + response.status); }
-            const html = await response.text();
-            flashcardSetsContainer.innerHTML = html;
-            addFlashcardSetClickListeners();
-            addPaginationAndSearchListeners();
-            addArchiveIconListeners();
-            updateFlashcardSetProgressColors();
-            syncMultiSelectionUI();
-            
-            toggleAllSetsButtonVisibility();
-        } catch (e) {
-            console.error('Lỗi loadFlashcardSets:', e);
-            flashcardSetsContainer.innerHTML = '<p class="text-red-500 text-center">Không thể tải danh sách bộ thẻ. Vui lòng thử lại.</p>';
-        }
-    }
-
-    async function loadFlashcardOptions(setIdentifier) {
-        console.log('loadFlashcardOptions ->', setIdentifier);
-        if (currentFilter === 'archive') { return; } 
-        flashcardOptionsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải chế độ học...</p></div>';
-        try {
-            const url = flashcardOptionsPartialBaseUrl.replace('/0', '/' + setIdentifier);
-            if (!url || url === '#') { throw new Error('URL chế độ học không hợp lệ'); }
-
-            const fullUrl = new URL(url, window.location.origin);
-            if (selectedFlashcardMode) { fullUrl.searchParams.append('selected_mode', selectedFlashcardMode); }
-
-            const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            if (!response.ok) { throw new Error('HTTP ' + response.status); }
-            const html = await response.text();
-            flashcardOptionsContainer.innerHTML = html;
-            addFlashcardModeClickListeners();
-            initializeAutoplaySettings();
-
-            const firstAvailableMode = flashcardOptionsContainer.querySelector('.flashcard-mode-item[data-count="0"]');
-            if (firstAvailableMode) { firstAvailableMode.classList.add('opacity-50', 'cursor-not-allowed'); }
-
-            const isAutoplaySelection = selectedFlashcardMode && selectedFlashcardMode.startsWith('autoplay_');
-            toggleAutoplaySettingsVisibility(isAutoplaySelection);
-
-            const availableModes = Array.from(flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item')).filter(function(x){
-                const modeId = x.dataset.modeId;
-                if (modeId === 'autoplay') {
-                    const learned = parseInt(x.dataset.autoplayLearned || '0', 10);
-                    const all = parseInt(x.dataset.autoplayAll || '0', 10);
-                    return learned > 0 || all > 0;
-                }
-                return parseInt(x.dataset.count || '0', 10) > 0;
-            });
-
-            if (!selectedFlashcardMode || (isAutoplaySelection && !selectedAutoplayMode)) {
-                if (availableModes.length > 0) {
-                    availableModes[0].click();
-                } else {
-                    selectedFlashcardMode = null;
-                    toggleAutoplaySettingsVisibility(false);
+                if(soloSection) soloSection.classList.remove('hidden');
+                if(groupSection) groupSection.classList.add('hidden');
+                
+                // Gọi hàm cập nhật nút hành động từ _dashboard_individual.js nếu có
+                if (typeof updateActionButtons === 'function') {
                     updateActionButtons();
                 }
             } else {
-                const selector = isAutoplaySelection ? '.flashcard-mode-item[data-mode-id="autoplay"]' : `[data-mode-id="${selectedFlashcardMode}"]`;
-                const prev = flashcardOptionsContainer.querySelector(selector);
-                const prevIsAvailable = prev && (prev.dataset.modeId === 'autoplay'
-                    ? (parseInt(prev.dataset.autoplayLearned || '0', 10) > 0 || parseInt(prev.dataset.autoplayAll || '0', 10) > 0)
-                    : parseInt(prev.dataset.count || '0', 10) > 0);
-
-                if (prev && prevIsAvailable) {
-                    prev.click();
-                } else if (availableModes.length > 0) {
-                    availableModes[0].click();
-                } else {
-                    selectedFlashcardMode = null;
-                    toggleAutoplaySettingsVisibility(false);
-                    updateActionButtons();
-                }
-            }
-        } catch (e) {
-            console.error('Lỗi loadFlashcardOptions:', e);
-            flashcardOptionsContainer.innerHTML = '<p class="text-red-500 text-center">Không thể tải chế độ học. Vui lòng thử lại.</p>';
-        }
-    }
-
-    function syncMultiSelectionUI() {
-        if (isMultiSelectMode) {
-            document.querySelectorAll('.flashcard-set-item').forEach(item => {
-                const setId = item.dataset.setId;
-                if (selectedFlashcardSetIds.includes(setId)) {
-                    item.classList.add('selected-item');
-                } else {
-                    item.classList.remove('selected-item');
-                }
-            });
-            updateSelectedSetsDisplay();
-        }
-        document.querySelectorAll('.archive-icon').forEach(icon => {
-            icon.style.display = (currentFilter === 'doing' || currentFilter === 'explore') ? '' : 'none';
-        });
-    }
-
-    function updateSelectedSetsDisplay() {
-        if (selectedFlashcardSetIds.length > 0) {
-            selectedSetsDisplay.classList.remove('hidden');
-            selectedSetsDisplay.innerHTML = `<span class="text-gray-500 mr-2">Bộ thẻ đã chọn:</span>`;
-            
-            const allSelectedItems = new Map();
-            document.querySelectorAll('.flashcard-set-item').forEach(item => {
-                const setId = item.dataset.setId;
-                if (selectedFlashcardSetIds.includes(setId)) {
-                     const title = item.querySelector('h3').textContent;
-                     allSelectedItems.set(setId, title);
-                }
-            });
-            
-            selectedFlashcardSetIds.forEach(setId => {
-                let title;
-                if (allSelectedItems.has(setId)) {
-                    title = allSelectedItems.get(setId);
-                } else if (setId === 'all') {
-                    title = 'Học tất cả các bộ';
-                } else {
-                    const storedTitles = JSON.parse(localStorage.getItem('selectedFlashcardSetTitles')) || {};
-                    title = storedTitles[setId] || setId;
-                }
-
-                if (title) {
-                    const selectedItemHtml = `
-                        <div class="selected-set-item" data-set-id="${setId}">
-                            <span>${title}</span>
-                            <i class="fas fa-times-circle remove-selected-set"></i>
-                        </div>
-                    `;
-                    selectedSetsDisplay.insertAdjacentHTML('beforeend', selectedItemHtml);
-                }
-            });
-            
-        } else {
-            selectedSetsDisplay.classList.add('hidden');
-        }
-
-        document.querySelectorAll('.remove-selected-set').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const setIdToRemove = this.closest('.selected-set-item').dataset.setId;
-                handleFlashcardSetSelection(setIdToRemove);
-            });
-        });
-    }
-
-    function handleFlashcardSetSelection(setId) {
-        if (setId !== 'all' && selectedFlashcardSetIds.includes('all')) {
-            const allButton = document.querySelector('.flashcard-set-item[data-set-id="all"]');
-            if (allButton) {
-                allButton.classList.remove('selected-item');
-            }
-            selectedFlashcardSetIds = [];
-        }
-        if (setId === 'all' && selectedFlashcardSetIds.some(id => id !== 'all')) {
-            document.querySelectorAll('.flashcard-set-item.selected-item').forEach(el => el.classList.remove('selected-item'));
-            selectedFlashcardSetIds = [];
-        }
-
-        const item = document.querySelector(`.flashcard-set-item[data-set-id="${setId}"]`);
-        
-        if (selectedFlashcardSetIds.includes(setId)) {
-            selectedFlashcardSetIds = selectedFlashcardSetIds.filter(id => id !== setId);
-            if (item) item.classList.remove('selected-item');
-        } else {
-            selectedFlashcardSetIds.push(setId);
-            if (item) item.classList.add('selected-item');
-        }
-        
-        localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
-        const storedTitles = JSON.parse(localStorage.getItem('selectedFlashcardSetTitles')) || {};
-        if (item) {
-            storedTitles[setId] = item.querySelector('h3').textContent;
-        }
-        localStorage.setItem('selectedFlashcardSetTitles', JSON.stringify(storedTitles));
-
-        selectedFlashcardMode = null;
-        if (selectedFlashcardSetIds.length > 0 && currentFilter !== 'archive') {
-            const setIdsStr = selectedFlashcardSetIds.join(',');
-            loadFlashcardOptions(setIdsStr);
-        } else {
-            if (currentFilter !== 'archive') {
-                flashcardOptionsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ thẻ trước.</p></div>';
-            } else {
-                updateStep2Content();
-            }
-        }
-        
-        updateActionButtons();
-        updateSelectedSetsDisplay();
-        toggleAllSetsButtonVisibility();
-    }
-
-
-    function addFlashcardSetClickListeners() {
-        document.querySelectorAll('.flashcard-set-item').forEach(function(item){
-            item.addEventListener('click', function(ev){
-                const totalItems = parseInt(this.dataset.totalItems);
-                if (currentFilter !== 'doing' && this.dataset.setId === 'all') { 
-                    ev.preventDefault(); ev.stopPropagation(); return; 
-                }
-                if (currentFilter !== 'archive' && totalItems === 0 && this.dataset.setId !== 'all') { 
-                    ev.preventDefault(); ev.stopPropagation(); return; 
-                }
-                const setId = this.dataset.setId;
-                handleFlashcardSetSelection(setId);
-            });
-        });
-    }
-
-    function addFlashcardModeClickListeners() {
-        document.querySelectorAll('.flashcard-mode-item').forEach(function(item){
-            item.addEventListener('click', function(ev){
-                const modeId = this.dataset.modeId;
-                const modeCount = parseInt(this.dataset.count || '0', 10);
-
-                if (modeId === 'autoplay') {
-                    const learnedCount = parseInt(this.dataset.autoplayLearned || '0', 10);
-                    const allCount = parseInt(this.dataset.autoplayAll || '0', 10);
-                    if (learnedCount <= 0 && allCount <= 0) {
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        return;
-                    }
-                } else if (modeCount === 0) {
-                    ev.preventDefault();
-                    ev.stopPropagation();
-                    return;
-                }
-
-                document.querySelectorAll('.flashcard-mode-item').forEach(function(el){ el.classList.remove('selected-mode'); });
-                this.classList.add('selected-mode');
-
-                if (modeId === 'autoplay') {
-                    toggleAutoplaySettingsVisibility(true);
-                    initializeAutoplaySettings();
-
-                    if (!selectedAutoplayMode) {
-                        const autoplayContainer = document.getElementById('autoplay-settings-container');
-                        const availableScope = autoplayContainer ? Array.from(autoplayContainer.querySelectorAll('input[name="autoplay-scope"]')).find(input => !input.disabled) : null;
-                        if (availableScope) {
-                            availableScope.checked = true;
-                            selectedAutoplayMode = availableScope.value;
-                            saveAutoplaySettingsToStorage();
-                        }
-                    }
-
-                    selectedFlashcardMode = selectedAutoplayMode || null;
-                } else {
-                    toggleAutoplaySettingsVisibility(false);
-                    selectedFlashcardMode = modeId;
-                }
-
-                updateActionButtons();
-            });
-        });
-    }
-
-    function addPaginationAndSearchListeners() {
-        const searchForm = flashcardSetsContainer.querySelector('form');
-        if (searchForm) {
-            searchForm.addEventListener('submit', function(e){
-                e.preventDefault();
-                localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
-                const data = new FormData(searchForm);
-                currentSearchQuery = data.get('q') || '';
-                currentSearchField = data.get('search_field') || 'all';
-                if (currentFilter === 'doing') { doingPage = 1; } else if (currentFilter === 'explore') { explorePage = 1; } else { archivePage = 1; }
-                currentPage = 1;
-                loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
-            });
-        }
-        document.querySelectorAll('.pagination a').forEach(function(a){
-            a.addEventListener('click', function(e){
-                e.preventDefault();
-                localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
-                const url = new URL(this.href, window.location.origin);
-                const page = parseInt(url.searchParams.get('page')) || 1;
-                const q = url.searchParams.get('q') || '';
-                const search_field = url.searchParams.get('search_field') || 'all';
-                const filter = url.searchParams.get('filter') || 'doing';
-                if (filter === 'doing') { doingPage = page; } else if (filter === 'explore') { explorePage = page; } else { archivePage = page; }
-                currentPage = page;
-                loadFlashcardSets(currentPage, q, search_field, filter);
-            });
-        });
-    }
-
-    function addArchiveIconListeners() {
-        document.querySelectorAll('.archive-icon').forEach(function(icon){
-            icon.addEventListener('click', async function(event){
-                event.stopPropagation();
-                const setId = this.dataset.setId;
-                if (!setId) return;
-
-                const url = toggleArchiveUrl.replace('/0', '/' + setId);
-
-                try {
-                    const response = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                    const result = await response.json();
-
-                    if (response.ok && result.success) {
-                        const itemElement = this.closest('.flashcard-set-item');
-                        if (currentFilter === 'archive' && !result.is_archived) {
-                            itemElement.remove();
-                        } else if ((currentFilter === 'doing' || currentFilter === 'explore') && result.is_archived) {
-                            itemElement.remove();
-                        } else {
-                            if (result.is_archived) {
-                                itemElement.classList.add('archived');
-                                this.title = "Bỏ lưu trữ";
-                                this.querySelector('i').classList.add('text-blue-500');
-                                this.querySelector('i').classList.remove('text-gray-400');
-                            } else {
-                                itemElement.classList.remove('archived');
-                                this.title = "Lưu trữ";
-                                this.querySelector('i').classList.remove('text-blue-500');
-                                this.querySelector('i').classList.add('text-gray-400');
-                            }
-                        }
-                        
-                        selectedFlashcardSetIds = selectedFlashcardSetIds.filter(id => id !== setId);
-                        localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
-
-                        loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
-
-                        window.showFlashMessage(result.message, 'success');
-
-                    } else {
-                        window.showFlashMessage(result.message || 'Có lỗi xảy ra khi cập nhật trạng thái lưu trữ.', 'danger');
-                    }
-                } catch (e) {
-                    console.error('Lỗi AJAX toggle archive:', e);
-                    window.showFlashMessage('Không thể kết nối đến máy chủ.', 'danger');
-                }
-            });
-        });
-    }
-
-    function updateActionButtons() {
-        const selectedCount = selectedFlashcardSetIds.length;
-        const isSelected = selectedCount > 0;
-
-        if (currentStudyMode === 'group') {
-            startLearningBtn.style.display = 'none';
-            bulkUnarchiveBtn.style.display = 'none';
-            return;
-        }
-
-        if (currentFilter === 'archive') {
-            startLearningBtn.style.display = 'none';
-            bulkUnarchiveBtn.style.display = 'block';
-            if (isSelected) {
-                bulkUnarchiveBtn.disabled = false;
-                bulkUnarchiveBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                bulkUnarchiveBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            } else {
-                bulkUnarchiveBtn.disabled = true;
-                bulkUnarchiveBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-                bulkUnarchiveBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            }
-        } else {
-            bulkUnarchiveBtn.style.display = 'none';
-            startLearningBtn.style.display = 'block';
-            const modeAvailable = selectedFlashcardMode !== null;
-            
-            if (isSelected && modeAvailable) {
-                startLearningBtn.disabled = false;
-                startLearningBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                startLearningBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            } else {
-                startLearningBtn.disabled = true;
-                startLearningBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-                startLearningBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            }
-        }
-    }
-
-    function updateFlashcardSetProgressColors() {
-        document.querySelectorAll('.flashcard-set-item').forEach(function(item){
-            const pct = parseInt(item.dataset.completionPercentage || '0');
-            const txt = item.querySelector('.flashcard-set-completion-text');
-            if (txt) { txt.style.color = (pct > 50 ? '#111' : '#333'); }
-        });
-    }
-    
-    startLearningBtn.addEventListener('click', function(){
-        let startUrl;
-        
-        if (selectedFlashcardSetIds.length > 0 && selectedFlashcardMode) {
-            localStorage.removeItem('selectedFlashcardSetIds');
-            const setIdsStr = selectedFlashcardSetIds.join(',');
-            if (selectedFlashcardSetIds.length === 1 && selectedFlashcardSetIds[0] === 'all') {
-                startUrl = new URL(startFlashcardSessionBaseUrlAllTemplate.replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
-            } else if (selectedFlashcardSetIds.length === 1 && selectedFlashcardSetIds[0] !== 'all') {
-                startUrl = new URL(startFlashcardSessionBaseUrlByIdTemplate.replace('0', selectedFlashcardSetIds[0]).replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
-            } else {
-                startUrl = new URL(startFlashcardSessionBaseUrlMultiTemplate.replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
-                startUrl.searchParams.append('set_ids', setIdsStr);
-            }
-            if (selectedFlashcardMode.startsWith('autoplay_')) {
-                saveAutoplaySettingsToStorage();
-            }
-            window.location.href = startUrl.toString();
-        }
-    });
-    
-    bulkUnarchiveBtn.addEventListener('click', async function(){
-        if (selectedFlashcardSetIds.length === 0) {
-            window.showFlashMessage('Vui lòng chọn ít nhất một bộ thẻ để bỏ lưu trữ.', 'warning');
-            return;
-        }
-
-        try {
-            const response = await fetch(bulkUnarchiveUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ set_ids: selectedFlashcardSetIds })
-            });
-
-            const result = await response.json();
-            if (response.ok && result.success) {
-                localStorage.removeItem('selectedFlashcardSetIds');
-                window.showFlashMessage(result.message, 'success');
-                loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
-            } else {
-                window.showFlashMessage(result.message || 'Có lỗi xảy ra khi bỏ lưu trữ.', 'danger');
-            }
-        } catch (e) {
-            console.error('Lỗi khi bỏ lưu trữ hàng loạt:', e);
-            window.showFlashMessage('Không thể kết nối đến máy chủ.', 'danger');
-        }
-    });
-
-    document.querySelectorAll('.tab-filter-button').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const newFilter = this.dataset.filter;
-            if (currentFilter !== newFilter) {
-                if (currentFilter === 'doing') { doingPage = currentPage; }
-                else if (currentFilter === 'explore') { explorePage = currentPage; }
-                else if (currentFilter === 'archive') { archivePage = currentPage; }
-
-                currentFilter = newFilter;
-                if (currentFilter === 'doing') { currentPage = doingPage; }
-                else if (currentFilter === 'explore') { currentPage = explorePage; }
-                else { currentPage = archivePage; }
-
-                document.querySelectorAll('.tab-filter-button').forEach(function(btn){
-                    btn.classList.remove('active');
-                });
-                this.classList.add('active');
-
-                isMultiSelectMode = true; 
+                if(soloSection) soloSection.classList.add('hidden');
+                if(groupSection) groupSection.classList.remove('hidden');
                 
-                updateStep2Content();
-                
-                localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
-
-                loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+                if(startLearningBtn) startLearningBtn.style.display = 'none';
+                if(bulkUnarchiveBtn) bulkUnarchiveBtn.style.display = 'none';
             }
         });
     });
-    
-    function updateStep2Content() {
-        const isMobile = window.innerWidth < 640;
-        if (currentFilter === 'archive') {
-            rightPanel.style.display = isMobile ? 'none' : 'flex';
-            step2Title.innerHTML = `<i class="fas fa-info-circle mr-3 text-blue-500"></i> Bỏ lưu trữ`;
-            
-            if (!isMobile) {
-                flashcardOptionsContainer.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full text-gray-700 p-4">
-                        <p class="text-base text-center mb-4">
-                            Hãy chọn các bộ cần để bỏ lưu trữ trên giao diện.
-                        </p>
-                    </div>
-                `;
-            }
-        } else {
-            rightPanel.style.display = 'flex';
-            step2Title.innerHTML = `<i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học`;
-            if (selectedFlashcardSetIds.length > 0) {
-                 const setIdsStr = selectedFlashcardSetIds.join(',');
-                 loadFlashcardOptions(setIdsStr);
-            } else {
-                 flashcardOptionsContainer.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
-                        <i class="fas fa-info-circle text-4xl mb-3"></i>
-                        <p>Vui lòng chọn một bộ thẻ trước.</p>
-                    </div>
-                `;
-            }
-        }
-    }
-
-    function renderCollabRoomCard(room) {
-        const participants = room.participants || [];
-        const statusLabelMap = {
-            lobby: 'Đang mở',
-            active: 'Đang học',
-            completed: 'Đã đóng',
-        };
-        const statusClass = room.status === 'active' ? 'collab-room-badge collab-room-badge--live' : 'collab-room-badge';
-        const modeLabel = collabModeLabels[room.mode] || room.mode;
-        const visibilityLabel = room.is_public ? 'Công khai' : 'Riêng tư';
-        const hostLabel = room.host_username ? `Chủ phòng: ${room.host_username}` : 'Chủ phòng: --';
-        const containerTitle = room.container_title || `Bộ #${room.container_id}`;
-
-        return `
-            <div class="collab-room-card">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="space-y-1 min-w-0">
-                        <p class="text-xs text-slate-500 uppercase tracking-[0.2em]">${visibilityLabel}</p>
-                        <h4 class="text-base font-semibold text-slate-900 line-clamp-2">${room.title || 'Phòng học Flashcard'}</h4>
-                        <p class="text-sm text-slate-600 truncate">Bộ thẻ: ${containerTitle}</p>
-                    </div>
-                    <span class="${statusClass}">${statusLabelMap[room.status] || room.status}</span>
-                </div>
-                <div class="text-sm text-slate-700 space-y-1">
-                    <p class="flex items-center gap-2"><i class="fas fa-circle-play text-blue-600"></i> ${modeLabel}</p>
-                    <p class="flex items-center gap-2"><i class="fas fa-user-group text-slate-500"></i> ${participants.length} người tham gia · ${hostLabel}</p>
-                    <p class="text-xs text-slate-500">Mã phòng: <span class="font-mono font-semibold">${room.room_code}</span></p>
-                </div>
-                <div class="flex justify-between items-center gap-2">
-                    <button type="button" class="collab-join-btn" data-collab-join="${room.room_code}"><i class="fas fa-door-open"></i><span>Vào phòng</span></button>
-                    <button type="button" class="text-xs text-slate-500" data-collab-copy="${room.room_code}"><i class="fas fa-copy"></i> Sao chép mã</button>
-                </div>
-            </div>
-        `;
-    }
-
-    async function loadCollabRooms(targetEl, url, emptyText) {
-        if (!targetEl || !url) return;
-        targetEl.innerHTML = '<p class="text-slate-500">Đang tải...</p>';
-        try {
-            const res = await fetch(url);
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || 'Không thể tải danh sách phòng.');
-            }
-            const data = await res.json();
-            const rooms = data.rooms || [];
-            if (!rooms.length) {
-                targetEl.innerHTML = `<p class="text-slate-500">${emptyText}</p>`;
-                return;
-            }
-            targetEl.innerHTML = rooms.map(renderCollabRoomCard).join('');
-        } catch (err) {
-            targetEl.innerHTML = `<p class="text-rose-600">${err.message}</p>`;
-        }
-    }
-
-    function handleCopyRoomCode(code) {
-        if (!code) return;
-        navigator.clipboard.writeText(code).catch(() => {});
-    }
-
-    async function joinCollabRoom(code, feedbackEl, options = {}) {
-        if (!code) return;
-        const { onSuccess, redirectToRoom } = options;
-        const joinUrl = collabJoinRoomTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
-        try {
-            const headers = {};
-            if (collabCsrfToken) {
-                headers['X-CSRFToken'] = collabCsrfToken;
-            }
-            const res = await fetch(joinUrl, { method: 'POST', headers });
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || 'Không thể tham gia phòng.');
-            }
-            const data = await res.json();
-            if (feedbackEl) {
-                feedbackEl.textContent = `Đã tham gia phòng ${code}.`;
-                feedbackEl.className = 'text-sm text-green-700';
-            }
-            if (onSuccess) {
-                onSuccess();
-            }
-            if (redirectToRoom && collabRoomViewUrlTemplate) {
-                const viewUrl = collabRoomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
-                window.location.href = viewUrl;
-            }
-            return data.room;
-        } catch (err) {
-            if (feedbackEl) {
-                feedbackEl.textContent = err.message;
-                feedbackEl.className = 'text-sm text-rose-600';
-            }
-            return null;
-        }
-    }
-
-    function updateCollabSelection(container) {
-        const labelEl = document.getElementById('collab-selected-set-label');
-        const hiddenInput = document.getElementById('collab-selected-container-id');
-        const clearBtn = document.getElementById('collab-clear-set');
-        collabSelectedSetId = container ? container.container_id : null;
-        if (labelEl) {
-            labelEl.textContent = container ? container.title : 'Chưa chọn bộ nào';
-            labelEl.classList.toggle('italic', !container);
-        }
-        if (hiddenInput) {
-            hiddenInput.value = collabSelectedSetId || '';
-        }
-        if (clearBtn) {
-            clearBtn.classList.toggle('hidden', !container);
-        }
-
-        if (container) {
-            document.getElementById('collab-set-grid')?.querySelectorAll('[data-collab-container]')?.forEach((card) => {
-                card.dataset.selected = String(card.dataset.collabContainer === String(container.container_id));
-            });
-        } else {
-            document.getElementById('collab-set-grid')?.querySelectorAll('[data-collab-container]')?.forEach((card) => {
-                card.dataset.selected = 'false';
-            });
-        }
-    }
-
-    function renderCollabSetCards(containers) {
-        const grid = document.getElementById('collab-set-grid');
-        if (!grid) return;
-        if (!containers.length) {
-            grid.innerHTML = '<p class="text-sm text-slate-500">Không tìm thấy bộ thẻ phù hợp.</p>';
-            return;
-        }
-        grid.innerHTML = containers
-            .map((container) => {
-                const isSelected = collabSelectedSetId && String(collabSelectedSetId) === String(container.container_id);
-                const privacyLabel = container.is_public ? 'Công khai' : 'Riêng tư';
-                return `
-                    <button type="button" class="collab-set-card" data-collab-container="${container.container_id}" data-selected="${isSelected}">
-                        <div class="flex items-center justify-between gap-2 mb-2">
-                            <p class="text-xs font-semibold text-slate-600 uppercase tracking-[0.2em]">${privacyLabel}</p>
-                        </div>
-                        <p class="font-semibold text-slate-900">${container.title}</p>
-                        <p class="text-sm text-slate-600 line-clamp-2">${container.description || 'Không có mô tả'}</p>
-                    </button>
-                `;
-            })
-            .join('');
-    }
-
-    async function loadCollabSets(query = '') {
-        const statusEl = document.getElementById('collab-set-status');
-        if (statusEl) {
-            statusEl.textContent = 'Đang tải danh sách bộ thẻ khả dụng...';
-        }
-        try {
-            const url = query ? `${collabAvailableSetsUrl}?q=${encodeURIComponent(query)}` : collabAvailableSetsUrl;
-            const res = await fetch(url);
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || 'Không thể tải danh sách bộ thẻ.');
-            }
-            const data = await res.json();
-            renderCollabSetCards(data.containers || []);
-            if (statusEl) {
-                statusEl.textContent = 'Chọn một bộ thẻ để mở phòng học nhóm.';
-            }
-        } catch (err) {
-            renderCollabSetCards([]);
-            if (statusEl) {
-                statusEl.textContent = err.message;
-                statusEl.classList.add('text-rose-600');
-            }
-        }
-    }
-
-    function initializeCollabSection() {
-        const publicRoomsContainer = document.getElementById('collab-public-rooms');
-        const myRoomsContainer = document.getElementById('collab-my-rooms');
-        const joinForm = document.getElementById('collab-join-form');
-        const joinCodeInput = document.getElementById('collab-join-code');
-        const joinFeedback = document.getElementById('collab-join-feedback');
-        const refreshPublicBtn = document.getElementById('collab-refresh-public');
-        const refreshMyBtn = document.getElementById('collab-refresh-my');
-        const setGrid = document.getElementById('collab-set-grid');
-        const setSearchInput = document.getElementById('collab-set-search');
-        const refreshSetsBtn = document.getElementById('collab-refresh-sets');
-        const clearSetBtn = document.getElementById('collab-clear-set');
-        const createForm = document.getElementById('collab-create-room-form');
-        const createFeedback = document.getElementById('collab-create-feedback');
-        const modeSelect = document.getElementById('collab-mode-select');
-        const roomTitleInput = document.getElementById('collab-room-title');
-
-        if (!publicRoomsContainer || !myRoomsContainer) {
-            return;
-        }
-
-        const loadPublicRooms = () => loadCollabRooms(publicRoomsContainer, collabPublicRoomsUrl, 'Chưa có phòng công khai nào.');
-        const loadMyRooms = () => loadCollabRooms(myRoomsContainer, collabMyRoomsUrl, 'Bạn chưa tham gia phòng nào.');
-
-        loadPublicRooms();
-        loadMyRooms();
-
-        refreshPublicBtn?.addEventListener('click', loadPublicRooms);
-        refreshMyBtn?.addEventListener('click', loadMyRooms);
-
-        document.addEventListener('click', (event) => {
-            const joinBtn = event.target.closest('[data-collab-join]');
-            if (joinBtn) {
-                const code = joinBtn.getAttribute('data-collab-join');
-                joinCollabRoom(code, joinFeedback, { onSuccess: loadMyRooms, redirectToRoom: true });
-                return;
-            }
-            const copyBtn = event.target.closest('[data-collab-copy]');
-            if (copyBtn) {
-                handleCopyRoomCode(copyBtn.getAttribute('data-collab-copy'));
-            }
-        });
-
-        if (joinForm && joinCodeInput) {
-            joinForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const code = joinCodeInput.value.trim().toUpperCase();
-                if (!code) return;
-                joinCollabRoom(code, joinFeedback, { onSuccess: loadMyRooms, redirectToRoom: true }).then((room) => {
-                    if (room) {
-                        joinCodeInput.value = '';
-                    }
-                });
-            });
-        }
-
-        if (setGrid) {
-            setGrid.addEventListener('click', (event) => {
-                const card = event.target.closest('[data-collab-container]');
-                if (!card) return;
-                const containerId = parseInt(card.dataset.collabContainer, 10);
-                if (Number.isNaN(containerId)) return;
-                const title = card.querySelector('p.font-semibold')?.textContent || `Bộ #${containerId}`;
-                updateCollabSelection({ container_id: containerId, title });
-            });
-        }
-
-        refreshSetsBtn?.addEventListener('click', () => loadCollabSets(setSearchInput?.value?.trim() || ''));
-        setSearchInput?.addEventListener('input', () => {
-            clearTimeout(collabSearchTimeout);
-            collabSearchTimeout = setTimeout(() => {
-                loadCollabSets(setSearchInput.value.trim());
-            }, 350);
-        });
-        clearSetBtn?.addEventListener('click', () => updateCollabSelection(null));
-
-        loadCollabSets();
-
-        createForm?.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const visibility = document.querySelector('input[name="collab-visibility"]:checked');
-            const payload = {
-                container_id: collabSelectedSetId,
-                mode: modeSelect?.value || 'mixed_srs',
-                title: roomTitleInput?.value?.trim(),
-                is_public: visibility ? visibility.value === 'public' : false,
-            };
-
-            if (!payload.container_id) {
-                createFeedback.textContent = 'Vui lòng chọn bộ thẻ trước khi tạo phòng.';
-                createFeedback.className = 'text-sm text-rose-600';
-                return;
-            }
-
-            try {
-                const headers = { 'Content-Type': 'application/json' };
-                if (collabCsrfToken) {
-                    headers['X-CSRFToken'] = collabCsrfToken;
-                }
-                const res = await fetch(collabCreateRoomUrl, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(payload),
-                });
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text || 'Không thể tạo phòng mới.');
-                }
-                const data = await res.json();
-                const room = data.room;
-                createFeedback.textContent = `Đã tạo phòng: ${room.room_code}. Chia sẻ mã để mọi người vào nhanh.`;
-                createFeedback.className = 'text-sm text-green-700';
-                roomTitleInput.value = '';
-                if (collabRoomViewUrlTemplate) {
-                    const viewUrl = collabRoomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(room.room_code));
-                    window.location.href = viewUrl;
-                } else {
-                    loadMyRooms();
-                }
-            } catch (err) {
-                createFeedback.textContent = err.message;
-                createFeedback.className = 'text-sm text-rose-600';
-            }
-        });
-    }
-
-
-    document.addEventListener('DOMContentLoaded', function(){
-        isMultiSelectMode = true;
-        updateStep2Content();
-
-        loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
-        initializeCollabSection();
-    });
-    
-    window.addEventListener('beforeunload', function() {
-        localStorage.removeItem('selectedFlashcardSetIds');
-    });
-
     </script>
 {% endblock %}

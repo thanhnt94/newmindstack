@@ -1,0 +1,783 @@
+{# =============================== #}
+{# File: mindstack_app/modules/learning/flashcard/templates/flashcard/_dashboard_individual.html #}
+{# Mục đích: Phần giao diện và logic cho chế độ học cá nhân (Solo). #}
+{# =============================== #}
+
+<div id="flashcard-solo-section" class="space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
+        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ thẻ
+            </h2>
+            <div class="mb-4">
+                <div class="tabs-and-toggle-wrapper">
+                    <div class="tab-group">
+                        <button id="filter-doing" class="tab-filter-button flex items-center justify-center active" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang học</span></button>
+                        <button id="filter-explore" class="tab-filter-button flex items-center justify-center" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
+                        <button id="filter-archive" class="tab-filter-button flex items-center justify-center" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
+                    </div>
+                </div>
+            </div>
+            <div id="selected-sets-display" class="selected-sets-container hidden">
+                <span class="text-gray-500">Bộ thẻ đã chọn:</span>
+            </div>
+            <div id="flashcard-sets-container" class="flex-grow">
+                <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
+                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                    <p>Đang tải danh sách bộ thẻ...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+            <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
+            </h2>
+            <div id="flashcard-options-container" class="flex-grow">
+                <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                    <i class="fas fa-info-circle text-4xl mb-3"></i>
+                    <p>Vui lòng chọn một bộ thẻ trước.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 text-center">
+        <button id="start-learning-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
+            <i class="fas fa-play-circle mr-3"></i> Bắt đầu học
+        </button>
+        <button id="bulk-unarchive-btn" class="start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
+            <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
+        </button>
+    </div>
+</div>
+
+<script>
+console.log('>>> _dashboard_individual.js: init');
+
+{# ==== Biến trạng thái Individual ==== #}
+let selectedFlashcardSetIds = [];
+let selectedFlashcardMode = null;
+let currentFilter = "{{ current_filter | default('doing') }}";
+let doingPage = 1; let explorePage = 1; let archivePage = 1; let currentPage = (currentFilter === 'doing' ? doingPage : (currentFilter === 'explore' ? explorePage : archivePage));
+let currentSearchQuery = "{{ search_query | default('') }}";
+let currentSearchField = "{{ search_field | default('all') }}";
+let isMultiSelectMode = true;
+let selectedButtonCount = parseInt("{{ user_button_count | default(3) }}");
+let selectedAutoplayMode = localStorage.getItem('flashcardAutoplayScope') || 'autoplay_learned';
+let autoplayDelaySeconds = parseInt(localStorage.getItem('flashcardAutoplayDelay') || '2', 10);
+if (Number.isNaN(autoplayDelaySeconds) || autoplayDelaySeconds < 0) {
+    autoplayDelaySeconds = 2;
+}
+
+const flashcardSetsContainer = document.getElementById('flashcard-sets-container');
+const flashcardOptionsContainer = document.getElementById('flashcard-options-container');
+const selectedSetsDisplay = document.getElementById('selected-sets-display');
+const step2Title = document.getElementById('step-2-title');
+const rightPanel = document.querySelector('.lg\\:grid-cols-2 > div:nth-child(2)');
+let allSetsButton = null;
+
+const flashcardOptionsPartialBaseUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_options_partial', set_identifier='0') or '#' }}";
+const startFlashcardSessionBaseUrlAllTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_all', mode='MODE_PLACEHOLDER') }}";
+const startFlashcardSessionBaseUrlMultiTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_multi', mode='MODE_PLACEHOLDER') }}";
+const startFlashcardSessionBaseUrlByIdTemplate = "{{ url_for('learning.flashcard_learning.start_flashcard_session_by_id', set_id=0, mode='MODE_PLACEHOLDER') }}";
+const getFlashcardSetsPartialUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_sets_partial') or '#' }}";
+const toggleArchiveUrl = "{{ url_for('learning.flashcard_learning.toggle_archive_flashcard', set_id=0) or '#' }}";
+const bulkUnarchiveUrl = "{{ url_for('learning.flashcard_learning.bulk_unarchive_flashcard') }}";
+const saveFlashcardSettingsUrl = "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}";
+
+
+// Gán event listener cho dropdown số nút
+document.addEventListener('change', async function(event) {
+    if (event.target.id === 'button-count-select') {
+        selectedButtonCount = parseInt(event.target.value);
+        updateActionButtons();
+        try {
+            const res = await fetch(saveFlashcardSettingsUrl, { 
+                method: 'POST', 
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'X-Requested-With': 'XMLHttpRequest' 
+                }, 
+                body: JSON.stringify({ button_count: selectedButtonCount }) 
+            });
+            const js = await res.json();
+            if (!js.success) { console.error('Lưu button_count lỗi:', js.message); }
+        } catch (err) { console.error('AJAX lưu button_count lỗi:', err); }
+    }
+});
+
+function saveAutoplaySettingsToStorage() {
+    const settings = { scope: selectedAutoplayMode, delaySeconds: autoplayDelaySeconds };
+    try {
+        localStorage.setItem('flashcardAutoplaySettings', JSON.stringify(settings));
+    } catch (e) {
+        console.warn('Không thể lưu cấu hình AutoPlay vào localStorage:', e);
+    }
+    if (selectedAutoplayMode) {
+        localStorage.setItem('flashcardAutoplayScope', selectedAutoplayMode);
+    } else {
+        localStorage.removeItem('flashcardAutoplayScope');
+    }
+    localStorage.setItem('flashcardAutoplayDelay', String(autoplayDelaySeconds));
+}
+
+function toggleAutoplaySettingsVisibility(isAutoplaySelected) {
+    const autoplayContainer = document.getElementById('autoplay-settings-container');
+    const buttonCountContainer = document.getElementById('button-count-container');
+    if (autoplayContainer) {
+        if (isAutoplaySelected) {
+            autoplayContainer.classList.remove('hidden');
+        } else {
+            autoplayContainer.classList.add('hidden');
+        }
+    }
+    if (buttonCountContainer) {
+        if (isAutoplaySelected) {
+            buttonCountContainer.classList.add('hidden');
+        } else {
+            buttonCountContainer.classList.remove('hidden');
+        }
+    }
+}
+
+function initializeAutoplaySettings() {
+    const autoplayContainer = document.getElementById('autoplay-settings-container');
+    if (!autoplayContainer) return;
+
+    const delaySelect = document.getElementById('autoplay-delay-select');
+    if (delaySelect) {
+        const availableValues = Array.from(delaySelect.options).map(opt => opt.value);
+        if (!availableValues.includes(String(autoplayDelaySeconds))) {
+            autoplayDelaySeconds = parseInt(availableValues[0], 10) || 2;
+        }
+        delaySelect.value = String(autoplayDelaySeconds);
+        if (delaySelect.dataset.listenerAttached !== 'true') {
+            delaySelect.addEventListener('change', () => {
+                autoplayDelaySeconds = parseInt(delaySelect.value, 10);
+                if (Number.isNaN(autoplayDelaySeconds) || autoplayDelaySeconds < 0) {
+                    autoplayDelaySeconds = 2;
+                }
+                saveAutoplaySettingsToStorage();
+            });
+            delaySelect.dataset.listenerAttached = 'true';
+        }
+    }
+
+    const scopeInputs = autoplayContainer.querySelectorAll('input[name="autoplay-scope"]');
+    let matchedScope = null;
+    let fallbackScope = null;
+
+    scopeInputs.forEach(input => {
+        const count = parseInt(input.dataset.count || '0', 10);
+        const parentLabel = input.closest('label');
+
+        if (count <= 0) {
+            input.disabled = true;
+            if (parentLabel) {
+                parentLabel.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+            }
+        } else {
+            input.disabled = false;
+            if (!fallbackScope) fallbackScope = input;
+            if (parentLabel) {
+                parentLabel.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+            }
+            if (selectedAutoplayMode === input.value) {
+                matchedScope = input;
+            }
+        }
+
+        if (input.dataset.listenerAttached !== 'true') {
+            input.addEventListener('change', () => {
+                if (input.disabled) return;
+                selectedAutoplayMode = input.value;
+                saveAutoplaySettingsToStorage();
+                if (selectedFlashcardMode && selectedFlashcardMode.startsWith('autoplay_')) {
+                    selectedFlashcardMode = selectedAutoplayMode;
+                    updateActionButtons();
+                }
+            });
+            input.dataset.listenerAttached = 'true';
+        }
+    });
+
+    if (matchedScope) {
+        matchedScope.checked = true;
+    } else if (fallbackScope) {
+        fallbackScope.checked = true;
+        selectedAutoplayMode = fallbackScope.value;
+    } else {
+        selectedAutoplayMode = null;
+    }
+
+    saveAutoplaySettingsToStorage();
+    if (selectedFlashcardMode && selectedFlashcardMode.startsWith('autoplay_')) {
+        selectedFlashcardMode = selectedAutoplayMode;
+        updateActionButtons();
+    }
+}
+
+function toggleAllSetsButtonVisibility() {
+    if (!allSetsButton) {
+        allSetsButton = document.querySelector('.flashcard-set-item[data-set-id="all"]');
+    }
+    if (allSetsButton) {
+        allSetsButton.style.display = (currentFilter === 'doing') ? 'flex' : 'none';
+    }
+}
+
+async function loadFlashcardSets(page, searchQuery, searchField, filter) {
+    console.log('loadFlashcardSets', page, searchQuery, searchField, filter);
+    if(!flashcardSetsContainer) return;
+    flashcardSetsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải danh sách bộ thẻ...</p></div>';
+    
+    if (localStorage.getItem('selectedFlashcardSetIds')) {
+        selectedFlashcardSetIds = JSON.parse(localStorage.getItem('selectedFlashcardSetIds'));
+    } else {
+        selectedFlashcardSetIds = [];
+    }
+
+    updateSelectedSetsDisplay();
+    updateActionButtons();
+
+    if (!getFlashcardSetsPartialUrl || getFlashcardSetsPartialUrl === '#') {
+        console.error('getFlashcardSetsPartialUrl không hợp lệ.');
+        flashcardSetsContainer.innerHTML = '<p class="text-red-500 text-center">Lỗi cấu hình URL. Vui lòng liên hệ quản trị viên.</p>';
+        return;
+    }
+    try {
+        const url = new URL(getFlashcardSetsPartialUrl, window.location.origin);
+        url.searchParams.append('page', page);
+        url.searchParams.append('q', searchQuery || '');
+        url.searchParams.append('search_field', searchField || 'all');
+        url.searchParams.append('filter', filter || 'doing');
+        url.searchParams.append('is_multi_select_mode', 'true');
+
+        const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) { throw new Error('HTTP ' + response.status); }
+        const html = await response.text();
+        flashcardSetsContainer.innerHTML = html;
+        addFlashcardSetClickListeners();
+        addPaginationAndSearchListeners();
+        addArchiveIconListeners();
+        updateFlashcardSetProgressColors();
+        syncMultiSelectionUI();
+        
+        toggleAllSetsButtonVisibility();
+    } catch (e) {
+        console.error('Lỗi loadFlashcardSets:', e);
+        flashcardSetsContainer.innerHTML = '<p class="text-red-500 text-center">Không thể tải danh sách bộ thẻ. Vui lòng thử lại.</p>';
+    }
+}
+
+async function loadFlashcardOptions(setIdentifier) {
+    console.log('loadFlashcardOptions ->', setIdentifier);
+    if (currentFilter === 'archive') { return; }
+    if(!flashcardOptionsContainer) return;
+    flashcardOptionsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải chế độ học...</p></div>';
+    try {
+        const url = flashcardOptionsPartialBaseUrl.replace('/0', '/' + setIdentifier);
+        if (!url || url === '#') { throw new Error('URL chế độ học không hợp lệ'); }
+
+        const fullUrl = new URL(url, window.location.origin);
+        if (selectedFlashcardMode) { fullUrl.searchParams.append('selected_mode', selectedFlashcardMode); }
+
+        const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) { throw new Error('HTTP ' + response.status); }
+        const html = await response.text();
+        flashcardOptionsContainer.innerHTML = html;
+        addFlashcardModeClickListeners();
+        initializeAutoplaySettings();
+
+        const firstAvailableMode = flashcardOptionsContainer.querySelector('.flashcard-mode-item[data-count="0"]');
+        if (firstAvailableMode) { firstAvailableMode.classList.add('opacity-50', 'cursor-not-allowed'); }
+
+        const isAutoplaySelection = selectedFlashcardMode && selectedFlashcardMode.startsWith('autoplay_');
+        toggleAutoplaySettingsVisibility(isAutoplaySelection);
+
+        const availableModes = Array.from(flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item')).filter(function(x){
+            const modeId = x.dataset.modeId;
+            if (modeId === 'autoplay') {
+                const learned = parseInt(x.dataset.autoplayLearned || '0', 10);
+                const all = parseInt(x.dataset.autoplayAll || '0', 10);
+                return learned > 0 || all > 0;
+            }
+            return parseInt(x.dataset.count || '0', 10) > 0;
+        });
+
+        if (!selectedFlashcardMode || (isAutoplaySelection && !selectedAutoplayMode)) {
+            if (availableModes.length > 0) {
+                availableModes[0].click();
+            } else {
+                selectedFlashcardMode = null;
+                toggleAutoplaySettingsVisibility(false);
+                updateActionButtons();
+            }
+        } else {
+            const selector = isAutoplaySelection ? '.flashcard-mode-item[data-mode-id="autoplay"]' : `[data-mode-id="${selectedFlashcardMode}"]`;
+            const prev = flashcardOptionsContainer.querySelector(selector);
+            const prevIsAvailable = prev && (prev.dataset.modeId === 'autoplay'
+                ? (parseInt(prev.dataset.autoplayLearned || '0', 10) > 0 || parseInt(prev.dataset.autoplayAll || '0', 10) > 0)
+                : parseInt(prev.dataset.count || '0', 10) > 0);
+
+            if (prev && prevIsAvailable) {
+                prev.click();
+            } else if (availableModes.length > 0) {
+                availableModes[0].click();
+            } else {
+                selectedFlashcardMode = null;
+                toggleAutoplaySettingsVisibility(false);
+                updateActionButtons();
+            }
+        }
+    } catch (e) {
+        console.error('Lỗi loadFlashcardOptions:', e);
+        flashcardOptionsContainer.innerHTML = '<p class="text-red-500 text-center">Không thể tải chế độ học. Vui lòng thử lại.</p>';
+    }
+}
+
+function syncMultiSelectionUI() {
+    if (isMultiSelectMode) {
+        document.querySelectorAll('.flashcard-set-item').forEach(item => {
+            const setId = item.dataset.setId;
+            if (selectedFlashcardSetIds.includes(setId)) {
+                item.classList.add('selected-item');
+            } else {
+                item.classList.remove('selected-item');
+            }
+        });
+        updateSelectedSetsDisplay();
+    }
+    document.querySelectorAll('.archive-icon').forEach(icon => {
+        icon.style.display = (currentFilter === 'doing' || currentFilter === 'explore') ? '' : 'none';
+    });
+}
+
+function updateSelectedSetsDisplay() {
+    if(!selectedSetsDisplay) return;
+    if (selectedFlashcardSetIds.length > 0) {
+        selectedSetsDisplay.classList.remove('hidden');
+        selectedSetsDisplay.innerHTML = `<span class="text-gray-500 mr-2">Bộ thẻ đã chọn:</span>`;
+        
+        const allSelectedItems = new Map();
+        document.querySelectorAll('.flashcard-set-item').forEach(item => {
+            const setId = item.dataset.setId;
+            if (selectedFlashcardSetIds.includes(setId)) {
+                    const title = item.querySelector('h3').textContent;
+                    allSelectedItems.set(setId, title);
+            }
+        });
+        
+        selectedFlashcardSetIds.forEach(setId => {
+            let title;
+            if (allSelectedItems.has(setId)) {
+                title = allSelectedItems.get(setId);
+            } else if (setId === 'all') {
+                title = 'Học tất cả các bộ';
+            } else {
+                const storedTitles = JSON.parse(localStorage.getItem('selectedFlashcardSetTitles')) || {};
+                title = storedTitles[setId] || setId;
+            }
+
+            if (title) {
+                const selectedItemHtml = `
+                    <div class="selected-set-item" data-set-id="${setId}">
+                        <span>${title}</span>
+                        <i class="fas fa-times-circle remove-selected-set"></i>
+                    </div>
+                `;
+                selectedSetsDisplay.insertAdjacentHTML('beforeend', selectedItemHtml);
+            }
+        });
+        
+    } else {
+        selectedSetsDisplay.classList.add('hidden');
+    }
+
+    document.querySelectorAll('.remove-selected-set').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const setIdToRemove = this.closest('.selected-set-item').dataset.setId;
+            handleFlashcardSetSelection(setIdToRemove);
+        });
+    });
+}
+
+function handleFlashcardSetSelection(setId) {
+    if (setId !== 'all' && selectedFlashcardSetIds.includes('all')) {
+        const allButton = document.querySelector('.flashcard-set-item[data-set-id="all"]');
+        if (allButton) {
+            allButton.classList.remove('selected-item');
+        }
+        selectedFlashcardSetIds = [];
+    }
+    if (setId === 'all' && selectedFlashcardSetIds.some(id => id !== 'all')) {
+        document.querySelectorAll('.flashcard-set-item.selected-item').forEach(el => el.classList.remove('selected-item'));
+        selectedFlashcardSetIds = [];
+    }
+
+    const item = document.querySelector(`.flashcard-set-item[data-set-id="${setId}"]`);
+    
+    if (selectedFlashcardSetIds.includes(setId)) {
+        selectedFlashcardSetIds = selectedFlashcardSetIds.filter(id => id !== setId);
+        if (item) item.classList.remove('selected-item');
+    } else {
+        selectedFlashcardSetIds.push(setId);
+        if (item) item.classList.add('selected-item');
+    }
+    
+    localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
+    const storedTitles = JSON.parse(localStorage.getItem('selectedFlashcardSetTitles')) || {};
+    if (item) {
+        storedTitles[setId] = item.querySelector('h3').textContent;
+    }
+    localStorage.setItem('selectedFlashcardSetTitles', JSON.stringify(storedTitles));
+
+    selectedFlashcardMode = null;
+    if (selectedFlashcardSetIds.length > 0 && currentFilter !== 'archive') {
+        const setIdsStr = selectedFlashcardSetIds.join(',');
+        loadFlashcardOptions(setIdsStr);
+    } else {
+        if (currentFilter !== 'archive') {
+            flashcardOptionsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ thẻ trước.</p></div>';
+        } else {
+            updateStep2Content();
+        }
+    }
+    
+    updateActionButtons();
+    updateSelectedSetsDisplay();
+    toggleAllSetsButtonVisibility();
+}
+
+function addFlashcardSetClickListeners() {
+    document.querySelectorAll('.flashcard-set-item').forEach(function(item){
+        item.addEventListener('click', function(ev){
+            const totalItems = parseInt(this.dataset.totalItems);
+            if (currentFilter !== 'doing' && this.dataset.setId === 'all') { 
+                ev.preventDefault(); ev.stopPropagation(); return; 
+            }
+            if (currentFilter !== 'archive' && totalItems === 0 && this.dataset.setId !== 'all') { 
+                ev.preventDefault(); ev.stopPropagation(); return; 
+            }
+            const setId = this.dataset.setId;
+            handleFlashcardSetSelection(setId);
+        });
+    });
+}
+
+function addFlashcardModeClickListeners() {
+    document.querySelectorAll('.flashcard-mode-item').forEach(function(item){
+        item.addEventListener('click', function(ev){
+            const modeId = this.dataset.modeId;
+            const modeCount = parseInt(this.dataset.count || '0', 10);
+
+            if (modeId === 'autoplay') {
+                const learnedCount = parseInt(this.dataset.autoplayLearned || '0', 10);
+                const allCount = parseInt(this.dataset.autoplayAll || '0', 10);
+                if (learnedCount <= 0 && allCount <= 0) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    return;
+                }
+            } else if (modeCount === 0) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                return;
+            }
+
+            document.querySelectorAll('.flashcard-mode-item').forEach(function(el){ el.classList.remove('selected-mode'); });
+            this.classList.add('selected-mode');
+
+            if (modeId === 'autoplay') {
+                toggleAutoplaySettingsVisibility(true);
+                initializeAutoplaySettings();
+
+                if (!selectedAutoplayMode) {
+                    const autoplayContainer = document.getElementById('autoplay-settings-container');
+                    const availableScope = autoplayContainer ? Array.from(autoplayContainer.querySelectorAll('input[name="autoplay-scope"]')).find(input => !input.disabled) : null;
+                    if (availableScope) {
+                        availableScope.checked = true;
+                        selectedAutoplayMode = availableScope.value;
+                        saveAutoplaySettingsToStorage();
+                    }
+                }
+
+                selectedFlashcardMode = selectedAutoplayMode || null;
+            } else {
+                toggleAutoplaySettingsVisibility(false);
+                selectedFlashcardMode = modeId;
+            }
+
+            updateActionButtons();
+        });
+    });
+}
+
+function addPaginationAndSearchListeners() {
+    const searchForm = flashcardSetsContainer.querySelector('form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e){
+            e.preventDefault();
+            localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
+            const data = new FormData(searchForm);
+            currentSearchQuery = data.get('q') || '';
+            currentSearchField = data.get('search_field') || 'all';
+            if (currentFilter === 'doing') { doingPage = 1; } else if (currentFilter === 'explore') { explorePage = 1; } else { archivePage = 1; }
+            currentPage = 1;
+            loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+        });
+    }
+    document.querySelectorAll('.pagination a').forEach(function(a){
+        a.addEventListener('click', function(e){
+            e.preventDefault();
+            localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
+            const url = new URL(this.href, window.location.origin);
+            const page = parseInt(url.searchParams.get('page')) || 1;
+            const q = url.searchParams.get('q') || '';
+            const search_field = url.searchParams.get('search_field') || 'all';
+            const filter = url.searchParams.get('filter') || 'doing';
+            if (filter === 'doing') { doingPage = page; } else if (filter === 'explore') { explorePage = page; } else { archivePage = page; }
+            currentPage = page;
+            loadFlashcardSets(currentPage, q, search_field, filter);
+        });
+    });
+}
+
+function addArchiveIconListeners() {
+    document.querySelectorAll('.archive-icon').forEach(function(icon){
+        icon.addEventListener('click', async function(event){
+            event.stopPropagation();
+            const setId = this.dataset.setId;
+            if (!setId) return;
+
+            const url = toggleArchiveUrl.replace('/0', '/' + setId);
+
+            try {
+                const response = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const itemElement = this.closest('.flashcard-set-item');
+                    if (currentFilter === 'archive' && !result.is_archived) {
+                        itemElement.remove();
+                    } else if ((currentFilter === 'doing' || currentFilter === 'explore') && result.is_archived) {
+                        itemElement.remove();
+                    } else {
+                        if (result.is_archived) {
+                            itemElement.classList.add('archived');
+                            this.title = "Bỏ lưu trữ";
+                            this.querySelector('i').classList.add('text-blue-500');
+                            this.querySelector('i').classList.remove('text-gray-400');
+                        } else {
+                            itemElement.classList.remove('archived');
+                            this.title = "Lưu trữ";
+                            this.querySelector('i').classList.remove('text-blue-500');
+                            this.querySelector('i').classList.add('text-gray-400');
+                        }
+                    }
+                    
+                    selectedFlashcardSetIds = selectedFlashcardSetIds.filter(id => id !== setId);
+                    localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
+
+                    loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+
+                    window.showFlashMessage(result.message, 'success');
+
+                } else {
+                    window.showFlashMessage(result.message || 'Có lỗi xảy ra khi cập nhật trạng thái lưu trữ.', 'danger');
+                }
+            } catch (e) {
+                console.error('Lỗi AJAX toggle archive:', e);
+                window.showFlashMessage('Không thể kết nối đến máy chủ.', 'danger');
+            }
+        });
+    });
+}
+
+// Hàm này được gọi từ dashboard.html khi chuyển tab
+function updateActionButtons() {
+    const startBtn = document.getElementById('start-learning-btn');
+    const archiveBtn = document.getElementById('bulk-unarchive-btn');
+    if(!startBtn || !archiveBtn) return;
+
+    const selectedCount = selectedFlashcardSetIds.length;
+    const isSelected = selectedCount > 0;
+
+    // Kiểm tra biến global currentStudyMode được định nghĩa ở dashboard.html
+    if (typeof currentStudyMode !== 'undefined' && currentStudyMode === 'group') {
+        startBtn.style.display = 'none';
+        archiveBtn.style.display = 'none';
+        return;
+    }
+
+    if (currentFilter === 'archive') {
+        startBtn.style.display = 'none';
+        archiveBtn.style.display = 'block';
+        if (isSelected) {
+            archiveBtn.disabled = false;
+            archiveBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            archiveBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            archiveBtn.disabled = true;
+            archiveBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            archiveBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        }
+    } else {
+        archiveBtn.style.display = 'none';
+        startBtn.style.display = 'block';
+        const modeAvailable = selectedFlashcardMode !== null;
+        
+        if (isSelected && modeAvailable) {
+            startBtn.disabled = false;
+            startBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            startBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            startBtn.disabled = true;
+            startBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            startBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        }
+    }
+}
+
+function updateFlashcardSetProgressColors() {
+    document.querySelectorAll('.flashcard-set-item').forEach(function(item){
+        const pct = parseInt(item.dataset.completionPercentage || '0');
+        const txt = item.querySelector('.flashcard-set-completion-text');
+        if (txt) { txt.style.color = (pct > 50 ? '#111' : '#333'); }
+    });
+}
+
+// Listener cho các nút static (nếu chưa gán)
+const startLearningBtnIndividual = document.getElementById('start-learning-btn');
+if(startLearningBtnIndividual){
+    startLearningBtnIndividual.addEventListener('click', function(){
+        let startUrl;
+        
+        if (selectedFlashcardSetIds.length > 0 && selectedFlashcardMode) {
+            localStorage.removeItem('selectedFlashcardSetIds');
+            const setIdsStr = selectedFlashcardSetIds.join(',');
+            if (selectedFlashcardSetIds.length === 1 && selectedFlashcardSetIds[0] === 'all') {
+                startUrl = new URL(startFlashcardSessionBaseUrlAllTemplate.replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
+            } else if (selectedFlashcardSetIds.length === 1 && selectedFlashcardSetIds[0] !== 'all') {
+                startUrl = new URL(startFlashcardSessionBaseUrlByIdTemplate.replace('0', selectedFlashcardSetIds[0]).replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
+            } else {
+                startUrl = new URL(startFlashcardSessionBaseUrlMultiTemplate.replace('MODE_PLACEHOLDER', selectedFlashcardMode), window.location.origin);
+                startUrl.searchParams.append('set_ids', setIdsStr);
+            }
+            if (selectedFlashcardMode.startsWith('autoplay_')) {
+                saveAutoplaySettingsToStorage();
+            }
+            window.location.href = startUrl.toString();
+        }
+    });
+}
+
+const bulkUnarchiveBtnIndividual = document.getElementById('bulk-unarchive-btn');
+if(bulkUnarchiveBtnIndividual){
+    bulkUnarchiveBtnIndividual.addEventListener('click', async function(){
+        if (selectedFlashcardSetIds.length === 0) {
+            window.showFlashMessage('Vui lòng chọn ít nhất một bộ thẻ để bỏ lưu trữ.', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch(bulkUnarchiveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ set_ids: selectedFlashcardSetIds })
+            });
+
+            const result = await response.json();
+            if (response.ok && result.success) {
+                localStorage.removeItem('selectedFlashcardSetIds');
+                window.showFlashMessage(result.message, 'success');
+                loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+            } else {
+                window.showFlashMessage(result.message || 'Có lỗi xảy ra khi bỏ lưu trữ.', 'danger');
+            }
+        } catch (e) {
+            console.error('Lỗi khi bỏ lưu trữ hàng loạt:', e);
+            window.showFlashMessage('Không thể kết nối đến máy chủ.', 'danger');
+        }
+    });
+}
+
+document.querySelectorAll('.tab-filter-button').forEach(function(button) {
+    button.addEventListener('click', function() {
+        const newFilter = this.dataset.filter;
+        if (currentFilter !== newFilter) {
+            if (currentFilter === 'doing') { doingPage = currentPage; }
+            else if (currentFilter === 'explore') { explorePage = currentPage; }
+            else if (currentFilter === 'archive') { archivePage = currentPage; }
+
+            currentFilter = newFilter;
+            if (currentFilter === 'doing') { currentPage = doingPage; }
+            else if (currentFilter === 'explore') { currentPage = explorePage; }
+            else { currentPage = archivePage; }
+
+            document.querySelectorAll('.tab-filter-button').forEach(function(btn){
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+
+            isMultiSelectMode = true; 
+            
+            updateStep2Content();
+            
+            localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
+
+            loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+        }
+    });
+});
+
+function updateStep2Content() {
+    const isMobile = window.innerWidth < 640;
+    if (currentFilter === 'archive') {
+        if(rightPanel) rightPanel.style.display = isMobile ? 'none' : 'flex';
+        if(step2Title) step2Title.innerHTML = `<i class="fas fa-info-circle mr-3 text-blue-500"></i> Bỏ lưu trữ`;
+        
+        if (!isMobile && flashcardOptionsContainer) {
+            flashcardOptionsContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-gray-700 p-4">
+                    <p class="text-base text-center mb-4">
+                        Hãy chọn các bộ cần để bỏ lưu trữ trên giao diện.
+                    </p>
+                </div>
+            `;
+        }
+    } else {
+        if(rightPanel) rightPanel.style.display = 'flex';
+        if(step2Title) step2Title.innerHTML = `<i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học`;
+        if (selectedFlashcardSetIds.length > 0) {
+                const setIdsStr = selectedFlashcardSetIds.join(',');
+                loadFlashcardOptions(setIdsStr);
+        } else {
+            if(flashcardOptionsContainer) {
+                flashcardOptionsContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                        <i class="fas fa-info-circle text-4xl mb-3"></i>
+                        <p>Vui lòng chọn một bộ thẻ trước.</p>
+                    </div>
+                `;
+            }
+        }
+    }
+}
+
+// Khởi tạo khi load file
+document.addEventListener('DOMContentLoaded', function(){
+    isMultiSelectMode = true;
+    updateStep2Content();
+    loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+});
+
+window.addEventListener('beforeunload', function() {
+    localStorage.removeItem('selectedFlashcardSetIds');
+});
+</script>
