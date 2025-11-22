@@ -40,4 +40,5 @@ def dashboard():
     """Trang dashboard dùng chung cho Flashcard cá nhân và cộng tác."""
 
     template_vars = _build_dashboard_context(current_user)
-    return render_template('dashboard.html', **template_vars)
+    # Sử dụng template được namespaced để tránh xung đột với dashboard của admin
+    return render_template('flashcard/dashboard.html', **template_vars)
