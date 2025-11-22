@@ -55,8 +55,8 @@ from sqlalchemy.sql.sqltypes import DateTime, Date, Time
 from datetime import date, time
 
 from ...config import Config
-from ..learning.flashcard_learning.audio_service import AudioService
-from ..learning.flashcard_learning.image_service import ImageService
+from ..learning.flashcard.individual.audio_service import AudioService
+from ..learning.flashcard.individual.image_service import ImageService
 from ...services.config_service import SENSITIVE_SETTING_KEYS, get_runtime_config
 
 audio_service = AudioService()

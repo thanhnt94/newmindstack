@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from flask import Blueprint, abort, jsonify, render_template, request, url_for
+from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy.sql import func
 
@@ -18,9 +18,9 @@ from ....models import (
     User,
     db,
 )
-from ..flashcard_learning.algorithms import get_accessible_flashcard_set_ids
-from ..flashcard_learning.config import FlashcardLearningConfig
-from ..flashcard_learning.flashcard_logic import process_flashcard_answer
+from ..individual.algorithms import get_accessible_flashcard_set_ids
+from ..individual.config import FlashcardLearningConfig
+from ..individual.flashcard_logic import process_flashcard_answer
 from .services import build_round_payload, ensure_active_round, generate_room_code, serialize_room
 
 flashcard_collab_bp = Blueprint(
@@ -31,10 +31,9 @@ flashcard_collab_bp = Blueprint(
 @flashcard_collab_bp.route('/')
 @login_required
 def dashboard():
-    """Simple landing page to introduce collaborative flashcard learning."""
+    """Chuyển sang dashboard dùng chung của Flashcard."""
 
-    modes = FlashcardLearningConfig.FLASHCARD_MODES
-    return render_template('flashcard_collab/dashboard.html', modes=modes)
+    return redirect(url_for('learning.flashcard.dashboard'))
 
 
 @flashcard_collab_bp.route('/rooms', methods=['POST'])
