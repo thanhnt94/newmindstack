@@ -388,9 +388,9 @@
     .mobile-chat-toggle {
       display: none;
       position: fixed;
-      bottom: 1rem;
+      bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
       right: 1rem;
-      z-index: 80;
+      z-index: 120;
       box-shadow: 0 14px 30px rgba(59, 130, 246, 0.3);
       background: linear-gradient(135deg, #4f46e5, #0ea5e9);
       color: #fff;
