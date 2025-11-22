@@ -348,18 +348,19 @@ def join_room(room_code: str):
     """Thêm người chơi vào phòng ở trạng thái sảnh chờ."""
 
     room = _get_room_or_404(room_code)
-    if room.status != QuizBattleRoom.STATUS_LOBBY or room.is_locked:
-        abort(400, description='Phòng đã khóa hoặc đang diễn ra, không thể tham gia thêm.')
-
     existing = QuizBattleParticipant.query.filter_by(room_id=room.room_id, user_id=current_user.user_id).first()
     if existing:
         if existing.status == QuizBattleParticipant.STATUS_KICKED:
             abort(403, description='Bạn đã bị loại khỏi phòng này.')
+        if room.status == QuizBattleRoom.STATUS_COMPLETED:
+            abort(400, description='Phòng đã kết thúc, không thể tham gia lại.')
         if existing.status == QuizBattleParticipant.STATUS_ACTIVE:
             return jsonify({'room': serialize_room(room, user_id=current_user.user_id)})
         existing.status = QuizBattleParticipant.STATUS_ACTIVE
         existing.left_at = None
     else:
+        if room.status != QuizBattleRoom.STATUS_LOBBY or room.is_locked:
+            abort(400, description='Phòng đã khóa hoặc đang diễn ra, không thể tham gia thêm.')
         if room.max_players and len(get_active_participants(room)) >= room.max_players:
             abort(400, description='Phòng đã đủ số lượng người chơi cho phép.')
         participant = QuizBattleParticipant(room=room, user_id=current_user.user_id)
