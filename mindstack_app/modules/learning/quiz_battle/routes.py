@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.sql import func
 
-from .....models import (
+from ....models import (
     ContainerContributor,
     LearningContainer,
     LearningItem,

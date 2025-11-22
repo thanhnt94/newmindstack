@@ -29,9 +29,9 @@ except ModuleNotFoundError:  # Fallback cho môi trường chưa nâng cấp
     )
 from sqlalchemy.orm.attributes import flag_modified
 
-from ....config import Config
-from ....services.config_service import get_runtime_config
-from ....db_instance import db
+from .....config import Config
+from .....services.config_service import get_runtime_config
+from .....db_instance import db
 from .....models import LearningContainer, LearningItem
 
 logger = logging.getLogger(__name__)
