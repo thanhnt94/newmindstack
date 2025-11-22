@@ -114,6 +114,7 @@
 
         <div class="flex flex-wrap gap-2 justify-end">
             <button id="start-room-btn" class="cm-btn cm-btn-primary" title="Bắt đầu trận đấu (Chỉ chủ phòng)"><i class="fa-solid fa-play"></i> Bắt đầu</button>
+            <button id="next-round-btn" class="cm-btn cm-btn-primary hidden" title="Chuyển sang câu tiếp theo (Chỉ chủ phòng)"><i class="fa-solid fa-forward-step"></i> Câu tiếp</button>
             <button id="end-room-btn" class="cm-btn cm-btn-danger" title="Kết thúc trận đấu (Chỉ chủ phòng)"><i class="fa-solid fa-flag-checkered"></i> Kết thúc</button>
             <button id="leave-room-btn" class="cm-btn cm-btn-ghost"><i class="fa-solid fa-right-from-bracket"></i> Rời phòng</button>
         </div>
@@ -307,6 +308,7 @@
         const leaveRoomUrl = {{ url_for('learning.quiz_battle.leave_room', room_code=room_code) | tojson }};
         const startRoomUrl = {{ url_for('learning.quiz_battle.start_room', room_code=room_code) | tojson }};
         const endRoomUrl = {{ url_for('learning.quiz_battle.end_room', room_code=room_code) | tojson }};
+        const nextRoundUrl = {{ url_for('learning.quiz_battle.start_next_round', room_code=room_code) | tojson }};
         const messagesUrl = {{ url_for('shared.list_chat_messages', room_type='quiz-battle', room_code=room_code) | tojson }};
         const postMessageUrl = {{ url_for('shared.post_chat_message', room_type='quiz-battle', room_code=room_code) | tojson }};
         const answerUrlTemplate = {{ url_for('learning.quiz_battle.submit_round_answer', room_code=room_code, sequence_number=0) | tojson }};
@@ -315,10 +317,11 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         let roomState = initialRoom || {};
-        let lastRenderedRound = roomState?.active_round?.sequence_number || null;
+        let lastRenderMeta = { sequence: roomState?.active_round?.sequence_number || null, hasMyAnswer: false };
         let roomPollInterval = null;
         let chatPollInterval = null;
         let currentQuestionItemId = null;
+        let pendingSelections = {};
 
         // --- Helper Functions ---
         function setAlert(msg, type='info') {
@@ -425,6 +428,9 @@
                     if(roomState.status === 'lobby') {
                         titleEl.textContent = 'Sảnh chờ';
                         msgEl.textContent = 'Chủ phòng chưa bắt đầu trận đấu.';
+                    } else if (roomState.status === 'awaiting_host') {
+                        titleEl.textContent = 'Chờ chủ phòng';
+                        msgEl.textContent = 'Kết quả đã chốt. Chờ chuyển sang câu tiếp theo.';
                     } else if (roomState.status === 'completed') {
                         titleEl.textContent = 'Kết thúc';
                         msgEl.textContent = 'Trận đấu đã hoàn thành. Kiểm tra bảng xếp hạng!';
@@ -440,60 +446,86 @@
                 return;
             }
 
-            if(overlay) overlay.classList.add('hidden');
-
-            title.textContent = round.question.question || 'Câu hỏi...';
-            detail.textContent = round.question.passage_text || '';
-
-            if(mediaDiv) {
-                mediaDiv.innerHTML = '';
-                const imageUrl = round.question.question_image_file;
-                const audioUrl = round.question.question_audio_file;
-
-                if(imageUrl) {
-                    const img = document.createElement('img');
-                    img.src = imageUrl;
-                    img.alt = 'Hình ảnh câu hỏi';
-                    mediaDiv.appendChild(img);
-                }
-
-                if(audioUrl) {
-                    const audio = document.createElement('audio');
-                    audio.controls = true;
-                    audio.src = audioUrl;
-                    mediaDiv.appendChild(audio);
-                }
-
-                mediaDiv.hidden = mediaDiv.childElementCount === 0;
-            }
-
-            const opts = round.question.options || {};
-            const myAnswer = (round.answers || []).find(a => a.participant_id === participantId);
-            const answered = !!myAnswer;
-            
-            optionsDiv.innerHTML = Object.entries(opts).map(([key, val]) => `
-                <label class="qb-option-label ${myAnswer?.selected_option === key ? '!border-blue-500 !bg-blue-50' : ''}">
-                    <input type="radio" name="selected_option" value="${key}" class="qb-option-input" ${answered ? 'disabled' : ''} ${myAnswer?.selected_option === key ? 'checked' : ''}>
-                    <div>
-                        <span class="font-bold text-slate-700 mr-2">${key}.</span>
-                        <span class="text-slate-600">${val}</span>
-                    </div>
-                </label>
-            `).join('');
-
-            submitBtn.disabled = answered || !participantId;
-            submitBtn.innerHTML = answered ? '<i class="fa-solid fa-check"></i> Đã trả lời' : '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án';
-            
             const timerEl = document.getElementById('question-timer');
             if(timerEl) timerEl.textContent = round.time_remaining_seconds ? `${round.time_remaining_seconds}s` : '';
 
+            const opts = round.question.options || {};
+            const answers = round.answers || [];
+            const myAnswer = answers.find(a => a.participant_id === participantId);
+            const hasMyAnswer = !!myAnswer;
+            const needFullRender =
+                round.sequence_number !== lastRenderMeta.sequence ||
+                (hasMyAnswer && !lastRenderMeta.hasMyAnswer);
+
+            if(needFullRender) {
+                if(overlay) overlay.classList.add('hidden');
+
+                title.textContent = round.question.question || 'Câu hỏi...';
+                detail.textContent = round.question.passage_text || '';
+
+                if(mediaDiv) {
+                    mediaDiv.innerHTML = '';
+                    const imageUrl = round.question.question_image_file;
+                    const audioUrl = round.question.question_audio_file;
+
+                    if(imageUrl) {
+                        const img = document.createElement('img');
+                        img.src = imageUrl;
+                        img.alt = 'Hình ảnh câu hỏi';
+                        mediaDiv.appendChild(img);
+                    }
+
+                    if(audioUrl) {
+                        const audio = document.createElement('audio');
+                        audio.controls = true;
+                        audio.src = audioUrl;
+                        mediaDiv.appendChild(audio);
+                    }
+
+                    mediaDiv.hidden = mediaDiv.childElementCount === 0;
+                }
+
+                const roundKey = round.sequence_number;
+                const selectedOption = hasMyAnswer
+                    ? myAnswer.selected_option
+                    : pendingSelections[roundKey] || null;
+
+                if(!hasMyAnswer) {
+                    pendingSelections[roundKey] = selectedOption;
+                }
+
+                optionsDiv.innerHTML = Object.entries(opts).map(([key, val]) => `
+                    <label class="qb-option-label ${selectedOption === key || myAnswer?.selected_option === key ? '!border-blue-500 !bg-blue-50' : ''}">
+                        <input type="radio" name="selected_option" value="${key}" class="qb-option-input" ${hasMyAnswer ? 'disabled' : ''} ${selectedOption === key ? 'checked' : ''}>
+                        <div>
+                            <span class="font-bold text-slate-700 mr-2">${key}.</span>
+                            <span class="text-slate-600">${val}</span>
+                        </div>
+                    </label>
+                `).join('');
+
+                if(!hasMyAnswer) {
+                    optionsDiv.querySelectorAll('input[name="selected_option"]').forEach(input => {
+                        input.addEventListener('change', () => {
+                            pendingSelections[round.sequence_number] = input.value;
+                            submitBtn.disabled = false;
+                        });
+                    });
+                }
+
+                submitBtn.disabled = hasMyAnswer || !participantId || (!hasMyAnswer && !pendingSelections[round.sequence_number]);
+                submitBtn.innerHTML = hasMyAnswer ? '<i class="fa-solid fa-check"></i> Đã trả lời' : '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án';
+
+                lastRenderMeta = { sequence: round.sequence_number, hasMyAnswer };
+            }
+
             currentQuestionItemId = round.question.item_id;
-            if(answered) updateFeedbackAndInsights(round, myAnswer);
+            if(hasMyAnswer) updateFeedbackAndInsights(round, myAnswer);
             else {
                 document.getElementById('answer-feedback-panel').hidden = true;
                 document.getElementById('question-insight-panel').hidden = true;
             }
-            
+
             renderStats(round);
         }
 
@@ -557,7 +589,7 @@
         }
 
         function hydrateUi() {
-            document.getElementById('room-status').textContent = initialRoom.status || roomState.status;
+            document.getElementById('room-status').textContent = roomState.status;
             document.getElementById('room-status').dataset.status = roomState.status;
             document.getElementById('round-progress').textContent = `Tiến độ: ${roomState.current_round_number || 0}/${roomState.question_total || 0}`;
             document.getElementById('room-mode').textContent = `Chế độ: ${roomState.mode === 'TIMED' ? 'Tính giờ' : 'Thường'}`;
@@ -566,8 +598,16 @@
             renderQuestion(roomState.active_round);
 
             const canStart = isHost && roomState.status === 'lobby';
+            const canAdvance =
+                isHost &&
+                roomState.status === 'awaiting_host' &&
+                (roomState.current_round_number || 0) < (roomState.question_total || 0);
             const canEnd = isHost && roomState.status !== 'completed';
             document.getElementById('start-room-btn').disabled = !canStart;
+            document.getElementById('start-room-btn').classList.toggle('hidden', roomState.status !== 'lobby');
+            const nextBtn = document.getElementById('next-round-btn');
+            nextBtn.classList.toggle('hidden', !canAdvance);
+            nextBtn.disabled = !canAdvance;
             document.getElementById('end-room-btn').disabled = !canEnd;
             if(roomState.status === 'completed') {
                 document.getElementById('leave-room-btn').innerHTML = '<i class="fa-solid fa-person-walking-arrow-right"></i> Thoát';
@@ -591,6 +631,8 @@
             try {
                 await postJson(startRoomUrl);
                 fetchRoomState();
+                lastRenderMeta = { sequence: null, hasMyAnswer: false };
+                pendingSelections = {};
             } catch(e) { setAlert(e.message, 'error'); }
         });
 
@@ -599,6 +641,15 @@
             try {
                 await postJson(endRoomUrl);
                 fetchRoomState();
+            } catch(e) { setAlert(e.message, 'error'); }
+        });
+
+        document.getElementById('next-round-btn').addEventListener('click', async () => {
+            try {
+                await postJson(nextRoundUrl);
+                fetchRoomState();
+                lastRenderMeta = { sequence: null, hasMyAnswer: false };
+                pendingSelections = {};
             } catch(e) { setAlert(e.message, 'error'); }
         });
 
@@ -614,16 +665,18 @@
             e.preventDefault();
             const selected = new FormData(e.target).get('selected_option');
             if(!selected) return setAlert('Chọn một đáp án!', 'error');
-            
+
             const btn = document.getElementById('submit-answer-btn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang gửi...';
-            
+
             try {
                 const seq = roomState.active_round.sequence_number;
                 const url = answerUrlTemplate.replace('/0/', `/${seq}/`);
                 const data = await postJson(url, { selected_option: selected });
                 roomState = data.room;
+                pendingSelections[seq] = null;
+                lastRenderMeta = { sequence: seq, hasMyAnswer: true };
                 hydrateUi();
             } catch(err) {
                 setAlert(err.message, 'error');
