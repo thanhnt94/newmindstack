@@ -20,7 +20,7 @@ from mindstack_app.models import (
     db,
 )
 
-from ...shared.utils.media_paths import build_relative_media_path
+from ....shared.utils.media_paths import build_relative_media_path
 
 
 def generate_room_code(length: int = 6) -> str:
