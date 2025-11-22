@@ -8,7 +8,7 @@ from flask import Blueprint, abort, jsonify, redirect, render_template, request,
 from flask_login import current_user, login_required
 from sqlalchemy.sql import func
 
-from ....models import (
+from .....models import (
     FlashcardCollabAnswer,
     FlashcardCollabParticipant,
     FlashcardCollabRoom,

@@ -5,7 +5,7 @@
 
 from flask import session, current_app, url_for
 from flask_login import current_user
-from ....models import db, LearningItem, FlashcardProgress, LearningGroup, User, LearningContainer
+from .....models import db, LearningItem, FlashcardProgress, LearningGroup, User, LearningContainer
 from .algorithms import (
     get_new_only_items,
     get_due_items,

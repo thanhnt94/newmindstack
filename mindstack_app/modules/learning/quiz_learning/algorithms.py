@@ -3,7 +3,7 @@
 # MỤC ĐÍCH: Sửa lỗi logic hiển thị bộ quiz ở tab 'Đang học' và 'Khám phá'.
 # ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.
 
-from ....models import (
+from .....models import (
     db,
     LearningItem,
     QuizProgress,

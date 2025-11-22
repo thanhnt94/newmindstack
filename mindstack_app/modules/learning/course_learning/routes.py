@@ -6,7 +6,7 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 from .algorithms import get_filtered_course_sets, get_lessons_for_course
-from ....models import db, LearningContainer, LearningItem, CourseProgress, UserContainerState, ContainerContributor, UserNote, User
+from .....models import db, LearningContainer, LearningItem, CourseProgress, UserContainerState, ContainerContributor, UserNote, User
 from sqlalchemy.sql import func
 
 course_learning_bp = Blueprint('course_learning', __name__, template_folder='templates')

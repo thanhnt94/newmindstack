@@ -17,7 +17,7 @@ from .algorithms import (
 )
 from .session_manager import QuizSessionManager
 from .config import QuizLearningConfig
-from ....models import db, User, UserContainerState, LearningContainer, QuizProgress, LearningItem, UserNote
+from .....models import db, User, UserContainerState, LearningContainer, QuizProgress, LearningItem, UserNote
 from sqlalchemy.sql import func
 import copy
 
