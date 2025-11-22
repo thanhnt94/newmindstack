@@ -203,6 +203,12 @@
       flex-shrink: 0; /* Info cards không bị bóp méo */
     }
 
+    .combined-status {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
     /* CHAT PANEL TRONG SIDEBAR */
     .session-sidebar .chat-panel {
       flex: 1; /* Chiếm hết không gian còn lại */
@@ -278,11 +284,6 @@
     .rating-btn--good { background: linear-gradient(135deg, #34d399, #059669); }
     .pill { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.4rem 0.85rem; font-weight: 600; font-size: 0.85rem; }
 
-    .sidebar-card { padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: 0.75rem; }
-    .combined-status { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
-    .chat-box { height: 420px; display: flex; flex-direction: column; gap: 0.75rem; }
-    .chat-messages { flex: 1; overflow-y: auto; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 0.75rem; }
-    .chat-panel { position: relative; }
     .mobile-chat-toggle {
       display: none;
       position: fixed;
