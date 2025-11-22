@@ -7,11 +7,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 
 # Import các blueprint con
-from .quiz_learning.routes import quiz_learning_bp
+from .quiz import quiz_battle_bp, quiz_learning_bp
 from .flashcard import flashcard_bp
 from .flashcard.individual.routes import flashcard_learning_bp
 from .course_learning.routes import course_learning_bp
-from .quiz_battle.routes import quiz_battle_bp
 from .flashcard.collab.routes import flashcard_collab_bp
 
 # Định nghĩa Blueprint chính cho learning

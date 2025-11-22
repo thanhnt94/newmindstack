@@ -3,20 +3,20 @@
 # MỤC ĐÍCH: Sửa lỗi logic hiển thị bộ quiz ở tab 'Đang học' và 'Khám phá'.
 # ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.
 
-from ....models import (
-    db,
+from mindstack_app.models import (
+    ContainerContributor,
+    LearningContainer,
     LearningItem,
     QuizProgress,
-    LearningContainer,
-    ContainerContributor,
-    UserContainerState,
     User,
+    UserContainerState,
+    db,
 )
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
-from ...shared.utils.pagination import get_pagination_data
-from ...shared.utils.search import apply_search_filter
+from mindstack_app.modules.shared.utils.pagination import get_pagination_data
+from mindstack_app.modules.shared.utils.search import apply_search_filter
 from .config import QuizLearningConfig
 
 
