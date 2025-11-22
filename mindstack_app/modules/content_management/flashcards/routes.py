@@ -46,8 +46,8 @@ from ....modules.shared.utils.search import apply_search_filter
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 # THÊM MỚI: Import AudioService
-from ...learning.flashcard_learning.audio_service import AudioService
-from ...learning.flashcard_learning.image_service import ImageService
+from ...learning.flashcard.individual.audio_service import AudioService
+from ...learning.flashcard.individual.image_service import ImageService
 
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
                             template_folder='templates') # Đã cập nhật đường dẫn template

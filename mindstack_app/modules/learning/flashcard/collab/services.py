@@ -20,7 +20,7 @@ from ....models import (
     User,
     db,
 )
-from ..flashcard_learning import algorithms
+from ..individual import algorithms
 
 
 def generate_room_code(length: int = 6) -> str:

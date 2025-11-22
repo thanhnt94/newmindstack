@@ -8,7 +8,7 @@ GOAL_TYPE_CONFIG: dict[str, dict[str, str]] = {
         'description': 'Ôn luyện flashcard và giữ chuỗi học.',
         'unit': 'thẻ',
         'icon': 'clone',
-        'endpoint': 'learning.flashcard_learning.flashcard_learning_dashboard',
+        'endpoint': 'learning.flashcard.dashboard',
     },
     'quizzes_practiced': {
         'label': 'Quiz',
