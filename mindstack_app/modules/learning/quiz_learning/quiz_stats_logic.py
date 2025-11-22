@@ -4,7 +4,7 @@
 # ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress.
 # ĐÃ SỬA: Cập nhật hàm truy vấn để tương tác với bảng QuizProgress.
 
-from .....models import QuizProgress
+from ....models import QuizProgress
 import datetime
 
 def get_quiz_item_statistics(user_id, item_id):

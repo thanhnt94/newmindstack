@@ -17,10 +17,10 @@ import time
 from gtts import gTTS
 from pydub import AudioSegment
 
-from ....db_instance import db
+from .....db_instance import db
 from .....models import LearningContainer, LearningItem, User, BackgroundTask
-from ....config import Config
-from ....services.config_service import get_runtime_config
+from .....config import Config
+from .....services.config_service import get_runtime_config
 
 logger = logging.getLogger(__name__)
 

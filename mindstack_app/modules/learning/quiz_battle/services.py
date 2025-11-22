@@ -9,7 +9,7 @@ from typing import Optional
 
 from sqlalchemy.sql import func
 
-from .....models import (
+from ....models import (
     LearningItem,
     QuizBattleParticipant,
     QuizBattleRoom,

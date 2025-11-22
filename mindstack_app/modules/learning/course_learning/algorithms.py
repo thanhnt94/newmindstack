@@ -3,7 +3,7 @@
 # MỤC ĐÍCH: Sửa lỗi logic hiển thị các khóa học ở tab 'Đang học' và 'Khám phá'.
 # ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.
 
-from .....models import (
+from ....models import (
     db,
     LearningItem,
     CourseProgress,
@@ -15,8 +15,8 @@ from .....models import (
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
-from ....modules.shared.utils.pagination import get_pagination_data
-from ....modules.shared.utils.search import apply_search_filter
+from ...shared.utils.pagination import get_pagination_data
+from ...shared.utils.search import apply_search_filter
 
 def get_filtered_course_sets(user_id, search_query, search_field, current_filter, page, per_page=12):
     """

@@ -5,7 +5,7 @@
 # ĐÃ SỬA: Cập nhật logic truy vấn và tạo bản ghi để tương tác với bảng QuizProgress.
 # ĐÃ SỬA: Thêm item_type vào ScoreLog khi tạo bản ghi.
 
-from .....models import db, User, LearningItem, QuizProgress, ScoreLog
+from ....models import db, User, LearningItem, QuizProgress, ScoreLog
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
 import datetime
