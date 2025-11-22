@@ -17,15 +17,24 @@ from .algorithms import (
 )
 from .session_manager import QuizSessionManager
 from .config import QuizLearningConfig
-from ....models import db, User, UserContainerState, LearningContainer, QuizProgress, LearningItem, UserNote
+from mindstack_app.models import (
+    LearningContainer,
+    LearningItem,
+    QuizProgress,
+    User,
+    UserContainerState,
+    UserNote,
+    db,
+)
 from sqlalchemy.sql import func
 import copy
 
 from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
 
 
-quiz_learning_bp = Blueprint('quiz_learning', __name__,
-                             template_folder='templates')
+quiz_learning_bp = Blueprint(
+    'quiz_learning', __name__, template_folder='../templates'
+)
 
 
 def _get_media_folders_from_container(container) -> dict[str, str]:
