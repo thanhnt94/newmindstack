@@ -46,6 +46,9 @@
     /* Question Styles */
     .qb-question-text { font-size: 1.25rem; font-weight: 700; color: #1e293b; line-height: 1.5; margin-bottom: 1rem; }
     .qb-question-detail { font-size: 0.95rem; color: #64748b; margin-bottom: 1.5rem; line-height: 1.6; }
+    .qb-question-media { margin-bottom: 1.5rem; display: grid; gap: 0.75rem; }
+    .qb-question-media img { width: 100%; max-height: 320px; object-fit: contain; border-radius: 0.75rem; border: 1px solid #e2e8f0; background: white; }
+    .qb-question-media audio { width: 100%; }
 
     /* Options Grid */
     .qb-options-grid { display: grid; gap: 0.75rem; }
@@ -140,6 +143,7 @@
 
                     <h2 id="question-title" class="qb-question-text">Đang tải dữ liệu...</h2>
                     <div id="question-detail" class="qb-question-detail"></div>
+                    <div id="question-media" class="qb-question-media" hidden></div>
 
                     <form id="answer-form">
                         <div id="question-options" class="qb-options-grid">
@@ -409,9 +413,10 @@
             const overlay = document.getElementById('game-status-overlay');
             const title = document.getElementById('question-title');
             const detail = document.getElementById('question-detail');
+            const mediaDiv = document.getElementById('question-media');
             const optionsDiv = document.getElementById('question-options');
             const submitBtn = document.getElementById('submit-answer-btn');
-            
+
             if (!round || !round.question) {
                 if(overlay) {
                     overlay.classList.remove('hidden');
@@ -428,6 +433,10 @@
                         msgEl.textContent = 'Đợi vòng tiếp theo...';
                     }
                 }
+                if(mediaDiv) {
+                    mediaDiv.hidden = true;
+                    mediaDiv.innerHTML = '';
+                }
                 return;
             }
 
@@ -435,7 +444,29 @@
 
             title.textContent = round.question.question || 'Câu hỏi...';
             detail.textContent = round.question.passage_text || '';
-            
+
+            if(mediaDiv) {
+                mediaDiv.innerHTML = '';
+                const imageUrl = round.question.question_image_file;
+                const audioUrl = round.question.question_audio_file;
+
+                if(imageUrl) {
+                    const img = document.createElement('img');
+                    img.src = imageUrl;
+                    img.alt = 'Hình ảnh câu hỏi';
+                    mediaDiv.appendChild(img);
+                }
+
+                if(audioUrl) {
+                    const audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = audioUrl;
+                    mediaDiv.appendChild(audio);
+                }
+
+                mediaDiv.hidden = mediaDiv.childElementCount === 0;
+            }
+
             const opts = round.question.options || {};
             const myAnswer = (round.answers || []).find(a => a.participant_id === participantId);
             const answered = !!myAnswer;
