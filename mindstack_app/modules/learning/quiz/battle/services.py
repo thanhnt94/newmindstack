@@ -7,6 +7,8 @@ import string
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from flask import current_app, url_for
+
 from sqlalchemy.sql import func
 
 from mindstack_app.models import (
@@ -18,12 +20,49 @@ from mindstack_app.models import (
     db,
 )
 
+from ...shared.utils.media_paths import build_relative_media_path
+
 
 def generate_room_code(length: int = 6) -> str:
     """Generate a short alphanumeric room code."""
 
     alphabet = string.ascii_uppercase + string.digits
     return ''.join(random.choice(alphabet) for _ in range(length))
+
+
+def _get_media_folders_from_container(container) -> dict[str, str]:
+    """Safely extract media folder mapping from a learning container."""
+
+    if not container:
+        return {}
+
+    folders = getattr(container, 'media_folders', {}) or {}
+    if folders:
+        return dict(folders)
+    return {}
+
+
+def _build_absolute_media_url(file_path: Optional[str], media_folder: Optional[str]) -> Optional[str]:
+    """Convert a stored media path into a URL usable by the client."""
+
+    if not file_path:
+        return None
+
+    try:
+        relative_path = build_relative_media_path(file_path, media_folder)
+        if not relative_path:
+            return None
+
+        if relative_path.startswith(('http://', 'https://')):
+            return relative_path
+
+        static_path = relative_path.lstrip('/')
+        return url_for('static', filename=static_path)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        current_app.logger.warning(
+            "Không thể tạo URL media tuyệt đối cho %s: %s", file_path, exc
+        )
+        return file_path
 
 
 def _build_question_order(container_id: int, *, limit: Optional[int] = None) -> list[int]:
@@ -190,7 +229,7 @@ def _serialize_question(
     if not item:
         return None
 
-    content = item.content or {}
+    content = dict(item.content or {})
     options = content.get('options')
     if not options:
         options = {
@@ -198,6 +237,20 @@ def _serialize_question(
             for key in ('A', 'B', 'C', 'D')
             if content.get(f'option_{key.lower()}') is not None
         }
+
+    media_folders = _get_media_folders_from_container(item.container if item else None)
+    image_folder = media_folders.get('image')
+    audio_folder = media_folders.get('audio')
+
+    if content.get('question_image_file'):
+        content['question_image_file'] = _build_absolute_media_url(
+            content.get('question_image_file'), image_folder
+        )
+
+    if content.get('question_audio_file'):
+        content['question_audio_file'] = _build_absolute_media_url(
+            content.get('question_audio_file'), audio_folder
+        )
 
     note_content = ''
     if user_id:
@@ -211,6 +264,8 @@ def _serialize_question(
         'options': options,
         'passage_text': content.get('passage_text'),
         'explanation': content.get('explanation'),
+        'question_image_file': content.get('question_image_file'),
+        'question_audio_file': content.get('question_audio_file'),
         'ai_explanation': item.ai_explanation,
         'note_content': note_content,
     }
