@@ -475,6 +475,35 @@ def end_room(room_code: str):
     )
 
 
+@quiz_battle_bp.route('/rooms/<string:room_code>/rounds/next', methods=['POST'])
+@login_required
+def start_next_round(room_code: str):
+    """Allow the host to manually move to the next round."""
+
+    room = _get_room_or_404(room_code)
+    _require_host(room)
+
+    ensure_question_order(room)
+    if not room.question_order:
+        abort(400, description='Không có câu hỏi nào trong bộ quiz.')
+
+    current_num = room.current_round_number or 0
+    next_sequence = current_num + 1
+
+    if next_sequence > len(room.question_order):
+        room.status = QuizBattleRoom.STATUS_COMPLETED
+        room.is_locked = True
+        db.session.commit()
+        return jsonify({'room': serialize_room(room, user_id=current_user.user_id)})
+
+    next_round = start_round(room, next_sequence)
+    room.status = QuizBattleRoom.STATUS_IN_PROGRESS if next_round else QuizBattleRoom.STATUS_COMPLETED
+    room.is_locked = True
+
+    db.session.commit()
+    return jsonify({'room': serialize_room(room, user_id=current_user.user_id)})
+
+
 @quiz_battle_bp.route('/rooms/<string:room_code>/rounds/<int:sequence_number>/answer', methods=['POST'])
 @login_required
 def submit_round_answer(room_code: str, sequence_number: int):
@@ -531,8 +560,13 @@ def submit_round_answer(room_code: str, sequence_number: int):
     participant.session_score += score_change
 
     db.session.flush()
-    next_round = complete_round_if_ready(round_obj)
+    complete_round_if_ready(round_obj)
     db.session.commit()
+
+    question_order = ensure_question_order(room)
+    next_round_number = (
+        round_obj.sequence_number + 1 if round_obj.sequence_number < len(question_order) else None
+    )
 
     return jsonify(
         {
@@ -544,7 +578,7 @@ def submit_round_answer(room_code: str, sequence_number: int):
                 'updated_total_score': updated_total_score,
             },
             'room': serialize_room(room, user_id=current_user.user_id),
-            'next_round_number': next_round.sequence_number if next_round else None,
+            'next_round_number': next_round_number,
             'room_status': room.status,
         }
     )

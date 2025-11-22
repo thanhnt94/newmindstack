@@ -138,10 +138,13 @@ def auto_advance_round_if_needed(room: QuizBattleRoom) -> bool:
     round_obj.status = QuizBattleRound.STATUS_COMPLETED
     round_obj.ended_at = func.now()
 
-    next_round = start_round(room, round_obj.sequence_number + 1)
-    if not next_round:
-        room.current_round_number = round_obj.sequence_number
-        room.status = QuizBattleRoom.STATUS_AWAITING_HOST
+    question_order = ensure_question_order(room)
+    has_next_round = round_obj.sequence_number < len(question_order)
+
+    room.current_round_number = round_obj.sequence_number
+    room.status = (
+        QuizBattleRoom.STATUS_AWAITING_HOST if has_next_round else QuizBattleRoom.STATUS_COMPLETED
+    )
     return True
 
 
@@ -193,12 +196,14 @@ def complete_round_if_ready(round_obj: Optional[QuizBattleRound]) -> Optional[Qu
     round_obj.status = QuizBattleRound.STATUS_COMPLETED
     round_obj.ended_at = func.now()
 
-    next_sequence = round_obj.sequence_number + 1
-    next_round = start_round(room, next_sequence)
-    if not next_round:
-        room.current_round_number = round_obj.sequence_number
-        room.status = QuizBattleRoom.STATUS_AWAITING_HOST
-    return next_round
+    question_order = ensure_question_order(room)
+    room.current_round_number = round_obj.sequence_number
+    has_next_round = round_obj.sequence_number < len(question_order)
+    room.status = (
+        QuizBattleRoom.STATUS_AWAITING_HOST if has_next_round else QuizBattleRoom.STATUS_COMPLETED
+    )
+
+    return None
 
 
 def serialize_participant(participant: QuizBattleParticipant) -> dict[str, object]:
@@ -347,6 +352,8 @@ def serialize_room(
     }
 
     active_round = get_active_round(room)
+    if not active_round and room.rounds:
+        active_round = room.rounds[-1]
     payload['active_round'] = (
         serialize_round(active_round, include_answers=True, user_id=user_id)
         if active_round
