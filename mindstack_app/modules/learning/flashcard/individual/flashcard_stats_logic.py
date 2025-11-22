@@ -5,7 +5,7 @@
 
 import datetime
 
-from ....models import FlashcardProgress
+from .....models import FlashcardProgress
 
 
 def get_flashcard_item_statistics(user_id, item_id):

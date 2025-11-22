@@ -3,7 +3,7 @@
 # MỤC ĐÍCH: Nâng cấp logic để xử lý việc ôn tập sớm và sửa lỗi TypeError.
 # ĐÃ SỬA: Khắc phục lỗi so sánh datetime bằng cách đảm bảo cả hai đối tượng đều là timezone-aware.
 
-from ....models import db, User, LearningItem, FlashcardProgress, ScoreLog
+from .....models import db, User, LearningItem, FlashcardProgress, ScoreLog
 from sqlalchemy.orm.attributes import flag_modified
 import datetime
 import math

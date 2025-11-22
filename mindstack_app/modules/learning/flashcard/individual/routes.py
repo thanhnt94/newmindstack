@@ -20,7 +20,7 @@ from .algorithms import (
 from .session_manager import FlashcardSessionManager
 from .flashcard_stats_logic import get_flashcard_item_statistics
 from .config import FlashcardLearningConfig
-from ....models import (
+from .....models import (
     db,
     User,
     FlashcardProgress,

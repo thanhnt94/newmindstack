@@ -9,7 +9,7 @@ from typing import Callable, Iterable, Optional
 
 from flask import url_for
 
-from ....models import (
+from .....models import (
     FlashcardCollabAnswer,
     FlashcardCollabParticipant,
     FlashcardCollabRoom,
