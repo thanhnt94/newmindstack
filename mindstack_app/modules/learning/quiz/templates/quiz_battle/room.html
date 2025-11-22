@@ -1,3 +1,8 @@
+{# =============================== #}
+{# File: mindstack_app/modules/learning/quiz/templates/quiz_battle/room.html #}
+{# Phiên bản: 3.2 (Fix Start Error Handling & Leave Redirect) #}
+{# =============================== #}
+
 {% extends "base.html" %}
 
 {% block title %}Quiz Battle · {{ room_title }}{% endblock %}
@@ -5,741 +10,280 @@
 {% block head %}
 {{ super() }}
 <style>
-    .qb-session-shell {
-        padding: 2rem clamp(1rem, 4vw, 3rem);
-        background: #f8fafc;
-        min-height: calc(100vh - 80px);
-    }
+    /* === CMS Style Components === */
+    body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
 
-    .qb-session-panel {
+    .cm-card {
         background: #ffffff;
-        border-radius: 1.25rem;
         border: 1px solid #e2e8f0;
-        padding: 1.5rem;
-        box-shadow: 0 25px 45px -30px rgba(15, 23, 42, 0.25);
-    }
-
-    .qb-session-header {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-        color: #0f172a;
-    }
-
-    @media (min-width: 768px) {
-        .qb-session-header {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-        }
-    }
-
-    .qb-status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.35rem 0.85rem;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        background: rgba(148, 163, 184, 0.18);
-        color: #0f172a;
-    }
-
-    .qb-status-badge[data-status="in_progress"] {
-        background: rgba(251, 191, 36, 0.2);
-        color: #b45309;
-    }
-
-    .qb-status-badge[data-status="completed"] {
-        background: rgba(16, 185, 129, 0.16);
-        color: #047857;
-    }
-
-    .qb-room-grid {
-        display: grid;
-        gap: 1.5rem;
-    }
-
-    @media (min-width: 960px) {
-        .qb-room-grid {
-            grid-template-columns: 2fr 1fr;
-        }
-    }
-
-    .qb-question-card {
-        border-radius: 1rem;
-        border: 1px solid #e2e8f0;
-        padding: 1.5rem;
-        background: #fdfdfd;
-    }
-
-    .qb-question-options {
-        display: grid;
-        gap: 0.85rem;
-        margin-top: 1rem;
-    }
-
-    .qb-option {
-        border: 1px solid #cbd5f5;
-        border-radius: 1rem;
-        padding: 0.85rem 1rem;
-        display: flex;
-        gap: 0.85rem;
-        background: #ffffff;
-        align-items: center;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .qb-option:hover {
-        border-color: #818cf8;
-        box-shadow: 0 10px 20px -15px rgba(99, 102, 241, 0.6);
-    }
-
-    .qb-option input {
-        accent-color: #6366f1;
-        width: 1.25rem;
-        height: 1.25rem;
-    }
-
-    .qb-sidebar-card {
-        border-radius: 1rem;
-        border: 1px solid #e2e8f0;
-        padding: 1.25rem;
-        background: #ffffff;
-    }
-
-    .qb-participant-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .qb-participant-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.95rem;
-    }
-
-    .qb-chat-box {
-        border-radius: 1rem;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .qb-chat-messages {
-        padding: 1rem;
-        flex: 1;
-        overflow-y: auto;
-        border-bottom: 1px solid #e2e8f0;
-        max-height: 320px;
-    }
-
-    .qb-chat-message {
-        margin-bottom: 0.75rem;
-    }
-
-    .qb-chat-message strong {
-        color: #0f172a;
-    }
-
-    .qb-chat-form {
-        padding: 1rem;
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .qb-chat-form input {
-        flex: 1;
-        border: 1px solid #cbd5f5;
-        border-radius: 999px;
-        padding: 0.75rem 1rem;
-    }
-
-    .qb-chat-form button {
-        border: none;
-        border-radius: 999px;
-        padding: 0.75rem 1.5rem;
-        background: linear-gradient(120deg, #6366f1, #8b5cf6);
-        color: #ffffff;
-        font-weight: 600;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.35rem;
-        box-shadow: 0 18px 30px -18px rgba(79, 70, 229, 0.85);
-        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.3s ease;
-    }
-
-    .qb-chat-form button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 20px 35px -18px rgba(79, 70, 229, 0.9);
-    }
-
-    .qb-chat-form button:focus-visible {
-        outline: 2px solid #c7d2fe;
-        outline-offset: 2px;
-    }
-
-    .qb-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: flex-end;
-    }
-
-    .qb-action-btn {
-        border-radius: 999px;
-        padding: 0.65rem 1.25rem;
-        border: 1px solid #cbd5f5;
-        background: #ffffff;
-        color: #0f172a;
-        font-weight: 600;
-        cursor: pointer;
-        display: inline-flex;
-        gap: 0.35rem;
-        align-items: center;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-    }
-
-    .qb-action-btn:hover {
-        border-color: #6366f1;
-        color: #4338ca;
-        background: #eef2ff;
-    }
-
-    .qb-action-btn--danger {
-        border-color: #fecaca;
-        color: #b91c1c;
-    }
-
-    .qb-alert {
-        margin-bottom: 1rem;
-        color: #b91c1c;
-        min-height: 1.25rem;
-    }
-
-    .qb-alert[data-variant="info"] {
-        color: #2563eb;
-    }
-
-    .qb-timer {
-        font-weight: 600;
-        color: #ea580c;
-    }
-
-    .qb-inline-feedback {
-        font-size: 0.9rem;
-        color: #475569;
-    }
-
-    .qb-feedback-card {
-        margin-top: 1rem;
-        border-radius: 1rem;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        padding: 1.25rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .qb-knowledge-panel {
-        margin-top: 1.25rem;
-        display: grid;
-        gap: 1rem;
-    }
-
-    @media (min-width: 768px) {
-        .qb-knowledge-panel {
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        }
-    }
-
-    .qb-knowledge-card,
-    .qb-note-card {
-        border-radius: 1rem;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        padding: 1.25rem;
-        box-shadow: 0 18px 35px -25px rgba(15, 23, 42, 0.4);
-    }
-
-    .qb-knowledge-card__header {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: flex-start;
-        margin-bottom: 0.75rem;
-    }
-
-    .qb-knowledge-label {
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        font-size: 0.7rem;
-        color: #94a3b8;
-        font-weight: 700;
-    }
-
-    .qb-knowledge-chip {
-        border-radius: 999px;
-        background: #eef2ff;
-        color: #4338ca;
-        font-weight: 600;
-        padding: 0.2rem 0.85rem;
-        font-size: 0.75rem;
-    }
-
-    .qb-knowledge-title {
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: #0f172a;
-        margin: 0.15rem 0 0;
-    }
-
-    .qb-knowledge-text {
-        font-size: 0.95rem;
-        color: #475569;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-    }
-
-    .qb-note-card {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .qb-note-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        align-items: center;
-    }
-
-    .qb-note-btn {
-        border: none;
-        border-radius: 999px;
-        background: #111827;
-        color: #ffffff;
-        font-weight: 600;
-        padding: 0.4rem 1.1rem;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .qb-note-btn--ghost {
-        background: transparent;
-        color: #475569;
-        border: 1px solid #cbd5f5;
-        box-shadow: none;
-    }
-
-    .qb-note-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    .qb-note-btn:not(:disabled):hover {
-        transform: translateY(-1px);
-        box-shadow: 0 10px 20px -12px rgba(15, 23, 42, 0.3);
-    }
-
-    .qb-note-link {
-        font-size: 0.85rem;
-        color: #6366f1;
-        text-decoration: underline;
-    }
-
-    .qb-note-view {
-        min-height: 3rem;
-        font-size: 0.95rem;
-        color: #334155;
-    }
-
-    .qb-note-editor {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .qb-note-textarea,
-    .qb-feedback-textarea {
-        width: 100%;
-        border-radius: 0.85rem;
-        border: 1px solid #cbd5f5;
-        padding: 0.75rem 1rem;
-        resize: vertical;
-        min-height: 110px;
-        font-size: 0.95rem;
-        font-family: inherit;
-        color: #0f172a;
-    }
-
-    .qb-note-editor-actions,
-    .qb-feedback-actions {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-    }
-
-    .qb-feedback-hint {
-        font-size: 0.8rem;
-        color: #94a3b8;
-    }
-
-    .qb-feedback-lite .qb-note-btn {
-        background: #2563eb;
-    }
-
-    .qb-feedback-status {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-    }
-
-    .qb-feedback-icon {
-        width: 3rem;
-        height: 3rem;
-        border-radius: 1rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-    }
-
-    .qb-feedback-card[data-state="correct"] .qb-feedback-icon {
-        background: #dcfce7;
-        color: #15803d;
-    }
-
-    .qb-feedback-card[data-state="incorrect"] .qb-feedback-icon {
-        background: #fee2e2;
-        color: #b91c1c;
-    }
-
-    .qb-feedback-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .qb-feedback-meta {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 0.75rem;
-    }
-
-    .qb-feedback-meta-item {
-        padding: 0.75rem 1rem;
-        border-radius: 0.85rem;
-        border: 1px solid #e2e8f0;
-        background: #f8fafc;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-        font-size: 0.85rem;
-        color: #475569;
-    }
-
-    .qb-feedback-meta-item strong {
-        font-size: 1.2rem;
-        color: #0f172a;
-    }
-
-    .qb-feedback-explanation {
-        border-radius: 0.85rem;
-        border: 1px dashed #cbd5f5;
-        padding: 1rem;
-        background: #f9fafb;
-        font-size: 0.95rem;
-        color: #1f2937;
-    }
-
-    .qb-question-stats-card {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .qb-question-stats-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .qb-question-stats-chip {
-        padding: 0.2rem 0.65rem;
-        background: #eef2ff;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #4338ca;
-    }
-
-    .qb-question-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 0.75rem;
-    }
-
-    .qb-question-stat {
-        border: 1px solid #e2e8f0;
-        border-radius: 0.9rem;
-        padding: 0.9rem 1rem;
-        background: #f8fafc;
-    }
-
-    .qb-question-stat-label {
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        color: #64748b;
-        letter-spacing: 0.08em;
-    }
-
-    .qb-question-stat-value {
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .qb-question-stat-value--accent {
-        color: #0ea5e9;
-    }
-
-    .qb-option-distribution {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .qb-option-distribution-row {
-        display: grid;
-        grid-template-columns: 1fr minmax(140px, 2fr) auto;
-        gap: 0.75rem;
-        align-items: center;
-    }
-
-    .qb-option-distribution-label span {
-        font-weight: 600;
-        color: #0f172a;
-    }
-
-    .qb-option-distribution-label small {
-        display: block;
-        color: #64748b;
-        font-size: 0.8rem;
-    }
-
-    .qb-option-distribution-track {
-        width: 100%;
-        height: 0.5rem;
-        border-radius: 999px;
-        background: #e2e8f0;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
 
-    .qb-option-distribution-bar {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #c7d2fe, #6366f1);
+    .cm-card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        background-color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
 
-    .qb-option-distribution-row[data-correct="true"] .qb-option-distribution-bar {
-        background: linear-gradient(90deg, #86efac, #16a34a);
+    .cm-card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
-    .qb-option-distribution-meta {
-        font-size: 0.85rem;
-        color: #475569;
-        font-variant-numeric: tabular-nums;
-    }
+    .cm-card-body { padding: 1.25rem; flex: 1; }
 
-    .qb-empty-state {
-        font-size: 0.9rem;
-        color: #94a3b8;
-        text-align: center;
+    /* Question Styles */
+    .qb-question-text { font-size: 1.25rem; font-weight: 700; color: #1e293b; line-height: 1.5; margin-bottom: 1rem; }
+    .qb-question-detail { font-size: 0.95rem; color: #64748b; margin-bottom: 1.5rem; line-height: 1.6; }
+
+    /* Options Grid */
+    .qb-options-grid { display: grid; gap: 0.75rem; }
+    .qb-option-label {
+        display: flex; align-items: center; gap: 1rem;
+        padding: 1rem; border: 2px solid #e2e8f0; border-radius: 0.75rem;
+        cursor: pointer; transition: all 0.15s ease; background: white;
     }
+    .qb-option-label:hover { border-color: #94a3b8; background: #f8fafc; }
+    .qb-option-label:has(input:checked) { border-color: #3b82f6; background: #eff6ff; ring: 1px solid #3b82f6; }
+    .qb-option-input { width: 1.25rem; height: 1.25rem; accent-color: #2563eb; }
+    
+    /* Chat Box Fix */
+    .qb-chat-container { height: 450px; display: flex; flex-direction: column; }
+    .qb-chat-messages { flex: 1; overflow-y: auto; padding: 1rem; background: #f8fafc; scroll-behavior: smooth; }
+    .qb-chat-input-area { padding: 0.75rem; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 0.5rem; }
+    .qb-chat-bubble { margin-bottom: 0.75rem; display: flex; flex-direction: column; align-items: flex-start; }
+    .qb-chat-bubble.me { align-items: flex-end; }
+    .qb-msg-meta { font-size: 0.7rem; color: #94a3b8; margin-bottom: 0.1rem; }
+    .qb-msg-content { padding: 0.5rem 0.8rem; border-radius: 0.75rem; font-size: 0.9rem; max-width: 85%; word-break: break-word; }
+    .qb-chat-bubble.me .qb-msg-content { background: #3b82f6; color: white; border-bottom-right-radius: 0.1rem; }
+    .qb-chat-bubble.other .qb-msg-content { background: #e2e8f0; color: #1e293b; border-bottom-left-radius: 0.1rem; }
+
+    /* Status Badge */
+    .status-badge { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 0.35rem 0.75rem; border-radius: 999px; letter-spacing: 0.05em; }
+    .status-badge[data-status="lobby"] { background: #e0f2fe; color: #0369a1; }
+    .status-badge[data-status="in_progress"] { background: #dcfce7; color: #15803d; }
+    .status-badge[data-status="completed"] { background: #f1f5f9; color: #64748b; }
+
+    /* Buttons */
+    .cm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; cursor: pointer; }
+    .cm-btn-primary { background: #2563eb; color: white; border: 1px solid transparent; box-shadow: 0 2px 4px rgba(37,99,235,0.2); }
+    .cm-btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+    .cm-btn-primary:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+    .cm-btn-danger { background: white; color: #ef4444; border: 1px solid #fecaca; }
+    .cm-btn-danger:hover { background: #fef2f2; border-color: #fca5a5; }
+    .cm-btn-ghost { background: white; color: #475569; border: 1px solid #cbd5e1; }
+    .cm-btn-ghost:hover { background: #f8fafc; color: #1e293b; border-color: #94a3b8; }
+
+    /* Responsive Grid */
+    .qb-layout-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+    @media (min-width: 1024px) { .qb-layout-grid { grid-template-columns: 2fr 1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="qb-session-shell">
-    <div class="qb-session-header">
+<div class="container mx-auto px-2 py-6 max-w-7xl">
+    
+    {# === HEADER SECTION === #}
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div>
-            <p class="uppercase tracking-[0.3em] text-sm text-slate-500">Quiz Battle</p>
-            <h1 class="text-3xl font-bold text-slate-900" id="room-title">{{ room_title }}</h1>
-            <p class="text-slate-600 mt-1">Mã phòng: <span class="font-mono tracking-widest font-semibold text-slate-900" id="room-code">{{ room_code }}</span></p>
-        </div>
-        <div class="text-right space-y-3">
-            <span class="qb-status-badge" id="room-status" data-status="{{ initial_room.status }}">{{ initial_room.status|upper}}</span>
-            <div class="qb-actions">
-                <button type="button" class="qb-action-btn" id="copy-room-code">
-                    <i class="fa-solid fa-copy"></i> Sao chép mã
-                </button>
-                <button type="button" class="qb-action-btn" id="start-room-btn">
-                    <i class="fa-solid fa-play"></i> Bắt đầu trận
-                </button>
-                <button type="button" class="qb-action-btn qb-action-btn--danger" id="end-room-btn">
-                    <i class="fa-solid fa-flag-checkered"></i> Kết thúc
-                </button>
-                <button type="button" class="qb-action-btn qb-action-btn--danger" id="leave-room-btn">
-                    <i class="fa-solid fa-person-walking-arrow-right"></i> Rời phòng
-                </button>
+            <div class="flex items-center gap-3 mb-1">
+                <span class="text-xs font-bold text-blue-500 uppercase tracking-widest">Quiz Battle</span>
+                <span id="room-status" class="status-badge" data-status="{{ initial_room.status }}">{{ initial_room.status }}</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900" id="room-title">{{ room_title }}</h1>
+            <div class="flex items-center gap-2 mt-1 text-sm text-slate-600">
+                <span class="font-medium">Mã phòng:</span>
+                <code class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-mono font-bold text-slate-800 text-base select-all" id="room-code">{{ room_code }}</code>
+                <button id="copy-room-code" class="text-blue-500 hover:text-blue-700" title="Sao chép"><i class="fa-solid fa-copy"></i></button>
             </div>
         </div>
-    </div>
-    <p class="qb-alert" id="room-alert"></p>
-    <div class="qb-room-grid">
-        <div class="space-y-4">
-            <div class="qb-session-panel">
-                <div class="qb-question-card">
-                    <p class="text-xs uppercase tracking-[0.35em] text-slate-500">Câu hỏi hiện tại</p>
-                    <h2 class="text-2xl font-semibold text-slate-900 mt-2" id="question-title">Đang tải dữ liệu...</h2>
-                    <p class="text-sm text-slate-600 mt-2" id="question-detail"></p>
-                    <p class="text-sm qb-timer mt-2" id="question-timer"></p>
-                    <form id="answer-form" class="mt-4 space-y-3">
-                        <div class="qb-question-options" id="question-options"></div>
-                        <button type="submit" class="cm-action cm-action--primary" id="submit-answer-btn">
-                            <i class="fa-solid fa-check"></i> Gửi đáp án
-                        </button>
+
+        <div class="flex flex-wrap gap-2 justify-end">
+            <button id="start-room-btn" class="cm-btn cm-btn-primary" title="Bắt đầu trận đấu (Chỉ chủ phòng)"><i class="fa-solid fa-play"></i> Bắt đầu</button>
+            <button id="end-room-btn" class="cm-btn cm-btn-danger" title="Kết thúc trận đấu (Chỉ chủ phòng)"><i class="fa-solid fa-flag-checkered"></i> Kết thúc</button>
+            <button id="leave-room-btn" class="cm-btn cm-btn-ghost"><i class="fa-solid fa-right-from-bracket"></i> Rời phòng</button>
+        </div>
+    </header>
+
+    {# === ALERT BOX === #}
+    <div id="room-alert" class="mb-6 hidden p-4 rounded-lg border flex items-start gap-3"></div>
+
+    {# === MAIN GRID === #}
+    <div class="qb-layout-grid">
+        
+        {# --- CỘT TRÁI: CÂU HỎI & GAMEPLAY --- #}
+        <div class="space-y-6">
+            
+            {# 1. Question Card #}
+            <div class="cm-card">
+                <div class="cm-card-header">
+                    <span class="cm-card-title"><i class="fa-solid fa-circle-question text-blue-500"></i> Câu hỏi</span>
+                    <span id="question-timer" class="text-orange-600 font-bold font-mono text-lg"></span>
+                </div>
+                <div class="cm-card-body relative">
+                    <div id="game-status-overlay" class="hidden absolute inset-0 bg-white/90 z-10 flex flex-col items-center justify-center text-center p-6">
+                        <div class="text-slate-400 mb-2 text-4xl"><i class="fa-solid fa-hourglass-half fa-spin"></i></div>
+                        <h3 class="text-xl font-bold text-slate-700" id="game-overlay-title">Đang chờ...</h3>
+                        <p class="text-slate-500" id="game-overlay-msg">Đợi chủ phòng bắt đầu trận đấu.</p>
+                    </div>
+
+                    <h2 id="question-title" class="qb-question-text">Đang tải dữ liệu...</h2>
+                    <div id="question-detail" class="qb-question-detail"></div>
+
+                    <form id="answer-form">
+                        <div id="question-options" class="qb-options-grid">
+                            </div>
+                        <div class="mt-6 flex items-center justify-between">
+                            <p id="answer-inline-feedback" class="text-sm font-medium text-slate-600"></p>
+                            <button type="submit" id="submit-answer-btn" class="cm-btn cm-btn-primary w-full sm:w-auto" disabled>
+                                <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
+                            </button>
+                        </div>
                     </form>
-                    <p class="text-sm mt-2 qb-inline-feedback" id="answer-inline-feedback"></p>
                 </div>
-                <div class="qb-feedback-card" id="answer-feedback-panel" hidden>
-                    <div class="qb-feedback-status">
-                        <div class="qb-feedback-icon" id="answer-feedback-icon">✨</div>
-                        <div>
-                            <p class="qb-feedback-title" id="answer-feedback-title">Kết quả</p>
-                            <p class="text-sm text-slate-600" id="answer-feedback-detail"></p>
-                        </div>
-                    </div>
-                    <div class="qb-feedback-meta">
-                        <div class="qb-feedback-meta-item">
-                            <span>Đáp án đúng</span>
-                            <strong id="answer-feedback-correct">--</strong>
-                        </div>
-                        <div class="qb-feedback-meta-item">
-                            <span>Điểm số</span>
-                            <strong id="answer-feedback-score">0</strong>
-                        </div>
-                    </div>
-                    <div class="qb-feedback-explanation" id="answer-feedback-explanation"></div>
+                <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                    <span id="round-progress">Tiến độ: --/--</span>
+                    <span id="room-mode">Chế độ: --</span>
                 </div>
-                <div class="qb-knowledge-panel" id="question-insight-panel" hidden>
-                    <div class="qb-knowledge-card">
-                        <div class="qb-knowledge-card__header">
-                            <div>
-                                <p class="qb-knowledge-label">Gợi ý chính thức</p>
-                                <p class="qb-knowledge-title">Giải thích của bộ đề</p>
+            </div>
+
+            {# 2. Feedback & Insight Panel (Ẩn mặc định) #}
+            <div id="answer-feedback-panel" class="cm-card border-l-4 border-l-blue-500" hidden>
+                <div class="cm-card-body">
+                    <div class="flex items-start gap-4">
+                        <div id="answer-feedback-icon" class="text-3xl">💡</div>
+                        <div class="flex-1">
+                            <h3 id="answer-feedback-title" class="text-lg font-bold text-slate-900">Kết quả</h3>
+                            <p id="answer-feedback-detail" class="text-sm text-slate-600 mb-3"></p>
+                            
+                            <div class="flex gap-4 mb-4 text-sm">
+                                <div class="bg-slate-50 px-3 py-2 rounded border border-slate-100">
+                                    <span class="block text-xs text-slate-400 uppercase">Đáp án đúng</span>
+                                    <span id="answer-feedback-correct" class="font-bold text-emerald-600">--</span>
+                                </div>
+                                <div class="bg-slate-50 px-3 py-2 rounded border border-slate-100">
+                                    <span class="block text-xs text-slate-400 uppercase">Điểm cộng</span>
+                                    <span id="answer-feedback-score" class="font-bold text-blue-600">+0</span>
+                                </div>
                             </div>
-                            <span class="qb-knowledge-chip text-xs text-slate-400">Mở khi bạn đã trả lời</span>
-                        </div>
-                        <div class="qb-knowledge-text" id="question-guidance-content"></div>
-                    </div>
-                    <div class="qb-knowledge-card">
-                        <div class="qb-knowledge-card__header">
-                            <div>
-                                <p class="qb-knowledge-label">AI Coach</p>
-                                <p class="qb-knowledge-title">Giải thích của AI</p>
+
+                            <div class="p-3 bg-blue-50 rounded-lg text-sm text-slate-700 border border-blue-100">
+                                <strong>Giải thích:</strong>
+                                <div id="answer-feedback-explanation" class="mt-1"></div>
                             </div>
-                        </div>
-                        <div class="qb-knowledge-text" id="question-ai-content"></div>
-                    </div>
-                    <div class="qb-note-card" id="question-note-card">
-                        <div class="qb-knowledge-card__header">
-                            <div>
-                                <p class="qb-knowledge-label">Ghi chú cá nhân</p>
-                                <p class="qb-knowledge-title">Ghi chú của bạn</p>
-                            </div>
-                            <div class="qb-note-actions">
-                                <button type="button" class="qb-note-btn qb-note-btn--ghost" id="question-note-edit"><i class="fa-solid fa-pen"></i> Sửa</button>
-                                <a href="{{ url_for('notes.manage_notes') }}" target="_blank" rel="noopener" class="qb-note-link">Quản lý ghi chú</a>
-                            </div>
-                        </div>
-                        <div class="qb-note-view" id="question-note-content"></div>
-                        <div class="qb-note-editor" id="question-note-editor" hidden>
-                            <textarea id="question-note-input" class="qb-note-textarea" rows="3" placeholder="Ghi lại điều bạn muốn ghi nhớ..."></textarea>
-                            <div class="qb-note-editor-actions">
-                                <button type="button" class="qb-note-btn qb-note-btn--ghost" id="question-note-cancel">Hủy</button>
-                                <button type="button" class="qb-note-btn" id="question-note-save">Lưu</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="qb-knowledge-card qb-feedback-lite" id="question-feedback-card" hidden>
-                        <div class="qb-knowledge-card__header">
-                            <div>
-                                <p class="qb-knowledge-label">Phản hồi nhanh</p>
-                                <p class="qb-knowledge-title">Giúp chúng tôi cải thiện</p>
-                            </div>
-                        </div>
-                        <textarea class="qb-feedback-textarea" id="question-feedback-input" rows="3" placeholder="Có điểm nào chưa hợp lý? Chia sẻ với chúng tôi..."></textarea>
-                        <div class="qb-feedback-actions">
-                            <button type="button" class="qb-note-btn" id="question-feedback-submit"><i class="fa-solid fa-paper-plane"></i> Gửi phản hồi</button>
-                            <p class="qb-feedback-hint">Phản hồi của bạn chỉ hiển thị với đội ngũ biên soạn.</p>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="qb-session-panel">
-                <h3 class="text-lg font-semibold text-slate-900">Diễn biến</h3>
-                <p class="text-sm text-slate-600 mt-1" id="round-progress"></p>
-                <p class="text-sm text-slate-600" id="room-mode"></p>
+
+            {# 3. Insight Tabs (AI, Notes) #}
+            <div id="question-insight-panel" class="space-y-4" hidden>
+                <div class="cm-card">
+                    <div class="cm-card-header bg-gradient-to-r from-indigo-50 to-white">
+                        <span class="cm-card-title text-indigo-700"><i class="fa-solid fa-robot"></i> AI Coach</span>
+                    </div>
+                    <div class="cm-card-body text-sm text-slate-600 leading-relaxed" id="question-ai-content">
+                        Đang phân tích...
+                    </div>
+                </div>
+
+                <div class="cm-card">
+                    <div class="cm-card-header">
+                        <span class="cm-card-title"><i class="fa-solid fa-note-sticky text-yellow-500"></i> Ghi chú cá nhân</span>
+                        <button id="question-note-edit" class="text-xs text-blue-600 hover:underline font-medium">Sửa ghi chú</button>
+                    </div>
+                    <div class="cm-card-body">
+                        <div id="question-note-content" class="text-sm text-slate-600 italic">Bạn chưa có ghi chú cho câu này.</div>
+                        
+                        <div id="question-note-editor" class="hidden mt-2 space-y-2">
+                            <textarea id="question-note-input" class="w-full rounded-lg border-slate-300 text-sm p-2 focus:ring-blue-500 focus:border-blue-500" rows="3" placeholder="Nhập ghi chú của bạn..."></textarea>
+                            <div class="flex justify-end gap-2">
+                                <button id="question-note-cancel" class="px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:bg-slate-100">Hủy</button>
+                                <button id="question-note-save" class="px-3 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700">Lưu</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="question-feedback-card" class="cm-card">
+                    <div class="cm-card-body">
+                        <p class="text-xs font-bold uppercase text-slate-400 mb-2">Góp ý câu hỏi</p>
+                        <div class="flex gap-2">
+                            <input type="text" id="question-feedback-input" class="flex-1 rounded-lg border-slate-200 text-sm p-2" placeholder="Báo cáo lỗi hoặc góp ý...">
+                            <button id="question-feedback-submit" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm hover:bg-slate-200"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </div>
-        <div class="space-y-4">
-            <div class="qb-session-panel">
-                <h3 class="text-lg font-semibold text-slate-900">Người tham gia</h3>
-                <ul class="qb-participant-list mt-3" id="participants-list"></ul>
+
+        {# --- CỘT PHẢI: THỐNG KÊ & CHAT --- #}
+        <div class="space-y-6">
+            
+            {# 1. Question Stats #}
+            <div class="cm-card">
+                <div class="cm-card-header">
+                    <span class="cm-card-title"><i class="fa-solid fa-chart-pie text-emerald-500"></i> Thống kê</span>
+                    <span id="question-stats-round" class="text-xs font-mono bg-slate-100 px-2 py-1 rounded">#--</span>
+                </div>
+                <div class="cm-card-body">
+                    <div class="grid grid-cols-2 gap-4 mb-4 text-center">
+                        <div class="p-2 rounded bg-slate-50 border border-slate-100">
+                            <div class="text-xs text-slate-400 uppercase">Đã trả lời</div>
+                            <div id="question-stats-total" class="text-xl font-bold text-slate-700">0</div>
+                        </div>
+                        <div class="p-2 rounded bg-emerald-50 border border-emerald-100">
+                            <div class="text-xs text-emerald-600 uppercase">Chính xác</div>
+                            <div id="question-stats-accuracy" class="text-xl font-bold text-emerald-700">--%</div>
+                        </div>
+                    </div>
+                    <p id="question-stats-empty" class="text-xs text-center text-slate-400 italic">Chưa có dữ liệu.</p>
+                    <div id="option-distribution" class="space-y-2 text-xs">
+                        </div>
+                </div>
             </div>
-            <div class="qb-session-panel qb-question-stats-card" id="question-stats-card">
-                <div class="qb-question-stats-header">
-                    <h3 class="text-lg font-semibold text-slate-900">Thống kê câu hỏi</h3>
-                    <span class="qb-question-stats-chip" id="question-stats-round">Chưa bắt đầu</span>
+
+            {# 2. Participants #}
+            <div class="cm-card max-h-[300px] flex flex-col">
+                <div class="cm-card-header sticky top-0 z-10">
+                    <span class="cm-card-title"><i class="fa-solid fa-users text-purple-500"></i> Người tham gia</span>
                 </div>
-                <div class="qb-question-stats-grid">
-                    <div class="qb-question-stat">
-                        <p class="qb-question-stat-label">Lượt trả lời</p>
-                        <p class="qb-question-stat-value" id="question-stats-total">0</p>
-                    </div>
-                    <div class="qb-question-stat">
-                        <p class="qb-question-stat-label">Trả lời đúng</p>
-                        <p class="qb-question-stat-value" id="question-stats-correct">0</p>
-                    </div>
-                    <div class="qb-question-stat">
-                        <p class="qb-question-stat-label">Độ chính xác</p>
-                        <p class="qb-question-stat-value qb-question-stat-value--accent" id="question-stats-accuracy">--</p>
-                    </div>
+                <div class="flex-1 overflow-y-auto p-0">
+                    <ul id="participants-list" class="divide-y divide-slate-50">
+                        </ul>
                 </div>
-                <p class="qb-empty-state" id="question-stats-empty">Chưa có ai trả lời câu hỏi này.</p>
-                <div class="qb-option-distribution" id="option-distribution"></div>
             </div>
-            <div class="qb-chat-box">
-                <div class="qb-chat-messages" id="chat-messages">
-                    <p class="text-sm text-slate-500">Đang tải tin nhắn...</p>
+
+            {# 3. Chat Box (Fixed) #}
+            <div class="cm-card qb-chat-container">
+                <div class="cm-card-header py-2">
+                    <span class="cm-card-title text-sm"><i class="fa-solid fa-comments text-blue-400"></i> Thảo luận</span>
                 </div>
-                <form class="qb-chat-form" id="chat-form">
-                    <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." autocomplete="off">
-                    <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
+                
+                <div id="chat-messages" class="qb-chat-messages">
+                    <p class="text-center text-xs text-slate-400 mt-4">Bắt đầu trò chuyện...</p>
+                </div>
+                
+                <form id="chat-form" class="qb-chat-input-area">
+                    <input type="text" id="chat-input" class="flex-1 rounded-full border-slate-200 text-sm px-4 py-2 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition outline-none" placeholder="Nhập tin nhắn..." autocomplete="off">
+                    <button type="submit" class="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 shadow-sm transition">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                    </button>
                 </form>
             </div>
+
         </div>
     </div>
 </div>
@@ -749,6 +293,7 @@
 {{ super() }}
 <script>
     (function() {
+        // Initialize variables from template
         const initialRoom = {{ initial_room | tojson }};
         const roomCode = {{ room_code | tojson }};
         const currentUserId = {{ current_user_id | tojson }};
@@ -769,758 +314,342 @@
         let lastRenderedRound = roomState?.active_round?.sequence_number || null;
         let roomPollInterval = null;
         let chatPollInterval = null;
-        let messagesLoaded = false;
-        const statusLabelMap = {
-            lobby: 'Đang mở sảnh',
-            in_progress: 'Đang thi đấu',
-            awaiting_host: 'Chờ chủ phòng',
-            completed: 'Đã kết thúc'
-        };
-
-        const statusBadge = document.getElementById('room-status');
-        const roundProgress = document.getElementById('round-progress');
-        const roomMode = document.getElementById('room-mode');
-        const questionTitle = document.getElementById('question-title');
-        const questionDetail = document.getElementById('question-detail');
-        const questionOptions = document.getElementById('question-options');
-        const questionTimer = document.getElementById('question-timer');
-        const answerInlineFeedback = document.getElementById('answer-inline-feedback');
-        const answerFeedbackPanel = document.getElementById('answer-feedback-panel');
-        const answerFeedbackTitle = document.getElementById('answer-feedback-title');
-        const answerFeedbackDetail = document.getElementById('answer-feedback-detail');
-        const answerFeedbackCorrect = document.getElementById('answer-feedback-correct');
-        const answerFeedbackScore = document.getElementById('answer-feedback-score');
-        const answerFeedbackExplanation = document.getElementById('answer-feedback-explanation');
-        const answerFeedbackIcon = document.getElementById('answer-feedback-icon');
-        const questionStatsRound = document.getElementById('question-stats-round');
-        const questionStatsTotal = document.getElementById('question-stats-total');
-        const questionStatsCorrect = document.getElementById('question-stats-correct');
-        const questionStatsAccuracy = document.getElementById('question-stats-accuracy');
-        const questionStatsEmpty = document.getElementById('question-stats-empty');
-        const optionDistribution = document.getElementById('option-distribution');
-        const participantsList = document.getElementById('participants-list');
-        const alertBox = document.getElementById('room-alert');
-        const answerForm = document.getElementById('answer-form');
-        const submitAnswerBtn = document.getElementById('submit-answer-btn');
-        const startRoomBtn = document.getElementById('start-room-btn');
-        const leaveRoomBtn = document.getElementById('leave-room-btn');
-        const endRoomBtn = document.getElementById('end-room-btn');
-        const copyCodeBtn = document.getElementById('copy-room-code');
-        const chatMessages = document.getElementById('chat-messages');
-        const chatForm = document.getElementById('chat-form');
-        const chatInput = document.getElementById('chat-input');
-        const insightsPanel = document.getElementById('question-insight-panel');
-        const guidanceContent = document.getElementById('question-guidance-content');
-        const aiContent = document.getElementById('question-ai-content');
-        const noteView = document.getElementById('question-note-content');
-        const noteEditor = document.getElementById('question-note-editor');
-        const noteTextarea = document.getElementById('question-note-input');
-        const noteEditBtn = document.getElementById('question-note-edit');
-        const noteCancelBtn = document.getElementById('question-note-cancel');
-        const noteSaveBtn = document.getElementById('question-note-save');
-        const feedbackCard = document.getElementById('question-feedback-card');
-        const feedbackInput = document.getElementById('question-feedback-input');
-        const feedbackSubmitBtn = document.getElementById('question-feedback-submit');
-
         let currentQuestionItemId = null;
 
-        function setAlert(message, variant = 'info') {
-            if (!alertBox) {
-                return;
-            }
-            alertBox.dataset.variant = variant;
-            alertBox.textContent = message || '';
-        }
-
-        function setExplanationContent(target, text, emptyMessage = 'Chưa có giải thích cho câu hỏi này.') {
-            if (!target) {
-                return;
-            }
-            target.innerHTML = '';
-            const cleaned = typeof text === 'string' ? text.trim() : '';
-            if (!cleaned) {
-                const emptyParagraph = document.createElement('p');
-                emptyParagraph.className = 'text-sm text-slate-500';
-                emptyParagraph.textContent = emptyMessage;
-                target.appendChild(emptyParagraph);
-                return;
-            }
-            const paragraphs = cleaned.split(/\n\n+/);
-            paragraphs.forEach((chunk) => {
-                const paragraph = document.createElement('p');
-                paragraph.textContent = chunk.replace(/\n+/g, ' ');
-                target.appendChild(paragraph);
-            });
-        }
-
-        function toggleNoteEditor(show) {
-            if (!noteEditor || !noteView) {
-                return;
-            }
-            if (show) {
-                noteEditor.hidden = false;
-                noteView.hidden = true;
-                noteTextarea?.focus();
+        // --- Helper Functions ---
+        function setAlert(msg, type='info') {
+            const box = document.getElementById('room-alert');
+            if(!box) return;
+            if(!msg) { box.classList.add('hidden'); return; }
+            box.classList.remove('hidden', 'bg-blue-50', 'bg-rose-50', 'text-blue-700', 'text-rose-700', 'border-blue-200', 'border-rose-200');
+            
+            let icon = '<i class="fa-solid fa-circle-info"></i>';
+            if(type === 'error') {
+                box.classList.add('bg-rose-50', 'text-rose-700', 'border-rose-200');
+                icon = '<i class="fa-solid fa-triangle-exclamation"></i>';
             } else {
-                noteEditor.hidden = true;
-                noteView.hidden = false;
+                box.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
             }
+            box.innerHTML = `${icon} <span>${msg}</span>`;
         }
 
-        function getNoteSaveUrl(itemId) {
-            if (!noteSaveUrlTemplate || !itemId) {
-                return null;
-            }
-            return noteSaveUrlTemplate.replace(/0$/, String(itemId));
-        }
-
-        function setInsightControlsEnabled(enabled) {
-            [noteEditBtn, noteCancelBtn, noteSaveBtn].forEach((button) => {
-                if (button) {
-                    button.disabled = !enabled;
-                }
+        async function postJson(url, data={}) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify(data)
             });
-            if (noteTextarea) {
-                noteTextarea.disabled = !enabled;
-            }
-        }
-
-        function setFeedbackControlsEnabled(enabled) {
-            if (feedbackInput) {
-                feedbackInput.disabled = !enabled;
-                if (!enabled) {
-                    feedbackInput.value = '';
+            
+            if(!res.ok) {
+                // Trích xuất lỗi thông minh hơn
+                let errorMessage = 'Có lỗi xảy ra.';
+                try {
+                    const errorData = await res.json();
+                    errorMessage = errorData.description || errorData.message || JSON.stringify(errorData);
+                } catch(e) {
+                    const text = await res.text();
+                    errorMessage = text.substring(0, 100) + (text.length > 100 ? '...' : '');
                 }
+                throw new Error(errorMessage);
             }
-            if (feedbackSubmitBtn) {
-                feedbackSubmitBtn.disabled = !enabled;
-            }
+            return res.json();
         }
 
-        function updateNoteView(content) {
-            if (!noteView) {
-                return;
-            }
-            setExplanationContent(noteView, content || '', 'Bạn chưa có ghi chú.');
-            if (noteTextarea) {
-                noteTextarea.value = content || '';
-            }
-        }
-
-        function toggleInsightPanel(show) {
-            if (!insightsPanel) {
-                return;
-            }
-            insightsPanel.hidden = !show;
-            if (!show) {
-                toggleNoteEditor(false);
-                if (feedbackCard) {
-                    feedbackCard.hidden = true;
-                }
-            }
-        }
-
-        function updateInsightPanel(question, answeredByMe) {
-            if (!question || !answeredByMe) {
-                toggleInsightPanel(false);
-                return;
-            }
-            toggleInsightPanel(true);
-            if (guidanceContent) {
-                setExplanationContent(
-                    guidanceContent,
-                    question.explanation || '',
-                    'Câu hỏi này chưa có gợi ý chi tiết.'
-                );
-            }
-            if (aiContent) {
-                setExplanationContent(
-                    aiContent,
-                    question.ai_explanation || '',
-                    'Chưa có giải thích từ AI cho câu hỏi này.'
-                );
-            }
-            updateNoteView(question.note_content || '');
-            if (feedbackCard) {
-                feedbackCard.hidden = false;
-            }
-        }
-
-        async function saveCurrentNote() {
-            if (!currentQuestionItemId || !noteTextarea || !noteSaveBtn) {
-                return;
-            }
-            const content = noteTextarea.value || '';
-            const url = getNoteSaveUrl(currentQuestionItemId);
-            if (!url) {
-                return;
-            }
+        // --- Chat Functions ---
+        async function loadMessages() {
             try {
-                noteSaveBtn.disabled = true;
-                const response = await postJson(url, { content });
-                if (!response?.success) {
-                    throw new Error(response?.message || 'Không thể lưu ghi chú.');
-                }
-                if (roomState?.active_round?.question) {
-                    roomState.active_round.question.note_content = content;
-                }
-                updateNoteView(content);
-                toggleNoteEditor(false);
-                setAlert('Đã lưu ghi chú của bạn.', 'info');
-            } catch (error) {
-                setAlert(`Không thể lưu ghi chú: ${error.message}`, 'error');
-            } finally {
-                noteSaveBtn.disabled = false;
-            }
+                const res = await fetch(messagesUrl);
+                const data = await res.json();
+                renderMessages(data.messages || []);
+            } catch(e) { console.error("Chat error:", e); }
         }
 
-        setInsightControlsEnabled(false);
-        setFeedbackControlsEnabled(false);
-
-        function formatMode(room) {
-            if (!room) {
-                return '';
-            }
-            if (room.mode === 'TIMED' && room.time_per_question_seconds) {
-                return `Chế độ giới hạn thời gian · ${room.time_per_question_seconds}s mỗi câu`;
-            }
-            return 'Chế độ test chậm · chuyển câu khi mọi người trả lời xong';
-        }
-
-        function formatStatus(status) {
-            return statusLabelMap[status] || status;
-        }
-
-        function renderAnswerFeedbackPanel(result) {
-            if (!answerFeedbackPanel) {
+        function renderMessages(msgs) {
+            const container = document.getElementById('chat-messages');
+            if(!container) return;
+            container.innerHTML = '';
+            if(!msgs.length) {
+                container.innerHTML = '<p class="text-center text-xs text-slate-400 mt-4">Chưa có tin nhắn.</p>';
                 return;
             }
-            if (!result) {
-                answerFeedbackPanel.hidden = true;
-                return;
-            }
-            const isCorrect = Boolean(result.is_correct);
-            answerFeedbackPanel.hidden = false;
-            answerFeedbackPanel.dataset.state = isCorrect ? 'correct' : 'incorrect';
-            if (answerFeedbackIcon) {
-                answerFeedbackIcon.textContent = isCorrect ? '🎉' : '💡';
-            }
-            if (answerFeedbackTitle) {
-                answerFeedbackTitle.textContent = isCorrect ? 'Tuyệt vời!' : 'Chưa chính xác';
-            }
-            if (answerFeedbackDetail) {
-                answerFeedbackDetail.textContent = isCorrect
-                    ? `Bạn được +${result.score_delta} điểm cho câu này.`
-                    : 'Hãy xem lại đáp án đúng và tự tin ở câu tiếp theo.';
-            }
-            if (answerFeedbackCorrect) {
-                answerFeedbackCorrect.textContent = result.correct_option || '--';
-            }
-            if (answerFeedbackScore) {
-                const delta = Number(result.score_delta) || 0;
-                answerFeedbackScore.textContent = delta >= 0 ? `+${delta}` : `${delta}`;
-            }
-            setExplanationContent(answerFeedbackExplanation, result.explanation || '');
-        }
-
-        function renderQuestionStats(round) {
-            if (!questionStatsRound) {
-                return;
-            }
-            if (!round || !round.question) {
-                questionStatsRound.textContent = 'Chưa bắt đầu';
-                if (questionStatsTotal) {
-                    questionStatsTotal.textContent = '0';
-                }
-                if (questionStatsCorrect) {
-                    questionStatsCorrect.textContent = '0';
-                }
-                if (questionStatsAccuracy) {
-                    questionStatsAccuracy.textContent = '--';
-                }
-                if (questionStatsEmpty) {
-                    questionStatsEmpty.hidden = false;
-                    questionStatsEmpty.textContent = 'Chưa có câu hỏi nào được mở.';
-                }
-                if (optionDistribution) {
-                    optionDistribution.innerHTML = '';
-                }
-                return;
-            }
-            questionStatsRound.textContent = `Câu #${round.sequence_number}`;
-            const answers = round.answers || [];
-            const total = answers.length;
-            const correct = answers.filter((answer) => answer.is_correct).length;
-            if (questionStatsTotal) {
-                questionStatsTotal.textContent = `${total}`;
-            }
-            if (questionStatsCorrect) {
-                questionStatsCorrect.textContent = `${correct}`;
-            }
-            if (questionStatsAccuracy) {
-                questionStatsAccuracy.textContent = total ? `${Math.round((correct / total) * 100)}%` : '--';
-            }
-            if (questionStatsEmpty) {
-                questionStatsEmpty.hidden = total > 0;
-                if (!total) {
-                    questionStatsEmpty.textContent = 'Chưa có ai trả lời câu hỏi này.';
-                }
-            }
-            if (!optionDistribution) {
-                return;
-            }
-            optionDistribution.innerHTML = '';
-            const options = round.question.options || {};
-            const optionKeys = Object.keys(options);
-            if (!optionKeys.length || !total) {
-                return;
-            }
-            const optionCounts = answers.reduce((accumulator, answer) => {
-                const key = answer.selected_option;
-                if (key) {
-                    accumulator[key] = (accumulator[key] || 0) + 1;
-                }
-                return accumulator;
-            }, {});
-            const myAnswer = answers.find((answer) => answer.participant_id === participantId);
-            const correctOption = myAnswer?.correct_option;
-            optionKeys.forEach((key) => {
-                const count = optionCounts[key] || 0;
-                const percent = total ? Math.round((count / total) * 100) : 0;
-                const row = document.createElement('div');
-                row.className = 'qb-option-distribution-row';
-                if (correctOption && key === correctOption) {
-                    row.dataset.correct = 'true';
-                }
-                const label = document.createElement('div');
-                label.className = 'qb-option-distribution-label';
-                const labelTitle = document.createElement('span');
-                labelTitle.textContent = key;
-                const labelDesc = document.createElement('small');
-                labelDesc.textContent = options[key] || '';
-                label.appendChild(labelTitle);
-                label.appendChild(labelDesc);
-                const track = document.createElement('div');
-                track.className = 'qb-option-distribution-track';
-                const bar = document.createElement('span');
-                bar.className = 'qb-option-distribution-bar';
-                bar.style.width = `${percent}%`;
-                track.appendChild(bar);
-                const meta = document.createElement('div');
-                meta.className = 'qb-option-distribution-meta';
-                meta.textContent = `${count} (${percent}%)`;
-                row.appendChild(label);
-                row.appendChild(track);
-                row.appendChild(meta);
-                optionDistribution.appendChild(row);
+            msgs.forEach(msg => {
+                const isMe = msg.user_id === currentUserId;
+                const div = document.createElement('div');
+                div.className = `qb-chat-bubble ${isMe ? 'me' : 'other'}`;
+                div.innerHTML = `
+                    <div class="qb-msg-meta">${msg.username || 'User'}</div>
+                    <div class="qb-msg-content">${msg.content}</div>
+                `;
+                container.appendChild(div);
             });
+            container.scrollTop = container.scrollHeight;
         }
 
-        function renderParticipants(participants) {
-            if (!participantsList) {
-                return;
-            }
-            participantsList.innerHTML = '';
-            if (!participants?.length) {
-                participantsList.innerHTML = '<li class="text-sm text-slate-500">Chưa có người tham gia.</li>';
-                return;
-            }
-            for (const participant of participants) {
-                const item = document.createElement('li');
-                item.className = 'qb-participant-item';
-                const nameSpan = document.createElement('span');
-                const nameText = participant.username || `User #${participant.user_id}`;
-                const roleText = participant.is_host ? ' · Chủ phòng' : '';
-                const statusText = participant.status === 'active' ? '' : ` (${participant.status})`;
-                nameSpan.textContent = `${nameText}${roleText}${statusText}`;
-                const scoreSpan = document.createElement('span');
-                scoreSpan.className = 'font-semibold';
-                scoreSpan.textContent = `${participant.session_score || 0}đ`;
-                if (participant.user_id === currentUserId) {
-                    nameSpan.style.color = '#4f46e5';
-                }
-                item.appendChild(nameSpan);
-                item.appendChild(scoreSpan);
-                participantsList.appendChild(item);
-            }
+        // --- Room Logic Functions ---
+        function renderParticipants(parts) {
+            const list = document.getElementById('participants-list');
+            if(!list) return;
+            list.innerHTML = parts.map(p => `
+                <li class="px-4 py-3 flex justify-between items-center bg-white hover:bg-slate-50 transition">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-800 ${p.user_id === currentUserId ? 'text-blue-600' : ''}">
+                            ${p.username || 'User'} ${p.is_host ? '<i class="fa-solid fa-crown text-yellow-500 text-xs ml-1"></i>' : ''}
+                        </p>
+                        <p class="text-[10px] text-slate-500 uppercase">${p.status}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="block text-sm font-bold text-slate-900">${p.session_score || 0}</span>
+                        <span class="text-[10px] text-slate-400">điểm</span>
+                    </div>
+                </li>
+            `).join('');
         }
 
         function renderQuestion(round) {
+            const overlay = document.getElementById('game-status-overlay');
+            const title = document.getElementById('question-title');
+            const detail = document.getElementById('question-detail');
+            const optionsDiv = document.getElementById('question-options');
+            const submitBtn = document.getElementById('submit-answer-btn');
+            
             if (!round || !round.question) {
-                questionTitle.textContent = 'Chưa có câu hỏi nào được mở.';
-                questionDetail.textContent = 'Đợi chủ phòng bắt đầu hoặc vòng kế tiếp được tạo.';
-                questionOptions.innerHTML = '';
-                submitAnswerBtn.disabled = true;
-                questionTimer.textContent = '';
-                if (answerInlineFeedback) {
-                    answerInlineFeedback.textContent = '';
+                if(overlay) {
+                    overlay.classList.remove('hidden');
+                    const msgEl = document.getElementById('game-overlay-msg');
+                    const titleEl = document.getElementById('game-overlay-title');
+                    if(roomState.status === 'lobby') {
+                        titleEl.textContent = 'Sảnh chờ';
+                        msgEl.textContent = 'Chủ phòng chưa bắt đầu trận đấu.';
+                    } else if (roomState.status === 'completed') {
+                        titleEl.textContent = 'Kết thúc';
+                        msgEl.textContent = 'Trận đấu đã hoàn thành. Kiểm tra bảng xếp hạng!';
+                    } else {
+                        titleEl.textContent = 'Đang chuẩn bị';
+                        msgEl.textContent = 'Đợi vòng tiếp theo...';
+                    }
                 }
-                renderAnswerFeedbackPanel(null);
-                renderQuestionStats(null);
-                lastRenderedRound = null;
-                currentQuestionItemId = null;
-                setInsightControlsEnabled(false);
-                setFeedbackControlsEnabled(false);
-                updateInsightPanel(null, false);
                 return;
             }
-            const question = round.question;
-            questionTitle.textContent = question.question || 'Câu hỏi chưa có nội dung';
-            questionDetail.textContent = question.passage_text || '';
-            questionOptions.innerHTML = '';
-            const answeredByMe = round.answers?.some((answer) => answer.participant_id === participantId);
-            const canAnswer = Boolean(participantId);
-            const isNewRound = round.sequence_number !== lastRenderedRound;
-            const options = question.options || {};
-            const optionKeys = Object.keys(options);
-            optionKeys.forEach((optionKey) => {
-                const wrapper = document.createElement('label');
-                wrapper.className = 'qb-option';
-                const input = document.createElement('input');
-                input.type = 'radio';
-                input.name = 'selected_option';
-                input.value = optionKey;
-                const textWrap = document.createElement('div');
-                const title = document.createElement('p');
-                title.className = 'text-sm font-semibold text-slate-900';
-                title.textContent = optionKey;
-                const description = document.createElement('p');
-                description.className = 'text-sm text-slate-600';
-                description.textContent = options[optionKey] || 'Không có nội dung';
-                textWrap.appendChild(title);
-                textWrap.appendChild(description);
-                wrapper.appendChild(input);
-                wrapper.appendChild(textWrap);
-                questionOptions.appendChild(wrapper);
-            });
-            if (!optionKeys.length) {
-                const emptyState = document.createElement('p');
-                emptyState.className = 'text-sm text-slate-500';
-                emptyState.textContent = 'Câu hỏi này chưa có đáp án lựa chọn.';
-                questionOptions.appendChild(emptyState);
+
+            if(overlay) overlay.classList.add('hidden');
+
+            title.textContent = round.question.question || 'Câu hỏi...';
+            detail.textContent = round.question.passage_text || '';
+            
+            const opts = round.question.options || {};
+            const myAnswer = (round.answers || []).find(a => a.participant_id === participantId);
+            const answered = !!myAnswer;
+            
+            optionsDiv.innerHTML = Object.entries(opts).map(([key, val]) => `
+                <label class="qb-option-label ${myAnswer?.selected_option === key ? '!border-blue-500 !bg-blue-50' : ''}">
+                    <input type="radio" name="selected_option" value="${key}" class="qb-option-input" ${answered ? 'disabled' : ''} ${myAnswer?.selected_option === key ? 'checked' : ''}>
+                    <div>
+                        <span class="font-bold text-slate-700 mr-2">${key}.</span>
+                        <span class="text-slate-600">${val}</span>
+                    </div>
+                </label>
+            `).join('');
+
+            submitBtn.disabled = answered || !participantId;
+            submitBtn.innerHTML = answered ? '<i class="fa-solid fa-check"></i> Đã trả lời' : '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án';
+            
+            const timerEl = document.getElementById('question-timer');
+            if(timerEl) timerEl.textContent = round.time_remaining_seconds ? `${round.time_remaining_seconds}s` : '';
+
+            currentQuestionItemId = round.question.item_id;
+            if(answered) updateFeedbackAndInsights(round, myAnswer);
+            else {
+                document.getElementById('answer-feedback-panel').hidden = true;
+                document.getElementById('question-insight-panel').hidden = true;
             }
-            submitAnswerBtn.disabled = answeredByMe || !canAnswer;
-            if (round.time_remaining_seconds != null) {
-                questionTimer.textContent = `Thời gian còn lại: ${round.time_remaining_seconds}s`;
+            
+            renderStats(round);
+        }
+
+        function updateFeedbackAndInsights(round, answer) {
+            const panel = document.getElementById('answer-feedback-panel');
+            const insights = document.getElementById('question-insight-panel');
+            if(!answer) return;
+
+            panel.hidden = false;
+            insights.hidden = false;
+
+            const isCorrect = answer.is_correct;
+            document.getElementById('answer-feedback-icon').textContent = isCorrect ? '🎉' : '🤔';
+            document.getElementById('answer-feedback-title').textContent = isCorrect ? 'Chính xác!' : 'Chưa đúng';
+            document.getElementById('answer-feedback-detail').textContent = isCorrect ? `Bạn nhận được +${answer.score_delta} điểm.` : 'Đừng lo, hãy xem giải thích bên dưới.';
+            document.getElementById('answer-feedback-correct').textContent = answer.correct_option || '?';
+            document.getElementById('answer-feedback-score').textContent = (answer.score_delta > 0 ? '+' : '') + answer.score_delta;
+            
+            const expDiv = document.getElementById('answer-feedback-explanation');
+            expDiv.innerHTML = (answer.explanation || 'Chưa có giải thích.').replace(/\n/g, '<br>');
+
+            document.getElementById('question-ai-content').textContent = round.question.ai_explanation || 'AI đang nghỉ ngơi...';
+            
+            const noteContent = round.question.note_content || '';
+            document.getElementById('question-note-content').textContent = noteContent || 'Bạn chưa có ghi chú.';
+            document.getElementById('question-note-input').value = noteContent;
+        }
+
+        function renderStats(round) {
+            const answers = round.answers || [];
+            const total = answers.length;
+            const correct = answers.filter(a => a.is_correct).length;
+            
+            document.getElementById('question-stats-round').textContent = `#${round.sequence_number}`;
+            document.getElementById('question-stats-total').textContent = total;
+            document.getElementById('question-stats-accuracy').textContent = total ? Math.round((correct/total)*100) + '%' : '--%';
+            
+            const distDiv = document.getElementById('option-distribution');
+            if(total === 0) {
+                document.getElementById('question-stats-empty').hidden = false;
+                distDiv.innerHTML = '';
             } else {
-                questionTimer.textContent = '';
+                document.getElementById('question-stats-empty').hidden = true;
+                const counts = {};
+                answers.forEach(a => counts[a.selected_option] = (counts[a.selected_option] || 0) + 1);
+                distDiv.innerHTML = Object.entries(round.question.options || {}).map(([k, v]) => {
+                    const c = counts[k] || 0;
+                    const p = Math.round((c/total)*100);
+                    const isCorrect = k === answers.find(a=>a.participant_id === participantId)?.correct_option;
+                    return `
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 font-bold ${isCorrect ? 'text-emerald-600' : 'text-slate-500'}">${k}</span>
+                            <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full ${isCorrect ? 'bg-emerald-500' : 'bg-blue-400'}" style="width: ${p}%"></div>
+                            </div>
+                            <span class="text-xs text-slate-400 w-8 text-right">${c}</span>
+                        </div>
+                    `;
+                }).join('');
             }
-            const questionId = Number(question.item_id);
-            currentQuestionItemId = Number.isFinite(questionId) && questionId > 0 ? questionId : null;
-            const canUseInsights = Boolean(answeredByMe && currentQuestionItemId);
-            setInsightControlsEnabled(canUseInsights);
-            setFeedbackControlsEnabled(canUseInsights);
-            if (!canUseInsights) {
-                toggleInsightPanel(false);
-            }
-            updateInsightPanel(question, answeredByMe);
-            if (answerInlineFeedback) {
-                if (answeredByMe) {
-                    answerInlineFeedback.textContent = 'Bạn đã gửi đáp án cho câu hỏi này.';
-                } else if (!canAnswer) {
-                    answerInlineFeedback.textContent = 'Bạn không thể trả lời câu hỏi này.';
-                } else {
-                    answerInlineFeedback.textContent = '';
-                }
-            }
-            if (isNewRound) {
-                if (answerInlineFeedback) {
-                    answerInlineFeedback.textContent = '';
-                }
-                renderAnswerFeedbackPanel(null);
-            }
-            lastRenderedRound = round.sequence_number;
-            renderQuestionStats(round);
         }
 
-        function updateRoundMeta(room) {
-            if (!room) {
-                return;
-            }
-            const current = room.current_round_number || 0;
-            const total = room.question_total || 0;
-            roundProgress.textContent = `Tiến độ: ${current}/${total} câu hỏi`;
-            roomMode.textContent = formatMode(room);
-        }
+        function hydrateUi() {
+            document.getElementById('room-status').textContent = initialRoom.status || roomState.status;
+            document.getElementById('room-status').dataset.status = roomState.status;
+            document.getElementById('round-progress').textContent = `Tiến độ: ${roomState.current_round_number || 0}/${roomState.question_total || 0}`;
+            document.getElementById('room-mode').textContent = `Chế độ: ${roomState.mode === 'TIMED' ? 'Tính giờ' : 'Thường'}`;
 
-        function updateStatusBadge(status) {
-            if (!statusBadge) {
-                return;
-            }
-            statusBadge.dataset.status = status;
-            statusBadge.textContent = formatStatus(status);
-        }
+            renderParticipants(roomState.participants || []);
+            renderQuestion(roomState.active_round);
 
-        function getAnswerUrl(sequenceNumber) {
-            return answerUrlTemplate.replace('/0/', `/${sequenceNumber}/`);
-        }
-
-        async function postJson(url, payload) {
-            const headers = {
-                'Content-Type': 'application/json'
-            };
-            if (csrfToken) {
-                headers['X-CSRFToken'] = csrfToken;
+            const canStart = isHost && roomState.status === 'lobby';
+            const canEnd = isHost && roomState.status !== 'completed';
+            document.getElementById('start-room-btn').disabled = !canStart;
+            document.getElementById('end-room-btn').disabled = !canEnd;
+            if(roomState.status === 'completed') {
+                document.getElementById('leave-room-btn').innerHTML = '<i class="fa-solid fa-person-walking-arrow-right"></i> Thoát';
             }
-            const response = await fetch(url, {
-                method: 'POST',
-                headers,
-                body: payload ? JSON.stringify(payload) : '{}'
-            });
-            if (!response.ok) {
-                throw new Error(await response.text());
-            }
-            return response.json();
         }
 
         async function fetchRoomState() {
             try {
-                const response = await fetch(fetchRoomUrl);
-                if (!response.ok) {
-                    throw new Error(await response.text());
+                const res = await fetch(fetchRoomUrl);
+                if(res.ok) {
+                    const data = await res.json();
+                    roomState = data.room;
+                    hydrateUi();
                 }
-                const data = await response.json();
-                roomState = data.room;
-                hydrateUi();
-            } catch (error) {
-                setAlert(`Không thể cập nhật phòng: ${error.message}`, 'error');
-            }
+            } catch(e) { console.error("Sync error", e); }
         }
 
-        async function loadMessages() {
+        // --- Event Listeners (Đã thêm error handling) ---
+        
+        document.getElementById('start-room-btn').addEventListener('click', async () => {
             try {
-                const response = await fetch(messagesUrl);
-                if (!response.ok) {
-                    throw new Error(await response.text());
-                }
-                const data = await response.json();
-                renderMessages(data.messages || []);
-            } catch (error) {
-                if (!messagesLoaded) {
-                    chatMessages.innerHTML = '';
-                    const errorMsg = document.createElement('p');
-                    errorMsg.className = 'text-sm text-rose-500';
-                    errorMsg.textContent = error.message;
-                    chatMessages.appendChild(errorMsg);
-                }
-            }
-        }
-
-        function renderMessages(messages) {
-            if (!chatMessages) {
-                return;
-            }
-            messagesLoaded = true;
-            chatMessages.innerHTML = '';
-            if (!messages.length) {
-                chatMessages.innerHTML = '<p class="text-sm text-slate-500">Chưa có tin nhắn nào.</p>';
-                return;
-            }
-            for (const message of messages) {
-                const bubble = document.createElement('div');
-                bubble.className = 'qb-chat-message';
-                const timestamp = message.created_at ? new Date(message.created_at).toLocaleTimeString() : '';
-                const meta = document.createElement('p');
-                const strong = document.createElement('strong');
-                strong.textContent = message.username || 'Ẩn danh';
-                const time = document.createElement('span');
-                time.className = 'text-xs text-slate-500';
-                time.textContent = timestamp;
-                meta.appendChild(strong);
-                if (timestamp) {
-                    meta.append(' ');
-                    meta.appendChild(time);
-                }
-                const body = document.createElement('p');
-                body.className = 'text-sm text-slate-700';
-                body.textContent = message.content;
-                bubble.appendChild(meta);
-                bubble.appendChild(body);
-                chatMessages.appendChild(bubble);
-            }
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function hydrateUi() {
-            if (!roomState) {
-                return;
-            }
-            updateStatusBadge(roomState.status);
-            renderParticipants(roomState.participants);
-            renderQuestion(roomState.active_round);
-            updateRoundMeta(roomState);
-            if (roomState.status === 'completed') {
-                submitAnswerBtn.disabled = true;
-            }
-            setAlert('');
-            updateControlStates();
-        }
-
-        function updateControlStates() {
-            const status = roomState?.status;
-            const canStart = isHost && status === 'lobby';
-            const canEnd = isHost && status !== 'completed';
-            startRoomBtn.disabled = !canStart;
-            endRoomBtn.disabled = !canEnd;
-            if (status === 'completed') {
-                leaveRoomBtn.textContent = 'Thoát khỏi phòng';
-            }
-        }
-
-        noteEditBtn?.addEventListener('click', () => {
-            if (!currentQuestionItemId) {
-                return;
-            }
-            toggleNoteEditor(true);
+                await postJson(startRoomUrl);
+                fetchRoomState();
+            } catch(e) { setAlert(e.message, 'error'); }
         });
 
-        noteCancelBtn?.addEventListener('click', () => {
-            if (!noteTextarea) {
-                toggleNoteEditor(false);
-                return;
-            }
-            const content = roomState?.active_round?.question?.note_content || '';
-            noteTextarea.value = content;
-            toggleNoteEditor(false);
-        });
-
-        noteSaveBtn?.addEventListener('click', saveCurrentNote);
-
-        feedbackSubmitBtn?.addEventListener('click', async () => {
-            if (!currentQuestionItemId || !feedbackInput) {
-                return;
-            }
-            const feedbackText = feedbackInput.value.trim();
-            if (!feedbackText) {
-                setAlert('Vui lòng nhập nội dung phản hồi trước khi gửi.', 'error');
-                return;
-            }
+        document.getElementById('end-room-btn').addEventListener('click', async () => {
+            if(!confirm('Kết thúc trận đấu?')) return;
             try {
-                feedbackSubmitBtn.disabled = true;
-                const response = await postJson(feedbackSubmitUrl, {
-                    item_id: currentQuestionItemId,
-                    feedback_text: feedbackText,
-                });
-                if (!response?.success) {
-                    throw new Error(response?.message || 'Không thể gửi phản hồi.');
-                }
-                feedbackInput.value = '';
-                setAlert('Cảm ơn bạn! Phản hồi đã được ghi nhận.', 'info');
-            } catch (error) {
-                setAlert(`Không thể gửi phản hồi: ${error.message}`, 'error');
-            } finally {
-                feedbackSubmitBtn.disabled = false;
-            }
+                await postJson(endRoomUrl);
+                fetchRoomState();
+            } catch(e) { setAlert(e.message, 'error'); }
         });
 
-        answerForm?.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            if (!roomState?.active_round) {
-                return;
-            }
-            const formData = new FormData(answerForm);
-            const selected = formData.get('selected_option');
-            if (!selected) {
-                setAlert('Vui lòng chọn đáp án trước khi gửi.', 'error');
-                return;
-            }
-            try {
-                submitAnswerBtn.disabled = true;
-                const answerUrl = getAnswerUrl(roomState.active_round.sequence_number);
-                const data = await postJson(answerUrl, { selected_option: selected });
-                roomState = data.room;
-                hydrateUi();
-                renderAnswerFeedbackPanel(data.answer);
-            } catch (error) {
-                submitAnswerBtn.disabled = false;
-                setAlert(`Không thể gửi đáp án: ${error.message}`, 'error');
-            }
-        });
-
-        startRoomBtn?.addEventListener('click', async () => {
-            if (!isHost) {
-                return;
-            }
-            try {
-                startRoomBtn.disabled = true;
-                const data = await postJson(startRoomUrl);
-                roomState = data.room;
-                hydrateUi();
-                setAlert('✅ Đã khởi động trận đấu.');
-            } catch (error) {
-                startRoomBtn.disabled = false;
-                setAlert(`Không thể bắt đầu: ${error.message}`, 'error');
-            }
-        });
-
-        endRoomBtn?.addEventListener('click', async () => {
-            if (!isHost) {
-                return;
-            }
-            if (!confirm('Kết thúc trận đấu ngay bây giờ?')) {
-                return;
-            }
-            try {
-                endRoomBtn.disabled = true;
-                const data = await postJson(endRoomUrl);
-                roomState = data.room;
-                hydrateUi();
-                setAlert('Trận đấu đã kết thúc.');
-            } catch (error) {
-                endRoomBtn.disabled = false;
-                setAlert(`Không thể kết thúc: ${error.message}`, 'error');
-            }
-        });
-
-        leaveRoomBtn?.addEventListener('click', async () => {
-            if (!confirm('Bạn chắc chắn muốn rời phòng?')) {
-                return;
-            }
+        document.getElementById('leave-room-btn').addEventListener('click', async () => {
+            if(!confirm('Rời phòng?')) return;
             try {
                 await postJson(leaveRoomUrl);
-                setAlert('Bạn đã rời phòng. Hãy đóng tab này.', 'info');
-            } catch (error) {
-                setAlert(`Không thể rời phòng: ${error.message}`, 'error');
-            }
+                window.location.href = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
+            } catch(e) { setAlert(e.message, 'error'); }
         });
-
-        copyCodeBtn?.addEventListener('click', async () => {
+        
+        document.getElementById('answer-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const selected = new FormData(e.target).get('selected_option');
+            if(!selected) return setAlert('Chọn một đáp án!', 'error');
+            
+            const btn = document.getElementById('submit-answer-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang gửi...';
+            
             try {
-                await navigator.clipboard.writeText(roomCode);
-                setAlert('Đã sao chép mã phòng.', 'info');
-            } catch (_) {
-                setAlert('Không thể sao chép mã.', 'error');
+                const seq = roomState.active_round.sequence_number;
+                const url = answerUrlTemplate.replace('/0/', `/${seq}/`);
+                const data = await postJson(url, { selected_option: selected });
+                roomState = data.room;
+                hydrateUi();
+            } catch(err) {
+                setAlert(err.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'Thử lại';
             }
         });
 
-        chatForm?.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const content = chatInput.value.trim();
-            if (!content) {
-                return;
-            }
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const content = input.value.trim();
+            if(!content) return;
             try {
                 await postJson(postMessageUrl, { content });
-                chatInput.value = '';
+                input.value = '';
                 loadMessages();
-            } catch (error) {
-                setAlert(`Không thể gửi tin nhắn: ${error.message}`, 'error');
-            }
+            } catch(e) { setAlert('Lỗi gửi tin nhắn: ' + e.message, 'error'); }
         });
 
+        // Notes & Feedback Listeners (Standard toggle logic)
+        document.getElementById('question-note-edit').addEventListener('click', () => {
+            document.getElementById('question-note-editor').classList.remove('hidden');
+            document.getElementById('question-note-content').classList.add('hidden');
+        });
+        document.getElementById('question-note-cancel').addEventListener('click', () => {
+            document.getElementById('question-note-editor').classList.add('hidden');
+            document.getElementById('question-note-content').classList.remove('hidden');
+        });
+        document.getElementById('question-note-save').addEventListener('click', async () => {
+            const content = document.getElementById('question-note-input').value;
+            const url = noteSaveUrlTemplate.replace('0', currentQuestionItemId);
+            try {
+                await postJson(url, { content });
+                document.getElementById('question-note-content').textContent = content;
+                document.getElementById('question-note-editor').classList.add('hidden');
+                document.getElementById('question-note-content').classList.remove('hidden');
+            } catch(e) { setAlert(e.message, 'error'); }
+        });
+        
+        document.getElementById('copy-room-code').addEventListener('click', () => {
+            navigator.clipboard.writeText(roomCode);
+            setAlert('Đã sao chép mã phòng!');
+            setTimeout(() => setAlert(''), 2000);
+        });
+
+        // Init
         hydrateUi();
         loadMessages();
-        roomPollInterval = setInterval(fetchRoomState, 5000);
-        chatPollInterval = setInterval(loadMessages, 7000);
-
+        roomPollInterval = setInterval(fetchRoomState, 3000);
+        chatPollInterval = setInterval(loadMessages, 5000);
+        
         window.addEventListener('beforeunload', () => {
-            if (roomPollInterval) {
-                clearInterval(roomPollInterval);
-            }
-            if (chatPollInterval) {
-                clearInterval(chatPollInterval);
-            }
+            clearInterval(roomPollInterval);
+            clearInterval(chatPollInterval);
         });
+
     })();
 </script>
 {% endblock %}

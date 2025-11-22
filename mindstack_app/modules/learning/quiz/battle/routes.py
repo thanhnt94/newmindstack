@@ -117,8 +117,9 @@ def create_room():
             max_players = int(max_players)
         except (ValueError, TypeError):
             abort(400, description='Số người chơi tối đa phải là số nguyên dương.')
-        if max_players < 2:
-            abort(400, description='Phòng đấu cần ít nhất hai người chơi.')
+        # ĐÃ SỬA: Cho phép tạo phòng tối thiểu 1 người (thay vì 2)
+        if max_players < 1:
+            abort(400, description='Phòng đấu cần ít nhất một người chơi.')
 
     title = payload.get('title') or f'Thi đấu: {container.title}'
 
@@ -432,8 +433,9 @@ def start_room(room_code: str):
     if room.status != QuizBattleRoom.STATUS_LOBBY:
         abort(400, description='Phòng đã được khởi động hoặc đã kết thúc.')
 
-    if len(get_active_participants(room)) < 2:
-        abort(400, description='Cần ít nhất 2 người chơi để bắt đầu thi đấu.')
+    # ĐÃ SỬA: Cho phép bắt đầu khi chỉ có 1 người chơi (người host)
+    if len(get_active_participants(room)) < 1:
+        abort(400, description='Cần ít nhất 1 người chơi để bắt đầu thi đấu.')
 
     ensure_question_order(room)
     if not room.question_order:
