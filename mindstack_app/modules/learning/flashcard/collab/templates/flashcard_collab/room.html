@@ -373,6 +373,7 @@
       text-transform: uppercase; font-weight: 700; color: #475569; font-size: 0.95rem;
       padding: 0.35rem 0.75rem; background: #f8fafc; border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.35); box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06); flex: 1; text-align: center;
+      cursor: pointer;
     }
     .card-toolbar .icon-btn, .card-toolbar .play-audio-btn { cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
     .card-toolbar .icon-btn { width: 40px; height: 40px; border-radius: 12px; background: #f8fafc; color: #475569; border: 1px solid rgba(148, 163, 184, 0.28); }
@@ -393,6 +394,21 @@
     .rating-btn--hard { background: linear-gradient(135deg, #f59e0b, #b45309); color: #1f2937; } .rating-btn--hard .rating-btn__icon { background: rgba(15, 23, 42, 0.12); color: #1f2937; }
     .rating-btn--good { background: linear-gradient(135deg, #34d399, #059669); }
     .pill { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.4rem 0.85rem; font-weight: 600; font-size: 0.85rem; }
+
+    .flip-card-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.85rem 1.75rem;
+      border-radius: 0.75rem; font-weight: 600; transition: all 0.2s ease-in-out;
+      background: linear-gradient(135deg, #f59e0b, #f97316); color: white;
+      box-shadow: 0 14px 30px rgba(249, 115, 22, 0.25); border: none; letter-spacing: 0.02em;
+    }
+    .flip-card-btn:hover {
+      background: linear-gradient(135deg, #ea580c, #f97316); transform: translateY(-2px);
+      box-shadow: 0 18px 36px rgba(234, 88, 12, 0.35);
+    }
+    .flip-card-btn:focus-visible {
+      outline: 3px solid rgba(244, 114, 182, 0.35);
+      outline-offset: 3px;
+    }
 
     .mobile-chat-toggle {
       display: none;
@@ -732,6 +748,8 @@
       const cardFrontMediaEl = document.getElementById('collab-card-front-media');
       const cardBackMediaEl = document.getElementById('collab-card-back-media');
       const cardEl = document.getElementById('collab-card');
+      const frontLabel = cardEl?.querySelector('.front .card-toolbar .label');
+      const backLabel = cardEl?.querySelector('.back .card-toolbar .label');
       const statusEl = document.getElementById('collab-round-status');
       const participantsEl = document.getElementById('collab-round-participants');
       const answerButtons = document.querySelectorAll('.collab-answer-btn');
@@ -1031,6 +1049,16 @@
 
       answerButtons.forEach((btn) => {
         btn.addEventListener('click', () => submitAnswer(btn.dataset.answer));
+      });
+
+      frontLabel?.addEventListener('click', (evt) => {
+        evt.stopPropagation();
+        showBackSide();
+      });
+
+      backLabel?.addEventListener('click', (evt) => {
+        evt.stopPropagation();
+        showFrontSide();
       });
 
       flipBtn?.addEventListener('click', showBackSide);
