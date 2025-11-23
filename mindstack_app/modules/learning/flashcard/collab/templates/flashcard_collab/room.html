@@ -506,7 +506,8 @@
 
   <div class="session-layout">
     <!-- CỘT TRÁI: FLASHCARD -->
-    {% include 'flashcard/_flashcard_items.html' with collab_mode=True %}
+    {% set collab_mode = True %}
+    {% include 'flashcard/_flashcard_items.html' %}
 
     <!-- CỘT PHẢI: SIDEBAR + CHAT -->
     <div class="session-sidebar" id="sidebar-container">
