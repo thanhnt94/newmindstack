@@ -367,7 +367,7 @@
     }
     .toolbar-left, .toolbar-right { display: inline-flex; align-items: center; gap: 0.35rem; flex: 1; }
     .toolbar-right { justify-content: flex-end; }
-    .card-toolbar .mobile-info-btn { display: none; }
+    .card-toolbar .mobile-info-btn { display: none !important; }
     
     .card-toolbar .label {
       text-transform: uppercase; font-weight: 700; color: #475569; font-size: 0.95rem;
@@ -467,7 +467,7 @@
       .session-sidebar { display: none !important; } /* Ẩn cột phải ở mobile */
       .actions { padding: 0.75rem; gap: 0.5rem; position: sticky; bottom: 0; }
       .flashcard-card-container { min-height: 60vh; }
-      .card-toolbar .mobile-info-btn { display: inline-flex; }
+      .card-toolbar .mobile-info-btn { display: inline-flex !important; }
       
       /* Chat Panel Mobile Overlay */
       .chat-panel {
