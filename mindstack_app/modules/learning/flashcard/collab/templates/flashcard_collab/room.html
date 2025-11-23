@@ -373,6 +373,7 @@
       text-transform: uppercase; font-weight: 700; color: #475569; font-size: 0.95rem;
       padding: 0.35rem 0.75rem; background: #f8fafc; border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.35); box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06); flex: 1; text-align: center;
+      cursor: pointer;
     }
     .card-toolbar .icon-btn, .card-toolbar .play-audio-btn { cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
     .card-toolbar .icon-btn { width: 40px; height: 40px; border-radius: 12px; background: #f8fafc; color: #475569; border: 1px solid rgba(148, 163, 184, 0.28); }
@@ -393,6 +394,21 @@
     .rating-btn--hard { background: linear-gradient(135deg, #f59e0b, #b45309); color: #1f2937; } .rating-btn--hard .rating-btn__icon { background: rgba(15, 23, 42, 0.12); color: #1f2937; }
     .rating-btn--good { background: linear-gradient(135deg, #34d399, #059669); }
     .pill { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.4rem 0.85rem; font-weight: 600; font-size: 0.85rem; }
+
+    .flip-card-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.85rem 1.75rem;
+      border-radius: 0.75rem; font-weight: 600; transition: all 0.2s ease-in-out;
+      background: linear-gradient(135deg, #f59e0b, #f97316); color: white;
+      box-shadow: 0 14px 30px rgba(249, 115, 22, 0.25); border: none; letter-spacing: 0.02em;
+    }
+    .flip-card-btn:hover {
+      background: linear-gradient(135deg, #ea580c, #f97316); transform: translateY(-2px);
+      box-shadow: 0 18px 36px rgba(234, 88, 12, 0.35);
+    }
+    .flip-card-btn:focus-visible {
+      outline: 3px solid rgba(244, 114, 182, 0.35);
+      outline-offset: 3px;
+    }
 
     .mobile-chat-toggle {
       display: none;
@@ -506,88 +522,8 @@
 
   <div class="session-layout">
     <!-- CỘT TRÁI: FLASHCARD -->
-    <div class="card-surface flashcard-panel" id="collab-learning-card">
-      <div class="flex items-start justify-between gap-3 collab-room-meta hidden lg:flex">
-        <div>
-          <p class="text-sm text-slate-500">Thẻ tiếp theo sẽ xuất hiện khi tất cả thành viên đã trả lời.</p>
-          <div class="flex items-center gap-2 mt-2 text-sm text-slate-600">
-            <span class="pill bg-amber-50 text-amber-700"><i class="fas fa-circle-notch animate-spin"></i> Đang tải thẻ đầu tiên...</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="text-right">
-            <p class="text-xs text-slate-500">Điểm của bạn</p>
-            <p class="text-2xl font-extrabold text-indigo-600" id="collab-user-score">{{ current_user.total_score or 0 }}</p>
-          </div>
-          <button type="button" id="collab-refresh-round" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold bg-white shadow-sm hover:bg-slate-50">
-            <i class="fas fa-rotate"></i> Làm mới thẻ
-          </button>
-        </div>
-      </div>
-
-      <div class="flashcard-card-container">
-        <div class="flashcard-card" id="collab-card">
-          <div class="face front">
-            <div class="card-toolbar">
-              <div class="toolbar-left">
-                <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i class="fas fa-bars"></i></button>
-                <button type="button" class="icon-btn collab-ai-btn" title="Mindstack AI"><i class="fas fa-robot"></i></button>
-                <button type="button" class="icon-btn collab-note-btn" title="Ghi chú"><i class="fas fa-sticky-note"></i></button>
-              </div>
-              <span class="label">Mặt trước</span>
-              <div class="toolbar-right">
-                <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
-                <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
-                <button type="button" class="play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-headphones"></i></button>
-              </div>
-            </div>
-            <div class="_card-container">
-              <div class="text-area"><div id="collab-card-front" class="flashcard-content-text">—</div></div>
-              <div class="media-container hidden" id="collab-card-front-media"></div>
-            </div>
-            <div class="flex justify-center p-4">
-              <button type="button" id="collab-flip-btn" class="flip-card-btn">
-                <i class="fas fa-sync-alt"></i> Lật thẻ
-              </button>
-            </div>
-          </div>
-            <div class="face back">
-              <div class="card-toolbar">
-                <div class="toolbar-left">
-                <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i class="fas fa-bars"></i></button>
-                  <button type="button" class="icon-btn collab-ai-btn" title="Mindstack AI"><i class="fas fa-robot"></i></button>
-                  <button type="button" class="icon-btn collab-note-btn" title="Ghi chú"><i class="fas fa-sticky-note"></i></button>
-                </div>
-              <span class="label">Mặt sau</span>
-              <div class="toolbar-right">
-                <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
-                <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
-                <button type="button" class="play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-headphones"></i></button>
-              </div>
-            </div>
-            <div class="_card-container">
-              <div class="text-area"><div id="collab-card-back" class="flashcard-content-text">—</div></div>
-              <div class="media-container hidden" id="collab-card-back-media"></div>
-            </div>
-            <div class="actions" id="collab-answer-actions" data-button-count="3">
-              <button type="button" data-answer="quên" class="collab-answer-btn btn rating-btn rating-btn--again">
-                <span class="rating-btn__icon"><i class="fas fa-times"></i></span>
-                <span class="rating-btn__title">Quên</span>
-              </button>
-              <button type="button" data-answer="mơ_hồ" class="collab-answer-btn btn rating-btn rating-btn--hard">
-                <span class="rating-btn__icon"><i class="fas fa-adjust"></i></span>
-                <span class="rating-btn__title">Mơ hồ</span>
-              </button>
-              <button type="button" data-answer="nhớ" class="collab-answer-btn btn rating-btn rating-btn--good">
-                <span class="rating-btn__icon"><i class="fas fa-check"></i></span>
-                <span class="rating-btn__title">Nhớ</span>
-              </button>
-            </div>
-            <p id="collab-answer-feedback" class="text-xs text-slate-600 px-6 pb-2"></p>
-          </div>
-        </div>
-      </div>
-    </div>
+    {% set collab_mode = True %}
+    {% include 'flashcard/_flashcard_items.html' %}
 
     <!-- CỘT PHẢI: SIDEBAR + CHAT -->
     <div class="session-sidebar" id="sidebar-container">
@@ -812,6 +748,8 @@
       const cardFrontMediaEl = document.getElementById('collab-card-front-media');
       const cardBackMediaEl = document.getElementById('collab-card-back-media');
       const cardEl = document.getElementById('collab-card');
+      const frontLabel = cardEl?.querySelector('.front .card-toolbar .label');
+      const backLabel = cardEl?.querySelector('.back .card-toolbar .label');
       const statusEl = document.getElementById('collab-round-status');
       const participantsEl = document.getElementById('collab-round-participants');
       const answerButtons = document.querySelectorAll('.collab-answer-btn');
@@ -1111,6 +1049,16 @@
 
       answerButtons.forEach((btn) => {
         btn.addEventListener('click', () => submitAnswer(btn.dataset.answer));
+      });
+
+      frontLabel?.addEventListener('click', (evt) => {
+        evt.stopPropagation();
+        showBackSide();
+      });
+
+      backLabel?.addEventListener('click', (evt) => {
+        evt.stopPropagation();
+        showFrontSide();
       });
 
       flipBtn?.addEventListener('click', showBackSide);
