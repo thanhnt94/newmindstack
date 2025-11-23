@@ -821,19 +821,10 @@
 {% block content %}
 <div class="page-shell">
   <div class="session-layout">
-    <div class="flashcard-wrapper">
-      <div class="card-surface">
-        <div class="flashcard-panel">
-          <div id="flashcard-content">
-            <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>
-          </div>
-          <div id="flashcard-buttons" class="mt-3"></div>
-        </div>
-      </div>
+    {% include 'flashcard/_flashcard_items.html' %}
 
-      {# Nhúng bảng ghi chú #}
-      {% include 'notes/_note_panel.html' %}
-    </div>
+    {# Nhúng bảng ghi chú #}
+    {% include 'notes/_note_panel.html' %}
 
     {# Bao gồm file partial chứa giao diện thống kê #}
     {% include '_flashcard_session_stats.html' %}
