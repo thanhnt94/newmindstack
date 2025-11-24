@@ -1149,6 +1149,13 @@ def manage_system_settings():
     data_type_options = ['string', 'int', 'bool', 'path', 'json']
     category_order = ['paths', 'flashcard', 'quiz', 'course', 'other']
 
+    users = User.query.order_by(User.username.asc()).all()
+    quiz_sets = (
+        LearningContainer.query.filter_by(container_type='QUIZ_SET')
+        .order_by(LearningContainer.title.asc())
+        .all()
+    )
+
     return render_template(
         'system_settings.html',
         maintenance_mode=maintenance_mode,
@@ -1157,6 +1164,8 @@ def manage_system_settings():
         category_order=category_order,
         category_labels=SETTING_CATEGORY_LABELS,
         data_type_options=data_type_options,
+        users=users,
+        quiz_sets=quiz_sets,
     )
 
 
@@ -1315,6 +1324,158 @@ def delete_system_setting(setting_id):
     _refresh_runtime_settings()
 
     flash('Đã xóa cấu hình.', 'info')
+    return redirect(url_for('admin.manage_system_settings'))
+
+
+@admin_bp.route('/settings/reset-progress', methods=['POST'])
+def reset_learning_progress():
+    """
+    Đặt lại tiến độ học tập cho một người dùng hoặc toàn bộ người dùng của một bộ câu hỏi.
+    """
+
+    reset_scope = (request.form.get('reset_scope') or '').strip()
+    confirmation = (request.form.get('confirmation') or '').strip()
+
+    if reset_scope == 'user':
+        user_id_raw = request.form.get('user_id')
+        if not user_id_raw:
+            flash('Vui lòng chọn người dùng cần đặt lại tiến độ.', 'warning')
+            return redirect(url_for('admin.manage_system_settings'))
+
+        try:
+            user_id = int(user_id_raw)
+        except (TypeError, ValueError):
+            flash('ID người dùng không hợp lệ.', 'danger')
+            return redirect(url_for('admin.manage_system_settings'))
+
+        user = User.query.get(user_id)
+        if not user:
+            flash('Không tìm thấy người dùng được chọn.', 'danger')
+            return redirect(url_for('admin.manage_system_settings'))
+
+        expected_confirmation = f"RESET USER {user.username}"
+        if confirmation != expected_confirmation:
+            flash(
+                f"Bạn cần nhập chính xác chuỗi xác nhận: '{expected_confirmation}'.",
+                'warning',
+            )
+            return redirect(url_for('admin.manage_system_settings'))
+
+        deleted_states = (
+            UserContainerState.query.filter_by(user_id=user.user_id)
+            .delete(synchronize_session=False)
+        )
+        deleted_flashcards = (
+            FlashcardProgress.query.filter_by(user_id=user.user_id)
+            .delete(synchronize_session=False)
+        )
+        deleted_quizzes = (
+            QuizProgress.query.filter_by(user_id=user.user_id)
+            .delete(synchronize_session=False)
+        )
+        deleted_courses = (
+            CourseProgress.query.filter_by(user_id=user.user_id)
+            .delete(synchronize_session=False)
+        )
+        deleted_notes = (
+            UserNote.query.filter_by(user_id=user.user_id)
+            .delete(synchronize_session=False)
+        )
+        deleted_feedback = (
+            UserFeedback.query.filter_by(user_id=user.user_id)
+            .delete(synchronize_session=False)
+        )
+        deleted_scores = (
+            ScoreLog.query.filter_by(user_id=user.user_id)
+            .delete(synchronize_session=False)
+        )
+
+        user.total_score = 0
+        db.session.commit()
+
+        flash(
+            (
+                f"Đã đặt lại tiến độ của {user.username}. "
+                f"Xóa {deleted_flashcards} flashcard, {deleted_quizzes} quiz, {deleted_courses} khóa học, "
+                f"{deleted_states} trạng thái container, {deleted_notes} ghi chú, {deleted_feedback} phản hồi và {deleted_scores} log điểm."
+            ),
+            'success',
+        )
+        return redirect(url_for('admin.manage_system_settings'))
+
+    if reset_scope == 'container':
+        container_id_raw = request.form.get('container_id')
+        if not container_id_raw:
+            flash('Vui lòng chọn bộ câu hỏi cần đặt lại tiến độ.', 'warning')
+            return redirect(url_for('admin.manage_system_settings'))
+
+        try:
+            container_id = int(container_id_raw)
+        except (TypeError, ValueError):
+            flash('ID bộ câu hỏi không hợp lệ.', 'danger')
+            return redirect(url_for('admin.manage_system_settings'))
+
+        container = LearningContainer.query.get(container_id)
+        if not container:
+            flash('Không tìm thấy bộ câu hỏi được chọn.', 'danger')
+            return redirect(url_for('admin.manage_system_settings'))
+
+        expected_confirmation = f"RESET CONTAINER {container.container_id}"
+        if confirmation != expected_confirmation:
+            flash(
+                f"Bạn cần nhập chính xác chuỗi xác nhận: '{expected_confirmation}'.",
+                'warning',
+            )
+            return redirect(url_for('admin.manage_system_settings'))
+
+        item_subquery = (
+            db.session.query(LearningItem.item_id)
+            .filter(LearningItem.container_id == container.container_id)
+            .subquery()
+        )
+
+        deleted_flashcards = (
+            FlashcardProgress.query.filter(FlashcardProgress.item_id.in_(item_subquery))
+            .delete(synchronize_session=False)
+        )
+        deleted_quizzes = (
+            QuizProgress.query.filter(QuizProgress.item_id.in_(item_subquery))
+            .delete(synchronize_session=False)
+        )
+        deleted_courses = (
+            CourseProgress.query.filter(CourseProgress.item_id.in_(item_subquery))
+            .delete(synchronize_session=False)
+        )
+        deleted_notes = (
+            UserNote.query.filter(UserNote.item_id.in_(item_subquery))
+            .delete(synchronize_session=False)
+        )
+        deleted_feedback = (
+            UserFeedback.query.filter(UserFeedback.item_id.in_(item_subquery))
+            .delete(synchronize_session=False)
+        )
+        deleted_scores = (
+            ScoreLog.query.filter(ScoreLog.item_id.in_(item_subquery))
+            .delete(synchronize_session=False)
+        )
+        deleted_states = (
+            UserContainerState.query.filter_by(container_id=container.container_id)
+            .delete(synchronize_session=False)
+        )
+
+        db.session.commit()
+
+        flash(
+            (
+                f"Đã đặt lại tiến độ cho bộ câu hỏi '{container.title}'. "
+                f"Xóa {deleted_flashcards} flashcard, {deleted_quizzes} quiz, {deleted_courses} khóa học, "
+                f"{deleted_states} trạng thái container, {deleted_notes} ghi chú, {deleted_feedback} phản hồi và {deleted_scores} log điểm."
+            ),
+            'success',
+        )
+        return redirect(url_for('admin.manage_system_settings'))
+
+    flash('Phạm vi đặt lại không hợp lệ.', 'danger')
     return redirect(url_for('admin.manage_system_settings'))
     
 @admin_bp.route('/backup-restore')
