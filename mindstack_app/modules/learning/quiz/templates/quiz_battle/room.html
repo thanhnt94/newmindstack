@@ -62,6 +62,7 @@
     .qb-option-input { width: 1.25rem; height: 1.25rem; accent-color: #2563eb; }
     
     /* Chat Box Fix */
+    .qb-chat-panel { position: relative; }
     .qb-chat-container { height: 450px; display: flex; flex-direction: column; }
     .qb-chat-messages { flex: 1; overflow-y: auto; padding: 1rem; background: #f8fafc; scroll-behavior: smooth; }
     .qb-chat-input-area { padding: 0.75rem; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 0.5rem; }
@@ -71,6 +72,58 @@
     .qb-msg-content { padding: 0.5rem 0.8rem; border-radius: 0.75rem; font-size: 0.9rem; max-width: 85%; word-break: break-word; }
     .qb-chat-bubble.me .qb-msg-content { background: #3b82f6; color: white; border-bottom-right-radius: 0.1rem; }
     .qb-chat-bubble.other .qb-msg-content { background: #e2e8f0; color: #1e293b; border-bottom-left-radius: 0.1rem; }
+
+    .qb-mobile-chat-toggle {
+        display: none;
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 70;
+        box-shadow: 0 14px 30px rgba(59, 130, 246, 0.3);
+        background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 999px;
+        padding: 0.65rem;
+        gap: 0.4rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        min-width: 0;
+        width: 3.25rem;
+        height: 3.25rem;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        pointer-events: auto;
+        touch-action: manipulation;
+    }
+
+    .qb-mobile-chat-toggle i { font-size: 1.05rem; }
+    .qb-mobile-chat-label { display: none; }
+
+    @media (min-width: 520px) and (max-width: 1024px) {
+        .qb-mobile-chat-toggle {
+            width: auto;
+            height: auto;
+            padding: 0.65rem 0.95rem;
+            border-radius: 999px;
+            gap: 0.5rem;
+        }
+
+        .qb-mobile-chat-label { display: inline; }
+    }
+
+    .qb-mobile-chat-toggle:hover {
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 18px 38px rgba(37, 99, 235, 0.32);
+        filter: brightness(1.03);
+    }
+
+    .qb-mobile-chat-toggle:active { transform: translateY(0); filter: brightness(0.98); }
+    .qb-mobile-chat-toggle.is-active { box-shadow: 0 16px 32px rgba(37, 99, 235, 0.35); }
+
+    .qb-close-chat-btn { display: none; }
 
     /* Status Badge */
     .status-badge { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 0.35rem 0.75rem; border-radius: 999px; letter-spacing: 0.05em; }
@@ -91,6 +144,15 @@
     /* Responsive Grid */
     .qb-layout-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
     @media (min-width: 1024px) { .qb-layout-grid { grid-template-columns: 2fr 1fr; } }
+
+    @media (max-width: 1024px) {
+        .qb-chat-panel { display: flex; position: fixed; inset: 0; z-index: 9990; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(8px); align-items: flex-end; justify-content: center; padding: 0.75rem; opacity: 0; visibility: hidden; pointer-events: none; transition: all 0.3s ease; }
+        .qb-chat-panel .qb-chat-container { width: 100%; max-width: 720px; height: 90vh !important; background: #ffffff; border-radius: 18px 18px 0 0; padding-bottom: 1.5rem; transform: translateY(12%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .qb-chat-panel.open { opacity: 1; visibility: visible; pointer-events: auto; }
+        .qb-chat-panel.open .qb-chat-container { transform: translateY(0); }
+        .qb-close-chat-btn { display: inline-flex; }
+        .qb-mobile-chat-toggle { display: flex; }
+    }
 </style>
 {% endblock %}
 
@@ -276,27 +338,37 @@
                 </div>
             </div>
 
-            {# 3. Chat Box (Fixed) #}
-            <div class="cm-card qb-chat-container">
-                <div class="cm-card-header py-2">
-                    <span class="cm-card-title text-sm"><i class="fa-solid fa-comments text-blue-400"></i> Thảo luận</span>
+            {# 3. Chat Box (Fixed / Mobile Popup) #}
+            <div id="quiz-chat-panel" class="qb-chat-panel">
+                <div class="cm-card qb-chat-container">
+                    <div class="cm-card-header py-2 flex items-center justify-between gap-2">
+                        <span class="cm-card-title text-sm"><i class="fa-solid fa-comments text-blue-400"></i> Thảo luận</span>
+                        <button type="button" id="close-chat-btn" class="qb-close-chat-btn items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-xs font-semibold text-slate-700 hover:bg-slate-200">
+                            <i class="fa-solid fa-xmark"></i> Đóng
+                        </button>
+                    </div>
+
+                    <div id="chat-messages" class="qb-chat-messages">
+                        <p class="text-center text-xs text-slate-400 mt-4">Bắt đầu trò chuyện...</p>
+                    </div>
+
+                    <form id="chat-form" class="qb-chat-input-area">
+                        <input type="text" id="chat-input" class="flex-1 rounded-full border-slate-200 text-sm px-4 py-2 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition outline-none" placeholder="Nhập tin nhắn..." autocomplete="off">
+                        <button type="submit" class="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 shadow-sm transition">
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                        </button>
+                    </form>
                 </div>
-                
-                <div id="chat-messages" class="qb-chat-messages">
-                    <p class="text-center text-xs text-slate-400 mt-4">Bắt đầu trò chuyện...</p>
-                </div>
-                
-                <form id="chat-form" class="qb-chat-input-area">
-                    <input type="text" id="chat-input" class="flex-1 rounded-full border-slate-200 text-sm px-4 py-2 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition outline-none" placeholder="Nhập tin nhắn..." autocomplete="off">
-                    <button type="submit" class="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 shadow-sm transition">
-                        <i class="fa-solid fa-paper-plane text-xs"></i>
-                    </button>
-                </form>
             </div>
 
         </div>
     </div>
 </div>
+
+<button type="button" id="open-chat-btn" class="qb-mobile-chat-toggle" aria-label="Mở chat">
+    <i class="fa-solid fa-comments"></i>
+    <span class="qb-mobile-chat-label">Chat</span>
+</button>
 {% endblock %}
 
 {% block scripts %}
@@ -321,6 +393,9 @@
         const noteSaveUrlTemplate = {{ url_for('notes.save_note', item_id=0) | tojson }};
         const feedbackSubmitUrl = {{ url_for('feedback.submit_feedback') | tojson }};
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const chatPanel = document.getElementById('quiz-chat-panel');
+        const openChatBtn = document.getElementById('open-chat-btn');
+        const closeChatBtn = document.getElementById('close-chat-btn');
 
         let roomState = initialRoom || {};
         let lastRenderMeta = { sequence: roomState?.active_round?.sequence_number || null, hasMyAnswer: false };
@@ -409,6 +484,20 @@
                     aiCoachGenerateBtn.disabled = false;
                     aiCoachGenerateBtn.innerHTML = aiCoachButtonDefaultHtml;
                 }
+            }
+        }
+
+        function setChatOpen(isOpen) {
+            if (!chatPanel) return;
+            chatPanel.classList.toggle('open', isOpen);
+
+            if (openChatBtn) {
+                openChatBtn.classList.toggle('is-active', isOpen);
+                openChatBtn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
+            }
+
+            if (isOpen) {
+                setTimeout(() => document.getElementById('chat-input')?.focus({ preventScroll: true }), 120);
             }
         }
 
@@ -764,6 +853,18 @@
                 input.value = '';
                 loadMessages();
             } catch(e) { setAlert('Lỗi gửi tin nhắn: ' + e.message, 'error'); }
+        });
+
+        openChatBtn?.addEventListener('click', () => {
+            setChatOpen(!chatPanel?.classList.contains('open'));
+        });
+
+        closeChatBtn?.addEventListener('click', () => setChatOpen(false));
+
+        chatPanel?.addEventListener('click', (event) => {
+            if (event.target === chatPanel) {
+                setChatOpen(false);
+            }
         });
 
         // Notes & Feedback Listeners (Standard toggle logic)
