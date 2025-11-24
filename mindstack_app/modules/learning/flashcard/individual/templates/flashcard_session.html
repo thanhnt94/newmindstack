@@ -117,7 +117,7 @@
         .page-shell {
             top: var(--header-h, 0px);
             bottom: 0;
-            padding: 0.125rem 0.125rem 0;
+            padding: 0.05rem 0.05rem 0;
             height: calc(var(--vh, 1vh) * 100);
             min-height: calc(var(--vh, 1vh) * 100);
         }
@@ -126,7 +126,7 @@
             flex-direction: column;
             width: 100%;
             height: 100%;
-            padding: 0.35rem 0.5rem 0.5rem !important;
+            padding: 0.2rem 0.3rem 0.35rem !important;
             overflow: hidden; /* Quan trọng: Loại bỏ cuộn trên layout chính */
         }
         .stats-modal-body .statistics-card { display:block !important; }
@@ -143,7 +143,7 @@
         }
         #flashcard-content {
             flex: 1;
-            padding: 0.35rem; /* Thêm padding nhẹ để nội dung không bị sát viền */
+            padding: 0.25rem; /* Thêm padding nhẹ để nội dung không bị sát viền */
         }
         .flashcard-card-container, .flashcard-card {
             height: 100%;
@@ -153,25 +153,25 @@
         }
         .face {
             /* SỬA LỖI 2: Đảm bảo có đủ padding cho thanh toolbar trên di động */
-            padding: calc(40px + env(safe-area-inset-top, 0px)) 0.35rem 0.4rem 0.35rem !important;
+            padding: calc(32px + env(safe-area-inset-top, 0px)) 0.25rem 0.3rem 0.25rem !important;
         }
         ._card-container {
             /* THÊM MỚI: Tối ưu layout nội dung trên mobile */
-            padding: 0.15rem !important;
+            padding: 0.1rem !important;
         }
         .text-area {
             flex: 1;
-            padding: 0.2rem 0.05rem !important;
+            padding: 0.15rem 0.05rem !important;
         }
         .actions {
             margin-top: 0.5rem !important;
-            padding: 0.35rem 0.35rem !important;
-            gap: 0.25rem;
+            padding: 0.25rem 0.25rem !important;
+            gap: 0.2rem;
             justify-content: center;
             width: 100%;
         }
         .flashcard-card {
-            padding: 0.15rem !important;
+            padding: 0.1rem !important;
         }
     }
 
@@ -262,7 +262,7 @@
         position: absolute;
         inset: 0;
         /* ĐÃ SỬA: Tăng padding-top để tạo khoảng trống an toàn cho toolbar */
-        padding: 60px 1.5rem 1.5rem 1.5rem;
+        padding: 52px 1.25rem 1.25rem 1.25rem;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -374,25 +374,26 @@
 
     @media (max-width: 640px) {
         .card-toolbar {
-            padding: 0.5rem 0.65rem;
-            gap: 0.5rem;
-            row-gap: 0.35rem;
-            column-gap: 0.35rem;
+            padding: 0.4rem 0.55rem;
+            gap: 0.35rem;
+            row-gap: 0.25rem;
+            column-gap: 0.25rem;
         }
         .toolbar-left, .toolbar-right {
-            gap: 0.25rem;
+            gap: 0.2rem;
             flex: 1 1 0;
         }
         .card-toolbar .label {
-            font-size: 0.8rem;
-            padding: 0.25rem 0.55rem;
-            min-width: 96px;
+            font-size: 0.75rem;
+            padding: 0.2rem 0.45rem;
+            min-width: 82px;
+            flex: 0 1 auto;
         }
         .card-toolbar .icon-btn {
-            width: 34px;
-            height: 34px;
+            width: 32px;
+            height: 32px;
             border-radius: 10px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
         .actions .btn {
             padding: 0.75rem 0.85rem;
@@ -447,29 +448,30 @@
 
     @media (max-width: 1024px) {
         .card-toolbar {
-            padding: calc(0.35rem + env(safe-area-inset-top, 0px)) 0.5rem 0.5rem;
-            gap: 0.45rem;
+            padding: calc(0.3rem + env(safe-area-inset-top, 0px)) 0.4rem 0.4rem;
+            gap: 0.35rem;
         }
         .toolbar-left,
         .toolbar-right {
-            gap: 0.25rem;
+            gap: 0.2rem;
             flex-wrap: nowrap;
         }
         .card-toolbar .label {
-            font-size: 0.78rem;
-            min-width: 88px;
-            padding: 0.3rem 0.5rem;
-            letter-spacing: 0.06em;
+            font-size: 0.74rem;
+            min-width: 76px;
+            padding: 0.25rem 0.4rem;
+            letter-spacing: 0.04em;
+            flex: 0 1 auto;
         }
         .card-toolbar .icon-btn {
-            width: 36px;
-            height: 36px;
-            font-size: 0.95rem;
+            width: 34px;
+            height: 34px;
+            font-size: 0.9rem;
         }
         .card-toolbar .play-audio-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 11px;
             padding: 0;
         }
     }
@@ -480,7 +482,7 @@
         align-items: stretch;
         flex: 1 1 auto;
         min-height: 0;
-        padding: 0 1rem;
+        padding: 0 0.85rem;
         margin-top: 0;
         display: flex;
         flex-direction: column;
@@ -935,16 +937,31 @@
 
   <script>
     function setVh() {
-        const viewportHeight = (window.visualViewport && window.visualViewport.height)
-            ? window.visualViewport.height
-            : window.innerHeight;
-        const vh = viewportHeight * 0.01;
+        const viewport = window.visualViewport;
+        let height = viewport ? viewport.height - (viewport.offsetTop || 0) : window.innerHeight;
+
+        if (viewport) {
+            height = Math.min(height, window.innerHeight);
+        }
+
+        const vh = height * 0.01;
         document.documentElement.style.setProperty('--vh', `${vh}px`);
     }
-    window.addEventListener('resize', setVh);
+
+    const scheduleSetVh = () => {
+        requestAnimationFrame(setVh);
+    };
+
+    window.addEventListener('resize', scheduleSetVh);
+    window.addEventListener('orientationchange', () => setTimeout(setVh, 150));
     window.addEventListener('DOMContentLoaded', setVh);
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', setVh);
+    }
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', scheduleSetVh);
+        window.visualViewport.addEventListener('scroll', scheduleSetVh);
     }
 
     let currentFlashcardBatch = [];
