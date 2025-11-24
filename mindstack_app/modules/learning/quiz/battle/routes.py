@@ -387,8 +387,8 @@ def join_room(room_code: str):
         existing.status = QuizBattleParticipant.STATUS_ACTIVE
         existing.left_at = None
     else:
-        if room.status != QuizBattleRoom.STATUS_LOBBY or room.is_locked:
-            abort(400, description='Phòng đã khóa hoặc đang diễn ra, không thể tham gia thêm.')
+        if room.status == QuizBattleRoom.STATUS_COMPLETED:
+            abort(400, description='Phòng đã kết thúc, không thể tham gia thêm.')
         if room.max_players and len(get_active_participants(room)) >= room.max_players:
             abort(400, description='Phòng đã đủ số lượng người chơi cho phép.')
         participant = QuizBattleParticipant(room=room, user_id=current_user.user_id)

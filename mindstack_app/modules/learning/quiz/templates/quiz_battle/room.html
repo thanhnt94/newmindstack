@@ -157,8 +157,10 @@
                         </div>
                     </form>
                 </div>
-                <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex flex-wrap gap-3 justify-between items-center text-xs text-slate-500">
                     <span id="round-progress">Tiến độ: --/--</span>
+                    <span id="player-answered">Đã trả lời: -- câu</span>
+                    <span id="player-score">Tổng điểm: --</span>
                     <span id="room-mode">Chế độ: --</span>
                 </div>
             </div>
@@ -367,6 +369,10 @@
                 throw new Error(errorMessage);
             }
             return res.json();
+        }
+
+        function getMyParticipant() {
+            return (roomState.participants || []).find(p => p.user_id === currentUserId);
         }
 
         async function generateAiCoachContent() {
@@ -646,6 +652,10 @@
             document.getElementById('room-status').textContent = roomState.status;
             document.getElementById('room-status').dataset.status = roomState.status;
             document.getElementById('round-progress').textContent = `Tiến độ: ${roomState.current_round_number || 0}/${roomState.question_total || 0}`;
+            const me = getMyParticipant();
+            const answeredCount = me ? (me.correct_answers || 0) + (me.incorrect_answers || 0) : null;
+            document.getElementById('player-answered').textContent = `Đã trả lời: ${answeredCount !== null ? answeredCount : '--'} câu`;
+            document.getElementById('player-score').textContent = `Tổng điểm: ${me ? me.session_score || 0 : '--'}`;
             document.getElementById('room-mode').textContent = `Chế độ: ${roomState.mode === 'TIMED' ? 'Tính giờ' : 'Thường'}`;
 
             renderParticipants(roomState.participants || []);
