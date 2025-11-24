@@ -20,7 +20,7 @@ from flask import (
     send_file,
 )
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import FlashcardSetForm, FlashcardItemForm
 from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
@@ -567,6 +567,32 @@ def _has_editor_access(container_id):
         user_id=current_user.user_id,
         permission_level='editor'
     ).first() is not None
+
+
+def _get_editable_flashcard_sets_query(*, exclude_id: Optional[int] = None):
+    base_query = LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
+
+    if current_user.user_role == User.ROLE_ADMIN:
+        query = base_query
+    elif current_user.user_role == User.ROLE_FREE:
+        query = base_query.filter_by(creator_user_id=current_user.user_id)
+    else:
+        contributor_ids = (
+            ContainerContributor.query
+            .filter_by(user_id=current_user.user_id, permission_level='editor')
+            .with_entities(ContainerContributor.container_id)
+        )
+        query = base_query.filter(
+            or_(
+                LearningContainer.creator_user_id == current_user.user_id,
+                LearningContainer.container_id.in_(contributor_ids)
+            )
+        )
+
+    if exclude_id:
+        query = query.filter(LearningContainer.container_id != exclude_id)
+
+    return query
 
 
 def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
@@ -1731,6 +1757,7 @@ def add_flashcard_item(set_id):
         'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content'),
         'image_base_folder': image_folder,
         'audio_base_folder': audio_folder,
+        'move_targets': [],
     }
 
     # Render template cho modal hoặc trang đầy đủ
@@ -1761,6 +1788,11 @@ def edit_flashcard_item(set_id, item_id):
     image_folder = media_folders.get('image')
     audio_folder = media_folders.get('audio')
     container_capabilities = _get_container_capabilities(flashcard_set)
+    move_targets = (
+        _get_editable_flashcard_sets_query(exclude_id=set_id)
+        .order_by(LearningContainer.title)
+        .all()
+    )
     if form.validate_on_submit():
         # Lấy thứ tự cũ và mới
         old_order = flashcard_item.order_in_container
@@ -1862,12 +1894,61 @@ def edit_flashcard_item(set_id, item_id):
         'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content'),
         'image_base_folder': image_folder,
         'audio_base_folder': audio_folder,
+        'move_targets': move_targets,
     }
 
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_flashcard_item_bare.html', **context)
     return render_template('add_edit_flashcard_item.html', **context)
+
+
+@flashcards_bp.route('/flashcards/edit/<int:set_id>/items/<int:item_id>/move', methods=['POST'])
+@login_required
+def move_flashcard_item(set_id, item_id):
+    flashcard_set = LearningContainer.query.get_or_404(set_id)
+    flashcard_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id, item_type='FLASHCARD').first_or_404()
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and flashcard_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(set_id):
+            abort(403)
+
+    target_set_id = request.form.get('target_set_id', type=int)
+    if not target_set_id:
+        flash('Vui lòng chọn bộ thẻ đích để di chuyển.', 'warning')
+        return redirect(url_for('.edit_flashcard_item', set_id=set_id, item_id=item_id))
+
+    target_set = LearningContainer.query.filter_by(container_id=target_set_id, container_type='FLASHCARD_SET').first()
+    if not target_set:
+        flash('Không tìm thấy bộ thẻ đích.', 'danger')
+        return redirect(url_for('.edit_flashcard_item', set_id=set_id, item_id=item_id))
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and target_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(target_set.container_id):
+            abort(403)
+
+    if target_set.container_id == set_id:
+        flash('Thẻ đã nằm trong bộ này.', 'info')
+        return redirect(url_for('.edit_flashcard_item', set_id=set_id, item_id=item_id))
+
+    db.session.query(LearningItem).filter(
+        LearningItem.container_id == set_id,
+        LearningItem.item_type == 'FLASHCARD',
+        LearningItem.order_in_container > flashcard_item.order_in_container
+    ).update({LearningItem.order_in_container: LearningItem.order_in_container - 1})
+
+    max_order = db.session.query(func.max(LearningItem.order_in_container)).filter_by(
+        container_id=target_set.container_id,
+        item_type='FLASHCARD'
+    ).scalar() or 0
+
+    flashcard_item.container_id = target_set.container_id
+    flashcard_item.order_in_container = max_order + 1
+
+    db.session.commit()
+
+    flash(f"Đã di chuyển thẻ sang bộ '{target_set.title}'.", 'success')
+    return redirect(url_for('.list_flashcard_items', set_id=target_set.container_id))
 
 @flashcards_bp.route('/flashcards/delete/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
 @login_required
