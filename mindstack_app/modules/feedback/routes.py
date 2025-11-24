@@ -31,14 +31,21 @@ def manage_feedback():
         received_feedbacks = UserFeedback.query.order_by(UserFeedback.timestamp.desc()).all()
     else:
         # User chỉ thấy feedback liên quan đến nội dung của họ
-        received_feedbacks = UserFeedback.query.join(LearningItem, UserFeedback.item_id == LearningItem.item_id)\
-                                                .join(LearningContainer, LearningItem.container_id == LearningContainer.container_id)\
-                                                .filter(LearningContainer.creator_user_id == current_user.user_id)\
-                                                .order_by(UserFeedback.timestamp.desc()).all()
+        received_feedbacks = UserFeedback.query.filter(
+            or_(
+                UserFeedback.recipient_id == current_user.user_id,
+                UserFeedback.item.has(
+                    LearningItem.container.has(
+                        LearningContainer.creator_user_id == current_user.user_id
+                    )
+                )
+            )
+        ).order_by(UserFeedback.timestamp.desc()).all()
 
-    return render_template('feedback/manage_feedback.html', 
+    return render_template('feedback/manage_feedback.html',
                             received_feedbacks=received_feedbacks,
-                            sent_feedbacks=sent_feedbacks)
+                            sent_feedbacks=sent_feedbacks,
+                            users=User.query.order_by(User.username).all())
 
 # Route để người dùng gửi feedback
 @feedback_bp.route('/submit', methods=['POST'])
@@ -80,6 +87,40 @@ def submit_feedback():
     
     return jsonify({'success': True, 'message': 'Cảm ơn bạn! Phản hồi của bạn đã được gửi thành công.'}), 200
 
+
+@feedback_bp.route('/submit-general', methods=['POST'])
+@login_required
+def submit_general_feedback():
+    """Endpoint để gửi phản hồi chung không gắn với học liệu."""
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Dữ liệu gửi lên không hợp lệ.'}), 400
+
+    feedback_text = data.get('feedback_text', '').strip()
+    recipient_id = data.get('recipient_id')
+
+    if not feedback_text:
+        return jsonify({'success': False, 'message': 'Nội dung feedback không được để trống.'}), 400
+
+    recipient = None
+    if recipient_id:
+        recipient = User.query.get(recipient_id)
+
+    if recipient is None:
+        recipient = User.query.filter_by(user_role='admin').order_by(User.user_id.asc()).first()
+
+    feedback = UserFeedback(
+        user_id=current_user.user_id,
+        recipient_id=recipient.user_id if recipient else None,
+        content=feedback_text,
+        timestamp=datetime.utcnow()
+    )
+    db.session.add(feedback)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Phản hồi của bạn đã được gửi thành công.'}), 200
+
 # Route để xử lý feedback (đánh dấu đã giải quyết)
 @feedback_bp.route('/<int:feedback_id>/resolve', methods=['POST'])
 @login_required
@@ -91,9 +132,10 @@ def resolve_feedback(feedback_id):
     """
     feedback = UserFeedback.query.get_or_404(feedback_id)
     
-    # Kiểm tra quyền: Chỉ admin hoặc chủ sở hữu nội dung mới được phép
+    # Kiểm tra quyền: Chỉ admin, người nhận hoặc chủ sở hữu nội dung mới được phép
     is_owner = feedback.item and feedback.item.container and feedback.item.container.creator_user_id == current_user.user_id
-    if current_user.user_role != 'admin' and not is_owner:
+    is_recipient = feedback.recipient_id and feedback.recipient_id == current_user.user_id
+    if current_user.user_role != 'admin' and not (is_owner or is_recipient):
         abort(403)
         
     feedback.status = 'resolved'
@@ -114,9 +156,10 @@ def ignore_feedback(feedback_id):
     """
     feedback = UserFeedback.query.get_or_404(feedback_id)
     
-    # Kiểm tra quyền: Chỉ admin hoặc chủ sở hữu nội dung mới được phép
+    # Kiểm tra quyền: Chỉ admin, người nhận hoặc chủ sở hữu nội dung mới được phép
     is_owner = feedback.item and feedback.item.container and feedback.item.container.creator_user_id == current_user.user_id
-    if current_user.user_role != 'admin' and not is_owner:
+    is_recipient = feedback.recipient_id and feedback.recipient_id == current_user.user_id
+    if current_user.user_role != 'admin' and not (is_owner or is_recipient):
         abort(403)
         
     feedback.status = 'wont_fix' # Đã đổi từ 'ignored' thành 'wont_fix' để nhất quán với file html

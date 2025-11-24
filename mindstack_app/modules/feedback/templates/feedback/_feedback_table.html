@@ -24,29 +24,38 @@
             {% for feedback in feedbacks %}
             <tr class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">
-                        {# Hiển thị nội dung mặt trước của thẻ hoặc câu hỏi quiz #}
-                        {% if feedback.item.item_type == 'FLASHCARD' %}
-                            {{ feedback.item.content.front }}
-                        {% elif feedback.item.item_type.startswith('QUIZ_') %}
-                            {{ feedback.item.content.question }}
-                        {% elif feedback.item.item_type == 'LESSON' %}
-                            {{ feedback.item.content.title }}
-                        {% else %}
-                            Item ID: {{ feedback.item.item_id }}
-                        {% endif %}
-                    </div>
-                    <div class="text-xs text-gray-500">
-                        {{ feedback.item.container.title }}
-                    </div>
+                    {% if feedback.item %}
+                        <div class="text-sm font-medium text-gray-900">
+                            {# Hiển thị nội dung mặt trước của thẻ hoặc câu hỏi quiz #}
+                            {% if feedback.item.item_type == 'FLASHCARD' %}
+                                {{ feedback.item.content.front }}
+                            {% elif feedback.item.item_type.startswith('QUIZ_') %}
+                                {{ feedback.item.content.question }}
+                            {% elif feedback.item.item_type == 'LESSON' %}
+                                {{ feedback.item.content.title }}
+                            {% else %}
+                                Item ID: {{ feedback.item.item_id }}
+                            {% endif %}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            {{ feedback.item.container.title }}
+                        </div>
+                    {% else %}
+                        <div class="text-sm font-medium text-gray-900">Phản hồi chung</div>
+                        <div class="text-xs text-gray-500">Gửi tới: {{ feedback.recipient.username if feedback.recipient else 'Admin' }}</div>
+                    {% endif %}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    {% if feedback.item.item_type == 'FLASHCARD' %}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Flashcard</span>
-                    {% elif feedback.item.item_type.startswith('QUIZ_') %}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Quiz</span>
-                    {% elif feedback.item.item_type == 'LESSON' %}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">Course</span>
+                    {% if feedback.item %}
+                        {% if feedback.item.item_type == 'FLASHCARD' %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Flashcard</span>
+                        {% elif feedback.item.item_type.startswith('QUIZ_') %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Quiz</span>
+                        {% elif feedback.item.item_type == 'LESSON' %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">Course</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Chung</span>
                     {% endif %}
                 </td>
                 <td class="px-6 py-4">
@@ -67,22 +76,24 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex items-center space-x-2">
                         {# Logic cho nút Sửa nhanh #}
-                        {% set set_id = feedback.item.container_id %}
-                        {% set item_id = feedback.item.item_id %}
-                        {% set edit_url = '' %}
+                        {% if feedback.item %}
+                            {% set set_id = feedback.item.container_id %}
+                            {% set item_id = feedback.item.item_id %}
+                            {% set edit_url = '' %}
 
-                        {% if feedback.item.item_type == 'FLASHCARD' %}
-                            {% set edit_url = url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=set_id, item_id=item_id) %}
-                        {% elif feedback.item.item_type.startswith('QUIZ_') %}
-                            {% set edit_url = url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=set_id, item_id=item_id) %}
-                        {% elif feedback.item.item_type == 'LESSON' %}
-                            {% set edit_url = url_for('content_management.content_management_courses.edit_lesson', set_id=set_id, item_id=item_id) %}
-                        {% endif %}
-                        
-                        {% if edit_url %}
-                        <a href="#" onclick="window.parent.openModal('{{ edit_url }}')" class="text-blue-600 hover:text-blue-900" title="Sửa nhanh">
-                            <i class="fas fa-pencil-alt"></i>
-                        </a>
+                            {% if feedback.item.item_type == 'FLASHCARD' %}
+                                {% set edit_url = url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=set_id, item_id=item_id) %}
+                            {% elif feedback.item.item_type.startswith('QUIZ_') %}
+                                {% set edit_url = url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=set_id, item_id=item_id) %}
+                            {% elif feedback.item.item_type == 'LESSON' %}
+                                {% set edit_url = url_for('content_management.content_management_courses.edit_lesson', set_id=set_id, item_id=item_id) %}
+                            {% endif %}
+
+                            {% if edit_url %}
+                            <a href="#" onclick="window.parent.openModal('{{ edit_url }}')" class="text-blue-600 hover:text-blue-900" title="Sửa nhanh">
+                                <i class="fas fa-pencil-alt"></i>
+                            </a>
+                            {% endif %}
                         {% endif %}
 
                         {# Các nút xử lý khác #}
