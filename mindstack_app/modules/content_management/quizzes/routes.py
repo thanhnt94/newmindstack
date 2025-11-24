@@ -88,6 +88,30 @@ GROUP_SHARED_COMPONENT_MAP = {
 }
 
 
+def _resolve_correct_answer_letter(content: dict) -> str:
+    """Return the answer letter (A-D) even if the stored value is option text."""
+
+    if not isinstance(content, dict):
+        return ''
+
+    options = content.get('options') or {}
+    raw_answer = content.get('correct_answer') or ''
+    normalized_answer = str(raw_answer).strip()
+    upper_answer = normalized_answer.upper()
+
+    if upper_answer in {'A', 'B', 'C', 'D'}:
+        return upper_answer
+
+    for letter in ('A', 'B', 'C', 'D'):
+        option_text = options.get(letter)
+        if option_text is None:
+            continue
+        if normalized_answer and normalized_answer == str(option_text).strip():
+            return letter
+
+    return ''
+
+
 def _apply_action_dropdown(worksheet, data_columns):
     try:
         action_index = data_columns.index('action') + 1
@@ -686,6 +710,10 @@ def _serialize_quiz_item_for_response(item, user_id=None):
         'C': options.get('C'),
         'D': options.get('D')
     }
+
+    resolved_correct_answer = _resolve_correct_answer_letter(content_copy)
+    if resolved_correct_answer:
+        content_copy['correct_answer'] = resolved_correct_answer
 
     media_folders = _get_media_folders_from_container(item.container if item else None)
     image_folder = media_folders.get('image')
@@ -1763,9 +1791,12 @@ def list_quiz_items(set_id):
 
     pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container), page)
     quiz_items = pagination.items
-    
+
+    for item in quiz_items:
+        item.resolved_correct_answer = _resolve_correct_answer_letter(item.content)
+
     can_edit = (current_user.user_role == 'admin' or quiz_set.creator_user_id == current_user.user_id)
-    
+
     return render_template('quiz_items.html',
                            quiz_set=quiz_set,
                            quiz_items=quiz_items,
@@ -1981,7 +2012,7 @@ def edit_quiz_item(set_id, item_id):
         form.option_b.data = quiz_item.content.get('options', {}).get('B')
         form.option_c.data = quiz_item.content.get('options', {}).get('C')
         form.option_d.data = quiz_item.content.get('options', {}).get('D')
-        form.correct_answer_text.data = quiz_item.content.get('correct_answer')
+        form.correct_answer_text.data = _resolve_correct_answer_letter(quiz_item.content) or quiz_item.content.get('correct_answer')
         form.guidance.data = quiz_item.content.get('explanation')
         form.question_image_file.data = quiz_item.content.get('question_image_file')
         form.question_audio_file.data = quiz_item.content.get('question_audio_file')
