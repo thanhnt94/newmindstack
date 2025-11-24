@@ -215,16 +215,25 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
     print(f">>> ALGORITHMS: Bắt đầu get_filtered_quiz_sets cho user_id={user_id}, filter={current_filter} <<<")
 
     base_query = LearningContainer.query.filter_by(container_type='QUIZ_SET')
+    user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
+        UserContainerState.user_id == user_id
+    ).subquery()
     
     # Lọc quyền truy cập
     if current_user.user_role == User.ROLE_ADMIN:
         pass
     elif current_user.user_role == User.ROLE_FREE:
-        base_query = base_query.filter(LearningContainer.creator_user_id == user_id)
+        base_query = base_query.filter(
+            or_(
+                LearningContainer.creator_user_id == user_id,
+                LearningContainer.container_id.in_(user_interacted_ids_subquery),
+            )
+        )
     else:
         access_conditions = [
             LearningContainer.creator_user_id == user_id,
-            LearningContainer.is_public == True
+            LearningContainer.is_public == True,
+            LearningContainer.container_id.in_(user_interacted_ids_subquery),
         ]
 
         contributed_sets_ids = db.session.query(ContainerContributor.container_id).filter(
@@ -249,10 +258,6 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
 
     # THAY ĐỔI LỚN: Áp dụng bộ lọc archive và sắp xếp theo last_accessed
     # Tạo một truy vấn con để lấy ID của các bộ mà người dùng đã tương tác (có bản ghi trong UserContainerState)
-    user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
-        UserContainerState.user_id == user_id
-    ).subquery()
-    
     if current_filter == 'archive':
         final_query = filtered_query.join(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)

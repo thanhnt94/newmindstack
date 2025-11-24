@@ -17,6 +17,7 @@ from mindstack_app.models import (
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
+    UserContainerState,
     User,
     db,
 )
@@ -84,6 +85,29 @@ def _generate_unique_room_code() -> str:
         if not QuizBattleRoom.query.filter_by(room_code=code).first():
             return code
     raise RuntimeError('Không thể tạo mã phòng. Vui lòng thử lại.')
+
+
+def _touch_user_container_state(container_id: int) -> None:
+    """Ensure the quiz set is marked as active for the current user."""
+
+    state = UserContainerState.query.filter_by(
+        user_id=current_user.user_id, container_id=container_id
+    ).first()
+
+    now = func.now()
+    if state:
+        state.is_archived = False
+        state.last_accessed = now
+    else:
+        db.session.add(
+            UserContainerState(
+                user_id=current_user.user_id,
+                container_id=container_id,
+                is_archived=False,
+                is_favorite=False,
+                last_accessed=now,
+            )
+        )
 
 
 @quiz_battle_bp.route('/rooms', methods=['POST'])
@@ -523,6 +547,8 @@ def submit_round_answer(room_code: str, sequence_number: int):
         if room.mode == QuizBattleRoom.MODE_TIMED:
             abort(400, description='Vòng thi này đã kết thúc do hết thời gian.')
         abort(400, description='Vòng thi này đã kết thúc hoặc chưa mở.')
+
+    _touch_user_container_state(room.container_id)
 
     existing_answer = QuizBattleAnswer.query.filter_by(round_id=round_obj.round_id, participant_id=participant.participant_id).first()
     if existing_answer:
