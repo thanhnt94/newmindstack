@@ -304,10 +304,23 @@ function initGroupBattleDeck() {
         const fd = new FormData(e.target);
         const payload = Object.fromEntries(fd.entries());
         if(!payload.container_id) { fb.textContent = "Chưa chọn bộ quiz!"; return; }
+        if(!payload.question_limit) { delete payload.question_limit; } else { payload.question_limit = Number(payload.question_limit); }
+        if(!payload.max_players) { delete payload.max_players; } else { payload.max_players = Number(payload.max_players); }
+        if(payload.mode !== 'TIMED' || !payload.time_per_question_seconds) { delete payload.time_per_question_seconds; }
         fb.textContent = "Đang tạo...";
         try {
             const res = await fetch(battleUrls.create, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': battleCsrf }, body: JSON.stringify(payload) });
-            if(!res.ok) throw new Error(await res.text());
+            if(!res.ok) {
+                const errText = await res.text();
+                let message = errText;
+                try {
+                    const data = JSON.parse(errText);
+                    message = data.description || data.error || errText;
+                } catch {
+                    message = errText.replace(/<[^>]+>/g, ' ').trim() || 'Có lỗi khi tạo phòng.';
+                }
+                throw new Error(message);
+            }
             const data = await res.json();
             window.location.href = battleUrls.viewTemplate.replace('__ROOM_CODE__', data.room.room_code);
         } catch(err) { fb.textContent = err.message; }
