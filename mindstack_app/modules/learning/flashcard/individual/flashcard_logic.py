@@ -9,6 +9,7 @@ import datetime
 import math
 from flask import current_app
 from mindstack_app.modules.shared.utils.db_session import safe_commit
+from mindstack_app.services.config_service import get_runtime_config
 
 # ==============================================================================
 # I. CÁC HỆ SỐ CÓ THỂ TÙY CHỈNH CHO THUẬT TOÁN
@@ -17,6 +18,16 @@ from mindstack_app.modules.shared.utils.db_session import safe_commit
 LEARNING_STEPS_MINUTES = [10, 60, 240, 480, 1440, 2880]
 RELEARNING_STEP_MINUTES = 10
 GRADUATING_INTERVAL_MINUTES = 4 * 24 * 60
+
+
+def _get_score_value(key: str, default: int) -> int:
+    """Fetch an integer score value from runtime config with fallback."""
+
+    raw_value = get_runtime_config(key, default)
+    try:
+        return int(raw_value)
+    except (TypeError, ValueError):
+        return default
 
 # ==============================================================================
 # II. LOGIC TÍNH TOÁN THỜI GIAN ÔN TẬP
@@ -112,7 +123,7 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         user = User.query.get(user_id)
         score_change = 0
         if is_first_preview and was_new_card:
-            score_change = 10
+            score_change = _get_score_value('FLASHCARD_PREVIEW_BONUS', 10)
             if user:
                 user.total_score = (user.total_score or 0) + score_change
             new_score_log = ScoreLog(
@@ -148,9 +159,9 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
         current_app.logger.info(f"Thẻ {item_id} được ôn tập sớm. Chỉ cập nhật điểm và lịch sử.")
         
         if user_answer_quality >= 4:
-            score_change = 10
+            score_change = _get_score_value('FLASHCARD_EARLY_REVIEW_HIGH', 10)
         elif user_answer_quality >= 2:
-            score_change = 5
+            score_change = _get_score_value('FLASHCARD_EARLY_REVIEW_MEDIUM', 5)
         else:
             score_change = 0
 
@@ -244,9 +255,12 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
             progress.repetitions = 1
             current_app.logger.info(f"Thẻ {item_id} đã TỐT NGHIỆP! Trạng thái -> reviewing.")
 
-    if user_answer_quality >= 4: score_change = 10
-    elif user_answer_quality >= 2: score_change = 5
-    else: score_change = 0
+    if user_answer_quality >= 4:
+        score_change = _get_score_value('FLASHCARD_REVIEW_HIGH', 10)
+    elif user_answer_quality >= 2:
+        score_change = _get_score_value('FLASHCARD_REVIEW_MEDIUM', 5)
+    else:
+        score_change = 0
 
     user = User.query.get(user_id)
     if user:

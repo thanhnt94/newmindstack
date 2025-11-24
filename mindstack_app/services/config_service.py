@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Iterable
 
-from flask import current_app, has_app_context
+from flask import Flask, current_app, has_app_context
 
-from ..models import SystemSetting
+from ..models import SystemSetting, db
 
 # Các khóa nhạy cảm không được ghi đè từ DB
 SENSITIVE_SETTING_KEYS = {"SECRET_KEY", "SQLALCHEMY_DATABASE_URI"}
@@ -21,6 +21,30 @@ class ConfigService:
         self.app = app
         self.ttl_seconds = ttl_seconds
         self._last_loaded: datetime | None = None
+
+    def ensure_defaults(self, defaults: Iterable[dict[str, object]]) -> None:
+        """Đảm bảo các cấu hình mặc định tồn tại trong cơ sở dữ liệu."""
+
+        created = False
+        for payload in defaults:
+            key = str(payload.get("key", "")).strip()
+            if not key:
+                continue
+
+            if SystemSetting.query.filter_by(key=key).first():
+                continue
+
+            setting = SystemSetting(
+                key=key,
+                value=payload.get("value"),
+                data_type=str(payload.get("data_type") or "string"),
+                description=payload.get("description"),
+            )
+            db.session.add(setting)
+            created = True
+
+        if created:
+            db.session.commit()
 
     def _infer_data_type(self, setting: SystemSetting) -> str:
         if getattr(setting, "data_type", None):
@@ -96,11 +120,88 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
     service = ConfigService(app, ttl_seconds=ttl_seconds)
     app.extensions["config_service"] = service
 
+    def _default_settings(app_obj: Flask) -> list[dict[str, object]]:
+        return [
+            {
+                "key": "UPLOAD_FOLDER",
+                "value": app_obj.config.get("UPLOAD_FOLDER"),
+                "data_type": "path",
+                "description": "Thư mục lưu trữ file tải lên (uploads).",
+            },
+            {
+                "key": "BACKUP_FOLDER",
+                "value": app_obj.config.get("BACKUP_FOLDER"),
+                "data_type": "path",
+                "description": "Thư mục lưu trữ bản sao lưu (backups).",
+            },
+            {
+                "key": "DATABASE_URI",
+                "value": app_obj.config.get("SQLALCHEMY_DATABASE_URI"),
+                "data_type": "string",
+                "description": "Chuỗi kết nối cơ sở dữ liệu ứng dụng.",
+            },
+            {
+                "key": "FLASHCARD_PREVIEW_BONUS",
+                "value": 10,
+                "data_type": "int",
+                "description": "Điểm thưởng khi xem thẻ mới lần đầu.",
+            },
+            {
+                "key": "FLASHCARD_EARLY_REVIEW_HIGH",
+                "value": 10,
+                "data_type": "int",
+                "description": "Điểm khi ôn sớm và trả lời tốt (>=4).",
+            },
+            {
+                "key": "FLASHCARD_EARLY_REVIEW_MEDIUM",
+                "value": 5,
+                "data_type": "int",
+                "description": "Điểm khi ôn sớm và trả lời trung bình (>=2).",
+            },
+            {
+                "key": "FLASHCARD_REVIEW_HIGH",
+                "value": 10,
+                "data_type": "int",
+                "description": "Điểm khi ôn thẻ đúng hạn và trả lời tốt (>=4).",
+            },
+            {
+                "key": "FLASHCARD_REVIEW_MEDIUM",
+                "value": 5,
+                "data_type": "int",
+                "description": "Điểm khi ôn thẻ đúng hạn và trả lời trung bình (>=2).",
+            },
+            {
+                "key": "QUIZ_FIRST_TIME_BONUS",
+                "value": 5,
+                "data_type": "int",
+                "description": "Điểm thưởng cho lần đầu làm câu hỏi trắc nghiệm.",
+            },
+            {
+                "key": "QUIZ_CORRECT_BONUS",
+                "value": 20,
+                "data_type": "int",
+                "description": "Điểm thưởng khi trả lời đúng câu hỏi trắc nghiệm.",
+            },
+            {
+                "key": "COURSE_LESSON_COMPLETION_SCORE",
+                "value": 15,
+                "data_type": "int",
+                "description": "Điểm thưởng hoàn thành 1 bài học trong khóa.",
+            },
+            {
+                "key": "COURSE_COMPLETION_SCORE",
+                "value": 50,
+                "data_type": "int",
+                "description": "Điểm thưởng hoàn thành toàn bộ khóa học.",
+            },
+        ]
+
     @app.before_request
     def refresh_config_from_db() -> None:  # pragma: no cover - hook
         service.load_settings()
 
     with app.app_context():
+        service.ensure_defaults(_default_settings(app))
         service.load_settings(force=True)
 
     return service

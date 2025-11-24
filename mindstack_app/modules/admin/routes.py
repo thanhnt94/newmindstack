@@ -136,6 +136,16 @@ CORE_SETTING_FIELDS: list[dict[str, object]] = [
     },
 ]
 
+CORE_SETTING_KEYS = {field["key"] for field in CORE_SETTING_FIELDS}
+
+SETTING_CATEGORY_LABELS = {
+    "paths": "Cấu hình đường dẫn",
+    "flashcard": "Điểm flashcard",
+    "quiz": "Điểm quiz",
+    "course": "Điểm course",
+    "other": "Cấu hình khác",
+}
+
 
 def _resolve_database_path():
     """
@@ -269,6 +279,41 @@ def _log_setting_change(action: str, *, key: str, old_value: object, new_value: 
         old_value,
         new_value,
     )
+
+
+def _categorize_settings(settings: list[SystemSetting]) -> dict[str, list[SystemSetting]]:
+    """Nhóm các cấu hình theo danh mục hiển thị trong giao diện."""
+
+    categories: dict[str, list[SystemSetting]] = {
+        "paths": [],
+        "flashcard": [],
+        "quiz": [],
+        "course": [],
+        "other": [],
+    }
+
+    for setting in settings:
+        key_upper = setting.key.upper()
+
+        if key_upper.endswith(("_FOLDER", "_PATH", "_DIR", "_DIRECTORY")):
+            categories["paths"].append(setting)
+            continue
+
+        if key_upper.startswith("FLASHCARD_"):
+            categories["flashcard"].append(setting)
+            continue
+
+        if key_upper.startswith("QUIZ_"):
+            categories["quiz"].append(setting)
+            continue
+
+        if key_upper.startswith("COURSE_"):
+            categories["course"].append(setting)
+            continue
+
+        categories["other"].append(setting)
+
+    return categories
 
 
 def _serialize_instance(instance):
@@ -1095,18 +1140,22 @@ def manage_system_settings():
     if system_status_setting and isinstance(system_status_setting.value, dict):
         maintenance_mode = system_status_setting.value.get('maintenance_mode', False)
         
+    raw_settings = SystemSetting.query.order_by(SystemSetting.key.asc()).all()
     settings = [
         setting
-        for setting in SystemSetting.query.order_by(SystemSetting.key.asc()).all()
-        if not _is_sensitive_setting(setting.key)
+        for setting in raw_settings
+        if not _is_sensitive_setting(setting.key) and setting.key not in CORE_SETTING_KEYS
     ]
     data_type_options = ['string', 'int', 'bool', 'path', 'json']
+    category_order = ['paths', 'flashcard', 'quiz', 'course', 'other']
 
     return render_template(
         'system_settings.html',
         maintenance_mode=maintenance_mode,
         core_settings=_get_core_settings(),
-        settings=settings,
+        settings_by_category=_categorize_settings(settings),
+        category_order=category_order,
+        category_labels=SETTING_CATEGORY_LABELS,
         data_type_options=data_type_options,
     )
 
