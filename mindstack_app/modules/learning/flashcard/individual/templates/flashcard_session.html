@@ -942,6 +942,15 @@
   <script src="{{ url_for('learning.flashcard_learning.static', filename='flashcard_viewport.js') }}"></script>
 
   <script>
+    const setVh = () => {
+      if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+        window.flashcardViewport.refresh();
+      }
+
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
     if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
         window.flashcardViewport.refresh();
     }
