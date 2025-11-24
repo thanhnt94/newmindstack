@@ -955,6 +955,9 @@
     window.addEventListener('resize', scheduleSetVh);
     window.addEventListener('orientationchange', () => setTimeout(setVh, 150));
     window.addEventListener('DOMContentLoaded', setVh);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', setVh);
+    }
 
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', scheduleSetVh);
