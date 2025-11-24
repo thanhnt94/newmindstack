@@ -44,8 +44,13 @@ from mindstack_app.modules.shared.utils.media_paths import (
 )
 from mindstack_app.modules.shared.utils.db_session import safe_commit
 
-flashcard_learning_bp = Blueprint('flashcard_learning', __name__,
-                                  template_folder='templates')
+flashcard_learning_bp = Blueprint(
+    'flashcard_learning',
+    __name__,
+    template_folder='templates',
+    static_folder='static',
+    static_url_path='/flashcard_static'
+)
 
 audio_service = AudioService()
 image_service = ImageService()

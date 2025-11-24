@@ -939,51 +939,12 @@
 {% block scripts %}
   {{ super() }}
 
+  <script src="{{ url_for('learning.flashcard_learning.static', filename='flashcard_viewport.js') }}"></script>
+
   <script>
-    function setVh() {
-        const viewport = window.visualViewport;
-        const offsetTop = viewport ? viewport.offsetTop || 0 : 0;
-        const rawHeight = viewport ? viewport.height : window.innerHeight;
-        const adjustedHeight = Math.max(rawHeight - offsetTop, 320);
-        const vh = adjustedHeight * 0.01;
-
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-
-        const pageShell = document.querySelector('.page-shell');
-        const sessionLayout = document.querySelector('.session-layout');
-
-        if (pageShell) {
-            pageShell.style.height = `${adjustedHeight}px`;
-            pageShell.style.minHeight = `${adjustedHeight}px`;
-        }
-
-        if (sessionLayout) {
-            sessionLayout.style.height = `${adjustedHeight}px`;
-        }
+    if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+        window.flashcardViewport.refresh();
     }
-
-    const scheduleSetVh = () => {
-        requestAnimationFrame(setVh);
-    };
-
-    window.addEventListener('resize', scheduleSetVh);
-    window.addEventListener('orientationchange', () => setTimeout(setVh, 150));
-    window.addEventListener('DOMContentLoaded', setVh);
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', setVh);
-    }
-
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', scheduleSetVh);
-        window.visualViewport.addEventListener('scroll', scheduleSetVh);
-    }
-
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', scheduleSetVh);
-        window.visualViewport.addEventListener('scroll', scheduleSetVh);
-    }
-
-    setVh();
 
     let currentFlashcardBatch = [];
     let currentFlashcardIndex = 0;
