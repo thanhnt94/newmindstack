@@ -2133,44 +2133,90 @@ def move_quiz_item(set_id, item_id):
         flash('Câu hỏi đã nằm trong bộ này.', 'info')
         return redirect(url_for('.edit_quiz_item', set_id=set_id, item_id=item_id))
 
-    db.session.query(LearningItem).filter(
-        LearningItem.container_id == set_id,
-        LearningItem.item_type == 'QUIZ_MCQ',
-        LearningItem.order_in_container > quiz_item.order_in_container
-    ).update({LearningItem.order_in_container: LearningItem.order_in_container - 1})
+    source_media_folders = _get_media_folders_from_container(quiz_set)
+    target_media_folders = _get_media_folders_from_container(target_set)
+
+    group_id = quiz_item.group_id
+    grouped_items = []
+    source_group = None
+    if group_id:
+        grouped_items = (
+            LearningItem.query.filter_by(
+                container_id=set_id,
+                item_type='QUIZ_MCQ',
+                group_id=group_id,
+            )
+            .order_by(LearningItem.order_in_container)
+            .all()
+        )
+        source_group = LearningGroup.query.get(group_id)
+
+    items_to_move = grouped_items or [quiz_item]
+
+    target_group = None
+    if source_group:
+        target_group = LearningGroup(
+            container_id=target_set.container_id,
+            group_type=source_group.group_type,
+            content=copy.deepcopy(source_group.content or {}),
+        )
+        db.session.add(target_group)
+        db.session.flush()
+    elif grouped_items:
+        target_group = LearningGroup(
+            container_id=target_set.container_id,
+            group_type='PASSAGE',
+            content={},
+        )
+        db.session.add(target_group)
+        db.session.flush()
 
     max_order = db.session.query(func.max(LearningItem.order_in_container)).filter_by(
         container_id=target_set.container_id,
         item_type='QUIZ_MCQ'
     ).scalar() or 0
 
-    source_media_folders = _get_media_folders_from_container(quiz_set)
-    target_media_folders = _get_media_folders_from_container(target_set)
-    updated_content = dict(quiz_item.content or {})
-
     media_field_map = {
         'question_image_file': 'image',
         'question_audio_file': 'audio',
     }
-    for field_name, media_type in media_field_map.items():
-        updated_value = _transfer_media_to_folder(
-            updated_content.get(field_name),
-            source_folder=source_media_folders.get(media_type),
-            target_folder=target_media_folders.get(media_type),
-        )
-        if updated_value is not None:
-            updated_content[field_name] = updated_value
+    next_order = max_order + 1
+    for item in items_to_move:
+        updated_content = dict(item.content or {})
+        for field_name, media_type in media_field_map.items():
+            updated_value = _transfer_media_to_folder(
+                updated_content.get(field_name),
+                source_folder=source_media_folders.get(media_type),
+                target_folder=target_media_folders.get(media_type),
+            )
+            if updated_value is not None:
+                updated_content[field_name] = updated_value
 
-    quiz_item.container_id = target_set.container_id
-    quiz_item.group_id = None
-    quiz_item.order_in_container = max_order + 1
-    updated_content.pop('group_item_order', None)
-    quiz_item.content = updated_content
-    flag_modified(quiz_item, 'content')
+        item.container_id = target_set.container_id
+        item.group_id = target_group.group_id if target_group else None
+        item.order_in_container = next_order
+        next_order += 1
+        if not target_group:
+            updated_content.pop('group_item_order', None)
+        item.content = updated_content
+        flag_modified(item, 'content')
+
+    remaining_items = (
+        LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ')
+        .order_by(LearningItem.order_in_container)
+        .all()
+    )
+    for index, item in enumerate(remaining_items, start=1):
+        if item.order_in_container != index:
+            item.order_in_container = index
 
     db.session.commit()
 
-    flash(f"Đã di chuyển câu hỏi sang bộ '{target_set.title}'.", 'success')
+    moved_count = len(items_to_move)
+    flash(
+        f"Đã di chuyển {moved_count} câu hỏi sang bộ '{target_set.title}'.",
+        'success',
+    )
     return redirect(url_for('.list_quiz_items', set_id=target_set.container_id))
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
