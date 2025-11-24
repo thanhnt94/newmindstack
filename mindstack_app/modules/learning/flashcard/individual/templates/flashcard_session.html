@@ -117,15 +117,17 @@
         .page-shell {
             top: var(--header-h, 0px);
             bottom: 0;
-            padding: 0;
+            padding: 0.25rem 0.25rem 0;
             height: calc(var(--vh, 1vh) * 100);
+            height: 100dvh;
+            min-height: 100dvh;
         }
         .session-layout {
             display: flex;
             flex-direction: column;
             width: 100%;
             height: 100%;
-            padding: 0 !important;
+            padding: 0.5rem 0.75rem 0.75rem !important;
             overflow: hidden; /* Quan trọng: Loại bỏ cuộn trên layout chính */
         }
         .stats-modal-body .statistics-card { display:block !important; }
@@ -152,7 +154,7 @@
         }
         .face {
             /* SỬA LỖI 2: Đảm bảo có đủ padding cho thanh toolbar trên di động */
-            padding: 60px 0.5rem 0.5rem 0.5rem !important;
+            padding: calc(48px + env(safe-area-inset-top, 0px)) 0.4rem 0.4rem 0.4rem !important;
         }
         ._card-container {
             /* THÊM MỚI: Tối ưu layout nội dung trên mobile */
@@ -160,11 +162,12 @@
         }
         .text-area {
             flex: 1;
+            padding: 0.25rem 0.1rem !important;
         }
         .actions {
             margin-top: 0.5rem !important;
-            padding: 0.5rem !important;
-            gap: 0rem;
+            padding: 0.4rem 0.5rem !important;
+            gap: 0.35rem;
             justify-content: center;
             width: 100%;
         }
@@ -325,6 +328,8 @@
         align-items: center;
         gap: 0.35rem;
         flex: 1;
+        min-width: 0;
+        flex-wrap: wrap;
     }
 
     .toolbar-right {
@@ -344,9 +349,12 @@
         border: 1px solid rgba(148, 163, 184, 0.35);
         box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
         flex: 1;
+        min-width: 120px;
+        max-width: 100%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        white-space: nowrap;
     }
 
     .card-toolbar .icon-btn {
@@ -362,6 +370,35 @@
         cursor: pointer;
         border: 1px solid rgba(148, 163, 184, 0.28);
         transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 640px) {
+        .card-toolbar {
+            padding: 0.5rem 0.65rem;
+            gap: 0.5rem;
+            row-gap: 0.35rem;
+            column-gap: 0.35rem;
+        }
+        .toolbar-left, .toolbar-right {
+            gap: 0.25rem;
+            flex: 1 1 0;
+        }
+        .card-toolbar .label {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.55rem;
+            min-width: 96px;
+        }
+        .card-toolbar .icon-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+        }
+        .actions .btn {
+            padding: 0.75rem 0.85rem;
+            font-size: 0.95rem;
+        }
     }
 
     .card-toolbar .icon-btn:hover {
@@ -867,10 +904,13 @@
 
 {% block scripts %}
   {{ super() }}
-  
+
   <script>
     function setVh() {
-        let vh = window.innerHeight * 0.01;
+        const viewportHeight = (window.visualViewport && window.visualViewport.height)
+            ? window.visualViewport.height
+            : window.innerHeight;
+        const vh = viewportHeight * 0.01;
         document.documentElement.style.setProperty('--vh', `${vh}px`);
     }
     window.addEventListener('resize', setVh);
