@@ -4,8 +4,8 @@
 
   function getAdjustedViewportHeight() {
     const viewport = window.visualViewport;
-    const rawHeight = viewport ? viewport.height : window.innerHeight;
-    const offsetTop = viewport ? viewport.offsetTop || 0 : 0;
+    const rawHeight = viewport && typeof viewport.height === 'number' ? viewport.height : window.innerHeight;
+    const offsetTop = viewport && typeof viewport.offsetTop === 'number' ? viewport.offsetTop : 0;
 
     return Math.max(rawHeight - offsetTop, MIN_VIEWPORT_HEIGHT);
   }
@@ -25,66 +25,62 @@
     };
   }
 
-  function applyViewportSizing() {
-    const adjustedHeight = getAdjustedViewportHeight();
+  function setHeights(adjustedHeight) {
     const rootVh = adjustedHeight * 0.01;
-
     document.documentElement.style.setProperty('--vh', `${rootVh}px`);
 
-    const pageShell = document.querySelector('.page-shell');
-    if (pageShell) {
-      const shellTop = pageShell.getBoundingClientRect().top;
-      const shellHeight = Math.max(adjustedHeight - shellTop, MIN_VIEWPORT_HEIGHT);
-
-      pageShell.style.height = `${shellHeight}px`;
-      pageShell.style.minHeight = `${shellHeight}px`;
+    const shell = document.querySelector('.page-shell');
+    if (shell) {
+      const top = shell.getBoundingClientRect().top;
+      const height = Math.max(adjustedHeight - top, MIN_VIEWPORT_HEIGHT);
+      shell.style.height = `${height}px`;
+      shell.style.minHeight = `${height}px`;
     }
 
-    const sessionLayout = document.querySelector('.session-layout');
-    if (sessionLayout) {
-      const layoutTop = sessionLayout.getBoundingClientRect().top;
-      const layoutHeight = Math.max(adjustedHeight - layoutTop, MIN_VIEWPORT_HEIGHT);
-
-      sessionLayout.style.height = `${layoutHeight}px`;
-      sessionLayout.style.minHeight = `${layoutHeight}px`;
-      sessionLayout.style.maxHeight = `${layoutHeight}px`;
+    const layout = document.querySelector('.session-layout');
+    if (layout) {
+      const top = layout.getBoundingClientRect().top;
+      const height = Math.max(adjustedHeight - top, MIN_VIEWPORT_HEIGHT);
+      layout.style.height = `${height}px`;
+      layout.style.minHeight = `${height}px`;
     }
 
-    const flashcardWrapper = document.querySelector('.flashcard-wrapper');
-    if (flashcardWrapper) {
-      const wrapperTop = flashcardWrapper.getBoundingClientRect().top;
-      const wrapperHeight = Math.max(adjustedHeight - wrapperTop, MIN_CONTENT_HEIGHT);
-
-      flashcardWrapper.style.height = `${wrapperHeight}px`;
-      flashcardWrapper.style.minHeight = `${wrapperHeight}px`;
+    const wrapper = document.querySelector('.flashcard-wrapper');
+    if (wrapper) {
+      const top = wrapper.getBoundingClientRect().top;
+      const height = Math.max(adjustedHeight - top, MIN_CONTENT_HEIGHT);
+      wrapper.style.height = `${height}px`;
+      wrapper.style.minHeight = `${height}px`;
     }
 
-    const flashcardContent = document.getElementById('flashcard-content');
-    if (flashcardContent) {
-      const contentTop = flashcardContent.getBoundingClientRect().top;
-      const contentHeight = Math.max(adjustedHeight - contentTop, MIN_CONTENT_HEIGHT);
-
-      flashcardContent.style.maxHeight = `${contentHeight}px`;
+    const content = document.getElementById('flashcard-content');
+    if (content) {
+      const top = content.getBoundingClientRect().top;
+      const height = Math.max(adjustedHeight - top, MIN_CONTENT_HEIGHT);
+      content.style.maxHeight = `${height}px`;
     }
   }
 
-  function initFlashcardViewportSizing() {
-    const scheduledApply = schedule(applyViewportSizing);
+  const applyViewportSizing = schedule(() => {
+    const adjustedHeight = getAdjustedViewportHeight();
+    setHeights(adjustedHeight);
+  });
 
+  function initFlashcardViewportSizing() {
     applyViewportSizing();
 
-    window.addEventListener('resize', scheduledApply, { passive: true });
-    window.addEventListener('orientationchange', scheduledApply, { passive: true });
+    window.addEventListener('resize', applyViewportSizing, { passive: true });
+    window.addEventListener('orientationchange', applyViewportSizing, { passive: true });
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        scheduledApply();
+        applyViewportSizing();
       }
     });
 
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', scheduledApply);
-      window.visualViewport.addEventListener('scroll', scheduledApply);
+      window.visualViewport.addEventListener('resize', applyViewportSizing);
+      window.visualViewport.addEventListener('scroll', applyViewportSizing);
     }
   }
 
@@ -95,6 +91,8 @@
   }
 
   window.flashcardViewport = {
-    refresh: applyViewportSizing,
+    refresh: () => {
+      applyViewportSizing();
+    },
   };
 })(window, document);

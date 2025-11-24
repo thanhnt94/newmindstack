@@ -5,9 +5,10 @@
 # ĐÃ SỬA: Sửa lỗi truyền tham số trong get_flashcard_options_partial để tránh lỗi IndexError.
 # ĐÃ SỬA: Bổ sung logic để lấy thuật toán `get_mixed_items`.
 
-from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
+from flask import render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
 import traceback
+from . import flashcard_learning_bp
 from .algorithms import (
     get_new_only_items,
     get_due_items,
@@ -43,14 +44,6 @@ from mindstack_app.modules.shared.utils.media_paths import (
     build_relative_media_path,
 )
 from mindstack_app.modules.shared.utils.db_session import safe_commit
-
-flashcard_learning_bp = Blueprint(
-    'flashcard_learning',
-    __name__,
-    template_folder='templates',
-    static_folder='static',
-    static_url_path='/flashcard_static'
-)
 
 audio_service = AudioService()
 image_service = ImageService()

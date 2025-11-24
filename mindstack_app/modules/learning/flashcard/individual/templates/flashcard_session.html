@@ -1434,6 +1434,10 @@
       const flipBtn = document.getElementById('flip-card-btn');
       currentCardElements = { card, actions, flipBtn };
 
+      if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+        window.flashcardViewport.refresh();
+      }
+
       if (card) {
         card.dataset.cardCategory = cardCategory || 'default';
       }
