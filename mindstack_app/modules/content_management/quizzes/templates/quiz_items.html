@@ -119,13 +119,13 @@
                     {% if item.content.explanation %}
                     <p class="rounded-2xl bg-slate-50 px-4 py-2 text-[0.75rem] text-slate-500">
                         <span class="font-semibold text-slate-600">Gợi ý/Giải thích:</span>
-                        {{ item.content.explanation }}
+                        {{ item.content.explanation | truncate(160, True, '…') }}
                     </p>
                     {% endif %}
                     {% if item.ai_explanation %}
                     <p class="rounded-2xl bg-slate-50 px-4 py-2 text-[0.75rem] text-slate-500">
                         <span class="font-semibold text-slate-600">Giải thích AI:</span>
-                        {{ item.ai_explanation }}
+                        {{ item.ai_explanation | truncate(160, True, '…') }}
                     </p>
                     {% endif %}
                 </div>

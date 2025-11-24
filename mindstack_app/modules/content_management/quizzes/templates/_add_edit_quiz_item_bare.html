@@ -33,16 +33,60 @@
             justify-content: center;
             align-items: center;
         }
+        .floating-nav-button {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1050;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 0.9rem;
+            border-radius: 9999px;
+            background: rgba(37, 99, 235, 0.1);
+            color: #1d4ed8;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .floating-nav-button:hover {
+            background: rgba(37, 99, 235, 0.2);
+            transform: translateY(-50%) scale(1.02);
+        }
+        .floating-nav-button:active {
+            transform: translateY(-50%) scale(0.98);
+        }
+        .floating-nav-button--left { left: 14px; }
+        .floating-nav-button--right { right: 14px; }
     </style>
 </head>
 <body>
+
+{% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
+
+{% if is_modal_view %}
+    {% if previous_item_id %}
+    <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=previous_item_id) }}{{ modal_suffix }}"
+       class="floating-nav-button floating-nav-button--left">
+        <i class="fas fa-chevron-left"></i>
+        <span>Câu trước</span>
+    </a>
+    {% endif %}
+    {% if next_item_id %}
+    <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=next_item_id) }}{{ modal_suffix }}"
+       class="floating-nav-button floating-nav-button--right">
+        <span>Câu tiếp</span>
+        <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+{% endif %}
 
 <div class="full-height-container p-4"
      data-item-id="{{ quiz_item.item_id if quiz_item else '' }}"
      data-set-id="{{ quiz_set.container_id if quiz_set else '' }}">
     <div class="w-full">
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-            {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
+            {% if not is_modal_view %}
             <div class="flex items-center justify-between mb-4">
                 {% if previous_item_id %}
                 <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=previous_item_id) }}{{ modal_suffix }}"
@@ -63,6 +107,7 @@
                 <span></span>
                 {% endif %}
             </div>
+            {% endif %}
             <h2 class="text-2xl font-bold text-center mb-6 flex items-center justify-center">
                 <i class="fas fa-plus-circle text-blue-500 mr-3"></i> {{ title }}
             </h2>
