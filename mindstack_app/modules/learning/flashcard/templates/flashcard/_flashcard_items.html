@@ -6,6 +6,22 @@
 
 {% set collab_mode = collab_mode | default(False) %}
 
+{#
+  Shared padding so both individual and collab cards keep text clear of the toolbar.
+  Placed here to avoid diverging styles between the two entry points.
+#}
+<style>
+  .shared-flashcard-face {
+    padding: 72px 1.25rem 1.25rem 1.25rem;
+  }
+
+  @media (max-width: 1024px) {
+    .shared-flashcard-face {
+      padding: calc(64px + env(safe-area-inset-top, 0px)) 0.1rem 0.2rem 0.1rem !important;
+    }
+  }
+</style>
+
 {% if collab_mode %}
   <div class="card-surface flashcard-panel" id="collab-learning-card">
     <div class="flex items-start justify-between gap-3 collab-room-meta hidden lg:flex">
@@ -28,7 +44,7 @@
 
     <div class="flashcard-card-container">
       <div class="flashcard-card" id="collab-card">
-        <div class="face front">
+        <div class="face front shared-flashcard-face">
           <div class="card-toolbar">
             <div class="toolbar-left">
               <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i class="fas fa-bars"></i></button>
@@ -52,7 +68,7 @@
             </button>
           </div>
         </div>
-        <div class="face back">
+        <div class="face back shared-flashcard-face">
           <div class="card-toolbar">
             <div class="toolbar-left">
               <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i class="fas fa-bars"></i></button>
