@@ -256,6 +256,7 @@
                 <h3 class="text-lg font-semibold text-gray-800 mb-3">Di chuyển câu hỏi sang bộ khác</h3>
                 <form method="post" action="{{ url_for('.move_quiz_item', set_id=quiz_set.container_id, item_id=quiz_item.item_id) }}" class="flex flex-col md:flex-row gap-3 items-start md:items-end">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="is_modal" value="{{ 'true' if is_modal_view else 'false' }}">
                     <div class="w-full md:w-2/3">
                         <label for="move_quiz_target_modal" class="block text-sm font-medium text-gray-700">Chọn bộ Quiz đích</label>
                         <select id="move_quiz_target_modal" name="target_set_id" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">

@@ -2116,6 +2116,7 @@ def move_quiz_item(set_id, item_id):
             abort(403)
 
     target_set_id = request.form.get('target_set_id', type=int)
+    is_modal_request = request.form.get('is_modal') == 'true'
     if not target_set_id:
         flash('Vui lòng chọn bộ Quiz đích để di chuyển.', 'warning')
         return redirect(url_for('.edit_quiz_item', set_id=set_id, item_id=item_id))
@@ -2152,6 +2153,17 @@ def move_quiz_item(set_id, item_id):
         source_group = LearningGroup.query.get(group_id)
 
     items_to_move = grouped_items or [quiz_item]
+
+    max_moved_order = max((item.order_in_container or 0) for item in items_to_move)
+    next_item_after_move = (
+        LearningItem.query.filter(
+            LearningItem.container_id == set_id,
+            LearningItem.item_type == 'QUIZ_MCQ',
+            LearningItem.order_in_container > max_moved_order,
+        )
+        .order_by(LearningItem.order_in_container.asc())
+        .first()
+    )
 
     target_group = None
     if source_group:
@@ -2217,6 +2229,15 @@ def move_quiz_item(set_id, item_id):
         f"Đã di chuyển {moved_count} câu hỏi sang bộ '{target_set.title}'.",
         'success',
     )
+    if next_item_after_move:
+        redirect_args = {
+            'set_id': set_id,
+            'item_id': next_item_after_move.item_id,
+        }
+        if is_modal_request:
+            redirect_args['is_modal'] = 'true'
+        return redirect(url_for('.edit_quiz_item', **redirect_args))
+
     return redirect(url_for('.list_quiz_items', set_id=target_set.container_id))
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
