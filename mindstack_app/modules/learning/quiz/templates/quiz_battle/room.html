@@ -157,8 +157,10 @@
                         </div>
                     </form>
                 </div>
-                <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex flex-wrap gap-3 justify-between items-center text-xs text-slate-500">
                     <span id="round-progress">Tiến độ: --/--</span>
+                    <span id="player-answered">Đã trả lời: -- câu</span>
+                    <span id="player-score">Tổng điểm: --</span>
                     <span id="room-mode">Chế độ: --</span>
                 </div>
             </div>
@@ -195,8 +197,11 @@
             {# 3. Insight Tabs (AI, Notes) #}
             <div id="question-insight-panel" class="space-y-4" hidden>
                 <div class="cm-card">
-                    <div class="cm-card-header bg-gradient-to-r from-indigo-50 to-white">
+                    <div class="cm-card-header bg-gradient-to-r from-indigo-50 to-white flex items-center justify-between gap-3">
                         <span class="cm-card-title text-indigo-700"><i class="fa-solid fa-robot"></i> AI Coach</span>
+                        <button id="ai-coach-generate-btn" class="text-xs text-blue-600 font-semibold px-3 py-1 rounded-lg border border-blue-100 bg-white hover:bg-blue-50 hidden">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Tạo hướng dẫn AI
+                        </button>
                     </div>
                     <div class="cm-card-body text-sm text-slate-600 leading-relaxed" id="question-ai-content">
                         Đang phân tích...
@@ -309,6 +314,7 @@
         const startRoomUrl = {{ url_for('learning.quiz_battle.start_room', room_code=room_code) | tojson }};
         const endRoomUrl = {{ url_for('learning.quiz_battle.end_room', room_code=room_code) | tojson }};
         const nextRoundUrl = {{ url_for('learning.quiz_battle.start_next_round', room_code=room_code) | tojson }};
+        const getAiResponseUrl = {{ url_for('ai_services.get_ai_response') | tojson }};
         const messagesUrl = {{ url_for('shared.list_chat_messages', room_type='quiz-battle', room_code=room_code) | tojson }};
         const postMessageUrl = {{ url_for('shared.post_chat_message', room_type='quiz-battle', room_code=room_code) | tojson }};
         const answerUrlTemplate = {{ url_for('learning.quiz_battle.submit_round_answer', room_code=room_code, sequence_number=0) | tojson }};
@@ -322,6 +328,9 @@
         let chatPollInterval = null;
         let currentQuestionItemId = null;
         let pendingSelections = {};
+        const aiCoachContentEl = document.getElementById('question-ai-content');
+        const aiCoachGenerateBtn = document.getElementById('ai-coach-generate-btn');
+        const aiCoachButtonDefaultHtml = '<i class="fa-solid fa-wand-magic-sparkles"></i> Tạo hướng dẫn AI';
 
         // --- Helper Functions ---
         function setAlert(msg, type='info') {
@@ -360,6 +369,47 @@
                 throw new Error(errorMessage);
             }
             return res.json();
+        }
+
+        function getMyParticipant() {
+            return (roomState.participants || []).find(p => p.user_id === currentUserId);
+        }
+
+        async function generateAiCoachContent() {
+            if(!currentQuestionItemId || !aiCoachContentEl) return;
+
+            if(aiCoachGenerateBtn) {
+                aiCoachGenerateBtn.disabled = true;
+                aiCoachGenerateBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo...';
+            }
+            aiCoachContentEl.textContent = 'AI đang tạo hướng dẫn...';
+
+            try {
+                const res = await postJson(getAiResponseUrl, {
+                    item_id: currentQuestionItemId,
+                    prompt_type: 'explanation',
+                });
+
+                const content = res?.response || res?.html_content || '';
+                if(content) {
+                    aiCoachContentEl.textContent = content;
+                    if(roomState?.active_round?.question?.item_id === currentQuestionItemId) {
+                        roomState.active_round.question.ai_explanation = content;
+                    }
+                    aiCoachGenerateBtn?.classList.add('hidden');
+                } else {
+                    aiCoachContentEl.textContent = res?.message || 'AI chưa phản hồi hướng dẫn.';
+                    aiCoachGenerateBtn?.classList.remove('hidden');
+                }
+            } catch(err) {
+                aiCoachContentEl.textContent = `Không tạo được hướng dẫn: ${err.message}`;
+                aiCoachGenerateBtn?.classList.remove('hidden');
+            } finally {
+                if(aiCoachGenerateBtn) {
+                    aiCoachGenerateBtn.disabled = false;
+                    aiCoachGenerateBtn.innerHTML = aiCoachButtonDefaultHtml;
+                }
+            }
         }
 
         // --- Chat Functions ---
@@ -545,9 +595,19 @@
             document.getElementById('answer-feedback-score').textContent = (answer.score_delta > 0 ? '+' : '') + answer.score_delta;
             
             const expDiv = document.getElementById('answer-feedback-explanation');
-            expDiv.innerHTML = (answer.explanation || 'Chưa có giải thích.').replace(/\n/g, '<br>');
+            const explanationText =
+                answer.explanation || round.question.explanation || 'Chưa có giải thích.';
+            expDiv.innerHTML = explanationText.replace(/\n/g, '<br>');
 
-            document.getElementById('question-ai-content').textContent = round.question.ai_explanation || 'AI đang nghỉ ngơi...';
+            const aiExplanation = round.question.ai_explanation || '';
+            if(aiCoachContentEl) {
+                aiCoachContentEl.textContent = aiExplanation || 'AI đang nghỉ ngơi...';
+            }
+            if(aiCoachGenerateBtn) {
+                aiCoachGenerateBtn.classList.toggle('hidden', Boolean(aiExplanation));
+                aiCoachGenerateBtn.disabled = false;
+                aiCoachGenerateBtn.innerHTML = aiCoachButtonDefaultHtml;
+            }
             
             const noteContent = round.question.note_content || '';
             document.getElementById('question-note-content').textContent = noteContent || 'Bạn chưa có ghi chú.';
@@ -592,6 +652,10 @@
             document.getElementById('room-status').textContent = roomState.status;
             document.getElementById('room-status').dataset.status = roomState.status;
             document.getElementById('round-progress').textContent = `Tiến độ: ${roomState.current_round_number || 0}/${roomState.question_total || 0}`;
+            const me = getMyParticipant();
+            const answeredCount = me ? (me.correct_answers || 0) + (me.incorrect_answers || 0) : null;
+            document.getElementById('player-answered').textContent = `Đã trả lời: ${answeredCount !== null ? answeredCount : '--'} câu`;
+            document.getElementById('player-score').textContent = `Tổng điểm: ${me ? me.session_score || 0 : '--'}`;
             document.getElementById('room-mode').textContent = `Chế độ: ${roomState.mode === 'TIMED' ? 'Tính giờ' : 'Thường'}`;
 
             renderParticipants(roomState.participants || []);
@@ -626,7 +690,12 @@
         }
 
         // --- Event Listeners (Đã thêm error handling) ---
-        
+
+        if(aiCoachGenerateBtn) {
+            aiCoachGenerateBtn.innerHTML = aiCoachButtonDefaultHtml;
+            aiCoachGenerateBtn.addEventListener('click', generateAiCoachContent);
+        }
+
         document.getElementById('start-room-btn').addEventListener('click', async () => {
             try {
                 await postJson(startRoomUrl);
