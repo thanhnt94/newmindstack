@@ -1758,6 +1758,9 @@ def add_flashcard_item(set_id):
         'image_base_folder': image_folder,
         'audio_base_folder': audio_folder,
         'move_targets': [],
+        'previous_item_id': None,
+        'next_item_id': None,
+        'is_modal_view': request.args.get('is_modal') == 'true',
     }
 
     # Render template cho modal hoặc trang đầy đủ
@@ -1792,6 +1795,26 @@ def edit_flashcard_item(set_id, item_id):
         _get_editable_flashcard_sets_query(exclude_id=set_id)
         .order_by(LearningContainer.title)
         .all()
+    )
+
+    current_order = flashcard_item.order_in_container if flashcard_item.order_in_container is not None else -1
+    previous_item = (
+        LearningItem.query.filter(
+            LearningItem.container_id == set_id,
+            LearningItem.item_type == 'FLASHCARD',
+            LearningItem.order_in_container < current_order,
+        )
+        .order_by(LearningItem.order_in_container.desc())
+        .first()
+    )
+    next_item = (
+        LearningItem.query.filter(
+            LearningItem.container_id == set_id,
+            LearningItem.item_type == 'FLASHCARD',
+            LearningItem.order_in_container > current_order,
+        )
+        .order_by(LearningItem.order_in_container.asc())
+        .first()
     )
     if form.validate_on_submit():
         # Lấy thứ tự cũ và mới
@@ -1880,6 +1903,7 @@ def edit_flashcard_item(set_id, item_id):
         form.supports_speaking.data = _resolve_flag('supports_speaking')
         # Gán giá trị `order_in_container` vào form
         form.order_in_container.data = flashcard_item.order_in_container
+        form.ai_explanation.data = flashcard_item.ai_explanation
     
     context = {
         'form': form,
@@ -1895,6 +1919,9 @@ def edit_flashcard_item(set_id, item_id):
         'image_base_folder': image_folder,
         'audio_base_folder': audio_folder,
         'move_targets': move_targets,
+        'previous_item_id': previous_item.item_id if previous_item else None,
+        'next_item_id': next_item.item_id if next_item else None,
+        'is_modal_view': request.args.get('is_modal') == 'true',
     }
 
     # Render template cho modal hoặc trang đầy đủ
