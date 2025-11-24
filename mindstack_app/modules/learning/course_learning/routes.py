@@ -5,11 +5,33 @@
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
-from .algorithms import get_filtered_course_sets, get_lessons_for_course
-from ....models import db, LearningContainer, LearningItem, CourseProgress, UserContainerState, ContainerContributor, UserNote, User
 from sqlalchemy.sql import func
 
+from .algorithms import get_filtered_course_sets, get_lessons_for_course
+from ....models import (
+    ContainerContributor,
+    CourseProgress,
+    LearningContainer,
+    LearningItem,
+    ScoreLog,
+    User,
+    UserContainerState,
+    UserNote,
+    db,
+)
+from mindstack_app.services.config_service import get_runtime_config
+
 course_learning_bp = Blueprint('course_learning', __name__, template_folder='templates')
+
+
+def _get_score_value(key: str, default: int) -> int:
+    """Fetch an integer score value from runtime config with fallback."""
+
+    raw_value = get_runtime_config(key, default)
+    try:
+        return int(raw_value)
+    except (TypeError, ValueError):
+        return default
 
 
 @course_learning_bp.route('/course_learning_dashboard')
@@ -138,6 +160,8 @@ def update_lesson_progress(lesson_id):
         item_id=lesson_id
     ).first()
 
+    previous_percentage = progress.completion_percentage if progress else 0
+
     if progress:
         progress.completion_percentage = int(percentage)
     else:
@@ -147,9 +171,64 @@ def update_lesson_progress(lesson_id):
             completion_percentage=int(percentage)
         )
         db.session.add(progress)
-    
+
+    lesson_completed = previous_percentage < 100 and progress.completion_percentage >= 100
+
+    if lesson_completed:
+        user = None
+        lesson_score = _get_score_value('COURSE_LESSON_COMPLETION_SCORE', 15)
+        if lesson_score:
+            user = User.query.get(current_user.user_id)
+            if user:
+                user.total_score = (user.total_score or 0) + lesson_score
+            db.session.add(
+                ScoreLog(
+                    user_id=current_user.user_id,
+                    item_id=lesson.item_id,
+                    score_change=lesson_score,
+                    reason='Lesson Completed',
+                    item_type='LESSON'
+                )
+            )
+
+        lesson_ids = [
+            item.item_id
+            for item in LearningItem.query.filter_by(container_id=container.container_id, item_type='LESSON').all()
+        ]
+
+        if lesson_ids:
+            completed_count = CourseProgress.query.filter(
+                CourseProgress.user_id == current_user.user_id,
+                CourseProgress.item_id.in_(lesson_ids),
+                CourseProgress.completion_percentage >= 100,
+            ).count()
+
+            if completed_count == len(lesson_ids):
+                already_logged = ScoreLog.query.filter_by(
+                    user_id=current_user.user_id,
+                    item_id=container.container_id,
+                    item_type='COURSE',
+                ).first()
+
+                if not already_logged:
+                    course_score = _get_score_value('COURSE_COMPLETION_SCORE', 50)
+                    if course_score:
+                        user = user or User.query.get(current_user.user_id)
+                        if user:
+                            user.total_score = (user.total_score or 0) + course_score
+
+                        db.session.add(
+                            ScoreLog(
+                                user_id=current_user.user_id,
+                                item_id=container.container_id,
+                                score_change=course_score,
+                                reason='Course Completed',
+                                item_type='COURSE'
+                            )
+                        )
+
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Đã cập nhật tiến độ.'})
 
 @course_learning_bp.route('/toggle_archive_course/<int:course_id>', methods=['POST'])

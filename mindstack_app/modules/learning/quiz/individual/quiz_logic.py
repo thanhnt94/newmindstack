@@ -11,6 +11,17 @@ from sqlalchemy.orm.attributes import flag_modified
 import datetime
 import math
 from flask import current_app # Import current_app
+from mindstack_app.services.config_service import get_runtime_config
+
+
+def _get_score_value(key: str, default: int) -> int:
+    """Fetch an integer score value from runtime config with fallback."""
+
+    raw_value = get_runtime_config(key, default)
+    try:
+        return int(raw_value)
+    except (TypeError, ValueError):
+        return default
 
 def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_score):
     """
@@ -84,10 +95,10 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
 
     # 3. Tính toán điểm số
     if is_first_time:
-        score_change += 5 # +5 điểm thưởng cho lần đầu làm câu mới
+        score_change += _get_score_value('QUIZ_FIRST_TIME_BONUS', 5) # +5 điểm thưởng cho lần đầu làm câu mới
 
     if is_correct:
-        score_change += 20 # +20 điểm cho câu trả lời đúng
+        score_change += _get_score_value('QUIZ_CORRECT_BONUS', 20) # +20 điểm cho câu trả lời đúng
 
     # 4. Cập nhật trạng thái (status)
     total_attempts = (progress.times_correct or 0) + (progress.times_incorrect or 0)
