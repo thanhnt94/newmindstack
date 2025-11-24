@@ -240,13 +240,15 @@ class UserFeedback(db.Model):
 
     feedback_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
     content = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(50), default='new')
     timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
     resolved_by_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
 
     item = db.relationship('LearningItem', backref='feedbacks', lazy=True)
+    recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_feedbacks', lazy=True)
 
 
 class ContainerContributor(db.Model):
