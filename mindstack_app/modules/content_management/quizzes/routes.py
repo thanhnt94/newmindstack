@@ -433,6 +433,59 @@ def _resolve_local_media_path(path_value: str, *, media_folder: Optional[str] = 
     return None
 
 
+def _transfer_media_to_folder(
+    value: Optional[str], *, source_folder: Optional[str], target_folder: Optional[str]
+):
+    """Copy a local media file into the target folder and return the stored value.
+
+    If the value is an absolute/HTTP URL or the target folder is unavailable, the
+    original value is returned unchanged.
+    """
+
+    if not value or not target_folder:
+        return value
+
+    normalized_value = str(value).strip()
+    if not normalized_value or normalized_value.startswith(('http://', 'https://')):
+        return value
+
+    normalized_target = normalize_media_folder(target_folder)
+    if not normalized_target:
+        return value
+
+    candidate_paths = [
+        _resolve_local_media_path(normalized_value, media_folder=source_folder),
+        _resolve_local_media_path(normalized_value, media_folder=target_folder),
+        _resolve_local_media_path(normalized_value, media_folder=None),
+    ]
+    local_path = next((path for path in candidate_paths if path and os.path.isfile(path)), None)
+    if not local_path:
+        return value
+
+    destination_dir = os.path.join(current_app.static_folder, normalized_target)
+    try:
+        os.makedirs(destination_dir, exist_ok=True)
+    except OSError as exc:
+        current_app.logger.error(
+            "Không thể chuẩn bị thư mục media %s: %s", destination_dir, exc, exc_info=True
+        )
+        return value
+
+    filename = os.path.basename(local_path)
+    destination_path = os.path.join(destination_dir, filename)
+
+    try:
+        if not os.path.exists(destination_path):
+            shutil.copy2(local_path, destination_path)
+    except OSError as exc:  # pylint: disable=broad-except
+        current_app.logger.error(
+            "Không thể sao chép media %s sang %s: %s", local_path, destination_path, exc, exc_info=True
+        )
+        return value
+
+    return normalize_media_value_for_storage(filename, normalized_target)
+
+
 def _copy_media_into_package(
     original_path: str,
     media_dir: Optional[str],
@@ -1869,6 +1922,9 @@ def add_quiz_item(set_id):
         'image_preview_url': preview_image_url,
         'audio_preview_url': preview_audio_url,
         'move_targets': [],
+        'previous_item_id': None,
+        'next_item_id': None,
+        'is_modal_view': request.args.get('is_modal') == 'true',
     }
 
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
@@ -1894,6 +1950,27 @@ def edit_quiz_item(set_id, item_id):
         _get_editable_quiz_sets_query(exclude_id=set_id)
         .order_by(LearningContainer.title)
         .all()
+    )
+
+    current_order = quiz_item.order_in_container if quiz_item.order_in_container is not None else -1
+
+    previous_item = (
+        LearningItem.query.filter(
+            LearningItem.container_id == set_id,
+            LearningItem.item_type == 'QUIZ_MCQ',
+            LearningItem.order_in_container < current_order,
+        )
+        .order_by(LearningItem.order_in_container.desc())
+        .first()
+    )
+    next_item = (
+        LearningItem.query.filter(
+            LearningItem.container_id == set_id,
+            LearningItem.item_type == 'QUIZ_MCQ',
+            LearningItem.order_in_container > current_order,
+        )
+        .order_by(LearningItem.order_in_container.asc())
+        .first()
     )
 
     form = QuizItemForm()
@@ -2018,6 +2095,9 @@ def edit_quiz_item(set_id, item_id):
         'image_preview_url': preview_image_url,
         'audio_preview_url': preview_audio_url,
         'move_targets': move_targets,
+        'previous_item_id': previous_item.item_id if previous_item else None,
+        'next_item_id': next_item.item_id if next_item else None,
+        'is_modal_view': request.args.get('is_modal') == 'true',
     }
 
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
@@ -2064,10 +2144,28 @@ def move_quiz_item(set_id, item_id):
         item_type='QUIZ_MCQ'
     ).scalar() or 0
 
+    source_media_folders = _get_media_folders_from_container(quiz_set)
+    target_media_folders = _get_media_folders_from_container(target_set)
+    updated_content = dict(quiz_item.content or {})
+
+    media_field_map = {
+        'question_image_file': 'image',
+        'question_audio_file': 'audio',
+    }
+    for field_name, media_type in media_field_map.items():
+        updated_value = _transfer_media_to_folder(
+            updated_content.get(field_name),
+            source_folder=source_media_folders.get(media_type),
+            target_folder=target_media_folders.get(media_type),
+        )
+        if updated_value is not None:
+            updated_content[field_name] = updated_value
+
     quiz_item.container_id = target_set.container_id
     quiz_item.group_id = None
     quiz_item.order_in_container = max_order + 1
-    quiz_item.content.pop('group_item_order', None)
+    updated_content.pop('group_item_order', None)
+    quiz_item.content = updated_content
     flag_modified(quiz_item, 'content')
 
     db.session.commit()

@@ -11,6 +11,27 @@
 <div class="flex justify-center">
     <div class="w-full md:w-2/3 lg:w-1/2">
         <div class="bg-white shadow-lg p-8 border border-gray-200 rounded-xl">
+            {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
+            <div class="flex items-center justify-between mb-4">
+                {% if previous_item_id %}
+                <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=previous_item_id) }}{{ modal_suffix }}"
+                   class="flex items-center px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    <span>Câu trước</span>
+                </a>
+                {% else %}
+                <span></span>
+                {% endif %}
+                {% if next_item_id %}
+                <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=next_item_id) }}{{ modal_suffix }}"
+                   class="flex items-center px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
+                    <span>Câu tiếp</span>
+                    <i class="fas fa-chevron-right ml-2"></i>
+                </a>
+                {% else %}
+                <span></span>
+                {% endif %}
+            </div>
             <h2 class="text-2xl font-bold text-center mb-6 flex items-center justify-center">
                 <i class="fas fa-plus-circle text-blue-500 mr-3"></i> {{ title }}
             </h2>
