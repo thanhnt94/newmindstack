@@ -18,7 +18,7 @@ from flask import (
     send_file,
 )
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import QuizSetForm, QuizItemForm
 from ....models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User, UserNote
@@ -265,6 +265,32 @@ def _has_editor_access(container_id):
         user_id=current_user.user_id,
         permission_level='editor'
     ).first() is not None
+
+
+def _get_editable_quiz_sets_query(*, exclude_id: Optional[int] = None):
+    base_query = LearningContainer.query.filter_by(container_type='QUIZ_SET')
+
+    if current_user.user_role == User.ROLE_ADMIN:
+        query = base_query
+    elif current_user.user_role == User.ROLE_FREE:
+        query = base_query.filter_by(creator_user_id=current_user.user_id)
+    else:
+        contributor_ids = (
+            ContainerContributor.query
+            .filter_by(user_id=current_user.user_id, permission_level='editor')
+            .with_entities(ContainerContributor.container_id)
+        )
+        query = base_query.filter(
+            or_(
+                LearningContainer.creator_user_id == current_user.user_id,
+                LearningContainer.container_id.in_(contributor_ids)
+            )
+        )
+
+    if exclude_id:
+        query = query.filter(LearningContainer.container_id != exclude_id)
+
+    return query
 
 def _get_media_folders_from_container(container) -> dict[str, str]:
     if not container:
@@ -1752,6 +1778,11 @@ def add_quiz_item(set_id):
     media_folders = _get_media_folders_from_container(quiz_set)
     image_folder = media_folders.get('image')
     audio_folder = media_folders.get('audio')
+    move_targets = (
+        _get_editable_quiz_sets_query(exclude_id=set_id)
+        .order_by(LearningContainer.title)
+        .all()
+    )
 
     form = QuizItemForm()
     if form.validate_on_submit():
@@ -1837,6 +1868,7 @@ def add_quiz_item(set_id):
         'audio_base_folder': audio_folder or '',
         'image_preview_url': preview_image_url,
         'audio_preview_url': preview_audio_url,
+        'move_targets': [],
     }
 
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
@@ -1857,6 +1889,12 @@ def edit_quiz_item(set_id, item_id):
     media_folders = _get_media_folders_from_container(quiz_set)
     image_folder = media_folders.get('image')
     audio_folder = media_folders.get('audio')
+
+    move_targets = (
+        _get_editable_quiz_sets_query(exclude_id=set_id)
+        .order_by(LearningContainer.title)
+        .all()
+    )
 
     form = QuizItemForm()
     if request.method == 'GET':
@@ -1979,11 +2017,63 @@ def edit_quiz_item(set_id, item_id):
         'audio_base_folder': audio_folder or '',
         'image_preview_url': preview_image_url,
         'audio_preview_url': preview_audio_url,
+        'move_targets': move_targets,
     }
 
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_quiz_item_bare.html', **template_context)
     return render_template('add_edit_quiz_item.html', **template_context)
+
+
+@quizzes_bp.route('/quizzes/<int:set_id>/items/<int:item_id>/move', methods=['POST'])
+@login_required
+def move_quiz_item(set_id, item_id):
+    quiz_set = LearningContainer.query.get_or_404(set_id)
+    quiz_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id, item_type='QUIZ_MCQ').first_or_404()
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and quiz_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(set_id):
+            abort(403)
+
+    target_set_id = request.form.get('target_set_id', type=int)
+    if not target_set_id:
+        flash('Vui lòng chọn bộ Quiz đích để di chuyển.', 'warning')
+        return redirect(url_for('.edit_quiz_item', set_id=set_id, item_id=item_id))
+
+    target_set = LearningContainer.query.filter_by(container_id=target_set_id, container_type='QUIZ_SET').first()
+    if not target_set:
+        flash('Không tìm thấy bộ Quiz đích.', 'danger')
+        return redirect(url_for('.edit_quiz_item', set_id=set_id, item_id=item_id))
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and target_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(target_set.container_id):
+            abort(403)
+
+    if target_set.container_id == set_id:
+        flash('Câu hỏi đã nằm trong bộ này.', 'info')
+        return redirect(url_for('.edit_quiz_item', set_id=set_id, item_id=item_id))
+
+    db.session.query(LearningItem).filter(
+        LearningItem.container_id == set_id,
+        LearningItem.item_type == 'QUIZ_MCQ',
+        LearningItem.order_in_container > quiz_item.order_in_container
+    ).update({LearningItem.order_in_container: LearningItem.order_in_container - 1})
+
+    max_order = db.session.query(func.max(LearningItem.order_in_container)).filter_by(
+        container_id=target_set.container_id,
+        item_type='QUIZ_MCQ'
+    ).scalar() or 0
+
+    quiz_item.container_id = target_set.container_id
+    quiz_item.group_id = None
+    quiz_item.order_in_container = max_order + 1
+    quiz_item.content.pop('group_item_order', None)
+    flag_modified(quiz_item, 'content')
+
+    db.session.commit()
+
+    flash(f"Đã di chuyển câu hỏi sang bộ '{target_set.title}'.", 'success')
+    return redirect(url_for('.list_quiz_items', set_id=target_set.container_id))
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
 @login_required
