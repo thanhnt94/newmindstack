@@ -11,6 +11,27 @@
 <div class="flex justify-center">
     <div class="w-full md:w-2/3 lg:w-1/2">
         <div class="bg-white shadow-lg p-8 border border-gray-200 rounded-xl">
+            {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
+            <div class="flex items-center justify-between mb-4">
+                {% if previous_item_id %}
+                <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=previous_item_id) }}{{ modal_suffix }}"
+                   class="flex items-center px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    <span>Câu trước</span>
+                </a>
+                {% else %}
+                <span></span>
+                {% endif %}
+                {% if next_item_id %}
+                <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=next_item_id) }}{{ modal_suffix }}"
+                   class="flex items-center px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
+                    <span>Câu tiếp</span>
+                    <i class="fas fa-chevron-right ml-2"></i>
+                </a>
+                {% else %}
+                <span></span>
+                {% endif %}
+            </div>
             <h2 class="text-2xl font-bold text-center mb-6 flex items-center justify-center">
                 <i class="fas fa-plus-circle text-blue-500 mr-3"></i> {{ title }}
             </h2>
@@ -193,6 +214,28 @@
                 <div class="border-t border-gray-200 pt-6">
                     {{ form.ai_explanation.label(class="block text-sm font-medium text-gray-700") }}
                     {{ form.ai_explanation(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 focus:outline-none", rows="5") }}
+                </div>
+                {% endif %}
+
+                {% if quiz_item and move_targets %}
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Di chuyển câu hỏi sang bộ khác</h3>
+                    <form method="post" action="{{ url_for('.move_quiz_item', set_id=quiz_set.container_id, item_id=quiz_item.item_id) }}" class="flex flex-col md:flex-row gap-3 items-start md:items-end">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="w-full md:w-2/3">
+                            <label for="move_quiz_target" class="block text-sm font-medium text-gray-700">Chọn bộ Quiz đích</label>
+                            <select id="move_quiz_target" name="target_set_id" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">-- Chọn bộ Quiz --</option>
+                                {% for target in move_targets %}
+                                    <option value="{{ target.container_id }}">{{ target.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition duration-300 flex items-center">
+                            <i class="fas fa-share mr-2"></i> Di chuyển câu hỏi
+                        </button>
+                    </form>
+                    <p class="text-xs text-gray-500 mt-2">Câu hỏi sẽ được thêm vào cuối cùng của bộ Quiz được chọn.</p>
                 </div>
                 {% endif %}
 

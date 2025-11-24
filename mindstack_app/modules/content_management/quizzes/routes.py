@@ -18,7 +18,7 @@ from flask import (
     send_file,
 )
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import QuizSetForm, QuizItemForm
 from ....models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User, UserNote
@@ -266,6 +266,32 @@ def _has_editor_access(container_id):
         permission_level='editor'
     ).first() is not None
 
+
+def _get_editable_quiz_sets_query(*, exclude_id: Optional[int] = None):
+    base_query = LearningContainer.query.filter_by(container_type='QUIZ_SET')
+
+    if current_user.user_role == User.ROLE_ADMIN:
+        query = base_query
+    elif current_user.user_role == User.ROLE_FREE:
+        query = base_query.filter_by(creator_user_id=current_user.user_id)
+    else:
+        contributor_ids = (
+            ContainerContributor.query
+            .filter_by(user_id=current_user.user_id, permission_level='editor')
+            .with_entities(ContainerContributor.container_id)
+        )
+        query = base_query.filter(
+            or_(
+                LearningContainer.creator_user_id == current_user.user_id,
+                LearningContainer.container_id.in_(contributor_ids)
+            )
+        )
+
+    if exclude_id:
+        query = query.filter(LearningContainer.container_id != exclude_id)
+
+    return query
+
 def _get_media_folders_from_container(container) -> dict[str, str]:
     if not container:
         return {}
@@ -405,6 +431,59 @@ def _resolve_local_media_path(path_value: str, *, media_folder: Optional[str] = 
             return candidate
 
     return None
+
+
+def _transfer_media_to_folder(
+    value: Optional[str], *, source_folder: Optional[str], target_folder: Optional[str]
+):
+    """Copy a local media file into the target folder and return the stored value.
+
+    If the value is an absolute/HTTP URL or the target folder is unavailable, the
+    original value is returned unchanged.
+    """
+
+    if not value or not target_folder:
+        return value
+
+    normalized_value = str(value).strip()
+    if not normalized_value or normalized_value.startswith(('http://', 'https://')):
+        return value
+
+    normalized_target = normalize_media_folder(target_folder)
+    if not normalized_target:
+        return value
+
+    candidate_paths = [
+        _resolve_local_media_path(normalized_value, media_folder=source_folder),
+        _resolve_local_media_path(normalized_value, media_folder=target_folder),
+        _resolve_local_media_path(normalized_value, media_folder=None),
+    ]
+    local_path = next((path for path in candidate_paths if path and os.path.isfile(path)), None)
+    if not local_path:
+        return value
+
+    destination_dir = os.path.join(current_app.static_folder, normalized_target)
+    try:
+        os.makedirs(destination_dir, exist_ok=True)
+    except OSError as exc:
+        current_app.logger.error(
+            "Không thể chuẩn bị thư mục media %s: %s", destination_dir, exc, exc_info=True
+        )
+        return value
+
+    filename = os.path.basename(local_path)
+    destination_path = os.path.join(destination_dir, filename)
+
+    try:
+        if not os.path.exists(destination_path):
+            shutil.copy2(local_path, destination_path)
+    except OSError as exc:  # pylint: disable=broad-except
+        current_app.logger.error(
+            "Không thể sao chép media %s sang %s: %s", local_path, destination_path, exc, exc_info=True
+        )
+        return value
+
+    return normalize_media_value_for_storage(filename, normalized_target)
 
 
 def _copy_media_into_package(
@@ -1752,6 +1831,11 @@ def add_quiz_item(set_id):
     media_folders = _get_media_folders_from_container(quiz_set)
     image_folder = media_folders.get('image')
     audio_folder = media_folders.get('audio')
+    move_targets = (
+        _get_editable_quiz_sets_query(exclude_id=set_id)
+        .order_by(LearningContainer.title)
+        .all()
+    )
 
     form = QuizItemForm()
     if form.validate_on_submit():
@@ -1837,6 +1921,10 @@ def add_quiz_item(set_id):
         'audio_base_folder': audio_folder or '',
         'image_preview_url': preview_image_url,
         'audio_preview_url': preview_audio_url,
+        'move_targets': [],
+        'previous_item_id': None,
+        'next_item_id': None,
+        'is_modal_view': request.args.get('is_modal') == 'true',
     }
 
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
@@ -1857,6 +1945,33 @@ def edit_quiz_item(set_id, item_id):
     media_folders = _get_media_folders_from_container(quiz_set)
     image_folder = media_folders.get('image')
     audio_folder = media_folders.get('audio')
+
+    move_targets = (
+        _get_editable_quiz_sets_query(exclude_id=set_id)
+        .order_by(LearningContainer.title)
+        .all()
+    )
+
+    current_order = quiz_item.order_in_container if quiz_item.order_in_container is not None else -1
+
+    previous_item = (
+        LearningItem.query.filter(
+            LearningItem.container_id == set_id,
+            LearningItem.item_type == 'QUIZ_MCQ',
+            LearningItem.order_in_container < current_order,
+        )
+        .order_by(LearningItem.order_in_container.desc())
+        .first()
+    )
+    next_item = (
+        LearningItem.query.filter(
+            LearningItem.container_id == set_id,
+            LearningItem.item_type == 'QUIZ_MCQ',
+            LearningItem.order_in_container > current_order,
+        )
+        .order_by(LearningItem.order_in_container.asc())
+        .first()
+    )
 
     form = QuizItemForm()
     if request.method == 'GET':
@@ -1979,11 +2094,130 @@ def edit_quiz_item(set_id, item_id):
         'audio_base_folder': audio_folder or '',
         'image_preview_url': preview_image_url,
         'audio_preview_url': preview_audio_url,
+        'move_targets': move_targets,
+        'previous_item_id': previous_item.item_id if previous_item else None,
+        'next_item_id': next_item.item_id if next_item else None,
+        'is_modal_view': request.args.get('is_modal') == 'true',
     }
 
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('_add_edit_quiz_item_bare.html', **template_context)
     return render_template('add_edit_quiz_item.html', **template_context)
+
+
+@quizzes_bp.route('/quizzes/<int:set_id>/items/<int:item_id>/move', methods=['POST'])
+@login_required
+def move_quiz_item(set_id, item_id):
+    quiz_set = LearningContainer.query.get_or_404(set_id)
+    quiz_item = LearningItem.query.filter_by(item_id=item_id, container_id=set_id, item_type='QUIZ_MCQ').first_or_404()
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and quiz_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(set_id):
+            abort(403)
+
+    target_set_id = request.form.get('target_set_id', type=int)
+    if not target_set_id:
+        flash('Vui lòng chọn bộ Quiz đích để di chuyển.', 'warning')
+        return redirect(url_for('.edit_quiz_item', set_id=set_id, item_id=item_id))
+
+    target_set = LearningContainer.query.filter_by(container_id=target_set_id, container_type='QUIZ_SET').first()
+    if not target_set:
+        flash('Không tìm thấy bộ Quiz đích.', 'danger')
+        return redirect(url_for('.edit_quiz_item', set_id=set_id, item_id=item_id))
+
+    if current_user.user_role not in {User.ROLE_ADMIN} and target_set.creator_user_id != current_user.user_id:
+        if current_user.user_role == User.ROLE_FREE or not _has_editor_access(target_set.container_id):
+            abort(403)
+
+    if target_set.container_id == set_id:
+        flash('Câu hỏi đã nằm trong bộ này.', 'info')
+        return redirect(url_for('.edit_quiz_item', set_id=set_id, item_id=item_id))
+
+    source_media_folders = _get_media_folders_from_container(quiz_set)
+    target_media_folders = _get_media_folders_from_container(target_set)
+
+    group_id = quiz_item.group_id
+    grouped_items = []
+    source_group = None
+    if group_id:
+        grouped_items = (
+            LearningItem.query.filter_by(
+                container_id=set_id,
+                item_type='QUIZ_MCQ',
+                group_id=group_id,
+            )
+            .order_by(LearningItem.order_in_container)
+            .all()
+        )
+        source_group = LearningGroup.query.get(group_id)
+
+    items_to_move = grouped_items or [quiz_item]
+
+    target_group = None
+    if source_group:
+        target_group = LearningGroup(
+            container_id=target_set.container_id,
+            group_type=source_group.group_type,
+            content=copy.deepcopy(source_group.content or {}),
+        )
+        db.session.add(target_group)
+        db.session.flush()
+    elif grouped_items:
+        target_group = LearningGroup(
+            container_id=target_set.container_id,
+            group_type='PASSAGE',
+            content={},
+        )
+        db.session.add(target_group)
+        db.session.flush()
+
+    max_order = db.session.query(func.max(LearningItem.order_in_container)).filter_by(
+        container_id=target_set.container_id,
+        item_type='QUIZ_MCQ'
+    ).scalar() or 0
+
+    media_field_map = {
+        'question_image_file': 'image',
+        'question_audio_file': 'audio',
+    }
+    next_order = max_order + 1
+    for item in items_to_move:
+        updated_content = dict(item.content or {})
+        for field_name, media_type in media_field_map.items():
+            updated_value = _transfer_media_to_folder(
+                updated_content.get(field_name),
+                source_folder=source_media_folders.get(media_type),
+                target_folder=target_media_folders.get(media_type),
+            )
+            if updated_value is not None:
+                updated_content[field_name] = updated_value
+
+        item.container_id = target_set.container_id
+        item.group_id = target_group.group_id if target_group else None
+        item.order_in_container = next_order
+        next_order += 1
+        if not target_group:
+            updated_content.pop('group_item_order', None)
+        item.content = updated_content
+        flag_modified(item, 'content')
+
+    remaining_items = (
+        LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ')
+        .order_by(LearningItem.order_in_container)
+        .all()
+    )
+    for index, item in enumerate(remaining_items, start=1):
+        if item.order_in_container != index:
+            item.order_in_container = index
+
+    db.session.commit()
+
+    moved_count = len(items_to_move)
+    flash(
+        f"Đã di chuyển {moved_count} câu hỏi sang bộ '{target_set.title}'.",
+        'success',
+    )
+    return redirect(url_for('.list_quiz_items', set_id=target_set.container_id))
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/delete/<int:item_id>', methods=['POST'])
 @login_required
