@@ -127,6 +127,8 @@ def create_room():
         abort(403, description='Bạn chưa có quyền sử dụng bộ quiz này.')
 
     question_limit = payload.get('question_limit')
+    if isinstance(question_limit, str):
+        question_limit = question_limit.strip() or None
     if question_limit is not None:
         try:
             question_limit = int(question_limit)
@@ -136,6 +138,8 @@ def create_room():
             abort(400, description='Giới hạn câu hỏi phải lớn hơn 0.')
 
     max_players = payload.get('max_players')
+    if isinstance(max_players, str):
+        max_players = max_players.strip() or None
     if max_players is not None:
         try:
             max_players = int(max_players)
