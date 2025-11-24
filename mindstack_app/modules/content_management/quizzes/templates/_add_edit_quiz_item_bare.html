@@ -243,28 +243,6 @@
                     {% endif %}
                 </div>
 
-                {% if quiz_item and move_targets %}
-                <div class="border-t border-gray-200 pt-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Di chuyển câu hỏi sang bộ khác</h3>
-                    <form method="post" action="{{ url_for('.move_quiz_item', set_id=quiz_set.container_id, item_id=quiz_item.item_id) }}" class="flex flex-col md:flex-row gap-3 items-start md:items-end">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <div class="w-full md:w-2/3">
-                            <label for="move_quiz_target_modal" class="block text-sm font-medium text-gray-700">Chọn bộ Quiz đích</label>
-                            <select id="move_quiz_target_modal" name="target_set_id" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">-- Chọn bộ Quiz --</option>
-                                {% for target in move_targets %}
-                                    <option value="{{ target.container_id }}">{{ target.title }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition duration-300 flex items-center">
-                            <i class="fas fa-share mr-2"></i> Di chuyển câu hỏi
-                        </button>
-                    </form>
-                    <p class="text-xs text-gray-500 mt-2">Câu hỏi sẽ được thêm vào cuối cùng của bộ Quiz được chọn.</p>
-                </div>
-                {% endif %}
-
                 <div class="flex justify-end space-x-4 pt-4">
                     <button type="button" onclick="window.parent.closeModal()" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-400 transition duration-300 flex items-center">
                         <i class="fas fa-times mr-2"></i> Hủy
@@ -272,6 +250,29 @@
                     {{ form.submit(class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center") }}
                 </div>
             </form>
+
+            {% if quiz_item and move_targets %}
+            <div class="border-t border-gray-200 pt-6 mt-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Di chuyển câu hỏi sang bộ khác</h3>
+                <form method="post" action="{{ url_for('.move_quiz_item', set_id=quiz_set.container_id, item_id=quiz_item.item_id) }}" class="flex flex-col md:flex-row gap-3 items-start md:items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="is_modal" value="{{ 'true' if is_modal_view else 'false' }}">
+                    <div class="w-full md:w-2/3">
+                        <label for="move_quiz_target_modal" class="block text-sm font-medium text-gray-700">Chọn bộ Quiz đích</label>
+                        <select id="move_quiz_target_modal" name="target_set_id" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">-- Chọn bộ Quiz --</option>
+                            {% for target in move_targets %}
+                                <option value="{{ target.container_id }}">{{ target.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition duration-300 flex items-center">
+                        <i class="fas fa-share mr-2"></i> Di chuyển câu hỏi
+                    </button>
+                </form>
+                <p class="text-xs text-gray-500 mt-2">Câu hỏi sẽ được thêm vào cuối cùng của bộ Quiz được chọn.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
