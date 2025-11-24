@@ -545,7 +545,9 @@
             document.getElementById('answer-feedback-score').textContent = (answer.score_delta > 0 ? '+' : '') + answer.score_delta;
             
             const expDiv = document.getElementById('answer-feedback-explanation');
-            expDiv.innerHTML = (answer.explanation || 'Chưa có giải thích.').replace(/\n/g, '<br>');
+            const explanationText =
+                answer.explanation || round.question.explanation || 'Chưa có giải thích.';
+            expDiv.innerHTML = explanationText.replace(/\n/g, '<br>');
 
             document.getElementById('question-ai-content').textContent = round.question.ai_explanation || 'AI đang nghỉ ngơi...';
             
