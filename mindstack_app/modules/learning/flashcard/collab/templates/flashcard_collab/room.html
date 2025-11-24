@@ -748,6 +748,7 @@
 
 {% block scripts %}
   {{ super() }}
+  <script src="{{ url_for('learning.flashcard_learning.static', filename='flashcard_viewport.js') }}"></script>
   <script>
     const setVh = () => {
       const vh = window.innerHeight * 0.01;
@@ -848,6 +849,25 @@
       const mobileRoundStepEl = document.getElementById('collab-round-step-mobile');
 
       const editUrlTemplate = {{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=room_payload.container_id, item_id=0) | tojson }};
+
+      const refreshToolbarPadding = () => {
+        if (!cardEl) return;
+        const toolbars = cardEl.querySelectorAll('.card-toolbar');
+        let maxHeight = 0;
+        toolbars.forEach((bar) => {
+          if (!bar) return;
+          const height = bar.getBoundingClientRect().height;
+          if (height) {
+            maxHeight = Math.max(maxHeight, height);
+          }
+        });
+
+        if (maxHeight) {
+          const paddingValue = Math.ceil(maxHeight + 12);
+          cardEl.style.setProperty('--flashcard-toolbar-height', `${Math.ceil(maxHeight)}px`);
+          cardEl.style.setProperty('--flashcard-face-top-padding', `${paddingValue}px`);
+        }
+      };
 
       let currentRound = null;
       let currentCardId = null;
@@ -1019,6 +1039,9 @@
 
         roundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
         if (mobileRoundStepEl) mobileRoundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
+
+        refreshToolbarPadding();
+        setTimeout(refreshToolbarPadding, 0);
       };
 
       const fetchRound = async (showLoader = false) => {
@@ -1122,6 +1145,13 @@
       });
 
       flipBtn?.addEventListener('click', showBackSide);
+
+      window.addEventListener('resize', () => {
+        refreshToolbarPadding();
+        if (window.flashcardViewport?.refresh) {
+          window.flashcardViewport.refresh();
+        }
+      });
 
       refreshBtn?.addEventListener('click', () => fetchRound(true));
       refreshBtnMobile?.addEventListener('click', () => fetchRound(true));
