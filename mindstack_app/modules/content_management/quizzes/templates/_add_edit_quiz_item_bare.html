@@ -231,6 +231,18 @@
                     {% endif %}
                 </div>
 
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="flex items-center justify-between">
+                        {{ form.ai_explanation.label(class="block text-sm font-medium text-gray-700") }}
+                        {% if quiz_item and (current_user.user_role == 'admin' or quiz_set.creator_user_id == current_user.user_id) %}
+                        <button type="button" id="quiz-ai-regenerate-btn" class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200">
+                            <i class="fas fa-sync-alt mr-1"></i> Tái tạo lại
+                        </button>
+                        {% endif %}
+                    </div>
+                    {{ form.ai_explanation(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 focus:outline-none", rows="3", readonly=True) }}
+                </div>
+
                 {# THÊM MỚI: Trường nhập thứ tự hiển thị #}
                 <div>
                     {{ form.order_in_container.label(class="block text-sm font-medium text-gray-700") }}
@@ -332,9 +344,6 @@
                                 };
                                 window.parent.dispatchEvent(new CustomEvent('content-management:refresh', { detail: payload }));
                             }
-                            if (window.parent && window.parent.closeModal) {
-                                window.parent.closeModal();
-                            }
                         } else {
                             // Xử lý lỗi nghiệp vụ từ backend
                             if (window.parent && window.parent.showFlashMessage) {
@@ -377,6 +386,46 @@
                     if (window.parent && window.parent.closeModal) {
                         window.parent.closeModal();
                     }
+                }
+            });
+        }
+
+        const aiRegenerateBtn = document.getElementById('quiz-ai-regenerate-btn');
+        const aiExplanationField = document.getElementById('ai_explanation');
+        const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
+        const itemId = {{ (quiz_item.item_id if quiz_item else None) | tojson }};
+
+        if (aiRegenerateBtn && aiExplanationField && itemId) {
+            aiRegenerateBtn.addEventListener('click', async () => {
+                const originalText = aiRegenerateBtn.innerHTML;
+                aiRegenerateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
+                aiRegenerateBtn.disabled = true;
+                aiExplanationField.value = 'Đang tạo lại nội dung...';
+
+                try {
+                    const response = await fetch(getAiResponseUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            item_id: itemId,
+                            prompt_type: 'explanation',
+                            force_regenerate: true
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok && result.success) {
+                        aiExplanationField.value = result.response;
+                    } else {
+                        aiExplanationField.value = 'Lỗi: ' + (result.message || 'Không thể tạo lại nội dung AI.');
+                        console.error('Lỗi khi tái tạo AI:', result.message);
+                    }
+                } catch (error) {
+                    aiExplanationField.value = 'Lỗi kết nối đến máy chủ AI.';
+                    console.error('Lỗi mạng khi tái tạo AI:', error);
+                } finally {
+                    aiRegenerateBtn.innerHTML = originalText;
+                    aiRegenerateBtn.disabled = false;
                 }
             });
         }
