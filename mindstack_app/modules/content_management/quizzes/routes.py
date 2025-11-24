@@ -1890,6 +1890,12 @@ def edit_quiz_item(set_id, item_id):
     image_folder = media_folders.get('image')
     audio_folder = media_folders.get('audio')
 
+    move_targets = (
+        _get_editable_quiz_sets_query(exclude_id=set_id)
+        .order_by(LearningContainer.title)
+        .all()
+    )
+
     form = QuizItemForm()
     if request.method == 'GET':
         form.question.data = quiz_item.content.get('question')
