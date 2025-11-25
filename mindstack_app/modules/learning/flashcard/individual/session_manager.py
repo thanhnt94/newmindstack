@@ -5,7 +5,15 @@
 
 from flask import session, current_app, url_for
 from flask_login import current_user
-from .....models import db, LearningItem, FlashcardProgress, LearningGroup, User, LearningContainer
+from .....models import (
+    db,
+    LearningItem,
+    FlashcardProgress,
+    LearningGroup,
+    User,
+    LearningContainer,
+    ContainerContributor,
+)
 from .algorithms import (
     get_new_only_items,
     get_due_items,
@@ -70,6 +78,7 @@ class FlashcardSessionManager:
         self.vague_answers = vague_answers
         self.start_time = start_time
         self._media_folders_cache = None
+        self._edit_permission_cache = {}
 
     @classmethod
     def from_dict(cls, session_dict):
@@ -85,6 +94,7 @@ class FlashcardSessionManager:
             start_time=session_dict['start_time']
         )
         instance._media_folders_cache = None
+        instance._edit_permission_cache = {}
         return instance
 
     def to_dict(self):
@@ -211,6 +221,38 @@ class FlashcardSessionManager:
         except Exception:
             return None
 
+    def _can_edit_container(self, container_id):
+        """Check if the session user can edit items inside the container."""
+
+        if container_id in self._edit_permission_cache:
+            return self._edit_permission_cache[container_id]
+
+        try:
+            user = User.query.get(self.user_id)
+            if not user:
+                self._edit_permission_cache[container_id] = False
+                return False
+
+            if user.user_role == User.ROLE_ADMIN:
+                self._edit_permission_cache[container_id] = True
+                return True
+
+            container = LearningContainer.query.get(container_id)
+            if container and container.creator_user_id == user.user_id:
+                self._edit_permission_cache[container_id] = True
+                return True
+
+            has_permission = ContainerContributor.query.filter_by(
+                container_id=container_id,
+                user_id=user.user_id,
+                permission_level="editor",
+            ).first() is not None
+            self._edit_permission_cache[container_id] = has_permission
+            return has_permission
+        except Exception:
+            self._edit_permission_cache[container_id] = False
+            return False
+
     def get_next_batch(self):
         next_item = None
         exclusion_condition = None
@@ -331,7 +373,8 @@ class FlashcardSessionManager:
                 ),
             },
             'ai_explanation': next_item.ai_explanation,
-            'initial_stats': initial_stats  # Gửi kèm thống kê
+            'initial_stats': initial_stats,  # Gửi kèm thống kê
+            'can_edit': self._can_edit_container(next_item.container_id)
         }
         
         self.processed_item_ids.append(next_item.item_id)
