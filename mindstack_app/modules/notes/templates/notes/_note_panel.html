@@ -5,50 +5,116 @@
 #}
 <style>
     .note-panel {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background-color: #f9fafb;
-        border-top: 2px solid #e5e7eb;
-        padding: 1rem;
-        transform: translateY(100%);
-        transition: transform 0.3s ease-in-out;
-        z-index: 20;
+        position: fixed;
+        inset: 0;
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(2px);
+        z-index: 50;
         opacity: 0;
-        pointer-events: none;
         visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.25s ease, visibility 0.25s ease;
     }
     .note-panel.open {
-        transform: translateY(0);
         opacity: 1;
-        pointer-events: auto;
         visibility: visible;
+        pointer-events: auto;
+    }
+    .note-panel__dialog {
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 24px 64px rgba(15, 23, 42, 0.25);
+        width: min(92vw, 520px);
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        padding: 1.25rem 1.5rem;
+        gap: 0.75rem;
+    }
+    .note-panel__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+    .note-panel__title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #111827;
+    }
+    .note-panel__close {
+        background: transparent;
+        border: none;
+        color: #6b7280;
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 0.375rem;
+    }
+    .note-panel__close:hover { background: #f3f4f6; }
+    .note-panel__body {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .note-view {
+        padding: 0.75rem;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        color: #1f2937;
+        min-height: 25vh;
+        max-height: 48vh;
+        overflow-y: auto;
+        white-space: pre-wrap;
     }
     .note-textarea {
         width: 100%;
-        min-height: 100px;
+        min-height: 25vh;
+        max-height: 48vh;
         border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        padding: 0.75rem;
+        border-radius: 0.75rem;
+        padding: 0.75rem 0.9rem;
         resize: vertical;
         flex-grow: 1;
     }
     .note-actions {
-        margin-top: 0.75rem;
+        margin-top: 0.5rem;
         display: flex;
         justify-content: flex-end;
         gap: 0.5rem;
     }
+    .hidden { display: none !important; }
 </style>
 
 <div id="note-panel" class="note-panel">
-    <h3 class="text-lg font-semibold text-gray-800 mb-2">Ghi chú cá nhân</h3>
-    <textarea id="note-textarea" class="note-textarea" placeholder="Nhập ghi chú của bạn ở đây..."></textarea>
-    <div class="note-actions">
-        <button id="cancel-note-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm">Hủy</button>
-        <button id="save-note-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm">Lưu Ghi chú</button>
+    <div class="note-panel__dialog" role="dialog" aria-labelledby="note-panel-title">
+        <div class="note-panel__header">
+            <h3 id="note-panel-title" class="note-panel__title">Ghi chú cá nhân</h3>
+            <button id="close-note-btn" class="note-panel__close" aria-label="Đóng">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="note-panel__body">
+            <div id="note-view-section" class="note-view hidden">
+                <div id="note-display" class="whitespace-pre-line text-gray-800"></div>
+                <div class="note-actions justify-between">
+                    <span class="text-sm text-gray-500">Chạm "Sửa" để cập nhật ghi chú.</span>
+                    <button id="edit-note-btn" class="px-3 py-2 bg-blue-50 text-blue-700 rounded-md text-sm border border-blue-100">Sửa</button>
+                </div>
+            </div>
+            <div id="note-edit-section" class="note-edit">
+                <textarea id="note-textarea" class="note-textarea" placeholder="Nhập ghi chú của bạn ở đây..."></textarea>
+                <div class="note-actions">
+                    <button id="cancel-note-btn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm border">Hủy</button>
+                    <button id="save-note-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm">Lưu Ghi chú</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
