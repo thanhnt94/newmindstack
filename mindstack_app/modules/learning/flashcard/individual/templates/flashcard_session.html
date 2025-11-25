@@ -2326,36 +2326,63 @@
     const noteTextarea = document.getElementById('note-textarea');
     const saveNoteBtn = document.getElementById('save-note-btn');
     const cancelNoteBtn = document.getElementById('cancel-note-btn');
+    const noteDisplay = document.getElementById('note-display');
+    const editNoteBtn = document.getElementById('edit-note-btn');
+    const noteViewSection = document.getElementById('note-view-section');
+    const noteEditSection = document.getElementById('note-edit-section');
+    const closeNoteBtn = document.getElementById('close-note-btn');
     let currentNoteItemId = null;
+    let lastLoadedNoteContent = '';
+
+    function setNoteMode(mode) {
+        if (mode === 'view') {
+            noteViewSection.classList.remove('hidden');
+            noteEditSection.classList.add('hidden');
+            editNoteBtn.classList.toggle('hidden', !lastLoadedNoteContent.trim());
+        } else {
+            noteViewSection.classList.add('hidden');
+            noteEditSection.classList.remove('hidden');
+            noteTextarea.focus();
+        }
+    }
+
+    function updateNoteView(content) {
+        lastLoadedNoteContent = content || '';
+        const hasContent = lastLoadedNoteContent.trim().length > 0;
+        noteDisplay.textContent = hasContent ? lastLoadedNoteContent : 'Chưa có ghi chú.';
+        noteTextarea.value = lastLoadedNoteContent;
+        setNoteMode(hasContent ? 'view' : 'edit');
+    }
 
     async function openNotePanel(itemId) {
         if (!itemId) return;
         currentNoteItemId = itemId;
-        
+        notePanel.classList.add('open');
+
         noteTextarea.value = 'Đang tải ghi chú...';
         noteTextarea.disabled = true;
         try {
             const response = await fetch(getNoteUrl.replace('/0', `/${itemId}`));
             const result = await response.json();
             if (response.ok && result.success) {
-                noteTextarea.value = result.content;
+                updateNoteView(result.content || '');
             } else {
-                noteTextarea.value = '';
+                updateNoteView('');
             }
         } catch (error) {
             console.error('Lỗi khi tải ghi chú:', error);
-            noteTextarea.value = 'Lỗi khi tải ghi chú.';
+            updateNoteView('');
         } finally {
             noteTextarea.disabled = false;
         }
-
-        notePanel.classList.add('open');
     }
 
     function closeNotePanel() {
         notePanel.classList.remove('open');
         currentNoteItemId = null;
+        lastLoadedNoteContent = '';
         noteTextarea.value = '';
+        setNoteMode('edit');
     }
 
     async function saveNote() {
@@ -2374,7 +2401,7 @@
             const result = await response.json();
             if (response.ok && result.success) {
                 window.showFlashMessage(result.message, 'success');
-                closeNotePanel();
+                updateNoteView(content);
             } else {
                 window.showFlashMessage(result.message || 'Lỗi khi lưu ghi chú.', 'danger');
             }
@@ -2387,8 +2414,23 @@
         }
     }
 
+    function handleCancelNote() {
+        if (lastLoadedNoteContent.trim()) {
+            setNoteMode('view');
+        } else {
+            closeNotePanel();
+        }
+    }
+
     saveNoteBtn.addEventListener('click', saveNote);
-    cancelNoteBtn.addEventListener('click', closeNotePanel);
+    cancelNoteBtn.addEventListener('click', handleCancelNote);
+    editNoteBtn.addEventListener('click', () => setNoteMode('edit'));
+    closeNoteBtn.addEventListener('click', closeNotePanel);
+    notePanel.addEventListener('click', (event) => {
+        if (event.target === notePanel) {
+            closeNotePanel();
+        }
+    });
 
 
     document.addEventListener('DOMContentLoaded', () => {
