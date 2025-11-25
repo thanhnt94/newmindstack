@@ -112,21 +112,14 @@
         gap: 2rem;
         max-width: 1680px;
         margin: 0 auto;
-        padding: 1.5rem 2rem;
+        padding: var(--flashcard-shell-gap) clamp(24px, 2vw, 32px);
         align-items: stretch;
         min-height: 0;
         flex-grow: 1;
         box-sizing: border-box;
         /* THAY ĐỔI: Cố định layout */
         overflow: hidden;
-        min-height: calc(100vh - var(--flashcard-header-height, 0px) - var(--flashcard-footer-height, 0px) - (var(--flashcard-shell-gap) * 2));
-    }
-
-    /* THÊM MỚI: Tạo khoảng trống dưới để tránh footer đè lên nội dung thẻ trên desktop */
-    @media (min-width: 1024px) {
-        .session-layout {
-            padding-bottom: 5rem;
-        }
+        min-height: calc(100vh - var(--flashcard-header-height, 0px) - var(--flashcard-footer-height, 0px));
     }
 
     @media (max-width: 1024px) {
