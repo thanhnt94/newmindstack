@@ -14,6 +14,7 @@ from .....models import (
     FlashcardCollabRoom,
     FlashcardCollabRound,
     LearningContainer,
+    ContainerContributor,
     UserContainerState,
     User,
     db,
@@ -26,6 +27,29 @@ from .services import build_round_payload, ensure_active_round, generate_room_co
 flashcard_collab_bp = Blueprint(
     'flashcard_collab', __name__, url_prefix='/flashcard-collab', template_folder='templates'
 )
+
+
+def _user_can_edit_flashcard(container_id: int) -> bool:
+    """Return True if the current user can edit items within the container."""
+
+    if current_user.user_role == User.ROLE_ADMIN:
+        return True
+
+    container = LearningContainer.query.get(container_id)
+    if not container:
+        return False
+
+    if container.creator_user_id == current_user.user_id:
+        return True
+
+    return (
+        ContainerContributor.query.filter_by(
+            container_id=container_id,
+            user_id=current_user.user_id,
+            permission_level="editor",
+        ).first()
+        is not None
+    )
 
 
 @flashcard_collab_bp.route('/')
@@ -119,6 +143,7 @@ def view_room(room_code: str):
         'flashcard_collab/room.html',
         room=room,
         room_payload=room_payload,
+        can_edit_flashcards=_user_can_edit_flashcard(room.container_id),
     )
 
 
