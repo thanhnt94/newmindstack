@@ -1445,11 +1445,17 @@
         const hasBackAudio = currentFlashcardBatch[currentFlashcardIndex].content.back_audio_url || currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content;
         const frontTextRaw = currentFlashcardBatch[currentFlashcardIndex].content.front || '';
         const backTextRaw = currentFlashcardBatch[currentFlashcardIndex].content.back || '';
+        const canEditCurrentCard = Boolean(
+            currentFlashcardBatch[currentFlashcardIndex] &&
+            currentFlashcardBatch[currentFlashcardIndex].can_edit
+        );
         const menuButtonHtml = isMobile ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-bars"></i></button>` : '';
         const aiButtonHtml = `<button class="icon-btn open-ai-modal-btn" data-item-id="${itemId}"><i class="fas fa-robot"></i></button>`;
         const noteButtonHtml = `<button class="icon-btn open-note-panel-btn" data-item-id="${itemId}"><i class="fas fa-sticky-note"></i></button>`;
         const feedbackButtonHtml = `<button class="icon-btn open-feedback-modal-btn" data-item-id="${itemId}"><i class="fas fa-flag"></i></button>`;
-        const editButtonHtml = `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
+        const editButtonHtml = canEditCurrentCard
+            ? `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`
+            : '';
         const imageToggleButtonHtml = `<button class="icon-btn image-toggle-btn ${isMediaHidden ? 'is-active' : ''}" aria-pressed="${isMediaHidden}" title="${isMediaHidden ? 'Bật ảnh' : 'Tắt ảnh'}"><i class="fas ${isMediaHidden ? 'fa-image-slash' : 'fa-image'}"></i></button>`;
 
         const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
