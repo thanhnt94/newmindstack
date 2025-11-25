@@ -1,6 +1,21 @@
+
 (function (window, document) {
   const MIN_VIEWPORT_HEIGHT = 360;
   const MIN_CONTENT_HEIGHT = 240;
+  const MOBILE_MAX_WIDTH = 1024;
+
+  function updateChromeOffsets() {
+    const header = document.querySelector('body > header');
+    const footer = document.querySelector('body > footer');
+
+    const headerHeight = header ? header.getBoundingClientRect().height : 0;
+    const footerHeight = footer ? footer.getBoundingClientRect().height : 0;
+
+    document.documentElement.style.setProperty('--flashcard-header-height', `${headerHeight}px`);
+    document.documentElement.style.setProperty('--flashcard-footer-height', `${footerHeight}px`);
+
+    return { headerHeight, footerHeight };
+  }
 
   function getAdjustedViewportHeight() {
     const viewport = window.visualViewport;
@@ -61,7 +76,41 @@
     }
   }
 
+  function resetHeights() {
+    document.documentElement.style.removeProperty('--vh');
+
+    const shell = document.querySelector('.page-shell');
+    if (shell) {
+      shell.style.height = '';
+      shell.style.minHeight = '';
+    }
+
+    const layout = document.querySelector('.session-layout');
+    if (layout) {
+      layout.style.height = '';
+      layout.style.minHeight = '';
+    }
+
+    const wrapper = document.querySelector('.flashcard-wrapper');
+    if (wrapper) {
+      wrapper.style.height = '';
+      wrapper.style.minHeight = '';
+    }
+
+    const content = document.getElementById('flashcard-content');
+    if (content) {
+      content.style.maxHeight = '';
+    }
+  }
+
   const applyViewportSizing = schedule(() => {
+    updateChromeOffsets();
+
+    if (window.innerWidth > MOBILE_MAX_WIDTH) {
+      resetHeights();
+      return;
+    }
+
     const adjustedHeight = getAdjustedViewportHeight();
     setHeights(adjustedHeight);
   });
