@@ -4,6 +4,19 @@
   const MIN_CONTENT_HEIGHT = 240;
   const MOBILE_MAX_WIDTH = 1024;
 
+  function updateChromeOffsets() {
+    const header = document.querySelector('body > header');
+    const footer = document.querySelector('body > footer');
+
+    const headerHeight = header ? header.getBoundingClientRect().height : 0;
+    const footerHeight = footer ? footer.getBoundingClientRect().height : 0;
+
+    document.documentElement.style.setProperty('--flashcard-header-height', `${headerHeight}px`);
+    document.documentElement.style.setProperty('--flashcard-footer-height', `${footerHeight}px`);
+
+    return { headerHeight, footerHeight };
+  }
+
   function getAdjustedViewportHeight() {
     const viewport = window.visualViewport;
     const rawHeight = viewport && typeof viewport.height === 'number' ? viewport.height : window.innerHeight;
@@ -91,6 +104,8 @@
   }
 
   const applyViewportSizing = schedule(() => {
+    updateChromeOffsets();
+
     if (window.innerWidth > MOBILE_MAX_WIDTH) {
       resetHeights();
       return;
