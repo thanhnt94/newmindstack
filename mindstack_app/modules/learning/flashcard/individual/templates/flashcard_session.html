@@ -512,6 +512,16 @@
         align-items: center;
         justify-content: center;
     }
+
+    ._card-container.media-hidden .text-area {
+        align-items: center;
+        justify-content: center;
+    }
+
+    .back ._card-container.media-hidden .text-area {
+        align-items: flex-start;
+        justify-content: flex-start;
+    }
     
     /* Ghi đè lại text-align cho mặt sau để căn trái khi có nhiều dòng */
     .back .text-area .flashcard-content-text {
@@ -552,6 +562,13 @@
     
     .media-container.hidden {
         display: none;
+    }
+
+    .card-toolbar .image-toggle-btn.is-active {
+        background: #e0f2fe;
+        color: #0369a1;
+        border-color: rgba(3, 105, 161, 0.4);
+        box-shadow: 0 10px 24px rgba(3, 105, 161, 0.12);
     }
     
     .media-container img {
@@ -1011,6 +1028,16 @@
     let currentAutoplayToken = 0;
     let currentAutoplayTimeouts = [];
     let currentCardElements = { card: null, actions: null, flipBtn: null };
+    let isMediaHidden = false;
+
+    try {
+      const storedImageVisibility = localStorage.getItem('flashcardHideImages');
+      if (storedImageVisibility === 'true') {
+        isMediaHidden = true;
+      }
+    } catch (err) {
+      console.warn('Không thể đọc trạng thái hiển thị ảnh:', err);
+    }
 
     if (isAutoplaySession) {
       try {
@@ -1046,6 +1073,47 @@
       temp.innerHTML = text;
       const plain = temp.textContent || temp.innerText || '';
       return plain.trim();
+    }
+
+    function applyMediaVisibility() {
+      const mediaContainers = document.querySelectorAll('#flashcard-content .media-container');
+      const cardContainers = document.querySelectorAll('#flashcard-content ._card-container');
+
+      mediaContainers.forEach(container => {
+        container.classList.toggle('hidden', isMediaHidden);
+      });
+
+      cardContainers.forEach(container => {
+        container.classList.toggle('media-hidden', isMediaHidden);
+      });
+
+      document.querySelectorAll('.image-toggle-btn').forEach(btn => {
+        btn.classList.toggle('is-active', isMediaHidden);
+        btn.setAttribute('aria-pressed', isMediaHidden ? 'true' : 'false');
+        btn.title = isMediaHidden ? 'Bật ảnh' : 'Tắt ảnh';
+        const icon = btn.querySelector('i');
+        if (icon) {
+          icon.className = `fas ${isMediaHidden ? 'fa-image-slash' : 'fa-image'}`;
+        }
+      });
+
+      if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+        window.flashcardViewport.refresh();
+      }
+
+      setTimeout(adjustCardLayout, 0);
+    }
+
+    function setMediaHiddenState(hidden) {
+      isMediaHidden = hidden;
+
+      try {
+        localStorage.setItem('flashcardHideImages', hidden ? 'true' : 'false');
+      } catch (err) {
+        console.warn('Không thể lưu trạng thái hiển thị ảnh:', err);
+      }
+
+      applyMediaVisibility();
     }
 
     function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = false } = {}) {
@@ -1382,18 +1450,19 @@
         const noteButtonHtml = `<button class="icon-btn open-note-panel-btn" data-item-id="${itemId}"><i class="fas fa-sticky-note"></i></button>`;
         const feedbackButtonHtml = `<button class="icon-btn open-feedback-modal-btn" data-item-id="${itemId}"><i class="fas fa-flag"></i></button>`;
         const editButtonHtml = `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`;
+        const imageToggleButtonHtml = `<button class="icon-btn image-toggle-btn ${isMediaHidden ? 'is-active' : ''}" aria-pressed="${isMediaHidden}" title="${isMediaHidden ? 'Bật ảnh' : 'Tắt ảnh'}"><i class="fas ${isMediaHidden ? 'fa-image-slash' : 'fa-image'}"></i></button>`;
 
         const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
         const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
 
         const flipButtonHtml = `<button id="flip-card-btn" class="flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
 
-        const leftToolbarContent = isMobile 
-            ? `${menuButtonHtml}${aiButtonHtml}${noteButtonHtml}` 
+        const leftToolbarContent = isMobile
+            ? `${menuButtonHtml}${aiButtonHtml}${noteButtonHtml}`
             : `${aiButtonHtml}${noteButtonHtml}`;
-        
+
         // THAY ĐỔI: Di chuyển nút feedback sang phải
-        const rightToolbarContent = `${feedbackButtonHtml}${editButtonHtml}`;
+        const rightToolbarContent = `${feedbackButtonHtml}${editButtonHtml}${imageToggleButtonHtml}`;
 
         return {
             front: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT TRƯỚC</span><div class="toolbar-right">${rightToolbarContent}${audioButtonHtmlFront}</div></div>`,
@@ -1523,6 +1592,13 @@
           });
       });
 
+      document.querySelectorAll('.image-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', ev => {
+          ev.stopPropagation();
+          setMediaHiddenState(!isMediaHidden);
+        });
+      });
+
       if (!isAutoplaySession) {
         document.querySelectorAll('.actions .btn').forEach(b => b.addEventListener('click', ev => {
           ev.stopPropagation();
@@ -1555,6 +1631,8 @@
           const itemId = btn.dataset.itemId;
           openNotePanel(itemId);
       }));
+
+      applyMediaVisibility();
 
       // Gắn listener cho nút feedback
       document.querySelectorAll('.open-feedback-modal-btn').forEach(btn => btn.addEventListener('click', () => {
