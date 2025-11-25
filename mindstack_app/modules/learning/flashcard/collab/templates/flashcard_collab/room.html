@@ -4,6 +4,12 @@
 {% block head %}
   {{ super() }}
   <style>
+    :root {
+      --flashcard-shell-gap: clamp(24px, 3vw, 32px);
+      --flashcard-header-height: 0px;
+      --flashcard-footer-height: 0px;
+    }
+
     /* --- 1. GLOBAL LAYOUT RESET (Application Mode) --- */
     html {
       height: 100%;
@@ -60,18 +66,23 @@
       flex-direction: column;
       width: 100%;
       height: 100%; /* Fill 100% main */
-      padding: 1.25rem 1.5rem 5.5rem; /* Padding tổng thể */
+      padding: var(--flashcard-shell-gap) 0;
       gap: 1rem;
       background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08), transparent 25%),
         radial-gradient(circle at 90% 30%, rgba(59, 130, 246, 0.06), transparent 25%),
         #f8fafc;
       overflow: hidden; /* Không scroll ở đây */
       box-sizing: border-box;
+      min-height: calc(100vh - var(--flashcard-header-height, 0px) - var(--flashcard-footer-height, 0px));
     }
 
     @media (max-width: 1024px) {
       .page-shell {
-        padding: 0;
+        top: var(--header-h, 0px);
+        bottom: 0;
+        padding: 0.05rem 0.05rem 0;
+        height: calc(var(--vh, 1vh) * 100);
+        min-height: calc(var(--vh, 1vh) * 100);
         gap: 0;
         background: #f8fafc;
       }
@@ -88,15 +99,17 @@
       display: grid;
       grid-template-columns: minmax(0, 5fr) minmax(360px, 2fr);
       gap: 1.25rem;
-      
+
       /* Layout Fill */
       width: 100%;
       max-width: 1440px;
       margin: 0 auto;
-      
+      padding: var(--flashcard-shell-gap) clamp(24px, 2vw, 32px) calc(var(--flashcard-shell-gap) * 2) clamp(24px, 2vw, 32px);
       flex: 1; /* Chiếm toàn bộ chiều cao còn lại */
       min-height: 0; /* Cho phép con scroll */
       overflow: hidden; /* Chặn scroll tràn ra ngoài */
+      box-sizing: border-box;
+      min-height: calc(100vh - var(--flashcard-header-height, 0px) - var(--flashcard-footer-height, 0px) - var(--flashcard-shell-gap));
     }
 
     @media (max-width: 1024px) {
@@ -104,8 +117,19 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        padding: 0 !important;
+        width: 100%;
+        padding: 0.1rem 0.15rem 0.2rem !important;
+        overflow: hidden; /* Quan trọng: Loại bỏ cuộn trên layout chính */
       }
+    }
+
+    .flashcard-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
     }
 
     /* --- 4. LEFT COLUMN: FLASHCARD --- */
@@ -187,6 +211,16 @@
       overflow-y: auto; /* Scroll nội dung thẻ nếu dài */
       padding: 1rem 0; display: flex; align-items: center; justify-content: center;
       scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+    }
+
+    ._card-container.media-hidden .text-area {
+      align-items: center;
+      justify-content: center;
+    }
+
+    .back ._card-container.media-hidden .text-area {
+      align-items: flex-start;
+      justify-content: flex-start;
     }
 
     /* --- 5. RIGHT COLUMN: SIDEBAR (Quan trọng) --- */
@@ -410,6 +444,13 @@
     .media-container img { max-width: 100%; max-height: 260px; object-fit: contain; border-radius: 12px; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15); }
     .media-container.hidden { display: none; }
 
+    .card-toolbar .image-toggle-btn.is-active {
+      background: #e0f2fe;
+      color: #0369a1;
+      border-color: rgba(3, 105, 161, 0.4);
+      box-shadow: 0 10px 24px rgba(3, 105, 161, 0.12);
+    }
+
     .actions { display: none; gap: 1rem; padding: 1.25rem 1.5rem; width: 100%; background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%); border-top: 1px solid #e2e8f0; z-index: 2; }
     .actions.visible { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .btn { border: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem; border-radius: 0.9rem; cursor: pointer; padding: 0.9rem 1.25rem; box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08); transition: all 0.2s ease; }
@@ -490,10 +531,17 @@
 
     @media (max-width: 1024px) {
       .session-sidebar { display: none !important; } /* Ẩn cột phải ở mobile */
-      .actions { padding: 0.75rem; gap: 0.5rem; position: sticky; bottom: 0; }
+      .flashcard-wrapper { flex: 1; padding: 0 !important; overflow: hidden; display: flex; flex-direction: column; }
+      .flashcard-panel { padding: 0.35rem 0.25rem 0.45rem; gap: 0.55rem; }
+      .flashcard-card-container, .flashcard-card { height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+      .face { padding: calc(64px + env(safe-area-inset-top, 0px)) 0.1rem 0.2rem 0.1rem !important; }
+      ._card-container { padding: 0.05rem !important; }
+      .text-area { flex: 1; padding: 0.1rem 0.05rem !important; }
+      .actions { margin-top: 0.5rem !important; padding: 0.15rem 0.15rem !important; gap: 0.15rem; justify-content: center; width: 100%; position: sticky; bottom: 0; }
+      .flashcard-card { padding: 0.05rem !important; }
       .flashcard-card-container { min-height: 60vh; }
       .card-toolbar .mobile-info-btn { display: inline-flex !important; }
-      
+
       /* Chat Panel Mobile Overlay */
       .chat-panel {
         display: flex; position: fixed; inset: 0; z-index: 9990;
@@ -523,84 +571,92 @@
 <div class="page-shell">
   <div class="session-layout">
     <!-- CỘT TRÁI: FLASHCARD -->
-    <div class="card-surface flashcard-panel" id="collab-learning-card">
-      <div class="flex items-start justify-between gap-3 collab-room-meta hidden lg:flex">
-        <div>
-          <p class="text-sm text-slate-500">Thẻ tiếp theo sẽ xuất hiện khi tất cả thành viên đã trả lời.</p>
-          <div class="flex items-center gap-2 mt-2 text-sm text-slate-600">
-            <span class="pill bg-amber-50 text-amber-700"><i class="fas fa-circle-notch animate-spin"></i> Đang tải thẻ đầu tiên...</span>
+    <div class="flashcard-wrapper">
+      <div class="card-surface flashcard-panel" id="collab-learning-card">
+        <div class="flex items-start justify-between gap-3 collab-room-meta hidden lg:flex">
+          <div>
+            <p class="text-sm text-slate-500">Thẻ tiếp theo sẽ xuất hiện khi tất cả thành viên đã trả lời.</p>
+            <div class="flex items-center gap-2 mt-2 text-sm text-slate-600">
+              <span class="pill bg-amber-50 text-amber-700"><i class="fas fa-circle-notch animate-spin"></i> Đang tải thẻ đầu tiên...</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="text-right">
+              <p class="text-xs text-slate-500">Điểm của bạn</p>
+              <p class="text-2xl font-extrabold text-indigo-600" id="collab-user-score">{{ current_user.total_score or 0 }}</p>
+            </div>
+            <button type="button" id="collab-refresh-round" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold bg-white shadow-sm hover:bg-slate-50">
+              <i class="fas fa-rotate"></i> Làm mới thẻ
+            </button>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <div class="text-right">
-            <p class="text-xs text-slate-500">Điểm của bạn</p>
-            <p class="text-2xl font-extrabold text-indigo-600" id="collab-user-score">{{ current_user.total_score or 0 }}</p>
-          </div>
-          <button type="button" id="collab-refresh-round" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold bg-white shadow-sm hover:bg-slate-50">
-            <i class="fas fa-rotate"></i> Làm mới thẻ
-          </button>
-        </div>
-      </div>
 
-      <div class="flashcard-card-container">
-        <div class="flashcard-card" id="collab-card">
-          <div class="face front">
-            <div class="card-toolbar">
-              <div class="toolbar-left">
-                <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i class="fas fa-bars"></i></button>
-                <button type="button" class="icon-btn collab-ai-btn" title="Mindstack AI"><i class="fas fa-robot"></i></button>
-                <button type="button" class="icon-btn collab-note-btn" title="Ghi chú"><i class="fas fa-sticky-note"></i></button>
+        <div class="flashcard-card-container">
+          <div class="flashcard-card" id="collab-card">
+            <div class="face front">
+              <div class="card-toolbar">
+                <div class="toolbar-left">
+                  <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i class="fas fa-bars"></i></button>
+                  <button type="button" class="icon-btn collab-ai-btn" title="Mindstack AI"><i class="fas fa-robot"></i></button>
+                  <button type="button" class="icon-btn collab-note-btn" title="Ghi chú"><i class="fas fa-sticky-note"></i></button>
+                </div>
+                <span class="label">Mặt trước</span>
+                <div class="toolbar-right">
+                  <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
+                  {% if can_edit_flashcards %}
+                  <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
+                  {% endif %}
+                  <button type="button" class="icon-btn image-toggle-btn collab-image-toggle-btn" aria-pressed="false" title="Tắt ảnh"><i class="fas fa-image"></i></button>
+                  <button type="button" class="play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-headphones"></i></button>
+                </div>
               </div>
-              <span class="label">Mặt trước</span>
-              <div class="toolbar-right">
-                <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
-                <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
-                <button type="button" class="play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-headphones"></i></button>
+              <div class="_card-container">
+                <div class="text-area"><div id="collab-card-front" class="flashcard-content-text">—</div></div>
+                <div class="media-container hidden" id="collab-card-front-media"></div>
               </div>
-            </div>
-            <div class="_card-container">
-              <div class="text-area"><div id="collab-card-front" class="flashcard-content-text">—</div></div>
-              <div class="media-container hidden" id="collab-card-front-media"></div>
-            </div>
-            <div class="flex justify-center p-4">
-              <button type="button" id="collab-flip-btn" class="flip-card-btn">
-                <i class="fas fa-sync-alt"></i> Lật thẻ
-              </button>
-            </div>
-          </div>
-          <div class="face back">
-            <div class="card-toolbar">
-              <div class="toolbar-left">
-                <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i class="fas fa-bars"></i></button>
-                <button type="button" class="icon-btn collab-ai-btn" title="Mindstack AI"><i class="fas fa-robot"></i></button>
-                <button type="button" class="icon-btn collab-note-btn" title="Ghi chú"><i class="fas fa-sticky-note"></i></button>
-              </div>
-              <span class="label">Mặt sau</span>
-              <div class="toolbar-right">
-                <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
-                <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
-                <button type="button" class="play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-headphones"></i></button>
+              <div class="flex justify-center p-4">
+                <button type="button" id="collab-flip-btn" class="flip-card-btn">
+                  <i class="fas fa-sync-alt"></i> Lật thẻ
+                </button>
               </div>
             </div>
-            <div class="_card-container">
-              <div class="text-area"><div id="collab-card-back" class="flashcard-content-text">—</div></div>
-              <div class="media-container hidden" id="collab-card-back-media"></div>
+            <div class="face back">
+              <div class="card-toolbar">
+                <div class="toolbar-left">
+                  <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i class="fas fa-bars"></i></button>
+                  <button type="button" class="icon-btn collab-ai-btn" title="Mindstack AI"><i class="fas fa-robot"></i></button>
+                  <button type="button" class="icon-btn collab-note-btn" title="Ghi chú"><i class="fas fa-sticky-note"></i></button>
+                </div>
+                <span class="label">Mặt sau</span>
+                <div class="toolbar-right">
+                  <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
+                  {% if can_edit_flashcards %}
+                  <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
+                  {% endif %}
+                  <button type="button" class="icon-btn image-toggle-btn collab-image-toggle-btn" aria-pressed="false" title="Tắt ảnh"><i class="fas fa-image"></i></button>
+                  <button type="button" class="play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-headphones"></i></button>
+                </div>
+              </div>
+              <div class="_card-container">
+                <div class="text-area"><div id="collab-card-back" class="flashcard-content-text">—</div></div>
+                <div class="media-container hidden" id="collab-card-back-media"></div>
+              </div>
+              <div class="actions" id="collab-answer-actions" data-button-count="3">
+                <button type="button" data-answer="quên" class="collab-answer-btn btn rating-btn rating-btn--again">
+                  <span class="rating-btn__icon"><i class="fas fa-times"></i></span>
+                  <span class="rating-btn__title">Quên</span>
+                </button>
+                <button type="button" data-answer="mơ_hồ" class="collab-answer-btn btn rating-btn rating-btn--hard">
+                  <span class="rating-btn__icon"><i class="fas fa-adjust"></i></span>
+                  <span class="rating-btn__title">Mơ hồ</span>
+                </button>
+                <button type="button" data-answer="nhớ" class="collab-answer-btn btn rating-btn rating-btn--good">
+                  <span class="rating-btn__icon"><i class="fas fa-check"></i></span>
+                  <span class="rating-btn__title">Nhớ</span>
+                </button>
+              </div>
+              <p id="collab-answer-feedback" class="text-xs text-slate-600 px-6 pb-2"></p>
             </div>
-            <div class="actions" id="collab-answer-actions" data-button-count="3">
-              <button type="button" data-answer="quên" class="collab-answer-btn btn rating-btn rating-btn--again">
-                <span class="rating-btn__icon"><i class="fas fa-times"></i></span>
-                <span class="rating-btn__title">Quên</span>
-              </button>
-              <button type="button" data-answer="mơ_hồ" class="collab-answer-btn btn rating-btn rating-btn--hard">
-                <span class="rating-btn__icon"><i class="fas fa-adjust"></i></span>
-                <span class="rating-btn__title">Mơ hồ</span>
-              </button>
-              <button type="button" data-answer="nhớ" class="collab-answer-btn btn rating-btn rating-btn--good">
-                <span class="rating-btn__icon"><i class="fas fa-check"></i></span>
-                <span class="rating-btn__title">Nhớ</span>
-              </button>
-            </div>
-            <p id="collab-answer-feedback" class="text-xs text-slate-600 px-6 pb-2"></p>
           </div>
         </div>
       </div>
@@ -776,22 +832,23 @@
 
 {% block scripts %}
   {{ super() }}
+  <script src="{{ url_for('learning.flashcard_learning.static', filename='flashcard_viewport.js') }}"></script>
   <script>
-    const setVh = () => {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    const refreshViewportSizing = () => {
+      if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+        window.flashcardViewport.refresh();
+      }
     };
-
-    setVh();
-    window.addEventListener('resize', setVh);
-    window.addEventListener('orientationchange', setVh);
 
     document.addEventListener('DOMContentLoaded', () => {
       document.body.classList.add('flashcard-session-active');
+      refreshViewportSizing();
     });
     window.addEventListener('beforeunload', () => {
       document.body.classList.remove('flashcard-session-active');
     });
+    window.addEventListener('orientationchange', refreshViewportSizing, { passive: true });
+    window.addEventListener('resize', refreshViewportSizing, { passive: true });
 
     document.getElementById('copy-room-code')?.addEventListener('click', () => {
       const code = {{ room_payload.room_code | tojson }};
@@ -837,6 +894,8 @@
       const cardFrontMediaEl = document.getElementById('collab-card-front-media');
       const cardBackMediaEl = document.getElementById('collab-card-back-media');
       const cardEl = document.getElementById('collab-card');
+      const mediaContainers = [cardFrontMediaEl, cardBackMediaEl].filter(Boolean);
+      const cardContainers = Array.from(document.querySelectorAll('#collab-card ._card-container'));
       const frontLabel = cardEl?.querySelector('.front .card-toolbar .label');
       const backLabel = cardEl?.querySelector('.back .card-toolbar .label');
       const statusEl = document.getElementById('collab-round-status');
@@ -863,6 +922,7 @@
       const aiButtons = document.querySelectorAll('.collab-ai-btn');
       const feedbackButtons = document.querySelectorAll('.collab-feedback-btn');
       const editButtons = document.querySelectorAll('.collab-edit-btn');
+      const imageToggleButtons = document.querySelectorAll('.collab-image-toggle-btn');
       const audioButtons = document.querySelectorAll('.collab-audio-btn');
       const notePanel = document.getElementById('note-panel');
       const noteTextarea = document.getElementById('note-textarea');
@@ -877,6 +937,16 @@
 
       const editUrlTemplate = {{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=room_payload.container_id, item_id=0) | tojson }};
 
+      let isMediaHidden = false;
+      try {
+        const storedState = localStorage.getItem('flashcardHideImages');
+        if (storedState === 'true') {
+          isMediaHidden = true;
+        }
+      } catch (err) {
+        console.warn('Không thể đọc trạng thái hiển thị ảnh:', err);
+      }
+
       let currentRound = null;
       let currentCardId = null;
       let isFetching = false;
@@ -889,6 +959,38 @@
         mobileInfoPanel.classList.toggle('open', isOpen);
       };
 
+      const applyMediaVisibility = () => {
+        mediaContainers.forEach((container) => {
+          const hasMedia = container?.dataset.hasMedia === 'true';
+          container?.classList.toggle('hidden', isMediaHidden || !hasMedia);
+        });
+
+        cardContainers.forEach((container) => {
+          container.classList.toggle('media-hidden', isMediaHidden);
+        });
+
+        imageToggleButtons.forEach((btn) => {
+          btn.classList.toggle('is-active', isMediaHidden);
+          btn.setAttribute('aria-pressed', isMediaHidden ? 'true' : 'false');
+          btn.title = isMediaHidden ? 'Bật ảnh' : 'Tắt ảnh';
+          const icon = btn.querySelector('i');
+          if (icon) {
+            icon.className = `fas ${isMediaHidden ? 'fa-image-slash' : 'fa-image'}`;
+          }
+        });
+      };
+
+      const setMediaHiddenState = (hidden) => {
+        isMediaHidden = hidden;
+        try {
+          localStorage.setItem('flashcardHideImages', hidden ? 'true' : 'false');
+        } catch (err) {
+          console.warn('Không thể lưu trạng thái hiển thị ảnh:', err);
+        }
+
+        applyMediaVisibility();
+      };
+
       const setCardContent = (textEl, mediaEl, rawText, imageUrl, fallbackText, altLabel) => {
         if (textEl) {
           const cleanedText = (rawText || '').trim();
@@ -899,12 +1001,20 @@
 
         if (imageUrl) {
           mediaEl.innerHTML = `<img src="${imageUrl}" alt="${altLabel || 'Flashcard image'}" onerror="this.onerror=null;this.src='https://placehold.co/240x160?text=Anh+loi';">`;
-          mediaEl.classList.remove('hidden');
+          mediaEl.dataset.hasMedia = 'true';
         } else {
           mediaEl.innerHTML = '';
-          mediaEl.classList.add('hidden');
+          mediaEl.dataset.hasMedia = 'false';
         }
+
+        applyMediaVisibility();
       };
+
+      applyMediaVisibility();
+
+      imageToggleButtons.forEach((btn) => {
+        btn.addEventListener('click', () => setMediaHiddenState(!isMediaHidden));
+      });
 
       const syncAnswerButtonsAvailability = () => {
         const shouldDisable = hasAnsweredCurrentCard || !cardEl?.classList.contains('flipped');
