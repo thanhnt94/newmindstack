@@ -202,15 +202,27 @@
     .flashcard-card.flipped .back { transform: rotateY(360deg); opacity: 1; pointer-events: auto; }
 
     ._card-container {
-      flex: 1 1 auto; min-height: 0;
-      padding: 0 1rem; display: flex; flex-direction: column; overflow: hidden;
+      justify-content: flex-start;
+      align-items: stretch;
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: 0 0.85rem;
+      margin-top: 0;
+      display: flex;
+      flex-direction: column;
     }
 
     .text-area {
-      flex-grow: 1; min-height: 0; width: 100%;
+      flex-grow: 1;
+      min-height: 0;
+      width: 100%;
       overflow-y: auto; /* Scroll nội dung thẻ nếu dài */
-      padding: 1rem 0; display: flex; align-items: center; justify-content: center;
-      scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+      padding: 1rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
     }
 
     ._card-container.media-hidden .text-area {
@@ -218,9 +230,14 @@
       justify-content: center;
     }
 
-    .back ._card-container.media-hidden .text-area {
+    .back ._card-container.media-hidden .text-area,
+    .text-area.has-scroll {
       align-items: flex-start;
       justify-content: flex-start;
+    }
+
+    .back .text-area .flashcard-content-text {
+      text-align: left;
     }
 
     /* --- 5. RIGHT COLUMN: SIDEBAR (Quan trọng) --- */
@@ -530,10 +547,10 @@
       transform: none;
     }
     
-    .flashcard-content-text { font-size: clamp(1.25rem, 5vw, 2rem); font-weight: 700; color: #1f2937; text-align: center; max-width: 100%; }
-    .back .flashcard-content-text { font-size: clamp(1rem, 4vw, 22px); line-height: 1.5; color: #111827; text-align: left; white-space: pre-wrap; }
-    .media-container { margin-top: 1rem; display: flex; justify-content: center; }
-    .media-container img { max-width: 100%; max-height: 260px; object-fit: contain; border-radius: 12px; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15); }
+    .flashcard-content-text { font-size: 2.2rem; font-weight: 700; color: #1f2937; text-align: center; max-width: 100%; }
+    .back .flashcard-content-text { font-size: 22px; line-height: 1.5; color: #111827; text-align: left; white-space: pre-wrap; }
+    .media-container { flex-shrink: 0; padding: 1rem; width: 100%; text-align: center; position: relative; max-height: 40%; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
+    .media-container img { max-width: 100%; height: auto; max-height: 100%; object-fit: contain; display: block; margin: auto; }
     .media-container.hidden { display: none; }
 
     .card-toolbar .image-toggle-btn.is-active {
@@ -543,14 +560,24 @@
       box-shadow: 0 10px 24px rgba(3, 105, 161, 0.12);
     }
 
-    .actions { display: none; gap: 1rem; padding: 1.25rem 1.5rem; width: 100%; background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%); border-top: 1px solid #e2e8f0; z-index: 2; }
-    .actions.visible { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .btn { border: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem; border-radius: 0.9rem; cursor: pointer; padding: 0.9rem 1.25rem; box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08); transition: all 0.2s ease; }
-    .rating-btn { color: #fff; flex-direction: row; text-align: left; padding: 0.75rem 1rem; }
-    .rating-btn__icon { width: 2rem; height: 2rem; border-radius: 999px; background: rgba(255, 255, 255, 0.18); display: inline-flex; align-items: center; justify-content: center; }
-    .rating-btn--again { background: linear-gradient(135deg, #f87171, #dc2626); }
-    .rating-btn--hard { background: linear-gradient(135deg, #f59e0b, #b45309); color: #1f2937; } .rating-btn--hard .rating-btn__icon { background: rgba(15, 23, 42, 0.12); color: #1f2937; }
-    .rating-btn--good { background: linear-gradient(135deg, #34d399, #059669); }
+    .actions { display: none; gap: 1rem; justify-content: center; padding: 1.25rem 1.5rem; position: relative; width: 100%; bottom: 0; left: 0; background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%); border-top: 1px solid #e2e8f0; box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.08); flex-shrink: 0; z-index: 2; }
+    .actions.visible { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); grid-auto-rows: 1fr; align-items: stretch; }
+    .actions.visible[data-button-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .actions.visible[data-button-count="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .actions.visible[data-button-count="6"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .btn { border: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem; border-radius: 0.9rem; cursor: pointer; font-size: 1rem; transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; text-decoration: none; }
+    .btn:focus { outline: none; }
+    .actions .btn { width: 100%; min-width: 0; max-width: 100%; white-space: normal; padding: 0.9rem 1.25rem; box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08); }
+    .actions .btn:hover { transform: translateY(-2px); box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12); }
+    .actions .btn:focus { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28); }
+    .actions .btn:active { transform: translateY(0); filter: saturate(1.08); }
+    .rating-btn { color: #fff; border-radius: 0.9rem; padding: 0.75rem 1rem; justify-content: center; align-items: center; position: relative; overflow: hidden; gap: 0.5rem; box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12); flex-direction: row; text-align: left; }
+    .rating-btn .rating-btn__icon { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 999px; background: rgba(255, 255, 255, 0.18); font-size: 1.1rem; }
+    .rating-btn .rating-btn__title { font-size: 0.95rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1; }
+    .rating-btn--again { background: linear-gradient(135deg, #f87171, #dc2626); box-shadow: 0 18px 36px rgba(220, 38, 38, 0.32); }
+    .rating-btn--hard { background: linear-gradient(135deg, #f59e0b, #b45309); color: #1f2937; }
+    .rating-btn--hard .rating-btn__icon { background: rgba(15, 23, 42, 0.12); color: #1f2937; }
+    .rating-btn--easy { background: linear-gradient(135deg, #34d399, #059669); box-shadow: 0 18px 36px rgba(5, 150, 105, 0.28); }
     .pill { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.4rem 0.85rem; font-weight: 600; font-size: 0.85rem; }
 
     .flip-card-btn {
@@ -780,15 +807,15 @@
               </div>
               <div class="actions" id="collab-answer-actions" data-button-count="3">
                 <button type="button" data-answer="quên" class="collab-answer-btn btn rating-btn rating-btn--again">
-                  <span class="rating-btn__icon"><i class="fas fa-times"></i></span>
+                  <span class="rating-btn__icon"><i class="fas fa-redo-alt"></i></span>
                   <span class="rating-btn__title">Quên</span>
                 </button>
                 <button type="button" data-answer="mơ_hồ" class="collab-answer-btn btn rating-btn rating-btn--hard">
-                  <span class="rating-btn__icon"><i class="fas fa-adjust"></i></span>
+                  <span class="rating-btn__icon"><i class="fas fa-question-circle"></i></span>
                   <span class="rating-btn__title">Mơ hồ</span>
                 </button>
-                <button type="button" data-answer="nhớ" class="collab-answer-btn btn rating-btn rating-btn--good">
-                  <span class="rating-btn__icon"><i class="fas fa-check"></i></span>
+                <button type="button" data-answer="nhớ" class="collab-answer-btn btn rating-btn rating-btn--easy">
+                  <span class="rating-btn__icon"><i class="fas fa-check-circle"></i></span>
                   <span class="rating-btn__title">Nhớ</span>
                 </button>
               </div>
@@ -1096,6 +1123,36 @@
         mobileInfoPanel.classList.toggle('open', isOpen);
       };
 
+      const adjustCardLayout = () => {
+        const textAreas = cardEl?.querySelectorAll('.text-area') || [];
+
+        textAreas.forEach((scrollArea) => {
+          const txt = scrollArea.querySelector('.flashcard-content-text');
+          if (!txt) return;
+
+          txt.style.fontSize = '';
+          scrollArea.classList.remove('has-scroll');
+          scrollArea.parentElement?.classList?.remove('has-scroll');
+
+          setTimeout(() => {
+            const hasScroll = scrollArea.scrollHeight > scrollArea.clientHeight;
+
+            if (hasScroll) {
+              scrollArea.classList.add('has-scroll');
+              scrollArea.parentElement?.classList?.add('has-scroll');
+              scrollArea.scrollTop = 0;
+            }
+
+            let current = parseFloat(getComputedStyle(txt).fontSize) || 22;
+            const min = 18;
+            while (scrollArea.scrollHeight > scrollArea.clientHeight && current > min) {
+              current -= 1;
+              txt.style.fontSize = `${current}px`;
+            }
+          }, 0);
+        });
+      };
+
       const applyMediaVisibility = () => {
         mediaContainers.forEach((container) => {
           const hasMedia = container?.dataset.hasMedia === 'true';
@@ -1115,6 +1172,8 @@
             icon.className = `fas ${isMediaHidden ? 'fa-image-slash' : 'fa-image'}`;
           }
         });
+
+        adjustCardLayout();
       };
 
       const setMediaHiddenState = (hidden) => {
@@ -1268,11 +1327,12 @@
           'Không có nội dung mặt sau',
           'Mặt sau'
         );
+        adjustCardLayout();
         renderParticipants(participants);
 
         const currentUserParticipation = participants.find((p) => Number(p.user_id) === Number(currentUserId));
         hasAnsweredCurrentCard = !!currentUserParticipation?.has_answered;
-        feedbackEl.textContent = hasAnsweredCurrentCard ? 'Bạn đã trả lời, vui lòng chờ mọi người hoàn tất.' : 'Nhấn “Lật thẻ” để xem đáp án.';
+        feedbackEl.textContent = hasAnsweredCurrentCard ? 'Bạn đã trả lời, vui lòng chờ mọi người hoàn tất.' : '';
         if (hasAnsweredCurrentCard) {
           showBackSide();
         } else {
