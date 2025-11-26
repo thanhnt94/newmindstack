@@ -76,6 +76,160 @@
       min-height: calc(100vh - var(--flashcard-header-height, 0px) - var(--flashcard-footer-height, 0px));
     }
 
+    .collab-hero {
+      position: relative;
+      overflow: hidden;
+      margin: 0 auto;
+      width: min(1320px, 100%);
+      padding: 1.5rem clamp(18px, 2vw, 28px);
+      border-radius: 24px;
+      background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.14), transparent 28%),
+        radial-gradient(circle at 80% 0%, rgba(16, 185, 129, 0.16), transparent 25%),
+        linear-gradient(145deg, #0f172a, #0b1221 55%, #0f172a);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 0 22px 55px rgba(15, 23, 42, 0.36);
+      color: #e2e8f0;
+      isolation: isolate;
+    }
+
+    .collab-hero::before,
+    .collab-hero::after {
+      content: '';
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(60px);
+      opacity: 0.32;
+      z-index: 0;
+    }
+
+    .collab-hero::before { inset: -20% auto 30% 35%; background: #38bdf8; }
+    .collab-hero::after { inset: 20% 35% -30% auto; background: #a855f7; }
+
+    .collab-hero__grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 2fr 1.1fr;
+      gap: 1.25rem;
+      align-items: stretch;
+    }
+
+    .collab-hero__meta { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .hero-kicker {
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #a5b4fc;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .hero-kicker .dot { width: 8px; height: 8px; border-radius: 50%; background: #22d3ee; display: inline-block; box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.18); }
+
+    .collab-hero__title {
+      font-size: clamp(1.6rem, 3vw, 2rem);
+      font-weight: 800;
+      color: #f8fafc;
+      line-height: 1.15;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .collab-hero__subtitle { color: #cbd5e1; font-size: 0.98rem; max-width: 800px; line-height: 1.6; }
+
+    .collab-hero__chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .hero-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      font-weight: 600;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-chip strong { color: #fff; }
+
+    .collab-hero__stats {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 1.1rem 1.2rem;
+      display: grid;
+      gap: 0.8rem;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .hero-stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; }
+
+    .hero-stat {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 0.9rem;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      color: #e5e7eb;
+    }
+
+    .hero-stat small { color: #cbd5e1; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 700; }
+    .hero-stat span { font-size: 1.25rem; font-weight: 800; color: #fefefe; }
+
+    .hero-status {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 14px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.18);
+      color: #bbf7d0;
+      font-weight: 700;
+      min-height: 54px;
+    }
+
+    .hero-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+
+    .hero-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+      background: linear-gradient(120deg, rgba(59, 130, 246, 0.4), rgba(59, 130, 246, 0.18));
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.28);
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+    }
+
+    .hero-btn.secondary { background: rgba(255, 255, 255, 0.05); box-shadow: none; color: #e2e8f0; }
+    .hero-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 36px rgba(59, 130, 246, 0.34); }
+
+    @media (max-width: 1024px) { .collab-hero__grid { grid-template-columns: 1fr; gap: 1rem; } }
+    @media (max-width: 640px) {
+      .collab-hero { padding: 1.1rem 0.85rem; border-radius: 18px; }
+      .collab-hero__title { font-size: 1.35rem; }
+      .hero-stat span { font-size: 1.05rem; }
+    }
+
     @media (max-width: 1024px) {
       .page-shell {
         top: var(--header-h, 0px);
@@ -770,6 +924,60 @@
 
 {% block content %}
 <div class="page-shell">
+  <div class="collab-hero">
+    <div class="collab-hero__grid">
+      <div class="collab-hero__meta">
+        <span class="hero-kicker"><span class="dot"></span>Flashcard Collab</span>
+        <div class="collab-hero__title">
+          {{ room_payload.title or 'Phòng học chung' }}
+          <span class="hero-chip"><i class="fas fa-fingerprint"></i> Mã phòng <strong>{{ room_payload.room_code }}</strong></span>
+        </div>
+        <p class="collab-hero__subtitle">
+          Tham gia học cùng nhau với bộ "{{ room_payload.container_title or ('Bộ #' ~ room_payload.container_id) }}".
+          Mọi người trả lời đồng thời và thẻ mới chỉ xuất hiện khi cả phòng đã hoàn tất lượt hiện tại.
+        </p>
+        <div class="collab-hero__chips">
+          <span class="hero-chip"><i class="fas fa-bolt"></i> Chế độ {{ room_payload.mode }}</span>
+          <span class="hero-chip"><i class="fas fa-sliders-h"></i> {{ room_payload.button_count or 3 }} nút chọn đáp án</span>
+          <span class="hero-chip"><i class="fas fa-user"></i> Chủ phòng: {{ room_payload.host_username or '—' }}</span>
+        </div>
+        <div class="hero-actions">
+          <button type="button" class="hero-btn" id="collab-refresh-round-hero"><i class="fas fa-rotate"></i> Làm mới thẻ</button>
+          <a href="{{ url_for('learning.flashcard.dashboard') }}" class="hero-btn secondary"><i class="fas fa-th-large"></i> Quay lại dashboard</a>
+        </div>
+      </div>
+      <div class="collab-hero__stats">
+        <div class="hero-stat-row">
+          <div class="hero-stat">
+            <div>
+              <small>Thành viên</small>
+              <span id="collab-participant-count-hero">{{ room_payload.participants | length }}</span>
+            </div>
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="hero-stat">
+            <div>
+              <small>Thứ tự thẻ</small>
+              <span id="collab-round-step-hero">—</span>
+            </div>
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <div class="hero-stat">
+            <div>
+              <small>Điểm của bạn</small>
+              <span>{{ current_user.total_score or 0 }}</span>
+            </div>
+            <i class="fas fa-star"></i>
+          </div>
+        </div>
+        <div class="hero-status" id="collab-round-status-hero">
+          <i class="fas fa-circle-notch fa-spin"></i>
+          <span>Đang chuẩn bị thẻ đầu tiên...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="session-layout">
     <!-- CỘT TRÁI: FLASHCARD -->
     <div class="flashcard-wrapper">
@@ -1107,13 +1315,16 @@
       const backLabel = cardEl?.querySelector('.back .card-toolbar .label');
       const statusEl = document.getElementById('collab-round-status');
       const participantsEl = document.getElementById('collab-round-participants');
+      const heroRoundStatusEl = document.getElementById('collab-round-status-hero');
       let answerButtons = [];
       const answerActionsEl = document.getElementById('collab-answer-actions');
       const feedbackEl = document.getElementById('collab-answer-feedback');
       const refreshBtn = document.getElementById('collab-refresh-round');
+      const refreshBtnHero = document.getElementById('collab-refresh-round-hero');
       const refreshBtnMobile = document.getElementById('collab-refresh-round-mobile');
       const flipBtn = document.getElementById('collab-flip-btn');
       const roundStepEl = document.getElementById('collab-round-step');
+      const heroRoundStepEl = document.getElementById('collab-round-step-hero');
       const userScoreEl = document.getElementById('collab-user-score');
       const mobileUserScoreMenuEl = document.getElementById('collab-user-score-mobile-menu');
       
@@ -1124,6 +1335,7 @@
       const participantCountEls = [
         document.getElementById('collab-participant-count'),
         document.getElementById('collab-participant-count-mobile'),
+        document.getElementById('collab-participant-count-hero'),
       ].filter(Boolean);
       const noteButtons = document.querySelectorAll('.collab-note-btn');
       const aiButtons = document.querySelectorAll('.collab-ai-btn');
@@ -1588,6 +1800,7 @@
         const loadingHtml = `<span class="text-slate-600">${content}</span>`;
         
         if (statusEl) statusEl.innerHTML = content;
+        if (heroRoundStatusEl) heroRoundStatusEl.innerHTML = `<span class="text-slate-100">${content}</span>`;
         if (mobileRoundStatusEl) mobileRoundStatusEl.innerHTML = loadingHtml;
         if (chatRoundStatusEl) chatRoundStatusEl.innerHTML = loadingHtml;
       };
@@ -1736,10 +1949,13 @@
         }
 
         if (statusEl) statusEl.innerHTML = statusHtml;
+        if (heroRoundStatusEl) heroRoundStatusEl.innerHTML = statusHtml;
         if (mobileRoundStatusEl) mobileRoundStatusEl.innerHTML = statusHtml;
         if (chatRoundStatusEl) chatRoundStatusEl.innerHTML = statusHtml;
 
-        roundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
+        const roundStepText = `Thẻ #${item?.item_id || '—'}`;
+        roundStepEl.textContent = roundStepText;
+        if (heroRoundStepEl) heroRoundStepEl.textContent = roundStepText;
         if (mobileRoundStepEl) mobileRoundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
 
         if (
@@ -1770,6 +1986,7 @@
         } catch (err) {
           const errorHtml = `<span class="text-rose-600">${err.message || 'Không thể tải thẻ.'}</span>`;
           if (statusEl) statusEl.innerHTML = errorHtml;
+          if (heroRoundStatusEl) heroRoundStatusEl.innerHTML = errorHtml;
           if (mobileRoundStatusEl) mobileRoundStatusEl.innerHTML = errorHtml;
           if (chatRoundStatusEl) chatRoundStatusEl.innerHTML = errorHtml;
         } finally {
@@ -1852,8 +2069,10 @@
 
       flipBtn?.addEventListener('click', showBackSide);
 
-      refreshBtn?.addEventListener('click', () => fetchRound(true));
-      refreshBtnMobile?.addEventListener('click', () => fetchRound(true));
+      const handleRefresh = () => fetchRound(true);
+      refreshBtn?.addEventListener('click', handleRefresh);
+      refreshBtnHero?.addEventListener('click', handleRefresh);
+      refreshBtnMobile?.addEventListener('click', handleRefresh);
 
       openMobileInfoBtns.forEach((btn) => btn.addEventListener('click', () => toggleMobileInfoPanel(true)));
       closeMobileInfoBtn?.addEventListener('click', () => toggleMobileInfoPanel(false));
