@@ -495,6 +495,38 @@
       flex-shrink: 0;
     }
 
+    .toolbar-settings {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .toolbar-settings .settings-panel {
+      position: absolute;
+      right: calc(100% + 0.35rem);
+      top: 50%;
+      transform: translateY(-50%) translateX(8px);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      padding: 0.35rem 0.45rem;
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 15;
+    }
+
+    .toolbar-settings.is-open .settings-panel {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-50%) translateX(0);
+    }
+
     .card-toolbar .icon-btn:hover {
       background-color: #eef2ff;
       color: rgba(var(--card-accent-rgb), 1);
@@ -766,12 +798,18 @@
                 </div>
                 <span class="label">MẶT TRƯỚC</span>
                 <div class="toolbar-right">
-                  <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
-                  {% if can_edit_flashcards %}
-                  <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
-                  {% endif %}
-                  <button type="button" class="icon-btn image-toggle-btn collab-image-toggle-btn" aria-pressed="false" title="Tắt ảnh"><i class="fas fa-image"></i></button>
                   <button type="button" class="icon-btn play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-volume-up"></i></button>
+                  <div class="toolbar-settings">
+                    <div class="settings-panel">
+                      <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
+                      {% if can_edit_flashcards %}
+                      <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
+                      {% endif %}
+                      <button type="button" class="icon-btn image-toggle-btn collab-image-toggle-btn" aria-pressed="false" title="Tắt ảnh"><i class="fas fa-image"></i></button>
+                      <button type="button" class="icon-btn collab-autoplay-toggle-btn" aria-pressed="true" title="Tắt tự động phát audio"><i class="fas fa-volume-up"></i></button>
+                    </div>
+                    <button type="button" class="icon-btn settings-toggle-btn" aria-expanded="false" title="Mở cài đặt"><i class="fas fa-ellipsis-v"></i></button>
+                  </div>
                 </div>
               </div>
               <div class="_card-container">
@@ -793,12 +831,18 @@
                 </div>
                 <span class="label">MẶT SAU</span>
                 <div class="toolbar-right">
-                  <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
-                  {% if can_edit_flashcards %}
-                  <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
-                  {% endif %}
-                  <button type="button" class="icon-btn image-toggle-btn collab-image-toggle-btn" aria-pressed="false" title="Tắt ảnh"><i class="fas fa-image"></i></button>
                   <button type="button" class="icon-btn play-audio-btn collab-audio-btn" title="Nghe nội dung"><i class="fas fa-volume-up"></i></button>
+                  <div class="toolbar-settings">
+                    <div class="settings-panel">
+                      <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i class="fas fa-flag"></i></button>
+                      {% if can_edit_flashcards %}
+                      <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i class="fas fa-pencil-alt"></i></button>
+                      {% endif %}
+                      <button type="button" class="icon-btn image-toggle-btn collab-image-toggle-btn" aria-pressed="false" title="Tắt ảnh"><i class="fas fa-image"></i></button>
+                      <button type="button" class="icon-btn collab-autoplay-toggle-btn" aria-pressed="true" title="Tắt tự động phát audio"><i class="fas fa-volume-up"></i></button>
+                    </div>
+                    <button type="button" class="icon-btn settings-toggle-btn" aria-expanded="false" title="Mở cài đặt"><i class="fas fa-ellipsis-v"></i></button>
+                  </div>
                 </div>
               </div>
               <div class="_card-container">
@@ -1098,17 +1142,25 @@
       const mobileRoundStatusEl = document.getElementById('collab-round-status-mobile');
       const mobileRoundParticipantsEl = document.getElementById('collab-round-participants-mobile');
       const mobileRoundStepEl = document.getElementById('collab-round-step-mobile');
+      const autoplayToggleButtons = document.querySelectorAll('.collab-autoplay-toggle-btn');
 
       const editUrlTemplate = {{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=room_payload.container_id, item_id=0) | tojson }};
 
       let isMediaHidden = false;
+      let isAudioAutoplayEnabled = true;
+      let storedAudioAutoplay = null;
       try {
         const storedState = localStorage.getItem('flashcardHideImages');
         if (storedState === 'true') {
           isMediaHidden = true;
         }
+        storedAudioAutoplay = localStorage.getItem('flashcardAutoPlayAudio');
       } catch (err) {
         console.warn('Không thể đọc trạng thái hiển thị ảnh:', err);
+      }
+
+      if (storedAudioAutoplay === 'false') {
+        isAudioAutoplayEnabled = false;
       }
 
       let currentRound = null;
@@ -1186,6 +1238,79 @@
 
         applyMediaVisibility();
       };
+
+      const persistAudioAutoplayPreference = (enabled) => {
+        try {
+          localStorage.setItem('flashcardAutoPlayAudio', enabled ? 'true' : 'false');
+        } catch (err) {
+          console.warn('Không thể lưu cấu hình tự động phát audio:', err);
+        }
+      };
+
+      const updateAudioAutoplayToggleButtons = () => {
+        autoplayToggleButtons.forEach((btn) => {
+          btn.classList.toggle('is-active', isAudioAutoplayEnabled);
+          btn.setAttribute('aria-pressed', isAudioAutoplayEnabled ? 'true' : 'false');
+          btn.title = isAudioAutoplayEnabled ? 'Tắt tự động phát audio' : 'Bật tự động phát audio';
+          const icon = btn.querySelector('i');
+          if (icon) {
+            icon.className = `fas ${isAudioAutoplayEnabled ? 'fa-volume-up' : 'fa-volume-mute'}`;
+          }
+        });
+      };
+
+      const setAudioAutoplayEnabled = (enabled) => {
+        isAudioAutoplayEnabled = enabled;
+        persistAudioAutoplayPreference(enabled);
+        updateAudioAutoplayToggleButtons();
+        if (!enabled) {
+          stopSpeaking();
+        }
+      };
+
+      const closeAllSettingsMenus = () => {
+        document.querySelectorAll('.toolbar-settings').forEach((menu) => {
+          menu.classList.remove('is-open');
+          const toggleBtn = menu.querySelector('.settings-toggle-btn');
+          if (toggleBtn) {
+            toggleBtn.setAttribute('aria-expanded', 'false');
+          }
+        });
+      };
+
+      const toggleSettingsMenu = (menuEl) => {
+        if (!menuEl) return;
+        const isOpen = menuEl.classList.contains('is-open');
+        closeAllSettingsMenus();
+        menuEl.classList.toggle('is-open', !isOpen);
+        const toggleBtn = menuEl.querySelector('.settings-toggle-btn');
+        if (toggleBtn) {
+          toggleBtn.setAttribute('aria-expanded', (!isOpen).toString());
+        }
+      };
+
+      document.addEventListener('click', (evt) => {
+        const settingsToggle = evt.target.closest('.settings-toggle-btn');
+        if (settingsToggle) {
+          evt.stopPropagation();
+          toggleSettingsMenu(settingsToggle.closest('.toolbar-settings'));
+          return;
+        }
+
+        const autoplayToggle = evt.target.closest('.collab-autoplay-toggle-btn');
+        if (autoplayToggle) {
+          evt.stopPropagation();
+          setAudioAutoplayEnabled(!isAudioAutoplayEnabled);
+          return;
+        }
+
+        if (!evt.target.closest('.toolbar-settings')) {
+          closeAllSettingsMenus();
+        }
+      });
+
+      updateAudioAutoplayToggleButtons();
+      closeAllSettingsMenus();
 
       const setCardContent = (textEl, mediaEl, rawText, imageUrl, fallbackText, altLabel) => {
         if (textEl) {
@@ -1354,6 +1479,12 @@
 
         roundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
         if (mobileRoundStepEl) mobileRoundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
+
+        if (isAudioAutoplayEnabled) {
+          speakCard();
+        } else {
+          stopSpeaking();
+        }
       };
 
       const fetchRound = async (showLoader = false) => {
