@@ -70,6 +70,9 @@ if (Number.isNaN(autoplayDelaySeconds) || autoplayDelaySeconds < 0) {
     autoplayDelaySeconds = 2;
 }
 
+const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+const flashcardCsrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+
 const flashcardSetsContainer = document.getElementById('flashcard-sets-container');
 const flashcardOptionsContainer = document.getElementById('flashcard-options-container');
 const selectedSetsDisplay = document.getElementById('selected-sets-display');
@@ -93,13 +96,14 @@ document.addEventListener('change', async function(event) {
         selectedButtonCount = parseInt(event.target.value);
         updateActionButtons();
         try {
-            const res = await fetch(saveFlashcardSettingsUrl, { 
-                method: 'POST', 
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'X-Requested-With': 'XMLHttpRequest' 
-                }, 
-                body: JSON.stringify({ button_count: selectedButtonCount }) 
+            const res = await fetch(saveFlashcardSettingsUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(flashcardCsrfToken ? { 'X-CSRFToken': flashcardCsrfToken } : {})
+                },
+                body: JSON.stringify({ button_count: selectedButtonCount })
             });
             const js = await res.json();
             if (!js.success) { console.error('Lưu button_count lỗi:', js.message); }
@@ -570,7 +574,7 @@ function addArchiveIconListeners() {
             const url = toggleArchiveUrl.replace('/0', '/' + setId);
 
             try {
-                const response = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const response = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', ...(flashcardCsrfToken ? { 'X-CSRFToken': flashcardCsrfToken } : {}) } });
                 const result = await response.json();
 
                 if (response.ok && result.success) {
@@ -702,7 +706,8 @@ if(bulkUnarchiveBtnIndividual){
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(flashcardCsrfToken ? { 'X-CSRFToken': flashcardCsrfToken } : {})
                 },
                 body: JSON.stringify({ set_ids: selectedFlashcardSetIds })
             });
