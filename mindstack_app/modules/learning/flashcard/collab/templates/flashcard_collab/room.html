@@ -1167,6 +1167,8 @@
       let isFetching = false;
       let pollHandle = null;
       let hasAnsweredCurrentCard = false;
+      let frontAutoplayedItemId = null;
+      let backAutoplayedItemId = null;
 
       const toggleMobileInfoPanel = (isOpen) => {
         if (!mobileInfoPanel) return;
@@ -1573,8 +1575,9 @@
         answerActionsEl?.classList.add('visible');
         flipBtn?.classList.add('hidden');
         syncAnswerButtonsAvailability();
-        if (isAudioAutoplayEnabled) {
+        if (isAudioAutoplayEnabled && currentCardId && backAutoplayedItemId !== currentCardId) {
           autoPlaySide('back');
+          backAutoplayedItemId = currentCardId;
         }
       };
 
@@ -1648,9 +1651,14 @@
         renderAnswerButtons(buttonCount);
 
         const itemId = item?.item_id || null;
-        if (itemId !== currentCardId) {
+        const isNewCard = itemId && itemId !== currentCardId;
+
+        if (isNewCard) {
           currentCardId = itemId;
           showFrontSide();
+          frontAutoplayedItemId = null;
+          backAutoplayedItemId = null;
+          stopAllFlashcardAudio();
         }
 
         setCardContent(
@@ -1699,7 +1707,6 @@
           }
         });
 
-        stopAllFlashcardAudio();
         adjustCardLayout();
         renderParticipants(participants);
 
@@ -1728,8 +1735,15 @@
         roundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
         if (mobileRoundStepEl) mobileRoundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
 
-        if (isAudioAutoplayEnabled) {
+        if (
+          isNewCard &&
+          isAudioAutoplayEnabled &&
+          itemId &&
+          frontAutoplayedItemId !== itemId &&
+          !cardEl?.classList.contains('flipped')
+        ) {
           autoPlaySide('front');
+          frontAutoplayedItemId = itemId;
         }
       };
 
