@@ -168,6 +168,14 @@
                         </select>
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Số nút đánh giá</label>
+                        <select id="collab-button-count-select" class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500">
+                            <option value="3" {% if user_button_count == 3 %}selected{% endif %}>3 nút (Quên, Mơ hồ, Nhớ)</option>
+                            <option value="4" {% if user_button_count == 4 %}selected{% endif %}>4 nút (Again, Hard, Good, Easy)</option>
+                            <option value="6" {% if user_button_count == 6 %}selected{% endif %}>6 nút (Từ rất khó đến rất dễ)</option>
+                        </select>
+                    </div>
+                    <div>
                         <span class="block text-sm font-medium text-slate-700 mb-2">Quyền riêng tư</span>
                         <div class="flex gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
                             <label class="flex items-center gap-2 cursor-pointer">
@@ -229,6 +237,7 @@ const collabCsrfToken = document.querySelector('meta[name="csrf-token"]')?.getAt
 const collabModeDefinitions = {{ flashcard_modes | tojson }};
 const collabModeLabels = {};
 collabModeDefinitions.forEach(m => { if(m.id) collabModeLabels[m.id] = m.name || m.id; });
+const defaultButtonCount = parseInt("{{ user_button_count | default(3) }}") || 3;
 
 // State
 let collabState = {
@@ -468,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const payload = {
             container_id: collabState.selectedSetId,
             mode: document.getElementById('collab-mode-select').value,
+            button_count: parseInt(document.getElementById('collab-button-count-select')?.value || defaultButtonCount),
             title: document.getElementById('collab-room-title').value.trim(),
             is_public: document.querySelector('input[name="collab-visibility"]:checked').value === 'public'
         };

@@ -238,6 +238,7 @@ def build_round_payload(round_obj: FlashcardCollabRound, room: FlashcardCollabRo
         'all_answered': all_answered,
         'status': round_obj.status,
         'completed_at': round_obj.completed_at.isoformat() if round_obj.completed_at else None,
+        'button_count': getattr(room, 'button_count', None),
     }
 
 
@@ -263,6 +264,7 @@ def serialize_room(room: FlashcardCollabRoom) -> dict[str, object]:
         'room_id': room.room_id,
         'title': room.title,
         'mode': room.mode,
+        'button_count': room.button_count,
         'container_id': room.container_id,
         'container_title': getattr(room.container, 'title', None),
         'host_user_id': room.host_user_id,

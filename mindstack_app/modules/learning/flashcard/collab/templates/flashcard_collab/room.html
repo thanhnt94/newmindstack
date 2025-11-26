@@ -607,9 +607,14 @@
     .rating-btn .rating-btn__icon { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 999px; background: rgba(255, 255, 255, 0.18); font-size: 1.1rem; }
     .rating-btn .rating-btn__title { font-size: 0.95rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1; }
     .rating-btn--again { background: linear-gradient(135deg, #f87171, #dc2626); box-shadow: 0 18px 36px rgba(220, 38, 38, 0.32); }
+    .rating-btn--fail { background: linear-gradient(135deg, #f87171, #dc2626); box-shadow: 0 18px 36px rgba(220, 38, 38, 0.32); }
+    .rating-btn--very-hard { background: linear-gradient(135deg, #fb923c, #ea580c); box-shadow: 0 18px 36px rgba(234, 88, 12, 0.28); }
     .rating-btn--hard { background: linear-gradient(135deg, #f59e0b, #b45309); color: #1f2937; }
     .rating-btn--hard .rating-btn__icon { background: rgba(15, 23, 42, 0.12); color: #1f2937; }
+    .rating-btn--medium { background: linear-gradient(135deg, #38bdf8, #2563eb); box-shadow: 0 18px 36px rgba(37, 99, 235, 0.28); }
     .rating-btn--easy { background: linear-gradient(135deg, #34d399, #059669); box-shadow: 0 18px 36px rgba(5, 150, 105, 0.28); }
+    .rating-btn--good { background: linear-gradient(135deg, #34d399, #059669); box-shadow: 0 18px 36px rgba(5, 150, 105, 0.28); }
+    .rating-btn--very-easy { background: linear-gradient(135deg, #6ee7b7, #0d9488); box-shadow: 0 18px 36px rgba(13, 148, 136, 0.26); }
     .pill { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.4rem 0.85rem; font-weight: 600; font-size: 0.85rem; }
 
     .flip-card-btn {
@@ -851,20 +856,7 @@
                 <div class="media-container hidden" id="collab-card-back-media"></div>
                 <audio id="collab-back-audio" class="hidden"></audio>
               </div>
-              <div class="actions" id="collab-answer-actions" data-button-count="3">
-                <button type="button" data-answer="quên" class="collab-answer-btn btn rating-btn rating-btn--again">
-                  <span class="rating-btn__icon"><i class="fas fa-redo-alt"></i></span>
-                  <span class="rating-btn__title">Quên</span>
-                </button>
-                <button type="button" data-answer="mơ_hồ" class="collab-answer-btn btn rating-btn rating-btn--hard">
-                  <span class="rating-btn__icon"><i class="fas fa-question-circle"></i></span>
-                  <span class="rating-btn__title">Mơ hồ</span>
-                </button>
-                <button type="button" data-answer="nhớ" class="collab-answer-btn btn rating-btn rating-btn--easy">
-                  <span class="rating-btn__icon"><i class="fas fa-check-circle"></i></span>
-                  <span class="rating-btn__title">Nhớ</span>
-                </button>
-              </div>
+              <div class="actions" id="collab-answer-actions" data-button-count="{{ room_payload.button_count or 3 }}"></div>
               <p id="collab-answer-feedback" class="text-xs text-slate-600 px-6 pb-2"></p>
             </div>
           </div>
@@ -885,6 +877,7 @@
             <div class="flex flex-wrap items-center text-xs text-slate-600 room-meta-pills">
               <span class="pill bg-slate-100 text-slate-700"><i class="fas fa-layer-group"></i> {{ room_payload.container_title or ('Bộ #' ~ room_payload.container_id) }}</span>
               <span class="pill bg-indigo-50 text-indigo-700"><i class="fas fa-bolt"></i> {{ room_payload.mode }}</span>
+              <span class="pill bg-amber-50 text-amber-700"><i class="fas fa-sliders-h"></i> {{ room_payload.button_count or 3 }} nút</span>
               <span class="pill bg-emerald-50 text-emerald-700"><i class="fas fa-user"></i> {{ room_payload.host_username or '—' }}</span>
               <span class="pill bg-slate-200 text-slate-800 font-mono">{{ room_payload.room_code }}</span>
             </div>
@@ -979,7 +972,7 @@
         <div>
           <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Phòng học Flashcard</p>
           <p class="text-xl font-bold text-slate-900">{{ room_payload.title or 'Phòng học chung' }}</p>
-          <p class="text-sm text-slate-600">Chế độ: {{ room_payload.mode }} · Mã: {{ room_payload.room_code }}</p>
+          <p class="text-sm text-slate-600">Chế độ: {{ room_payload.mode }} · {{ room_payload.button_count or 3 }} nút · Mã: {{ room_payload.room_code }}</p>
         </div>
         <button type="button" class="icon-btn close-mobile-info-btn" title="Đóng"><i class="fas fa-times"></i></button>
       </div>
@@ -1095,6 +1088,7 @@
     (() => {
       const nextCardUrl = {{ url_for('learning.flashcard_collab.get_next_card', room_code=room_payload.room_code) | tojson }};
       const submitAnswerUrl = {{ url_for('learning.flashcard_collab.submit_collab_answer', room_code=room_payload.room_code) | tojson }};
+      const roomButtonCount = Number({{ room_payload.button_count or 3 }}) || 3;
       const regenerateAudioUrl = {{ url_for('learning.flashcard_learning.regenerate_audio_from_content') | tojson }};
       const currentUserId = {{ current_user.user_id }};
       const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
@@ -1113,7 +1107,7 @@
       const backLabel = cardEl?.querySelector('.back .card-toolbar .label');
       const statusEl = document.getElementById('collab-round-status');
       const participantsEl = document.getElementById('collab-round-participants');
-      const answerButtons = document.querySelectorAll('.collab-answer-btn');
+      let answerButtons = [];
       const answerActionsEl = document.getElementById('collab-answer-actions');
       const feedbackEl = document.getElementById('collab-answer-feedback');
       const refreshBtn = document.getElementById('collab-refresh-round');
@@ -1516,6 +1510,53 @@
         });
       };
 
+      const generateAnswerButtons = (buttonCount) => {
+        const presets = {
+          3: [
+            { variant: 'again', value: 'quên', title: 'Quên', icon: 'fas fa-redo-alt' },
+            { variant: 'hard', value: 'mơ_hồ', title: 'Mơ hồ', icon: 'fas fa-question-circle' },
+            { variant: 'easy', value: 'nhớ', title: 'Nhớ', icon: 'fas fa-check-circle' },
+          ],
+          4: [
+            { variant: 'again', value: 'again', title: 'Học lại', icon: 'fas fa-undo' },
+            { variant: 'very-hard', value: 'hard', title: 'Khó', icon: 'fas fa-fire' },
+            { variant: 'good', value: 'good', title: 'Bình thường', icon: 'fas fa-thumbs-up' },
+            { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-smile' },
+          ],
+          6: [
+            { variant: 'fail', value: 'fail', title: 'Rất khó', icon: 'fas fa-exclamation-circle' },
+            { variant: 'very-hard', value: 'very_hard', title: 'Khó', icon: 'fas fa-fire' },
+            { variant: 'hard', value: 'hard', title: 'Trung bình', icon: 'fas fa-adjust' },
+            { variant: 'medium', value: 'medium', title: 'Dễ', icon: 'fas fa-leaf' },
+            { variant: 'good', value: 'good', title: 'Rất dễ', icon: 'fas fa-thumbs-up' },
+            { variant: 'very-easy', value: 'very_easy', title: 'Dễ dàng', icon: 'fas fa-star' },
+          ],
+        };
+
+        const buttons = presets[buttonCount] || presets[3];
+        return buttons
+          .map(
+            (btn) => `
+              <button type="button" data-answer="${btn.value}" class="collab-answer-btn btn rating-btn rating-btn--${btn.variant}">
+                <span class="rating-btn__icon"><i class="${btn.icon}"></i></span>
+                <span class="rating-btn__title">${btn.title}</span>
+              </button>
+            `,
+          )
+          .join('');
+      };
+
+      const renderAnswerButtons = (buttonCount) => {
+        if (!answerActionsEl) return;
+        answerActionsEl.dataset.buttonCount = buttonCount;
+        answerActionsEl.innerHTML = generateAnswerButtons(buttonCount);
+        answerButtons = Array.from(answerActionsEl.querySelectorAll('.collab-answer-btn'));
+        syncAnswerButtonsAvailability();
+        answerButtons.forEach((btn) => {
+          btn.addEventListener('click', () => submitAnswer(btn.dataset.answer));
+        });
+      };
+
       const showFrontSide = () => {
         if (!cardEl) return;
         cardEl.classList.remove('flipped');
@@ -1603,6 +1644,8 @@
       const renderRound = (roundPayload) => {
         currentRound = roundPayload;
         const { item, participants = [], all_answered: allAnswered, status } = roundPayload;
+        const buttonCount = Number(roundPayload?.button_count || roomButtonCount) || roomButtonCount;
+        renderAnswerButtons(buttonCount);
 
         const itemId = item?.item_id || null;
         if (itemId !== currentCardId) {
@@ -1775,10 +1818,6 @@
         clearInterval(pollHandle);
         pollHandle = null;
       };
-
-      answerButtons.forEach((btn) => {
-        btn.addEventListener('click', () => submitAnswer(btn.dataset.answer));
-      });
 
       frontLabel?.addEventListener('click', (evt) => {
         evt.stopPropagation();
