@@ -1167,6 +1167,10 @@
       let isFetching = false;
       let pollHandle = null;
       let hasAnsweredCurrentCard = false;
+      let frontAutoplayedItemId = null;
+      let backAutoplayedItemId = null;
+      let currentFrontAudioUrl = '';
+      let currentBackAudioUrl = '';
 
       const toggleMobileInfoPanel = (isOpen) => {
         if (!mobileInfoPanel) return;
@@ -1573,8 +1577,9 @@
         answerActionsEl?.classList.add('visible');
         flipBtn?.classList.add('hidden');
         syncAnswerButtonsAvailability();
-        if (isAudioAutoplayEnabled) {
+        if (isAudioAutoplayEnabled && currentCardId && backAutoplayedItemId !== currentCardId) {
           autoPlaySide('back');
+          backAutoplayedItemId = currentCardId;
         }
       };
 
@@ -1648,9 +1653,14 @@
         renderAnswerButtons(buttonCount);
 
         const itemId = item?.item_id || null;
-        if (itemId !== currentCardId) {
+        const isNewCard = itemId && itemId !== currentCardId;
+
+        if (isNewCard) {
           currentCardId = itemId;
           showFrontSide();
+          frontAutoplayedItemId = null;
+          backAutoplayedItemId = null;
+          stopAllFlashcardAudio();
         }
 
         setCardContent(
@@ -1675,11 +1685,16 @@
         const frontAudioContent = item?.content?.front_audio_content || '';
         const backAudioContent = item?.content?.back_audio_content || '';
 
-        if (frontAudioEl) {
-          frontAudioEl.src = frontAudioUrl || '';
+        const normalizedFrontAudioUrl = frontAudioUrl || '';
+        const normalizedBackAudioUrl = backAudioUrl || '';
+
+        if (frontAudioEl && (isNewCard || normalizedFrontAudioUrl !== currentFrontAudioUrl)) {
+          frontAudioEl.src = normalizedFrontAudioUrl;
+          currentFrontAudioUrl = normalizedFrontAudioUrl;
         }
-        if (backAudioEl) {
-          backAudioEl.src = backAudioUrl || '';
+        if (backAudioEl && (isNewCard || normalizedBackAudioUrl !== currentBackAudioUrl)) {
+          backAudioEl.src = normalizedBackAudioUrl;
+          currentBackAudioUrl = normalizedBackAudioUrl;
         }
 
         const hasFrontAudio = Boolean(frontAudioUrl || frontAudioContent);
@@ -1699,7 +1714,6 @@
           }
         });
 
-        stopAllFlashcardAudio();
         adjustCardLayout();
         renderParticipants(participants);
 
@@ -1728,8 +1742,15 @@
         roundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
         if (mobileRoundStepEl) mobileRoundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
 
-        if (isAudioAutoplayEnabled) {
+        if (
+          isNewCard &&
+          isAudioAutoplayEnabled &&
+          itemId &&
+          frontAutoplayedItemId !== itemId &&
+          !cardEl?.classList.contains('flipped')
+        ) {
           autoPlaySide('front');
+          frontAutoplayedItemId = itemId;
         }
       };
 
