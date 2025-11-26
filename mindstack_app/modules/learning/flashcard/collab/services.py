@@ -67,7 +67,9 @@ def _build_item_payload(item: LearningItem) -> dict[str, object]:
         'content': {
             'front': content.get('front', ''),
             'back': content.get('back', ''),
+            'front_audio_content': content.get('front_audio_content', ''),
             'front_audio_url': _media_url(content.get('front_audio_url'), 'audio'),
+            'back_audio_content': content.get('back_audio_content', ''),
             'back_audio_url': _media_url(content.get('back_audio_url'), 'audio'),
             'front_img': _media_url(content.get('front_img'), 'image'),
             'back_img': _media_url(content.get('back_img'), 'image'),
