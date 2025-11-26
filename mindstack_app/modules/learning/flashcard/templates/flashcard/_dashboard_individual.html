@@ -287,6 +287,21 @@ async function loadFlashcardOptions(setIdentifier) {
         if (!response.ok) { throw new Error('HTTP ' + response.status); }
         const html = await response.text();
         flashcardOptionsContainer.innerHTML = html;
+
+        // Đồng bộ lại số nút đánh giá sau khi partial được render
+        const buttonCountSelect = flashcardOptionsContainer.querySelector('#button-count-select');
+        if (buttonCountSelect) {
+            const desiredValue = String(selectedButtonCount);
+            if (buttonCountSelect.querySelector(`option[value="${desiredValue}"]`)) {
+                buttonCountSelect.value = desiredValue;
+            }
+
+            const parsed = parseInt(buttonCountSelect.value, 10);
+            if (!Number.isNaN(parsed)) {
+                selectedButtonCount = parsed;
+            }
+        }
+
         addFlashcardModeClickListeners();
         initializeAutoplaySettings();
 
