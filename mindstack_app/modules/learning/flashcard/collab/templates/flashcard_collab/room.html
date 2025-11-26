@@ -1651,11 +1651,14 @@
         renderAnswerButtons(buttonCount);
 
         const itemId = item?.item_id || null;
-        if (itemId !== currentCardId) {
+        const isNewCard = itemId && itemId !== currentCardId;
+
+        if (isNewCard) {
           currentCardId = itemId;
           showFrontSide();
           frontAutoplayedItemId = null;
           backAutoplayedItemId = null;
+          stopAllFlashcardAudio();
         }
 
         setCardContent(
@@ -1704,7 +1707,6 @@
           }
         });
 
-        stopAllFlashcardAudio();
         adjustCardLayout();
         renderParticipants(participants);
 
@@ -1733,7 +1735,13 @@
         roundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
         if (mobileRoundStepEl) mobileRoundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
 
-        if (isAudioAutoplayEnabled && itemId && frontAutoplayedItemId !== itemId && !cardEl?.classList.contains('flipped')) {
+        if (
+          isNewCard &&
+          isAudioAutoplayEnabled &&
+          itemId &&
+          frontAutoplayedItemId !== itemId &&
+          !cardEl?.classList.contains('flipped')
+        ) {
           autoPlaySide('front');
           frontAutoplayedItemId = itemId;
         }
