@@ -22,6 +22,7 @@ class FlashcardCollabRoom(db.Model):
     host_user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=False)
     mode = db.Column(db.String(50), nullable=False)
+    button_count = db.Column(db.Integer, default=3, nullable=False)
     status = db.Column(db.String(20), default=STATUS_LOBBY, nullable=False)
     is_public = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())

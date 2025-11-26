@@ -9,7 +9,7 @@ from typing import Callable
 from flask import Flask
 from flask_login import current_user
 
-from sqlalchemy import or_
+from sqlalchemy import inspect, or_, text
 
 from ..config import BASE_DIR
 from ..extensions import csrf_protect, db, login_manager
@@ -78,6 +78,18 @@ def initialize_database(app: Flask) -> None:
     from ..models import BackgroundTask, User
 
     db.create_all()
+
+    inspector = inspect(db.engine)
+    room_columns = {column['name'] for column in inspector.get_columns('flashcard_collab_rooms')}
+    if 'button_count' not in room_columns:
+        with db.engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE flashcard_collab_rooms "
+                    "ADD COLUMN button_count INTEGER NOT NULL DEFAULT 3"
+                )
+            )
+        app.logger.info("Đã thêm cột button_count vào flashcard_collab_rooms (migrate in place).")
 
     admin_user = User.query.filter(
         or_(

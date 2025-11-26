@@ -66,6 +66,11 @@ def create_room():
     payload = request.get_json(silent=True) or {}
     container_id = payload.get('container_id')
     mode = (payload.get('mode') or 'mixed_srs').strip().lower()
+    try:
+        requested_button_count = int(payload.get('button_count'))
+    except (TypeError, ValueError):
+        requested_button_count = current_user.flashcard_button_count or 3
+    button_count = requested_button_count if requested_button_count in (3, 4, 6) else 3
     is_public = bool(payload.get('is_public'))
     title = payload.get('title') or 'Học Flashcard chung'
 
@@ -100,6 +105,7 @@ def create_room():
         host_user_id=current_user.user_id,
         container_id=container_id,
         mode=mode,
+        button_count=button_count,
         is_public=is_public,
     )
     db.session.add(room)
@@ -322,7 +328,8 @@ def submit_collab_answer(room_code: str):
             answer_quality = None
 
     if not isinstance(answer_quality, int):
-        answer_quality = _map_answer_to_quality(answer_label, participant.user.flashcard_button_count)
+        button_count = getattr(room, 'button_count', None) or participant.user.flashcard_button_count
+        answer_quality = _map_answer_to_quality(answer_label, button_count)
 
     score_change, updated_total_score, answer_result, progress_status, item_stats = process_flashcard_answer(
         current_user.user_id,
