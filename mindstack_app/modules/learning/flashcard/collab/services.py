@@ -20,6 +20,7 @@ from .....models import (
     User,
     db,
 )
+from ....shared.utils.media_paths import build_relative_media_path
 from ..individual import algorithms
 
 
@@ -51,15 +52,22 @@ def _build_item_payload(item: LearningItem) -> dict[str, object]:
     """Serialize a flashcard item for API responses."""
 
     content = item.content or {}
+    container = getattr(item, 'container', None)
+    media_folders = (getattr(container, 'media_folders', None) or {}) if container else {}
 
     def _media_url(value: Optional[str], media_type: str) -> Optional[str]:
         if not value:
             return None
-        if value.startswith(('http://', 'https://')):
-            return value
-        if value.startswith('/'):
-            return url_for('static', filename=value.lstrip('/'))
-        return url_for('static', filename=value)
+
+        relative_path = build_relative_media_path(value, media_folders.get(media_type))
+        if not relative_path:
+            return None
+
+        if relative_path.startswith(('http://', 'https://')):
+            return relative_path
+        if relative_path.startswith('/'):
+            return url_for('static', filename=relative_path.lstrip('/'))
+        return url_for('static', filename=relative_path)
 
     return {
         'item_id': item.item_id,
