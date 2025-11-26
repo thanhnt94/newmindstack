@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import string
 import random
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterable, Optional, Set
 
 from flask import url_for
 
@@ -48,8 +48,21 @@ def _normalize_due_time(value: Optional[datetime]) -> datetime:
     return value.astimezone(timezone.utc)
 
 
+def _normalize_capability_flags(raw_flags) -> Set[str]:
+    """Normalize capability flags from container settings."""
+
+    normalized: Set[str] = set()
+    if isinstance(raw_flags, (list, tuple, set)):
+        normalized.update({value for value in raw_flags if isinstance(value, str) and value})
+    elif isinstance(raw_flags, dict):
+        normalized.update({key for key, enabled in raw_flags.items() if enabled and isinstance(key, str) and key})
+    elif isinstance(raw_flags, str) and raw_flags:
+        normalized.add(raw_flags)
+    return normalized
+
+
 def _build_item_payload(item: LearningItem) -> dict[str, object]:
-    """Serialize a flashcard item for API responses."""
+    """Serialize a flashcard item for API responses using individual-session logic."""
 
     content = item.content or {}
     container = getattr(item, 'container', None)
@@ -69,6 +82,21 @@ def _build_item_payload(item: LearningItem) -> dict[str, object]:
             return url_for('static', filename=relative_path.lstrip('/'))
         return url_for('static', filename=relative_path)
 
+    container_capabilities: Set[str] = set()
+    try:
+        if container:
+            if hasattr(container, 'capability_flags'):
+                container_capabilities = set(container.capability_flags())
+            else:
+                settings_payload = getattr(container, 'ai_settings', None)
+                if isinstance(settings_payload, dict):
+                    container_capabilities = _normalize_capability_flags(settings_payload.get('capabilities'))
+    except Exception:
+        container_capabilities = set()
+
+    def _supports(flag: str) -> bool:
+        return bool(content.get(flag)) or (flag in container_capabilities)
+
     return {
         'item_id': item.item_id,
         'container_id': item.container_id,
@@ -81,6 +109,12 @@ def _build_item_payload(item: LearningItem) -> dict[str, object]:
             'back_audio_url': _media_url(content.get('back_audio_url'), 'audio'),
             'front_img': _media_url(content.get('front_img'), 'image'),
             'back_img': _media_url(content.get('back_img'), 'image'),
+            'supports_pronunciation': _supports('supports_pronunciation'),
+            'supports_writing': _supports('supports_writing'),
+            'supports_quiz': _supports('supports_quiz'),
+            'supports_essay': _supports('supports_essay'),
+            'supports_listening': _supports('supports_listening'),
+            'supports_speaking': _supports('supports_speaking'),
         },
         'ai_explanation': item.ai_explanation,
     }
