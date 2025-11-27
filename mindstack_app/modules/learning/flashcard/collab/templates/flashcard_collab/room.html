@@ -244,42 +244,83 @@
     .session-sidebar {
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.55rem;
       height: 100%; /* Fill chiều cao lưới cha */
       min-height: 0; /* Fix flex overflow */
       overflow: hidden; /* Chặn scroll tổng sidebar */
     }
 
     .sidebar-card {
-      padding: 1.1rem 1.2rem;
-      display: flex; flex-direction: column; gap: 0.75rem;
+      padding: 0.85rem 0.95rem;
+      display: flex; flex-direction: column; gap: 0.6rem;
       flex-shrink: 0; /* Info cards không bị bóp méo */
     }
 
     .room-meta-card {
-      gap: 0.6rem;
+      gap: 0.35rem;
     }
 
     .room-meta-pills {
-      gap: 0.4rem;
+      gap: 0.3rem;
+      row-gap: 0.25rem;
     }
 
     .room-meta-pills .pill {
-      padding: 0.4rem 0.55rem;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.8rem;
+      line-height: 1.1;
+    }
+
+    .room-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .room-actions .icon-ghost {
+      height: 34px;
+      min-width: 34px;
+      padding: 0 0.65rem;
+      border-radius: 0.65rem;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #0f172a;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    }
+
+    .room-actions .icon-ghost:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #1e293b;
     }
 
     .status-compact {
-      gap: 0.5rem;
+      gap: 0.4rem;
     }
 
     .status-badges {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.4rem;
+      gap: 0.3rem;
+      row-gap: 0.25rem;
     }
 
     .status-badges .pill {
-      padding: 0.35rem 0.55rem;
+      padding: 0.28rem 0.5rem;
+      font-size: 0.8rem;
+      line-height: 1.1;
+    }
+
+    .compact-list {
+      max-height: 180px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
     }
 
     .compact-list li {
@@ -287,7 +328,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 0.5rem;
-      padding: 0.45rem 0;
+      padding: 0.35rem 0;
     }
 
     .compact-list li:first-child { padding-top: 0; }
@@ -869,25 +910,23 @@
       <!-- Room meta -->
       <div class="card-surface sidebar-card room-meta-card">
         <div class="flex items-start justify-between gap-3">
-          <div class="space-y-2">
-            <div class="space-y-1">
-              <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Phòng học Flashcard</p>
-              <p class="text-xl font-bold text-slate-900 leading-tight">{{ room_payload.title or 'Phòng học chung' }}</p>
+          <div class="space-y-1.5">
+            <div class="space-y-0.5">
+              <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Phòng học Flashcard</p>
+              <p class="text-lg font-bold text-slate-900 leading-tight">{{ room_payload.title or 'Phòng học chung' }}</p>
+              <p class="text-xs text-slate-600">{{ room_payload.mode }} · {{ room_payload.button_count or 3 }} nút · Mã: <span class="font-mono">{{ room_payload.room_code }}</span></p>
             </div>
             <div class="flex flex-wrap items-center text-xs text-slate-600 room-meta-pills">
               <span class="pill bg-slate-100 text-slate-700"><i class="fas fa-layer-group"></i> {{ room_payload.container_title or ('Bộ #' ~ room_payload.container_id) }}</span>
-              <span class="pill bg-indigo-50 text-indigo-700"><i class="fas fa-bolt"></i> {{ room_payload.mode }}</span>
-              <span class="pill bg-amber-50 text-amber-700"><i class="fas fa-sliders-h"></i> {{ room_payload.button_count or 3 }} nút</span>
               <span class="pill bg-emerald-50 text-emerald-700"><i class="fas fa-user"></i> {{ room_payload.host_username or '—' }}</span>
-              <span class="pill bg-slate-200 text-slate-800 font-mono">{{ room_payload.room_code }}</span>
             </div>
           </div>
-          <div class="flex flex-col gap-2 shrink-0 text-right">
-            <button type="button" id="copy-room-code" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold bg-white shadow-sm hover:bg-slate-50">
-              <i class="fas fa-copy"></i> Sao chép
+          <div class="room-actions shrink-0 text-right">
+            <button type="button" id="copy-room-code" class="icon-ghost" title="Sao chép mã">
+              <i class="fas fa-copy"></i>
             </button>
-            <a href="{{ url_for('learning.flashcard.dashboard') }}" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold bg-white shadow-sm hover:bg-slate-50">
-              <i class="fas fa-arrow-left"></i> Danh sách phòng
+            <a href="{{ url_for('learning.flashcard.dashboard') }}" class="icon-ghost" title="Danh sách phòng">
+              <i class="fas fa-arrow-left"></i>
             </a>
           </div>
         </div>
@@ -895,24 +934,24 @@
 
       <!-- Status card -->
       <div class="card-surface sidebar-card status-compact">
-        <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start justify-between gap-2">
           <div>
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Tiến trình</p>
+            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Tiến trình</p>
             <p class="text-sm font-semibold text-slate-900">Lượt & thành viên</p>
           </div>
-          <div class="status-badges">
-            <span class="pill bg-slate-100 text-slate-700 text-xs">Thứ tự: <span id="collab-round-step" class="font-semibold">—</span></span>
-            <span class="pill bg-slate-100 text-slate-700 text-xs">Thành viên: <span id="collab-participant-count" class="font-semibold">{{ room_payload.participants | length }}</span></span>
+          <div class="status-badges text-xs">
+            <span class="pill bg-slate-100 text-slate-700">Thứ tự: <span id="collab-round-step" class="font-semibold">—</span></span>
+            <span class="pill bg-slate-100 text-slate-700">Thành viên: <span id="collab-participant-count" class="font-semibold">{{ room_payload.participants | length }}</span></span>
           </div>
         </div>
 
-        <div class="space-y-3">
+        <div class="space-y-2.5">
           <div class="space-y-1">
-            <p class="text-xs uppercase tracking-wide text-slate-500">Diễn biến lượt</p>
+            <p class="text-[11px] uppercase tracking-wide text-slate-500">Diễn biến lượt</p>
             <div id="collab-round-status" class="flex flex-col gap-1 text-sm text-slate-700"></div>
           </div>
           <div class="space-y-1">
-            <div class="flex items-center justify-between text-xs uppercase tracking-wide text-slate-500">
+            <div class="flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
               <span>Danh sách tham gia</span>
             </div>
             <ul id="collab-round-participants" class="compact-list divide-y divide-slate-200 text-sm text-slate-700"></ul>
