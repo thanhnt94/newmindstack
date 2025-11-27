@@ -5,7 +5,7 @@
   {{ super() }}
   <style>
     :root {
-      --flashcard-shell-gap: clamp(24px, 3vw, 32px);
+      --flashcard-shell-gap: clamp(16px, 2vw, 24px);
       --flashcard-header-height: 0px;
       --flashcard-footer-height: 0px;
     }
@@ -66,7 +66,7 @@
       flex-direction: column;
       width: 100%;
       height: 100%; /* Fill 100% main */
-      padding: var(--flashcard-shell-gap) 0;
+      padding: calc(var(--flashcard-shell-gap) * 0.65) 0;
       gap: 1rem;
       background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08), transparent 25%),
         radial-gradient(circle at 90% 30%, rgba(59, 130, 246, 0.06), transparent 25%),
@@ -104,7 +104,7 @@
       width: 100%;
       max-width: 1440px;
       margin: 0 auto;
-      padding: var(--flashcard-shell-gap) clamp(24px, 2vw, 32px) calc(var(--flashcard-shell-gap) * 2) clamp(24px, 2vw, 32px);
+      padding: calc(var(--flashcard-shell-gap) * 0.85) clamp(18px, 1.8vw, 28px) calc(var(--flashcard-shell-gap) * 1.4) clamp(18px, 1.8vw, 28px);
       flex: 1; /* Chiếm toàn bộ chiều cao còn lại */
       min-height: 0; /* Cho phép con scroll */
       overflow: hidden; /* Chặn scroll tràn ra ngoài */
@@ -145,7 +145,7 @@
       display: flex;
       flex-direction: column;
       height: 100%; /* Fill cột trái */
-      padding: 1.25rem;
+      padding: 1rem;
       background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
       gap: 1rem;
       min-height: 0; /* Fix flex overflow */
