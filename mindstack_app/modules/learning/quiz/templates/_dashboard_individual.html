@@ -200,8 +200,22 @@
         if (!quizSetsContainer) return;
         quizSetsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-32 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải...</p></div>';
 
-        if (localStorage.getItem('selectedQuizSetIds')) selectedQuizSetIds = JSON.parse(localStorage.getItem('selectedQuizSetIds'));
-        else selectedQuizSetIds = [];
+        const savedSelections = localStorage.getItem('selectedQuizSetIds');
+        if (savedSelections) {
+            try {
+                const parsed = JSON.parse(savedSelections);
+                selectedQuizSetIds = Array.isArray(parsed) ? parsed.map(String) : [];
+                if (!Array.isArray(parsed)) {
+                    localStorage.removeItem('selectedQuizSetIds');
+                }
+            } catch (err) {
+                console.warn('>>> Không thể đọc dữ liệu selectedQuizSetIds trong localStorage, sẽ reset.', err);
+                localStorage.removeItem('selectedQuizSetIds');
+                selectedQuizSetIds = [];
+            }
+        } else {
+            selectedQuizSetIds = [];
+        }
 
         updateSelectedSetsDisplay();
         updateActionButtons();
