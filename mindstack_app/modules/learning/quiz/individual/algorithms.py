@@ -218,33 +218,15 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
     user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
         UserContainerState.user_id == user_id
     ).subquery()
-    
+
+    accessible_set_ids = get_accessible_quiz_set_ids(user_id)
+
     # Lọc quyền truy cập
-    if current_user.user_role == User.ROLE_ADMIN:
-        pass
-    elif current_user.user_role == User.ROLE_FREE:
-        base_query = base_query.filter(
-            or_(
-                LearningContainer.creator_user_id == user_id,
-                LearningContainer.container_id.in_(user_interacted_ids_subquery),
-            )
-        )
-    else:
-        access_conditions = [
-            LearningContainer.creator_user_id == user_id,
-            LearningContainer.is_public == True,
-            LearningContainer.container_id.in_(user_interacted_ids_subquery),
-        ]
-
-        contributed_sets_ids = db.session.query(ContainerContributor.container_id).filter(
-            ContainerContributor.user_id == user_id,
-            ContainerContributor.permission_level == 'editor'
-        ).all()
-
-        if contributed_sets_ids:
-            access_conditions.append(LearningContainer.container_id.in_([c.container_id for c in contributed_sets_ids]))
-
-        base_query = base_query.filter(or_(*access_conditions))
+    if current_user.user_role != User.ROLE_ADMIN:
+        if not accessible_set_ids:
+            base_query = base_query.filter(False)
+        else:
+            base_query = base_query.filter(LearningContainer.container_id.in_(accessible_set_ids))
     
     # Ánh xạ các trường có thể tìm kiếm
     search_field_map = {
@@ -265,12 +247,13 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
             UserContainerState.is_archived == True
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'doing':
-        # SỬA: Lấy các bộ mà người dùng ĐÃ TƯƠNG TÁC và KHÔNG bị lưu trữ
-        final_query = filtered_query.join(UserContainerState,
+        # SỬA: Lấy các bộ mà người dùng có thể truy cập (kể cả chưa tương tác) và KHÔNG bị lưu trữ
+        final_query = filtered_query.outerjoin(
+            UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
-            UserContainerState.is_archived == False
-        ).order_by(UserContainerState.last_accessed.desc())
+            or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
+        ).order_by(func.coalesce(UserContainerState.last_accessed, LearningContainer.created_at).desc())
     elif current_filter == 'explore':
         # SỬA LỖI: Chỉ lấy các bộ quiz CHƯA TỪNG được tương tác
         final_query = filtered_query.filter(
