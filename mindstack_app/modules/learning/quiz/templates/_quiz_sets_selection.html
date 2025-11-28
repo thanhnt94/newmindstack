@@ -11,12 +11,6 @@
 {% from 'includes/_pagination.html' import render_pagination %}
 
 <div class="w-full space-y-3">
-    {# Form tìm kiếm luôn hiển thị #}
-    <div class="mb-6">
-        {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
-        <div class="w-full">{{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...", search_field=search_field, search_options=display_search_options) }}</div>
-    </div>
-
     {% if quiz_sets %}
     <div class="space-y-3">
         {% if current_filter == 'doing' and quiz_sets|length >= 2 %}

@@ -39,13 +39,9 @@
                 <button id="filter-archive" class="tab-filter-button" data-filter="archive"><i class="fas fa-archive mr-2"></i>Archive</button>
             </div>
 
-            <div class="mb-4">
-                <form id="quiz-search-form" class="relative">
-                    <div class="relative">
-                        <input type="text" name="q" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Tìm kiếm bộ câu hỏi...">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-search text-gray-400"></i></div>
-                    </div>
-                </form>
+            <div class="mb-4" id="quiz-search-form-container">
+                {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
+                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...", search_field=search_field, search_options=display_search_options) }}
             </div>
 
             <div id="selected-sets-display" class="flex flex-wrap items-center gap-2 mb-4 min-h-[2.5rem] bg-gray-50 rounded-lg p-2 hidden">
@@ -101,6 +97,7 @@ const quizSetsContainer = document.getElementById('quiz-sets-container');
 const quizModesContainer = document.getElementById('quiz-modes-container');
 const selectedSetsDisplay = document.getElementById('selected-sets-display');
 const step2Title = document.getElementById('step-2-title');
+const quizSearchForm = document.querySelector('#quiz-search-form-container form');
 
 // URL Configs (Fix paths)
 const quizModesPartialBaseUrlById = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_by_id', set_id=0) or '#' }}";
@@ -305,9 +302,10 @@ function updateActionButtons() {
 }
 
 // Listeners
-document.getElementById('quiz-search-form')?.addEventListener('submit', (e) => {
+quizSearchForm?.addEventListener('submit', (e) => {
     e.preventDefault();
     currentSearchQuery = e.target.elements.q.value;
+    currentSearchField = e.target.elements.search_field?.value || 'all';
     currentPage = 1;
     loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
 });
