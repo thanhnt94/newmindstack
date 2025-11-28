@@ -5,166 +5,196 @@
 {% block head %}
 {{ super() }}
 <style>
-    .qb-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.35rem 0.75rem;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-    }
+    /* === Style đồng bộ với Flashcard Collab === */
+    .cm-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.9rem; box-shadow: none; overflow: hidden; }
+    .cm-card--padded { padding: 1.25rem; }
+    .cm-section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.9rem; }
+    .cm-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    @media (min-width: 640px) { .cm-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1100px) { .cm-grid { grid-template-columns: repeat(3, 1fr); } }
 
-    .qb-status-live {
-        background: #fef3c7;
-        color: #92400e;
+    .cm-collection-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0; border-radius: 0.9rem; padding: 1rem;
+        display: flex; flex-direction: column; gap: 0.9rem; height: 100%;
+        transition: border-color 0.15s ease, transform 0.15s ease; color: #0f172a; box-shadow: none;
     }
+    .cm-collection-card:hover { transform: translateY(-2px); border-color: #cbd5e1; }
 
-    .qb-status-lobby {
-        background: #e0f2fe;
-        color: #075985;
-    }
+    .cm-tag { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.35rem 0.7rem; border-radius: 0.75rem; background: #e2e8f0; color: #0f172a; font-weight: 600; border: 1px solid #cbd5e1; font-size: 0.78rem; }
+    .cm-tag i { font-size: 0.75rem; color: #2563eb; }
+
+    .cm-action-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.95rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.9rem; transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease; white-space: nowrap; border: 1px solid transparent; }
+    .cm-action-btn--primary { background: #2563eb; color: white; box-shadow: none; border-color: #1d4ed8; }
+    .cm-action-btn--primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+    .cm-action-btn--ghost { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+    .cm-action-btn--ghost:hover { background: #e2e8f0; }
+
+    .status-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 0.22rem 0.6rem; border-radius: 0.6rem; letter-spacing: 0.04em; }
+    .status-badge.lobby { background: #e0f2fe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .status-badge.in_progress { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .status-badge.awaiting_host { background: #fef9c3; color: #92400e; border: 1px solid #fde68a; }
+    .status-badge.completed { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+
+    /* Hero */
+    .collab-hero { position: relative; overflow: hidden; border-radius: 0.9rem; padding: 0.95rem 1.2rem; background: #f8fafc; color: #0f172a; border: 1px solid #e2e8f0; }
+    .collab-hero__content { display: flex; flex-direction: column; gap: 0.5rem; }
+    @media (min-width: 900px) { .collab-hero__content { flex-direction: row; align-items: center; justify-content: space-between; gap: 0.75rem; } }
+    .collab-hero__headline { display: flex; flex-direction: column; gap: 0.2rem; }
+    @media (min-width: 640px) { .collab-hero__headline { flex-direction: row; align-items: center; gap: 0.45rem; flex-wrap: wrap; } }
+    .collab-pill { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.25rem 0.75rem; border-radius: 0.5rem; background: #e2e8f0; color: #0f172a; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.72rem; }
+    .collab-pill i { color: #2563eb; }
+    .collab-eyebrow { font-size: 0.72rem; letter-spacing: 0.04em; font-weight: 700; text-transform: uppercase; color: #475569; }
+    .collab-heading { font-size: clamp(1.1rem, 2vw, 1.4rem); font-weight: 800; margin: 0; color: #0f172a; }
+    .collab-subheading { color: #334155; line-height: 1.35; max-width: 640px; font-size: 0.9rem; }
+    .collab-hero__actions { display: flex; flex-direction: column; gap: 0.35rem; }
+    @media (min-width: 640px) { .collab-hero__actions { flex-direction: row; align-items: center; flex-wrap: wrap; } }
+
+    .collab-main-header { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem 1rem 0.25rem; background: #f8fafc; border-radius: 0.75rem 0.75rem 0 0; position: sticky; top: 0; z-index: 5; border-bottom: 1px solid #e5e7eb; }
+    @media (min-width: 900px) { .collab-main-header { flex-direction: row; align-items: center; justify-content: space-between; } }
+    .collab-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .collab-tab-btn { padding: 0.7rem 1.1rem; font-weight: 700; color: #475569; border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 0.45rem; }
+    .collab-tab-btn:hover { color: #0f172a; }
+    .collab-tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+    .collab-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-start; }
+    .collab-toolbar .search-wrapper { min-width: 260px; }
+
+    .join-input-group { display: flex; align-items: center; background: white; border: 1px solid #e2e8f0; border-radius: 0.65rem; padding: 0.25rem 0.35rem; box-shadow: none; }
+    .join-input-group input { border: none; outline: none; padding: 0.4rem 0.55rem; font-size: 0.9rem; width: 140px; text-transform: uppercase; font-family: 'DM Mono', 'Roboto Mono', monospace; background: transparent; color: #0f172a; letter-spacing: 0.08em; }
+    .join-input-group button { border-radius: 0.55rem; }
+
+    .cm-divider { height: 1px; background: #e2e8f0; margin: 0.2rem 0; }
+    .cm-subheading { font-size: 0.9rem; color: #475569; }
+    .cm-label { font-size: 0.86rem; font-weight: 700; color: #334155; }
+    .cm-input { width: 100%; border-radius: 0.75rem; border: 1px solid #e2e8f0; padding: 0.55rem 0.75rem; }
+
+    #rooms-grid { min-height: 220px; }
+    #join-room-feedback { min-height: 1.25rem; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 space-y-6">
-    <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div class="space-y-1">
-                <p class="text-xs font-semibold uppercase tracking-[0.25em] text-blue-500">Học theo nhóm</p>
-                <h1 class="text-2xl font-bold text-gray-900">Theo dõi phòng đang mở và vào ngay tại đây</h1>
-                <p class="text-sm text-gray-600 max-w-3xl">Danh sách phòng công khai và phòng bạn tham gia hiển thị ngay trên trang này. Không cần chuyển tab: tham gia nhanh hoặc tạo phòng mới giống bố cục học nhóm flashcard.</p>
+    <section class="collab-hero">
+        <div class="collab-hero__content">
+            <div class="collab-hero__headline">
+                <div class="collab-pill"><i class="fas fa-bolt"></i>Live Quiz Battle</div>
+                <p class="collab-eyebrow">Phòng thi Quiz</p>
+                <h2 class="collab-heading">Đấu trường tri thức, vào phòng ngay</h2>
+                <p class="collab-subheading">Theo dõi phòng công khai hoặc phòng bạn tham gia mà không rời trang. Tham gia nhanh bằng mã giống giao diện Flashcard Collab.</p>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <button type="button" id="refresh-public-rooms" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
-                    <i class="fa-solid fa-rotate"></i><span>Tải phòng công khai</span>
+            <div class="collab-hero__actions">
+                <form id="quick-join-form" class="join-input-group">
+                    <i class="fas fa-key text-slate-300 pl-2 text-xs"></i>
+                    <input type="text" id="quick-join-code" placeholder="Mã phòng..." maxlength="12" required>
+                    <button type="submit" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded transition-colors">Vào ngay</button>
+                </form>
+                <button type="button" id="open-create-room" class="cm-action-btn cm-action-btn--primary shadow-md shadow-blue-500/20">
+                    <i class="fas fa-plus"></i><span>Tạo phòng mới</span>
                 </button>
-                <button type="button" id="refresh-my-rooms" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100">
-                    <i class="fa-solid fa-user-group"></i><span>Tải phòng của bạn</span>
-                </button>
-                <button type="button" id="open-create-room" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700">
-                    <i class="fa-solid fa-plus"></i><span>Tạo phòng mới</span>
+                <button type="button" id="refresh-all-rooms" class="cm-action-btn cm-action-btn--ghost">
+                    <i class="fas fa-rotate"></i><span>Làm mới</span>
                 </button>
             </div>
+        </div>
+        <p id="join-room-feedback" class="mt-2 text-sm text-emerald-600"></p>
+    </section>
+
+    <div class="cm-card">
+        <div class="collab-main-header">
+            <div class="collab-tabs">
+                <button type="button" class="collab-tab-btn active" data-qb-tab="public"><i class="fas fa-globe"></i>Phòng công khai</button>
+                <button type="button" class="collab-tab-btn" data-qb-tab="my"><i class="fas fa-user-check"></i>Phòng của tôi</button>
+            </div>
+            <div class="collab-toolbar">
+                <div class="search-wrapper">
+                    <div class="relative">
+                        <input type="text" id="room-search-input" class="cm-input pl-9" placeholder="Tìm kiếm phòng hoặc mã...">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+                <button type="button" id="refresh-current-tab" class="cm-action-btn cm-action-btn--ghost"><i class="fas fa-sync"></i>Làm mới tab</button>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <div id="rooms-grid" class="cm-grid"></div>
+            <div id="empty-template" class="hidden">
+                <div class="col-span-full flex flex-col items-center justify-center p-12 text-slate-400 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                    <i class="fas fa-ghost text-4xl mb-3 opacity-50"></i>
+                    <h3 class="text-lg font-semibold text-slate-600">Chưa có phòng nào</h3>
+                    <p class="text-sm">Hãy tạo phòng mới để bắt đầu tranh tài.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section id="create-room-section" class="cm-card cm-card--padded space-y-4">
+        <div class="space-y-1">
+            <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-600"></i> Tạo phòng Quiz Battle mới</h2>
+            <p class="text-sm text-gray-600">Chọn bộ quiz, chế độ thi và hiển thị phòng trực tiếp từ giao diện giống flashcard nhóm.</p>
         </div>
 
         <div class="grid gap-4 lg:grid-cols-3">
-            <div class="lg:col-span-2 grid gap-4 md:grid-cols-2">
-                <section class="p-4 rounded-xl border border-blue-100 bg-blue-50 space-y-3">
-                    <div class="flex items-start justify-between gap-3 mb-2">
-                        <div>
-                            <h3 class="font-semibold text-blue-800 flex items-center gap-2"><i class="fa-solid fa-wifi"></i> Phòng công khai</h3>
-                            <p class="text-sm text-blue-900/80">Bấm vào phòng để tham gia nhanh mà không cần nhập mã.</p>
-                        </div>
+            <div class="lg:col-span-2 space-y-3">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-1">
+                        <label class="cm-label">Tìm bộ quiz</label>
+                        <input type="text" id="quiz-search-input" class="cm-input mt-1" placeholder="Nhập tên bộ quiz hoặc từ khóa">
                     </div>
-                    <div id="public-rooms-list" class="space-y-3 text-sm text-slate-600">
-                        <p class="text-slate-500">Đang tải danh sách phòng...</p>
-                    </div>
-                </section>
-
-                <section class="p-4 rounded-xl border border-indigo-100 bg-indigo-50 space-y-3">
-                    <div class="flex items-start justify-between gap-3 mb-2">
-                        <div>
-                            <h3 class="font-semibold text-indigo-800 flex items-center gap-2"><i class="fa-solid fa-user-check"></i> Phòng của bạn</h3>
-                            <p class="text-sm text-indigo-900/80">Phòng bạn đã tham gia hoặc đang là chủ phòng.</p>
-                        </div>
-                    </div>
-                    <div id="my-rooms-list" class="space-y-3 text-sm text-slate-600">
-                        <p class="text-slate-500">Đang kiểm tra phòng bạn đã tham gia...</p>
-                    </div>
-                </section>
-            </div>
-
-            <section class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
-                <h3 class="font-semibold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-right-to-bracket"></i> Tham gia bằng mã</h3>
-                <p class="text-sm text-slate-600">Nhập mã do chủ phòng chia sẻ (kể cả phòng riêng tư).</p>
-                <form id="join-room-form" class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700">Mã phòng</label>
-                        <input type="text" id="join-room-code" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 uppercase tracking-widest focus:border-blue-500 focus:ring-blue-500" placeholder="Ví dụ: ABC123" maxlength="12" required>
-                    </div>
-                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
-                        <i class="fa-solid fa-door-open"></i><span>Vào phòng</span>
+                    <button type="button" id="refresh-quiz-list" class="cm-action-btn cm-action-btn--ghost">
+                        <i class="fa-solid fa-rotate"></i> Tải danh sách
                     </button>
-                </form>
-                <p id="join-room-feedback" class="text-sm"></p>
-                <ul class="list-disc list-inside text-xs text-slate-600 space-y-1">
-                    <li>Chia sẻ mã cho bạn bè để vào cùng phòng.</li>
-                    <li>Phòng riêng cũng có thể tham gia bằng mã.</li>
-                </ul>
-            </section>
-        </div>
-
-        <section id="create-room-section" class="bg-white rounded-xl shadow-lg p-6 space-y-4">
-            <div class="space-y-1">
-                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-600"></i> Tạo phòng Quiz Battle mới</h2>
-                <p class="text-sm text-gray-600">Chọn bộ quiz, chế độ thi và hiển thị phòng trực tiếp từ giao diện giống flashcard nhóm.</p>
+                </div>
+                <p id="quiz-search-status" class="text-xs text-slate-500">Đang tải danh sách bộ quiz khả dụng...</p>
+                <div id="quiz-selection-grid" class="grid gap-3 sm:grid-cols-2"></div>
+                <div class="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                    <span class="font-semibold">Đã chọn:</span>
+                    <span id="selected-quiz-label" class="text-gray-500 italic">Chưa chọn bộ nào</span>
+                    <button type="button" id="clear-quiz-selection" class="text-xs font-semibold text-rose-600 hidden">Bỏ chọn</button>
+                </div>
             </div>
 
-            <div class="grid gap-4 lg:grid-cols-3">
-                <div class="lg:col-span-2 space-y-3">
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <div class="flex-1">
-                            <label class="block text-sm font-medium text-slate-700">Tìm bộ quiz</label>
-                            <input type="text" id="quiz-search-input" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Nhập tên bộ quiz hoặc từ khóa">
-                        </div>
-                        <button type="button" id="refresh-quiz-list" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
-                            <i class="fa-solid fa-rotate"></i> Tải danh sách
-                        </button>
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <form id="battle-settings-form" class="space-y-3">
+                    <div>
+                        <label class="cm-label">Tiêu đề phòng</label>
+                        <input type="text" name="title" class="cm-input mt-1" placeholder="Quiz Battle tối nay" required>
                     </div>
-                    <p id="quiz-search-status" class="text-xs text-slate-500">Đang tải danh sách bộ quiz khả dụng...</p>
-                    <div id="quiz-selection-grid" class="grid gap-3 sm:grid-cols-2"></div>
-                    <div class="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-                        <span class="font-semibold">Đã chọn:</span>
-                        <span id="selected-quiz-label" class="text-gray-500 italic">Chưa chọn bộ nào</span>
-                        <button type="button" id="clear-quiz-selection" class="text-xs font-semibold text-rose-600 hidden">Bỏ chọn</button>
-                    </div>
-                </div>
-
-                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                    <form id="battle-settings-form" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700">Tiêu đề phòng</label>
-                            <input type="text" name="title" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Quiz Battle tối nay" required>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700">Số câu hỏi (tuỳ chọn)</label>
-                                <input type="number" min="1" name="question_limit" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Để trống dùng toàn bộ">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700">Hiển thị phòng</label>
-                                <select name="visibility" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="private">Riêng tư (chia sẻ mã)</option>
-                                    <option value="public">Công khai</option>
-                                </select>
-                            </div>
+                            <label class="cm-label">Số câu hỏi (tuỳ chọn)</label>
+                            <input type="number" min="1" name="question_limit" class="cm-input mt-1" placeholder="Để trống dùng toàn bộ">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700">Chế độ thi</label>
-                            <select name="mode" id="battle-mode" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="SLOW">Test chậm</option>
-                                <option value="TIMED">Giới hạn thời gian</option>
+                            <label class="cm-label">Hiển thị phòng</label>
+                            <select name="visibility" class="cm-input mt-1 text-sm">
+                                <option value="private">Riêng tư (chia sẻ mã)</option>
+                                <option value="public">Công khai</option>
                             </select>
                         </div>
-                        <div id="timed-config" class="hidden">
-                            <label class="block text-sm font-medium text-slate-700">Thời gian mỗi câu (giây)</label>
-                            <input type="number" min="5" name="time_per_question_seconds" class="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ví dụ: 30">
-                            <p class="mt-1 text-xs text-slate-500">Câu hỏi sẽ tự chuyển sau số giây này ở chế độ giới hạn thời gian.</p>
-                        </div>
-                        <input type="hidden" name="container_id" id="selected-container-id">
-                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
-                            <i class="fa-solid fa-plus"></i><span>Tạo phòng</span>
-                        </button>
-                        <div id="room-creation-result" class="text-sm"></div>
-                    </form>
-                </div>
+                    </div>
+                    <div>
+                        <label class="cm-label">Chế độ thi</label>
+                        <select name="mode" id="battle-mode" class="cm-input mt-1">
+                            <option value="SLOW">Test chậm</option>
+                            <option value="TIMED">Giới hạn thời gian</option>
+                        </select>
+                    </div>
+                    <div id="timed-config" class="hidden">
+                        <label class="cm-label">Thời gian mỗi câu (giây)</label>
+                        <input type="number" min="5" name="time_per_question_seconds" class="cm-input mt-1" placeholder="Ví dụ: 30">
+                        <p class="mt-1 text-xs text-slate-500">Câu hỏi sẽ tự chuyển sau số giây này ở chế độ giới hạn thời gian.</p>
+                    </div>
+                    <input type="hidden" name="container_id" id="selected-container-id">
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
+                        <i class="fa-solid fa-plus"></i><span>Tạo phòng</span>
+                    </button>
+                    <div id="room-creation-result" class="text-sm"></div>
+                </form>
             </div>
-        </section>
-    </div>
+        </div>
+    </section>
 </div>
 {% endblock %}
 
@@ -185,13 +215,15 @@
         const quizSearchStatus = document.getElementById('quiz-search-status');
         const refreshQuizBtn = document.getElementById('refresh-quiz-list');
         const clearQuizSelectionBtn = document.getElementById('clear-quiz-selection');
-        const publicRoomsContainer = document.getElementById('public-rooms-list');
-        const myRoomsContainer = document.getElementById('my-rooms-list');
-        const refreshPublicRoomsBtn = document.getElementById('refresh-public-rooms');
-        const refreshMyRoomsBtn = document.getElementById('refresh-my-rooms');
-        const joinRoomForm = document.getElementById('join-room-form');
-        const joinRoomCodeInput = document.getElementById('join-room-code');
+        const roomsGrid = document.getElementById('rooms-grid');
+        const emptyTemplate = document.getElementById('empty-template');
         const joinRoomFeedback = document.getElementById('join-room-feedback');
+        const quickJoinForm = document.getElementById('quick-join-form');
+        const quickJoinCodeInput = document.getElementById('quick-join-code');
+        const tabButtons = document.querySelectorAll('[data-qb-tab]');
+        const searchInput = document.getElementById('room-search-input');
+        const refreshCurrentTabBtn = document.getElementById('refresh-current-tab');
+        const refreshAllRoomsBtn = document.getElementById('refresh-all-rooms');
         const createRoomSection = document.getElementById('create-room-section');
         const openCreateRoomBtn = document.getElementById('open-create-room');
         const quizSetsEndpoint = "{{ url_for('learning.quiz_battle.list_available_quizzes') }}";
@@ -203,6 +235,12 @@
         let quizCache = new Map();
         let selectedQuizId = null;
         let searchTimeout = null;
+
+        const roomState = {
+            currentTab: 'public',
+            rooms: { public: [], my: [] },
+            searchQuery: '',
+        };
 
         const statusLabels = {
             lobby: 'Đang mở sảnh',
@@ -229,82 +267,89 @@
             return mode === 'TIMED' ? 'Giới hạn thời gian' : 'Test chậm';
         }
 
-        function renderRoomList(rooms, container, { emptyMessage = 'Không có phòng nào.', canVisitDirectly = false } = {}) {
-            if (!container) {
-                return;
-            }
-            container.innerHTML = '';
-            if (!rooms.length) {
-                container.innerHTML = `<p class="text-slate-500">${emptyMessage}</p>`;
-                return;
-            }
+        function renderRoomCard(room, canVisitDirectly = false) {
+            const activePlayers = (room.participants || []).filter((p) => p.status === 'active').length;
+            const viewUrl = roomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(room.room_code));
+            const statusClass = `status-badge ${room.status}`;
+            const visibilityIcon = room.is_public ? '<i class="fas fa-globe text-blue-400"></i>' : '<i class="fas fa-lock text-slate-400"></i>';
+            const participantLabel = `${activePlayers || (room.participants || []).length} người đang hoạt động`;
 
-            rooms.forEach((room) => {
-                const activePlayers = (room.participants || []).filter((p) => p.status === 'active').length;
-                const viewUrl = roomViewUrlTemplate.replace('__ROOM_CODE__', encodeURIComponent(room.room_code));
-                const card = document.createElement('div');
-                card.className = 'p-4 rounded-xl border border-slate-200 bg-white shadow-sm space-y-3';
-                const statusClass = room.status === 'in_progress' ? 'qb-badge qb-status-live' : 'qb-badge qb-status-lobby';
-                const joinClass = room.is_public
-                    ? 'join-room-button inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700'
-                    : 'join-room-button inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100';
-                card.innerHTML = `
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="text-sm font-semibold text-slate-900">${room.title}</p>
-                            <p class="text-xs text-slate-500">Mã phòng: <span class="font-mono tracking-widest">${room.room_code}</span></p>
-                        </div>
-                        <span class="${statusClass}">${formatStatus(room.status)}</span>
+            return `
+                <article class="cm-collection-card">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-2 mb-1">${visibilityIcon}<span class="${statusClass}">${formatStatus(room.status)}</span></div>
+                        <div class="text-xs font-mono bg-white px-2 py-1 rounded border border-slate-200 select-all" title="Nhấn để sao chép" onclick="navigator.clipboard.writeText('${room.room_code}')">${room.room_code}</div>
                     </div>
-                    <div class="text-sm text-slate-600 space-y-1">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-users"></i> ${activePlayers} người đang hoạt động</span>
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-layer-group"></i> ${room.question_total} câu · ${formatMode(room.mode)}</span>
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-eye${room.is_public ? '' : '-slash'}"></i> ${room.is_public ? 'Công khai' : 'Riêng tư'}</span>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-lg truncate" title="${room.title}">${room.title}</h3>
+                        <p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-layer-group"></i> ${room.question_total} câu · ${formatMode(room.mode)}</p>
                     </div>
-                    <div class="flex flex-wrap gap-2 mt-auto">
-                        <button type="button" class="${joinClass}" data-room-code="${room.room_code}">
-                            <i class="fa-solid fa-right-to-bracket"></i> Tham gia
-                        </button>
-                        ${canVisitDirectly ? `<a href="${viewUrl}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 font-semibold hover:bg-slate-100">
-                            <i class="fa-solid fa-door-open"></i> Vào phòng
-                        </a>` : ''}
+                    <div class="cm-collection-meta mt-auto">
+                        <span class="cm-tag"><i class="fas fa-users"></i> ${participantLabel}</span>
+                        <span class="cm-tag"><i class="fas fa-crown text-yellow-500"></i> ${room.host_username || 'Host'}</span>
                     </div>
-                `;
-                container.appendChild(card);
+                    <div class="cm-divider"></div>
+                    <div class="flex gap-2 items-center flex-wrap">
+                        <button type="button" class="join-room-button cm-action-btn cm-action-btn--primary" data-room-code="${room.room_code}"><i class="fas fa-arrow-right"></i>Tham gia</button>
+                        ${canVisitDirectly ? `<a href="${viewUrl}" class="cm-action-btn cm-action-btn--ghost"><i class="fas fa-door-open"></i>Vào phòng</a>` : ''}
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderRoomGrid() {
+            if (!roomsGrid) {
+                return;
+            }
+            const source = roomState.rooms[roomState.currentTab] || [];
+            const q = roomState.searchQuery.toLowerCase();
+            const filtered = source.filter((room) => {
+                const title = room.title || '';
+                return title.toLowerCase().includes(q) || room.room_code.toLowerCase().includes(q);
             });
-        }
 
-        async function loadPublicRooms() {
-            if (!publicRoomsContainer) {
+            if (!filtered.length) {
+                roomsGrid.innerHTML = emptyTemplate?.innerHTML || '<p class="text-slate-400">Không có phòng.</p>';
                 return;
             }
-            publicRoomsContainer.innerHTML = '<p class="text-slate-500">Đang tải phòng công khai...</p>';
+
+            roomsGrid.innerHTML = filtered
+                .map((room) => renderRoomCard(room, roomState.currentTab === 'my'))
+                .join('');
+        }
+
+        async function loadRooms(type) {
+            if (!['public', 'my'].includes(type)) {
+                return;
+            }
+            if (roomsGrid && roomState.currentTab === type) {
+                roomsGrid.innerHTML = '<p class="text-slate-500">Đang tải phòng...</p>';
+            }
             try {
-                const response = await fetch(publicRoomsUrl);
+                const url = type === 'public' ? publicRoomsUrl : myRoomsUrl;
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(await response.text());
                 }
                 const data = await response.json();
-                renderRoomList(data.rooms || [], publicRoomsContainer, { emptyMessage: 'Chưa có phòng công khai nào.' });
+                roomState.rooms[type] = data.rooms || [];
+                if (roomState.currentTab === type) {
+                    renderRoomGrid();
+                }
             } catch (error) {
-                publicRoomsContainer.innerHTML = '<p class="text-rose-500">Không thể tải phòng công khai.</p>';
+                if (roomsGrid && roomState.currentTab === type) {
+                    roomsGrid.innerHTML = `<p class="text-rose-500">Không thể tải phòng ${type === 'public' ? 'công khai' : 'của bạn'}.</p>`;
+                }
             }
         }
 
-        async function loadMyRooms() {
-            if (!myRoomsContainer) {
-                return;
-            }
-            myRoomsContainer.innerHTML = '<p class="text-slate-500">Đang tải phòng của bạn...</p>';
-            try {
-                const response = await fetch(myRoomsUrl);
-                if (!response.ok) {
-                    throw new Error(await response.text());
-                }
-                const data = await response.json();
-                renderRoomList(data.rooms || [], myRoomsContainer, { emptyMessage: 'Bạn chưa ở phòng nào.', canVisitDirectly: true });
-            } catch (error) {
-                myRoomsContainer.innerHTML = '<p class="text-rose-500">Không thể tải danh sách phòng của bạn.</p>';
+        function switchTab(tab) {
+            roomState.currentTab = tab;
+            tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.qbTab === tab));
+            if (!roomState.rooms[tab].length) {
+                loadRooms(tab);
+            } else {
+                renderRoomGrid();
             }
         }
 
@@ -436,8 +481,20 @@
             loadQuizSets(quizSearchInput.value.trim());
         });
 
-        refreshPublicRoomsBtn?.addEventListener('click', loadPublicRooms);
-        refreshMyRoomsBtn?.addEventListener('click', loadMyRooms);
+        tabButtons.forEach((btn) => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.qbTab));
+        });
+
+        searchInput?.addEventListener('input', () => {
+            roomState.searchQuery = searchInput.value.trim();
+            renderRoomGrid();
+        });
+
+        refreshCurrentTabBtn?.addEventListener('click', () => loadRooms(roomState.currentTab));
+        refreshAllRoomsBtn?.addEventListener('click', () => {
+            loadRooms('public');
+            loadRooms('my');
+        });
 
         modeSelect.addEventListener('change', function() {
             if (this.value === 'TIMED') {
@@ -462,26 +519,26 @@
                     window.location.href = result.redirectUrl;
                     return;
                 }
-                loadPublicRooms();
-                loadMyRooms();
+                loadRooms('public');
+                loadRooms('my');
             }
         });
 
-        joinRoomForm?.addEventListener('submit', async (event) => {
+        quickJoinForm?.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const roomCode = joinRoomCodeInput.value;
+            const roomCode = quickJoinCodeInput.value;
             const result = await attemptJoinRoom(roomCode);
             if (joinRoomFeedback) {
                 joinRoomFeedback.innerHTML = result.message;
             }
             if (result.ok) {
-                joinRoomCodeInput.value = '';
+                quickJoinCodeInput.value = '';
                 if (result.redirectUrl) {
                     window.location.href = result.redirectUrl;
                     return;
                 }
-                loadPublicRooms();
-                loadMyRooms();
+                loadRooms('public');
+                loadRooms('my');
             }
         });
 
@@ -522,8 +579,8 @@
                 }
                 const data = await response.json();
                 resultBox.innerHTML = `✅ Đã tạo phòng <strong>${data.room.title}</strong> với mã <strong>${data.room.room_code}</strong>. ${data.room.is_public ? 'Phòng đang hiển thị ở mục Phòng công khai.' : 'Gửi mã này cho bạn bè để họ tham gia.'}`;
-                loadPublicRooms();
-                loadMyRooms();
+                loadRooms('public');
+                loadRooms('my');
             } catch (error) {
                 resultBox.innerHTML = `❌ Không thể tạo phòng: ${error.message}`;
             }
@@ -531,8 +588,8 @@
 
         loadQuizSets();
         updateSelectedQuizDisplay();
-        loadPublicRooms();
-        loadMyRooms();
+        loadRooms('public');
+        loadRooms('my');
     })();
 </script>
 {% endblock %}
