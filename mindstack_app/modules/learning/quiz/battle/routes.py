@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from flask import Blueprint, abort, jsonify, render_template, request
+from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.sql import func
@@ -39,9 +39,10 @@ quiz_battle_bp = Blueprint('quiz_battle', __name__, template_folder='../template
 @quiz_battle_bp.route('/')
 @login_required
 def quiz_battle_dashboard():
-    """Simple landing page that explains the quiz battle feature."""
+    """Redirect to the consolidated quiz dashboard with the battle tab open."""
 
-    return render_template('quiz_battle/dashboard.html')
+    requested_mode = request.args.get('mode') or 'group'
+    return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard', mode=requested_mode))
 
 
 def _get_room_or_404(room_code: str) -> QuizBattleRoom:
