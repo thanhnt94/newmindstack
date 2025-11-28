@@ -288,7 +288,7 @@
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen{% block body_class %}{% endblock %}">
-    <header class="bg-white shadow-md">
+    <header class="bg-white shadow-md relative z-50">
         {# THAY ĐỔI: Gọi macro render_navbar để hiển thị navbar #}
         {{ render_navbar(current_user, request) }}
     </header>

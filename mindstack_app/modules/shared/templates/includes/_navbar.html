@@ -9,7 +9,7 @@
 #}
 {% macro render_navbar(current_user, request) %}
 <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
-    <a href="{{ url_for('main.dashboard') }}" class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">
+    <a href="{{ url_for('main.index') }}" class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">
         <i class="fas fa-brain text-2xl md:text-3xl text-blue-400"></i>
         <span class="hidden md:inline text-lg md:text-[20px] font-normal">Mindstack</span>
     </a>

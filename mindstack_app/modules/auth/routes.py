@@ -32,8 +32,7 @@ def login():
 @auth_bp.route('/logout')
 def logout():
     logout_user()
-    flash('Bạn đã đăng xuất.', 'info')
-    return redirect(url_for('auth.login'))
+    return redirect(url_for('main.index'))
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
