@@ -265,12 +265,13 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
             UserContainerState.is_archived == True
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'doing':
-        # SỬA: Lấy các bộ mà người dùng ĐÃ TƯƠNG TÁC và KHÔNG bị lưu trữ
-        final_query = filtered_query.join(UserContainerState,
+        # SỬA: Lấy các bộ mà người dùng có thể truy cập (kể cả chưa tương tác) và KHÔNG bị lưu trữ
+        final_query = filtered_query.outerjoin(
+            UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
-            UserContainerState.is_archived == False
-        ).order_by(UserContainerState.last_accessed.desc())
+            or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
+        ).order_by(func.coalesce(UserContainerState.last_accessed, LearningContainer.created_at).desc())
     elif current_filter == 'explore':
         # SỬA LỖI: Chỉ lấy các bộ quiz CHƯA TỪNG được tương tác
         final_query = filtered_query.filter(
