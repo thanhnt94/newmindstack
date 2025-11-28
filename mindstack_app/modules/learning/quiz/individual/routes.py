@@ -3,10 +3,13 @@
 # MỤC ĐÍCH: Cập nhật logic để sử dụng model QuizProgress mới thay cho UserProgress.
 # ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress trong các hàm truy vấn.
 
+import os
+
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
 import traceback
 from typing import Optional
+from jinja2 import ChoiceLoader, FileSystemLoader
 from .algorithms import (
     get_new_only_items,
     get_reviewed_items,
@@ -33,7 +36,23 @@ from mindstack_app.modules.shared.utils.media_paths import build_relative_media_
 
 
 quiz_learning_bp = Blueprint(
-    'quiz_learning', __name__, template_folder='../templates'
+    'quiz_learning', __name__, template_folder='templates'
+)
+
+_individual_templates_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
+_shared_quiz_templates_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'templates')
+)
+_battle_templates_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'battle', 'templates')
+)
+
+quiz_learning_bp.jinja_loader = ChoiceLoader(
+    [
+        FileSystemLoader(_individual_templates_path),
+        FileSystemLoader(_shared_quiz_templates_path),
+        FileSystemLoader(_battle_templates_path),
+    ]
 )
 
 
@@ -120,7 +139,7 @@ def quiz_learning_dashboard():
         'current_filter': current_filter,
         'user_default_batch_size': user_default_batch_size
     }
-    return render_template('quiz_learning_dashboard.html', **template_vars)
+    return render_template('quiz/dashboard.html', **template_vars)
 
 @quiz_learning_bp.route('/get_quiz_modes_partial/all', methods=['GET'])
 @login_required
@@ -132,7 +151,7 @@ def get_quiz_modes_partial_all():
     user_default_batch_size = current_user.current_quiz_batch_size if current_user.current_quiz_batch_size is not None else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
 
     modes = get_quiz_mode_counts(current_user.user_id, 'all')
-    return render_template('_quiz_modes_selection.html',
+    return render_template('quiz/individual/_quiz_modes_selection.html',
                            modes=modes,
                            selected_set_id='all',
                            selected_quiz_mode_id=selected_mode,
@@ -154,7 +173,7 @@ def get_quiz_modes_partial_multi(set_ids_str):
     except ValueError:
         return '<p class="text-red-500 text-center">Lỗi: Định dạng ID bộ quiz không hợp lệ.</p>', 400
 
-    return render_template('_quiz_modes_selection.html',
+    return render_template('quiz/individual/_quiz_modes_selection.html',
                            modes=modes,
                            selected_set_id='multi',
                            selected_quiz_mode_id=selected_mode,
@@ -172,7 +191,7 @@ def get_quiz_modes_partial_by_id(set_id):
 
     modes = get_quiz_mode_counts(current_user.user_id, set_id)
 
-    return render_template('_quiz_modes_selection.html',
+    return render_template('quiz/individual/_quiz_modes_selection.html',
                            modes=modes,
                            selected_set_id=str(set_id),
                            selected_quiz_mode_id=selected_mode,
@@ -250,7 +269,7 @@ def quiz_session():
     if 'quiz_session' not in session:
         flash('Không có phiên học Quiz nào đang hoạt động. Vui lòng chọn bộ Quiz để bắt đầu.', 'info')
         return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
-    return render_template('quiz_session.html')
+    return render_template('quiz/individual/quiz_session.html')
 
 
 @quiz_learning_bp.route('/quiz_learning/api/items/<int:item_id>', methods=['GET'])
@@ -449,7 +468,7 @@ def get_quiz_sets_partial():
         }
 
         current_app.logger.debug("<<< Kết thúc thực thi get_quiz_sets_partial (Thành công) >>>")
-        return render_template('_quiz_sets_selection.html', **template_vars)
+        return render_template('quiz/individual/_quiz_sets_selection.html', **template_vars)
 
     except Exception as e:
         print(f">>> PYTHON LỖI: Đã xảy ra lỗi trong get_quiz_sets_partial: {e}")

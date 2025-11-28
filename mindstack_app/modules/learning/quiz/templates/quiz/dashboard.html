@@ -1,6 +1,6 @@
 {# =============================== #}
-{# File: mindstack_app/modules/learning/quiz/templates/quiz_learning_dashboard.html #}
-{# Phiên bản: 2.1 (Fix TemplateNotFound) #}
+{# File: mindstack_app/modules/learning/quiz/templates/quiz/dashboard.html #}
+{# Phiên bản: 2.2 (Tách template theo chế độ) #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -62,9 +62,9 @@
         </div>
     </div>
 
-    {# --- INCLUDE CÁC FILE CON (Cùng thư mục) --- #}
-    {% include '_dashboard_individual.html' %}
-    {% include '_dashboard_collab.html' %}
+    {# --- INCLUDE CÁC FILE CON (Theo thư mục chế độ) --- #}
+    {% include 'quiz/individual/_dashboard_individual.html' %}
+    {% include 'quiz_battle/_dashboard_collab.html' %}
 
 </div>
 {% endblock %}
