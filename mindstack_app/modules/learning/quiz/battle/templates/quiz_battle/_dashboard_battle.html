@@ -1,0 +1,582 @@
+{# =============================== #}
+{# File: mindstack_app/modules/learning/quiz/battle/templates/quiz_battle/_dashboard_battle.html #}
+{# Mục đích: Giao diện Quiz Battle (Group) - Fix JS Regex Error #}
+{# =============================== #}
+
+{% from 'includes/_search_form.html' import render_search_form %}
+
+<style>
+    /* === Style đồng bộ Content Management (CM) === */
+    .cm-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: none; overflow: hidden; }
+    .cm-card--padded { padding: 1.25rem; }
+    .cm-section-header { margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    @media (min-width: 768px) { .cm-section-header { flex-direction: row; align-items: center; justify-content: space-between; } }
+
+    /* Hero */
+    .collab-hero {
+        position: relative; overflow: hidden; border-radius: 0.75rem; padding: 0.75rem 1rem;
+        background: #f8fafc; color: #0f172a; border: 1px solid #e2e8f0;
+    }
+    .collab-hero__content { display: flex; flex-direction: column; gap: 0.35rem; }
+    @media (min-width: 900px) { .collab-hero__content { flex-direction: row; align-items: center; justify-content: space-between; gap: 0.75rem; } }
+    .collab-hero__headline { display: flex; flex-direction: column; gap: 0.2rem; }
+    @media (min-width: 640px) { .collab-hero__headline { flex-direction: row; align-items: center; gap: 0.45rem; flex-wrap: wrap; } }
+    .collab-pill { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.25rem 0.75rem; border-radius: 0.5rem; background: #e2e8f0; color: #0f172a; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.72rem; }
+    .collab-pill i { color: #2563eb; }
+    .collab-eyebrow { font-size: 0.72rem; letter-spacing: 0.04em; font-weight: 700; text-transform: uppercase; color: #475569; }
+    .collab-heading { font-size: clamp(1.05rem, 2vw, 1.35rem); font-weight: 800; margin: 0; color: #0f172a; }
+    .collab-hero__actions { display: flex; flex-direction: column; gap: 0.35rem; }
+    @media (min-width: 640px) { .collab-hero__actions { flex-direction: row; align-items: center; flex-wrap: wrap; } }
+
+    /* Grid & Cards */
+    .cm-grid { display: grid; grid-template-columns: 1fr; gap: 1.2rem; }
+    @media (min-width: 640px) { .cm-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1100px) { .cm-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .cm-collection-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0; border-radius: 0.9rem; padding: 1rem;
+        display: flex; flex-direction: column; gap: 0.9rem; height: 100%; position: relative;
+        transition: border-color 0.15s ease, transform 0.15s ease; color: #0f172a; box-shadow: none;
+        overflow: hidden;
+    }
+    .cm-collection-card:hover { transform: translateY(-2px); border-color: #cbd5e1; }
+
+    /* Meta Tags */
+    .cm-collection-meta { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; font-size: 0.8rem; color: #475569; }
+    .cm-tag { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.35rem 0.7rem; border-radius: 0.75rem; background: #e2e8f0; color: #0f172a; font-weight: 600; border: 1px solid #cbd5e1; }
+    .cm-tag i { font-size: 0.75rem; color: #2563eb; }
+    .cm-divider { height: 1px; background: #e2e8f0; margin: 0.2rem 0; }
+
+    /* Buttons */
+    .cm-action-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.95rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.9rem; transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease; white-space: nowrap; border: 1px solid transparent; }
+    .cm-action-btn--primary { background: #22c55e; color: #0f172a; box-shadow: none; border-color: #16a34a; }
+    .cm-action-btn--primary:hover { background: #16a34a; color: white; transform: translateY(-1px); }
+
+    /* Custom Elements for Collab */
+    .collab-main-header { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem 1rem 0.25rem; background: #f8fafc; border-radius: 0.75rem 0.75rem 0 0; position: sticky; top: 0; z-index: 5; border-bottom: 1px solid #e5e7eb; }
+    @media (min-width: 900px) { .collab-main-header { flex-direction: row; align-items: center; justify-content: space-between; } }
+    .collab-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .collab-tab-btn { padding: 0.7rem 1.1rem; font-weight: 700; color: #475569; border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 0.45rem; }
+    .collab-tab-btn:hover { color: #0f172a; }
+    .collab-tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+    .collab-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-start; }
+    .collab-toolbar .search-wrapper { min-width: 260px; }
+
+    .join-input-group { display: flex; align-items: center; background: white; border: 1px solid #e2e8f0; border-radius: 0.65rem; padding: 0.25rem 0.35rem; box-shadow: none; }
+    .join-input-group input { border: none; outline: none; padding: 0.4rem 0.55rem; font-size: 0.9rem; width: 140px; text-transform: uppercase; font-family: 'DM Mono', 'Roboto Mono', monospace; background: transparent; color: #0f172a; letter-spacing: 0.08em; }
+    .join-input-group button { border-radius: 0.55rem; }
+
+    /* Modal */
+    .collab-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .collab-modal-backdrop.open { opacity: 1; pointer-events: auto; }
+    .collab-modal-content { background: white; border-radius: 1rem; width: 95%; max-width: 800px; max-height: 90vh; overflow-y:auto; transform: scale(0.95); transition: transform 0.3s; }
+    .collab-modal-backdrop.open .collab-modal-content { transform: scale(1); }
+
+    .status-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 0.22rem 0.6rem; border-radius: 0.6rem; letter-spacing: 0.04em; }
+    .status-badge.lobby { background: #e0f2fe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .status-badge.in_progress { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .status-badge.awaiting_host { background: #fef9c3; color: #92400e; border: 1px solid #fde68a; }
+    .status-badge.completed { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+
+    #battle-loading { transition: opacity 0.15s ease; pointer-events: none; opacity: 0; display: none; }
+    #battle-loading.visible { display: flex; pointer-events: auto; opacity: 1; }
+</style>
+
+{# === HEADER === #}
+<section class="collab-hero">
+    <div class="collab-hero__content">
+        <div class="collab-hero__headline">
+            <div class="collab-pill"><i class="fas fa-bolt"></i>Live Quiz Battle</div>
+            <p class="collab-eyebrow">Phòng thi đấu</p>
+            <h2 class="collab-heading">Tranh tài kiến thức, vào phòng ngay</h2>
+        </div>
+        <div class="collab-hero__actions">
+            {# Khung nhập mã nhanh #}
+            <form id="battle-quick-join-form" class="join-input-group">
+                <i class="fas fa-key text-slate-200 pl-2 text-xs"></i>
+                <input type="text" id="battle-quick-join-code" placeholder="Mã phòng..." maxlength="12" required>
+                <button type="submit" class="text-xs font-bold bg-white/90 hover:bg-white text-slate-800 px-3 py-1.5 rounded transition-colors">VÀO</button>
+            </form>
+
+            {# Nút tạo phòng #}
+            <button type="button" id="open-battle-modal" class="cm-action-btn cm-action-btn--primary">
+                <i class="fas fa-plus"></i><span>Tạo phòng đấu</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+{# === MAIN CONTENT (TABS & GRID) === #}
+<div class="cm-card rounded-t-none border-t-0 relative min-h-[400px] mt-4">
+    {# Tabs + search #}
+    <div class="collab-main-header">
+        <div class="collab-tabs">
+            <button type="button" class="collab-tab-btn active" data-battle-tab="public">
+                <i class="fas fa-globe mr-2"></i>Phòng công khai
+            </button>
+            <button type="button" class="collab-tab-btn" data-battle-tab="my">
+                <i class="fas fa-user-check mr-2"></i>Phòng của tôi
+            </button>
+        </div>
+        <div class="collab-toolbar">
+            <div class="search-wrapper" id="battle-room-search-wrapper">
+                {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
+            </div>
+            <div class="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 flex items-center gap-2">
+                <i class="fas fa-bullseye text-blue-500"></i> Tập trung vào danh sách phòng
+            </div>
+        </div>
+    </div>
+
+    {# Content #}
+    <div class="p-6 relative">
+        {# Loading Overlay #}
+        <div id="battle-loading" class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-b-xl">
+            <div class="text-center text-blue-500">
+                <i class="fas fa-circle-notch fa-spin text-3xl mb-2"></i>
+                <p class="font-medium">Đang tải dữ liệu...</p>
+            </div>
+        </div>
+
+        {# Grid hiển thị phòng #}
+        <div id="battle-rooms-grid" class="cm-grid"></div>
+
+        {# Phân trang #}
+        <div id="battle-pagination-container" class="mt-8"></div>
+
+        {# Empty State #}
+        <div id="battle-empty-template" class="hidden">
+            <div class="col-span-full flex flex-col items-center justify-center p-12 text-slate-400 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                <h3 class="text-lg font-semibold text-slate-600">Không tìm thấy phòng nào</h3>
+                <p class="text-sm">Hãy thử tìm kiếm khác hoặc tạo phòng mới.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# === CREATE BATTLE MODAL === #}
+<div id="create-battle-modal" class="collab-modal-backdrop">
+    <div class="collab-modal-content">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-20">
+            <h3 class="text-lg font-bold text-slate-800"><i class="fas fa-bolt text-yellow-500 mr-2"></i>Thiết lập trận đấu</h3>
+            <button type="button" id="close-battle-modal" class="text-slate-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 grid lg:grid-cols-2 gap-8">
+            {# Cột trái: Form #}
+            <div class="space-y-5">
+                <form id="battle-create-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Tiêu đề phòng</label>
+                        <input type="text" name="title" class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500" placeholder="VD: Đấu trường cuối tuần" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Số câu hỏi</label>
+                            <input type="number" name="question_limit" min="1" class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500" placeholder="Tất cả">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Max người</label>
+                            <input type="number" name="max_players" min="1" class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500" placeholder="∞">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Chế độ thi</label>
+                        <select name="mode" id="modal-battle-mode" class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500">
+                            <option value="SLOW">Test chậm (Đồng bộ)</option>
+                            <option value="TIMED">Giới hạn thời gian</option>
+                        </select>
+                    </div>
+                    <div id="modal-timed-config" class="hidden">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Thời gian (giây/câu)</label>
+                        <input type="number" name="time_per_question_seconds" class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500" placeholder="30">
+                    </div>
+                    <div>
+                        <span class="block text-sm font-medium text-slate-700 mb-2">Quyền riêng tư</span>
+                        <div class="flex gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="visibility" value="public" class="text-blue-600 focus:ring-blue-500">
+                                <span class="text-sm text-slate-700">Công khai</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="visibility" value="private" class="text-blue-600 focus:ring-blue-500" checked>
+                                <span class="text-sm text-slate-700">Riêng tư</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4 border-t border-slate-100">
+                        <input type="hidden" name="container_id" id="modal-selected-quiz-id">
+                        <p class="text-xs text-slate-500 mb-3 flex justify-between items-center">
+                            <span>Bộ Quiz đã chọn:</span>
+                            <span id="modal-quiz-preview" class="font-bold text-rose-600 italic">Chưa chọn</span>
+                        </p>
+                        <button type="submit" class="w-full cm-action-btn cm-action-btn--primary justify-center py-2.5 shadow-lg shadow-emerald-600/10 bg-emerald-600 hover:bg-emerald-700">
+                            <i class="fas fa-check"></i><span>Tạo phòng đấu</span>
+                        </button>
+                        <p id="battle-create-feedback" class="mt-2 text-sm text-center"></p>
+                    </div>
+                </form>
+            </div>
+
+            {# Cột phải: Chọn bộ Quiz #}
+            <div class="flex flex-col h-full min-h-[400px]">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">Chọn bộ đề thi</h4>
+                    <div class="relative">
+                        <input type="text" id="modal-quiz-search" class="w-40 rounded-md border-slate-200 pl-7 py-1 text-xs focus:border-blue-500" placeholder="Tìm quiz...">
+                        <i class="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+                
+                <div id="modal-quiz-grid" class="flex-1 overflow-y-auto pr-2 space-y-2 border border-slate-100 rounded-xl p-2 bg-slate-50/50 max-h-[400px]">
+                    <p class="text-center text-slate-400 py-8 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tải...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    console.log('>>> _dashboard_battle.js: init (v4.2 - Fix Regex & Click)');
+
+    const battleUrls = {
+        public: "{{ url_for('learning.quiz_battle.list_public_rooms') }}",
+        my: "{{ url_for('learning.quiz_battle.list_my_active_rooms') }}",
+        quizzes: "{{ url_for('learning.quiz_battle.list_available_quizzes') }}",
+        create: "{{ url_for('learning.quiz_battle.create_room') }}",
+        joinTemplate: "{{ url_for('learning.quiz_battle.join_room', room_code='__ROOM_CODE__') }}",
+        viewTemplate: "{{ url_for('learning.quiz_battle.view_room', room_code='__ROOM_CODE__') }}"
+    };
+    const battleCsrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    let battleState = {
+        currentTab: 'public',
+        searchQuery: '',
+        roomsData: { public: [], my: [] },
+        filteredRooms: [],
+        pagination: { page: 1, limit: 6 },
+        selectedQuizId: null,
+        searchQuizTimeout: null
+    };
+
+    // --- HELPER TO ESCAPE HTML ---
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // --- RENDER UI ---
+    function renderBattleRoom(room) {
+        const statusLabels = { lobby: 'Đang mở', in_progress: 'Đang thi', awaiting_host: 'Chờ Host', completed: 'Đã xong' };
+        const statusClass = `status-badge ${room.status}`;
+        const visibilityIcon = room.is_public ? '<i class="fas fa-globe text-blue-500"></i>' : '<i class="fas fa-lock text-slate-400"></i>';
+        const modeLabel = room.mode === 'TIMED' ? 'Giới hạn giờ' : 'Test chậm';
+
+        return `
+            <article class="cm-collection-card group">
+                <div class="flex items-start gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-xl shrink-0">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <div class="min-w-0 flex-1 space-y-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            ${visibilityIcon}
+                            <span class="${statusClass}">${statusLabels[room.status] || room.status}</span>
+                            <span class="text-[11px] font-semibold tracking-[0.12em] uppercase text-slate-700 bg-white px-2 py-0.5 rounded-full border border-slate-200">${modeLabel}</span>
+                        </div>
+                        <h3 class="truncate text-lg font-bold text-slate-900" title="${escapeHtml(room.title)}">${escapeHtml(room.title) || 'Phòng không tên'}</h3>
+                        <p class="text-xs text-slate-600 truncate flex items-center gap-1"><i class="fas fa-layer-group"></i> ${escapeHtml(room.container_title) || 'Quiz Set #' + room.container_id}</p>
+                    </div>
+                </div>
+                <div class="cm-collection-meta mt-auto">
+                    <span class="cm-tag"><i class="fas fa-users"></i> ${(room.participants || []).length} người</span>
+                    <span class="cm-tag"><i class="fas fa-crown text-amber-500"></i> ${escapeHtml(room.host_username) || 'Host'}</span>
+                </div>
+                <div class="cm-divider"></div>
+                <div class="flex items-center justify-between gap-2">
+                     <div class="text-xs font-mono bg-white px-3 py-1.5 rounded border border-slate-200 text-slate-700 flex items-center gap-2 select-all cursor-pointer hover:border-slate-300 hover:text-slate-900 transition-colors" onclick="navigator.clipboard.writeText('${room.room_code}')">
+                        <i class="fas fa-copy text-blue-500"></i> ${room.room_code}
+                     </div>
+                     <button type="button" class="cm-action-btn cm-action-btn--primary py-1.5 px-3 text-xs join-battle-btn" data-code="${room.room_code}">
+                        <span>Tham gia</span> <i class="fas fa-arrow-right"></i>
+                     </button>
+                </div>
+            </article>
+        `;
+    }
+
+    function renderPagination() {
+        const { page, limit } = battleState.pagination;
+        const totalItems = battleState.filteredRooms.length;
+        const totalPages = Math.ceil(totalItems / limit);
+        const container = document.getElementById('battle-pagination-container');
+        
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = `<div class="flex justify-center items-center space-x-2 mt-6 pagination">`;
+        if (page > 1) {
+            html += `<button onclick="window.changeBattlePage(${page - 1})" class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">&laquo;</button>`;
+        } else {
+            html += `<span class="px-3 py-1 rounded-md border border-gray-200 text-gray-400 cursor-not-allowed">&laquo;</span>`;
+        }
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+                if (i === page) {
+                    html += `<span class="px-3 py-1 rounded-md border border-blue-500 bg-blue-500 text-white">${i}</span>`;
+                } else {
+                    html += `<button onclick="window.changeBattlePage(${i})" class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">${i}</button>`;
+                }
+            } else if (i === page - 2 || i === page + 2) {
+                html += `<span class="px-3 py-1 text-gray-700">...</span>`;
+            }
+        }
+        if (page < totalPages) {
+            html += `<button onclick="window.changeBattlePage(${page + 1})" class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">&raquo;</button>`;
+        } else {
+            html += `<span class="px-3 py-1 rounded-md border border-gray-200 text-gray-400 cursor-not-allowed">&raquo;</span>`;
+        }
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+    function renderMainGrid() {
+        const grid = document.getElementById('battle-rooms-grid');
+        const emptyTpl = document.getElementById('battle-empty-template');
+        
+        let sourceData = battleState.roomsData[battleState.currentTab];
+        if (battleState.searchQuery) {
+            const q = battleState.searchQuery.toLowerCase();
+            battleState.filteredRooms = sourceData.filter(r => 
+                (r.title && r.title.toLowerCase().includes(q)) || 
+                (r.room_code && r.room_code.toLowerCase().includes(q))
+            );
+        } else {
+            battleState.filteredRooms = sourceData;
+        }
+
+        if (battleState.filteredRooms.length === 0) {
+            grid.innerHTML = emptyTpl.innerHTML;
+            document.getElementById('battle-pagination-container').innerHTML = '';
+            return;
+        }
+
+        const { page, limit } = battleState.pagination;
+        const start = (page - 1) * limit;
+        const end = start + limit;
+        const itemsToShow = battleState.filteredRooms.slice(start, end);
+        
+        grid.innerHTML = itemsToShow.map(renderBattleRoom).join('');
+        renderPagination();
+        
+        document.querySelectorAll('.join-battle-btn').forEach(btn => {
+            btn.addEventListener('click', () => joinBattleRoom(btn.dataset.code));
+        });
+    }
+
+    // --- LOGIC ---
+    async function fetchRooms(type) {
+        const loader = document.getElementById('battle-loading');
+        if (loader) loader.classList.add('visible');
+
+        try {
+            const res = await fetch(battleUrls[type]);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            battleState.roomsData[type] = data.rooms || [];
+            battleState.pagination.page = 1;
+            if (battleState.currentTab === type) renderMainGrid();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            if (loader) loader.classList.remove('visible');
+        }
+    }
+
+    window.changeBattlePage = function(pageNum) {
+        battleState.pagination.page = pageNum;
+        renderMainGrid();
+        document.querySelector('.collab-tabs').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    function switchTab(tabName) {
+        battleState.currentTab = tabName;
+        battleState.pagination.page = 1;
+        document.querySelectorAll('.collab-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.battleTab === tabName);
+        });
+        if (battleState.roomsData[tabName].length === 0) {
+            fetchRooms(tabName);
+        } else {
+            renderMainGrid();
+        }
+    }
+
+    async function joinBattleRoom(code) {
+        if (!code) return;
+        const joinUrl = battleUrls.joinTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
+        const viewUrl = battleUrls.viewTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (battleCsrf) headers['X-CSRFToken'] = battleCsrf;
+            const res = await fetch(joinUrl, { method: 'POST', headers });
+            if (!res.ok) throw new Error(await res.text());
+            window.location.href = viewUrl;
+        } catch (err) {
+            alert("Không thể tham gia phòng: " + err.message);
+        }
+    }
+
+    // Modal Logic
+    async function loadBattleQuizzes(query='') {
+        const grid = document.getElementById('modal-quiz-grid');
+        if(query) grid.innerHTML = '<p class="text-center text-slate-400 py-8 text-xs"><i class="fas fa-spinner fa-spin"></i></p>';
+        try {
+            const url = new URL(battleUrls.quizzes, window.location.origin);
+            url.searchParams.append('limit', 30);
+            if(query) url.searchParams.append('q', query);
+            const res = await fetch(url);
+            const data = await res.json();
+            const containers = data.containers || [];
+            
+            if(!containers.length) {
+                grid.innerHTML = `<div class="text-center text-slate-400 py-4 text-xs">Không tìm thấy bộ quiz.</div>`;
+                return;
+            }
+            
+            grid.innerHTML = containers.map(c => `
+                <div class="p-3 rounded-lg border border-slate-200 bg-white hover:border-blue-300 cursor-pointer transition-all quiz-select-item"
+                     data-id="${c.container_id}" 
+                     data-title="${escapeHtml(c.title)}"
+                     onclick="window.selectBattleQuizFromEl(this)">
+                    <div class="flex justify-between items-start gap-2">
+                        <h5 class="text-sm font-semibold text-slate-900 line-clamp-1" title="${escapeHtml(c.title)}">${escapeHtml(c.title)}</h5>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-xs text-slate-500">
+                        <span><i class="fas fa-layer-group"></i> ${c.question_count || '?'} câu</span>
+                        <span class="uppercase tracking-wider text-[10px]">${c.is_public ? 'Public' : 'Private'}</span>
+                    </div>
+                </div>
+            `).join('');
+        } catch {
+            grid.innerHTML = `<p class="text-center text-rose-400 py-4 text-xs">Lỗi tải dữ liệu.</p>`;
+        }
+    }
+
+    // Helper function for onclick
+    window.selectBattleQuizFromEl = function(el) {
+        const id = el.dataset.id;
+        const title = el.dataset.title;
+        
+        battleState.selectedQuizId = id;
+        document.getElementById('modal-selected-quiz-id').value = id;
+        document.getElementById('modal-quiz-preview').innerHTML = `Bộ Quiz: <span class="font-bold text-emerald-600">${title}</span>`;
+        
+        document.querySelectorAll('.quiz-select-item').forEach(item => {
+            if(item.dataset.id == id) {
+                item.className = "p-3 rounded-lg border cursor-pointer transition-all border-blue-500 bg-blue-50 quiz-select-item";
+            } else {
+                item.className = "p-3 rounded-lg border cursor-pointer transition-all border-slate-200 bg-white hover:border-blue-300 quiz-select-item";
+            }
+        });
+    }
+
+    // --- INIT ---
+    window.initGroupBattleDeck = function() {
+        console.log('initGroupBattleDeck executing...');
+        fetchRooms('public');
+
+        // Tab events
+        document.querySelectorAll('.collab-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.battleTab));
+        });
+
+        // Search
+        const searchForm = document.querySelector('#battle-room-search-wrapper form');
+        if (searchForm) {
+            searchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                battleState.searchQuery = searchForm.querySelector('input[name="q"]').value.trim();
+                battleState.pagination.page = 1;
+                renderMainGrid();
+            });
+        }
+
+        // Quick Join
+        document.getElementById('battle-quick-join-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = document.getElementById('battle-quick-join-code').value.trim().toUpperCase();
+            joinBattleRoom(code);
+        });
+
+        // Modal
+        const modal = document.getElementById('create-battle-modal');
+        document.getElementById('open-battle-modal')?.addEventListener('click', () => {
+            modal.classList.add('open');
+            loadBattleQuizzes();
+        });
+        document.getElementById('close-battle-modal')?.addEventListener('click', () => modal.classList.remove('open'));
+
+        // Modal Search
+        document.getElementById('modal-quiz-search')?.addEventListener('input', (e) => {
+            clearTimeout(battleState.searchQuizTimeout);
+            battleState.searchQuizTimeout = setTimeout(() => loadBattleQuizzes(e.target.value.trim()), 300);
+        });
+
+        // Mode Change
+        document.getElementById('modal-battle-mode')?.addEventListener('change', function() { 
+            document.getElementById('modal-timed-config').classList.toggle('hidden', this.value !== 'TIMED'); 
+        });
+
+        // Create Submit
+        document.getElementById('battle-create-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fb = document.getElementById('battle-create-feedback');
+            const fd = new FormData(e.target);
+            const payload = Object.fromEntries(fd.entries());
+            
+            if(!payload.container_id) {
+                fb.textContent = "Chưa chọn bộ quiz!";
+                fb.className = "mt-2 text-sm text-center text-rose-600";
+                return;
+            }
+            if(!payload.question_limit) delete payload.question_limit; 
+            else payload.question_limit = Number(payload.question_limit);
+            
+            if(!payload.max_players) delete payload.max_players; 
+            else payload.max_players = Number(payload.max_players);
+
+            if(payload.mode !== 'TIMED') delete payload.time_per_question_seconds;
+            else payload.time_per_question_seconds = Number(payload.time_per_question_seconds);
+
+            fb.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+            fb.className = "mt-2 text-sm text-center text-blue-600";
+
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (battleCsrf) headers['X-CSRFToken'] = battleCsrf;
+                const res = await fetch(battleUrls.create, { method: 'POST', headers, body: JSON.stringify(payload) });
+                if (!res.ok) throw new Error((await res.text()) || 'Lỗi tạo phòng');
+                const data = await res.json();
+                window.location.href = battleUrls.viewTemplate.replace('__ROOM_CODE__', data.room.room_code);
+            } catch (err) {
+                fb.textContent = err.message;
+                fb.className = "mt-2 text-sm text-center text-rose-600";
+            }
+        });
+    };
+})();
+</script>

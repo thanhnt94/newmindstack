@@ -64,7 +64,10 @@
 
     {# --- INCLUDE CÁC FILE CON (Theo thư mục chế độ) --- #}
     {% include 'quiz/individual/_dashboard_individual.html' %}
-    {% include 'quiz_battle/_dashboard_collab.html' %}
+    
+    <div id="quiz-group-section" class="hidden">
+        {% include 'quiz_battle/_dashboard_battle.html' %}
+    </div>
 
 </div>
 {% endblock %}
