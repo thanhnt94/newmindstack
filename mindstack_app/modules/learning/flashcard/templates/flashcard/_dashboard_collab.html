@@ -1,6 +1,6 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/flashcard/templates/flashcard/_dashboard_collab.html #}
-{# Phiên bản: 4.0 (CMS Style, Shared Modules Integration) #}
+{# Phiên bản: 4.3 (Fix Syntax Errors & Pagination) #}
 {# =============================== #}
 
 {% from 'includes/_search_form.html' import render_search_form %}
@@ -8,94 +8,420 @@
 <style>
     /* === Style đồng bộ Content Management (CM) + nâng cấp thẩm mỹ === */
     /* Container & Layout */
-    .cm-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: none; overflow: hidden; }
-    .cm-card--padded { padding: 1.25rem; }
-    .cm-section-header { margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
-    @media (min-width: 768px) { .cm-section-header { flex-direction: row; align-items: center; justify-content: space-between; } }
+    .cm-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        box-shadow: none;
+        overflow: hidden;
+    }
+
+    .cm-card--padded {
+        padding: 1.25rem;
+    }
+
+    .cm-section-header {
+        margin-bottom: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    @media (min-width: 768px) {
+        .cm-section-header {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+    }
 
     /* Hero */
     .collab-hero {
-        position: relative; overflow: hidden; border-radius: 0.75rem; padding: 0.75rem 1rem;
-        background: #f8fafc; color: #0f172a; border: 1px solid #e2e8f0;
+        position: relative;
+        overflow: hidden;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: #f8fafc;
+        color: #0f172a;
+        border: 1px solid #e2e8f0;
     }
-    .collab-hero__content { display: flex; flex-direction: column; gap: 0.35rem; }
-    @media (min-width: 900px) { .collab-hero__content { flex-direction: row; align-items: center; justify-content: space-between; gap: 0.75rem; } }
-    .collab-hero__headline { display: flex; flex-direction: column; gap: 0.2rem; }
-    @media (min-width: 640px) { .collab-hero__headline { flex-direction: row; align-items: center; gap: 0.45rem; flex-wrap: wrap; } }
-    .collab-pill { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.25rem 0.75rem; border-radius: 0.5rem; background: #e2e8f0; color: #0f172a; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.72rem; }
-    .collab-pill i { color: #2563eb; }
-    .collab-eyebrow { font-size: 0.72rem; letter-spacing: 0.04em; font-weight: 700; text-transform: uppercase; color: #475569; }
-    .collab-heading { font-size: clamp(1.05rem, 2vw, 1.35rem); font-weight: 800; margin: 0; color: #0f172a; }
-    .collab-subheading { color: #334155; line-height: 1.35; max-width: 640px; font-size: 0.9rem; }
-    .collab-hero__actions { display: flex; flex-direction: column; gap: 0.35rem; }
-    @media (min-width: 640px) { .collab-hero__actions { flex-direction: row; align-items: center; flex-wrap: wrap; } }
+
+    .collab-hero__content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    @media (min-width: 900px) {
+        .collab-hero__content {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+    }
+
+    .collab-hero__headline {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    @media (min-width: 640px) {
+        .collab-hero__headline {
+            flex-direction: row;
+            align-items: center;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+    }
+
+    .collab-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.5rem;
+        background: #e2e8f0;
+        color: #0f172a;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+    }
+
+    .collab-pill i {
+        color: #2563eb;
+    }
+
+    .collab-eyebrow {
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #475569;
+    }
+
+    .collab-heading {
+        font-size: clamp(1.05rem, 2vw, 1.35rem);
+        font-weight: 800;
+        margin: 0;
+        color: #0f172a;
+    }
+
+    .collab-subheading {
+        color: #334155;
+        line-height: 1.35;
+        max-width: 640px;
+        font-size: 0.9rem;
+    }
+
+    .collab-hero__actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    @media (min-width: 640px) {
+        .collab-hero__actions {
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+    }
 
     /* Typography */
-    .cm-heading-group { display: flex; flex-direction: column; gap: 0.2rem; }
-    .cm-eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #3b82f6; }
-    .cm-heading { font-size: 1.6rem; line-height: 2rem; font-weight: 700; color: #0f172a; }
-    .cm-subheading { font-size: 0.9rem; color: #475569; }
+    .cm-heading-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    .cm-eyebrow {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #3b82f6;
+    }
+
+    .cm-heading {
+        font-size: 1.6rem;
+        line-height: 2rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .cm-subheading {
+        font-size: 0.9rem;
+        color: #475569;
+    }
 
     /* Grid & Cards */
-    .cm-grid { display: grid; grid-template-columns: 1fr; gap: 1.2rem; }
-    @media (min-width: 640px) { .cm-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 1100px) { .cm-grid { grid-template-columns: repeat(3, 1fr); } }
+    .cm-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+
+    @media (min-width: 640px) {
+        .cm-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1100px) {
+        .cm-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
 
     .cm-collection-card {
         background: #f8fafc;
-        border: 1px solid #e2e8f0; border-radius: 0.9rem; padding: 1rem;
-        display: flex; flex-direction: column; gap: 0.9rem; height: 100%; position: relative;
-        transition: border-color 0.15s ease, transform 0.15s ease; color: #0f172a; box-shadow: none;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.9rem;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+        height: 100%;
+        position: relative;
+        transition: border-color 0.15s ease, transform 0.15s ease;
+        color: #0f172a;
+        box-shadow: none;
         overflow: hidden;
     }
-    .cm-collection-card:hover { transform: translateY(-2px); border-color: #cbd5e1; }
+
+    .cm-collection-card:hover {
+        transform: translateY(-2px);
+        border-color: #cbd5e1;
+    }
 
     /* Meta Tags */
-    .cm-collection-meta { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; font-size: 0.8rem; color: #475569; }
-    .cm-tag { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.35rem 0.7rem; border-radius: 0.75rem; background: #e2e8f0; color: #0f172a; font-weight: 600; border: 1px solid #cbd5e1; }
-    .cm-tag i { font-size: 0.75rem; color: #2563eb; }
-    .cm-divider { height: 1px; background: #e2e8f0; margin: 0.2rem 0; }
+    .cm-collection-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+        font-size: 0.8rem;
+        color: #475569;
+    }
+
+    .cm-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 0.75rem;
+        background: #e2e8f0;
+        color: #0f172a;
+        font-weight: 600;
+        border: 1px solid #cbd5e1;
+    }
+
+    .cm-tag i {
+        font-size: 0.75rem;
+        color: #2563eb;
+    }
+
+    .cm-divider {
+        height: 1px;
+        background: #e2e8f0;
+        margin: 0.2rem 0;
+    }
 
     /* Buttons */
-    .cm-action-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.95rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.9rem; transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease; white-space: nowrap; border: 1px solid transparent; }
-    .cm-action-btn--primary { background: #22c55e; color: #0f172a; box-shadow: none; border-color: #16a34a; }
-    .cm-action-btn--primary:hover { background: #16a34a; color: white; transform: translateY(-1px); }
+    .cm-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 0.95rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        font-size: 0.9rem;
+        transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+        white-space: nowrap;
+        border: 1px solid transparent;
+    }
+
+    .cm-action-btn--primary {
+        background: #22c55e;
+        color: #0f172a;
+        box-shadow: none;
+        border-color: #16a34a;
+    }
+
+    .cm-action-btn--primary:hover {
+        background: #16a34a;
+        color: white;
+        transform: translateY(-1px);
+    }
 
     /* Custom Elements for Collab */
-    .collab-main-header { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem 1rem 0.25rem; background: #f8fafc; border-radius: 0.75rem 0.75rem 0 0; position: sticky; top: 0; z-index: 5; border-bottom: 1px solid #e5e7eb; }
-    @media (min-width: 900px) { .collab-main-header { flex-direction: row; align-items: center; justify-content: space-between; } }
-    .collab-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .collab-tab-btn { padding: 0.7rem 1.1rem; font-weight: 700; color: #475569; border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 0.45rem; }
-    .collab-tab-btn:hover { color: #0f172a; }
-    .collab-tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
-    .collab-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-start; }
-    .collab-toolbar .search-wrapper { min-width: 260px; }
+    .collab-main-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem 0.25rem;
+        background: #f8fafc;
+        border-radius: 0.75rem 0.75rem 0 0;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        border-bottom: 1px solid #e5e7eb;
+    }
 
-    .join-input-group { display: flex; align-items: center; background: white; border: 1px solid #e2e8f0; border-radius: 0.65rem; padding: 0.25rem 0.35rem; box-shadow: none; }
-    .join-input-group input { border: none; outline: none; padding: 0.4rem 0.55rem; font-size: 0.9rem; width: 140px; text-transform: uppercase; font-family: 'DM Mono', 'Roboto Mono', monospace; background: transparent; color: #0f172a; letter-spacing: 0.08em; }
-    .join-input-group button { border-radius: 0.55rem; }
+    @media (min-width: 900px) {
+        .collab-main-header {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+    }
+
+    .collab-tabs {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .collab-tab-btn {
+        padding: 0.7rem 1.1rem;
+        font-weight: 700;
+        color: #475569;
+        border-bottom: 2px solid transparent;
+        transition: color 0.15s ease, border-color 0.15s ease;
+        font-size: 0.92rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .collab-tab-btn:hover {
+        color: #0f172a;
+    }
+
+    .collab-tab-btn.active {
+        color: #1d4ed8;
+        border-bottom-color: #1d4ed8;
+    }
+
+    .collab-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .collab-toolbar .search-wrapper {
+        min-width: 260px;
+    }
+
+    .join-input-group {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.65rem;
+        padding: 0.25rem 0.35rem;
+        box-shadow: none;
+    }
+
+    .join-input-group input {
+        border: none;
+        outline: none;
+        padding: 0.4rem 0.55rem;
+        font-size: 0.9rem;
+        width: 140px;
+        text-transform: uppercase;
+        font-family: 'DM Mono', 'Roboto Mono', monospace;
+        background: transparent;
+        color: #0f172a;
+        letter-spacing: 0.08em;
+    }
+
+    .join-input-group button {
+        border-radius: 0.55rem;
+    }
 
     /* Modal */
-    .collab-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-    .collab-modal-backdrop.open { opacity: 1; pointer-events: auto; }
-    .collab-modal-content { background: white; border-radius: 1rem; width: 95%; max-width: 800px; max-height: 90vh; overflow-y:auto; transform: scale(0.95); transition: transform 0.3s; }
-    .collab-modal-backdrop.open .collab-modal-content { transform: scale(1); }
+    .collab-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
 
-    .status-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 0.22rem 0.6rem; border-radius: 0.6rem; letter-spacing: 0.04em; }
-    .status-badge.lobby { background: #e0f2fe; color: #1d4ed8; border: 1px solid #bfdbfe; }
-    .status-badge.active { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .collab-modal-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
 
-    #collab-loading { transition: opacity 0.15s ease; pointer-events: none; opacity: 0; display: none; }
-    #collab-loading.visible { display: flex; pointer-events: auto; opacity: 1; }
+    .collab-modal-content {
+        background: white;
+        border-radius: 1rem;
+        width: 95%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: scale(0.95);
+        transition: transform 0.3s;
+    }
+
+    .collab-modal-backdrop.open .collab-modal-content {
+        transform: scale(1);
+    }
+
+    .status-badge {
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 0.22rem 0.6rem;
+        border-radius: 0.6rem;
+        letter-spacing: 0.04em;
+    }
+
+    .status-badge.lobby {
+        background: #e0f2fe;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+
+    .status-badge.active {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+    #collab-loading {
+        transition: opacity 0.15s ease;
+        pointer-events: none;
+        opacity: 0;
+        display: none;
+    }
+
+    #collab-loading.visible {
+        display: flex;
+        pointer-events: auto;
+        opacity: 1;
+    }
 </style>
 
 <div id="flashcard-group-section" class="hidden w-full space-y-4">
-    
+
     {# === HEADER === #}
     <section class="collab-hero">
         <div class="collab-hero__content">
             <div class="collab-hero__headline">
-                <div class="collab-pill"><i class="fas fa-bolt"></i>Live Flashcard Collab</div>
+                <div class="collab-pill"><i class="fas fa-bolt text-amber-500 fa-beat-fade"></i>Live Flashcard Collab
+                </div>
                 <p class="collab-eyebrow">Phòng học Flashcard</p>
                 <h2 class="collab-heading">Học cùng nhau, vào phòng ngay</h2>
             </div>
@@ -104,7 +430,8 @@
                 <form id="collab-quick-join-form" class="join-input-group">
                     <i class="fas fa-key text-slate-200 pl-2 text-xs"></i>
                     <input type="text" id="collab-quick-join-code" placeholder="Mã phòng..." maxlength="12" required>
-                    <button type="submit" class="text-xs font-bold bg-white/90 hover:bg-white text-slate-800 px-3 py-1.5 rounded transition-colors">VÀO</button>
+                    <button type="submit"
+                        class="text-xs font-bold bg-white/90 hover:bg-white text-slate-800 px-3 py-1.5 rounded transition-colors">VÀO</button>
                 </form>
 
                 {# Nút tạo phòng #}
@@ -131,7 +458,8 @@
                 <div class="search-wrapper" id="collab-room-search-wrapper">
                     {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
                 </div>
-                <div class="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 flex items-center gap-2">
+                <div
+                    class="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 flex items-center gap-2">
                     <i class="fas fa-bullseye text-blue-500"></i> Tập trung vào danh sách phòng
                 </div>
             </div>
@@ -140,7 +468,8 @@
         {# Content #}
         <div class="p-6 relative">
             {# Loading Overlay #}
-            <div id="collab-loading" class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-b-xl">
+            <div id="collab-loading"
+                class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-b-xl">
                 <div class="text-center text-blue-500">
                     <i class="fas fa-circle-notch fa-spin text-3xl mb-2"></i>
                     <p class="font-medium">Đang tải dữ liệu...</p>
@@ -149,18 +478,23 @@
 
             {# Grid hiển thị phòng #}
             <div id="collab-rooms-grid" class="cm-grid">
-                </div>
+            </div>
 
             {# Phân trang (Mô phỏng Module Shared) #}
             <div id="collab-pagination-container" class="mt-8">
-                </div>
+            </div>
 
             {# Empty State #}
             <div id="collab-empty-template" class="hidden">
-                <div class="col-span-full flex flex-col items-center justify-center p-12 text-slate-400 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                <div
+                    class="col-span-full flex flex-col items-center justify-center p-12 text-slate-400 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
                     <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
                     <h3 class="text-lg font-semibold text-slate-600">Không tìm thấy phòng nào</h3>
-                    <p class="text-sm">Hãy thử tìm kiếm khác hoặc tạo phòng mới.</p>
+                    <p class="text-sm mb-4">Hãy thử tìm kiếm khác hoặc tạo phòng mới.</p>
+                    <button type="button" onclick="document.getElementById('open-create-room-modal').click()"
+                        class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-blue-600 font-bold text-sm hover:bg-blue-50 transition-colors shadow-sm">
+                        <i class="fas fa-plus-circle mr-2"></i>Tạo phòng ngay
+                    </button>
                 </div>
             </div>
         </div>
@@ -171,57 +505,69 @@
 <div id="create-room-modal" class="collab-modal-backdrop">
     <div class="collab-modal-content">
         <div class="p-4 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-20">
-            <h3 class="text-lg font-bold text-slate-800"><i class="fas fa-plus-circle text-blue-500 mr-2"></i>Tạo phòng học mới</h3>
-            <button type="button" id="close-create-room-modal" class="text-slate-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
+            <h3 class="text-lg font-bold text-slate-800"><i class="fas fa-plus-circle text-blue-500 mr-2"></i>Tạo phòng
+                học mới</h3>
+            <button type="button" id="close-create-room-modal"
+                class="text-slate-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        
+
         <div class="p-6 grid lg:grid-cols-2 gap-8">
-             {# Cột trái: Form #}
+            {# Cột trái: Form #}
             <div class="space-y-5">
                 <form id="collab-create-room-form" class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Tiêu đề phòng</label>
-                        <input type="text" id="collab-room-title" class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500" placeholder="VD: Ôn tập cuối kỳ" required>
+                        <input type="text" id="collab-room-title"
+                            class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                            placeholder="VD: Ôn tập cuối kỳ" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Chế độ học</label>
-                        <select id="collab-mode-select" class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500">
+                        <select id="collab-mode-select"
+                            class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500">
                             {% for mode in flashcard_modes %}
-                                <option value="{{ mode.id }}">{{ mode.name }}</option>
+                            <option value="{{ mode.id }}">{{ mode.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Số nút đánh giá</label>
-                        <select id="collab-button-count-select" class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500">
-                            <option value="3" {% if user_button_count == 3 %}selected{% endif %}>3 nút (Quên, Mơ hồ, Nhớ)</option>
-                            <option value="4" {% if user_button_count == 4 %}selected{% endif %}>4 nút (Again, Hard, Good, Easy)</option>
-                            <option value="6" {% if user_button_count == 6 %}selected{% endif %}>6 nút (Từ rất khó đến rất dễ)</option>
+                        <select id="collab-button-count-select"
+                            class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500">
+                            <option value="3" {% if user_button_count==3 %}selected{% endif %}>3 nút (Quên, Mơ hồ, Nhớ)
+                            </option>
+                            <option value="4" {% if user_button_count==4 %}selected{% endif %}>4 nút (Again, Hard, Good,
+                                Easy)</option>
+                            <option value="6" {% if user_button_count==6 %}selected{% endif %}>6 nút (Từ rất khó đến rất
+                                dễ)</option>
                         </select>
                     </div>
                     <div>
                         <span class="block text-sm font-medium text-slate-700 mb-2">Quyền riêng tư</span>
                         <div class="flex gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" name="collab-visibility" value="public" class="text-blue-600 focus:ring-blue-500">
+                                <input type="radio" name="collab-visibility" value="public"
+                                    class="text-blue-600 focus:ring-blue-500">
                                 <span class="text-sm text-slate-700">Công khai</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" name="collab-visibility" value="private" class="text-blue-600 focus:ring-blue-500" checked>
+                                <input type="radio" name="collab-visibility" value="private"
+                                    class="text-blue-600 focus:ring-blue-500" checked>
                                 <span class="text-sm text-slate-700">Riêng tư</span>
                             </label>
                         </div>
                     </div>
-                    
+
                     <div class="pt-4 border-t border-slate-100">
                         <input type="hidden" id="collab-selected-container-id">
                         <p class="text-xs text-slate-500 mb-3 flex justify-between items-center">
                             <span>Bộ thẻ đã chọn:</span>
                             <span id="create-set-preview" class="font-bold text-rose-600 italic">Chưa chọn</span>
                         </p>
-                        <button type="submit" class="w-full cm-action-btn cm-action-btn--primary justify-center py-2.5 shadow-lg shadow-emerald-600/10 bg-emerald-600 hover:bg-emerald-700">
+                        <button type="submit"
+                            class="w-full cm-action-btn cm-action-btn--primary justify-center py-2.5 shadow-lg shadow-emerald-600/10 bg-emerald-600 hover:bg-emerald-700">
                             <i class="fas fa-check"></i><span>Tạo phòng ngay</span>
                         </button>
                         <p id="collab-create-feedback" class="mt-2 text-sm text-center"></p>
@@ -234,13 +580,17 @@
                 <div class="flex items-center justify-between gap-2 mb-3">
                     <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">Chọn bộ thẻ</h4>
                     <div class="relative">
-                        <input type="text" id="collab-set-search" class="w-40 rounded-md border-slate-200 pl-7 py-1 text-xs focus:border-blue-500" placeholder="Tìm bộ thẻ...">
+                        <input type="text" id="collab-set-search"
+                            class="w-40 rounded-md border-slate-200 pl-7 py-1 text-xs focus:border-blue-500"
+                            placeholder="Tìm bộ thẻ...">
                         <i class="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                     </div>
                 </div>
-                
-                <div id="collab-set-grid" class="flex-1 overflow-y-auto pr-2 space-y-2 border border-slate-100 rounded-xl p-2 bg-slate-50/50 max-h-[400px]">
-                    <p class="text-center text-slate-400 py-8 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tải...</p>
+
+                <div id="collab-set-grid"
+                    class="flex-1 overflow-y-auto pr-2 space-y-2 border border-slate-100 rounded-xl p-2 bg-slate-50/50 max-h-[400px]">
+                    <p class="text-center text-slate-400 py-8 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Đang
+                        tải...</p>
                 </div>
             </div>
         </div>
@@ -248,45 +598,44 @@
 </div>
 
 <script>
-console.log('>>> _dashboard_collab.js: init (v4.0 - Shared Modules Integrated)');
+    console.log('>>> _dashboard_collab.js: init (v4.0 - Shared Modules Integrated)');
 
-{# ==== Configurations ==== #}
-const collabUrls = {
-    public: "{{ url_for('learning.flashcard_collab.list_public_rooms') }}",
-    my: "{{ url_for('learning.flashcard_collab.list_my_active_rooms') }}",
-    sets: "{{ url_for('learning.flashcard_collab.list_available_sets') }}",
-    create: "{{ url_for('learning.flashcard_collab.create_room') }}",
-    joinTemplate: "{{ url_for('learning.flashcard_collab.join_room', room_code='__ROOM_CODE__') }}",
-    viewTemplate: "{{ url_for('learning.flashcard_collab.view_room', room_code='__ROOM_CODE__') }}"
-};
-const collabCsrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-const collabModeDefinitions = {{ flashcard_modes | tojson }};
-const collabModeLabels = {};
-collabModeDefinitions.forEach(m => { if(m.id) collabModeLabels[m.id] = m.name || m.id; });
-const defaultButtonCount = parseInt("{{ user_button_count | default(3) }}") || 3;
+    const collabUrls = {
+        public: "{{ url_for('learning.flashcard_collab.list_public_rooms') }}",
+        my: "{{ url_for('learning.flashcard_collab.list_my_active_rooms') }}",
+        sets: "{{ url_for('learning.flashcard_collab.list_available_sets') }}",
+        create: "{{ url_for('learning.flashcard_collab.create_room') }}",
+        joinTemplate: "{{ url_for('learning.flashcard_collab.join_room', room_code='__ROOM_CODE__') }}",
+        viewTemplate: "{{ url_for('learning.flashcard_collab.view_room', room_code='__ROOM_CODE__') }}"
+    };
+    const collabCsrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const collabModeDefinitions = {{ flashcard_modes | tojson }};
+    const collabModeLabels = {};
+    collabModeDefinitions.forEach(m => { if (m.id) collabModeLabels[m.id] = m.name || m.id; });
+    const defaultButtonCount = parseInt("{{ user_button_count | default(3) }}") || 3;
 
-// State
-let collabState = {
-    currentTab: 'public',
-    searchQuery: '',
-    roomsData: { public: [], my: [] }, // Dữ liệu gốc
-    filteredRooms: [], // Dữ liệu sau khi lọc search
-    pagination: { page: 1, limit: 6 },
-    selectedSetId: null,
-    searchSetTimeout: null
-};
+    // State
+    let collabState = {
+        currentTab: 'public',
+        searchQuery: '',
+        roomsData: { public: [], my: [] }, // Dữ liệu gốc
+        filteredRooms: [], // Dữ liệu sau khi lọc search
+        pagination: { page: 1, limit: 6 },
+        selectedSetId: null,
+        searchSetTimeout: null
+    };
 
-// --- RENDER UI ---
+    // --- RENDER UI ---
 
-// 1. Render Card Phòng (Giống CM Card)
-function renderRoomCard(room) {
-    const participants = room.participants || [];
-    const statusMap = { lobby: 'Đang mở', active: 'Đang học', completed: 'Đã đóng' };
-    const statusClass = `status-badge ${room.status}`;
-    const modeLabel = collabModeLabels[room.mode] || room.mode;
-    const visibilityIcon = room.is_public ? '<i class="fas fa-globe text-blue-500"></i>' : '<i class="fas fa-lock text-slate-400"></i>';
+    // 1. Render Card Phòng (Giống CM Card)
+    function renderRoomCard(room) {
+        const participants = room.participants || [];
+        const statusMap = { lobby: 'Đang mở', active: 'Đang học', completed: 'Đã đóng' };
+        const statusClass = `status-badge ${room.status}`;
+        const modeLabel = collabModeLabels[room.mode] || room.mode;
+        const visibilityIcon = room.is_public ? '<i class="fas fa-globe text-blue-500"></i>' : '<i class="fas fa-lock text-slate-400"></i>';
 
-    return `
+        return `
         <article class="cm-collection-card group">
             <div class="flex items-start gap-3">
                 <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-xl shrink-0">
@@ -318,292 +667,292 @@ function renderRoomCard(room) {
             </div>
         </article>
     `;
-}
-
-// 2. Render Pagination (Mô phỏng shared/_pagination.html)
-function renderCMSPagination() {
-    const { page, limit } = collabState.pagination;
-    const totalItems = collabState.filteredRooms.length;
-    const totalPages = Math.ceil(totalItems / limit);
-    const container = document.getElementById('collab-pagination-container');
-    
-    if (totalPages <= 1) {
-        container.innerHTML = '';
-        return;
     }
 
-    // Sử dụng class y hệt _pagination.html: "flex justify-center items-center space-x-2 mt-6 pagination"
-    let html = `<div class="flex justify-center items-center space-x-2 mt-6 pagination">`;
+    // 2. Render Pagination (Mô phỏng shared/_pagination.html)
+    function renderCMSPagination() {
+        const { page, limit } = collabState.pagination;
+        const totalItems = collabState.filteredRooms.length;
+        const totalPages = Math.ceil(totalItems / limit);
+        const container = document.getElementById('collab-pagination-container');
 
-    // Previous Button
-    if (page > 1) {
-        html += `<button onclick="changeCollabPage(${page - 1})" class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">&laquo;</button>`;
-    } else {
-        html += `<span class="px-3 py-1 rounded-md border border-gray-200 text-gray-400 cursor-not-allowed">&laquo;</span>`;
-    }
-
-    // Page Numbers
-    for (let i = 1; i <= totalPages; i++) {
-        // Logic hiển thị (1, 2... current ... last)
-        if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
-            if (i === page) {
-                html += `<span class="px-3 py-1 rounded-md border border-blue-500 bg-blue-500 text-white">${i}</span>`;
-            } else {
-                html += `<button onclick="changeCollabPage(${i})" class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">${i}</button>`;
-            }
-        } else if (i === page - 2 || i === page + 2) {
-            html += `<span class="px-3 py-1 text-gray-700">...</span>`;
-        }
-    }
-
-    // Next Button
-    if (page < totalPages) {
-        html += `<button onclick="changeCollabPage(${page + 1})" class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">&raquo;</button>`;
-    } else {
-        html += `<span class="px-3 py-1 rounded-md border border-gray-200 text-gray-400 cursor-not-allowed">&raquo;</span>`;
-    }
-
-    html += `</div>`;
-    container.innerHTML = html;
-}
-
-// 3. Render Main Grid
-function renderMainGrid() {
-    const grid = document.getElementById('collab-rooms-grid');
-    const emptyTpl = document.getElementById('collab-empty-template');
-    
-    // Lọc dữ liệu dựa trên Search Query
-    let sourceData = collabState.roomsData[collabState.currentTab];
-    if (collabState.searchQuery) {
-        const q = collabState.searchQuery.toLowerCase();
-        collabState.filteredRooms = sourceData.filter(r => 
-            (r.title && r.title.toLowerCase().includes(q)) || 
-            (r.room_code && r.room_code.toLowerCase().includes(q))
-        );
-    } else {
-        collabState.filteredRooms = sourceData;
-    }
-
-    // Kiểm tra empty
-    if (collabState.filteredRooms.length === 0) {
-        grid.innerHTML = emptyTpl.innerHTML;
-        document.getElementById('collab-pagination-container').innerHTML = '';
-        return;
-    }
-
-    // Phân trang logic
-    const { page, limit } = collabState.pagination;
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const itemsToShow = collabState.filteredRooms.slice(start, end);
-    
-    grid.innerHTML = itemsToShow.map(renderRoomCard).join('');
-    renderCMSPagination();
-}
-
-// --- LOGIC ---
-
-async function fetchRooms(type) {
-    const loader = document.getElementById('collab-loading');
-    const showLoader = () => {
-        if (!loader) return;
-        loader.classList.add('visible');
-    };
-    const hideLoader = () => {
-        if (!loader) return;
-        loader.classList.remove('visible');
-    };
-
-    showLoader();
-
-    try {
-        const res = await fetch(collabUrls[type]);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        collabState.roomsData[type] = data.rooms || [];
-        collabState.pagination.page = 1; // Reset page
-        
-        if (collabState.currentTab === type) renderMainGrid();
-    } catch (err) {
-        console.error(err);
-    } finally {
-        hideLoader();
-    }
-}
-
-function changeCollabPage(pageNum) {
-    collabState.pagination.page = pageNum;
-    renderMainGrid();
-    // Scroll nhẹ lên đầu grid
-    document.querySelector('.collab-tabs').scrollIntoView({ behavior: 'smooth' });
-}
-
-function switchTab(tabName) {
-    collabState.currentTab = tabName;
-    collabState.pagination.page = 1; // Reset page khi chuyển tab
-    
-    document.querySelectorAll('.collab-tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.collabTab === tabName);
-    });
-    
-    // Nếu chưa có data thì fetch
-    if (collabState.roomsData[tabName].length === 0) {
-        fetchRooms(tabName);
-    } else {
-        renderMainGrid();
-    }
-}
-
-// --- INIT & EVENTS ---
-
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Init Data
-    fetchRooms('public');
-    loadCollabSets();
-
-    // 2. Hook Search Form (Module Shared)
-    // Macro render_search_form tạo ra form, ta chặn submit để xử lý AJAX
-    const searchForm = document.querySelector('#collab-room-search-wrapper form');
-    if (searchForm) {
-        searchForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const input = searchForm.querySelector('input[name="q"]');
-            collabState.searchQuery = input.value.trim();
-            collabState.pagination.page = 1;
-            renderMainGrid();
-        });
-        
-        // Optional: Live search
-        const input = searchForm.querySelector('input[name="q"]');
-        if(input) {
-            let timeout;
-            input.addEventListener('input', () => {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    collabState.searchQuery = input.value.trim();
-                    collabState.pagination.page = 1;
-                    renderMainGrid();
-                }, 300);
-            });
-        }
-    }
-
-    // 3. Quick Join Form
-    document.getElementById('collab-quick-join-form')?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const code = document.getElementById('collab-quick-join-code').value.trim().toUpperCase();
-        joinCollabRoom(code, null, {redirectToRoom: true});
-    });
-
-    // 4. Tabs
-    document.querySelectorAll('.collab-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => switchTab(btn.dataset.collabTab));
-    });
-
-    // 5. Modal Events
-    const modal = document.getElementById('create-room-modal');
-    document.getElementById('open-create-room-modal')?.addEventListener('click', () => {
-        modal.classList.add('open');
-        loadCollabSets();
-    });
-    document.getElementById('close-create-room-modal')?.addEventListener('click', () => modal.classList.remove('open'));
-    
-    // 6. Create Room Submit
-    document.getElementById('collab-create-room-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const feedback = document.getElementById('collab-create-feedback');
-        // ... (Logic submit giống phiên bản trước, giữ nguyên)
-        const payload = {
-            container_id: collabState.selectedSetId,
-            mode: document.getElementById('collab-mode-select').value,
-            button_count: parseInt(document.getElementById('collab-button-count-select')?.value || defaultButtonCount),
-            title: document.getElementById('collab-room-title').value.trim(),
-            is_public: document.querySelector('input[name="collab-visibility"]:checked').value === 'public'
-        };
-        
-        if (!payload.container_id) {
-            feedback.textContent = "Vui lòng chọn bộ thẻ!";
-            feedback.className = "mt-2 text-sm text-center text-rose-600";
+        if (totalPages <= 1) {
+            container.innerHTML = '';
             return;
         }
 
-        feedback.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
-        feedback.className = "mt-2 text-sm text-center text-blue-600";
+        // Sử dụng class y hệt _pagination.html: "flex justify-center items-center space-x-2 mt-6 pagination"
+        let html = `<div class="flex justify-center items-center space-x-2 mt-6 pagination">`;
+
+        // Previous Button
+        if (page > 1) {
+            html += `<button onclick="changeCollabPage(${page - 1})" class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">&laquo;</button>`;
+        } else {
+            html += `<span class="px-3 py-1 rounded-md border border-gray-200 text-gray-400 cursor-not-allowed">&laquo;</span>`;
+        }
+
+        // Page Numbers
+        for (let i = 1; i <= totalPages; i++) {
+            // Logic hiển thị (1, 2... current ... last)
+            if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+                if (i === page) {
+                    html += `<span class="px-3 py-1 rounded-md border border-blue-500 bg-blue-500 text-white">${i}</span>`;
+                } else {
+                    html += `<button onclick="changeCollabPage(${i})" class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">${i}</button>`;
+                }
+            } else if (i === page - 2 || i === page + 2) {
+                html += `<span class="px-3 py-1 text-gray-700">...</span>`;
+            }
+        }
+
+        // Next Button
+        if (page < totalPages) {
+            html += `<button onclick="changeCollabPage(${page + 1})" class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">&raquo;</button>`;
+        } else {
+            html += `<span class="px-3 py-1 rounded-md border border-gray-200 text-gray-400 cursor-not-allowed">&raquo;</span>`;
+        }
+
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+    // 3. Render Main Grid
+    function renderMainGrid() {
+        const grid = document.getElementById('collab-rooms-grid');
+        const emptyTpl = document.getElementById('collab-empty-template');
+
+        // Lọc dữ liệu dựa trên Search Query
+        let sourceData = collabState.roomsData[collabState.currentTab];
+        if (collabState.searchQuery) {
+            const q = collabState.searchQuery.toLowerCase();
+            collabState.filteredRooms = sourceData.filter(r =>
+                (r.title && r.title.toLowerCase().includes(q)) ||
+                (r.room_code && r.room_code.toLowerCase().includes(q))
+            );
+        } else {
+            collabState.filteredRooms = sourceData;
+        }
+
+        // Kiểm tra empty
+        if (collabState.filteredRooms.length === 0) {
+            grid.innerHTML = emptyTpl.innerHTML;
+            document.getElementById('collab-pagination-container').innerHTML = '';
+            return;
+        }
+
+        // Phân trang logic
+        const { page, limit } = collabState.pagination;
+        const start = (page - 1) * limit;
+        const end = start + limit;
+        const itemsToShow = collabState.filteredRooms.slice(start, end);
+
+        grid.innerHTML = itemsToShow.map(renderRoomCard).join('');
+        renderCMSPagination();
+    }
+
+    // --- LOGIC ---
+
+    async function fetchRooms(type) {
+        const loader = document.getElementById('collab-loading');
+        const showLoader = () => {
+            if (!loader) return;
+            loader.classList.add('visible');
+        };
+        const hideLoader = () => {
+            if (!loader) return;
+            loader.classList.remove('visible');
+        };
+
+        showLoader();
 
         try {
-            const headers = { 'Content-Type': 'application/json' };
-            if (collabCsrfToken) headers['X-CSRFToken'] = collabCsrfToken;
-            const res = await fetch(collabUrls.create, { method: 'POST', headers, body: JSON.stringify(payload) });
-            if (!res.ok) throw new Error((await res.text()) || 'Lỗi tạo phòng');
+            const res = await fetch(collabUrls[type]);
+            if (!res.ok) throw new Error();
             const data = await res.json();
-            window.location.href = collabUrls.viewTemplate.replace('__ROOM_CODE__', encodeURIComponent(data.room.room_code));
+            collabState.roomsData[type] = data.rooms || [];
+            collabState.pagination.page = 1; // Reset page
+
+            if (collabState.currentTab === type) renderMainGrid();
         } catch (err) {
-            feedback.textContent = err.message;
-            feedback.className = "mt-2 text-sm text-center text-rose-600";
+            console.error(err);
+        } finally {
+            hideLoader();
         }
-    });
-    
-    // 7. Set Search in Modal
-    document.getElementById('collab-set-search')?.addEventListener('input', (e) => {
-        clearTimeout(collabState.searchSetTimeout);
-        collabState.searchSetTimeout = setTimeout(() => loadCollabSets(e.target.value.trim()), 300);
-    });
-});
-
-// Helpers (Copy, Join, LoadSets...) - Giữ nguyên logic cũ
-function handleCopyRoomCode(code) {
-    navigator.clipboard.writeText(code);
-    if(window.showFlashMessage) window.showFlashMessage('Đã sao chép mã: ' + code, 'success');
-}
-
-async function joinCollabRoom(code, feedbackEl, options = {}) {
-    // ... (Giữ nguyên logic join cũ)
-    if (!code) return;
-    const joinUrl = collabUrls.joinTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
-    const viewUrl = collabUrls.viewTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
-    try {
-        const headers = {};
-        if (collabCsrfToken) headers['X-CSRFToken'] = collabCsrfToken;
-        const res = await fetch(joinUrl, { method: 'POST', headers, credentials: 'same-origin' });
-        if (!res.ok) throw new Error((await res.text()) || 'Không thể tham gia phòng');
-    } catch (err) {
-        if(window.showFlashMessage) window.showFlashMessage(err.message || 'Không thể tham gia phòng', 'warning');
-    } finally {
-        if (options.redirectToRoom) window.location.href = viewUrl;
     }
-}
 
-function selectCollabSet(id, title) {
-    collabState.selectedSetId = id;
-    document.getElementById('collab-selected-container-id').value = id;
-    document.getElementById('create-set-preview').innerHTML = `Bộ thẻ: <span class="font-bold text-emerald-600">${title}</span>`;
-    // Visual Update Grid
-    const items = document.getElementById('collab-set-grid').children;
-    for (let item of items) {
-        if(item.innerHTML.includes(title)) { // Simple check
-             item.className = "p-3 rounded-lg border cursor-pointer transition-all border-blue-500 bg-blue-50";
+    function changeCollabPage(pageNum) {
+        collabState.pagination.page = pageNum;
+        renderMainGrid();
+        // Scroll nhẹ lên đầu grid
+        document.querySelector('.collab-tabs').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function switchTab(tabName) {
+        collabState.currentTab = tabName;
+        collabState.pagination.page = 1; // Reset page khi chuyển tab
+
+        document.querySelectorAll('.collab-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.collabTab === tabName);
+        });
+
+        // Nếu chưa có data thì fetch
+        if (collabState.roomsData[tabName].length === 0) {
+            fetchRooms(tabName);
         } else {
-             item.className = "p-3 rounded-lg border cursor-pointer transition-all border-slate-200 bg-white hover:border-blue-300";
+            renderMainGrid();
         }
     }
-}
 
-async function loadCollabSets(query='') {
-    const grid = document.getElementById('collab-set-grid');
-    if(query) grid.innerHTML = '<p class="text-center text-slate-400 py-8 text-xs"><i class="fas fa-spinner fa-spin"></i></p>';
-    try {
-        const url = query ? `${collabUrls.sets}?q=${encodeURIComponent(query)}` : collabUrls.sets;
-        const res = await fetch(url);
-        if(!res.ok) throw new Error();
-        const data = await res.json();
-        const containers = data.containers || [];
-        
-        if(!containers.length) {
-            grid.innerHTML = `<div class="text-center text-slate-400 py-4 text-xs">Không tìm thấy bộ thẻ.</div>`;
-            return;
+    // --- INIT & EVENTS ---
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Init Data
+        fetchRooms('public');
+        loadCollabSets();
+
+        // 2. Hook Search Form (Module Shared)
+        // Macro render_search_form tạo ra form, ta chặn submit để xử lý AJAX
+        const searchForm = document.querySelector('#collab-room-search-wrapper form');
+        if (searchForm) {
+            searchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const input = searchForm.querySelector('input[name="q"]');
+                collabState.searchQuery = input.value.trim();
+                collabState.pagination.page = 1;
+                renderMainGrid();
+            });
+
+            // Optional: Live search
+            const input = searchForm.querySelector('input[name="q"]');
+            if (input) {
+                let timeout;
+                input.addEventListener('input', () => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => {
+                        collabState.searchQuery = input.value.trim();
+                        collabState.pagination.page = 1;
+                        renderMainGrid();
+                    }, 300);
+                });
+            }
         }
-        
-        grid.innerHTML = containers.map(c => `
+
+        // 3. Quick Join Form
+        document.getElementById('collab-quick-join-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = document.getElementById('collab-quick-join-code').value.trim().toUpperCase();
+            joinCollabRoom(code, null, { redirectToRoom: true });
+        });
+
+        // 4. Tabs
+        document.querySelectorAll('.collab-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.collabTab));
+        });
+
+        // 5. Modal Events
+        const modal = document.getElementById('create-room-modal');
+        document.getElementById('open-create-room-modal')?.addEventListener('click', () => {
+            modal.classList.add('open');
+            loadCollabSets();
+        });
+        document.getElementById('close-create-room-modal')?.addEventListener('click', () => modal.classList.remove('open'));
+
+        // 6. Create Room Submit
+        document.getElementById('collab-create-room-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const feedback = document.getElementById('collab-create-feedback');
+            // ... (Logic submit giống phiên bản trước, giữ nguyên)
+            const payload = {
+                container_id: collabState.selectedSetId,
+                mode: document.getElementById('collab-mode-select').value,
+                button_count: parseInt(document.getElementById('collab-button-count-select')?.value || defaultButtonCount),
+                title: document.getElementById('collab-room-title').value.trim(),
+                is_public: document.querySelector('input[name="collab-visibility"]:checked').value === 'public'
+            };
+
+            if (!payload.container_id) {
+                feedback.textContent = "Vui lòng chọn bộ thẻ!";
+                feedback.className = "mt-2 text-sm text-center text-rose-600";
+                return;
+            }
+
+            feedback.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+            feedback.className = "mt-2 text-sm text-center text-blue-600";
+
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (collabCsrfToken) headers['X-CSRFToken'] = collabCsrfToken;
+                const res = await fetch(collabUrls.create, { method: 'POST', headers, body: JSON.stringify(payload) });
+                if (!res.ok) throw new Error((await res.text()) || 'Lỗi tạo phòng');
+                const data = await res.json();
+                window.location.href = collabUrls.viewTemplate.replace('__ROOM_CODE__', encodeURIComponent(data.room.room_code));
+            } catch (err) {
+                feedback.textContent = err.message;
+                feedback.className = "mt-2 text-sm text-center text-rose-600";
+            }
+        });
+
+        // 7. Set Search in Modal
+        document.getElementById('collab-set-search')?.addEventListener('input', (e) => {
+            clearTimeout(collabState.searchSetTimeout);
+            collabState.searchSetTimeout = setTimeout(() => loadCollabSets(e.target.value.trim()), 300);
+        });
+    });
+
+    // Helpers (Copy, Join, LoadSets...) - Giữ nguyên logic cũ
+    function handleCopyRoomCode(code) {
+        navigator.clipboard.writeText(code);
+        if (window.showFlashMessage) window.showFlashMessage('Đã sao chép mã: ' + code, 'success');
+    }
+
+    async function joinCollabRoom(code, feedbackEl, options = {}) {
+        // ... (Giữ nguyên logic join cũ)
+        if (!code) return;
+        const joinUrl = collabUrls.joinTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
+        const viewUrl = collabUrls.viewTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
+        try {
+            const headers = {};
+            if (collabCsrfToken) headers['X-CSRFToken'] = collabCsrfToken;
+            const res = await fetch(joinUrl, { method: 'POST', headers, credentials: 'same-origin' });
+            if (!res.ok) throw new Error((await res.text()) || 'Không thể tham gia phòng');
+        } catch (err) {
+            if (window.showFlashMessage) window.showFlashMessage(err.message || 'Không thể tham gia phòng', 'warning');
+        } finally {
+            if (options.redirectToRoom) window.location.href = viewUrl;
+        }
+    }
+
+    function selectCollabSet(id, title) {
+        collabState.selectedSetId = id;
+        document.getElementById('collab-selected-container-id').value = id;
+        document.getElementById('create-set-preview').innerHTML = `Bộ thẻ: <span class="font-bold text-emerald-600">${title}</span>`;
+        // Visual Update Grid
+        const items = document.getElementById('collab-set-grid').children;
+        for (let item of items) {
+            if (item.innerHTML.includes(title)) { // Simple check
+                item.className = "p-3 rounded-lg border cursor-pointer transition-all border-blue-500 bg-blue-50";
+            } else {
+                item.className = "p-3 rounded-lg border cursor-pointer transition-all border-slate-200 bg-white hover:border-blue-300";
+            }
+        }
+    }
+
+    async function loadCollabSets(query = '') {
+        const grid = document.getElementById('collab-set-grid');
+        if (query) grid.innerHTML = '<p class="text-center text-slate-400 py-8 text-xs"><i class="fas fa-spinner fa-spin"></i></p>';
+        try {
+            const url = query ? `${collabUrls.sets}?q=${encodeURIComponent(query)}` : collabUrls.sets;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            const containers = data.containers || [];
+
+            if (!containers.length) {
+                grid.innerHTML = `<div class="text-center text-slate-400 py-4 text-xs">Không tìm thấy bộ thẻ.</div>`;
+                return;
+            }
+
+            grid.innerHTML = containers.map(c => `
             <div class="p-3 rounded-lg border border-slate-200 bg-white hover:border-blue-300 cursor-pointer transition-all"
                  onclick="selectCollabSet('${c.container_id}', '${c.title.replace(/'/g, "\\'")}')">
                 <div class="flex justify-between items-start gap-2">
@@ -616,8 +965,8 @@ async function loadCollabSets(query='') {
                 </div>
             </div>
         `).join('');
-    } catch {
-        grid.innerHTML = `<p class="text-center text-rose-400 py-4 text-xs">Lỗi tải dữ liệu.</p>`;
+        } catch {
+            grid.innerHTML = `<p class="text-center text-rose-400 py-4 text-xs">Lỗi tải dữ liệu.</p>`;
+        }
     }
-}
 </script>
