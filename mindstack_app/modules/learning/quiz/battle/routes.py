@@ -33,7 +33,7 @@ from .services import (
     start_round,
 )
 
-quiz_battle_bp = Blueprint('quiz_battle', __name__, template_folder='../templates')
+quiz_battle_bp = Blueprint('quiz_battle', __name__, template_folder='templates')
 
 
 @quiz_battle_bp.route('/')
