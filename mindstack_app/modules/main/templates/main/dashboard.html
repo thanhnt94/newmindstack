@@ -84,7 +84,6 @@
 
             <!-- CỘT PHẢI -->
             <section class="space-y-6 h-full flex flex-col">
-                <!-- SỬA: chỉ bật overflow/height “kỹ thuật” ở lg trở lên -->
                 <div class="bg-slate-900 text-white rounded-3xl p-8 shadow-lg space-y-6 flex flex-col lg:flex-grow lg:overflow-hidden">
                     <div class="flex items-start justify-between gap-4 flex-shrink-0">
                         <div>
@@ -96,13 +95,7 @@
                         </a>
                     </div>
 
-                    <!-- SỬA QUAN TRỌNG:
-                         - Mobile: overflow-visible, h-auto, min-h để luôn thấy nội dung
-                         - Desktop (lg+): overflow-y-auto + flex-grow + h-0 để có vùng cuộn đẹp
-                    -->
-                    <div class="space-y-4 pr-2 min-h-[180px] custom-scrollbar-dark
-                                overflow-visible h-auto
-                                lg:overflow-y-auto lg:flex-grow lg:h-0">
+                    <div class="space-y-4 pr-2 min-h-[180px] custom-scrollbar-dark overflow-visible h-auto lg:overflow-y-auto lg:flex-grow lg:h-0">
                         {% for goal in goal_progress %}
                             <div class="rounded-2xl bg-white/10 hover:bg-white/15 transition-all p-4 flex-shrink-0">
                                 <div class="flex flex-col gap-4">
@@ -153,7 +146,7 @@
             </section>
         </div>
 
-        <!-- PHẦN DƯỚI: giữ nguyên -->
+        <!-- PHẦN DƯỚI -->
         <section class="grid gap-6 xl:grid-cols-3 items-start">
             <div class="xl:col-span-2 space-y-6">
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
