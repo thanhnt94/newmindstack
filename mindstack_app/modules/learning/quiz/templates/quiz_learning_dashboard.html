@@ -1,6 +1,6 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/quiz/templates/quiz_learning_dashboard.html #}
-{# Phiên bản: 3.0 (Restored with both tabs) #}
+{# Phiên bản: 2.1 (Fix TemplateNotFound) #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -8,96 +8,43 @@
 {% block title %}Học Quiz - MindStack{% endblock %}
 
 {% block head %}
-{{ super() }}
-<style>
-    body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f9fafb;
-    }
-
-    /* === Styles dùng chung === */
-    .quiz-title-wrapper {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 2rem;
-        width: 100%;
-    }
-
-    .quiz-title-badge {
-        width: 100%;
-        max-width: 100%;
-        background: #e0f2fe;
-        color: #1e3a8a;
-        font-size: 2rem;
-        font-weight: 800;
-        padding: 0.75rem 2.5rem;
-        border-radius: 9999px;
-        border: 2px solid #bfdbfe;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-        letter-spacing: 0.05em;
-        transition: all .3s ease;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .quiz-title-badge .fa-question-circle {
-        margin-right: .75rem;
-        font-size: 2.25rem;
-    }
-
-    .quiz-title-badge:hover {
-        box-shadow: 0 6px 14px rgba(30, 58, 138, 0.20);
-        border-color: #60a5fa;
-        transform: translateY(-2px);
-    }
-
-    .study-mode-tabs {
-        display: inline-flex;
-        background: #e5e7eb;
-        border-radius: 9999px;
-        padding: 0.25rem;
-        gap: 0.25rem;
-    }
-
-    .study-mode-tab {
-        padding: 0.5rem 1rem;
-        border-radius: 9999px;
-        font-weight: 600;
-        color: #4b5563;
-        border: 1px solid transparent;
-        background: transparent;
-        transition: all 0.2s ease-in-out;
-    }
-
-    .study-mode-tab.active {
-        background: #ffffff;
-        color: #1d4ed8;
-        border-color: #bfdbfe;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.06);
-    }
-
-    /* Responsive */
-    @media (max-width: 639px) {
-        .container {
-            padding: 0.5rem;
-        }
-
-        .quiz-title-wrapper {
-            margin-bottom: 1rem;
-        }
-
+    {{ super() }}
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
+        
+        /* === Styles dùng chung === */
+        .quiz-title-wrapper { display: flex; justify-content: center; margin-bottom: 2rem; width: 100%; }
         .quiz-title-badge {
-            font-size: 1.25rem;
-            padding: 0.5rem 1rem;
+            width: 100%; max-width: 100%; background: #e0f2fe; color: #1e3a8a;
+            font-size: 2rem; font-weight: 800; padding: 0.75rem 2.5rem;
+            border-radius: 9999px; border: 2px solid #bfdbfe;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            letter-spacing: 0.05em; transition: all .3s ease;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .quiz-title-badge .fa-question-circle { margin-right: .75rem; font-size: 2.25rem; }
+        .quiz-title-badge:hover {
+            box-shadow: 0 6px 14px rgba(30,58,138,0.20);
+            border-color: #60a5fa; transform: translateY(-2px);
         }
 
-        .quiz-title-badge .fa-question-circle {
-            font-size: 1.5rem;
-            margin-right: 0.5rem;
+        .study-mode-tabs { display: inline-flex; background: #e5e7eb; border-radius: 9999px; padding: 0.25rem; gap: 0.25rem; }
+        .study-mode-tab {
+            padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 600; color: #4b5563;
+            border: 1px solid transparent; background: transparent; transition: all 0.2s ease-in-out;
         }
-    }
-</style>
+        .study-mode-tab.active {
+            background: #ffffff; color: #1d4ed8; border-color: #bfdbfe; box-shadow: 0 4px 6px rgba(0,0,0,0.06);
+        }
+
+        /* Responsive */
+        @media (max-width: 639px) {
+            .container { padding: 0.5rem; }
+            .quiz-title-wrapper { margin-bottom: 1rem; }
+            .quiz-title-badge { font-size: 1.25rem; padding: 0.5rem 1rem; }
+            .quiz-title-badge .fa-question-circle { font-size: 1.5rem; margin-right: 0.5rem; }
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -110,8 +57,7 @@
 
     <div class="flex justify-center mb-6">
         <div class="study-mode-tabs" role="tablist" aria-label="Chế độ học quiz">
-            <button class="study-mode-tab active" data-study-tab="solo" role="tab" aria-selected="true">Học 1
-                mình</button>
+            <button class="study-mode-tab active" data-study-tab="solo" role="tab" aria-selected="true">Học 1 mình</button>
             <button class="study-mode-tab" data-study-tab="group" role="tab" aria-selected="false">Thi đấu nhóm</button>
         </div>
     </div>
@@ -124,14 +70,14 @@
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
-<script>
+    {{ super() }}
+    <script>
     console.log('>>> quiz/dashboard.js: init');
-
+    
     const studyModeTabs = document.querySelectorAll('[data-study-tab]');
     const soloSection = document.getElementById('quiz-solo-section');
     const groupSection = document.getElementById('quiz-group-section');
-
+    
     studyModeTabs.forEach((tab) => {
         tab.addEventListener('click', () => {
             const selectedMode = tab.dataset.studyTab;
@@ -145,12 +91,12 @@
             });
 
             if (selectedMode === 'solo') {
-                if (soloSection) soloSection.classList.remove('hidden');
-                if (groupSection) groupSection.classList.add('hidden');
+                if(soloSection) soloSection.classList.remove('hidden');
+                if(groupSection) groupSection.classList.add('hidden');
                 if (typeof updateActionButtons === 'function') updateActionButtons();
             } else {
-                if (soloSection) soloSection.classList.add('hidden');
-                if (groupSection) groupSection.classList.remove('hidden');
+                if(soloSection) soloSection.classList.add('hidden');
+                if(groupSection) groupSection.classList.remove('hidden');
                 // Init Battle nếu cần
                 if (typeof initGroupBattleDeck === 'function' && !window.groupBattleInitialized) {
                     initGroupBattleDeck();
@@ -159,6 +105,5 @@
             }
         });
     });
-
-</script>
+    </script>
 {% endblock %}
