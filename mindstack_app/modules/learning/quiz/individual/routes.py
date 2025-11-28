@@ -3,10 +3,13 @@
 # MỤC ĐÍCH: Cập nhật logic để sử dụng model QuizProgress mới thay cho UserProgress.
 # ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress trong các hàm truy vấn.
 
+import os
+
 from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
 import traceback
 from typing import Optional
+from jinja2 import ChoiceLoader, FileSystemLoader
 from .algorithms import (
     get_new_only_items,
     get_reviewed_items,
@@ -34,6 +37,22 @@ from mindstack_app.modules.shared.utils.media_paths import build_relative_media_
 
 quiz_learning_bp = Blueprint(
     'quiz_learning', __name__, template_folder='templates'
+)
+
+_individual_templates_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
+_shared_quiz_templates_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'templates')
+)
+_battle_templates_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'battle', 'templates')
+)
+
+quiz_learning_bp.jinja_loader = ChoiceLoader(
+    [
+        FileSystemLoader(_individual_templates_path),
+        FileSystemLoader(_shared_quiz_templates_path),
+        FileSystemLoader(_battle_templates_path),
+    ]
 )
 
 
