@@ -86,4 +86,5 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.shared", "shared_bp", version="1.0"),
     ModuleDefinition("mindstack_app.modules.stats.routes", "stats_bp", url_prefix="/stats", version="1.0"),
     ModuleDefinition("mindstack_app.modules.feedback", "feedback_bp", url_prefix="/feedback", version="1.0"),
+    ModuleDefinition("mindstack_app.modules.telegram_bot", "telegram_bot_bp", url_prefix="/telegram", version="1.0"),
 )

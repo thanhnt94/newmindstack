@@ -195,6 +195,8 @@ def _parse_setting_value(raw_value: str | None, data_type: str, *, key: str) -> 
         return str(value_to_use).strip().lower() in {"1", "true", "yes", "on", "bật", "bat"}
 
     if normalized_type == "int":
+        if not value_to_use:
+            return 0
         try:
             return int(str(value_to_use).strip())
         except ValueError as exc:  # pragma: no cover - validation
@@ -1106,45 +1108,23 @@ def stop_task(task_id):
         return jsonify({'success': True, 'message': 'Yêu cầu dừng đã được gửi.'})
     return jsonify({'success': False, 'message': 'Tác vụ không chạy.'})
 
-@admin_bp.route('/settings', methods=['GET', 'POST'])
+@admin_bp.route('/settings', methods=['GET'])
 def manage_system_settings():
     """
     Mô tả: Quản lý các cài đặt hệ thống (ví dụ: chế độ bảo trì).
     """
-    if request.method == 'POST':
-        maintenance_mode = 'maintenance_mode' in request.form
-
-        setting = SystemSetting.query.filter_by(key='system_status').first()
-        previous_value = setting.value.copy() if setting and hasattr(setting.value, "copy") else setting.value if setting else None
-        if setting:
-            setting.value['maintenance_mode'] = maintenance_mode
-            setting.data_type = 'bool'
-            flag_modified(setting, 'value')
-        else:
-            setting = SystemSetting(
-                key='system_status', value={'maintenance_mode': maintenance_mode}, data_type='bool'
-            )
-            db.session.add(setting)
-
-        db.session.commit()
-        _log_setting_change(
-            "update", key="system_status", old_value=previous_value, new_value=setting.value
-        )
-        _refresh_runtime_settings()
-        flash('Cài đặt hệ thống đã được cập nhật thành công!', 'success')
-        return redirect(url_for('admin.manage_system_settings'))
-
-    # Lấy trạng thái hiện tại
     system_status_setting = SystemSetting.query.filter_by(key='system_status').first()
     maintenance_mode = False
     if system_status_setting and isinstance(system_status_setting.value, dict):
         maintenance_mode = system_status_setting.value.get('maintenance_mode', False)
         
+    telegram_token_setting = SystemSetting.query.filter_by(key='telegram_bot_token').first()
+
     raw_settings = SystemSetting.query.order_by(SystemSetting.key.asc()).all()
     settings = [
         setting
         for setting in raw_settings
-        if not _is_sensitive_setting(setting.key) and setting.key not in CORE_SETTING_KEYS
+        if not _is_sensitive_setting(setting.key) and setting.key not in CORE_SETTING_KEYS and setting.key != 'telegram_bot_token'
     ]
     data_type_options = ['string', 'int', 'bool', 'path', 'json']
     category_order = ['paths', 'flashcard', 'quiz', 'course', 'other']
@@ -1159,6 +1139,7 @@ def manage_system_settings():
     return render_template(
         'system_settings.html',
         maintenance_mode=maintenance_mode,
+        telegram_token_setting=telegram_token_setting,
         core_settings=_get_core_settings(),
         settings_by_category=_categorize_settings(settings),
         category_order=category_order,
@@ -1167,6 +1148,61 @@ def manage_system_settings():
         users=users,
         quiz_sets=quiz_sets,
     )
+
+@admin_bp.route('/settings', methods=['POST'])
+def save_maintenance_mode():
+    """Lưu chế độ bảo trì."""
+    maintenance_mode = 'maintenance_mode' in request.form
+
+    setting = SystemSetting.query.filter_by(key='system_status').first()
+    previous_value = setting.value.copy() if setting and isinstance(setting.value, dict) else setting.value if setting else None
+    if setting:
+        setting.value['maintenance_mode'] = maintenance_mode
+        setting.data_type = 'json' # Changed to JSON to correctly store dict
+        flag_modified(setting, 'value')
+    else:
+        setting = SystemSetting(
+            key='system_status', value={'maintenance_mode': maintenance_mode}, data_type='json'
+        )
+        db.session.add(setting)
+
+    db.session.commit()
+    _log_setting_change(
+        "update", key="system_status", old_value=previous_value, new_value=setting.value
+    )
+    _refresh_runtime_settings()
+    flash('Cài đặt hệ thống đã được cập nhật thành công!', 'success')
+    return redirect(url_for('admin.manage_system_settings'))
+
+
+@admin_bp.route('/settings/telegram-token', methods=['POST'])
+def save_telegram_token():
+    """Lưu Telegram Bot Token."""
+    token_value = (request.form.get('value') or '').strip()
+    
+    setting = SystemSetting.query.filter_by(key='telegram_bot_token').first()
+    old_value = setting.value if setting else None
+
+    if setting:
+        setting.value = token_value
+        setting.data_type = 'string'
+        flag_modified(setting, 'value')
+    else:
+        setting = SystemSetting(
+            key='telegram_bot_token',
+            value=token_value,
+            data_type='string',
+            description='Telegram Bot API Token để gửi tin nhắn nhắc nhở.'
+        )
+        db.session.add(setting)
+    
+    db.session.commit()
+    _log_setting_change(
+        "update", key="telegram_bot_token", old_value=old_value, new_value=token_value
+    )
+    _refresh_runtime_settings()
+    flash('Telegram Bot Token đã được lưu thành công!', 'success')
+    return redirect(url_for('admin.manage_system_settings'))
 
 
 @admin_bp.route('/settings/core', methods=['POST'])

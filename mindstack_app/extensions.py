@@ -7,6 +7,7 @@ simpler to reuse the same initialization logic across blueprints and services.
 
 from flask_login import LoginManager
 from flask_wtf import CSRFProtect
+from flask_apscheduler import APScheduler
 
 from .db_instance import db
 
@@ -16,5 +17,6 @@ login_manager.login_message = "Vui lòng đăng nhập để truy cập trang n�
 login_manager.login_message_category = "info"
 
 csrf_protect = CSRFProtect()
+scheduler = APScheduler()
 
-__all__ = ["db", "login_manager", "csrf_protect"]
+__all__ = ["db", "login_manager", "csrf_protect", "scheduler"]

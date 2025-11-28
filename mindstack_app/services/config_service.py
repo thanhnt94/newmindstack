@@ -72,16 +72,23 @@ class ConfigService:
                 return bool(raw_value)
 
             if data_type == "int":
+                if raw_value == '' or raw_value is None:
+                    return 0
                 return int(raw_value)
 
             if data_type == "path" and isinstance(raw_value, str):
                 return os.path.abspath(raw_value)
         except (TypeError, ValueError):
             current_app.logger.warning(
-                "Không thể chuyển đổi giá trị của %s về kiểu %s, dùng giá trị gốc.",
+                "Không thể chuyển đổi giá trị của %s ('%s') về kiểu %s, dùng giá trị mặc định an toàn.",
                 setting.key,
+                raw_value,
                 data_type,
             )
+            if data_type == 'int':
+                return 0
+            if data_type == 'bool':
+                return False
 
         return raw_value
 

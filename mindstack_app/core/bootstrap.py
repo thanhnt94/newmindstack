@@ -12,7 +12,7 @@ from flask_login import current_user
 from sqlalchemy import inspect, or_, text
 
 from ..config import BASE_DIR
-from ..extensions import csrf_protect, db, login_manager
+from ..extensions import csrf_protect, db, login_manager, scheduler
 from ..modules.shared.utils.bbcode_parser import bbcode_to_html
 from .module_registry import register_default_modules
 
@@ -38,6 +38,33 @@ def register_extensions(app: Flask) -> None:
     db.init_app(app)
     login_manager.init_app(app)
     csrf_protect.init_app(app)
+
+    # Scheduler Configuration
+    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        from apscheduler.schedulers import SchedulerAlreadyRunningError
+        try:
+            scheduler.init_app(app)
+            if not scheduler.running:
+                scheduler.start()
+            
+            try:
+                from ..modules.telegram_bot.tasks import send_daily_study_reminder
+                if not scheduler.get_job('telegram_daily_reminder'):
+                    scheduler.add_job(
+                        id='telegram_daily_reminder',
+                        func=send_daily_study_reminder,
+                        trigger='cron',
+                        hour=7,
+                        minute=0,
+                        replace_existing=True
+                    )
+                    app.logger.info("Đã đăng ký job Telegram Reminder (7:00 AM).")
+            except ImportError:
+                app.logger.warning("Module telegram_bot chưa sẵn sàng hoặc bị lỗi import.")
+        except SchedulerAlreadyRunningError:
+            app.logger.info("Scheduler đã chạy, bỏ qua khởi tạo lại.")
+        except Exception as e:
+            app.logger.error(f"Lỗi khởi tạo Scheduler: {e}")
 
 
 def configure_static_uploads(app: Flask) -> None:

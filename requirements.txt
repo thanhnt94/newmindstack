@@ -34,6 +34,7 @@ google-generativeai>=0.3 # Thư viện để tương tác với Google Gemini AP
 Jinja2>=3.0 # Engine template cho Flask
 itsdangerous>=2.0 # Dùng để ký dữ liệu an toàn trong Flask
 click>=8.0 # Dùng để tạo các lệnh command-line cho Flask
+Flask-APScheduler>=1.12 # Dùng để lập lịch các tác vụ định kỳ (như gửi nhắc nhở Telegram)
 
 # --- Tự động tìm kiếm và tải hình ảnh ---
 ddgs>=5.3.0
