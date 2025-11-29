@@ -1688,7 +1688,8 @@
       const renderRound = (roundPayload) => {
         currentRound = roundPayload;
         const { item, participants = [], all_answered: allAnswered, status } = roundPayload;
-        const buttonCount = Number(roundPayload?.button_count || roomButtonCount) || roomButtonCount;
+        // Use button count from the round payload, fallback to room default
+        const buttonCount = Number(roundPayload?.button_count || roomButtonCount) || 3;
         renderAnswerButtons(buttonCount);
 
         const itemId = item?.item_id || null;

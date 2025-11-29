@@ -22,6 +22,7 @@ from .....models import (
 from ..individual.algorithms import get_accessible_flashcard_set_ids
 from ..individual.config import FlashcardLearningConfig
 from ..individual.flashcard_logic import process_flashcard_answer
+from .flashcard_collab_logic import calculate_room_srs, process_collab_flashcard_answer
 from .services import build_round_payload, ensure_active_round, generate_room_code, serialize_room
 
 flashcard_collab_bp = Blueprint(
@@ -237,19 +238,24 @@ def join_room(room_code: str):
 @flashcard_collab_bp.route('/rooms/<room_code>/next-card', methods=['GET'])
 @login_required
 def get_next_card(room_code: str):
-    room = FlashcardCollabRoom.query.filter_by(room_code=room_code).first()
-    if not room:
-        abort(404, description='Không tìm thấy phòng học chung.')
+    try:
+        room = FlashcardCollabRoom.query.filter_by(room_code=room_code).first()
+        if not room:
+            abort(404, description='Không tìm thấy phòng học chung.')
 
-    active_round = ensure_active_round(room)
-    if not active_round:
-        abort(404, description='Không tìm thấy thẻ phù hợp cho phòng này.')
+        active_round = ensure_active_round(room)
+        if not active_round:
+            abort(404, description='Không tìm thấy thẻ phù hợp cho phòng này.')
 
-    payload = build_round_payload(active_round, room)
-    if not payload:
-        abort(404, description='Không tìm thấy thẻ phù hợp cho phòng này.')
+        payload = build_round_payload(active_round, room)
+        if not payload:
+            abort(404, description='Không tìm thấy thẻ phù hợp cho phòng này.')
 
-    return jsonify(payload)
+        return jsonify(payload)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 def _map_answer_to_quality(raw_answer: str, button_count: int | None) -> int | None:
@@ -264,7 +270,12 @@ def _map_answer_to_quality(raw_answer: str, button_count: int | None) -> int | N
     elif button_count == 6:
         mapping = {'fail': 0, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 4, 'very_easy': 5}
     else:
-        mapping = {'quên': 0, 'mơ_hồ': 3, 'nhớ': 5}
+        # Default 3 buttons: Support both Vietnamese and English
+        mapping = {
+            'quên': 0, 'again': 0, 'fail': 0,
+            'mơ_hồ': 3, 'hard': 3,
+            'nhớ': 5, 'good': 5, 'easy': 5
+        }
 
     return mapping.get(normalized)
 
@@ -301,21 +312,23 @@ def submit_collab_answer(room_code: str):
     if not room:
         abort(404, description='Không tìm thấy phòng học chung.')
 
-    participant = FlashcardCollabParticipant.query.filter_by(
-        room_id=room.room_id, user_id=current_user.user_id
-    ).first()
-    if not participant or participant.status != FlashcardCollabParticipant.STATUS_ACTIVE:
-        abort(403, description='Bạn không có quyền trả lời trong phòng này.')
-
     payload = request.get_json(silent=True) or {}
     item_id = payload.get('item_id')
     answer_label = payload.get('answer')
     answer_quality = payload.get('answer_quality')
 
-    try:
-        item_id = int(item_id)
-    except (TypeError, ValueError):
-        abort(400, description='Thiếu thông tin thẻ cần trả lời.')
+    participant = FlashcardCollabParticipant.query.filter_by(
+        room_id=room.room_id, user_id=current_user.user_id
+    ).first()
+
+    if not participant:
+        abort(403, description='Bạn chưa tham gia phòng này.')
+
+    if item_id is not None:
+        try:
+            item_id = int(item_id)
+        except (ValueError, TypeError):
+            pass
 
     active_round = ensure_active_round(room)
     if not active_round or active_round.item_id != item_id:
@@ -331,12 +344,14 @@ def submit_collab_answer(room_code: str):
         button_count = getattr(room, 'button_count', None) or participant.user.flashcard_button_count
         answer_quality = _map_answer_to_quality(answer_label, button_count)
 
-    score_change, updated_total_score, answer_result, progress_status, item_stats = process_flashcard_answer(
+    if answer_quality is None:
+        abort(400, description='Câu trả lời không hợp lệ.')
+
+    # Sử dụng process_collab_flashcard_answer thay vì process_flashcard_answer
+    score_change, updated_total_score, answer_result, progress_status, item_stats = process_collab_flashcard_answer(
         current_user.user_id,
         item_id,
-        answer_quality,
-        getattr(current_user, 'total_score', 0) or 0,
-        mode=room.mode,
+        answer_quality
     )
 
     existing_answer = FlashcardCollabAnswer.query.filter_by(
@@ -374,6 +389,9 @@ def submit_collab_answer(room_code: str):
     }
 
     if active_participant_ids and answered_user_ids >= active_participant_ids:
+        # THÊM MỚI: Tính toán SRS cho phòng trước khi đóng round
+        calculate_room_srs(room.room_id, active_round.round_id)
+        
         active_round.status = FlashcardCollabRound.STATUS_COMPLETED
         active_round.completed_at = now
         room.updated_at = now

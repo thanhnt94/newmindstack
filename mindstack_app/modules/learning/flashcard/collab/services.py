@@ -181,24 +181,35 @@ def _pick_next_item_for_user(user_id: int, container_id: int, mode: str) -> Opti
 
 
 def _select_next_item(room: FlashcardCollabRoom) -> Optional[tuple[LearningItem, int, datetime]]:
-    """Select the next flashcard item shared across participants."""
+    """Select the next flashcard item shared across participants (Randomly from Container)."""
 
-    candidates: list[tuple[LearningItem, int, datetime]] = []
-    for participant in room.participants:
-        if participant.status != FlashcardCollabParticipant.STATUS_ACTIVE:
-            continue
-        item = _pick_next_item_for_user(participant.user_id, room.container_id, room.mode)
-        if not item:
-            continue
-        progress = FlashcardProgress.query.filter_by(user_id=participant.user_id, item_id=item.item_id).first()
-        due_time = _normalize_due_time(progress.due_time if progress else None)
-        candidates.append((item, participant.user_id, due_time))
+    # Lấy danh sách ID của tất cả các thẻ Flashcard trong container
+    item_ids = [
+        item.item_id for item in db.session.query(LearningItem.item_id).filter_by(
+            container_id=room.container_id,
+            item_type='FLASHCARD'
+        ).all()
+    ]
 
-    if not candidates:
+    if not item_ids:
         return None
 
-    candidates.sort(key=lambda item_tuple: (item_tuple[2], item_tuple[0].item_id))
-    next_item, scheduled_for_user_id, due_time = candidates[0]
+    # Chọn ngẫu nhiên một ID
+    random_item_id = random.choice(item_ids)
+    
+    # Lấy đối tượng LearningItem đầy đủ
+    next_item = LearningItem.query.get(random_item_id)
+
+    if not next_item:
+        return None
+
+    # Trong chế độ này, không có user cụ thể nào "sở hữu" lượt due này,
+    # và thời gian due cũng không quan trọng.
+    # Gán tạm host_user_id làm người được schedule (hoặc None nếu model cho phép)
+    # và due_time là hiện tại.
+    scheduled_for_user_id = room.host_user_id
+    due_time = datetime.now(timezone.utc)
+
     return next_item, scheduled_for_user_id, due_time
 
 
@@ -233,16 +244,23 @@ def ensure_active_round(room: FlashcardCollabRoom) -> Optional[FlashcardCollabRo
         return None
 
     next_item, scheduled_for_user_id, due_time = selection
-    active_round = FlashcardCollabRound(
-        room_id=room.room_id,
-        item_id=next_item.item_id,
-        status=FlashcardCollabRound.STATUS_ACTIVE,
-        scheduled_for_user_id=scheduled_for_user_id,
-        scheduled_due_at=due_time,
-    )
-    db.session.add(active_round)
-    db.session.commit()
-    return active_round
+    
+    try:
+        active_round = FlashcardCollabRound(
+            room_id=room.room_id,
+            item_id=next_item.item_id,
+            status=FlashcardCollabRound.STATUS_ACTIVE,
+            scheduled_for_user_id=scheduled_for_user_id,
+            scheduled_due_at=due_time,
+        )
+        db.session.add(active_round)
+        db.session.commit()
+        return active_round
+    except Exception as e:
+        db.session.rollback()
+        # Log the error for debugging (in a real app, use current_app.logger)
+        print(f"Error creating active round: {e}")
+        return None
 
 
 def build_round_payload(round_obj: FlashcardCollabRound, room: FlashcardCollabRoom) -> Optional[dict[str, object]]:

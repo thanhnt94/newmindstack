@@ -9,6 +9,7 @@ from .flashcard_collab import (
     FlashcardCollabParticipant,
     FlashcardCollabRoom,
     FlashcardCollabRound,
+    FlashcardRoomProgress,
 )
 from .quiz_battle import (
     QuizBattleAnswer,
@@ -41,6 +42,7 @@ __all__ = [
     'FlashcardCollabParticipant',
     'FlashcardCollabRoom',
     'FlashcardCollabRound',
+    'FlashcardRoomProgress',
     'QuizBattleAnswer',
     'QuizBattleMessage',
     'QuizBattleParticipant',

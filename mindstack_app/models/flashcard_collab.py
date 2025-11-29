@@ -36,6 +36,10 @@ class FlashcardCollabRoom(db.Model):
     rounds = db.relationship(
         'FlashcardCollabRound', backref='room', cascade='all, delete-orphan', lazy=True
     )
+    # Relationship to track room-specific SRS progress
+    room_progress = db.relationship(
+        'FlashcardRoomProgress', backref='room', cascade='all, delete-orphan', lazy=True
+    )
 
 
 class FlashcardCollabParticipant(db.Model):
@@ -112,3 +116,25 @@ class FlashcardCollabAnswer(db.Model):
     user = db.relationship('User', backref='flashcard_collab_answers', foreign_keys=[user_id])
 
     __table_args__ = (db.UniqueConstraint('round_id', 'user_id', name='uq_flashcard_collab_answer'),)
+
+
+class FlashcardRoomProgress(db.Model):
+    """
+    Tracks SRS progress for a specific ITEM within a specific ROOM.
+    This allows the room to have its own 'memory' independent of users.
+    """
+    __tablename__ = 'flashcard_room_progress'
+
+    progress_id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('flashcard_collab_rooms.room_id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
+    
+    # SRS Fields (Simplified compared to individual progress)
+    status = db.Column(db.String(20), default='new', nullable=False) # new, learning, reviewing
+    due_time = db.Column(db.DateTime(timezone=True), nullable=True)
+    interval = db.Column(db.Integer, default=0) # In minutes
+    easiness_factor = db.Column(db.Float, default=2.5)
+    repetitions = db.Column(db.Integer, default=0)
+    last_reviewed = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (db.UniqueConstraint('room_id', 'item_id', name='uq_flashcard_room_progress'),)
