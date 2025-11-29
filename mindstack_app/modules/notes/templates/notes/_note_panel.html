@@ -45,6 +45,26 @@
         font-weight: 700;
         color: #111827;
     }
+    .note-panel__header-actions { /* New class for the button group */
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .note-panel__edit-btn { /* Style for the new edit button in header */
+        background: #e0f2fe; /* Light blue background */
+        color: #0d6efd; /* Darker blue text */
+        border: 1px solid #bfdbfe; /* Light blue border */
+        padding: 0.4rem 0.8rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .note-panel__edit-btn:hover {
+        background: #c7e5ff;
+        border-color: #92c5fd;
+    }
     .note-panel__close {
         background: transparent;
         border: none;
@@ -96,17 +116,18 @@
     <div class="note-panel__dialog" role="dialog" aria-labelledby="note-panel-title">
         <div class="note-panel__header">
             <h3 id="note-panel-title" class="note-panel__title">Ghi chú cá nhân</h3>
-            <button id="close-note-btn" class="note-panel__close" aria-label="Đóng">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="note-panel__header-actions">
+                <button id="edit-note-btn" class="note-panel__edit-btn hidden">
+                    <i class="fas fa-pencil-alt mr-1"></i> Sửa
+                </button>
+                <button id="close-note-btn" class="note-panel__close" aria-label="Đóng">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         <div class="note-panel__body">
             <div id="note-view-section" class="note-view hidden">
                 <div id="note-display" class="whitespace-pre-line text-gray-800"></div>
-                <div class="note-actions justify-between">
-                    <span class="text-sm text-gray-500">Chạm "Sửa" để cập nhật ghi chú.</span>
-                    <button id="edit-note-btn" class="px-3 py-2 bg-blue-50 text-blue-700 rounded-md text-sm border border-blue-100">Sửa</button>
-                </div>
             </div>
             <div id="note-edit-section" class="note-edit">
                 <textarea id="note-textarea" class="note-textarea" placeholder="Nhập ghi chú của bạn ở đây..."></textarea>
