@@ -240,236 +240,341 @@
       text-align: left;
     }
 
-    /* --- 5. RIGHT COLUMN: SIDEBAR (Quan trọng) --- */
+    .back .text-area .flashcard-content-text {
+      text-align: left;
+    }
+
+    /* --- 5. RIGHT COLUMN: SIDEBAR (MODERN REDESIGN) --- */
     .session-sidebar {
       display: flex;
       flex-direction: column;
-      gap: 0.55rem;
-      height: 100%; /* Fill chiều cao lưới cha */
-      min-height: 0; /* Fix flex overflow */
-      overflow: hidden; /* Chặn scroll tổng sidebar */
+      height: 100%;
+      min-height: 0;
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.05);
+      overflow: hidden;
     }
 
-    .sidebar-card {
-      padding: 0.85rem 0.95rem;
-      display: flex; flex-direction: column; gap: 0.6rem;
-      flex-shrink: 0; /* Info cards không bị bóp méo */
+    .modern-sidebar {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
 
-    .room-meta-card {
-      gap: 0.35rem;
+    /* Header Compact */
+    .sidebar-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #f1f5f9;
+      background: #ffffff;
+      flex-shrink: 0;
     }
 
-    .room-meta-pills {
-      gap: 0.3rem;
-      row-gap: 0.25rem;
+    .room-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
     }
 
-    .room-meta-pills .pill {
-      padding: 0.3rem 0.5rem;
+    .room-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .room-code-badge {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .room-code-badge:hover { background: #e2e8f0; color: #0f172a; }
+
+    .room-subtitle {
       font-size: 0.8rem;
-      line-height: 1.1;
-    }
-
-    .room-actions {
+      color: #64748b;
       display: flex;
       align-items: center;
-      gap: 0.35rem;
+      gap: 0.5rem;
     }
 
-    .room-actions .icon-ghost {
-      height: 34px;
-      min-width: 34px;
-      padding: 0 0.65rem;
-      border-radius: 0.65rem;
-      border: 1px solid #e2e8f0;
-      background: #fff;
-      color: #0f172a;
-      font-size: 0.8rem;
+    /* Tabs */
+    .sidebar-tabs {
+      display: flex;
+      padding: 0.25rem 1.25rem 0;
+      border-bottom: 1px solid #e2e8f0;
+      background: #ffffff;
+      gap: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 0.75rem 0;
+      font-size: 0.9rem;
       font-weight: 600;
-      display: inline-flex;
+      color: #64748b;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .tab-btn:hover { color: #334155; }
+    .tab-btn.active { color: #4f46e5; }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #4f46e5;
+      border-radius: 2px 2px 0 0;
+    }
+
+    /* Content Area */
+    .sidebar-content-area {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: #f8fafc;
+    }
+
+    .tab-pane {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+    }
+
+    .tab-pane.active {
+      display: flex;
+    }
+
+    /* Chat Specifics Overrides */
+    .chat-box-integrated {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+
+    .chat-messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem; /* Reduced gap for grouped messages feel */
+    }
+
+    /* Messenger Style */
+    .chat-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      width: 100%;
+    }
+
+    .chat-row.me {
+      justify-content: flex-end;
+    }
+
+    .chat-row.other {
+      justify-content: flex-start;
+    }
+
+    .chat-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #64748b;
+      display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
-      transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      user-select: none;
     }
 
-    .room-actions .icon-ghost:hover {
-      background: #f8fafc;
-      border-color: #cbd5e1;
+    .chat-bubble-modern {
+      max-width: 75%;
+      padding: 0.6rem 0.9rem;
+      border-radius: 18px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      position: relative;
+      word-break: break-word;
+    }
+
+    .chat-row.me .chat-bubble-modern {
+      background: #4f46e5; /* Indigo 600 */
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-row.other .chat-bubble-modern {
+      background: #f1f5f9; /* Slate 100 */
       color: #1e293b;
+      border-bottom-left-radius: 4px;
     }
 
-    .status-compact {
-      gap: 0.4rem;
+    .chat-meta-tiny {
+      font-size: 0.65rem;
+      color: #94a3b8;
+      margin-bottom: 0.1rem;
+      margin-left: 0.5rem;
+    }
+    .chat-row.me .chat-meta-tiny { text-align: right; margin-right: 0.5rem; display: none; } /* Hide time for self usually */
+
+    .chat-input-area {
+      padding: 0.75rem;
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
     }
 
-    .status-badges {
+    .chat-input-wrapper {
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.3rem;
-      row-gap: 0.25rem;
+      gap: 0.5rem;
     }
 
-    .status-badges .pill {
-      padding: 0.28rem 0.5rem;
-      font-size: 0.8rem;
-      line-height: 1.1;
+    .chat-input-modern {
+      flex: 1;
+      background: #f1f5f9;
+      border: 1px solid transparent;
+      border-radius: 99px;
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .chat-input-modern:focus {
+      background: #fff;
+      border-color: #cbd5e1;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.3);
     }
 
-    .compact-list {
-      max-height: 180px;
+    .chat-send-btn-modern {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: none;
+      background: #4f46e5;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .chat-send-btn-modern:hover { transform: scale(1.05); background: #4338ca; }
+
+    /* Participants List Styling */
+    .participants-list-container {
+      padding: 1rem;
       overflow-y: auto;
-      padding-right: 0.25rem;
     }
-
-    .compact-list li {
+    .participant-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 0.5rem;
-      padding: 0.35rem 0;
+      padding: 0.75rem;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 0.5rem;
+      transition: border-color 0.2s;
     }
-
-    .compact-list li:first-child { padding-top: 0; }
-    .compact-list li:last-child { padding-bottom: 0; }
-
-    .combined-status {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
+    .participant-item:hover { border-color: #cbd5e1; }
+    .participant-info { display: flex; align-items: center; gap: 0.75rem; }
+    .avatar-placeholder {
+      width: 36px; height: 36px; background: #e0e7ff; color: #4f46e5;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
     }
+    .kick-btn {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; border: 1px solid #fecdd3;
+      background: #fff1f2; color: #e11d48;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .kick-btn:hover { background: #e11d48; color: white; border-color: #e11d48; }
 
-    /* CHAT PANEL TRONG SIDEBAR */
-    .session-sidebar .chat-panel {
-      flex: 1; /* Chiếm hết không gian còn lại */
-      min-height: 0; /* Quan trọng: cho phép co lại */
+    /* --- MOBILE CHAT OVERLAY STYLES --- */
+    #collab-chat-panel.mobile-view {
       display: flex;
+      position: fixed;
+      inset: 0;
+      z-index: 9990;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
       flex-direction: column;
-      background: transparent; /* Bỏ background overlay của mobile */
-      padding: 0;
-      position: relative;
-      inset: auto;
+      justify-content: flex-end;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    #collab-chat-panel.mobile-view.open {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
     }
 
-    /* CHAT BOX */
-    .chat-box {
-      background: linear-gradient(180deg, #ffffff, #f8fafc);
-      border-radius: 18px; /* Khớp bo góc */
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      display: flex;
-      flex-direction: column;
-      height: 100%; /* Fill chat panel */
-      min-height: 0;
-      padding: 1rem 1.1rem;
-      gap: 0.75rem;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    #collab-chat-panel.mobile-view .chat-messages-area {
+      background: #ffffff;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      height: 75vh; /* Max height on mobile */
+      flex: 0 1 auto;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
     }
 
-    .chat-header {
-      display: flex;
-      align-items: center;
+    #collab-chat-panel.mobile-view .chat-input-area {
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+      background: #ffffff;
+    }
+
+    /* Mobile Close Button inside Chat */
+    .mobile-chat-close-bar {
+      display: none;
+      background: #ffffff;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
       justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.25rem 0 0.35rem;
-    }
-
-    .chat-header__title {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-
-    /* KHUNG TIN NHẮN */
-    .chat-messages {
-      flex: 1; /* Chiếm hết không gian trống giữa header và input */
-      min-height: 0; /* Cho phép scroll */
-      overflow-y: auto; /* Bật scroll dọc */
-      padding: 0.75rem;
-      border-radius: 14px;
-      background: linear-gradient(180deg, #f8fafc, #eef2ff);
-      border: 1px solid #e2e8f0;
-      /* Styling scrollbar */
-      scrollbar-width: thin;
-    }
-
-    .chat-messages p.text-slate-500 { text-align: center; margin-top: 1rem; }
-
-    .chat-bubble {
-      padding: 0.75rem 0.85rem;
-      border-radius: 14px;
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-    }
-
-    .chat-bubble__meta {
-      display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      color: #64748b;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
     }
-
-    .chat-bubble__author {
-      font-weight: 700;
-      color: #0f172a;
-    }
-
-    .chat-bubble__content {
-      color: #1f2937;
-      line-height: 1.5;
-    }
-
-    .chat-form {
+    #collab-chat-panel.mobile-view .mobile-chat-close-bar {
       display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      padding-top: 0.25rem;
+    }
+    #collab-chat-panel.mobile-view .chat-messages-area {
+      border-radius: 0; /* Reset radius as header takes it */
     }
 
-    .chat-input {
-      flex: 1;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
-      padding: 0.7rem 0.85rem;
-      font-size: 0.95rem;
-      background: #fff;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .chat-input:focus {
-      outline: none;
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    }
-
-    .chat-send-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      border: none;
-      background: linear-gradient(135deg, #4f46e5, #0ea5e9);
-      color: #fff;
-      padding: 0.7rem 0.95rem;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 0.95rem;
-      box-shadow: 0 12px 28px rgba(79, 70, 229, 0.24);
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .chat-send-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 16px 34px rgba(79, 70, 229, 0.28);
+    @media (max-width: 1024px) {
+      .session-sidebar { display: none !important; }
     }
 
     /* --- OTHER UI --- */
@@ -905,102 +1010,72 @@
       </div>
     </div>
 
-    <!-- CỘT PHẢI: SIDEBAR + CHAT -->
+    <!-- CỘT PHẢI: SIDEBAR (MODERN) -->
     <div class="session-sidebar" id="sidebar-container">
-      <!-- Room meta -->
-      <div class="card-surface sidebar-card room-meta-card">
-        <div class="flex items-start justify-between gap-3">
-          <div class="space-y-1.5">
-            <div class="space-y-0.5">
-              <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Phòng học Flashcard</p>
-              <p class="text-lg font-bold text-slate-900 leading-tight">{{ room_payload.title or 'Phòng học chung' }}</p>
-              <p class="text-xs text-slate-600">{{ room_payload.mode }} · {{ room_payload.button_count or 3 }} nút · Mã: <span class="font-mono">{{ room_payload.room_code }}</span></p>
-            </div>
-            <div class="flex flex-wrap items-center text-xs text-slate-600 room-meta-pills">
-              <span class="pill bg-slate-100 text-slate-700"><i class="fas fa-layer-group"></i> {{ room_payload.container_title or ('Bộ #' ~ room_payload.container_id) }}</span>
-              <span class="pill bg-emerald-50 text-emerald-700"><i class="fas fa-user"></i> {{ room_payload.host_username or '—' }}</span>
-            </div>
-          </div>
-          <div class="room-actions shrink-0 text-right">
-            <button type="button" id="copy-room-code" class="icon-ghost" title="Sao chép mã">
-              <i class="fas fa-copy"></i>
-            </button>
-            <a href="{{ url_for('learning.flashcard.dashboard') }}" class="icon-ghost" title="Danh sách phòng">
-              <i class="fas fa-arrow-left"></i>
+      <div class="modern-sidebar">
+        <!-- 1. Header Compact -->
+        <div class="sidebar-header">
+          <div class="room-title-row">
+            <h2 class="room-title" title="{{ room_payload.title }}">{{ room_payload.title }}</h2>
+            <a href="{{ url_for('learning.flashcard.dashboard') }}" class="text-slate-400 hover:text-rose-500 transition-colors" title="Thoát phòng">
+              <i class="fas fa-sign-out-alt"></i>
             </a>
           </div>
-        </div>
-      </div>
-
-      <!-- Status card -->
-      <div class="card-surface sidebar-card status-compact">
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Tiến trình</p>
-            <p class="text-sm font-semibold text-slate-900">Lượt & thành viên</p>
-          </div>
-          <div class="status-badges text-xs">
-            <span class="pill bg-slate-100 text-slate-700">Thứ tự: <span id="collab-round-step" class="font-semibold">—</span></span>
-            <span class="pill bg-slate-100 text-slate-700">Thành viên: <span id="collab-participant-count" class="font-semibold">{{ room_payload.participants | length }}</span></span>
+          <div class="room-subtitle">
+            <button type="button" id="copy-room-code" class="room-code-badge" title="Sao chép mã phòng">
+              {{ room_payload.room_code }} <i class="fas fa-copy ml-1 text-[10px]"></i>
+            </button>
+            <span>•</span>
+            <span class="text-xs font-medium text-slate-500">Thẻ #<span id="collab-round-step">1</span></span>
+            <span>•</span>
+            <span class="text-xs font-medium text-slate-500" id="collab-participant-count">{{ room_payload.participants|length }} người</span>
           </div>
         </div>
 
-        <div class="space-y-2.5">
-          <div class="space-y-1">
-            <p class="text-[11px] uppercase tracking-wide text-slate-500">Diễn biến lượt</p>
-            <div id="collab-round-status" class="flex flex-col gap-1 text-sm text-slate-700"></div>
-          </div>
-          <div class="space-y-1">
-            <div class="flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
-              <span>Danh sách tham gia</span>
+        <!-- 2. Tabs -->
+        <div class="sidebar-tabs">
+          <button type="button" class="tab-btn active" onclick="switchSidebarTab('chat')">Thảo luận</button>
+          <button type="button" class="tab-btn" onclick="switchSidebarTab('members')">Thành viên</button>
+        </div>
+
+        <!-- 3. Content Area -->
+        <div class="sidebar-content-area">
+          <!-- Tab: Chat -->
+          <div id="tab-chat" class="tab-pane active">
+            <!-- Wrapper ID cũ để JS chat logic hoạt động -->
+            <div id="collab-chat-panel" class="chat-box-integrated"> 
+              <!-- Mobile Header -->
+              <div class="mobile-chat-close-bar">
+                <span class="text-sm font-bold text-slate-700">Trò chuyện</span>
+                <button type="button" class="close-chat-btn p-1 text-slate-400 hover:text-slate-600">
+                  <i class="fas fa-times text-lg"></i>
+                </button>
+              </div>
+
+              <div id="collab-chat-messages" class="chat-messages-area">
+                <p class="text-center text-slate-400 text-sm mt-4">Đang tải tin nhắn...</p>
+              </div>
+              <form id="collab-chat-form" class="chat-input-area">
+                <div class="chat-input-wrapper">
+                  <input id="collab-chat-input" type="text" class="chat-input-modern" placeholder="Nhập tin nhắn..." autocomplete="off">
+                  <button type="submit" class="chat-send-btn-modern">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                </div>
+              </form>
             </div>
-            <ul id="collab-round-participants" class="compact-list divide-y divide-slate-200 text-sm text-slate-700"></ul>
+          </div>
+
+          <!-- Tab: Members -->
+          <div id="tab-members" class="tab-pane">
+            <div class="participants-list-container">
+              <div id="collab-round-participants" class="space-y-2">
+                <!-- JS sẽ render list ở đây -->
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- Chat Panel (Desktop: Sẽ được JS move vào đây) -->
-      <!-- Lưu ý: Khi ở trong sidebar, nó sẽ chiếm flex: 1 -->
-    </div>
-  </div>
-
-  <!-- CHAT PANEL: Mặc định nằm ngoài để JS move -->
-  <div id="collab-chat-panel" class="chat-panel">
-    <!-- class chat-box sẽ là flex container -->
-    <div class="chat-box">
-      <div class="chat-header flex-shrink-0">
-        <div class="chat-header__title">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Trò chuyện</p>
-          <p class="text-lg font-semibold text-slate-900">Trao đổi trong phòng</p>
-        </div>
-        <button type="button" class="close-chat-btn inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-sm font-semibold text-slate-700 hover:bg-slate-200">
-          <i class="fas fa-times"></i> Đóng
-        </button>
-      </div>
-      
-      <div class="mobile-score-banner flex-shrink-0">
-        <div id="collab-chat-round-status" class="text-sm font-medium text-slate-700 pb-2 border-b border-slate-100">
-           Đang tải trạng thái...
-        </div>
-        <div class="pt-2">
-           <div class="flex justify-between items-center mb-1">
-              <p class="text-xs uppercase tracking-wide text-slate-500">Bảng xếp hạng</p>
-              <span class="text-xs text-slate-400" id="collab-chat-participant-count">0 thành viên</span>
-           </div>
-           <ul id="collab-chat-participants" class="grid grid-cols-2 gap-2 text-sm"></ul>
-        </div>
-      </div>
-
-      <div id="collab-chat-messages" class="chat-messages space-y-2 text-sm text-slate-800">
-        <p class="text-slate-500">Đang tải tin nhắn...</p>
-      </div>
-
-      <form id="collab-chat-form" class="chat-form flex-shrink-0">
-        <input id="collab-chat-input" type="text" class="chat-input" placeholder="Nhập tin nhắn..." autocomplete="off">
-        <button type="submit" class="chat-send-btn">
-          <i class="fas fa-paper-plane"></i> Gửi
-        </button>
-      </form>
     </div>
   </div>
 
@@ -1097,24 +1172,53 @@
       navigator.clipboard.writeText(code).catch(() => {});
     });
 
+    // --- NEW: TAB SWITCHING LOGIC ---
+    window.switchSidebarTab = (tabName) => {
+      // Update buttons
+      document.querySelectorAll('.sidebar-tabs .tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('onclick').includes(tabName));
+      });
+
+      // Update panes
+      document.querySelectorAll('.sidebar-content-area .tab-pane').forEach(pane => {
+        pane.classList.remove('active');
+      });
+      const activePane = document.getElementById(`tab-${tabName}`);
+      if (activePane) activePane.classList.add('active');
+      
+      // Auto scroll chat if opened
+      if (tabName === 'chat') {
+        const msgs = document.getElementById('collab-chat-messages');
+        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+      }
+    };
+
     // --- FIX: LOGIC TỰ ĐỘNG CHUYỂN VỊ TRÍ KHUNG CHAT ---
     (() => {
       const chatPanel = document.getElementById('collab-chat-panel');
-      const sidebarContainer = document.getElementById('sidebar-container');
-      const pageShell = document.querySelector('.page-shell');
+      const tabChatContainer = document.getElementById('tab-chat');
+      const pageShell = document.querySelector('.page-shell') || document.body; // Prefer page-shell for scoping
 
       const repositionChat = () => {
-        if (!chatPanel || !sidebarContainer || !pageShell) return;
+        if (!chatPanel || !tabChatContainer) return;
         
         const isMobile = window.innerWidth <= 1024;
 
         if (isMobile) {
-          if (chatPanel.parentElement !== pageShell) {
-            pageShell.appendChild(chatPanel);
+          // Move to Body/Shell for overlay mode
+          if (chatPanel.parentElement !== document.body) {
+            document.body.appendChild(chatPanel);
+            chatPanel.classList.add('mobile-view');
           }
         } else {
-          if (chatPanel.parentElement !== sidebarContainer) {
-            sidebarContainer.appendChild(chatPanel);
+          // Move back to Sidebar Tab
+          if (chatPanel.parentElement !== tabChatContainer) {
+            tabChatContainer.appendChild(chatPanel);
+            chatPanel.classList.remove('mobile-view');
+            // Ensure it's visible in desktop mode
+            chatPanel.style.opacity = '';
+            chatPanel.style.visibility = '';
+            chatPanel.classList.remove('open'); 
           }
         }
       };
@@ -1631,55 +1735,111 @@
         if (chatRoundStatusEl) chatRoundStatusEl.innerHTML = loadingHtml;
       };
 
+      const kickUrlTemplate = {{ url_for('learning.flashcard_collab.kick_participant', room_code=room_payload.room_code) | tojson }};
+      const hostId = {{ room_payload.host_user_id }};
+      
+      // Kick Logic
+      window.kickUser = async (userId, username) => {
+        if (!confirm(`Bạn có chắc muốn mời thành viên "${username}" ra khỏi phòng?`)) return;
+
+        try {
+          const response = await fetch(kickUrlTemplate, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+            body: JSON.stringify({ user_id: userId }),
+          });
+          const data = await response.json();
+          
+          if (response.ok) {
+            if (window.showFlashMessage) window.showFlashMessage('Đã mời thành viên ra khỏi phòng.', 'success');
+            // Refresh list immediately
+            fetchRound(false);
+          } else {
+            alert(data.description || 'Không thể kick thành viên này.');
+          }
+        } catch (e) {
+          alert('Lỗi kết nối.');
+        }
+      };
+
       const renderParticipants = (participants = []) => {
+        const isHost = currentUserId === hostId;
+        
         if (!participants.length) {
-          const emptyHtml = '<li class="py-2 text-slate-500">Chưa có thành viên đang hoạt động.</li>';
+          const emptyHtml = '<div class="text-center py-4 text-slate-500 italic">Chưa có thành viên nào.</div>';
           participantsEl.innerHTML = emptyHtml;
           if (mobileRoundParticipantsEl) mobileRoundParticipantsEl.innerHTML = emptyHtml;
-          if (chatParticipantsEl) chatParticipantsEl.innerHTML = '<li class="col-span-2 text-xs text-slate-500 italic">Trống</li>';
-          
           participantCountEls.forEach((el) => el.textContent = '0');
-          if (chatParticipantCountEl) chatParticipantCountEl.textContent = '0 thành viên';
           return;
         }
 
-        const renderedParticipants = participants.map((participant) => {
-          const statusLabel = participant.has_answered ? 'Đã trả lời' : 'Chưa trả lời';
-          const statusClass = participant.has_answered ? 'text-green-600' : 'text-slate-500';
-          return `
-            <li class="py-2 flex items-center justify-between">
-              <div>
-                <p class="font-semibold">${participant.username || 'Người dùng #' + participant.user_id}</p>
-                <p class="text-xs text-slate-500">ID: ${participant.user_id}</p>
-              </div>
-              <span class="text-xs font-semibold ${statusClass}">${statusLabel}</span>
-            </li>
-          `;
-        }).join('');
-
-        const renderedChatParticipants = participants.map((participant) => {
-          const isMe = Number(participant.user_id) === Number(currentUserId);
-          const statusDot = participant.has_answered 
-            ? '<span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>' 
-            : '<span class="inline-block w-2 h-2 rounded-full bg-slate-300 mr-1"></span>';
-          const score = participant.total_score || 0;
+        const generateListHtml = (isMobile = false) => participants.map((p) => {
+          const isMe = Number(p.user_id) === Number(currentUserId);
+          const isUserHost = Number(p.user_id) === Number(hostId);
+          const statusColor = p.has_answered ? 'text-emerald-600' : 'text-slate-400';
+          const statusIcon = p.has_answered ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-circle"></i>';
           
+          let actionBtn = '';
+          if (isHost && !isMe) { // Host can kick others
+             actionBtn = `
+               <button onclick="kickUser(${p.user_id}, '${p.username}')" class="kick-btn" title="Mời ra khỏi phòng">
+                 <i class="fas fa-user-times"></i>
+               </button>
+             `;
+          }
+
+          // Logic render khác nhau xíu giữa mobile/desktop nếu cần, nhưng ở đây ta dùng chung class
+          if (isMobile) {
+             return `
+              <li class="py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                   <div class="avatar-placeholder">${p.username.charAt(0).toUpperCase()}</div>
+                   <div>
+                     <p class="font-semibold text-slate-900 ${isMe ? 'text-indigo-600' : ''}">${p.username} ${isMe ? '(Bạn)' : ''}</p>
+                     <p class="text-xs text-slate-500">${isUserHost ? 'Chủ phòng' : 'Thành viên'}</p>
+                   </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="${statusColor} text-lg">${statusIcon}</span>
+                  ${actionBtn}
+                </div>
+              </li>
+             `;
+          }
+
           return `
-            <li class="flex items-center justify-between bg-white rounded border border-slate-100 px-2 py-1 shadow-sm">
-              <div class="flex items-center truncate mr-2">
-                ${statusDot}
-                <span class="truncate font-medium text-slate-700 ${isMe ? 'text-indigo-600' : ''}">
-                  ${isMe ? 'Bạn' : (participant.username || `#${participant.user_id}`)}
-                </span>
+            <div class="participant-item">
+              <div class="participant-info">
+                <div class="avatar-placeholder">${p.username.charAt(0).toUpperCase()}</div>
+                <div>
+                  <p class="font-bold text-slate-800 text-sm ${isMe ? 'text-indigo-600' : ''}">
+                    ${p.username} ${isMe ? '(Bạn)' : ''}
+                  </p>
+                  <p class="text-xs text-slate-500 flex items-center gap-1">
+                    <span class="${statusColor}">${statusIcon}</span> ${p.has_answered ? 'Đã trả lời' : 'Đang suy nghĩ...'}
+                  </p>
+                </div>
               </div>
-              <span class="font-bold text-slate-900">${score}</span>
-            </li>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-slate-700 text-sm">${p.total_score || 0} đ</span>
+                ${actionBtn}
+              </div>
+            </div>
           `;
         }).join('');
 
-        participantsEl.innerHTML = renderedParticipants;
-        if (mobileRoundParticipantsEl) mobileRoundParticipantsEl.innerHTML = renderedParticipants;
-        if (chatParticipantsEl) chatParticipantsEl.innerHTML = renderedChatParticipants;
+        participantsEl.innerHTML = generateListHtml(false); // Desktop
+        if (mobileRoundParticipantsEl) mobileRoundParticipantsEl.innerHTML = generateListHtml(true); // Mobile uses list
+        
+        // Chat participant list (if still used in mobile modal)
+        if (chatParticipantsEl) {
+           chatParticipantsEl.innerHTML = participants.map(p => `
+             <li class="flex items-center justify-between bg-slate-50 rounded px-2 py-1">
+               <span class="truncate text-xs font-medium">${p.username}</span>
+               <span class="text-xs font-bold">${p.total_score}</span>
+             </li>
+           `).join('');
+        }
 
         participantCountEls.forEach((el) => el.textContent = participants.length);
         if (chatParticipantCountEl) chatParticipantCountEl.textContent = `${participants.length} thành viên`;
@@ -1800,6 +1960,14 @@
         if (showLoader) setLoadingState('Đang tải thẻ...');
         try {
           const response = await fetch(nextCardUrl, { credentials: 'same-origin' });
+          
+          // Handle Kicked User (403)
+          if (response.status === 403) {
+             alert('Bạn đã bị mời ra khỏi phòng học này.');
+             window.location.href = "{{ url_for('learning.flashcard.dashboard') }}";
+             return;
+          }
+
           if (!response.ok) {
             throw new Error('Không thể tải thẻ.');
           }
@@ -1907,7 +2075,7 @@
         });
       });
 
-      // Note Panel elements (newly added for UI update)
+      // Note Panel elements
       const noteViewSection = document.getElementById('note-view-section');
       const noteEditSection = document.getElementById('note-edit-section');
       const noteDisplay = document.getElementById('note-display');
@@ -1917,7 +2085,6 @@
       const toggleNotePanel = (isOpen) => {
         if (!notePanel) return;
         notePanel.classList.toggle('open', isOpen);
-        // Hide edit button when panel is closed
         if (!isOpen) {
             editNoteBtn?.classList.add('hidden');
         }
@@ -1937,19 +2104,18 @@
           if (noteContent) {
               noteViewSection.classList.remove('hidden');
               noteEditSection.classList.add('hidden');
-              editNoteBtn?.classList.remove('hidden'); // Show edit button when viewing
+              editNoteBtn?.classList.remove('hidden');
           } else {
-              // If no content, automatically go to edit mode
               noteViewSection.classList.add('hidden');
               noteEditSection.classList.remove('hidden');
-              editNoteBtn?.classList.add('hidden'); // Hide edit button when editing
+              editNoteBtn?.classList.add('hidden');
           }
         } catch (err) {
           noteTextarea.value = 'Không thể tải ghi chú.';
           noteDisplay.innerHTML = '<span class="italic text-red-500">Không thể tải ghi chú.</span>';
           noteViewSection.classList.remove('hidden');
-          noteEditSection.classList.add('hidden'); // Fallback to edit mode on error
-          editNoteBtn?.classList.add('hidden'); // Hide edit button on error
+          noteEditSection.classList.add('hidden');
+          editNoteBtn?.classList.add('hidden');
         }
       };
 
@@ -1968,11 +2134,10 @@
           });
           const payload = await response.json();
           if (payload.success) {
-            // After saving, switch back to view mode and update display
             noteDisplay.innerHTML = noteTextarea.value ? window.escapeTextWithBreaks(noteTextarea.value) : '<span class="italic text-gray-500">Chưa có ghi chú.</span>';
             noteViewSection.classList.remove('hidden');
             noteEditSection.classList.add('hidden');
-            editNoteBtn?.classList.remove('hidden'); // Show edit button after saving
+            editNoteBtn?.classList.remove('hidden');
             if (window.showFlashMessage) {
                 window.showFlashMessage('Ghi chú đã được lưu.', 'success');
             }
@@ -1992,11 +2157,10 @@
         }
       };
 
-      // New function to switch to edit mode
       const switchToEditMode = () => {
           noteViewSection.classList.add('hidden');
           noteEditSection.classList.remove('hidden');
-          editNoteBtn?.classList.add('hidden'); // Hide edit button when editing
+          editNoteBtn?.classList.add('hidden');
           noteTextarea.focus();
       };
 
@@ -2014,7 +2178,6 @@
       closeNoteBtn?.addEventListener('click', () => toggleNotePanel(false));
       editNoteBtn?.addEventListener('click', switchToEditMode);
       cancelNoteBtn?.addEventListener('click', () => {
-        // When canceling, load the original content again to revert changes
         loadNote(currentCardId);
       });
       saveNoteBtn?.addEventListener('click', () => saveNote(currentCardId));
@@ -2072,36 +2235,37 @@
         chatMessages.innerHTML = '';
 
         if (!messages.length) {
-          chatMessages.innerHTML = '<p class="text-slate-500">Chưa có tin nhắn nào.</p>';
+          chatMessages.innerHTML = '<p class="text-center text-slate-400 text-sm mt-8">Hãy bắt đầu cuộc trò chuyện...</p>';
           return;
         }
 
+        const currentUserIdNum = Number({{ current_user.user_id }});
+
         messages.forEach((message) => {
+          const isMe = Number(message.user_id) === currentUserIdNum;
+          const row = document.createElement('div');
+          row.className = `chat-row ${isMe ? 'me' : 'other'}`;
+
+          if (!isMe) {
+            const avatar = document.createElement('div');
+            avatar.className = 'chat-avatar';
+            avatar.textContent = (message.username || '?').charAt(0).toUpperCase();
+            avatar.title = message.username;
+            row.appendChild(avatar);
+          }
+
           const bubble = document.createElement('div');
-          bubble.className = 'chat-bubble';
-
-          const metaRow = document.createElement('div');
-          metaRow.className = 'chat-bubble__meta';
-
-          const author = document.createElement('span');
-          author.className = 'chat-bubble__author';
-          author.textContent = message.username || `Người dùng #${message.user_id}`;
-
-          const timestamp = document.createElement('span');
-          timestamp.textContent = message.created_at
+          bubble.className = 'chat-bubble-modern';
+          bubble.textContent = message.content;
+          
+          // Time tooltip or tiny text
+          const timeStr = message.created_at
             ? new Date(message.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
             : '';
+          bubble.title = `${message.username} - ${timeStr}`;
 
-          metaRow.appendChild(author);
-          metaRow.appendChild(timestamp);
-
-          const content = document.createElement('p');
-          content.className = 'chat-bubble__content';
-          content.textContent = message.content;
-
-          bubble.appendChild(metaRow);
-          bubble.appendChild(content);
-          chatMessages.appendChild(bubble);
+          row.appendChild(bubble);
+          chatMessages.appendChild(row);
         });
 
         chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -2158,35 +2322,39 @@
       const setChatOpen = (isOpen) => {
         if (!chatPanel) return;
         
+        // Toggle class 'open' on the panel (works for mobile-view overlay)
         if (isOpen) {
             chatPanel.classList.add('open');
-            chatPanel.style.opacity = '1'; 
-            chatPanel.style.visibility = 'visible';
-            chatPanel.style.pointerEvents = 'auto';
         } else {
             chatPanel.classList.remove('open');
-            chatPanel.style.opacity = ''; 
-            chatPanel.style.visibility = '';
-            chatPanel.style.pointerEvents = '';
         }
         
-        openChatBtn.classList.toggle('is-active', isOpen);
-        openChatBtn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
+        if (openChatBtn) {
+            openChatBtn.classList.toggle('is-active', isOpen);
+            openChatBtn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
+        }
 
         if (isOpen && window.matchMedia('(max-width: 1024px)').matches) {
           setTimeout(() => chatInput?.focus({ preventScroll: true }), 100);
         }
       };
 
-      openChatBtn.addEventListener('click', (event) => {
+      openChatBtn?.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
         setChatOpen(!chatPanel?.classList.contains('open'));
       });
       
+      // Close button inside the chat panel (for mobile)
+      const internalCloseBtn = chatPanel?.querySelector('.close-chat-btn');
+      internalCloseBtn?.addEventListener('click', () => setChatOpen(false));
+
+      // Global close button (if any)
       closeChatBtn?.addEventListener('click', () => setChatOpen(false));
+      
+      // Click outside to close (only in mobile view)
       chatPanel?.addEventListener('click', (event) => {
-        if (event.target === chatPanel) {
+        if (chatPanel.classList.contains('mobile-view') && event.target === chatPanel) {
           setChatOpen(false);
         }
       });

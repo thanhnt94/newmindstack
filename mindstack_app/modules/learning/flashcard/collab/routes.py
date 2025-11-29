@@ -223,6 +223,11 @@ def join_room(room_code: str):
         abort(404, description='Không tìm thấy phòng học chung.')
 
     participant = FlashcardCollabParticipant.query.filter_by(room_id=room.room_id, user_id=current_user.user_id).first()
+    
+    # Chặn người đã bị kick tham gia lại
+    if participant and participant.status == 'kicked':
+        abort(403, description='Bạn đã bị mời ra khỏi phòng này và không thể tham gia lại.')
+
     if participant:
         participant.status = FlashcardCollabParticipant.STATUS_ACTIVE
     else:
@@ -233,6 +238,42 @@ def join_room(room_code: str):
 
     db.session.commit()
     return jsonify({'room': serialize_room(room)})
+
+
+@flashcard_collab_bp.route('/rooms/<room_code>/kick', methods=['POST'])
+@login_required
+def kick_participant(room_code: str):
+    """Kick a participant out of the room (Host only)."""
+    room = FlashcardCollabRoom.query.filter_by(room_code=room_code).first()
+    if not room:
+        abort(404, description='Không tìm thấy phòng.')
+
+    if room.host_user_id != current_user.user_id:
+        abort(403, description='Chỉ chủ phòng mới có quyền mời thành viên ra khỏi phòng.')
+
+    payload = request.get_json(silent=True) or {}
+    target_user_id = payload.get('user_id')
+
+    try:
+        target_user_id = int(target_user_id)
+    except (TypeError, ValueError):
+        abort(400, description='ID thành viên không hợp lệ.')
+
+    if target_user_id == current_user.user_id:
+        abort(400, description='Bạn không thể tự kick chính mình.')
+
+    participant = FlashcardCollabParticipant.query.filter_by(
+        room_id=room.room_id, user_id=target_user_id
+    ).first()
+
+    if not participant:
+        abort(404, description='Thành viên này không có trong phòng.')
+
+    # Set status to 'kicked' to prevent rejoin
+    participant.status = 'kicked'
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Đã mời thành viên ra khỏi phòng.'})
 
 
 @flashcard_collab_bp.route('/rooms/<room_code>/next-card', methods=['GET'])
