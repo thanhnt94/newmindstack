@@ -408,9 +408,13 @@
                 };
 
                 try {
+                    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
                     const response = await fetch(getAiResponseUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
                         body: JSON.stringify(payload)
                     });
 

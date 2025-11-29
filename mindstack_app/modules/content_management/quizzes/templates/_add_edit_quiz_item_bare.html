@@ -403,9 +403,13 @@
                 aiExplanationField.value = 'Đang tạo lại nội dung...';
 
                 try {
+                    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
                     const response = await fetch(getAiResponseUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
                         body: JSON.stringify({
                             item_id: itemId,
                             prompt_type: 'explanation',

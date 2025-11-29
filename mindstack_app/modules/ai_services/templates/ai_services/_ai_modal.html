@@ -66,10 +66,22 @@ async function fetchAiResponse() {
     aiResponseContainer.innerHTML = `<div class="flex items-center justify-center h-full"><i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i><span class="ml-3 text-gray-600">AI đang suy nghĩ...</span></div>`
 
     try {
+        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+        
+        if (!csrfToken) {
+            console.warn('Mindstack AI: CSRF Token not found in meta tag');
+        }
+
         // SỬA LỖI: Đổi 'get_ai_support' thành 'get_ai_response' cho đúng với tên route
         const response = await fetch("{{ url_for('ai_services.get_ai_response') }}", {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({
                 item_id: currentAiItemId,
                 prompt_type: 'explanation'
