@@ -22,13 +22,82 @@
             font-family: 'Inter', sans-serif;
             background-color: transparent;
         }
+        .floating-nav-button {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1050;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 0.9rem;
+            border-radius: 9999px;
+            background: rgba(37, 99, 235, 0.1);
+            color: #1d4ed8;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .floating-nav-button:hover {
+            background: rgba(37, 99, 235, 0.2);
+            transform: translateY(-50%) scale(1.02);
+        }
+        .floating-nav-button:active {
+            transform: translateY(-50%) scale(0.98);
+        }
+        .floating-nav-button--left { left: 14px; }
+        .floating-nav-button--right { right: 14px; }
     </style>
 </head>
 <body>
 
+{% set previous_set_id = previous_set_id | default(None) %}
+{% set next_set_id = next_set_id | default(None) %}
+{% set is_modal_view = request.args.get('is_modal') == 'true' %}
+{% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
+
+{% if is_modal_view %}
+    {% if previous_set_id %}
+    <a href="{{ url_for('.edit_flashcard_set', set_id=previous_set_id) }}{{ modal_suffix }}"
+       class="floating-nav-button floating-nav-button--left">
+        <i class="fas fa-chevron-left"></i>
+        <span>Bộ trước</span>
+    </a>
+    {% endif %}
+    {% if next_set_id %}
+    <a href="{{ url_for('.edit_flashcard_set', set_id=next_set_id) }}{{ modal_suffix }}"
+       class="floating-nav-button floating-nav-button--right">
+        <span>Bộ tiếp</span>
+        <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+{% endif %}
+
 <div class="p-4">
     <div class="w-full">
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+            {% if not is_modal_view %}
+            <div class="flex items-center justify-between mb-4">
+                {% if previous_set_id %}
+                <a href="{{ url_for('.edit_flashcard_set', set_id=previous_set_id) }}{{ modal_suffix }}"
+                   class="flex items-center px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors text-sm">
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    <span>Bộ trước</span>
+                </a>
+                {% else %}
+                <span></span>
+                {% endif %}
+                {% if next_set_id %}
+                <a href="{{ url_for('.edit_flashcard_set', set_id=next_set_id) }}{{ modal_suffix }}"
+                   class="flex items-center px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors text-sm">
+                    <span>Bộ tiếp</span>
+                    <i class="fas fa-chevron-right ml-2"></i>
+                </a>
+                {% else %}
+                <span></span>
+                {% endif %}
+            </div>
+            {% endif %}
             <h2 class="text-2xl font-bold text-center mb-6">{{ title }}</h2>
             <form id="flashcardSetForm" action="" method="post" enctype="multipart/form-data" class="space-y-6">
                 {{ form.csrf_token }}

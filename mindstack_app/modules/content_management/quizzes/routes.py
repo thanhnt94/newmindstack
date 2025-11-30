@@ -1747,6 +1747,25 @@ def edit_quiz_set(set_id):
         form.image_base_folder.data = media_folders.get('image')
         form.audio_base_folder.data = media_folders.get('audio')
 
+    editable_set_ids = [
+        cid
+        for (cid,) in (
+            _get_editable_quiz_sets_query()
+            .order_by(LearningContainer.container_id.asc())
+            .with_entities(LearningContainer.container_id)
+            .all()
+        )
+    ]
+
+    previous_set_id = None
+    next_set_id = None
+    if set_id in editable_set_ids:
+        current_index = editable_set_ids.index(set_id)
+        if current_index > 0:
+            previous_set_id = editable_set_ids[current_index - 1]
+        if current_index < len(editable_set_ids) - 1:
+            next_set_id = editable_set_ids[current_index + 1]
+
     if form.validate_on_submit():
         flash_message = 'Bộ câu hỏi đã được cập nhật!'
         flash_category = 'success'
@@ -1774,8 +1793,22 @@ def edit_quiz_set(set_id):
         return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_quiz_set_bare.html', form=form, title='Sửa Bộ câu hỏi', quiz_set=quiz_set)
-    return render_template('add_edit_quiz_set.html', form=form, title='Sửa Bộ câu hỏi', quiz_set=quiz_set)
+        return render_template(
+            '_add_edit_quiz_set_bare.html',
+            form=form,
+            title='Sửa Bộ câu hỏi',
+            quiz_set=quiz_set,
+            previous_set_id=previous_set_id,
+            next_set_id=next_set_id,
+        )
+    return render_template(
+        'add_edit_quiz_set.html',
+        form=form,
+        title='Sửa Bộ câu hỏi',
+        quiz_set=quiz_set,
+        previous_set_id=previous_set_id,
+        next_set_id=next_set_id,
+    )
 
 @quizzes_bp.route('/quizzes/delete/<int:set_id>', methods=['POST'])
 @login_required
