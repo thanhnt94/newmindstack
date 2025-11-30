@@ -10,8 +10,27 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            if (typeof window === 'undefined') return;
+            const originalWarn = console.warn.bind(console);
+            window.__TAILWIND_ORIGINAL_WARN__ = originalWarn;
+            console.warn = function(...args) {
+                if (args.length && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) {
+                    return;
+                }
+                return originalWarn(...args);
+            };
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-p4V+mXiV8C7EJD7BqXc9E+u6KDAdAm8YGtS+wGGyRyvE4s46HoPazTA/gkGEXUXMaLLq5LEbG7GgXU1Q9Ii1wA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script>
+        if (window.__TAILWIND_ORIGINAL_WARN__) {
+            console.warn = window.__TAILWIND_ORIGINAL_WARN__;
+            delete window.__TAILWIND_ORIGINAL_WARN__;
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         :root {
