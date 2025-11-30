@@ -208,32 +208,6 @@
             }
         }
 
-        function updateStatusHint(row, taskData = {}) {
-            const statusHint = row.querySelector('.status-hint');
-            if (!statusHint) return;
-
-            const checkbox = row.querySelector('.toggle-task-checkbox');
-            const statusBadge = row.querySelector('.task-status-badge');
-            const isEnabled = typeof taskData.is_enabled === 'boolean'
-                ? taskData.is_enabled
-                : checkbox?.checked;
-            const status = taskData.status || statusBadge?.textContent?.trim() || '';
-
-            if (!isEnabled) {
-                statusHint.textContent = 'Bật công tắc để cho phép khởi chạy.';
-                statusHint.className = 'text-[11px] text-slate-400 status-hint';
-                return;
-            }
-
-            if (status === 'running') {
-                statusHint.textContent = 'Tác vụ đang chạy, bạn có thể dừng nếu cần.';
-                statusHint.className = 'text-[11px] text-amber-600 status-hint';
-            } else {
-                statusHint.textContent = 'Sẵn sàng khởi chạy tác vụ.';
-                statusHint.className = 'text-[11px] text-slate-500 status-hint';
-            }
-        }
-
         function updateTaskRow(row, taskData) {
             const statusBadge = row.querySelector('.task-status-badge');
             const progressBarFill = row.querySelector('.progress-bar-fill');
@@ -361,6 +335,10 @@
                             toggleCheckbox.disabled = true;
                         }
                         updateStatusHint(row, { status: 'running', is_enabled: true });
+                    } else {
+                        showFlashMessage(response.data.message || 'Không thể khởi chạy tác vụ. Vui lòng thử lại.', 'danger');
+                        startBtn.disabled = false;
+                        startBtn.classList.remove('opacity-60');
                     }
                 } catch (error) {
                     console.error('Error starting task:', error);
