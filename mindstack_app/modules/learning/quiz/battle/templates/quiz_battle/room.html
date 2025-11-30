@@ -398,7 +398,8 @@
         const closeChatBtn = document.getElementById('close-chat-btn');
 
         let roomState = initialRoom || {};
-        let lastRenderMeta = { sequence: roomState?.active_round?.sequence_number || null, hasMyAnswer: false };
+        // Force an initial render even if the server already sent an active round
+        let lastRenderMeta = { sequence: null, hasMyAnswer: false };
         let roomPollInterval = null;
         let chatPollInterval = null;
         let currentQuestionItemId = null;
