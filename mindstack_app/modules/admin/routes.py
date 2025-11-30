@@ -27,6 +27,7 @@ from ...models import (
     ContainerContributor,
     ApiKey,
     BackgroundTask,
+    BackgroundTaskLog,
     SystemSetting,
     UserContainerState,
     FlashcardProgress,
@@ -1063,6 +1064,18 @@ def manage_background_tasks():
         default_request_interval=DEFAULT_REQUEST_INTERVAL_SECONDS,
     )
 
+
+def _serialize_task_log(log: BackgroundTaskLog) -> dict[str, object]:
+    return {
+        'log_id': log.log_id,
+        'status': log.status,
+        'progress': log.progress,
+        'total': log.total,
+        'message': log.message,
+        'stop_requested': log.stop_requested,
+        'created_at': log.created_at.isoformat() if log.created_at else None,
+    }
+
 @admin_bp.route('/tasks/toggle/<int:task_id>', methods=['POST'])
 def toggle_task(task_id):
     """
@@ -1155,9 +1168,58 @@ def stop_task(task_id):
     task = BackgroundTask.query.get_or_404(task_id)
     if task.status == 'running':
         task.stop_requested = True
+        task.message = 'Đã nhận yêu cầu dừng, sẽ kết thúc sau bước hiện tại.'
         db.session.commit()
         return jsonify({'success': True, 'message': 'Yêu cầu dừng đã được gửi.'})
     return jsonify({'success': False, 'message': 'Tác vụ không chạy.'})
+
+
+@admin_bp.route('/tasks/<int:task_id>/logs', methods=['GET'])
+def view_task_logs(task_id: int):
+    """Hiển thị log chi tiết cho một tác vụ nền."""
+
+    task = BackgroundTask.query.get_or_404(task_id)
+    logs = (
+        BackgroundTaskLog.query.filter_by(task_id=task_id)
+        .order_by(BackgroundTaskLog.created_at.desc())
+        .limit(200)
+        .all()
+    )
+
+    return render_template(
+        'background_task_logs.html',
+        task=task,
+        logs=logs,
+    )
+
+
+@admin_bp.route('/tasks/<int:task_id>/logs/data', methods=['GET'])
+def fetch_task_logs(task_id: int):
+    """Trả về log dạng JSON để auto-refresh giao diện."""
+
+    task = BackgroundTask.query.get_or_404(task_id)
+    logs = (
+        BackgroundTaskLog.query.filter_by(task_id=task_id)
+        .order_by(BackgroundTaskLog.created_at.desc())
+        .limit(200)
+        .all()
+    )
+
+    return jsonify(
+        {
+            'task': {
+                'task_id': task.task_id,
+                'task_name': task.task_name,
+                'status': task.status,
+                'progress': task.progress,
+                'total': task.total,
+                'message': task.message,
+                'stop_requested': task.stop_requested,
+                'last_updated': task.last_updated.isoformat() if task.last_updated else None,
+            },
+            'logs': [_serialize_task_log(log) for log in logs],
+        }
+    )
 
 @admin_bp.route('/settings', methods=['GET'])
 def manage_system_settings():

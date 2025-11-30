@@ -30,7 +30,7 @@ from .user import (
     UserFeedback,
     ContainerContributor,
 )
-from .system import SystemSetting, BackgroundTask, ApiKey
+from .system import ApiKey, BackgroundTask, BackgroundTaskLog, SystemSetting
 
 __all__ = [
     'db',
@@ -60,5 +60,6 @@ __all__ = [
     'ContainerContributor',
     'SystemSetting',
     'BackgroundTask',
+    'BackgroundTaskLog',
     'ApiKey',
 ]
