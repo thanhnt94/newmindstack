@@ -450,6 +450,15 @@
             return (roomState.participants || []).find(p => p.user_id === currentUserId);
         }
 
+        const renderAiContent = (value, options = {}) => {
+            if(!aiCoachContentEl) return;
+            if(window.applyMarkdownToElement) {
+                window.applyMarkdownToElement(aiCoachContentEl, value || '', options);
+            } else {
+                aiCoachContentEl.textContent = value || '';
+            }
+        };
+
         async function generateAiCoachContent() {
             if(!currentQuestionItemId || !aiCoachContentEl) return;
 
@@ -457,7 +466,7 @@
                 aiCoachGenerateBtn.disabled = true;
                 aiCoachGenerateBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo...';
             }
-            aiCoachContentEl.textContent = 'AI đang tạo hướng dẫn...';
+            renderAiContent('AI đang tạo hướng dẫn...');
 
             try {
                 const res = await postJson(getAiResponseUrl, {
@@ -466,18 +475,19 @@
                 });
 
                 const content = res?.response || res?.html_content || '';
+                const treatAsHtml = Boolean(res?.html_content);
                 if(content) {
-                    aiCoachContentEl.textContent = content;
+                    renderAiContent(content, { treatAsHtml });
                     if(roomState?.active_round?.question?.item_id === currentQuestionItemId) {
                         roomState.active_round.question.ai_explanation = content;
                     }
                     aiCoachGenerateBtn?.classList.add('hidden');
                 } else {
-                    aiCoachContentEl.textContent = res?.message || 'AI chưa phản hồi hướng dẫn.';
+                    renderAiContent(res?.message || 'AI chưa phản hồi hướng dẫn.');
                     aiCoachGenerateBtn?.classList.remove('hidden');
                 }
             } catch(err) {
-                aiCoachContentEl.textContent = `Không tạo được hướng dẫn: ${err.message}`;
+                renderAiContent(`Không tạo được hướng dẫn: ${err.message}`);
                 aiCoachGenerateBtn?.classList.remove('hidden');
             } finally {
                 if(aiCoachGenerateBtn) {
@@ -689,9 +699,7 @@
             expDiv.innerHTML = explanationText.replace(/\n/g, '<br>');
 
             const aiExplanation = round.question.ai_explanation || '';
-            if(aiCoachContentEl) {
-                aiCoachContentEl.textContent = aiExplanation || 'AI đang nghỉ ngơi...';
-            }
+            renderAiContent(aiExplanation || 'AI đang nghỉ ngơi...');
             if(aiCoachGenerateBtn) {
                 aiCoachGenerateBtn.classList.toggle('hidden', Boolean(aiExplanation));
                 aiCoachGenerateBtn.disabled = false;
