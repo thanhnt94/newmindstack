@@ -1739,8 +1739,20 @@ def add_quiz_set():
         return jsonify({'success': False, 'errors': form.errors}), 400
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_quiz_set_bare.html', form=form, title='Thêm Bộ câu hỏi mới', template_excel_url=template_excel_url)
-    return render_template('add_edit_quiz_set.html', form=form, title='Thêm Bộ câu hỏi mới', template_excel_url=template_excel_url)
+        return render_template(
+            '_add_edit_quiz_set_bare.html',
+            form=form,
+            title='Thêm Bộ câu hỏi mới',
+            template_excel_url=template_excel_url,
+            form_action=request.path,
+        )
+    return render_template(
+        'add_edit_quiz_set.html',
+        form=form,
+        title='Thêm Bộ câu hỏi mới',
+        template_excel_url=template_excel_url,
+        form_action=request.path,
+    )
 
 @quizzes_bp.route('/quizzes/edit/<int:set_id>', methods=['GET', 'POST'])
 @login_required
@@ -1818,6 +1830,7 @@ def edit_quiz_set(set_id):
             quiz_set=quiz_set,
             previous_set_id=previous_set_id,
             next_set_id=next_set_id,
+            form_action=request.path,
         )
     return render_template(
         'add_edit_quiz_set.html',
@@ -1826,6 +1839,7 @@ def edit_quiz_set(set_id):
         quiz_set=quiz_set,
         previous_set_id=previous_set_id,
         next_set_id=next_set_id,
+        form_action=request.path,
     )
 
 @quizzes_bp.route('/quizzes/delete/<int:set_id>', methods=['POST'])
