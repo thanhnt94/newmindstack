@@ -114,45 +114,57 @@ class GeminiClient:
     def generate_content(self, prompt, item_info="N/A"):
         """
         Mô tả: Gửi một prompt đến Gemini API và nhận lại nội dung.
+
+        Trả về tuple (success: bool, message: str) để phân biệt rõ giữa kết quả
+        hợp lệ và thông báo lỗi.
         """
         max_retries = 5
-        
+        last_error_msg = None
+
         for attempt in range(max_retries):
             with self.app_context:
                 key_id, key_value = self.api_key_manager.get_key()
-            
+
             if not key_id:
                 error_msg = "Tất cả các API key đều đã cạn kiệt hoặc không hợp lệ."
                 current_app.logger.error(f"GeminiClient: {error_msg}")
-                return error_msg
+                return False, error_msg
 
-            current_app.logger.info(f"GeminiClient: Sử dụng API key ID {key_id} cho {item_info} (Lần thử {attempt + 1})")
-            
+            current_app.logger.info(
+                f"GeminiClient: Sử dụng API key ID {key_id} cho {item_info} (Lần thử {attempt + 1})"
+            )
+
             try:
                 genai.configure(api_key=key_value)
                 model = genai.GenerativeModel(self.model_name)
                 response = model.generate_content(prompt)
 
                 if response.parts:
-                    return response.text
-                else:
-                    feedback = response.prompt_feedback
-                    error_msg = f"AI không thể tạo nội dung. Phản hồi từ Google: {feedback}"
-                    current_app.logger.warning(f"GeminiClient: Phản hồi trống cho {item_info}. {error_msg}")
-                    return error_msg
+                    return True, response.text
+
+                feedback = response.prompt_feedback
+                last_error_msg = f"AI không thể tạo nội dung. Phản hồi từ Google: {feedback}"
+                current_app.logger.warning(
+                    f"GeminiClient: Phản hồi trống cho {item_info}. {last_error_msg}"
+                )
             except google_exceptions.PermissionDenied as e:
-                current_app.logger.error(f"GeminiClient: Lỗi PermissionDenied với key ID {key_id}: {e}. Đánh dấu là cạn kiệt.")
+                current_app.logger.error(
+                    f"GeminiClient: Lỗi PermissionDenied với key ID {key_id}: {e}. Đánh dấu là cạn kiệt."
+                )
                 with self.app_context:
                     self.api_key_manager.mark_key_as_exhausted(key_id)
                 continue
             except Exception as e:
-                error_msg = f"Lỗi server khi gọi AI: {e}"
-                current_app.logger.error(f"GeminiClient: Lỗi khi gọi Gemini API cho {item_info} với key ID {key_id}: {e}", exc_info=True)
-                return error_msg
-                
-        final_error_msg = "Đã thử tất cả API key nhưng đều thất bại."
+                last_error_msg = f"Lỗi server khi gọi AI: {e}"
+                current_app.logger.error(
+                    f"GeminiClient: Lỗi khi gọi Gemini API cho {item_info} với key ID {key_id}: {e}",
+                    exc_info=True,
+                )
+                break
+
+        final_error_msg = last_error_msg or "Đã thử tất cả API key nhưng đều thất bại."
         current_app.logger.critical(f"GeminiClient: {final_error_msg}")
-        return final_error_msg
+        return False, final_error_msg
 
 # Biến toàn cục để lưu trữ instance của client
 gemini_client_instance = None
