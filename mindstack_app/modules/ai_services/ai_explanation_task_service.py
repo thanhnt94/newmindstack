@@ -14,7 +14,7 @@ from .gemini_client import get_gemini_client
 from .prompts import get_formatted_prompt
 
 
-DEFAULT_REQUEST_INTERVAL_SECONDS = 2.0
+DEFAULT_REQUEST_INTERVAL_SECONDS = 30.0
 
 
 def _normalize_container_ids(container_ids: Optional[Iterable]) -> Optional[list[int]]:

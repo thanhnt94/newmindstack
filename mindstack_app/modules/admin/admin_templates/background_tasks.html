@@ -144,13 +144,14 @@
                             {% endif %}
                             <div class="flex items-center gap-2">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <button type="button" class="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md hover:bg-emerald-200 transition start-task-btn action-button" {% if task.status == 'running' or not task.is_enabled %}disabled{% endif %}>
-                                        <i class="fas fa-play"></i>
-                                        <span class="text-sm font-semibold">Bắt đầu</span>
-                                    </button>
-                                    <button type="button" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-3 py-1.5 rounded-md hover:bg-rose-200 transition stop-task-btn action-button" {% if task.status != 'running' %}disabled{% endif %}>
-                                        <i class="fas fa-stop"></i>
-                                        <span class="text-sm font-semibold">Dừng</span>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md transition action-button task-toggle-btn {% if task.status == 'running' %}bg-rose-100 text-rose-700 hover:bg-rose-200{% else %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200{% endif %}"
+                                        data-state="{{ 'stop' if task.status == 'running' else 'start' }}"
+                                        {% if task.status != 'running' and not task.is_enabled %}disabled{% endif %}
+                                    >
+                                        <i class="fas {% if task.status == 'running' %}fa-stop{% else %}fa-play{% endif %}"></i>
+                                        <span class="text-sm font-semibold task-toggle-label">{{ 'Dừng' if task.status == 'running' else 'Bắt đầu' }}</span>
                                     </button>
                                     <a href="{{ url_for('admin.view_task_logs', task_id=task.task_id) }}" class="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-md hover:bg-slate-200 transition text-sm">
                                         <i class="fas fa-list"></i>
@@ -221,11 +222,40 @@
             }
         }
 
+        function setToggleButtonState(row, taskData) {
+            const button = row.querySelector('.task-toggle-btn');
+            const checkbox = row.querySelector('.toggle-task-checkbox');
+            if (!button) return;
+
+            const isRunning = taskData.status === 'running';
+            const isEnabled = typeof taskData.is_enabled === 'boolean'
+                ? taskData.is_enabled
+                : checkbox?.checked;
+
+            button.dataset.state = isRunning ? 'stop' : 'start';
+
+            button.classList.remove('bg-emerald-100', 'text-emerald-700', 'hover:bg-emerald-200');
+            button.classList.remove('bg-rose-100', 'text-rose-700', 'hover:bg-rose-200');
+
+            const icon = button.querySelector('i');
+            const label = button.querySelector('.task-toggle-label');
+
+            if (isRunning) {
+                button.classList.add('bg-rose-100', 'text-rose-700', 'hover:bg-rose-200');
+                button.disabled = false;
+                if (icon) icon.className = 'fas fa-stop';
+                if (label) label.textContent = 'Dừng';
+            } else {
+                button.classList.add('bg-emerald-100', 'text-emerald-700', 'hover:bg-emerald-200');
+                button.disabled = !isEnabled;
+                if (icon) icon.className = 'fas fa-play';
+                if (label) label.textContent = 'Bắt đầu';
+            }
+        }
+
         function updateTaskRow(row, taskData) {
             const statusBadge = row.querySelector('.task-status-badge');
             const progressBarFill = row.querySelector('.progress-bar-fill');
-            const startBtn = row.querySelector('.start-task-btn');
-            const stopBtn = row.querySelector('.stop-task-btn');
             const toggleCheckbox = row.querySelector('.toggle-task-checkbox');
             const progressPercentage = taskData.total > 0 ? Math.round((taskData.progress / taskData.total) * 100) : 0;
 
@@ -236,8 +266,6 @@
             progressBarFill.style.width = `${progressPercentage}%`;
             progressBarFill.textContent = `${progressPercentage}%`;
 
-            startBtn.disabled = taskData.status === 'running' || !taskData.is_enabled;
-            stopBtn.disabled = taskData.status !== 'running';
             toggleCheckbox.disabled = taskData.status === 'running';
             toggleCheckbox.checked = taskData.is_enabled;
 
@@ -263,6 +291,7 @@
                 row.dataset.total = 0;
             }
 
+            setToggleButtonState(row, taskData);
             updateStatusHint(row, taskData);
         }
 
@@ -273,9 +302,10 @@
                 try {
                     const response = await axios.post(`/admin/tasks/toggle/${taskId}`);
                     if (response.data.success) {
+                        const status = row.querySelector('.task-status-badge')?.textContent?.trim();
                         showFlashMessage(`Tác vụ đã được ${response.data.is_enabled ? 'bật' : 'tắt'}.`, 'success');
-                        row.querySelector('.start-task-btn').disabled = !response.data.is_enabled || response.data.status === 'running';
-                        updateStatusHint(row, { is_enabled: response.data.is_enabled, status: row.querySelector('.task-status-badge')?.textContent?.trim() });
+                        setToggleButtonState(row, { is_enabled: response.data.is_enabled, status });
+                        updateStatusHint(row, { is_enabled: response.data.is_enabled, status });
                     }
                 } catch (error) {
                     console.error('Error toggling task:', error);
@@ -285,12 +315,14 @@
         });
 
         tableBody.addEventListener('click', async function(event) {
-            const startBtn = event.target.closest('.start-task-btn');
-            const stopBtn = event.target.closest('.stop-task-btn');
+            const toggleBtn = event.target.closest('.task-toggle-btn');
             const row = event.target.closest('tr');
-            const taskId = row.dataset.taskId;
+            if (!toggleBtn || !row) return;
 
-            if (startBtn && !startBtn.disabled) {
+            const taskId = row.dataset.taskId;
+            const action = toggleBtn.dataset.state === 'stop' ? 'stop' : 'start';
+
+            if (action === 'start') {
                 const toggleCheckbox = row.querySelector('.toggle-task-checkbox');
                 if (toggleCheckbox && !toggleCheckbox.checked) {
                     showFlashMessage('Vui lòng bật công tắc trước khi khởi chạy tác vụ.', 'warning');
@@ -329,8 +361,8 @@
                     payload.container_type = containerType;
                 }
 
-                startBtn.disabled = true;
-                startBtn.classList.add('opacity-60');
+                toggleBtn.disabled = true;
+                toggleBtn.classList.add('opacity-60');
 
                 try {
                     const response = await axios.post(`/admin/tasks/start/${taskId}`, payload);
@@ -342,32 +374,31 @@
                             statusBadge.textContent = 'running';
                             statusBadge.className = 'task-status-badge status-running';
                         }
-                        row.querySelector('.start-task-btn').disabled = true;
-                        row.querySelector('.stop-task-btn').disabled = false;
                         if (toggleCheckbox) {
                             toggleCheckbox.disabled = true;
                         }
+                        setToggleButtonState(row, { status: 'running', is_enabled: true });
                         updateStatusHint(row, { status: 'running', is_enabled: true });
                     } else {
                         showFlashMessage(response.data.message || 'Không thể khởi chạy tác vụ. Vui lòng thử lại.', 'danger');
-                        startBtn.disabled = false;
-                        startBtn.classList.remove('opacity-60');
+                        toggleBtn.disabled = false;
+                        toggleBtn.classList.remove('opacity-60');
                     }
                 } catch (error) {
                     console.error('Error starting task:', error);
                     const apiMessage = error?.response?.data?.message;
                     showFlashMessage(apiMessage || 'Không thể khởi chạy tác vụ. Vui lòng thử lại.', 'danger');
-                    startBtn.disabled = false;
-                    startBtn.classList.remove('opacity-60');
+                    toggleBtn.disabled = false;
+                    toggleBtn.classList.remove('opacity-60');
                 }
             }
 
-            if (stopBtn && !stopBtn.disabled) {
+            if (action === 'stop' && !toggleBtn.disabled) {
                 try {
                     const response = await axios.post(`/admin/tasks/stop/${taskId}`);
                     if (response.data.success) {
                         showFlashMessage(response.data.message, 'info');
-                        row.querySelector('.stop-task-btn').disabled = true;
+                        toggleBtn.disabled = true;
                         updateStatusHint(row, { status: row.querySelector('.task-status-badge')?.textContent?.trim() });
                     }
                 } catch (error) {
