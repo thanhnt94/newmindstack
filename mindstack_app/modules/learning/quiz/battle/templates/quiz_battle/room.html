@@ -163,6 +163,11 @@
     .cm-btn-ghost { background: white; color: #475569; border: 1px solid #cbd5e1; }
     .cm-btn-ghost:hover { background: #f8fafc; color: #1e293b; border-color: #94a3b8; }
 
+    .qb-next-mobile-floating {
+        box-shadow: 0 14px 30px rgba(37, 99, 235, 0.28);
+        justify-content: center;
+    }
+
     /* Responsive Grid */
     .qb-layout-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
     @media (min-width: 1024px) { .qb-layout-grid { grid-template-columns: 2fr 1fr; } }
@@ -174,6 +179,18 @@
         .qb-chat-panel.open .qb-chat-container { transform: translateY(0); }
         .qb-close-chat-btn { display: inline-flex; }
         .qb-mobile-chat-toggle { display: flex; }
+
+        #next-round-btn.qb-next-mobile-floating {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 1rem;
+            width: calc(100% - 7rem);
+            max-width: 360px;
+            z-index: 70;
+            font-size: 1rem;
+            padding-inline: 1.1rem;
+        }
     }
 </style>
 {% endblock %}
@@ -421,6 +438,7 @@
         const openChatBtn = document.getElementById('open-chat-btn');
         const closeChatBtn = document.getElementById('close-chat-btn');
         const unreadBadge = document.getElementById('chat-unread-badge');
+        const mobileBreakpoint = window.matchMedia('(max-width: 1024px)');
 
         let roomState = initialRoom || {};
         // Force an initial render even if the server already sent an active round
@@ -477,6 +495,13 @@
 
         function getMyParticipant() {
             return (roomState.participants || []).find(p => p.user_id === currentUserId);
+        }
+
+        function syncNextButtonPlacement() {
+            const nextBtn = document.getElementById('next-round-btn');
+            if(!nextBtn) return;
+            const shouldFloat = !nextBtn.classList.contains('hidden') && mobileBreakpoint.matches;
+            nextBtn.classList.toggle('qb-next-mobile-floating', shouldFloat);
         }
 
         const renderAiContent = (value, options = {}) => {
@@ -826,6 +851,7 @@
             if(roomState.status === 'completed') {
                 document.getElementById('leave-room-btn').innerHTML = '<i class="fa-solid fa-person-walking-arrow-right"></i> Thoát';
             }
+            syncNextButtonPlacement();
         }
 
         async function fetchRoomState(forceLatest = false) {
@@ -849,6 +875,8 @@
             aiCoachGenerateBtn.innerHTML = aiCoachButtonDefaultHtml;
             aiCoachGenerateBtn.addEventListener('click', generateAiCoachContent);
         }
+
+        mobileBreakpoint.addEventListener('change', syncNextButtonPlacement);
 
         document.getElementById('start-room-btn').addEventListener('click', async () => {
             try {
