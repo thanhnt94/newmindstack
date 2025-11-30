@@ -1355,12 +1355,13 @@ def export_quiz_set(set_id):
             audio_folder=audio_folder,
         )
 
-        excel_path = os.path.join(tmp_dir, 'quizzes.xlsx')
+        excel_filename = f"{_slugify_filename(quiz_set.title)}.xlsx"
+        excel_path = os.path.join(tmp_dir, excel_filename)
         _create_quiz_excel(info_rows, data_rows, output_path=excel_path)
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.write(excel_path, arcname='quizzes.xlsx')
+            zipf.write(excel_path, arcname=excel_filename)
             if os.path.isdir(media_dir):
                 for root_dir, _, files in os.walk(media_dir):
                     for filename in files:
