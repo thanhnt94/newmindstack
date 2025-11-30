@@ -4,7 +4,7 @@
 
   Usage example:
 
-  {% include 'shared/includes/chat_widget.html' %}
+  {% include 'includes/chat_widget.html' %}
   <script>
     const chatCtrl = window.sharedChat.initChat({
       messagesUrl: '{{ url_for('shared.list_chat_messages', room_type='quiz-battle', room_code=room_code) }}',

@@ -1169,7 +1169,7 @@
 
 {% block scripts %}
   {{ super() }}
-  {% include 'shared/includes/chat_widget.html' %}
+  {% include 'includes/chat_widget.html' %}
   <script src="{{ url_for('learning.flashcard_learning.static', filename='flashcard_viewport.js') }}"></script>
   <script>
     const refreshViewportSizing = () => {
