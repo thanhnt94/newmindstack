@@ -23,6 +23,7 @@ class LearningContainer(db.Model):
     container_type = db.Column(db.String(50), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
+    cover_image = db.Column(db.String(512), nullable=True)
     tags = db.Column(db.String(255))
     is_public = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())

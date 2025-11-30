@@ -36,6 +36,7 @@ COURSE_DATA_COLUMNS = [
 COURSE_INFO_KEYS = [
     'title',
     'description',
+    'cover_image',
     'tags',
     'is_public',
     'ai_prompt',
@@ -131,6 +132,7 @@ def _build_course_export_payload(course_set, lessons):
     info_mapping = {
         'title': course_set.title or '',
         'description': course_set.description or '',
+        'cover_image': course_set.cover_image or '',
         'tags': course_set.tags or '',
         'is_public': 'True' if course_set.is_public else 'False',
         'ai_prompt': course_set.ai_prompt or '',
@@ -199,6 +201,9 @@ def _update_lessons_from_excel_file(container_id: int, excel_file) -> str:
             if ai_prompt_value is not None:
                 prompt_clean = str(ai_prompt_value).strip()
                 course_set.ai_prompt = prompt_clean or None
+            cover_value = info_mapping.get('cover_image')
+            if cover_value is not None:
+                course_set.cover_image = str(cover_value).strip()
         if info_warnings:
             info_notices.extend(info_warnings)
 
@@ -510,6 +515,7 @@ def download_course_excel_template():
     info_rows = [
         {'Key': 'title', 'Value': 'Tiêu đề khoá học'},
         {'Key': 'description', 'Value': 'Mô tả khoá học'},
+        {'Key': 'cover_image', 'Value': 'Đường dẫn ảnh cover (URL hoặc uploads/...)'},
         {'Key': 'tags', 'Value': 'Các thẻ, cách nhau bằng dấu phẩy'},
         {'Key': 'is_public', 'Value': 'true/false - Khoá học công khai hay không'},
         {'Key': 'ai_prompt', 'Value': 'Prompt AI dùng chung cho khoá học (tuỳ chọn)'},
@@ -636,6 +642,7 @@ def add_course_set():
                 container_type='COURSE',
                 title=form.title.data,
                 description=form.description.data,
+                cover_image=form.cover_image.data,
                 tags=form.tags.data,
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
                 ai_prompt=ai_prompt_value or None,
@@ -685,6 +692,7 @@ def edit_course_set(set_id):
         try:
             course_set.title = form.title.data
             course_set.description = form.description.data
+            course_set.cover_image = form.cover_image.data
             course_set.tags = form.tags.data
             course_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
             ai_prompt_value = (form.ai_prompt.data or '').strip()

@@ -91,6 +91,11 @@
                 </div>
 
                 <div>
+                    {{ form.cover_image.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.cover_image(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="VD: uploads/quizzes/covers/sample.jpg") }}
+                </div>
+
+                <div>
                     {{ form.tags.label(class="block text-sm font-medium text-gray-700") }}
                     {{ form.tags(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="ví dụ: Toán, Lịch sử, Tiếng Anh") }}
                 </div>

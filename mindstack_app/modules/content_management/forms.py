@@ -36,9 +36,10 @@ class CourseForm(FlaskForm):
     """
     title = StringField('Tiêu đề khoá học', validators=[DataRequired(message="Vui lòng nhập tiêu đề khoá học."), Length(max=255)])
     description = TextAreaField('Mô tả', validators=[Optional()])
+    cover_image = StringField('Ảnh cover (URL hoặc đường dẫn uploads)', validators=[Optional(), Length(max=512)])
     tags = StringField('Thẻ (cách nhau bởi dấu phẩy)', validators=[Optional(), Length(max=255)])
     is_public = BooleanField('Công khai (người khác có thể tìm thấy và học)')
-    ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho khoá học)', 
+    ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho khoá học)',
                               description='Nhập prompt tùy chỉnh để AI tạo nội dung. Nếu để trống, hệ thống sẽ sử dụng prompt mặc định.',
                               validators=[Optional()])
     submit = SubmitField('Lưu khoá học')
@@ -88,6 +89,7 @@ class FlashcardSetForm(FlaskForm):
     """
     title = StringField('Tiêu đề bộ thẻ', validators=[DataRequired(message="Vui lòng nhập tiêu đề bộ thẻ."), Length(max=255)])
     description = TextAreaField('Mô tả', validators=[Optional()])
+    cover_image = StringField('Ảnh cover (URL hoặc đường dẫn uploads)', validators=[Optional(), Length(max=512)])
     tags = StringField('Thẻ (cách nhau bởi dấu phẩy)', validators=[Optional(), Length(max=255)])
     image_base_folder = StringField(
         'Thư mục ảnh (trong uploads)',
@@ -197,6 +199,7 @@ class QuizSetForm(FlaskForm):
     """
     title = StringField('Tiêu đề bộ Quiz', validators=[DataRequired(message="Vui lòng nhập tiêu đề bộ Quiz."), Length(max=255)])
     description = TextAreaField('Mô tả', validators=[Optional()])
+    cover_image = StringField('Ảnh cover (URL hoặc đường dẫn uploads)', validators=[Optional(), Length(max=512)])
     tags = StringField('Thẻ (cách nhau bởi dấu phẩy)', validators=[Optional(), Length(max=255)])
     image_base_folder = StringField(
         'Thư mục ảnh (trong uploads)',
