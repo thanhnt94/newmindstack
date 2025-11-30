@@ -1413,6 +1413,25 @@ def edit_flashcard_set(set_id):
         form.supports_essay.data = 'supports_essay' in container_capabilities
         form.supports_listening.data = 'supports_listening' in container_capabilities
         form.supports_speaking.data = 'supports_speaking' in container_capabilities
+
+    editable_set_ids = [
+        cid
+        for (cid,) in (
+            _get_editable_flashcard_sets_query()
+            .order_by(LearningContainer.container_id.asc())
+            .with_entities(LearningContainer.container_id)
+            .all()
+        )
+    ]
+
+    previous_set_id = None
+    next_set_id = None
+    if set_id in editable_set_ids:
+        current_index = editable_set_ids.index(set_id)
+        if current_index > 0:
+            previous_set_id = editable_set_ids[current_index - 1]
+        if current_index < len(editable_set_ids) - 1:
+            next_set_id = editable_set_ids[current_index + 1]
     if form.validate_on_submit():
         flash_message = ''
         flash_category = ''
@@ -1453,8 +1472,20 @@ def edit_flashcard_set(set_id):
     
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_flashcard_set_bare.html', form=form, title='Chỉnh sửa Bộ thẻ ghi nhớ')
-    return render_template('add_edit_flashcard_set.html', form=form, title='Chỉnh sửa Bộ thẻ ghi nhớ')
+        return render_template(
+            '_add_edit_flashcard_set_bare.html',
+            form=form,
+            title='Chỉnh sửa Bộ thẻ ghi nhớ',
+            previous_set_id=previous_set_id,
+            next_set_id=next_set_id,
+        )
+    return render_template(
+        'add_edit_flashcard_set.html',
+        form=form,
+        title='Chỉnh sửa Bộ thẻ ghi nhớ',
+        previous_set_id=previous_set_id,
+        next_set_id=next_set_id,
+    )
 
 @flashcards_bp.route('/flashcards/delete/<int:set_id>', methods=['POST'])
 @login_required
