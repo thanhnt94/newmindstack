@@ -73,31 +73,44 @@
     {% endif %}
 {% endif %}
 
+<div class="sticky top-0 z-40">
+    <div class="flex items-center justify-between gap-3 px-4 py-3 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm">
+        <div class="flex items-center gap-2">
+            <button type="button"
+                    class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                    data-role="close-editor">
+                <i class="fas fa-times"></i>
+                <span>Đóng</span>
+            </button>
+        </div>
+        <div class="flex items-center gap-2">
+            {% if previous_set_id %}
+            <a href="{{ url_for('.edit_flashcard_set', set_id=previous_set_id) }}{{ modal_suffix }}"
+               class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md">
+                <i class="fas fa-chevron-left"></i>
+                <span>Bộ trước</span>
+            </a>
+            {% endif %}
+            {% if next_set_id %}
+            <a href="{{ url_for('.edit_flashcard_set', set_id=next_set_id) }}{{ modal_suffix }}"
+               class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md">
+                <span>Bộ tiếp</span>
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+            <button type="submit"
+                    form="flashcardSetForm"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow">
+                <i class="fas fa-save"></i>
+                <span>Lưu bộ thẻ</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="p-4">
     <div class="w-full">
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-            {% if not is_modal_view %}
-            <div class="flex items-center justify-between mb-4">
-                {% if previous_set_id %}
-                <a href="{{ url_for('.edit_flashcard_set', set_id=previous_set_id) }}{{ modal_suffix }}"
-                   class="flex items-center px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors text-sm">
-                    <i class="fas fa-chevron-left mr-2"></i>
-                    <span>Bộ trước</span>
-                </a>
-                {% else %}
-                <span></span>
-                {% endif %}
-                {% if next_set_id %}
-                <a href="{{ url_for('.edit_flashcard_set', set_id=next_set_id) }}{{ modal_suffix }}"
-                   class="flex items-center px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors text-sm">
-                    <span>Bộ tiếp</span>
-                    <i class="fas fa-chevron-right ml-2"></i>
-                </a>
-                {% else %}
-                <span></span>
-                {% endif %}
-            </div>
-            {% endif %}
             <h2 class="text-2xl font-bold text-center mb-6">{{ title }}</h2>
             <form id="flashcardSetForm" action="" method="post" enctype="multipart/form-data" class="space-y-6">
                 {{ form.csrf_token }}
@@ -260,6 +273,16 @@
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('flashcardSetForm');
         const fileInput = document.getElementById('excel_file_input');
+
+        document.querySelectorAll('[data-role="close-editor"]').forEach(button => {
+            button.addEventListener('click', () => {
+                if (window.parent && typeof window.parent.closeModal === 'function') {
+                    window.parent.closeModal();
+                } else {
+                    window.history.back();
+                }
+            });
+        });
 
         if (!form || !fileInput) {
             return;
