@@ -807,6 +807,25 @@
     .mobile-chat-toggle i { font-size: 1.05rem; }
     .mobile-chat-label { display: none; }
 
+    .chat-unread-indicator {
+      position: absolute;
+      top: -0.1rem;
+      right: -0.1rem;
+      width: 1.2rem;
+      height: 1.2rem;
+      border-radius: 999px;
+      background: #ef4444;
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 800;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
+    }
+
+    .chat-unread-indicator.is-visible { display: inline-flex; }
+
     @media (min-width: 520px) and (max-width: 1024px) {
       .mobile-chat-toggle {
         width: auto;
@@ -1139,6 +1158,7 @@
 
   <button type="button" id="open-chat-btn" class="mobile-chat-toggle" aria-label="Mở chat">
     <i class="fas fa-comments" aria-hidden="true"></i>
+    <span id="collab-chat-unread" class="chat-unread-indicator" aria-hidden="true">•</span>
   </button>
 
   {% include 'notes/_note_panel.html' %}
@@ -1149,6 +1169,7 @@
 
 {% block scripts %}
   {{ super() }}
+  {% include 'shared/includes/chat_widget.html' %}
   <script src="{{ url_for('learning.flashcard_learning.static', filename='flashcard_viewport.js') }}"></script>
   <script>
     const refreshViewportSizing = () => {
@@ -2214,171 +2235,85 @@
       window.addEventListener('beforeunload', stopPolling);
     })();
 
-    // Chat Logic
+    // Chat Logic (shared controller)
     document.addEventListener('DOMContentLoaded', () => {
-      const messagesUrl = {{ url_for('shared.list_chat_messages', room_type='flashcard-collab', room_code=room_payload.room_code) | tojson }};
-      const postMessageUrl = {{ url_for('shared.post_chat_message', room_type='flashcard-collab', room_code=room_payload.room_code) | tojson }};
       const chatMessages = document.getElementById('collab-chat-messages');
       const chatForm = document.getElementById('collab-chat-form');
       const chatInput = document.getElementById('collab-chat-input');
       const chatPanel = document.getElementById('collab-chat-panel');
       const openChatBtn = document.getElementById('open-chat-btn');
       const closeChatBtn = chatPanel?.querySelector('.close-chat-btn');
+      const unreadBadge = document.getElementById('collab-chat-unread');
       const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-      const csrfHeaders = csrfTokenMeta ? { 'X-CSRFToken': csrfTokenMeta.getAttribute('content') } : {};
+      const csrfToken = csrfTokenMeta?.getAttribute('content') || '';
+      const currentUserIdNum = Number({{ current_user.user_id }});
 
-      if (!openChatBtn) return;
+      const chatController = window.sharedChat?.initChat({
+        messagesUrl: {{ url_for('shared.list_chat_messages', room_type='flashcard-collab', room_code=room_payload.room_code) | tojson }},
+        postMessageUrl: {{ url_for('shared.post_chat_message', room_type='flashcard-collab', room_code=room_payload.room_code) | tojson }},
+        currentUserId: currentUserIdNum,
+        pollInterval: 7000,
+        csrfToken,
+        elements: {
+          messages: chatMessages,
+          form: chatForm,
+          input: chatInput,
+          panel: chatPanel,
+          openButton: openChatBtn,
+          closeButton: closeChatBtn,
+          unreadBadge,
+        },
+        renderMessages: (messages = []) => {
+          chatMessages.innerHTML = '';
 
-      let pollHandle = null;
-
-      const renderMessages = (messages = []) => {
-        chatMessages.innerHTML = '';
-
-        if (!messages.length) {
-          chatMessages.innerHTML = '<p class="text-center text-slate-400 text-sm mt-8">Hãy bắt đầu cuộc trò chuyện...</p>';
-          return;
-        }
-
-        const currentUserIdNum = Number({{ current_user.user_id }});
-
-        messages.forEach((message) => {
-          const isMe = Number(message.user_id) === currentUserIdNum;
-          const row = document.createElement('div');
-          row.className = `chat-row ${isMe ? 'me' : 'other'}`;
-
-          if (!isMe) {
-            const avatar = document.createElement('div');
-            avatar.className = 'chat-avatar';
-            avatar.textContent = (message.username || '?').charAt(0).toUpperCase();
-            avatar.title = message.username;
-            row.appendChild(avatar);
+          if (!messages.length) {
+            chatMessages.innerHTML = '<p class="text-center text-slate-400 text-sm mt-8">Hãy bắt đầu cuộc trò chuyện...</p>';
+            return;
           }
 
-          const bubble = document.createElement('div');
-          bubble.className = 'chat-bubble-modern';
-          bubble.textContent = message.content;
-          
-          // Time tooltip or tiny text
-          const timeStr = message.created_at
-            ? new Date(message.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-            : '';
-          bubble.title = `${message.username} - ${timeStr}`;
+          messages.forEach((message) => {
+            const isMe = Number(message.user_id) === currentUserIdNum;
+            const row = document.createElement('div');
+            row.className = `chat-row ${isMe ? 'me' : 'other'}`;
 
-          row.appendChild(bubble);
-          chatMessages.appendChild(row);
-        });
+            if (!isMe) {
+              const avatar = document.createElement('div');
+              avatar.className = 'chat-avatar';
+              avatar.textContent = (message.username || '?').charAt(0).toUpperCase();
+              avatar.title = message.username;
+              row.appendChild(avatar);
+            }
 
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      };
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble-modern';
+            bubble.textContent = message.content;
 
-      const loadMessages = async () => {
-        try {
-          const response = await fetch(messagesUrl, { credentials: 'same-origin' });
-          if (!response.ok) {
-            throw new Error('Không thể tải tin nhắn.');
-          }
-          const payload = await response.json();
-          renderMessages(payload?.messages || []);
-        } catch (err) {
-          chatMessages.innerHTML = `<p class="text-sm text-rose-600">${err.message || 'Không thể tải tin nhắn.'}</p>`;
-        }
-      };
+            const timeStr = message.created_at
+              ? new Date(message.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+              : '';
+            bubble.title = `${message.username} - ${timeStr}`;
 
-      const sendMessage = async (content) => {
-        if (!content.trim()) return;
-
-        chatInput.disabled = true;
-        try {
-          const response = await fetch(postMessageUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-            credentials: 'same-origin',
-            body: JSON.stringify({ content }),
+            row.appendChild(bubble);
+            chatMessages.appendChild(row);
           });
 
-          if (!response.ok) {
-            const errorPayload = await response.json().catch(() => ({}));
-            throw new Error(errorPayload?.description || 'Không thể gửi tin nhắn.');
-          }
-
-          chatInput.value = '';
-          await loadMessages();
-        } catch (err) {
-          chatMessages.insertAdjacentHTML(
-            'beforeend',
-            `<p class="text-sm text-rose-600">${err.message || 'Không thể gửi tin nhắn.'}</p>`
-          );
-        } finally {
-          chatInput.disabled = false;
-          chatInput.focus();
-        }
-      };
-
-      chatForm?.addEventListener('submit', (event) => {
-        event.preventDefault();
-        sendMessage(chatInput.value || '');
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        },
       });
 
-      const setChatOpen = (isOpen) => {
-        if (!chatPanel) return;
-        
-        // Toggle class 'open' on the panel (works for mobile-view overlay)
-        if (isOpen) {
-            chatPanel.classList.add('open');
-        } else {
-            chatPanel.classList.remove('open');
-        }
-        
-        if (openChatBtn) {
-            openChatBtn.classList.toggle('is-active', isOpen);
-            openChatBtn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
-        }
-
-        if (isOpen && window.matchMedia('(max-width: 1024px)').matches) {
-          setTimeout(() => chatInput?.focus({ preventScroll: true }), 100);
-        }
-      };
-
-      openChatBtn?.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        setChatOpen(!chatPanel?.classList.contains('open'));
-      });
-      
-      // Close button inside the chat panel (for mobile)
-      const internalCloseBtn = chatPanel?.querySelector('.close-chat-btn');
-      internalCloseBtn?.addEventListener('click', () => setChatOpen(false));
-
-      // Global close button (if any)
-      closeChatBtn?.addEventListener('click', () => setChatOpen(false));
-      
-      // Click outside to close (only in mobile view)
       chatPanel?.addEventListener('click', (event) => {
         if (chatPanel.classList.contains('mobile-view') && event.target === chatPanel) {
-          setChatOpen(false);
+          chatController?.setOpen(false);
         }
       });
 
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-          setChatOpen(false);
+          chatController?.setOpen(false);
         }
       });
 
-      const startPolling = () => {
-        if (pollHandle) return;
-        pollHandle = setInterval(loadMessages, 7000);
-      };
-
-      const stopPolling = () => {
-        if (!pollHandle) return;
-        clearInterval(pollHandle);
-        pollHandle = null;
-      };
-
-      loadMessages();
-      startPolling();
-      window.addEventListener('beforeunload', stopPolling);
+      window.addEventListener('beforeunload', () => chatController?.stopPolling());
     });
   </script>
 {% endblock %}

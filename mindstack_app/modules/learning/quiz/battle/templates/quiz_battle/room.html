@@ -97,10 +97,32 @@
         line-height: 1;
         pointer-events: auto;
         touch-action: manipulation;
+        overflow: visible;
     }
 
     .qb-mobile-chat-toggle i { font-size: 1.05rem; }
     .qb-mobile-chat-label { display: none; }
+
+    .qb-chat-unread {
+        position: absolute;
+        top: -0.1rem;
+        right: -0.1rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 999px;
+        background: #ef4444;
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 800;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
+        border: 2px solid white;
+        line-height: 1;
+    }
+
+    .qb-chat-unread.is-visible { display: inline-flex; }
 
     @media (min-width: 520px) and (max-width: 1024px) {
         .qb-mobile-chat-toggle {
@@ -368,11 +390,13 @@
 <button type="button" id="open-chat-btn" class="qb-mobile-chat-toggle" aria-label="Mở chat">
     <i class="fa-solid fa-comments"></i>
     <span class="qb-mobile-chat-label">Chat</span>
+    <span id="chat-unread-badge" class="qb-chat-unread" aria-hidden="true">•</span>
 </button>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
+{% include 'shared/includes/chat_widget.html' %}
 <script>
     (function() {
         // Initialize variables from template
@@ -396,14 +420,15 @@
         const chatPanel = document.getElementById('quiz-chat-panel');
         const openChatBtn = document.getElementById('open-chat-btn');
         const closeChatBtn = document.getElementById('close-chat-btn');
+        const unreadBadge = document.getElementById('chat-unread-badge');
 
         let roomState = initialRoom || {};
         // Force an initial render even if the server already sent an active round
         let lastRenderMeta = { sequence: null, hasMyAnswer: false };
         let roomPollInterval = null;
-        let chatPollInterval = null;
         let currentQuestionItemId = null;
         let pendingSelections = {};
+        let chatController = null;
         const aiCoachContentEl = document.getElementById('question-ai-content');
         const aiCoachGenerateBtn = document.getElementById('ai-coach-generate-btn');
         const aiCoachButtonDefaultHtml = '<i class="fa-solid fa-wand-magic-sparkles"></i> Tạo hướng dẫn AI';
@@ -498,30 +523,7 @@
             }
         }
 
-        function setChatOpen(isOpen) {
-            if (!chatPanel) return;
-            chatPanel.classList.toggle('open', isOpen);
-
-            if (openChatBtn) {
-                openChatBtn.classList.toggle('is-active', isOpen);
-                openChatBtn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
-            }
-
-            if (isOpen) {
-                setTimeout(() => document.getElementById('chat-input')?.focus({ preventScroll: true }), 120);
-            }
-        }
-
-        // --- Chat Functions ---
-        async function loadMessages() {
-            try {
-                const res = await fetch(messagesUrl);
-                const data = await res.json();
-                renderMessages(data.messages || []);
-            } catch(e) { console.error("Chat error:", e); }
-        }
-
-        function renderMessages(msgs) {
+        function renderChatMessages(msgs) {
             const container = document.getElementById('chat-messages');
             if(!container) return;
             container.innerHTML = '';
@@ -852,27 +854,27 @@
             }
         });
 
-        document.getElementById('chat-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const input = document.getElementById('chat-input');
-            const content = input.value.trim();
-            if(!content) return;
-            try {
-                await postJson(postMessageUrl, { content });
-                input.value = '';
-                loadMessages();
-            } catch(e) { setAlert('Lỗi gửi tin nhắn: ' + e.message, 'error'); }
+        chatController = window.sharedChat?.initChat({
+            messagesUrl,
+            postMessageUrl,
+            currentUserId,
+            pollInterval: 5000,
+            csrfToken,
+            elements: {
+                messages: document.getElementById('chat-messages'),
+                form: document.getElementById('chat-form'),
+                input: document.getElementById('chat-input'),
+                panel: chatPanel,
+                openButton: openChatBtn,
+                closeButton: closeChatBtn,
+                unreadBadge,
+            },
+            renderMessages: renderChatMessages,
         });
-
-        openChatBtn?.addEventListener('click', () => {
-            setChatOpen(!chatPanel?.classList.contains('open'));
-        });
-
-        closeChatBtn?.addEventListener('click', () => setChatOpen(false));
 
         chatPanel?.addEventListener('click', (event) => {
             if (event.target === chatPanel) {
-                setChatOpen(false);
+                chatController?.setOpen(false);
             }
         });
 
@@ -904,13 +906,11 @@
 
         // Init
         hydrateUi();
-        loadMessages();
         roomPollInterval = setInterval(fetchRoomState, 3000);
-        chatPollInterval = setInterval(loadMessages, 5000);
-        
+
         window.addEventListener('beforeunload', () => {
             clearInterval(roomPollInterval);
-            clearInterval(chatPollInterval);
+            chatController?.stopPolling();
         });
 
     })();
