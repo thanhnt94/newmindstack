@@ -569,6 +569,19 @@
 
         function syncVisibleRound() {
             const activeRound = roomState?.active_round || null;
+            const matchingHistory = (roomState?.round_history || []).find(
+                r => visibleRound && r.sequence_number === visibleRound.sequence_number
+            );
+
+            if(matchingHistory) {
+                visibleRound = matchingHistory;
+            } else if(
+                activeRound &&
+                visibleRound &&
+                activeRound.sequence_number === visibleRound.sequence_number
+            ) {
+                visibleRound = activeRound;
+            }
             if(forceShowLatestRound) {
                 visibleRound = activeRound;
                 pendingRoundSequence = null;
@@ -885,6 +898,25 @@
                 const url = answerUrlTemplate.replace('/0/', `/${seq}/`);
                 const data = await postJson(url, { selected_option: selected });
                 roomState = data.room;
+                const mergedAnswer = {
+                    participant_id: participantId,
+                    user_id: currentUserId,
+                    selected_option: selected,
+                    is_correct: data.answer?.is_correct,
+                    score_delta: data.answer?.score_delta,
+                    correct_option: data.answer?.correct_option,
+                    explanation: data.answer?.explanation,
+                    answered_at: new Date().toISOString(),
+                };
+                const roundFromRoom =
+                    (roomState.round_history || []).find(r => r.sequence_number === seq) ||
+                    (roomState.active_round?.sequence_number === seq ? roomState.active_round : null) ||
+                    visibleRound;
+                if(roundFromRoom) {
+                    const existing = (roundFromRoom.answers || []).filter(a => a.participant_id !== participantId);
+                    roundFromRoom.answers = [...existing, mergedAnswer];
+                    visibleRound = roundFromRoom;
+                }
                 pendingSelections[seq] = null;
                 lastRenderMeta = { sequence: seq, hasMyAnswer: true };
                 hydrateUi();
