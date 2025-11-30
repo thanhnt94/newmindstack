@@ -178,6 +178,15 @@
 
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta?.getAttribute('content');
+    if (csrfToken) {
+        axios.defaults.headers.common['X-CSRFToken'] = csrfToken;
+        axios.defaults.headers.common['X-CSRF-Token'] = csrfToken;
+    } else {
+        console.warn('CSRF token không tìm thấy. Các yêu cầu có thể thất bại.');
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const tableBody = document.getElementById('tasks-table-body');
         const defaultRequestInterval = {{ default_request_interval|tojson }};
