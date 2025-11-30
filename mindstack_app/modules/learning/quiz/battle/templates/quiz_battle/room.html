@@ -576,20 +576,36 @@
         function renderParticipants(parts) {
             const list = document.getElementById('participants-list');
             if(!list) return;
-            list.innerHTML = parts.map(p => `
-                <li class="px-4 py-3 flex justify-between items-center bg-white hover:bg-slate-50 transition">
-                    <div>
-                        <p class="text-sm font-semibold text-slate-800 ${p.user_id === currentUserId ? 'text-blue-600' : ''}">
-                            ${p.username || 'User'} ${p.is_host ? '<i class="fa-solid fa-crown text-yellow-500 text-xs ml-1"></i>' : ''}
-                        </p>
-                        <p class="text-[10px] text-slate-500 uppercase">${p.status}</p>
-                    </div>
-                    <div class="text-right">
-                        <span class="block text-sm font-bold text-slate-900">${p.session_score || 0}</span>
-                        <span class="text-[10px] text-slate-400">điểm</span>
-                    </div>
-                </li>
-            `).join('');
+            list.innerHTML = parts.map(p => {
+                const answeredCount = (p.correct_answers || 0) + (p.incorrect_answers || 0);
+                const correctCount = p.correct_answers || 0;
+                const score = p.session_score || 0;
+
+                return `
+                    <li class="px-4 py-3 flex justify-between items-center bg-white hover:bg-slate-50 transition">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800 ${p.user_id === currentUserId ? 'text-blue-600' : ''}">
+                                ${p.username || 'User'} ${p.is_host ? '<i class=\"fa-solid fa-crown text-yellow-500 text-xs ml-1\"></i>' : ''}
+                            </p>
+                            <p class="text-[10px] text-slate-500 uppercase">${p.status}</p>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 text-center min-w-[210px]">
+                            <div>
+                                <span class="block text-sm font-bold text-slate-900">${answeredCount}</span>
+                                <span class="text-[10px] text-slate-400">đã trả lời</span>
+                            </div>
+                            <div>
+                                <span class="block text-sm font-bold text-emerald-700">${correctCount}</span>
+                                <span class="text-[10px] text-emerald-500">đúng</span>
+                            </div>
+                            <div>
+                                <span class="block text-sm font-bold text-slate-900">${score}</span>
+                                <span class="text-[10px] text-slate-400">điểm</span>
+                            </div>
+                        </div>
+                    </li>
+                `;
+            }).join('');
         }
 
         function syncVisibleRound() {
