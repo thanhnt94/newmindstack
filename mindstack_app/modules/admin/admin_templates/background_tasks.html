@@ -95,12 +95,18 @@
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex flex-col gap-3">
-                            {% if task.task_name in ['generate_audio_cache', 'generate_image_cache'] %}
+                            {% if task.task_name in ['generate_audio_cache', 'generate_image_cache', 'generate_ai_explanations'] %}
                             <div>
                                 <label class="block text-xs font-semibold text-slate-500 mb-2">
-                                    {{ 'Phạm vi tạo ảnh minh họa' if task.task_name == 'generate_image_cache' else 'Phạm vi tạo cache audio' }}
+                                    {% if task.task_name == 'generate_image_cache' %}
+                                        Phạm vi tạo ảnh minh họa
+                                    {% elif task.task_name == 'generate_ai_explanations' %}
+                                        Phạm vi tạo AI Explain
+                                    {% else %}
+                                        Phạm vi tạo cache audio
+                                    {% endif %}
                                 </label>
-                                <select class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 flashcard-scope-select" data-default-label="tất cả bộ thẻ Flashcard" {% if task.status == 'running' %}disabled{% endif %}>
+                                <select class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 flashcard-scope-select" data-default-label="{{ 'tất cả học liệu' if task.task_name == 'generate_ai_explanations' else 'tất cả bộ thẻ Flashcard' }}" {% if task.status == 'running' %}disabled{% endif %}>
                                     <option value="">Tất cả bộ thẻ Flashcard</option>
                                     {% for container in flashcard_containers %}
                                         <option value="{{ container.container_id }}">{{ container.title }}</option>
@@ -109,10 +115,19 @@
                                 <p class="text-xs text-slate-400 mt-1">
                                     {% if task.task_name == 'generate_image_cache' %}
                                         Chọn một bộ thẻ cụ thể nếu chỉ muốn bổ sung ảnh minh họa cho bộ đó.
+                                    {% elif task.task_name == 'generate_ai_explanations' %}
+                                        Chọn bộ thẻ cần tạo AI Explain tự động, hoặc để trống để áp dụng cho tất cả.
                                     {% else %}
                                         Chọn một bộ thẻ cụ thể để giới hạn phạm vi xử lý audio.
                                     {% endif %}
                                 </p>
+                            </div>
+                            {% endif %}
+                            {% if task.task_name == 'generate_ai_explanations' %}
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-2">Khoảng dừng giữa các yêu cầu (giây)</label>
+                                <input type="number" step="0.5" min="0" value="{{ default_request_interval }}" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 request-interval-input" {% if task.status == 'running' %}disabled{% endif %}>
+                                <p class="text-xs text-slate-400 mt-1">Chọn thời gian nghỉ giữa các request để tránh bị giới hạn hoặc chặn.</p>
                             </div>
                             {% endif %}
                             <div class="flex items-center gap-2">
@@ -166,6 +181,11 @@
                 scopeSelect.disabled = taskData.status === 'running';
             }
 
+            const intervalInput = row.querySelector('.request-interval-input');
+            if (intervalInput) {
+                intervalInput.disabled = taskData.status === 'running';
+            }
+
             if (typeof taskData.progress === 'number') {
                 row.dataset.progress = taskData.progress;
             } else if (!row.dataset.progress) {
@@ -217,9 +237,16 @@
                     }
                 }
 
+                const intervalInput = row.querySelector('.request-interval-input');
+                let requestIntervalSeconds = intervalInput ? parseFloat(intervalInput.value) : null;
+                if (Number.isNaN(requestIntervalSeconds)) {
+                    requestIntervalSeconds = null;
+                }
+
                 try {
                     const response = await axios.post(`/admin/tasks/start/${taskId}`, {
-                        container_id: containerId
+                        container_id: containerId,
+                        request_interval_seconds: requestIntervalSeconds
                     });
 
                     if (response.data.success) {

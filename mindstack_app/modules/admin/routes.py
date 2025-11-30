@@ -57,6 +57,10 @@ from datetime import date, time
 from ...config import Config
 from ..learning.flashcard.individual.audio_service import AudioService
 from ..learning.flashcard.individual.image_service import ImageService
+from ..ai_services.ai_explanation_task_service import (
+    DEFAULT_REQUEST_INTERVAL_SECONDS,
+    generate_ai_explanations,
+)
 from ...services.config_service import SENSITIVE_SETTING_KEYS, get_runtime_config
 
 audio_service = AudioService()
@@ -1027,7 +1031,8 @@ def manage_background_tasks():
         'generate_audio_cache',
         'clean_audio_cache',
         'generate_image_cache',
-        'clean_image_cache'
+        'clean_image_cache',
+        'generate_ai_explanations'
     ]
     created_any = False
     for task_name in desired_tasks:
@@ -1041,7 +1046,12 @@ def manage_background_tasks():
     # Lấy danh sách bộ thẻ để lọc phạm vi
     flashcard_containers = LearningContainer.query.filter_by(container_type='FLASHCARD_SET').order_by(LearningContainer.title.asc()).all()
 
-    return render_template('background_tasks.html', tasks=tasks, flashcard_containers=flashcard_containers)
+    return render_template(
+        'background_tasks.html',
+        tasks=tasks,
+        flashcard_containers=flashcard_containers,
+        default_request_interval=DEFAULT_REQUEST_INTERVAL_SECONDS,
+    )
 
 @admin_bp.route('/tasks/toggle/<int:task_id>', methods=['POST'])
 def toggle_task(task_id):
@@ -1062,6 +1072,12 @@ def start_task(task_id):
     if task.status != 'running' and task.is_enabled:
         data = request.get_json(silent=True) or {}
         container_id = data.get('container_id') if isinstance(data, dict) else None
+        try:
+            delay_seconds = float(data.get('request_interval_seconds', DEFAULT_REQUEST_INTERVAL_SECONDS))
+            if delay_seconds < 0:
+                delay_seconds = 0
+        except (TypeError, ValueError):
+            delay_seconds = DEFAULT_REQUEST_INTERVAL_SECONDS
         container_scope_ids = None
         scope_label = 'tất cả bộ thẻ Flashcard'
 
@@ -1078,6 +1094,9 @@ def start_task(task_id):
             container_scope_ids = [selected_container.container_id]
             scope_label = f"bộ thẻ \"{selected_container.title}\" (ID {selected_container.container_id})"
 
+        if task.task_name == 'generate_ai_explanations' and scope_label == 'tất cả bộ thẻ Flashcard':
+            scope_label = 'tất cả học liệu'
+
         task.status = 'running'
         task.message = f"Đang khởi chạy cho {scope_label}..."
         db.session.commit()
@@ -1091,6 +1110,15 @@ def start_task(task_id):
             asyncio.run(image_service.generate_images_for_missing_cards(task, container_ids=container_scope_ids))
         elif task.task_name == 'clean_image_cache':
             image_service.clean_orphan_image_cache(task)
+        elif task.task_name == 'generate_ai_explanations':
+            scope_label = (
+                'tất cả học liệu' if not container_scope_ids else 'các bộ học liệu đã chọn'
+            )
+            generate_ai_explanations(
+                task,
+                container_ids=container_scope_ids,
+                delay_seconds=delay_seconds,
+            )
 
         return jsonify({'success': True, 'scope_label': scope_label})
 

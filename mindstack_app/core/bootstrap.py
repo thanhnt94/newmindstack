@@ -139,6 +139,7 @@ def initialize_database(app: Flask) -> None:
         "clean_audio_cache",
         "generate_image_cache",
         "clean_image_cache",
+        "generate_ai_explanations",
     ]:
         if not BackgroundTask.query.filter_by(task_name=task_name).first():
             task = BackgroundTask(task_name=task_name, message="Sẵn sàng", is_enabled=True)
