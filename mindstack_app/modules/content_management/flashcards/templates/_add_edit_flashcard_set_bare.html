@@ -31,7 +31,7 @@
 {% set is_modal_view = request.args.get('is_modal') == 'true' %}
 {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
 
-<div class="sticky top-0 z-40">
+<div class="fixed inset-x-0 top-0 z-40">
     <div class="flex items-center justify-between gap-3 px-4 py-3 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm">
         <div class="flex items-center gap-2">
             <button type="button"
@@ -64,6 +64,8 @@
         </div>
     </div>
 </div>
+
+<div class="pt-24"></div>
 
 <div class="p-4">
     <div class="w-full">
