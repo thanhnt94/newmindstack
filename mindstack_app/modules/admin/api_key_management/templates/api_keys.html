@@ -45,14 +45,16 @@
                     </td>
                     <td class="px-5 py-4 text-slate-600">{{ key.last_used_timestamp.strftime('%Y-%m-%d %H:%M:%S') if key.last_used_timestamp else 'Chưa dùng' }}</td>
                     <td class="px-5 py-4">
-                        <div class="flex items-center gap-3">
-                            <a href="{{ url_for('api_key_management.edit_api_key', key_id=key.key_id) }}" class="text-blue-600 hover:text-blue-800" title="Sửa">
+                        <div class="flex items-center gap-2">
+                            <a href="{{ url_for('api_key_management.edit_api_key', key_id=key.key_id) }}" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 text-xs font-semibold" title="Chỉnh sửa API key">
                                 <i class="fas fa-edit"></i>
+                                <span>Sửa</span>
                             </a>
                             <form action="{{ url_for('api_key_management.delete_api_key', key_id=key.key_id) }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa API key này?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="text-rose-600 hover:text-rose-800" title="Xóa">
+                                <button type="submit" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-100 text-xs font-semibold" title="Xóa API key">
                                     <i class="fas fa-trash-alt"></i>
+                                    <span>Xóa</span>
                                 </button>
                             </form>
                         </div>
