@@ -32,6 +32,7 @@ def add_api_key():
     Mô tả: Thêm một API key mới.
     """
     form = ApiKeyForm()
+    form.submit.label.text = 'Thêm API Key'
     if form.validate_on_submit():
         new_key = ApiKey(
             key_value=form.key_value.data,
@@ -52,6 +53,7 @@ def edit_api_key(key_id):
     """
     key = ApiKey.query.get_or_404(key_id)
     form = ApiKeyForm(obj=key)
+    form.submit.label.text = 'Cập nhật API Key'
     if form.validate_on_submit():
         key.key_value = form.key_value.data
         key.notes = form.notes.data
