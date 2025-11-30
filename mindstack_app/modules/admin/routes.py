@@ -1079,70 +1079,73 @@ def start_task(task_id):
     Mô tả: Bắt đầu một tác vụ nền.
     """
     task = BackgroundTask.query.get_or_404(task_id)
-    if task.status != 'running' and task.is_enabled:
-        data = request.get_json(silent=True) or {}
-        container_id = data.get('container_id') if isinstance(data, dict) else None
-        container_type = data.get('container_type') if isinstance(data, dict) else None
+    if task.status == 'running':
+        return jsonify({'success': False, 'message': 'Tác vụ đang chạy, vui lòng dừng trước khi khởi động lại.'})
+
+    if not task.is_enabled:
+        return jsonify({'success': False, 'message': 'Tác vụ đang bị tắt, hãy bật công tắc trước khi bắt đầu.'})
+
+    data = request.get_json(silent=True) or {}
+    container_id = data.get('container_id') if isinstance(data, dict) else None
+    container_type = data.get('container_type') if isinstance(data, dict) else None
+    try:
+        delay_seconds = float(data.get('request_interval_seconds', DEFAULT_REQUEST_INTERVAL_SECONDS))
+        if delay_seconds < 0:
+            delay_seconds = 0
+    except (TypeError, ValueError):
+        delay_seconds = DEFAULT_REQUEST_INTERVAL_SECONDS
+    container_scope_ids = None
+    scope_label = 'tất cả bộ học liệu'
+
+    if container_id not in (None, ''):
         try:
-            delay_seconds = float(data.get('request_interval_seconds', DEFAULT_REQUEST_INTERVAL_SECONDS))
-            if delay_seconds < 0:
-                delay_seconds = 0
+            container_id_int = int(container_id)
         except (TypeError, ValueError):
-            delay_seconds = DEFAULT_REQUEST_INTERVAL_SECONDS
-        container_scope_ids = None
-        scope_label = 'tất cả bộ học liệu'
+            return jsonify({'success': False, 'message': 'Giá trị container_id không hợp lệ.'}), 400
 
-        if container_id not in (None, ''):
-            try:
-                container_id_int = int(container_id)
-            except (TypeError, ValueError):
-                return jsonify({'success': False, 'message': 'Giá trị container_id không hợp lệ.'}), 400
+        query = LearningContainer.query.filter_by(container_id=container_id_int)
+        if container_type:
+            query = query.filter_by(container_type=container_type)
 
-            query = LearningContainer.query.filter_by(container_id=container_id_int)
-            if container_type:
-                query = query.filter_by(container_type=container_type)
+        selected_container = query.first()
+        if not selected_container:
+            return jsonify({'success': False, 'message': 'Không tìm thấy học liệu được chọn.'}), 404
 
-            selected_container = query.first()
-            if not selected_container:
-                return jsonify({'success': False, 'message': 'Không tìm thấy học liệu được chọn.'}), 404
+        container_scope_ids = [selected_container.container_id]
+        type_labels = {
+            'FLASHCARD_SET': 'bộ thẻ',
+            'QUIZ_SET': 'bộ Quiz',
+        }
+        type_label = type_labels.get(selected_container.container_type, 'bộ học liệu')
+        scope_label = f"{type_label} \"{selected_container.title}\" (ID {selected_container.container_id})"
 
-            container_scope_ids = [selected_container.container_id]
-            type_labels = {
-                'FLASHCARD_SET': 'bộ thẻ',
-                'QUIZ_SET': 'bộ Quiz',
-            }
-            type_label = type_labels.get(selected_container.container_type, 'bộ học liệu')
-            scope_label = f"{type_label} \"{selected_container.title}\" (ID {selected_container.container_id})"
+    if task.task_name == 'generate_ai_explanations' and scope_label == 'tất cả bộ học liệu':
+        scope_label = 'tất cả học liệu'
 
-        if task.task_name == 'generate_ai_explanations' and scope_label == 'tất cả bộ học liệu':
-            scope_label = 'tất cả học liệu'
+    task.status = 'running'
+    task.message = f"Đang khởi chạy cho {scope_label}..."
+    db.session.commit()
 
-        task.status = 'running'
-        task.message = f"Đang khởi chạy cho {scope_label}..."
-        db.session.commit()
+    # Chạy tác vụ (hiện tại là đồng bộ, nên nâng cấp lên thread/process)
+    if task.task_name == 'generate_audio_cache':
+        asyncio.run(audio_service.generate_cache_for_all_cards(task, container_ids=container_scope_ids))
+    elif task.task_name == 'clean_audio_cache':
+        audio_service.clean_orphan_audio_cache(task)
+    elif task.task_name == 'generate_image_cache':
+        asyncio.run(image_service.generate_images_for_missing_cards(task, container_ids=container_scope_ids))
+    elif task.task_name == 'clean_image_cache':
+        image_service.clean_orphan_image_cache(task)
+    elif task.task_name == 'generate_ai_explanations':
+        scope_label = (
+            'tất cả học liệu' if not container_scope_ids else 'các bộ học liệu đã chọn'
+        )
+        generate_ai_explanations(
+            task,
+            container_ids=container_scope_ids,
+            delay_seconds=delay_seconds,
+        )
 
-        # Chạy tác vụ (hiện tại là đồng bộ, nên nâng cấp lên thread/process)
-        if task.task_name == 'generate_audio_cache':
-            asyncio.run(audio_service.generate_cache_for_all_cards(task, container_ids=container_scope_ids))
-        elif task.task_name == 'clean_audio_cache':
-            audio_service.clean_orphan_audio_cache(task)
-        elif task.task_name == 'generate_image_cache':
-            asyncio.run(image_service.generate_images_for_missing_cards(task, container_ids=container_scope_ids))
-        elif task.task_name == 'clean_image_cache':
-            image_service.clean_orphan_image_cache(task)
-        elif task.task_name == 'generate_ai_explanations':
-            scope_label = (
-                'tất cả học liệu' if not container_scope_ids else 'các bộ học liệu đã chọn'
-            )
-            generate_ai_explanations(
-                task,
-                container_ids=container_scope_ids,
-                delay_seconds=delay_seconds,
-            )
-
-        return jsonify({'success': True, 'scope_label': scope_label})
-
-    return jsonify({'success': False, 'message': 'Tác vụ đang chạy hoặc đã bị vô hiệu hóa.'}), 400
+    return jsonify({'success': True, 'scope_label': scope_label})
 
 @admin_bp.route('/tasks/stop/<int:task_id>', methods=['POST'])
 def stop_task(task_id):

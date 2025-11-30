@@ -46,6 +46,11 @@
         .status-running { background-color: #dbeafe; color: #1d4ed8; }
         .status-completed { background-color: #dcfce7; color: #15803d; }
         .status-error { background-color: #fee2e2; color: #dc2626; }
+
+        .action-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 {% endblock %}
 
@@ -138,12 +143,25 @@
                             </div>
                             {% endif %}
                             <div class="flex items-center gap-2">
-                                <button type="button" class="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md hover:bg-emerald-200 transition start-task-btn" {% if task.status == 'running' or not task.is_enabled %}disabled{% endif %}>
-                                    <i class="fas fa-play"></i>
-                                </button>
-                                <button type="button" class="bg-rose-100 text-rose-700 px-3 py-1.5 rounded-md hover:bg-rose-200 transition stop-task-btn" {% if task.status != 'running' %}disabled{% endif %}>
-                                    <i class="fas fa-stop"></i>
-                                </button>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <button type="button" class="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md hover:bg-emerald-200 transition start-task-btn action-button" {% if task.status == 'running' or not task.is_enabled %}disabled{% endif %}>
+                                        <i class="fas fa-play"></i>
+                                        <span class="text-sm font-semibold">Bắt đầu</span>
+                                    </button>
+                                    <button type="button" class="inline-flex items-center gap-2 bg-rose-100 text-rose-700 px-3 py-1.5 rounded-md hover:bg-rose-200 transition stop-task-btn action-button" {% if task.status != 'running' %}disabled{% endif %}>
+                                        <i class="fas fa-stop"></i>
+                                        <span class="text-sm font-semibold">Dừng</span>
+                                    </button>
+                                </div>
+                                <p class="text-[11px] status-hint {% if not task.is_enabled %}text-slate-400{% elif task.status == 'running' %}text-amber-600{% else %}text-slate-500{% endif %}">
+                                    {% if not task.is_enabled %}
+                                        Bật công tắc để cho phép khởi chạy.
+                                    {% elif task.status == 'running' %}
+                                        Tác vụ đang chạy, bạn có thể dừng nếu cần.
+                                    {% else %}
+                                        Sẵn sàng khởi chạy tác vụ.
+                                    {% endif %}
+                                </p>
                             </div>
                         </div>
                     </td>
@@ -162,6 +180,33 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const tableBody = document.getElementById('tasks-table-body');
+        const defaultRequestInterval = {{ default_request_interval|tojson }};
+
+        function updateStatusHint(row, taskData = {}) {
+            const statusHint = row.querySelector('.status-hint');
+            if (!statusHint) return;
+
+            const checkbox = row.querySelector('.toggle-task-checkbox');
+            const statusBadge = row.querySelector('.task-status-badge');
+            const isEnabled = typeof taskData.is_enabled === 'boolean'
+                ? taskData.is_enabled
+                : checkbox?.checked;
+            const status = taskData.status || statusBadge?.textContent?.trim() || '';
+
+            if (!isEnabled) {
+                statusHint.textContent = 'Bật công tắc để cho phép khởi chạy.';
+                statusHint.className = 'text-[11px] text-slate-400 status-hint';
+                return;
+            }
+
+            if (status === 'running') {
+                statusHint.textContent = 'Tác vụ đang chạy, bạn có thể dừng nếu cần.';
+                statusHint.className = 'text-[11px] text-amber-600 status-hint';
+            } else {
+                statusHint.textContent = 'Sẵn sàng khởi chạy tác vụ.';
+                statusHint.className = 'text-[11px] text-slate-500 status-hint';
+            }
+        }
 
         function updateTaskRow(row, taskData) {
             const statusBadge = row.querySelector('.task-status-badge');
@@ -204,6 +249,8 @@
             } else if (!row.dataset.total) {
                 row.dataset.total = 0;
             }
+
+            updateStatusHint(row, taskData);
         }
 
         tableBody.addEventListener('change', async function(event) {
@@ -215,6 +262,7 @@
                     if (response.data.success) {
                         showFlashMessage(`Tác vụ đã được ${response.data.is_enabled ? 'bật' : 'tắt'}.`, 'success');
                         row.querySelector('.start-task-btn').disabled = !response.data.is_enabled || response.data.status === 'running';
+                        updateStatusHint(row, { is_enabled: response.data.is_enabled, status: row.querySelector('.task-status-badge')?.textContent?.trim() });
                     }
                 } catch (error) {
                     console.error('Error toggling task:', error);
@@ -230,6 +278,12 @@
             const taskId = row.dataset.taskId;
 
             if (startBtn && !startBtn.disabled) {
+                const toggleCheckbox = row.querySelector('.toggle-task-checkbox');
+                if (toggleCheckbox && !toggleCheckbox.checked) {
+                    showFlashMessage('Vui lòng bật công tắc trước khi khởi chạy tác vụ.', 'warning');
+                    return;
+                }
+
                 const scopeSelect = row.querySelector('.container-scope-select');
                 const defaultScopeLabel = scopeSelect ? scopeSelect.dataset.defaultLabel || 'tất cả bộ học liệu' : 'tất cả tác vụ';
                 let containerId = null;
@@ -248,30 +302,50 @@
                 }
 
                 const intervalInput = row.querySelector('.request-interval-input');
-                let requestIntervalSeconds = intervalInput ? parseFloat(intervalInput.value) : null;
-                if (Number.isNaN(requestIntervalSeconds)) {
-                    requestIntervalSeconds = null;
+                let requestIntervalSeconds = defaultRequestInterval;
+                if (intervalInput) {
+                    const parsedInterval = parseFloat(intervalInput.value);
+                    if (!Number.isNaN(parsedInterval)) {
+                        requestIntervalSeconds = parsedInterval;
+                    }
                 }
 
+                const payload = { request_interval_seconds: requestIntervalSeconds };
+                if (containerId !== null) {
+                    payload.container_id = containerId;
+                    payload.container_type = containerType;
+                }
+
+                startBtn.disabled = true;
+                startBtn.classList.add('opacity-60');
+
                 try {
-                    const response = await axios.post(`/admin/tasks/start/${taskId}`, {
-                        container_id: containerId,
-                        container_type: containerType,
-                        request_interval_seconds: requestIntervalSeconds
-                    });
+                    const response = await axios.post(`/admin/tasks/start/${taskId}`, payload);
 
                     if (response.data.success) {
                         showFlashMessage(`Đã khởi chạy tác vụ cho ${response.data.scope_label || scopeLabel}.`, 'success');
+                        const statusBadge = row.querySelector('.task-status-badge');
+                        if (statusBadge) {
+                            statusBadge.textContent = 'running';
+                            statusBadge.className = 'task-status-badge status-running';
+                        }
                         row.querySelector('.start-task-btn').disabled = true;
                         row.querySelector('.stop-task-btn').disabled = false;
-                        const toggleCheckbox = row.querySelector('.toggle-task-checkbox');
                         if (toggleCheckbox) {
                             toggleCheckbox.disabled = true;
                         }
+                        updateStatusHint(row, { status: 'running', is_enabled: true });
+                    } else {
+                        showFlashMessage(response.data.message || 'Không thể khởi chạy tác vụ. Vui lòng thử lại.', 'danger');
+                        startBtn.disabled = false;
+                        startBtn.classList.remove('opacity-60');
                     }
                 } catch (error) {
                     console.error('Error starting task:', error);
-                    showFlashMessage('Không thể khởi chạy tác vụ. Vui lòng thử lại.', 'danger');
+                    const apiMessage = error?.response?.data?.message;
+                    showFlashMessage(apiMessage || 'Không thể khởi chạy tác vụ. Vui lòng thử lại.', 'danger');
+                    startBtn.disabled = false;
+                    startBtn.classList.remove('opacity-60');
                 }
             }
 
@@ -281,6 +355,7 @@
                     if (response.data.success) {
                         showFlashMessage(response.data.message, 'info');
                         row.querySelector('.stop-task-btn').disabled = true;
+                        updateStatusHint(row, { status: row.querySelector('.task-status-badge')?.textContent?.trim() });
                     }
                 } catch (error) {
                     console.error('Error stopping task:', error);
