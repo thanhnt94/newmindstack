@@ -415,12 +415,29 @@ def _build_ai_settings_from_form(form, existing_settings=None):
 
 
 def _slugify_filename(value: str) -> str:
-    value = (value or '').strip().lower()
-    if not value:
+    """Sanitize filenames while keeping the original title readable.
+
+    Only remove characters disallowed by Windows (\\ / : * ? " < > |) and control
+    characters. Collapse whitespace, strip trailing dots/spaces, and fall back to a
+    safe default if the title becomes empty.
+    """
+
+    sanitized = (value or '').strip()
+    if not sanitized:
         return 'quiz-set'
-    value = re.sub(r'[^a-z0-9\-]+', '-', value)
-    value = re.sub(r'-{2,}', '-', value).strip('-')
-    return value or 'quiz-set'
+
+    sanitized = re.sub(r'[\\/:*?"<>|]', ' ', sanitized)
+    sanitized = re.sub(r'[\0-\x1f]', '', sanitized)
+    sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+    sanitized = sanitized.strip('. ')
+
+    if not sanitized:
+        return 'quiz-set'
+
+    if len(sanitized) > 150:
+        sanitized = sanitized[:150].rstrip('. ')
+
+    return sanitized or 'quiz-set'
 
 
 def _resolve_local_media_path(path_value: str, *, media_folder: Optional[str] = None):
@@ -1355,12 +1372,13 @@ def export_quiz_set(set_id):
             audio_folder=audio_folder,
         )
 
-        excel_path = os.path.join(tmp_dir, 'quizzes.xlsx')
+        excel_filename = f"{_slugify_filename(quiz_set.title)}.xlsx"
+        excel_path = os.path.join(tmp_dir, excel_filename)
         _create_quiz_excel(info_rows, data_rows, output_path=excel_path)
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.write(excel_path, arcname='quizzes.xlsx')
+            zipf.write(excel_path, arcname=excel_filename)
             if os.path.isdir(media_dir):
                 for root_dir, _, files in os.walk(media_dir):
                     for filename in files:
