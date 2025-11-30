@@ -56,23 +56,6 @@
 {% set is_modal_view = request.args.get('is_modal') == 'true' %}
 {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
 
-{% if is_modal_view %}
-    {% if previous_set_id %}
-    <a href="{{ url_for('.edit_quiz_set', set_id=previous_set_id) }}{{ modal_suffix }}"
-       class="floating-nav-button floating-nav-button--left">
-        <i class="fas fa-chevron-left"></i>
-        <span>Bộ trước</span>
-    </a>
-    {% endif %}
-    {% if next_set_id %}
-    <a href="{{ url_for('.edit_quiz_set', set_id=next_set_id) }}{{ modal_suffix }}"
-       class="floating-nav-button floating-nav-button--right">
-        <span>Bộ tiếp</span>
-        <i class="fas fa-chevron-right"></i>
-    </a>
-    {% endif %}
-{% endif %}
-
 <div class="sticky top-0 z-40">
     <div class="flex items-center justify-between gap-3 px-4 py-3 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm">
         <div class="flex items-center gap-2">
