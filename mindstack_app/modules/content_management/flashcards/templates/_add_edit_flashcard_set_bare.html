@@ -22,31 +22,6 @@
             font-family: 'Inter', sans-serif;
             background-color: transparent;
         }
-        .floating-nav-button {
-            position: fixed;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 1050;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.65rem 0.9rem;
-            border-radius: 9999px;
-            background: rgba(37, 99, 235, 0.1);
-            color: #1d4ed8;
-            backdrop-filter: blur(6px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-            transition: background-color 0.2s ease, transform 0.2s ease;
-        }
-        .floating-nav-button:hover {
-            background: rgba(37, 99, 235, 0.2);
-            transform: translateY(-50%) scale(1.02);
-        }
-        .floating-nav-button:active {
-            transform: translateY(-50%) scale(0.98);
-        }
-        .floating-nav-button--left { left: 14px; }
-        .floating-nav-button--right { right: 14px; }
     </style>
 </head>
 <body>
