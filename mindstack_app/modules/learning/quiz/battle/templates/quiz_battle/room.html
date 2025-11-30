@@ -60,6 +60,12 @@
     .qb-option-label:hover { border-color: #94a3b8; background: #f8fafc; }
     .qb-option-label:has(input:checked) { border-color: #3b82f6; background: #eff6ff; ring: 1px solid #3b82f6; }
     .qb-option-input { width: 1.25rem; height: 1.25rem; accent-color: #2563eb; }
+    .qb-option-label.is-locked { cursor: not-allowed; opacity: 0.9; }
+    .qb-option-label.is-correct { border-color: #34d399; background: #ecfdf3; }
+    .qb-option-badges { display: inline-flex; gap: 0.4rem; margin-left: 0.5rem; }
+    .qb-option-badge { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 999px; }
+    .qb-option-badge.is-user { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .qb-option-badge.is-correct { background: #dcfce7; color: #047857; border: 1px solid #bbf7d0; }
     
     /* Chat Box Fix */
     .qb-chat-panel { position: relative; }
@@ -250,11 +256,17 @@
                     <form id="answer-form">
                         <div id="question-options" class="qb-options-grid">
                             </div>
-                        <div class="mt-6 flex items-center justify-between">
+                        <div class="mt-6 flex items-center justify-between gap-3 flex-wrap">
                             <p id="answer-inline-feedback" class="text-sm font-medium text-slate-600"></p>
                             <button type="submit" id="submit-answer-btn" class="cm-btn cm-btn-primary w-full sm:w-auto" disabled>
                                 <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
                             </button>
+                        </div>
+                        <div id="answer-locked-note" class="hidden mt-3">
+                            <div class="flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                                <i class="fa-solid fa-lock"></i>
+                                <span>Đáp án đã được ghi nhận. Bạn không thể thay đổi nữa.</span>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -656,6 +668,8 @@
             const mediaDiv = document.getElementById('question-media');
             const optionsDiv = document.getElementById('question-options');
             const submitBtn = document.getElementById('submit-answer-btn');
+            const lockNote = document.getElementById('answer-locked-note');
+            const inlineFeedback = document.getElementById('answer-inline-feedback');
 
             if (!round || !round.question) {
                 if(overlay) {
@@ -691,9 +705,10 @@
             const myAnswer = answers.find(a => a.participant_id === participantId);
             const hasMyAnswer = !!myAnswer;
             const isRoundActive = round.status === 'active';
-            const needFullRender =
-                round.sequence_number !== lastRenderMeta.sequence ||
-                (hasMyAnswer && !lastRenderMeta.hasMyAnswer);
+            const correctOption = myAnswer?.correct_option || round.question.correct_option || null;
+                const needFullRender =
+                    round.sequence_number !== lastRenderMeta.sequence ||
+                    hasMyAnswer !== lastRenderMeta.hasMyAnswer;
 
             if(needFullRender) {
                 if(overlay) overlay.classList.add('hidden');
@@ -727,20 +742,35 @@
                 const selectedOption = hasMyAnswer
                     ? myAnswer.selected_option
                     : pendingSelections[roundKey] || null;
+                const isLocked = hasMyAnswer || !isRoundActive;
 
                 if(!hasMyAnswer && isRoundActive) {
                     pendingSelections[roundKey] = selectedOption;
                 }
 
-                optionsDiv.innerHTML = Object.entries(opts).map(([key, val]) => `
-                    <label class="qb-option-label ${selectedOption === key || myAnswer?.selected_option === key ? '!border-blue-500 !bg-blue-50' : ''}">
-                        <input type="radio" name="selected_option" value="${key}" class="qb-option-input" ${hasMyAnswer ? 'disabled' : ''} ${selectedOption === key ? 'checked' : ''}>
-                        <div>
-                            <span class="font-bold text-slate-700 mr-2">${key}.</span>
-                            <span class="text-slate-600">${val}</span>
-                        </div>
-                    </label>
-                `).join('');
+                optionsDiv.innerHTML = Object.entries(opts).map(([key, val]) => {
+                    const isUserChoice = selectedOption === key || myAnswer?.selected_option === key;
+                    const isCorrect = correctOption && correctOption === key;
+                    const classes = ['qb-option-label'];
+                    if(isUserChoice) classes.push('!border-blue-500 !bg-blue-50');
+                    if(isCorrect) classes.push('is-correct');
+                    if(isLocked) classes.push('is-locked');
+                    const badges = [];
+                    if(isUserChoice) badges.push('<span class="qb-option-badge is-user">Bạn chọn</span>');
+                    if(isCorrect) badges.push('<span class="qb-option-badge is-correct">Đáp án đúng</span>');
+                    return `
+                        <label class="${classes.join(' ')}">
+                            <input type="radio" name="selected_option" value="${key}" class="qb-option-input" ${isLocked ? 'disabled' : ''} ${isUserChoice ? 'checked' : ''}>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="font-bold text-slate-700">${key}.</span>
+                                    <span class="text-slate-700">${val}</span>
+                                    ${badges.length ? `<span class="qb-option-badges">${badges.join('')}</span>` : ''}
+                                </div>
+                            </div>
+                        </label>
+                    `;
+                }).join('');
 
                 if(!hasMyAnswer && isRoundActive) {
                     optionsDiv.querySelectorAll('input[name="selected_option"]').forEach(input => {
@@ -756,11 +786,14 @@
                     !participantId ||
                     (!hasMyAnswer && !pendingSelections[round.sequence_number]) ||
                     !isRoundActive;
+                submitBtn.classList.toggle('hidden', hasMyAnswer);
                 submitBtn.innerHTML = hasMyAnswer
                     ? '<i class="fa-solid fa-check"></i> Đã trả lời'
                     : isRoundActive
                         ? '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án'
                         : '<i class="fa-solid fa-hourglass"></i> Chờ câu tiếp theo';
+                if(lockNote) lockNote.classList.toggle('hidden', !hasMyAnswer);
+                if(inlineFeedback) inlineFeedback.textContent = hasMyAnswer ? 'Đáp án đã khóa.' : '';
 
                 lastRenderMeta = { sequence: round.sequence_number, hasMyAnswer };
             }
@@ -1008,7 +1041,9 @@
                     visibleRound = roundFromRoom;
                 }
                 pendingSelections[seq] = null;
-                lastRenderMeta = { sequence: seq, hasMyAnswer: true };
+                // Force a fresh render so the submit button swaps out of the pending state
+                // immediately after we record the answer.
+                lastRenderMeta = { sequence: null, hasMyAnswer: false };
                 hydrateUi();
             } catch(err) {
                 setAlert(err.message, 'error');
