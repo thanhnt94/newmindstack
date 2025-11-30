@@ -360,9 +360,12 @@
                             <div id="question-stats-accuracy" class="text-xl font-bold text-emerald-700">--%</div>
                         </div>
                     </div>
+                    <p id="question-stats-locked" class="text-xs text-center text-amber-700 bg-amber-50 border border-amber-100 rounded p-2 mb-2 hidden">
+                        Trả lời câu hỏi để xem lựa chọn của mọi người.
+                    </p>
                     <p id="question-stats-empty" class="text-xs text-center text-slate-400 italic">Chưa có dữ liệu.</p>
-                    <div id="option-distribution" class="space-y-2 text-xs">
-                        </div>
+                    <div id="option-distribution" class="space-y-2 text-xs"></div>
+                    <div id="option-breakdown" class="space-y-3 text-xs mt-3"></div>
                 </div>
             </div>
 
@@ -807,36 +810,79 @@
 
         function renderStats(round) {
             const answers = round.answers || [];
+            const myAnswer = answers.find(a => a.participant_id === participantId);
+            const hasMyAnswer = !!myAnswer;
+            const answersLocked = round.answers_locked && round.status === 'active';
             const total = answers.length;
             const correct = answers.filter(a => a.is_correct).length;
-            
+
             document.getElementById('question-stats-round').textContent = `#${round.sequence_number}`;
+
+            const lockedNotice = document.getElementById('question-stats-locked');
+            const emptyNotice = document.getElementById('question-stats-empty');
+            const distDiv = document.getElementById('option-distribution');
+            const breakdownDiv = document.getElementById('option-breakdown');
+
+            if(round.status === 'active' && (!hasMyAnswer || answersLocked)) {
+                document.getElementById('question-stats-total').textContent = '--';
+                document.getElementById('question-stats-accuracy').textContent = '--%';
+                lockedNotice.hidden = false;
+                emptyNotice.hidden = true;
+                distDiv.innerHTML = '';
+                breakdownDiv.innerHTML = '';
+                return;
+            }
+
+            lockedNotice.hidden = true;
             document.getElementById('question-stats-total').textContent = total;
             document.getElementById('question-stats-accuracy').textContent = total ? Math.round((correct/total)*100) + '%' : '--%';
-            
-            const distDiv = document.getElementById('option-distribution');
+
             if(total === 0) {
-                document.getElementById('question-stats-empty').hidden = false;
+                emptyNotice.hidden = false;
                 distDiv.innerHTML = '';
-            } else {
-                document.getElementById('question-stats-empty').hidden = true;
-                const counts = {};
-                answers.forEach(a => counts[a.selected_option] = (counts[a.selected_option] || 0) + 1);
-                distDiv.innerHTML = Object.entries(round.question.options || {}).map(([k, v]) => {
-                    const c = counts[k] || 0;
-                    const p = Math.round((c/total)*100);
-                    const isCorrect = k === answers.find(a=>a.participant_id === participantId)?.correct_option;
-                    return `
-                        <div class="flex items-center gap-2">
-                            <span class="w-4 font-bold ${isCorrect ? 'text-emerald-600' : 'text-slate-500'}">${k}</span>
-                            <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="h-full ${isCorrect ? 'bg-emerald-500' : 'bg-blue-400'}" style="width: ${p}%"></div>
-                            </div>
-                            <span class="text-xs text-slate-400 w-8 text-right">${c}</span>
-                        </div>
-                    `;
-                }).join('');
+                breakdownDiv.innerHTML = '';
+                return;
             }
+
+            emptyNotice.hidden = true;
+            const counts = {};
+            const groupedNames = {};
+            answers.forEach(a => {
+                counts[a.selected_option] = (counts[a.selected_option] || 0) + 1;
+                const label = a.username || `Người chơi #${a.participant_id}`;
+                groupedNames[a.selected_option] = groupedNames[a.selected_option] || [];
+                groupedNames[a.selected_option].push(label);
+            });
+
+            const options = round.question.options || {};
+            distDiv.innerHTML = Object.entries(options).map(([k, v]) => {
+                const c = counts[k] || 0;
+                const p = Math.round((c/total)*100);
+                const myCorrectOption = myAnswer?.correct_option;
+                const isCorrect = myCorrectOption ? k === myCorrectOption : false;
+                return `
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 font-bold ${isCorrect ? 'text-emerald-600' : 'text-slate-500'}">${k}</span>
+                        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full ${isCorrect ? 'bg-emerald-500' : 'bg-blue-400'}" style="width: ${p}%"></div>
+                        </div>
+                        <span class="text-xs text-slate-400 w-8 text-right">${c}</span>
+                    </div>
+                `;
+            }).join('');
+
+            breakdownDiv.innerHTML = Object.entries(options).map(([k, v]) => {
+                const names = groupedNames[k] || [];
+                const chips = names.length
+                    ? names.map(name => `<span class="px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">${name}</span>`).join(' ')
+                    : '<span class="text-slate-400 italic">Chưa có ai chọn</span>';
+                return `
+                    <div class="space-y-1">
+                        <div class="font-semibold text-slate-600">${k}. ${v || ''}</div>
+                        <div class="flex flex-wrap gap-2">${chips}</div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function hydrateUi() {
