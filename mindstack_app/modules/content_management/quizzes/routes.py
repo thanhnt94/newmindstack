@@ -68,6 +68,7 @@ QUIZ_DATA_COLUMNS = [
 QUIZ_INFO_KEYS = [
     'title',
     'description',
+    'cover_image',
     'tags',
     'is_public',
     'image_base_folder',
@@ -173,6 +174,7 @@ def _build_sample_quiz_template():
     info_rows = [
         ('title', 'Mẫu bộ Quiz - thay tiêu đề ở đây'),
         ('description', 'Ví dụ ngắn để minh hoạ bộ 3 cột group_id/group_shared_components/group_item_order'),
+        ('cover_image', 'Đường dẫn ảnh cover (URL hoặc uploads/...)'),
         ('tags', 'sample,template'),
         ('is_public', 'False'),
         ('image_base_folder', 'quiz/images'),
@@ -614,6 +616,7 @@ def _build_quiz_export_payload(
     info_mapping = {
         'title': quiz_set.title or '',
         'description': quiz_set.description or '',
+        'cover_image': quiz_set.cover_image or '',
         'tags': quiz_set.tags or '',
         'is_public': 'True' if quiz_set.is_public else 'False',
         'image_base_folder': image_folder or '',
@@ -776,10 +779,12 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
 
         info_notices: list[str] = []
         media_overrides: dict[str, str] = {}
+        cover_value = None
         info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
         if info_mapping:
             image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
             audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))
+            cover_value = info_mapping.get('cover_image')
             if image_folder_override:
                 media_overrides['image'] = image_folder_override
             if audio_folder_override:
@@ -793,6 +798,9 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
         media_folders = _get_media_folders_from_container(quiz_set)
         image_folder = media_folders.get('image')
         audio_folder = media_folders.get('audio')
+
+        if cover_value is not None:
+            quiz_set.cover_image = _process_relative_url(str(cover_value), image_folder)
 
         existing_items = (
             LearningItem.query.filter_by(container_id=container_id, item_type='QUIZ_MCQ')
@@ -1489,11 +1497,13 @@ def add_quiz_set():
             media_folders = _extract_media_folders(ai_settings_payload)
             image_folder = media_folders.get('image')
             audio_folder = media_folders.get('audio')
+            cover_image_value = _process_relative_url(form.cover_image.data, image_folder)
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
                 container_type='QUIZ_SET',
                 title=form.title.data,
                 description=form.description.data,
+                cover_image=cover_image_value,
                 tags=form.tags.data,
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
                 ai_settings=ai_settings_payload,
@@ -1508,6 +1518,28 @@ def add_quiz_set():
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                     excel_file.save(tmp_file.name)
                     temp_filepath = tmp_file.name
+                info_notices: list[str] = []
+                media_overrides: dict[str, str] = {}
+                cover_image_override = cover_image_value
+                info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
+                if info_mapping:
+                    image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
+                    audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))
+                    cover_image_override = info_mapping.get('cover_image', cover_image_override)
+                    if image_folder_override:
+                        media_overrides['image'] = image_folder_override
+                    if audio_folder_override:
+                        media_overrides['audio'] = audio_folder_override
+                if info_warnings:
+                    info_notices.extend(info_warnings)
+
+                if media_overrides:
+                    new_set.set_media_folders(media_overrides)
+                    image_folder = media_overrides.get('image') or image_folder
+                    audio_folder = media_overrides.get('audio') or audio_folder
+                if cover_image_override is not None:
+                    new_set.cover_image = _process_relative_url(str(cover_image_override), image_folder)
+
                 df = pd.read_excel(temp_filepath, sheet_name='Data')
 
                 def _parse_excel_int(value, row_index, field_name):
@@ -1663,6 +1695,8 @@ def add_quiz_set():
                     group_obj.content = content_dict
                     flag_modified(group_obj, 'content')
                 flash_message = f'Bộ câu hỏi và {items_added_count} câu hỏi từ Excel đã được tạo thành công!'
+                if info_notices:
+                    flash_message += ' Lưu ý: ' + format_info_warnings(info_notices)
                 flash_category = 'success'
             else:
                 flash_message = 'Bộ câu hỏi mới đã được tạo thành công!'
@@ -1717,8 +1751,11 @@ def edit_quiz_set(set_id):
         flash_message = 'Bộ câu hỏi đã được cập nhật!'
         flash_category = 'success'
         try:
+            media_folders = _get_media_folders_from_container(quiz_set)
+            image_folder = media_folders.get('image')
             quiz_set.title = form.title.data
             quiz_set.description = form.description.data
+            quiz_set.cover_image = _process_relative_url(form.cover_image.data, image_folder)
             quiz_set.tags = form.tags.data
             quiz_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
             quiz_set.ai_settings = _build_ai_settings_from_form(form, quiz_set.ai_settings)

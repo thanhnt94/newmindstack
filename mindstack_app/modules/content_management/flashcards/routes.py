@@ -141,6 +141,7 @@ FLASHCARD_DATA_COLUMNS = [
 FLASHCARD_INFO_KEYS = [
     'title',
     'description',
+    'cover_image',
     'tags',
     'is_public',
     *CAPABILITY_FLAGS,
@@ -486,6 +487,7 @@ def _build_flashcard_export_payload(
     info_mapping = {
         'title': flashcard_set.title or '',
         'description': flashcard_set.description or '',
+        'cover_image': flashcard_set.cover_image or '',
         'tags': flashcard_set.tags or '',
         'is_public': 'True' if flashcard_set.is_public else 'False',
         'image_base_folder': image_folder or '',
@@ -614,10 +616,12 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
 
         info_notices: list[str] = []
         media_overrides: dict[str, str] = {}
+        cover_value = None
         info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
         if info_mapping:
             image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
             audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))
+            cover_value = info_mapping.get('cover_image')
             if image_folder_override:
                 media_overrides['image'] = image_folder_override
             if audio_folder_override:
@@ -631,6 +635,9 @@ def _update_flashcards_from_excel_file(container_id: int, excel_file) -> str:
         media_folders = _get_media_folders_from_container(flashcard_set)
         image_folder = media_folders.get('image')
         audio_folder = media_folders.get('audio')
+
+        if cover_value is not None:
+            flashcard_set.cover_image = _process_relative_url(str(cover_value), image_folder)
 
         existing_items = (
             LearningItem.query.filter_by(container_id=container_id, item_type='FLASHCARD')
@@ -1111,6 +1118,7 @@ def download_flashcard_excel_template():
     info_rows = [
         {'Key': 'title', 'Value': 'Tiêu đề bộ thẻ (tuỳ chọn)'},
         {'Key': 'description', 'Value': 'Mô tả ngắn gọn về bộ thẻ'},
+        {'Key': 'cover_image', 'Value': 'Đường dẫn ảnh cover (URL hoặc uploads/...)'},
         {'Key': 'tags', 'Value': 'Từ khoá phân tách bằng dấu phẩy'},
         {'Key': 'is_public', 'Value': 'true/false - trạng thái công khai'},
         {'Key': 'supports_*', 'Value': 'true/false - bật từng chế độ học cho toàn bộ bộ thẻ'},
@@ -1240,12 +1248,14 @@ def add_flashcard_set():
             media_folders = _extract_media_folders(ai_settings_payload)
             image_folder = media_folders.get('image')
             audio_folder = media_folders.get('audio')
+            cover_image_value = _process_relative_url(form.cover_image.data, image_folder)
             # Tạo bộ Flashcard mới
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
                 container_type='FLASHCARD_SET',
                 title=form.title.data,
                 description=form.description.data,
+                cover_image=cover_image_value,
                 tags=form.tags.data,
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
                 ai_settings=ai_settings_payload
@@ -1265,10 +1275,12 @@ def add_flashcard_set():
                 # --- THÊM MỚI LOGIC XỬ LÝ SHEET INFO ---
                 info_notices: list[str] = []
                 media_overrides = {}
+                cover_image_override = cover_image_value
                 info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
                 if info_mapping:
                     image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
                     audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))
+                    cover_image_override = info_mapping.get('cover_image', cover_image_override)
                     if image_folder_override:
                         media_overrides['image'] = image_folder_override
                     if audio_folder_override:
@@ -1281,6 +1293,8 @@ def add_flashcard_set():
                     new_set.set_media_folders(media_overrides)
                     image_folder = media_overrides.get('image') or image_folder
                     audio_folder = media_overrides.get('audio') or audio_folder
+                if cover_image_override is not None:
+                    new_set.cover_image = _process_relative_url(str(cover_image_override), image_folder)
                 # --- KẾT THÚC THÊM MỚI ---
 
                 df = pd.read_excel(temp_filepath, sheet_name='Data')
@@ -1403,9 +1417,12 @@ def edit_flashcard_set(set_id):
         flash_message = ''
         flash_category = ''
         try:
+            media_folders = _get_media_folders_from_container(flashcard_set)
+            image_folder = media_folders.get('image')
             # Cập nhật thông tin bộ Flashcard
             flashcard_set.title = form.title.data
             flashcard_set.description = form.description.data
+            flashcard_set.cover_image = _process_relative_url(form.cover_image.data, image_folder)
             flashcard_set.tags = form.tags.data
             flashcard_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
             flashcard_set.ai_settings = _build_ai_settings_from_form(form, flashcard_set.ai_settings)
