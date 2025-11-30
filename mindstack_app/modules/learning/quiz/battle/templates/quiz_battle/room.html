@@ -198,7 +198,7 @@
 
         <div class="flex flex-wrap gap-2 justify-end">
             <button id="start-room-btn" class="cm-btn cm-btn-primary" title="Bắt đầu trận đấu (Chỉ chủ phòng)"><i class="fa-solid fa-play"></i> Bắt đầu</button>
-            <button id="next-round-btn" class="cm-btn cm-btn-primary hidden" title="Chuyển sang câu tiếp theo (Chỉ chủ phòng)"><i class="fa-solid fa-forward-step"></i> Câu tiếp</button>
+            <button id="next-round-btn" class="cm-btn cm-btn-primary hidden" title="Chuyển sang câu tiếp theo"><i class="fa-solid fa-forward-step"></i> Câu tiếp</button>
             <button id="end-room-btn" class="cm-btn cm-btn-danger" title="Kết thúc trận đấu (Chỉ chủ phòng)"><i class="fa-solid fa-flag-checkered"></i> Kết thúc</button>
             <button id="leave-room-btn" class="cm-btn cm-btn-ghost"><i class="fa-solid fa-right-from-bracket"></i> Rời phòng</button>
         </div>
@@ -428,6 +428,9 @@
         let roomPollInterval = null;
         let currentQuestionItemId = null;
         let pendingSelections = {};
+        let visibleRound = roomState?.active_round || null;
+        let pendingRoundSequence = null;
+        let forceShowLatestRound = false;
         let chatController = null;
         const aiCoachContentEl = document.getElementById('question-ai-content');
         const aiCoachGenerateBtn = document.getElementById('ai-coach-generate-btn');
@@ -564,6 +567,31 @@
             `).join('');
         }
 
+        function syncVisibleRound() {
+            const activeRound = roomState?.active_round || null;
+            if(forceShowLatestRound) {
+                visibleRound = activeRound;
+                pendingRoundSequence = null;
+                forceShowLatestRound = false;
+                return;
+            }
+
+            if(!visibleRound) {
+                visibleRound = activeRound;
+                pendingRoundSequence = null;
+                return;
+            }
+
+            if(activeRound && activeRound.sequence_number > (visibleRound.sequence_number || 0)) {
+                pendingRoundSequence = activeRound.sequence_number;
+            } else if(!activeRound) {
+                visibleRound = null;
+                pendingRoundSequence = null;
+            } else {
+                pendingRoundSequence = null;
+            }
+        }
+
         function renderQuestion(round) {
             const overlay = document.getElementById('game-status-overlay');
             const title = document.getElementById('question-title');
@@ -605,6 +633,7 @@
             const answers = round.answers || [];
             const myAnswer = answers.find(a => a.participant_id === participantId);
             const hasMyAnswer = !!myAnswer;
+            const isRoundActive = round.status === 'active';
             const needFullRender =
                 round.sequence_number !== lastRenderMeta.sequence ||
                 (hasMyAnswer && !lastRenderMeta.hasMyAnswer);
@@ -642,7 +671,7 @@
                     ? myAnswer.selected_option
                     : pendingSelections[roundKey] || null;
 
-                if(!hasMyAnswer) {
+                if(!hasMyAnswer && isRoundActive) {
                     pendingSelections[roundKey] = selectedOption;
                 }
 
@@ -656,7 +685,7 @@
                     </label>
                 `).join('');
 
-                if(!hasMyAnswer) {
+                if(!hasMyAnswer && isRoundActive) {
                     optionsDiv.querySelectorAll('input[name="selected_option"]').forEach(input => {
                         input.addEventListener('change', () => {
                             pendingSelections[round.sequence_number] = input.value;
@@ -665,8 +694,16 @@
                     });
                 }
 
-                submitBtn.disabled = hasMyAnswer || !participantId || (!hasMyAnswer && !pendingSelections[round.sequence_number]);
-                submitBtn.innerHTML = hasMyAnswer ? '<i class="fa-solid fa-check"></i> Đã trả lời' : '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án';
+                submitBtn.disabled =
+                    hasMyAnswer ||
+                    !participantId ||
+                    (!hasMyAnswer && !pendingSelections[round.sequence_number]) ||
+                    !isRoundActive;
+                submitBtn.innerHTML = hasMyAnswer
+                    ? '<i class="fa-solid fa-check"></i> Đã trả lời'
+                    : isRoundActive
+                        ? '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án'
+                        : '<i class="fa-solid fa-hourglass"></i> Chờ câu tiếp theo';
 
                 lastRenderMeta = { sequence: round.sequence_number, hasMyAnswer };
             }
@@ -759,13 +796,13 @@
             document.getElementById('room-mode').textContent = `Chế độ: ${roomState.mode === 'TIMED' ? 'Tính giờ' : 'Thường'}`;
 
             renderParticipants(roomState.participants || []);
-            renderQuestion(roomState.active_round);
+            syncVisibleRound();
+            renderQuestion(visibleRound);
 
             const canStart = isHost && roomState.status === 'lobby';
             const canAdvance =
-                isHost &&
-                roomState.status === 'awaiting_host' &&
-                (roomState.current_round_number || 0) < (roomState.question_total || 0);
+                pendingRoundSequence !== null &&
+                roomState.status !== 'completed';
             const canEnd = isHost && roomState.status !== 'completed';
             document.getElementById('start-room-btn').disabled = !canStart;
             document.getElementById('start-room-btn').classList.toggle('hidden', roomState.status !== 'lobby');
@@ -778,12 +815,16 @@
             }
         }
 
-        async function fetchRoomState() {
+        async function fetchRoomState(forceLatest = false) {
             try {
                 const res = await fetch(fetchRoomUrl);
                 if(res.ok) {
                     const data = await res.json();
                     roomState = data.room;
+                    if(forceLatest) {
+                        forceShowLatestRound = true;
+                        lastRenderMeta = { sequence: null, hasMyAnswer: false };
+                    }
                     hydrateUi();
                 }
             } catch(e) { console.error("Sync error", e); }
@@ -799,9 +840,9 @@
         document.getElementById('start-room-btn').addEventListener('click', async () => {
             try {
                 await postJson(startRoomUrl);
-                fetchRoomState();
-                lastRenderMeta = { sequence: null, hasMyAnswer: false };
                 pendingSelections = {};
+                forceShowLatestRound = true;
+                fetchRoomState(true);
             } catch(e) { setAlert(e.message, 'error'); }
         });
 
@@ -816,9 +857,9 @@
         document.getElementById('next-round-btn').addEventListener('click', async () => {
             try {
                 await postJson(nextRoundUrl);
-                fetchRoomState();
-                lastRenderMeta = { sequence: null, hasMyAnswer: false };
                 pendingSelections = {};
+                forceShowLatestRound = true;
+                fetchRoomState(true);
             } catch(e) { setAlert(e.message, 'error'); }
         });
 
@@ -840,7 +881,7 @@
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang gửi...';
 
             try {
-                const seq = roomState.active_round.sequence_number;
+                const seq = (visibleRound || roomState.active_round).sequence_number;
                 const url = answerUrlTemplate.replace('/0/', `/${seq}/`);
                 const data = await postJson(url, { selected_option: selected });
                 roomState = data.room;
