@@ -1561,10 +1561,10 @@ def add_quiz_set():
                 df = pd.read_excel(temp_filepath, sheet_name='Data')
 
                 def _parse_excel_int(value, row_index, field_name):
-                    if value is None:
+                    if value is None or pd.isna(value):
                         return None
                     value_str = str(value).strip()
-                    if value_str == '':
+                    if value_str == '' or value_str.lower() == 'nan':
                         return None
                     try:
                         return int(float(value_str))
