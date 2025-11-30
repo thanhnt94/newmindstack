@@ -248,6 +248,7 @@ def _serialize_question(
             for key in ('A', 'B', 'C', 'D')
             if content.get(f'option_{key.lower()}') is not None
         }
+    options = {key: value for key, value in (options or {}).items() if value not in (None, '')}
 
     media_folders = _get_media_folders_from_container(item.container if item else None)
     image_folder = media_folders.get('image')
