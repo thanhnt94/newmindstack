@@ -30,6 +30,7 @@
 {% set next_set_id = next_set_id | default(None) %}
 {% set is_modal_view = request.args.get('is_modal') == 'true' %}
 {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
+{% set form_action = form_action | default(request.path) %}
 
 <div class="fixed inset-x-0 top-0 z-40">
     <div class="flex items-center justify-between gap-3 px-3 py-2 sm:px-4 sm:py-3 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm">
@@ -71,7 +72,7 @@
     <div class="w-full">
         <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 sm:p-8">
             <h2 class="text-2xl font-bold text-center mb-6">{{ title }}</h2>
-            <form id="quizSetForm" action="" method="post" enctype="multipart/form-data" class="space-y-6">
+            <form id="quizSetForm" action="{{ form_action }}" method="post" enctype="multipart/form-data" class="space-y-6">
                 {{ form.csrf_token }}
 
                 <div class="space-y-3">
