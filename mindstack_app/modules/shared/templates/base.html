@@ -93,22 +93,6 @@
             height: 100%;
             border: none;
         }
-        .modal-close-button {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            font-size: 2rem;
-            line-height: 1;
-            color: #6b7280;
-            background: none;
-            border: none;
-            cursor: pointer;
-            z-index: 20;
-        }
-        .modal-close-button:hover {
-            color: #4b5563;
-        }
-
         /* ===== Bổ sung CSS cho layout Flexbox và ẩn trên di động ===== */
         body.flashcard-session-active {
             display: flex;
@@ -327,12 +311,9 @@
         </div>
     </footer>
     
-    <div id="modalOverlay" class="modal-overlay"> 
-        <div class="modal-content w-full h-full md:w-2/3 lg:w-1/2"> 
-            <button id="modalCloseButton" class="modal-close-button"> 
-                &times; 
-            </button>
-            <iframe id="modalIframe" class="modal-iframe"></iframe> 
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-content w-full h-full md:w-2/3 lg:w-1/2">
+            <iframe id="modalIframe" class="modal-iframe"></iframe>
         </div>
     </div>
 
@@ -396,7 +377,6 @@
             });
 
             const modalOverlay = document.getElementById('modalOverlay');
-            const modalCloseButton = document.getElementById('modalCloseButton');
 
             // Lắng nghe sự kiện click để mở modal
             document.addEventListener('click', function(event) {
@@ -408,9 +388,6 @@
             });
 
             // Lắng nghe sự kiện click để đóng modal
-            if (modalCloseButton) {
-                modalCloseButton.addEventListener('click', window.closeModal);
-            }
             if (modalOverlay) {
                 modalOverlay.addEventListener('click', function(event) {
                     if (event.target === modalOverlay) {

@@ -22,31 +22,6 @@
             font-family: 'Inter', sans-serif;
             background-color: transparent;
         }
-        .floating-nav-button {
-            position: fixed;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 1050;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.65rem 0.9rem;
-            border-radius: 9999px;
-            background: rgba(37, 99, 235, 0.1);
-            color: #1d4ed8;
-            backdrop-filter: blur(6px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-            transition: background-color 0.2s ease, transform 0.2s ease;
-        }
-        .floating-nav-button:hover {
-            background: rgba(37, 99, 235, 0.2);
-            transform: translateY(-50%) scale(1.02);
-        }
-        .floating-nav-button:active {
-            transform: translateY(-50%) scale(0.98);
-        }
-        .floating-nav-button--left { left: 14px; }
-        .floating-nav-button--right { right: 14px; }
     </style>
 </head>
 <body>
@@ -56,31 +31,13 @@
 {% set is_modal_view = request.args.get('is_modal') == 'true' %}
 {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
 
-{% if is_modal_view %}
-    {% if previous_set_id %}
-    <a href="{{ url_for('.edit_quiz_set', set_id=previous_set_id) }}{{ modal_suffix }}"
-       class="floating-nav-button floating-nav-button--left">
-        <i class="fas fa-chevron-left"></i>
-        <span>Bộ trước</span>
-    </a>
-    {% endif %}
-    {% if next_set_id %}
-    <a href="{{ url_for('.edit_quiz_set', set_id=next_set_id) }}{{ modal_suffix }}"
-       class="floating-nav-button floating-nav-button--right">
-        <span>Bộ tiếp</span>
-        <i class="fas fa-chevron-right"></i>
-    </a>
-    {% endif %}
-{% endif %}
-
 <div class="sticky top-0 z-40">
     <div class="flex items-center justify-between gap-3 px-4 py-3 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm">
         <div class="flex items-center gap-2">
             <button type="button"
                     class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
                     data-role="close-editor">
-                <i class="fas fa-times"></i>
-                <span>Đóng</span>
+                <span>Thoát</span>
             </button>
         </div>
         <div class="flex items-center gap-2">
@@ -88,13 +45,13 @@
             <a href="{{ url_for('.edit_quiz_set', set_id=previous_set_id) }}{{ modal_suffix }}"
                class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md">
                 <i class="fas fa-chevron-left"></i>
-                <span>Bộ trước</span>
+                <span>Trước</span>
             </a>
             {% endif %}
             {% if next_set_id %}
             <a href="{{ url_for('.edit_quiz_set', set_id=next_set_id) }}{{ modal_suffix }}"
                class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md">
-                <span>Bộ tiếp</span>
+                <span>Sau</span>
                 <i class="fas fa-chevron-right"></i>
             </a>
             {% endif %}
