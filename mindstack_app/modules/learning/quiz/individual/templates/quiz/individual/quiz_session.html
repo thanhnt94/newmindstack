@@ -760,16 +760,16 @@
 
         @media (max-width: 768px) {
             .quiz-shell .cm-container {
-                padding: 0 0.85rem;
+                padding: 0; /* Cho sát lề tối đa */
             }
 
             .quiz-card {
-                padding: 1.25rem;
-                border-radius: 1rem;
+                padding: 0.75rem; /* Giảm padding của card chính */
+                border-radius: 0.75rem;
             }
 
             .question-card {
-                padding: 1.25rem;
+                padding: 0.75rem; /* Giảm padding của card câu hỏi */
             }
 
             .quiz-controls {
@@ -820,6 +820,41 @@
         .quiz-toast.visible {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        /* THÊM MỚI: CSS cho nút và modal thống kê trên mobile */
+        #open-stats-mobile-btn {
+            display: none; /* Mặc định ẩn trên desktop */
+        }
+
+        #mobile-stats-modal-container {
+            display: none; /* Mặc định ẩn modal */
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        #mobile-stats-modal-container.open {
+            display: flex; /* Hiện modal khi có class 'open' */
+        }
+
+        @media (max-width: 768px) {
+            #open-stats-mobile-btn {
+                display: inline-flex; /* Hiện nút trên mobile */
+            }
+            .quiz-session-overview.mobile-modal-content {
+                display: block; /* Đảm bảo nó hiện khi ở trong modal */
+            }
+        }
+
+        @media (min-width: 769px) {
+            .quiz-session-overview.mobile-modal-content {
+                display: flex; /* Giữ lại bố cục flex trên desktop */
+            }
         }
     </style>
 {% endblock %}
@@ -919,6 +954,15 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- THÊM MỚI: Nút bấm nổi và container cho modal thống kê trên mobile -->
+<button id="open-stats-mobile-btn" class="bg-white text-blue-600 shadow-lg border border-gray-300" style="position: fixed; bottom: 1.5rem; right: 1.5rem; width: 3.5rem; height: 3.5rem; border-radius: 50%; padding: 0; z-index: 100; display: flex; align-items: center; justify-content: center;">
+    <i class="fas fa-chart-line text-lg"></i>
+</button>
+
+<div id="mobile-stats-modal-container" class="mobile-stats-modal">
+    <!-- Nội dung thống kê sẽ được move vào đây bằng JS -->
 </div>
 
 {% endblock %}
@@ -1721,6 +1765,52 @@
             }
         });
     </script>
-    {# THÊM MỚI: Nhúng modal feedback vào trang này #}
     {% include 'feedback/_feedback_modal.html' %}
+
+    <script>
+        // --- LOGIC CHO MODAL THỐNG KÊ TRÊN MOBILE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const statsPanel = document.querySelector('.quiz-session-overview');
+            const originalParent = document.querySelector('.quiz-section-header');
+            const mobileModalContainer = document.getElementById('mobile-stats-modal-container');
+            const openBtn = document.getElementById('open-stats-mobile-btn');
+
+            if (!statsPanel || !originalParent || !mobileModalContainer || !openBtn) {
+                return;
+            }
+
+            const repositionStatsPanel = () => {
+                if (window.innerWidth <= 768) {
+                    // Mobile view: move panel to modal
+                    if (statsPanel.parentElement !== mobileModalContainer) {
+                        mobileModalContainer.appendChild(statsPanel);
+                        statsPanel.classList.add('mobile-modal-content');
+                    }
+                } else {
+                    // Desktop view: move panel back to original position
+                    if (statsPanel.parentElement !== originalParent) {
+                        originalParent.appendChild(statsPanel);
+                        statsPanel.classList.remove('mobile-modal-content');
+                        // Ensure modal is closed on resize to desktop
+                        mobileModalContainer.classList.remove('open');
+                    }
+                }
+            };
+
+            openBtn.addEventListener('click', () => {
+                mobileModalContainer.classList.add('open');
+            });
+
+            mobileModalContainer.addEventListener('click', (e) => {
+                // Close if clicking on the background overlay
+                if (e.target === mobileModalContainer) {
+                    mobileModalContainer.classList.remove('open');
+                }
+            });
+
+            // Initial setup and on resize
+            repositionStatsPanel();
+            window.addEventListener('resize', repositionStatsPanel);
+        });
+    </script>
 {% endblock %}

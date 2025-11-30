@@ -26,7 +26,7 @@
 </style>
 
 <div id="quiz-solo-section" class="space-y-6">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-full">
         
         <div class="cm-section-card">
             <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -214,11 +214,30 @@ function syncMultiSelectionUI() {
 
 function updateSelectedSetsDisplay() {
     if (!selectedSetsDisplay) return;
+    
+    selectedSetsDisplay.innerHTML = ''; // Clear previous content
+
     if (selectedQuizSetIds.length > 0) {
         selectedSetsDisplay.classList.remove('hidden');
-        selectedSetsDisplay.innerHTML = `<span class="text-gray-500 text-sm mr-2">Đã chọn ${selectedQuizSetIds.length} bộ.</span>`;
+        
+        const selectedTitlesHtml = selectedQuizSetIds.map(setId => {
+            const setItem = document.querySelector(`.quiz-set-item[data-set-id="${setId}"]`);
+            const title = setItem ? setItem.dataset.title : `Bộ #${setId}`;
+            return `
+                <span class="selected-set-item">
+                    ${title}
+                    <i class="fas fa-times ml-1 cursor-pointer" onclick="removeSelectedQuizSet('${setId}')"></i>
+                </span>
+            `;
+        }).join('');
+
+        selectedSetsDisplay.innerHTML = `
+            <span class="text-gray-500 text-sm mr-2">Đã chọn:</span>
+            ${selectedTitlesHtml}
+        `;
+        
         const clearBtn = document.createElement('button');
-        clearBtn.className = "text-xs text-rose-500 font-semibold hover:underline";
+        clearBtn.className = "text-xs text-rose-500 font-semibold hover:underline ml-2";
         clearBtn.textContent = "Bỏ chọn tất cả";
         clearBtn.onclick = () => {
             selectedQuizSetIds = [];
@@ -228,10 +247,20 @@ function updateSelectedSetsDisplay() {
             updateActionButtons();
         };
         selectedSetsDisplay.appendChild(clearBtn);
+
     } else {
         selectedSetsDisplay.classList.add('hidden');
     }
 }
+
+// Global function to remove a single selected set
+window.removeSelectedQuizSet = (setIdToRemove) => {
+    selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setIdToRemove);
+    localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
+    syncMultiSelectionUI();
+    loadQuizModes(selectedQuizSetIds);
+    updateActionButtons();
+};
 
 function handleQuizSetSelection(setId) {
     if (setId === 'all' && !selectedQuizSetIds.includes('all')) selectedQuizSetIds = ['all'];

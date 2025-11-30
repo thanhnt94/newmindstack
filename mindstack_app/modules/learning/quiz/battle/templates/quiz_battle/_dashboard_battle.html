@@ -49,15 +49,15 @@
     .cm-divider { height: 1px; background: #e2e8f0; margin: 0.2rem 0; }
 
     /* Buttons */
-    .cm-action-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.95rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.9rem; transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease; white-space: nowrap; border: 1px solid transparent; }
-    .cm-action-btn--primary { background: #22c55e; color: #0f172a; box-shadow: none; border-color: #16a34a; }
-    .cm-action-btn--primary:hover { background: #16a34a; color: white; transform: translateY(-1px); }
+    .cm-action-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.95rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.85rem; transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease; white-space: nowrap; border: 1px solid transparent; }
+    .cm-action-btn--primary { background: #2563eb; color: #ffffff; box-shadow: 0 4px 12px rgba(37,99,235,0.25); border-color: #1d4ed8; }
+    .cm-action-btn--primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37,99,235,0.3); }
 
     /* Custom Elements for Collab */
     .collab-main-header { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem 1rem 0.25rem; background: #f8fafc; border-radius: 0.75rem 0.75rem 0 0; position: sticky; top: 0; z-index: 5; border-bottom: 1px solid #e5e7eb; }
     @media (min-width: 900px) { .collab-main-header { flex-direction: row; align-items: center; justify-content: space-between; } }
-    .collab-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .collab-tab-btn { padding: 0.7rem 1.1rem; font-weight: 700; color: #475569; border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 0.45rem; }
+    .collab-tabs { display: flex; gap: 0.5rem; width: 100%; }
+    .collab-tab-btn { flex: 1; text-align: center; justify-content: center; padding: 0.7rem 0.5rem; font-weight: 700; color: #475569; border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.45rem; white-space: nowrap; }
     .collab-tab-btn:hover { color: #0f172a; }
     .collab-tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
     .collab-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-start; }
@@ -89,14 +89,14 @@
         <div class="collab-hero__headline">
             <div class="collab-pill"><i class="fas fa-bolt"></i>Live Quiz Battle</div>
             <p class="collab-eyebrow">Phòng thi đấu</p>
-            <h2 class="collab-heading">Tranh tài kiến thức, vào phòng ngay</h2>
+
         </div>
         <div class="collab-hero__actions">
             {# Khung nhập mã nhanh #}
-            <form id="battle-quick-join-form" class="join-input-group">
-                <i class="fas fa-key text-slate-200 pl-2 text-xs"></i>
-                <input type="text" id="battle-quick-join-code" placeholder="Mã phòng..." maxlength="12" required>
-                <button type="submit" class="text-xs font-bold bg-white/90 hover:bg-white text-slate-800 px-3 py-1.5 rounded transition-colors">VÀO</button>
+            <form id="battle-quick-join-form" class="join-input-group flex-1 min-w-[200px] sm:flex-none">
+                <i class="fas fa-key text-slate-400 pl-3 text-sm"></i>
+                <input type="text" id="battle-quick-join-code" placeholder="Mã phòng..." maxlength="12" required class="flex-grow !w-auto">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-r-lg font-bold transition-colors text-sm">VÀO</button>
             </form>
 
             {# Nút tạo phòng #}
@@ -122,9 +122,6 @@
         <div class="collab-toolbar">
             <div class="search-wrapper" id="battle-room-search-wrapper">
                 {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
-            </div>
-            <div class="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 flex items-center gap-2">
-                <i class="fas fa-bullseye text-blue-500"></i> Tập trung vào danh sách phòng
             </div>
         </div>
     </div>

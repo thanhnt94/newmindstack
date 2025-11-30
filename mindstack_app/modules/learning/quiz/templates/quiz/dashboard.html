@@ -39,10 +39,13 @@
 
         /* Responsive */
         @media (max-width: 639px) {
-            .container { padding: 0.5rem; }
-            .quiz-title-wrapper { margin-bottom: 1rem; }
-            .quiz-title-badge { font-size: 1.25rem; padding: 0.5rem 1rem; }
-            .quiz-title-badge .fa-question-circle { font-size: 1.5rem; margin-right: 0.5rem; }
+            .container { padding: 0; margin: 0; } /* Reset cả padding và margin */
+            .quiz-title-wrapper { margin-bottom: 0.75rem; } /* Giảm khoảng cách dưới tiêu đề */
+            .quiz-title-badge { font-size: 1.1rem; padding: 0.4rem 0.8rem; } /* Giảm kích thước và padding badge */
+            .quiz-title-badge .fa-question-circle { font-size: 1.4rem; margin-right: 0.4rem; } /* Tối ưu icon */
+            
+            /* Giảm padding cho card chính */
+            .cm-section-card { padding: 0.75rem; } 
         }
     </style>
 {% endblock %}
