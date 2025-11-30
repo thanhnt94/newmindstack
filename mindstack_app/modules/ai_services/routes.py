@@ -54,11 +54,10 @@ def get_ai_response():
     # 3. Gọi Gemini API để lấy phản hồi
     try:
         item_info = f"{item.item_type} ID {item.item_id}"
-        ai_response = gemini_client.generate_content(final_prompt, item_info)
-        
-        # Kiểm tra nếu AI trả về thông báo lỗi
-        if "Lỗi:" in ai_response or "AI không thể" in ai_response:
-             return jsonify({'success': False, 'message': ai_response})
+        success, ai_response = gemini_client.generate_content(final_prompt, item_info)
+
+        if not success:
+            return jsonify({'success': False, 'message': ai_response}), 503
 
         # 4. Nếu là yêu cầu giải thích, lưu lại kết quả vào cache
         if prompt_type == 'explanation':
