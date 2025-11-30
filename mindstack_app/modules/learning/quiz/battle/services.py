@@ -13,6 +13,7 @@ from sqlalchemy.sql import func
 
 from mindstack_app.models import (
     LearningItem,
+    QuizBattleAnswer,
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
@@ -313,19 +314,43 @@ def serialize_round(
             payload['time_remaining_seconds'] = max(0, int(remaining))
 
     if include_answers:
-            payload['answers'] = [
-                {
-                    'participant_id': answer.participant_id,
-                    'user_id': answer.participant.user_id if answer.participant else None,
-                    'selected_option': answer.selected_option,
-                    'is_correct': answer.is_correct,
-                    'score_delta': answer.score_delta,
-                    'correct_option': answer.correct_option,
-                    'explanation': answer.explanation,
-                    'answered_at': answer.answered_at.isoformat() if answer.answered_at else None,
-                }
-                for answer in round_obj.answers
-            ]
+        participant = None
+        if user_id and room:
+            participant = next((p for p in room.participants if p.user_id == user_id), None)
+        participant_id = participant.participant_id if participant else None
+
+        user_answer = None
+        if participant_id:
+            user_answer = next(
+                (a for a in round_obj.answers if a.participant_id == participant_id), None
+            )
+
+        answers_visible = round_obj.status != QuizBattleRound.STATUS_ACTIVE or bool(user_answer)
+
+        def _serialize_answer(answer: QuizBattleAnswer, *, reveal_correct: bool) -> dict[str, object]:
+            return {
+                'participant_id': answer.participant_id,
+                'user_id': answer.participant.user_id if answer.participant else None,
+                'username': getattr(answer.participant.user, 'username', None)
+                if answer.participant and answer.participant.user
+                else None,
+                'selected_option': answer.selected_option,
+                'is_correct': answer.is_correct,
+                'score_delta': answer.score_delta,
+                'correct_option': answer.correct_option if reveal_correct else None,
+                'explanation': answer.explanation if reveal_correct else None,
+                'answered_at': answer.answered_at.isoformat() if answer.answered_at else None,
+            }
+
+        answers_payload = []
+        for answer in round_obj.answers:
+            if answers_visible or (participant_id and answer.participant_id == participant_id):
+                reveal_correct = answers_visible or (participant_id == answer.participant_id)
+                answers_payload.append(_serialize_answer(answer, reveal_correct=reveal_correct))
+
+        payload['answers_locked'] = not answers_visible
+        payload['answers'] = answers_payload
+
     return payload
 
 
