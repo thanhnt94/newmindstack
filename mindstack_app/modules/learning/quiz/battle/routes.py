@@ -524,14 +524,25 @@ def end_room(room_code: str):
 @quiz_battle_bp.route('/rooms/<string:room_code>/rounds/next', methods=['POST'])
 @login_required
 def start_next_round(room_code: str):
-    """Allow the host to manually move to the next round."""
+    """Cho phép bất kỳ người chơi đang hoạt động chuyển sang câu tiếp theo."""
 
     room = _get_room_or_404(room_code)
-    _require_host(room)
+
+    participant = QuizBattleParticipant.query.filter_by(room_id=room.room_id, user_id=current_user.user_id).first()
+    if not participant and current_user.user_role != User.ROLE_ADMIN:
+        abort(403, description='Bạn cần tham gia phòng trước khi chuyển câu.')
+    if participant and participant.status != QuizBattleParticipant.STATUS_ACTIVE:
+        abort(403, description='Trạng thái của bạn không cho phép chuyển câu.')
 
     ensure_question_order(room)
     if not room.question_order:
         abort(400, description='Không có câu hỏi nào trong bộ quiz.')
+
+    active_round = get_active_round(room)
+    if active_round:
+        room.current_round_number = max(room.current_round_number or 0, active_round.sequence_number)
+        db.session.commit()
+        return jsonify({'room': serialize_room(room, user_id=current_user.user_id)})
 
     current_num = room.current_round_number or 0
     next_sequence = current_num + 1

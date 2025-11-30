@@ -142,9 +142,11 @@ def auto_advance_round_if_needed(room: QuizBattleRoom) -> bool:
     has_next_round = round_obj.sequence_number < len(question_order)
 
     room.current_round_number = round_obj.sequence_number
-    room.status = (
-        QuizBattleRoom.STATUS_AWAITING_HOST if has_next_round else QuizBattleRoom.STATUS_COMPLETED
-    )
+    if has_next_round:
+        start_round(room, round_obj.sequence_number + 1)
+        room.status = QuizBattleRoom.STATUS_IN_PROGRESS
+    else:
+        room.status = QuizBattleRoom.STATUS_COMPLETED
     return True
 
 
@@ -199,9 +201,12 @@ def complete_round_if_ready(round_obj: Optional[QuizBattleRound]) -> Optional[Qu
     question_order = ensure_question_order(room)
     room.current_round_number = round_obj.sequence_number
     has_next_round = round_obj.sequence_number < len(question_order)
-    room.status = (
-        QuizBattleRoom.STATUS_AWAITING_HOST if has_next_round else QuizBattleRoom.STATUS_COMPLETED
-    )
+
+    if has_next_round:
+        start_round(room, round_obj.sequence_number + 1)
+        room.status = QuizBattleRoom.STATUS_IN_PROGRESS
+    else:
+        room.status = QuizBattleRoom.STATUS_COMPLETED
 
     return None
 
