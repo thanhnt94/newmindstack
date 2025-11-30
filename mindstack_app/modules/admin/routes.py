@@ -1043,13 +1043,23 @@ def manage_background_tasks():
         db.session.commit()
         tasks = BackgroundTask.query.all()
 
-    # Lấy danh sách bộ thẻ để lọc phạm vi
-    flashcard_containers = LearningContainer.query.filter_by(container_type='FLASHCARD_SET').order_by(LearningContainer.title.asc()).all()
+    # Lấy danh sách học liệu để lọc phạm vi (Flashcard & Quiz)
+    flashcard_containers = (
+        LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
+        .order_by(LearningContainer.title.asc())
+        .all()
+    )
+    quiz_containers = (
+        LearningContainer.query.filter_by(container_type='QUIZ_SET')
+        .order_by(LearningContainer.title.asc())
+        .all()
+    )
 
     return render_template(
         'background_tasks.html',
         tasks=tasks,
         flashcard_containers=flashcard_containers,
+        quiz_containers=quiz_containers,
         default_request_interval=DEFAULT_REQUEST_INTERVAL_SECONDS,
     )
 
@@ -1072,6 +1082,7 @@ def start_task(task_id):
     if task.status != 'running' and task.is_enabled:
         data = request.get_json(silent=True) or {}
         container_id = data.get('container_id') if isinstance(data, dict) else None
+        container_type = data.get('container_type') if isinstance(data, dict) else None
         try:
             delay_seconds = float(data.get('request_interval_seconds', DEFAULT_REQUEST_INTERVAL_SECONDS))
             if delay_seconds < 0:
@@ -1079,7 +1090,7 @@ def start_task(task_id):
         except (TypeError, ValueError):
             delay_seconds = DEFAULT_REQUEST_INTERVAL_SECONDS
         container_scope_ids = None
-        scope_label = 'tất cả bộ thẻ Flashcard'
+        scope_label = 'tất cả bộ học liệu'
 
         if container_id not in (None, ''):
             try:
@@ -1087,14 +1098,23 @@ def start_task(task_id):
             except (TypeError, ValueError):
                 return jsonify({'success': False, 'message': 'Giá trị container_id không hợp lệ.'}), 400
 
-            selected_container = LearningContainer.query.filter_by(container_id=container_id_int, container_type='FLASHCARD_SET').first()
+            query = LearningContainer.query.filter_by(container_id=container_id_int)
+            if container_type:
+                query = query.filter_by(container_type=container_type)
+
+            selected_container = query.first()
             if not selected_container:
-                return jsonify({'success': False, 'message': 'Không tìm thấy bộ thẻ Flashcard được chọn.'}), 404
+                return jsonify({'success': False, 'message': 'Không tìm thấy học liệu được chọn.'}), 404
 
             container_scope_ids = [selected_container.container_id]
-            scope_label = f"bộ thẻ \"{selected_container.title}\" (ID {selected_container.container_id})"
+            type_labels = {
+                'FLASHCARD_SET': 'bộ thẻ',
+                'QUIZ_SET': 'bộ Quiz',
+            }
+            type_label = type_labels.get(selected_container.container_type, 'bộ học liệu')
+            scope_label = f"{type_label} \"{selected_container.title}\" (ID {selected_container.container_id})"
 
-        if task.task_name == 'generate_ai_explanations' and scope_label == 'tất cả bộ thẻ Flashcard':
+        if task.task_name == 'generate_ai_explanations' and scope_label == 'tất cả bộ học liệu':
             scope_label = 'tất cả học liệu'
 
         task.status = 'running'
