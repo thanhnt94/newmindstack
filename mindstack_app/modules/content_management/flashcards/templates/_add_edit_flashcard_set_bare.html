@@ -129,9 +129,23 @@
                     {{ form.description(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", rows="3", placeholder="Mô tả bộ thẻ") }}
                 </div>
 
+                {% set current_cover = form.cover_image.data or '' %}
                 <div>
                     {{ form.cover_image.label(class="block text-sm font-medium text-gray-700") }}
-                    {{ form.cover_image(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="VD: uploads/flashcards/covers/n5.png") }}
+                    <div class="mt-1 space-y-3" data-role="cover-wrapper" data-initial-url="{{ current_cover }}" data-base-folder="{{ form.image_base_folder.data or '' }}">
+                        {{ form.cover_image(class="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="VD: uploads/flashcards/covers/n5.png", **{'data-role': 'cover-input'}) }}
+                        <div class="relative border border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                            <img data-role="cover-preview" src="{{ current_cover }}" alt="Xem trước ảnh cover" class="w-full max-h-64 object-contain{% if not current_cover %} hidden{% endif %}">
+                            <div data-role="cover-placeholder" class="flex items-center justify-center text-sm text-gray-400 py-10{% if current_cover %} hidden{% endif %}">
+                                Chưa có ảnh cover để xem trước.
+                            </div>
+                        </div>
+                        <button type="button" data-role="cover-open" class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center gap-2{% if not current_cover %} hidden{% endif %}">
+                            <i class="fas fa-external-link-alt"></i>
+                            <span>Mở ảnh cover</span>
+                        </button>
+                        <p class="text-xs text-gray-500" data-role="cover-status"></p>
+                    </div>
                 </div>
 
                 <div>
@@ -225,6 +239,8 @@
         </div>
     </div>
 </div>
+
+{% include 'content_management/_cover_preview_script.html' %}
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
