@@ -1041,7 +1041,9 @@
                     visibleRound = roundFromRoom;
                 }
                 pendingSelections[seq] = null;
-                lastRenderMeta = { sequence: seq, hasMyAnswer: true };
+                // Force a fresh render so the submit button swaps out of the pending state
+                // immediately after we record the answer.
+                lastRenderMeta = { sequence: null, hasMyAnswer: false };
                 hydrateUi();
             } catch(err) {
                 setAlert(err.message, 'error');
