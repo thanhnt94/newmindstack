@@ -1095,6 +1095,25 @@
                 document.getElementById('question-note-content').classList.remove('hidden');
             } catch(e) { setAlert(e.message, 'error'); }
         });
+
+        document.getElementById('question-feedback-submit').addEventListener('click', async () => {
+            const input = document.getElementById('question-feedback-input');
+            const text = input.value.trim();
+            if (!text) return setAlert('Vui lòng nhập nội dung góp ý.', 'error');
+            if (!currentQuestionItemId) return setAlert('Không xác định được câu hỏi.', 'error');
+
+            try {
+                await postJson(feedbackSubmitUrl, {
+                    item_id: currentQuestionItemId,
+                    feedback_text: text
+                });
+                input.value = '';
+                setAlert('Cảm ơn bạn đã góp ý!', 'success');
+                setTimeout(() => setAlert(''), 3000);
+            } catch (e) {
+                setAlert(e.message, 'error');
+            }
+        });
         
         document.getElementById('copy-room-code').addEventListener('click', () => {
             navigator.clipboard.writeText(roomCode);
