@@ -481,8 +481,8 @@
                 </div>
             </div>
 
-            {# 2. Feedback & Insight Panel (Ẩn mặc định) #}
-            <div id="answer-feedback-panel" class="cm-card border-l-4 border-l-blue-500" hidden>
+            {# 2. Result Panel (Ẩn mặc định) #}
+            <div id="answer-result-panel" class="cm-card border-l-4 border-l-blue-500" hidden>
                 <div class="cm-card-body">
                     <div class="flex items-start gap-4">
                         <div id="answer-feedback-icon" class="text-3xl">💡</div>
@@ -490,7 +490,7 @@
                             <h3 id="answer-feedback-title" class="text-lg font-bold text-slate-900">Kết quả</h3>
                             <p id="answer-feedback-detail" class="text-sm text-slate-600 mb-3"></p>
                             
-                            <div class="flex gap-4 mb-4 text-sm">
+                            <div class="flex gap-4 text-sm">
                                 <div class="bg-slate-50 px-3 py-2 rounded border border-slate-100">
                                     <span class="block text-xs text-slate-400 uppercase">Đáp án đúng</span>
                                     <span id="answer-feedback-correct" class="font-bold text-emerald-600">--</span>
@@ -500,12 +500,19 @@
                                     <span id="answer-feedback-score" class="font-bold text-blue-600">+0</span>
                                 </div>
                             </div>
-
-                            <div class="p-3 bg-blue-50 rounded-lg text-sm text-slate-700 border border-blue-100">
-                                <strong>Giải thích:</strong>
-                                <div id="answer-feedback-explanation" class="mt-1"></div>
-                            </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {# 3. Explanation Panel (Ẩn mặc định) #}
+            <div id="answer-explanation-panel" class="cm-card" hidden>
+                 <div class="cm-card-header">
+                    <span class="cm-card-title"><i class="fa-solid fa-book-open text-blue-500"></i> Giải thích</span>
+                </div>
+                <div class="cm-card-body">
+                     <div class="p-3 bg-blue-50 rounded-lg text-sm text-slate-700 border border-blue-100">
+                        <div id="answer-feedback-explanation"></div>
                     </div>
                 </div>
             </div>
@@ -1164,7 +1171,8 @@
             currentQuestionItemId = round.question.item_id;
             if(hasMyAnswer) updateFeedbackAndInsights(round, myAnswer);
             else {
-                document.getElementById('answer-feedback-panel').hidden = true;
+                document.getElementById('answer-result-panel').hidden = true;
+                document.getElementById('answer-explanation-panel').hidden = true;
                 document.getElementById('question-insight-panel').hidden = true;
             }
 
@@ -1172,11 +1180,13 @@
         }
 
         function updateFeedbackAndInsights(round, answer) {
-            const panel = document.getElementById('answer-feedback-panel');
+            const resultPanel = document.getElementById('answer-result-panel');
+            const explanationPanel = document.getElementById('answer-explanation-panel');
             const insights = document.getElementById('question-insight-panel');
             if(!answer) return;
 
-            panel.hidden = false;
+            resultPanel.hidden = false;
+            explanationPanel.hidden = false;
             insights.hidden = false;
 
             const isCorrect = answer.is_correct;
