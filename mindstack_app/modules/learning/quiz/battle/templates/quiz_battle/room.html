@@ -320,44 +320,46 @@
             display: none !important;
         }
 
+        /* Mobile Chat Modal - Styled exactly like Hub Modal */
         .qb-chat-panel { 
             display: block; 
             position: fixed; 
-            bottom: 0; /* Flush with bottom */
-            left: 0; 
-            right: 0; 
-            z-index: 55; /* Below bottom bar (60) but above content */
-            background: transparent; /* No dimming */
-            backdrop-filter: none; /* No blur */
+            inset: 0; /* Full screen overlay */
+            z-index: 100; /* High z-index like Hub */
+            background: rgba(15, 23, 42, 0.6); 
+            backdrop-filter: blur(4px);
             opacity: 0; 
             visibility: hidden; 
-            pointer-events: none; 
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            transform: translateY(10px);
+            transition: all 0.3s;
         }
         
         .qb-chat-panel .qb-chat-container { 
+            position: fixed; bottom: 0; left: 0; right: 0;
             width: 100%; 
             max-width: none; 
-            height: 55vh !important; 
-            max-height: 600px;
+            height: 85vh !important; /* Match Hub height */
+            max-height: none;
             background: #ffffff; 
-            border-radius: 16px 16px 0 0; /* Top radius only */
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 -4px 25px rgba(0,0,0,0.1);
+            border-radius: 20px 20px 0 0; 
+            border: none;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
             padding-bottom: 0;
-            transform: none; 
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%); 
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .qb-chat-panel.open { 
             opacity: 1; 
             visibility: visible; 
-            pointer-events: auto; 
+        }
+
+        .qb-chat-panel.open .qb-chat-container {
             transform: translateY(0);
         }
         
-        .qb-close-chat-btn { display: inline-flex; }
-        /* .qb-mobile-chat-toggle { display: flex; } -- Removed, handled by default display in bottom bar */
+        .qb-close-chat-btn { display: flex; } /* Ensure close button is visible */
 
         #next-round-btn.qb-next-mobile-floating {
             position: fixed;
@@ -615,21 +617,25 @@
             {# 3. Chat Box (Fixed / Mobile Popup) #}
             <div id="quiz-chat-panel" class="qb-chat-panel">
                 <div class="cm-card qb-chat-container">
-                    <div class="cm-card-header py-2 flex items-center justify-between gap-2">
-                        <span class="cm-card-title text-sm"><i class="fa-solid fa-comments text-blue-400"></i> Thảo luận</span>
-                        <button type="button" id="close-chat-btn" class="qb-close-chat-btn items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-xs font-semibold text-slate-700 hover:bg-slate-200">
-                            <i class="fa-solid fa-xmark"></i> Đóng
+                    {# Header - styled like Hub on mobile, overridden on desktop via CSS if needed #}
+                    <div class="qb-hub-header flex items-center justify-between bg-white border-b border-slate-100 p-4 md:p-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-comments text-blue-500 text-xl md:text-base"></i>
+                            <h3 class="font-bold text-slate-800 text-lg md:text-sm">Thảo luận</h3>
+                        </div>
+                        <button type="button" id="close-chat-btn" class="qb-close-chat-btn w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 md:px-2 md:w-auto md:h-auto md:rounded-lg md:text-xs">
+                            <i class="fa-solid fa-xmark md:mr-1"></i> <span class="hidden md:inline">Đóng</span>
                         </button>
                     </div>
 
-                    <div id="chat-messages" class="qb-chat-messages">
+                    <div id="chat-messages" class="qb-chat-messages flex-1 overflow-y-auto p-4 bg-slate-50">
                         <p class="text-center text-xs text-slate-400 mt-4">Bắt đầu trò chuyện...</p>
                     </div>
 
-                    <form id="chat-form" class="qb-chat-input-area">
-                        <input type="text" id="chat-input" class="flex-1 rounded-full border-slate-200 text-sm px-4 py-2 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition outline-none" placeholder="Nhập tin nhắn..." autocomplete="off">
-                        <button type="submit" class="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 shadow-sm transition">
-                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                    <form id="chat-form" class="qb-chat-input-area p-3 bg-white border-t border-slate-100 flex gap-2">
+                        <input type="text" id="chat-input" class="flex-1 rounded-full border-slate-200 text-sm px-4 py-3 md:py-2 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition outline-none" placeholder="Nhập tin nhắn..." autocomplete="off">
+                        <button type="submit" class="w-10 h-10 md:w-9 md:h-9 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 shadow-sm transition flex-shrink-0">
+                            <i class="fa-solid fa-paper-plane text-sm md:text-xs"></i>
                         </button>
                     </form>
                 </div>
