@@ -641,7 +641,7 @@
 
 {# === MOBILE BOTTOM ACTION BAR === #}
 <div class="qb-bottom-bar">
-    <button type="button" id="open-hub-btn" class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100" aria-label="Mở chi tiết">
+    <button type="button" id="open-hub-btn" class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100 hidden" aria-label="Mở chi tiết">
         <i class="fa-solid fa-lightbulb text-xl"></i>
     </button>
 
@@ -658,16 +658,21 @@
 {# === EXPLANATION HUB MODAL (Mobile) === #}
 <div id="explanation-hub-modal" class="qb-modal-overlay">
     <div class="qb-modal-container">
-        <div class="qb-hub-header">
+        <div class="qb-hub-header flex items-center justify-between">
             <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
-            <button id="close-hub-btn" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+            <div class="flex items-center gap-2">
+                <button id="open-feedback-modal-btn" class="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center hover:bg-amber-100 transition" title="Gửi phản hồi">
+                    <i class="fa-solid fa-flag"></i>
+                </button>
+                <button id="close-hub-btn" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
         </div>
         <div class="qb-hub-tabs">
             <div class="qb-hub-tab-item active" data-target="hub-expl">📖 Giải thích</div>
             <div class="qb-hub-tab-item" data-target="hub-ai">🤖 AI Coach</div>
-            <div class="qb-hub-tab-item" data-target="hub-collab">👥 Đóng góp</div>
+            <div class="qb-hub-tab-item" data-target="hub-collab">📝 Ghi chú</div>
         </div>
         <div class="qb-hub-content">
             
@@ -705,21 +710,38 @@
                 {# Personal Note #}
                 <div>
                     <h4 class="font-bold text-slate-800 mb-2"><i class="fa-solid fa-note-sticky text-yellow-500"></i> Ghi chú cá nhân</h4>
-                    <textarea id="hub-note-input" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition" rows="3" placeholder="Ghi lại những gì bạn học được..."></textarea>
-                    <button id="hub-note-save" class="mt-2 w-full py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm hover:bg-blue-200">Lưu ghi chú</button>
-                </div>
+                    
+                    {# Display Mode #}
+                    <div id="hub-note-display-wrapper" class="space-y-3 hidden">
+                        <div id="hub-note-display" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-700 leading-relaxed min-h-[100px] whitespace-pre-wrap">
+                            <!-- Note content will be rendered here -->
+                        </div>
+                        <button id="hub-note-edit-btn" class="w-full py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm hover:bg-blue-200">
+                            <i class="fa-solid fa-pen"></i> Sửa ghi chú
+                        </button>
+                    </div>
 
-                <hr class="border-slate-100">
-
-                {# Contribution #}
-                <div>
-                    <h4 class="font-bold text-slate-800 mb-2"><i class="fa-solid fa-users-gear text-emerald-500"></i> Đóng góp nội dung</h4>
-                    <p class="text-xs text-slate-500 mb-2">Phát hiện lỗi hoặc có giải thích hay hơn? Hãy gửi đóng góp cho admin.</p>
-                    <textarea id="hub-feedback-input" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-200 outline-none transition" rows="3" placeholder="Nội dung đóng góp..."></textarea>
-                    <button id="hub-feedback-submit" class="mt-2 w-full py-2 rounded-lg bg-emerald-100 text-emerald-700 font-semibold text-sm hover:bg-emerald-200">Gửi đóng góp</button>
+                    {# Edit Mode #}
+                    <div id="hub-note-edit-wrapper">
+                        <textarea id="hub-note-input" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition" rows="5" placeholder="Ghi lại những gì bạn học được..."></textarea>
+                        <button id="hub-note-save" class="mt-2 w-full py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm hover:bg-blue-200">Lưu ghi chú</button>
+                    </div>
                 </div>
             </div>
 
+        </div>
+    </div>
+</div>
+
+{# === FEEDBACK MODAL (New) === #}
+<div id="feedback-popup" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-all duration-300 opacity-0 invisible">
+    <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5 transform scale-95 transition-all duration-300">
+        <h3 class="text-lg font-bold text-slate-800 mb-2">Gửi phản hồi</h3>
+        <p class="text-xs text-slate-500 mb-3">Báo lỗi câu hỏi hoặc góp ý cải thiện nội dung.</p>
+        <textarea id="popup-feedback-input" class="w-full p-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-amber-500 outline-none mb-4" rows="4" placeholder="Nhập nội dung phản hồi..."></textarea>
+        <div class="flex justify-end gap-2">
+            <button id="popup-feedback-cancel" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition">Hủy</button>
+            <button id="popup-feedback-submit" class="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 shadow-md transition">Gửi</button>
         </div>
     </div>
 </div>
@@ -761,6 +783,12 @@
         const mobileSubmitBtn = document.getElementById('mobile-submit-btn');
         const mobileTabs = document.querySelectorAll('.qb-mobile-tab-item');
         const tabPanes = document.querySelectorAll('.qb-tab-pane');
+
+        // Note UI elements
+        const hubNoteDisplayWrapper = document.getElementById('hub-note-display-wrapper');
+        const hubNoteDisplay = document.getElementById('hub-note-display');
+        const hubNoteEditBtn = document.getElementById('hub-note-edit-btn');
+        const hubNoteEditWrapper = document.getElementById('hub-note-edit-wrapper');
 
         let roomState = initialRoom || {};
         // Force an initial render even if the server already sent an active round
@@ -1196,7 +1224,10 @@
                 }
 
                 if(lockNote) lockNote.classList.toggle('hidden', !hasMyAnswer);
-                if(inlineFeedback) inlineFeedback.textContent = hasMyAnswer ? 'Đáp án đã khóa.' : '';
+                if(inlineFeedback) inlineFeedback.textContent = '';
+
+                const mobileHubBtn = document.getElementById('open-hub-btn');
+                if(mobileHubBtn && !hasMyAnswer) mobileHubBtn.classList.add('hidden');
 
                 lastRenderMeta = { sequence: round.sequence_number, hasMyAnswer };
             }
@@ -1241,8 +1272,10 @@
             const resultPanel = document.getElementById('answer-result-panel');
             const explanationPanel = document.getElementById('answer-explanation-panel');
             const insights = document.getElementById('question-insight-panel');
+            const mobileHubBtn = document.getElementById('open-hub-btn');
             if(!answer) return;
 
+            if(mobileHubBtn) mobileHubBtn.classList.remove('hidden');
             resultPanel.hidden = false;
             explanationPanel.hidden = false;
             insights.hidden = false;
@@ -1272,7 +1305,7 @@
             const hubAiContent = document.getElementById('hub-ai-content');
             if(hubAiContent) {
                  if(window.applyMarkdownToElement) {
-                    window.applyMarkdownToElement(hubAiContent, aiExplanation || 'Nhấn nút để yêu cầu AI phân tích...', { treatAsHtml: Boolean(aiExplanation) });
+                    window.applyMarkdownToElement(hubAiContent, aiExplanation || 'Nhấn nút để yêu cầu AI phân tích...', { treatAsHtml: false });
                  } else {
                     hubAiContent.textContent = aiExplanation || 'Nhấn nút để yêu cầu AI phân tích...';
                  }
@@ -1285,9 +1318,18 @@
             }
             
             const noteContent = round.question.note_content || '';
-            document.getElementById('question-note-content').textContent = noteContent || 'Bạn chưa có ghi chú.';
-            document.getElementById('question-note-input').value = noteContent;
-            if(document.getElementById('hub-note-input')) document.getElementById('hub-note-input').value = noteContent;
+            // For desktop view (if present)
+            const desktopQNoteContent = document.getElementById('question-note-content');
+            const desktopQNoteInput = document.getElementById('question-note-input');
+            if(desktopQNoteContent) desktopQNoteContent.textContent = noteContent || 'Bạn chưa có ghi chú.';
+            if(desktopQNoteInput) desktopQNoteInput.value = noteContent;
+
+            // For Mobile Hub notes
+            if (noteContent) {
+                toggleNoteEditMode(false, noteContent); // Show display mode with content
+            } else {
+                toggleNoteEditMode(true, ''); // Show edit mode (empty)
+            }
         }
 
         function renderStats(round) {
@@ -1595,16 +1637,126 @@
         // --- Notes & Feedback Logic (Unified for Desktop & Hub) ---
         
         async function saveNote(content) {
+             console.log('[saveNote] Called with content:', content);
+             console.log('[saveNote] currentQuestionItemId:', currentQuestionItemId);
+
+             if (!currentQuestionItemId) {
+                 console.error('[saveNote] No currentQuestionItemId found!');
+                 setAlert('Lỗi: Không xác định được câu hỏi.', 'error');
+                 return;
+             }
+
              const url = noteSaveUrlTemplate.replace('0', currentQuestionItemId);
-             await postJson(url, { content });
-             // Sync UI
-             document.getElementById('question-note-content').textContent = content;
-             document.getElementById('question-note-input').value = content;
-             if(document.getElementById('hub-note-input')) document.getElementById('hub-note-input').value = content;
+             console.log('[saveNote] Sending request to:', url);
+
+             try {
+                 await postJson(url, { content });
+                 console.log('[saveNote] Request success');
+             } catch (e) {
+                 console.error('[saveNote] Request failed:', e);
+                 throw e; // Re-throw to be caught by caller
+             }
              
-             // Desktop toggle logic
-             document.getElementById('question-note-editor').classList.add('hidden');
-             document.getElementById('question-note-content').classList.remove('hidden');
+             // Sync UI (Safely)
+             const qContent = document.getElementById('question-note-content');
+             const qInput = document.getElementById('question-note-input');
+             const hubInput = document.getElementById('hub-note-input');
+             
+             if(qContent) qContent.textContent = content;
+             if(qInput) qInput.value = content;
+             if(hubInput) hubInput.value = content;
+             
+             // Desktop toggle logic (Safely)
+             const qEditor = document.getElementById('question-note-editor');
+             if(qEditor && qContent) {
+                 qEditor.classList.add('hidden');
+                 qContent.classList.remove('hidden');
+             }
+             
+             setAlert('Đã lưu ghi chú.', 'success');
+             setTimeout(() => setAlert(''), 2000);
+        }
+
+        // Manual override to ensure chat opens
+        openChatBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (chatController && typeof chatController.setOpen === 'function') {
+                chatController.setOpen(true);
+            } else {
+                if (chatPanel) {
+                    chatPanel.classList.add('open');
+                    chatPanel.style.visibility = 'visible';
+                    chatPanel.style.opacity = '1';
+                    chatPanel.style.pointerEvents = 'auto';
+                }
+            }
+        });
+        
+        // Also ensure close button works manually if controller is dead
+        closeChatBtn?.addEventListener('click', (e) => {
+             if (!chatController) {
+                 e.preventDefault();
+                 if (chatPanel) {
+                    chatPanel.classList.remove('open');
+                    chatPanel.style.removeProperty('visibility');
+                    chatPanel.style.removeProperty('opacity');
+                    chatPanel.style.removeProperty('pointer-events');
+                 }
+             }
+        });
+
+        // --- Notes & Feedback Logic (Unified for Desktop & Hub) ---
+        
+        // Helper to toggle note edit/display mode
+        function toggleNoteEditMode(enableEdit, noteContent = '') {
+            const hubNoteInput = document.getElementById('hub-note-input');
+            if (enableEdit) {
+                if (hubNoteEditWrapper) hubNoteEditWrapper.classList.remove('hidden');
+                if (hubNoteDisplayWrapper) hubNoteDisplayWrapper.classList.add('hidden');
+                if (hubNoteDisplay) hubNoteDisplay.innerHTML = ''; // Clear display when editing
+                if (hubNoteInput) hubNoteInput.value = noteContent; // Pre-fill textarea
+            } else {
+                if (hubNoteEditWrapper) hubNoteEditWrapper.classList.add('hidden');
+                if (hubNoteDisplayWrapper) hubNoteDisplayWrapper.classList.remove('hidden');
+                if (hubNoteDisplay) hubNoteDisplay.innerHTML = noteContent.replace(/\n/g, '<br>'); // Display with line breaks
+            }
+        }
+
+        async function saveNote(content) {
+             if (!currentQuestionItemId) {
+                 setAlert('Lỗi: Không xác định được câu hỏi.', 'error');
+                 return;
+             }
+
+             const url = noteSaveUrlTemplate.replace('0', currentQuestionItemId);
+
+             try {
+                 await postJson(url, { content });
+             } catch (e) {
+                 throw e; // Re-throw to be caught by caller
+             }
+             
+             // Sync UI (Safely)
+             const qContent = document.getElementById('question-note-content');
+             const qInput = document.getElementById('question-note-input');
+             const hubInput = document.getElementById('hub-note-input');
+             
+             if(qContent) qContent.textContent = content;
+             if(qInput) qInput.value = content;
+             if(hubInput) hubInput.value = content;
+             
+             // Desktop toggle logic (Safely)
+             const qEditor = document.getElementById('question-note-editor');
+             if(qEditor && qContent) {
+                 qEditor.classList.add('hidden');
+                 qContent.classList.remove('hidden');
+             }
+
+             // Mobile Hub Notes: Switch to display mode
+             toggleNoteEditMode(false, content);
+             
              setAlert('Đã lưu ghi chú.', 'success');
              setTimeout(() => setAlert(''), 2000);
         }
@@ -1633,24 +1785,62 @@
             try { await saveNote(document.getElementById('question-note-input').value); } catch(e) { setAlert(e.message, 'error'); }
         });
 
-        // Mobile Hub Note Event
+        // Mobile Hub Note Event (Save)
         const hubNoteSave = document.getElementById('hub-note-save');
         if(hubNoteSave) {
             hubNoteSave.addEventListener('click', async () => {
-                 try { await saveNote(document.getElementById('hub-note-input').value); } catch(e) { setAlert(e.message, 'error'); }
+                 const inputVal = document.getElementById('hub-note-input').value;
+                 try { 
+                     await saveNote(inputVal); 
+                 } catch(e) { 
+                     setAlert(e.message, 'error'); 
+                 }
             });
         }
 
-        // Feedback Events
-        document.getElementById('question-feedback-submit').addEventListener('click', () => {
-             const input = document.getElementById('question-feedback-input');
-             sendFeedback(input.value.trim(), input);
-        });
-        const hubFeedbackSubmit = document.getElementById('hub-feedback-submit');
-        if(hubFeedbackSubmit) {
-            hubFeedbackSubmit.addEventListener('click', () => {
-                const input = document.getElementById('hub-feedback-input');
-                sendFeedback(input.value.trim(), input);
+        // Mobile Hub Note Edit Event
+        if(hubNoteEditBtn) {
+            hubNoteEditBtn.addEventListener('click', () => {
+                const currentNote = hubNoteDisplay?.innerHTML.replace(/<br>/g, '\n') || ''; // Convert <br> back to \n
+                toggleNoteEditMode(true, currentNote);
+            });
+        }
+
+        // Feedback Events (Desktop)
+        const desktopFeedbackSubmit = document.getElementById('question-feedback-submit');
+        if(desktopFeedbackSubmit) {
+            desktopFeedbackSubmit.addEventListener('click', () => {
+                 const input = document.getElementById('question-feedback-input');
+                 sendFeedback(input.value.trim(), input);
+            });
+        }
+
+        // Feedback Events (Mobile Modal)
+        const openFeedbackBtn = document.getElementById('open-feedback-modal-btn');
+        const feedbackModal = document.getElementById('feedback-popup');
+        const feedbackSubmitBtn = document.getElementById('popup-feedback-submit');
+        const feedbackCancelBtn = document.getElementById('popup-feedback-cancel');
+
+        if(openFeedbackBtn && feedbackModal) {
+            openFeedbackBtn.addEventListener('click', () => {
+                feedbackModal.classList.remove('hidden', 'invisible', 'opacity-0');
+            });
+            
+            const closeFeedback = () => {
+                feedbackModal.classList.add('invisible', 'opacity-0');
+                setTimeout(() => feedbackModal.classList.add('hidden'), 300);
+            };
+
+            feedbackCancelBtn.addEventListener('click', closeFeedback);
+            
+            feedbackSubmitBtn.addEventListener('click', async () => {
+                const input = document.getElementById('popup-feedback-input');
+                await sendFeedback(input.value.trim(), input);
+                closeFeedback();
+            });
+            
+            feedbackModal.addEventListener('click', (e) => {
+                if(e.target === feedbackModal) closeFeedback();
             });
         }
         

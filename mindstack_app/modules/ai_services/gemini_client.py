@@ -154,6 +154,18 @@ class GeminiClient:
                 with self.app_context:
                     self.api_key_manager.mark_key_as_exhausted(key_id)
                 continue
+            except google_exceptions.ResourceExhausted as e:
+                current_app.logger.warning(
+                    f"GeminiClient: ResourceExhausted (429) với key ID {key_id}. Đang chuyển sang key khác..."
+                )
+                time.sleep(1)
+                continue
+            except google_exceptions.ServiceUnavailable as e:
+                current_app.logger.warning(
+                    f"GeminiClient: ServiceUnavailable (503). Đang thử lại..."
+                )
+                time.sleep(2)
+                continue
             except Exception as e:
                 last_error_msg = f"Lỗi server khi gọi AI: {e}"
                 current_app.logger.error(
