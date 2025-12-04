@@ -393,17 +393,20 @@ function updateSelectedSetsDisplay() {
             ${selectedTitlesHtml}
         `;
         
-        const clearBtn = document.createElement('button');
-        clearBtn.className = "text-xs text-rose-500 font-semibold hover:underline ml-2";
-        clearBtn.textContent = "Bỏ chọn tất cả";
-        clearBtn.onclick = () => {
-            selectedQuizSetIds = [];
-            localStorage.removeItem('selectedQuizSetIds');
-            syncMultiSelectionUI();
-            loadQuizModes([]);
-            updateActionButtons();
-        };
-        selectedSetsDisplay.appendChild(clearBtn);
+        // Only show "Clear All" button if in multi-select mode
+        if (isMultiSelectMode) {
+            const clearBtn = document.createElement('button');
+            clearBtn.className = "text-xs text-rose-500 font-semibold hover:underline ml-2";
+            clearBtn.textContent = "Bỏ chọn tất cả";
+            clearBtn.onclick = () => {
+                selectedQuizSetIds = [];
+                localStorage.removeItem('selectedQuizSetIds');
+                syncMultiSelectionUI();
+                loadQuizModes([]);
+                updateActionButtons();
+            };
+            selectedSetsDisplay.appendChild(clearBtn);
+        }
 
     } else {
         selectedSetsDisplay.classList.add('hidden');
