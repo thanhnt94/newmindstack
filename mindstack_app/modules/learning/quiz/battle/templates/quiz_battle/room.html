@@ -80,76 +80,44 @@
     .qb-chat-bubble.other .qb-msg-content { background: #e2e8f0; color: #1e293b; border-bottom-left-radius: 0.1rem; }
 
     .qb-mobile-chat-toggle {
-        display: none;
-        position: fixed;
-        bottom: 1rem;
-        right: 1rem;
-        z-index: 70;
-        box-shadow: 0 14px 30px rgba(59, 130, 246, 0.3);
-        background: linear-gradient(135deg, #4f46e5, #0ea5e9);
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.35);
-        border-radius: 999px;
-        padding: 0.65rem;
-        gap: 0.4rem;
-        font-weight: 700;
-        letter-spacing: 0.01em;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-        min-width: 0;
+        /* Integrated into bottom bar - minimal styles */
+        position: relative;
+        background: #eff6ff;
+        color: #3b82f6;
+        border: 1px solid #dbeafe;
+        border-radius: 12px;
         width: 3.25rem;
         height: 3.25rem;
+        display: flex;
         align-items: center;
         justify-content: center;
-        line-height: 1;
-        pointer-events: auto;
-        touch-action: manipulation;
-        overflow: visible;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
     }
+    
+    .qb-mobile-chat-toggle:hover { background: #dbeafe; }
+    .qb-mobile-chat-toggle:active { transform: scale(0.95); }
 
-    .qb-mobile-chat-toggle i { font-size: 1.05rem; }
     .qb-mobile-chat-label { display: none; }
 
     .qb-chat-unread {
         position: absolute;
-        top: -0.1rem;
-        right: -0.1rem;
-        width: 1.25rem;
-        height: 1.25rem;
-        border-radius: 999px;
+        top: -2px;
+        right: -2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
         background: #ef4444;
         color: white;
-        font-size: 0.65rem;
-        font-weight: 800;
+        font-size: 10px;
+        font-weight: bold;
         display: none;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
         border: 2px solid white;
-        line-height: 1;
     }
 
-    .qb-chat-unread.is-visible { display: inline-flex; }
-
-    @media (min-width: 520px) and (max-width: 1024px) {
-        .qb-mobile-chat-toggle {
-            width: auto;
-            height: auto;
-            padding: 0.65rem 0.95rem;
-            border-radius: 999px;
-            gap: 0.5rem;
-        }
-
-        .qb-mobile-chat-label { display: inline; }
-    }
-
-    .qb-mobile-chat-toggle:hover {
-        transform: translateY(-2px) scale(1.01);
-        box-shadow: 0 18px 38px rgba(37, 99, 235, 0.32);
-        filter: brightness(1.03);
-    }
-
-    .qb-mobile-chat-toggle:active { transform: translateY(0); filter: brightness(0.98); }
-    .qb-mobile-chat-toggle.is-active { box-shadow: 0 16px 32px rgba(37, 99, 235, 0.35); }
+    .qb-chat-unread.is-visible { display: flex; }
 
     .qb-close-chat-btn { display: none; }
 
@@ -279,7 +247,7 @@
         }
         /* Style for buttons in bottom bar */
         .qb-bottom-bar .cm-btn {
-            width: 100%; border-radius: 12px; padding: 14px; font-size: 1rem;
+            flex: 1; border-radius: 12px; padding: 14px; font-size: 1rem;
             margin: 0 !important;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
@@ -294,7 +262,7 @@
         }
 
         /* Chat Toggle Position */
-        .qb-mobile-chat-toggle { bottom: 80px; right: 16px; } /* Move up above bottom bar */
+        /* Removed floating override */
 
         /* Hide Inline Form Elements */
         .qb-inline-action-area { display: none; }
@@ -350,7 +318,7 @@
         .qb-chat-panel.open { opacity: 1; visibility: visible; pointer-events: auto; }
         .qb-chat-panel.open .qb-chat-container { transform: translateY(0); }
         .qb-close-chat-btn { display: inline-flex; }
-        .qb-mobile-chat-toggle { display: flex; }
+        /* .qb-mobile-chat-toggle { display: flex; } -- Removed, handled by default display in bottom bar */
 
         #next-round-btn.qb-next-mobile-floating {
             position: fixed;
@@ -563,7 +531,8 @@
         </div>
 
         {# --- CỘT PHẢI: THỐNG KÊ & CHAT --- #}
-        <div id="tab-pane-stats" class="qb-tab-pane space-y-6">
+        <div class="space-y-6">
+            <div id="tab-pane-stats" class="qb-tab-pane space-y-6">
             
             {# 1. Question Stats #}
             <div class="cm-card">
@@ -602,6 +571,8 @@
                 </div>
             </div>
 
+            </div>
+
             {# 3. Chat Box (Fixed / Mobile Popup) #}
             <div id="quiz-chat-panel" class="qb-chat-panel">
                 <div class="cm-card qb-chat-container">
@@ -634,13 +605,12 @@
     <button type="button" id="mobile-submit-btn" class="cm-btn cm-btn-primary w-full shadow-lg" disabled>
         <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
     </button>
+    
+    <button type="button" id="open-chat-btn" class="qb-mobile-chat-toggle" aria-label="Mở chat">
+        <i class="fa-solid fa-comments text-xl"></i>
+        <span id="chat-unread-badge" class="qb-chat-unread" aria-hidden="true"></span>
+    </button>
 </div>
-
-<button type="button" id="open-chat-btn" class="qb-mobile-chat-toggle" aria-label="Mở chat">
-    <i class="fa-solid fa-comments"></i>
-    <span class="qb-mobile-chat-label">Chat</span>
-    <span id="chat-unread-badge" class="qb-chat-unread" aria-hidden="true">•</span>
-</button>
 
 {# === EXPLANATION HUB MODAL (Mobile) === #}
 <div id="explanation-hub-modal" class="qb-modal-overlay">
@@ -1477,6 +1447,39 @@
             if (event.target === chatPanel) {
                 chatController?.setOpen(false);
             }
+        });
+
+        // Manual override to ensure chat opens
+        openChatBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Chat button clicked. Controller:', chatController);
+            
+            if (chatController && typeof chatController.setOpen === 'function') {
+                console.log('Calling chatController.setOpen(true)');
+                chatController.setOpen(true);
+            } else {
+                console.warn('Chat controller missing or invalid. Using manual fallback.');
+                if (chatPanel) {
+                    chatPanel.classList.add('open');
+                    chatPanel.style.visibility = 'visible';
+                    chatPanel.style.opacity = '1';
+                    chatPanel.style.pointerEvents = 'auto';
+                }
+            }
+        });
+        
+        // Also ensure close button works manually if controller is dead
+        closeChatBtn?.addEventListener('click', (e) => {
+             if (!chatController) {
+                 e.preventDefault();
+                 if (chatPanel) {
+                    chatPanel.classList.remove('open');
+                    chatPanel.style.removeProperty('visibility');
+                    chatPanel.style.removeProperty('opacity');
+                    chatPanel.style.removeProperty('pointer-events');
+                 }
+             }
         });
 
         // --- Notes & Feedback Logic (Unified for Desktop & Hub) ---
