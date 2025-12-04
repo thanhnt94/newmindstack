@@ -313,10 +313,49 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 1024px) {
-        .qb-chat-panel { display: flex; position: fixed; inset: 0; z-index: 9990; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(8px); align-items: flex-end; justify-content: center; padding: 0.75rem; opacity: 0; visibility: hidden; pointer-events: none; transition: all 0.3s ease; }
-        .qb-chat-panel .qb-chat-container { width: 100%; max-width: 720px; height: 90vh !important; background: #ffffff; border-radius: 18px 18px 0 0; padding-bottom: 1.5rem; transform: translateY(12%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-        .qb-chat-panel.open { opacity: 1; visibility: visible; pointer-events: auto; }
-        .qb-chat-panel.open .qb-chat-container { transform: translateY(0); }
+        /* Hide desktop panels on mobile */
+        #answer-result-panel, 
+        #answer-explanation-panel, 
+        #question-insight-panel {
+            display: none !important;
+        }
+
+        .qb-chat-panel { 
+            display: block; 
+            position: fixed; 
+            bottom: 0; /* Flush with bottom */
+            left: 0; 
+            right: 0; 
+            z-index: 55; /* Below bottom bar (60) but above content */
+            background: transparent; /* No dimming */
+            backdrop-filter: none; /* No blur */
+            opacity: 0; 
+            visibility: hidden; 
+            pointer-events: none; 
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(10px);
+        }
+        
+        .qb-chat-panel .qb-chat-container { 
+            width: 100%; 
+            max-width: none; 
+            height: 55vh !important; 
+            max-height: 600px;
+            background: #ffffff; 
+            border-radius: 16px 16px 0 0; /* Top radius only */
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 -4px 25px rgba(0,0,0,0.1);
+            padding-bottom: 0;
+            transform: none; 
+        }
+
+        .qb-chat-panel.open { 
+            opacity: 1; 
+            visibility: visible; 
+            pointer-events: auto; 
+            transform: translateY(0);
+        }
+        
         .qb-close-chat-btn { display: inline-flex; }
         /* .qb-mobile-chat-toggle { display: flex; } -- Removed, handled by default display in bottom bar */
 
@@ -602,6 +641,10 @@
 
 {# === MOBILE BOTTOM ACTION BAR === #}
 <div class="qb-bottom-bar">
+    <button type="button" id="open-hub-btn" class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100" aria-label="Mở chi tiết">
+        <i class="fa-solid fa-lightbulb text-xl"></i>
+    </button>
+
     <button type="button" id="mobile-submit-btn" class="cm-btn cm-btn-primary w-full shadow-lg" disabled>
         <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
     </button>
@@ -845,13 +888,21 @@
         };
 
         async function generateAiCoachContent() {
-            if(!currentQuestionItemId || !aiCoachContentEl) return;
+            if(!currentQuestionItemId) return;
 
             if(aiCoachGenerateBtn) {
                 aiCoachGenerateBtn.disabled = true;
                 aiCoachGenerateBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo...';
             }
+            const hubAiBtn = document.getElementById('hub-ai-generate-btn');
+            if(hubAiBtn) {
+                 hubAiBtn.disabled = true;
+                 hubAiBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            }
+
             renderAiContent('AI đang tạo hướng dẫn...');
+            const hubAiContent = document.getElementById('hub-ai-content');
+            if(hubAiContent) hubAiContent.textContent = 'AI đang tạo hướng dẫn...';
 
             try {
                 const res = await postJson(getAiResponseUrl, {
@@ -863,21 +914,33 @@
                 const treatAsHtml = Boolean(res?.html_content);
                 if(content) {
                     renderAiContent(content, { treatAsHtml });
+                    if(hubAiContent) {
+                        if(window.applyMarkdownToElement) window.applyMarkdownToElement(hubAiContent, content, { treatAsHtml });
+                        else hubAiContent.textContent = content;
+                    }
+
                     if(roomState?.active_round?.question?.item_id === currentQuestionItemId) {
                         roomState.active_round.question.ai_explanation = content;
                     }
                     aiCoachGenerateBtn?.classList.add('hidden');
                 } else {
-                    renderAiContent(res?.message || 'AI chưa phản hồi hướng dẫn.');
+                    const msg = res?.message || 'AI chưa phản hồi hướng dẫn.';
+                    renderAiContent(msg);
+                    if(hubAiContent) hubAiContent.textContent = msg;
                     aiCoachGenerateBtn?.classList.remove('hidden');
                 }
             } catch(err) {
                 renderAiContent(`Không tạo được hướng dẫn: ${err.message}`);
+                if(hubAiContent) hubAiContent.textContent = `Lỗi: ${err.message}`;
                 aiCoachGenerateBtn?.classList.remove('hidden');
             } finally {
                 if(aiCoachGenerateBtn) {
                     aiCoachGenerateBtn.disabled = false;
                     aiCoachGenerateBtn.innerHTML = aiCoachButtonDefaultHtml;
+                }
+                if(hubAiBtn) {
+                    hubAiBtn.disabled = false;
+                    hubAiBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới';
                 }
             }
         }
@@ -1149,6 +1212,31 @@
             renderStats(round);
         }
 
+        // --- Mobile Hub Logic ---
+        const hubModal = document.getElementById('explanation-hub-modal');
+        const openHubBtn = document.getElementById('open-hub-btn');
+        const closeHubBtn = document.getElementById('close-hub-btn');
+        const hubTabs = document.querySelectorAll('.qb-hub-tab-item');
+        const hubPanes = document.querySelectorAll('.qb-hub-pane');
+
+        if(openHubBtn && hubModal) {
+            openHubBtn.addEventListener('click', () => hubModal.classList.add('open'));
+            closeHubBtn?.addEventListener('click', () => hubModal.classList.remove('open'));
+            hubModal.addEventListener('click', (e) => {
+                if(e.target === hubModal) hubModal.classList.remove('open');
+            });
+
+            hubTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    hubTabs.forEach(t => t.classList.remove('active'));
+                    hubPanes.forEach(p => p.classList.remove('active'));
+                    tab.classList.add('active');
+                    const targetId = tab.dataset.target;
+                    document.getElementById(targetId)?.classList.add('active');
+                });
+            });
+        }
+
         function updateFeedbackAndInsights(round, answer) {
             const resultPanel = document.getElementById('answer-result-panel');
             const explanationPanel = document.getElementById('answer-explanation-panel');
@@ -1171,8 +1259,25 @@
                 answer.explanation || round.question.explanation || 'Chưa có giải thích.';
             expDiv.innerHTML = explanationText.replace(/\n/g, '<br>');
 
+            // Populate Mobile Hub Data
+            const hubCorrectOption = document.getElementById('hub-correct-option');
+            const hubExplText = document.getElementById('hub-explanation-text');
+            if(hubCorrectOption) hubCorrectOption.textContent = answer.correct_option || '?';
+            if(hubExplText) hubExplText.innerHTML = explanationText.replace(/\n/g, '<br>');
+
             const aiExplanation = round.question.ai_explanation || '';
             renderAiContent(aiExplanation || 'AI đang nghỉ ngơi...');
+            
+            // Sync AI content to Hub
+            const hubAiContent = document.getElementById('hub-ai-content');
+            if(hubAiContent) {
+                 if(window.applyMarkdownToElement) {
+                    window.applyMarkdownToElement(hubAiContent, aiExplanation || 'Nhấn nút để yêu cầu AI phân tích...', { treatAsHtml: Boolean(aiExplanation) });
+                 } else {
+                    hubAiContent.textContent = aiExplanation || 'Nhấn nút để yêu cầu AI phân tích...';
+                 }
+            }
+
             if(aiCoachGenerateBtn) {
                 aiCoachGenerateBtn.classList.toggle('hidden', Boolean(aiExplanation));
                 aiCoachGenerateBtn.disabled = false;
@@ -1182,6 +1287,7 @@
             const noteContent = round.question.note_content || '';
             document.getElementById('question-note-content').textContent = noteContent || 'Bạn chưa có ghi chú.';
             document.getElementById('question-note-input').value = noteContent;
+            if(document.getElementById('hub-note-input')) document.getElementById('hub-note-input').value = noteContent;
         }
 
         function renderStats(round) {
@@ -1342,6 +1448,10 @@
         if(aiCoachGenerateBtn) {
             aiCoachGenerateBtn.innerHTML = aiCoachButtonDefaultHtml;
             aiCoachGenerateBtn.addEventListener('click', generateAiCoachContent);
+        }
+        const hubAiBtn = document.getElementById('hub-ai-generate-btn');
+        if(hubAiBtn) {
+             hubAiBtn.addEventListener('click', generateAiCoachContent);
         }
 
         // mobileBreakpoint.addEventListener('change', syncNextButtonPlacement); // Removed as mobile bottom bar handles this
