@@ -712,13 +712,15 @@
                     <h4 class="font-bold text-slate-800 mb-2"><i class="fa-solid fa-note-sticky text-yellow-500"></i> Ghi chú cá nhân</h4>
                     
                     {# Display Mode #}
-                    <div id="hub-note-display-wrapper" class="space-y-3 hidden">
-                        <div id="hub-note-display" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-700 leading-relaxed min-h-[100px] whitespace-pre-wrap">
+                    <div id="hub-note-display-wrapper" class="hidden relative group">
+                        <div class="absolute top-0 right-0">
+                             <button id="hub-note-edit-btn" class="text-xs text-blue-600 font-medium hover:underline">
+                                <i class="fa-solid fa-pen"></i> Sửa
+                            </button>
+                        </div>
+                        <div id="hub-note-display" class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap pt-1">
                             <!-- Note content will be rendered here -->
                         </div>
-                        <button id="hub-note-edit-btn" class="w-full py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm hover:bg-blue-200">
-                            <i class="fa-solid fa-pen"></i> Sửa ghi chú
-                        </button>
                     </div>
 
                     {# Edit Mode #}
@@ -1325,10 +1327,13 @@
             if(desktopQNoteInput) desktopQNoteInput.value = noteContent;
 
             // For Mobile Hub notes
-            if (noteContent) {
-                toggleNoteEditMode(false, noteContent); // Show display mode with content
-            } else {
-                toggleNoteEditMode(true, ''); // Show edit mode (empty)
+            const isEditing = hubNoteEditWrapper && !hubNoteEditWrapper.classList.contains('hidden');
+            if (!isEditing) {
+                if (noteContent) {
+                    toggleNoteEditMode(false, noteContent); // Show display mode with content
+                } else {
+                    toggleNoteEditMode(true, ''); // Show edit mode (empty)
+                }
             }
         }
 
@@ -1636,79 +1641,6 @@
 
         // --- Notes & Feedback Logic (Unified for Desktop & Hub) ---
         
-        async function saveNote(content) {
-             console.log('[saveNote] Called with content:', content);
-             console.log('[saveNote] currentQuestionItemId:', currentQuestionItemId);
-
-             if (!currentQuestionItemId) {
-                 console.error('[saveNote] No currentQuestionItemId found!');
-                 setAlert('Lỗi: Không xác định được câu hỏi.', 'error');
-                 return;
-             }
-
-             const url = noteSaveUrlTemplate.replace('0', currentQuestionItemId);
-             console.log('[saveNote] Sending request to:', url);
-
-             try {
-                 await postJson(url, { content });
-                 console.log('[saveNote] Request success');
-             } catch (e) {
-                 console.error('[saveNote] Request failed:', e);
-                 throw e; // Re-throw to be caught by caller
-             }
-             
-             // Sync UI (Safely)
-             const qContent = document.getElementById('question-note-content');
-             const qInput = document.getElementById('question-note-input');
-             const hubInput = document.getElementById('hub-note-input');
-             
-             if(qContent) qContent.textContent = content;
-             if(qInput) qInput.value = content;
-             if(hubInput) hubInput.value = content;
-             
-             // Desktop toggle logic (Safely)
-             const qEditor = document.getElementById('question-note-editor');
-             if(qEditor && qContent) {
-                 qEditor.classList.add('hidden');
-                 qContent.classList.remove('hidden');
-             }
-             
-             setAlert('Đã lưu ghi chú.', 'success');
-             setTimeout(() => setAlert(''), 2000);
-        }
-
-        // Manual override to ensure chat opens
-        openChatBtn?.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            if (chatController && typeof chatController.setOpen === 'function') {
-                chatController.setOpen(true);
-            } else {
-                if (chatPanel) {
-                    chatPanel.classList.add('open');
-                    chatPanel.style.visibility = 'visible';
-                    chatPanel.style.opacity = '1';
-                    chatPanel.style.pointerEvents = 'auto';
-                }
-            }
-        });
-        
-        // Also ensure close button works manually if controller is dead
-        closeChatBtn?.addEventListener('click', (e) => {
-             if (!chatController) {
-                 e.preventDefault();
-                 if (chatPanel) {
-                    chatPanel.classList.remove('open');
-                    chatPanel.style.removeProperty('visibility');
-                    chatPanel.style.removeProperty('opacity');
-                    chatPanel.style.removeProperty('pointer-events');
-                 }
-             }
-        });
-
-        // --- Notes & Feedback Logic (Unified for Desktop & Hub) ---
-        
         // Helper to toggle note edit/display mode
         function toggleNoteEditMode(enableEdit, noteContent = '') {
             const hubNoteInput = document.getElementById('hub-note-input');
@@ -1823,12 +1755,33 @@
 
         if(openFeedbackBtn && feedbackModal) {
             openFeedbackBtn.addEventListener('click', () => {
+                // Close Hub Modal first if open
+                const hubModal = document.getElementById('explanation-hub-modal');
+                if(hubModal && hubModal.classList.contains('open')) {
+                    hubModal.classList.remove('open');
+                    // Store a flag to reopen it later if needed
+                    feedbackModal.dataset.reopenHub = 'true';
+                } else {
+                    feedbackModal.dataset.reopenHub = 'false';
+                }
+                
                 feedbackModal.classList.remove('hidden', 'invisible', 'opacity-0');
+                // Ensure z-index is high enough
+                feedbackModal.style.zIndex = '110'; 
             });
             
             const closeFeedback = () => {
                 feedbackModal.classList.add('invisible', 'opacity-0');
-                setTimeout(() => feedbackModal.classList.add('hidden'), 300);
+                setTimeout(() => {
+                    feedbackModal.classList.add('hidden');
+                    feedbackModal.style.zIndex = ''; // Reset z-index
+                    
+                    // Reopen Hub Modal if it was closed by this action
+                    if(feedbackModal.dataset.reopenHub === 'true') {
+                        const hubModal = document.getElementById('explanation-hub-modal');
+                        if(hubModal) hubModal.classList.add('open');
+                    }
+                }, 300);
             };
 
             feedbackCancelBtn.addEventListener('click', closeFeedback);
