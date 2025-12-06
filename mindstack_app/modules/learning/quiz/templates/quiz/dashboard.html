@@ -41,19 +41,24 @@
         /* Responsive */
         @media (max-width: 639px) {
             body {
-                overflow-x: hidden !important; /* Prevent horizontal scroll on body */
-                padding-top: 120px !important; /* Space for fixed tabs (increased from 60px) */
+                height: 100dvh !important; /* Lock height to viewport */
+                overflow: hidden !important; /* Prevent body scroll */
+                padding-top: 0 !important;
             }
             main {
+                flex: 1 !important;
+                overflow: hidden !important; /* Prevent main scroll */
+                display: flex !important;
+                flex-direction: column !important;
                 border: none !important;
-                min-height: auto !important;
+                min-height: 0 !important;
+                margin-top: 0 !important;
+                padding-bottom: 0 !important;
                 position: static !important;
                 z-index: auto !important;
-                margin-top: auto !important;
-                display: block !important;
             }
 
-            .container { padding: 0 !important; margin: 0 !important; } /* Reset cả padding và margin */
+            .container { margin: 0 !important; width: 100% !important; max-width: 100% !important; } /* Full width container */
             .quiz-title-wrapper { margin-bottom: 0.75rem; } /* Giảm khoảng cách dưới tiêu đề */
             .quiz-title-badge { font-size: 1.1rem; padding: 0.4rem 0.8rem; } /* Giảm kích thước và padding badge */
             .quiz-title-badge .fa-question-circle { font-size: 1.4rem; margin-right: 0.4rem; } /* Tối ưu icon */

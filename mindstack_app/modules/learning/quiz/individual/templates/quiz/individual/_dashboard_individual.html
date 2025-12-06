@@ -38,18 +38,16 @@
     @media (max-width: 1023px) {
         /* Step 0: Mode Selection Overlay */
         #mobile-mode-selection {
-            position: fixed;
-            top: 60px; /* Start below global navbar */
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 999; /* Highest priority */
+            position: relative; /* Flow naturally below navbar */
+            height: 100%; /* Fill remaining space in locked container */
+            overflow: hidden; /* Prevent scroll */
+            z-index: 1;
             background-color: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 1rem;
         }
 
         /* Full Screen Containers for Steps */
@@ -248,12 +246,9 @@
             </div>
             
             {# Mobile Step 1 Navigation Bar #}
-            <div class="p-3 bg-white border-t border-gray-200 lg:hidden flex-shrink-0 flex items-center justify-between gap-3">
-                <button id="mobile-step-1-footer-back" class="flex-shrink-0 bg-slate-100 text-slate-600 px-4 py-3 rounded-lg font-bold transition-colors hover:bg-slate-200 flex items-center justify-center">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <button id="mobile-step-1-next" class="flex-grow bg-gray-400 text-white font-bold py-3 rounded-lg shadow-sm flex items-center justify-center transition-colors duration-200" disabled>
-                    Tiếp tục (0) <i class="fas fa-arrow-right ml-2"></i>
+            <div class="p-3 bg-white border-t border-gray-200 lg:hidden flex-shrink-0">
+                <button id="mobile-step-1-next" class="w-full bg-gray-400 text-white font-bold py-3 rounded-lg shadow-sm flex items-center justify-center transition-colors duration-200" disabled>
+                    Tiếp tục <i class="fas fa-arrow-right ml-2"></i>
                 </button>
             </div>
         </div>
@@ -261,13 +256,13 @@
         {# === STEP 2 === #}
         <div id="step-2-card" class="cm-section-card">
             {# Header #}
-            <div class="mobile-header-section flex items-center justify-between mb-0 lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none lg:block">
+            <div class="mobile-header-section flex items-center mb-0 lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none lg:block">
+                <button id="mobile-step-2-back" class="lg:hidden mr-3 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
                 <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
                     <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
                 </h2>
-                <button id="mobile-step-2-back" class="mobile-nav-btn hidden lg:hidden text-sm bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-medium">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
             </div>
             {# List #}
             <div id="quiz-modes-container" class="flex-grow overflow-y-auto max-h-[500px] lg:p-0">
@@ -279,11 +274,8 @@
         </div>
     </div>
             {# Footer Actions (Global for Desktop, Step 2 for Mobile) #}
-            <div id="step-2-actions" class="mobile-footer-section mt-4 text-center lg:bg-transparent lg:border-none lg:shadow-none lg:p-0 lg:static fixed bottom-0 left-0 right-0 flex-shrink-0 flex gap-3">
-                <button id="mobile-step-2-footer-back" class="flex-shrink-0 bg-slate-100 text-slate-600 px-4 py-3 rounded-lg font-bold transition-colors hover:bg-slate-200 flex items-center justify-center">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <div class="flex-grow flex justify-center w-full">
+            <div id="step-2-actions" class="mobile-footer-section mt-4 text-center lg:bg-transparent lg:border-none lg:shadow-none lg:p-0 lg:static fixed bottom-0 left-0 right-0 flex-shrink-0">
+                <div class="flex justify-center w-full">
                     <button id="start-learning-btn" class="start-button w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center">
                         <i class="fas fa-play-circle mr-2"></i> Bắt đầu
                     </button>
@@ -317,8 +309,6 @@ const mobileBackBtn = document.getElementById('mobile-step-2-back');
 const mobileStep0Btn = document.getElementById('btn-mode-individual');
 const mobileStep1BackBtn = document.getElementById('mobile-step-1-back');
 const quizSection = document.getElementById('quiz-solo-section');
-const mobileStep1FooterBackBtn = document.getElementById('mobile-step-1-footer-back');
-const mobileStep2FooterBackBtn = document.getElementById('mobile-step-2-footer-back');
 
 // --- START: Mobile Mode Selection Logic ---
 if (mobileStep0Btn) {
@@ -335,17 +325,7 @@ if (mobileStep1BackBtn) {
 // --- END: Mobile Mode Selection Logic ---
 
 // --- START: Mobile Footer Navigation ---
-if (mobileStep1FooterBackBtn) {
-    mobileStep1FooterBackBtn.addEventListener('click', () => {
-        quizSection.classList.remove('mobile-mode-individual'); // Go back to Step 0
-    });
-}
-
-if (mobileStep2FooterBackBtn) {
-    mobileStep2FooterBackBtn.addEventListener('click', () => {
-        quizSection.classList.remove('mobile-step-2-active'); // Go back to Step 1
-    });
-}
+// (Footer buttons removed per user request)
 // --- END: Mobile Footer Navigation ---
 
 
@@ -387,7 +367,7 @@ const bulkUnarchiveUrl = "{{ url_for('learning.quiz_learning.bulk_unarchive') }}
 function updateMobileNextButton() {
     if(!mobileNextBtn) return;
     const count = selectedQuizSetIds.length;
-    mobileNextBtn.innerHTML = `Tiếp tục (${count}) <i class="fas fa-arrow-right ml-2"></i>`;
+    mobileNextBtn.innerHTML = `Tiếp tục <i class="fas fa-arrow-right ml-2"></i>`;
     mobileNextBtn.disabled = count === 0;
     if(count > 0) {
         mobileNextBtn.classList.remove('bg-gray-400');
