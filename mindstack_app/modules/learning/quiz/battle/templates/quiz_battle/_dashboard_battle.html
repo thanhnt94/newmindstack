@@ -83,20 +83,65 @@
     #battle-loading.visible { display: flex; pointer-events: auto; opacity: 1; }
 
     @media (max-width: 899px) { /* Adjust content to not be under sticky header on mobile */
+        .battle-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: 1050; /* Cover everything including navbar */
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .cm-card {
+            flex-grow: 1;
+            overflow-y: auto; /* Enable scrolling for content */
+            border-radius: 0 !important;
+            border: none !important;
+            margin-top: 0 !important;
+            box-shadow: none !important;
+            height: auto !important;
+            display: block !important; /* Override flex if needed, or keep flex-col */
+        }
+
         .collab-content-mobile-offset {
             padding-top: 0;
+            padding-bottom: 1rem !important; /* Minimal padding */
         }
+        
         .collab-hero {
-            margin-top: 60px; /* Adjusted from 125px to 60px to reduce gap */
+            display: none; /* Hide hero on mobile */
         }
+        
         .collab-main-header {
-            top: 60px; /* Adjusted sticky header position */
+            top: 0 !important; /* Tabs stick to top of scrolling container */
+            position: sticky;
+            z-index: 40;
+        }
+
+        /* Mobile Footer converted to Flex Item */
+        .mobile-battle-footer {
+            position: relative !important;
+            flex-shrink: 0;
+            border-top: 1px solid #e2e8f0;
+            z-index: 50;
         }
     }
 </style>
 
-{# === HEADER === #}
-<section class="collab-hero">
+<div id="battle-wrapper" class="battle-wrapper">
+
+{# === MOBILE HEADER === #}
+<div class="lg:hidden flex-shrink-0 flex items-center justify-between bg-white p-4 border-b border-slate-200 z-50">
+    <div class="flex items-center">
+        <button onclick="window.location.href='{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}'" class="mr-3 text-gray-500 hover:text-gray-700">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </button>
+        <h2 class="text-xl font-bold text-gray-800">Đấu trường nhóm</h2>
+    </div>
+</div>
+
+{# === DESKTOP HERO === #}
+<section class="collab-hero hidden lg:block">
     <div class="collab-hero__content">
         <div class="collab-hero__headline">
             <div class="collab-pill"><i class="fas fa-bolt"></i>Live Quiz Battle</div>
@@ -105,14 +150,14 @@
         </div>
         <div class="collab-hero__actions">
             {# Khung nhập mã nhanh #}
-            <form id="battle-quick-join-form" class="join-input-group flex-1 min-w-[200px] sm:flex-none">
+            <form id="battle-quick-join-form-desktop" class="join-input-group flex-1 min-w-[200px] sm:flex-none">
                 <i class="fas fa-key text-slate-400 pl-3 text-sm"></i>
-                <input type="text" id="battle-quick-join-code" placeholder="Mã phòng..." maxlength="12" required class="flex-grow !w-auto">
+                <input type="text" id="battle-quick-join-code-desktop" placeholder="Mã phòng..." maxlength="12" required class="flex-grow !w-auto">
                 <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-r-lg font-bold transition-colors text-sm">VÀO</button>
             </form>
 
             {# Nút tạo phòng #}
-            <button type="button" id="open-battle-modal" class="cm-action-btn cm-action-btn--primary">
+            <button type="button" id="open-battle-modal-desktop" class="cm-action-btn cm-action-btn--primary">
                 <i class="fas fa-plus"></i><span>Tạo phòng đấu</span>
             </button>
         </div>
@@ -164,6 +209,20 @@
         </div>
     </div>
 </div>
+
+{# === MOBILE FOOTER ACTION === #}
+<div class="mobile-battle-footer lg:hidden bg-white border-t border-slate-200 p-3 flex gap-2">
+    <form id="battle-quick-join-form-mobile" class="flex-1 flex items-center bg-slate-100 rounded-lg px-3 py-2">
+        <i class="fas fa-key text-slate-400 mr-2"></i>
+        <input type="text" id="battle-quick-join-code-mobile" placeholder="Nhập mã phòng..." class="bg-transparent border-none focus:ring-0 w-full text-sm" required>
+        <button type="submit" class="text-blue-600 font-bold text-sm ml-2">VÀO</button>
+    </form>
+    <button type="button" id="open-battle-modal-mobile" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg flex items-center justify-center">
+        <i class="fas fa-plus"></i>
+    </button>
+</div>
+
+</div> {# End of battle-wrapper #}
 
 {# === CREATE BATTLE MODAL === #}
 <div id="create-battle-modal" class="collab-modal-backdrop">
@@ -524,18 +583,23 @@
             });
         }
 
-        // Quick Join
-        document.getElementById('battle-quick-join-form')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const code = document.getElementById('battle-quick-join-code').value.trim().toUpperCase();
-            joinBattleRoom(code);
+        // Quick Join (Desktop & Mobile)
+        ['battle-quick-join-form-desktop', 'battle-quick-join-form-mobile'].forEach(id => {
+            document.getElementById(id)?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const inputId = id.replace('form', 'code'); // battle-quick-join-code-desktop/mobile
+                const code = document.getElementById(inputId).value.trim().toUpperCase();
+                joinBattleRoom(code);
+            });
         });
 
-        // Modal
+        // Modal (Desktop & Mobile)
         const modal = document.getElementById('create-battle-modal');
-        document.getElementById('open-battle-modal')?.addEventListener('click', () => {
-            modal.classList.add('open');
-            loadBattleQuizzes();
+        ['open-battle-modal-desktop', 'open-battle-modal-mobile'].forEach(id => {
+            document.getElementById(id)?.addEventListener('click', () => {
+                modal.classList.add('open');
+                loadBattleQuizzes();
+            });
         });
         document.getElementById('close-battle-modal')?.addEventListener('click', () => modal.classList.remove('open'));
 
