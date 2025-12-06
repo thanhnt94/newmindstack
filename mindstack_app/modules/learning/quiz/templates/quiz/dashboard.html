@@ -1,6 +1,6 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/quiz/templates/quiz/dashboard.html #}
-{# Phiên bản: 2.2 (Tách template theo chế độ) #}
+{# Phiên bản: 2.13 (Tabs Fixed mobile, Centered Desktop via Wrapper) #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -32,6 +32,7 @@
         .study-mode-tab {
             padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 600; color: #4b5563;
             border: 1px solid transparent; background: transparent; transition: all 0.2s ease-in-out;
+            white-space: nowrap; /* Prevent text wrapping */
         }
         .study-mode-tab.active {
             background: #ffffff; color: #1d4ed8; border-color: #bfdbfe; box-shadow: 0 4px 6px rgba(0,0,0,0.06);
@@ -39,77 +40,138 @@
 
         /* Responsive */
         @media (max-width: 639px) {
-            .container { padding: 0; margin: 0; } /* Reset cả padding và margin */
+            body {
+                overflow-x: hidden !important; /* Prevent horizontal scroll on body */
+                padding-top: 120px !important; /* Space for fixed tabs (increased from 60px) */
+            }
+            main {
+                border: none !important;
+                min-height: auto !important;
+                position: static !important;
+                z-index: auto !important;
+                margin-top: auto !important;
+                display: block !important;
+            }
+
+            .container { padding: 0 !important; margin: 0 !important; } /* Reset cả padding và margin */
             .quiz-title-wrapper { margin-bottom: 0.75rem; } /* Giảm khoảng cách dưới tiêu đề */
             .quiz-title-badge { font-size: 1.1rem; padding: 0.4rem 0.8rem; } /* Giảm kích thước và padding badge */
             .quiz-title-badge .fa-question-circle { font-size: 1.4rem; margin-right: 0.4rem; } /* Tối ưu icon */
             
             /* Giảm padding cho card chính */
-            .cm-section-card { padding: 0.75rem; } 
+            .cm-section-card { padding: 0.75rem; }
+
+            .study-mode-tabs {
+                /* Fixed positioning for mobile tabs */
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important; /* Full width */
+                margin: 0 !important; /* Remove margins */
+                z-index: 1000 !important; /* Ensure tabs are on top */
+                background-color: white !important; /* Solid background */
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; /* Subtle shadow */
+                
+                /* Layout for tabs themselves */
+                display: flex !important;
+                justify-content: space-around !important; /* Spread tabs out */
+                padding: 0.5rem 1rem !important; /* Inner padding for the fixed bar */
+                border-radius: 0 !important; /* Remove border-radius for full width */
+            }
+            .study-mode-tab {
+                flex-grow: 1; /* Distribute space evenly */
+                text-align: center;
+                padding: 0.5rem 0.5rem; /* Adjust padding for smaller screens */
+            }
         }
     </style>
 {% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-    <script>var currentStudyMode = 'solo';</script>
-
     <div class="quiz-title-wrapper">
         <div id="quizTitle" class="quiz-title-badge"><i class="fas fa-question-circle"></i>Quiz</div>
     </div>
 
-    <div class="flex justify-center mb-6">
+    <!-- Re-added the flex justify-center mb-6 wrapper around tabs for desktop flow -->
+    <div class="flex justify-center mb-6"> 
         <div class="study-mode-tabs" role="tablist" aria-label="Chế độ học quiz">
-            <button class="study-mode-tab active" data-study-tab="solo" role="tab" aria-selected="true">Học 1 mình</button>
-            <button class="study-mode-tab" data-study-tab="group" role="tab" aria-selected="false">Thi đấu nhóm</button>
+            <button class="study-mode-tab {% if quiz_type == 'individual' %}active{% endif %}" data-study-tab="individual" role="tab" aria-selected="{% if quiz_type == 'individual' %}true{% else %}false{% endif %}">Học 1 mình</button>
+            <button class="study-mode-tab {% if quiz_type == 'battle' %}active{% endif %}" data-study-tab="battle" role="role" aria-selected="{% if quiz_type == 'battle' %}true{% else %}false{% endif %}">Thi đấu nhóm</button>
         </div>
     </div>
 
-    {# --- INCLUDE CÁC FILE CON (Theo thư mục chế độ) --- #}
-    {% include 'quiz/individual/_dashboard_individual.html' %}
+    <div id="quiz-individual-section" {% if quiz_type != 'individual' %}class="hidden"{% endif %}>
+        {% include 'quiz/individual/_dashboard_individual.html' %}
+    </div>
     
-    <div id="quiz-group-section" class="hidden">
+    <div id="quiz-battle-section" {% if quiz_type != 'battle' %}class="hidden"{% endif %}>
         {% include 'quiz_battle/_dashboard_battle.html' %}
     </div>
 
 </div>
-{% endblock %}
+{% endblock content %}
 
 {% block scripts %}
     {{ super() }}
     <script>
-    console.log('>>> quiz/dashboard.js: init');
-    
-    const studyModeTabs = document.querySelectorAll('[data-study-tab]');
-    const soloSection = document.getElementById('quiz-solo-section');
-    const groupSection = document.getElementById('quiz-group-section');
-    
-    studyModeTabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-            const selectedMode = tab.dataset.studyTab;
-            if (!selectedMode || selectedMode === currentStudyMode) return;
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('>>> quiz/dashboard.js: init (v2.3)');
+        
+        let currentQuizMode = "{{ quiz_type|default('individual') }}";
+        const individualSection = document.getElementById('quiz-individual-section');
+        const battleSection = document.getElementById('quiz-battle-section');
+        const studyModeTabs = document.querySelectorAll('[data-study-tab]');
 
-            currentStudyMode = selectedMode;
+        function switchQuizMode(mode) {
+            if (!mode || mode === currentQuizMode) return;
+
+            currentQuizMode = mode;
+
+            // Update active tab styling
             studyModeTabs.forEach((btn) => {
-                const isActive = btn.dataset.studyTab === selectedMode;
+                const isActive = btn.dataset.studyTab === mode;
                 btn.classList.toggle('active', isActive);
                 btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
             });
 
-            if (selectedMode === 'solo') {
-                if(soloSection) soloSection.classList.remove('hidden');
-                if(groupSection) groupSection.classList.add('hidden');
-                if (typeof updateActionButtons === 'function') updateActionButtons();
-            } else {
-                if(soloSection) soloSection.classList.add('hidden');
-                if(groupSection) groupSection.classList.remove('hidden');
-                // Init Battle nếu cần
+            // Toggle section visibility
+            if (individualSection) individualSection.classList.toggle('hidden', mode !== 'individual');
+            if (battleSection) battleSection.classList.toggle('hidden', mode !== 'battle');
+
+            // Update URL without full page reload
+            try {
+                const newUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard', quiz_type='') }}" + mode;
+                history.pushState({ path: newUrl }, '', newUrl);
+            } catch (e) {
+                console.error("Could not push state to history:", e);
+            }
+
+
+            // Additional initializations if needed for battle mode
+            if (mode === 'battle') {
                 if (typeof initGroupBattleDeck === 'function' && !window.groupBattleInitialized) {
                     initGroupBattleDeck();
                     window.groupBattleInitialized = true;
                 }
             }
+        }
+
+        studyModeTabs.forEach((tab) => {
+            tab.addEventListener('click', (event) => {
+                switchQuizMode(event.currentTarget.dataset.studyTab);
+            });
         });
+        
+        // Ensure correct section is visible on initial load
+        if (individualSection) individualSection.classList.toggle('hidden', currentQuizMode !== 'individual');
+        if (battleSection) battleSection.classList.toggle('hidden', currentQuizMode !== 'battle');
+        
+        if(currentQuizMode === 'battle' && typeof initGroupBattleDeck === 'function' && !window.groupBattleInitialized) {
+            initGroupBattleDeck();
+            window.groupBattleInitialized = true;
+        }
     });
     </script>
-{% endblock %}
+{% endblock scripts %}
