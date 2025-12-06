@@ -131,13 +131,11 @@
 <div id="battle-wrapper" class="battle-wrapper">
 
 {# === MOBILE HEADER === #}
-<div class="lg:hidden flex-shrink-0 flex items-center justify-between bg-white p-4 border-b border-slate-200 z-50">
-    <div class="flex items-center">
-        <button onclick="window.location.href='{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}'" class="mr-3 text-gray-500 hover:text-gray-700">
-            <i class="fas fa-arrow-left text-xl"></i>
-        </button>
-        <h2 class="text-xl font-bold text-gray-800">Đấu trường nhóm</h2>
-    </div>
+<div class="lg:hidden flex-shrink-0 flex items-center bg-white p-4 border-b border-slate-200 z-50 h-16"> {# Fixed height h-16, flex items-center #}
+    <button onclick="window.location.href='{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}'" class="mr-4 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center">
+        <i class="fas fa-arrow-left text-xl"></i>
+    </button>
+    <h2 class="text-lg font-bold text-gray-800 leading-none mt-0.5">Đấu trường nhóm</h2> {# Adjusted line-height/margin #}
 </div>
 
 {# === DESKTOP HERO === #}
@@ -176,8 +174,8 @@
                 <i class="fas fa-user-check mr-2"></i>Phòng của tôi
             </button>
         </div>
-        <div class="collab-toolbar">
-            <div class="search-wrapper" id="battle-room-search-wrapper">
+        <div class="collab-toolbar w-full"> {# Added w-full #}
+            <div class="search-wrapper w-full" id="battle-room-search-wrapper"> {# Added w-full #}
                 {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
             </div>
         </div>
@@ -211,14 +209,16 @@
 </div>
 
 {# === MOBILE FOOTER ACTION === #}
-<div class="mobile-battle-footer lg:hidden bg-white border-t border-slate-200 p-3 flex gap-2">
-    <form id="battle-quick-join-form-mobile" class="flex-1 flex items-center bg-slate-100 rounded-lg px-3 py-2">
-        <i class="fas fa-key text-slate-400 mr-2"></i>
-        <input type="text" id="battle-quick-join-code-mobile" placeholder="Nhập mã phòng..." class="bg-transparent border-none focus:ring-0 w-full text-sm" required>
-        <button type="submit" class="text-blue-600 font-bold text-sm ml-2">VÀO</button>
+<div class="mobile-battle-footer lg:hidden bg-white border-t border-slate-200 p-3 grid grid-cols-12 gap-2">
+    {# Input Code (Smaller, 4 cols) #}
+    <form id="battle-quick-join-form-mobile" class="col-span-5 flex items-center bg-slate-100 rounded-lg px-2 py-2 border border-slate-200">
+        <input type="text" id="battle-quick-join-code-mobile" placeholder="Mã phòng" class="bg-transparent border-none focus:ring-0 w-full text-xs p-0 text-center font-mono uppercase" required>
+        <button type="submit" class="text-slate-400 hover:text-blue-600 ml-1"><i class="fas fa-arrow-right"></i></button>
     </form>
-    <button type="button" id="open-battle-modal-mobile" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg flex items-center justify-center">
-        <i class="fas fa-plus"></i>
+    
+    {# Create Button (Primary, 8 cols) #}
+    <button type="button" id="open-battle-modal-mobile" class="col-span-7 bg-blue-600 text-white px-2 py-2 rounded-lg font-bold shadow-md flex items-center justify-center active:scale-95 transition-transform">
+        <i class="fas fa-plus-circle mr-2"></i> Tạo phòng đấu
     </button>
 </div>
 
