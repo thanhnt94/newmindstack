@@ -36,28 +36,45 @@
 
     /* Mobile Step Logic - App-like Fixed Layout */
     @media (max-width: 1023px) {
-        /* Full Screen Containers */
+        /* Step 0: Mode Selection Overlay */
+        #mobile-mode-selection {
+            position: fixed;
+            top: 60px; /* Start below global navbar */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 999; /* Highest priority */
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        /* Full Screen Containers for Steps */
         #step-1-card, #step-2-card { 
-            display: flex; /* Flex is default for visible, hidden controlled below */
+            display: none; /* Hidden by default until mode selected */
             position: fixed; 
             inset: 0; /* Top/Left/Right/Bottom: 0 */
-            z-index: 50; 
+            z-index: 999; /* Highest priority */
             background-color: #f8fafc; 
             border-radius: 0; 
             border: none; 
             margin: 0 !important;
             padding: 0 !important;
             flex-direction: column;
-            height: 100dvh; /* Dynamic Viewport Height */
-            box-shadow: none; /* Reset shadow for full screen mobile */
+            height: 100dvh; 
+            box-shadow: none; 
         }
 
-        /* Hide inactive step */
-        #step-2-card { display: none; }
+        /* Toggle Logic for Steps */
+        .mobile-mode-individual #step-1-card { display: flex; }
+        .mobile-mode-individual.mobile-step-2-active #step-1-card { display: none; }
+        .mobile-mode-individual.mobile-step-2-active #step-2-card { display: flex; }
         
-        /* Toggle Logic */
-        .mobile-step-2-active #step-1-card { display: none !important; }
-        .mobile-step-2-active #step-2-card { display: flex !important; }
+        /* Hide Step 0 when mode is selected */
+        .mobile-mode-individual #mobile-mode-selection { display: none; }
 
         /* Header Sections (Title, Tabs, Search) */
         .mobile-header-section {
@@ -67,7 +84,7 @@
             padding-bottom: 0.5rem;
             border-bottom: 1px solid #e2e8f0;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            z-index: 10;
+            z-index: 10; /* Keep relative to step cards, as this is internal header */
         }
 
         /* Scrollable Content Areas */
@@ -76,6 +93,7 @@
             overflow-y: auto;
             max-height: none !important;
             padding: 1rem;
+            padding-bottom: 100px; /* Ensure content isn't hidden behind fixed footer */
             background-color: #f8fafc;
         }
 
@@ -86,7 +104,7 @@
             padding: 1rem;
             border-top: 1px solid #e2e8f0;
             box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
-            z-index: 10;
+            z-index: 1000; /* Increased to be above step cards (z-999) */
         }
 
         /* Button styling overrides for mobile footer */
@@ -120,8 +138,14 @@
             justify-content: center; /* Center pagination */
             display: flex; /* Make pagination a flex container for centering its items */
         }
+        
+        /* Step 2 Actions Visibility on Mobile */
+        #step-2-actions { display: none; } /* Hidden by default on mobile (Step 1) */
+        .mobile-step-2-active #step-2-actions { display: flex; } /* Show on Step 2 */
     }
     @media (min-width: 1024px) { /* Desktop styles */
+        #mobile-mode-selection { display: none; } /* Hide Step 0 on Desktop */
+        
         /* Default flex behavior for control bar on desktop */
         #quiz-control-bar {
             justify-content: space-between;
@@ -133,6 +157,39 @@
 
 <div id="quiz-solo-section" class="space-y-6">
 
+    {# === MOBILE STEP 0: MODE SELECTION === #}
+    <div id="mobile-mode-selection" class="lg:hidden space-y-6">
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-4xl">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">Trung tâm Luyện thi</h1>
+            <p class="text-gray-500 mt-2">Chọn chế độ để bắt đầu</p>
+        </div>
+        
+        <button id="btn-mode-individual" class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
+            <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="text-left">
+                <h3 class="font-bold text-gray-800 text-lg">Luyện tập cá nhân</h3>
+                <p class="text-sm text-gray-500">Tự ôn luyện theo tốc độ riêng</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-300 ml-auto"></i>
+        </button>
+
+        <a href="{{ url_for('learning.quiz_battle.list_public_rooms') }}" class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
+            <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="text-left">
+                <h3 class="font-bold text-gray-800 text-lg">Đấu trường nhóm</h3>
+                <p class="text-sm text-gray-500">Thi đấu trực tiếp với bạn bè</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-300 ml-auto"></i>
+        </a>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-full">
 
         {# === STEP 1 === #}
@@ -143,7 +200,12 @@
 
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between">
                     <span class="h2-title-wrapper">
-                        <i class="fas fa-list-alt mr-3 text-blue-500"></i> <span class="lg:hidden">Chọn bộ câu hỏi</span><span class="hidden lg:inline">Bước 1: Chọn bộ câu hỏi</span>
+                        {# Mobile Back Button (to Step 0) #}
+                        <button id="mobile-step-1-back" class="lg:hidden mr-3 text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <i class="fas fa-list-alt mr-3 text-blue-500 hidden lg:inline"></i> 
+                        <span>Bước 1: Chọn bộ câu hỏi</span>
                     </span>
                     {# Selection Mode Toggle - Universal placement #}
                     <div class="flex items-center flex-shrink-0 ml-auto">
@@ -165,6 +227,9 @@
                     {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
                     {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm...", search_field=search_field, search_options=display_search_options) }}
                 </div>
+                
+                {# Selected Sets Display (Restored) #}
+                <div id="selected-sets-display" class="flex flex-wrap items-center gap-2 text-xs hidden bg-blue-50 p-2 rounded-lg mb-2 max-h-24 overflow-y-auto"></div>
             </div>
             
             {# Scrollable List #}
@@ -181,6 +246,16 @@
                 {# Pagination will be moved here by JS #}
                 <div id="quiz-pagination-slot" class="flex justify-end flex-grow items-center empty:hidden [&_.pagination]:m-0 [&_nav]:m-0 [&_.page-item]:m-0 [&_.page-link]:py-1 [&_.page-link]:px-2 [&_.page-link]:text-xs"></div>
             </div>
+            
+            {# Mobile Step 1 Navigation Bar #}
+            <div class="p-3 bg-white border-t border-gray-200 lg:hidden flex-shrink-0 flex items-center justify-between gap-3">
+                <button id="mobile-step-1-footer-back" class="flex-shrink-0 bg-slate-100 text-slate-600 px-4 py-3 rounded-lg font-bold transition-colors hover:bg-slate-200 flex items-center justify-center">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <button id="mobile-step-1-next" class="flex-grow bg-gray-400 text-white font-bold py-3 rounded-lg shadow-sm flex items-center justify-center transition-colors duration-200" disabled>
+                    Tiếp tục (0) <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
         </div>
 
         {# === STEP 2 === #}
@@ -191,7 +266,7 @@
                     <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
                 </h2>
                 <button id="mobile-step-2-back" class="mobile-nav-btn hidden lg:hidden text-sm bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-medium">
-                    <i class="fas fa-arrow-left mr-1"></i> Quay lại
+                    <i class="fas fa-arrow-left"></i>
                 </button>
             </div>
             {# List #}
@@ -204,13 +279,18 @@
         </div>
     </div>
             {# Footer Actions (Global for Desktop, Step 2 for Mobile) #}
-            <div id="step-2-actions" class="mobile-footer-section mt-4 text-center lg:bg-transparent lg:border-none lg:shadow-none lg:p-0 lg:static fixed bottom-0 left-0 right-0 hidden lg:block">
-                <button id="start-learning-btn" class="hidden start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-                    <i class="fas fa-play-circle mr-3"></i> Bắt đầu làm bài
+            <div id="step-2-actions" class="mobile-footer-section mt-4 text-center lg:bg-transparent lg:border-none lg:shadow-none lg:p-0 lg:static fixed bottom-0 left-0 right-0 flex-shrink-0 flex gap-3">
+                <button id="mobile-step-2-footer-back" class="flex-shrink-0 bg-slate-100 text-slate-600 px-4 py-3 rounded-lg font-bold transition-colors hover:bg-slate-200 flex items-center justify-center">
+                    <i class="fas fa-arrow-left"></i>
                 </button>
-                <button id="bulk-unarchive-btn" class="hidden start-button bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center mx-auto" style="display: none;">
-                    <i class="fas fa-box-open mr-3"></i> Bỏ lưu trữ
-                </button>
+                <div class="flex-grow flex justify-center w-full">
+                    <button id="start-learning-btn" class="start-button w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center">
+                        <i class="fas fa-play-circle mr-2"></i> Bắt đầu
+                    </button>
+                    <button id="bulk-unarchive-btn" class="start-button w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center">
+                        <i class="fas fa-box-open mr-2"></i> Bỏ lưu trữ
+                    </button>
+                </div>
             </div>
     </div>
 <script>
@@ -234,6 +314,40 @@ const step2Title = document.getElementById('step-2-title');
 const quizSearchForm = document.querySelector('#quiz-search-form-container form');
 const mobileNextBtn = document.getElementById('mobile-step-1-next');
 const mobileBackBtn = document.getElementById('mobile-step-2-back');
+const mobileStep0Btn = document.getElementById('btn-mode-individual');
+const mobileStep1BackBtn = document.getElementById('mobile-step-1-back');
+const quizSection = document.getElementById('quiz-solo-section');
+const mobileStep1FooterBackBtn = document.getElementById('mobile-step-1-footer-back');
+const mobileStep2FooterBackBtn = document.getElementById('mobile-step-2-footer-back');
+
+// --- START: Mobile Mode Selection Logic ---
+if (mobileStep0Btn) {
+    mobileStep0Btn.addEventListener('click', () => {
+        quizSection.classList.add('mobile-mode-individual');
+    });
+}
+
+if (mobileStep1BackBtn) {
+    mobileStep1BackBtn.addEventListener('click', () => {
+        quizSection.classList.remove('mobile-mode-individual');
+    });
+}
+// --- END: Mobile Mode Selection Logic ---
+
+// --- START: Mobile Footer Navigation ---
+if (mobileStep1FooterBackBtn) {
+    mobileStep1FooterBackBtn.addEventListener('click', () => {
+        quizSection.classList.remove('mobile-mode-individual'); // Go back to Step 0
+    });
+}
+
+if (mobileStep2FooterBackBtn) {
+    mobileStep2FooterBackBtn.addEventListener('click', () => {
+        quizSection.classList.remove('mobile-step-2-active'); // Go back to Step 1
+    });
+}
+// --- END: Mobile Footer Navigation ---
+
 
 // --- START: Toggle References and Syncing ---
 const multiSelectToggle = document.getElementById('multi-select-toggle'); // Single toggle element
@@ -585,6 +699,8 @@ function updateStep2Content() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Reset selection on reload (User Request)
+    localStorage.removeItem('selectedQuizSetIds');
     loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
 });
 </script>

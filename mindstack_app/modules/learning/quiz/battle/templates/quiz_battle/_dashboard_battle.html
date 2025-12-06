@@ -81,6 +81,18 @@
 
     #battle-loading { transition: opacity 0.15s ease; pointer-events: none; opacity: 0; display: none; }
     #battle-loading.visible { display: flex; pointer-events: auto; opacity: 1; }
+
+    @media (max-width: 899px) { /* Adjust content to not be under sticky header on mobile */
+        .collab-content-mobile-offset {
+            padding-top: 0;
+        }
+        .collab-hero {
+            margin-top: 60px; /* Adjusted from 125px to 60px to reduce gap */
+        }
+        .collab-main-header {
+            top: 60px; /* Adjusted sticky header position */
+        }
+    }
 </style>
 
 {# === HEADER === #}
@@ -127,7 +139,7 @@
     </div>
 
     {# Content #}
-    <div class="p-6 relative">
+    <div class="p-6 relative collab-content-mobile-offset">
         {# Loading Overlay #}
         <div id="battle-loading" class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-b-xl">
             <div class="text-center text-blue-500">
