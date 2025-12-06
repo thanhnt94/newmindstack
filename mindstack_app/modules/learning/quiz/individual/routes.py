@@ -125,6 +125,7 @@ def quiz_learning_dashboard():
     search_query = request.args.get('q', '', type=str)
     search_field = request.args.get('search_field', 'all', type=str)
     current_filter = request.args.get('filter', 'doing', type=str)
+    quiz_type = request.args.get('quiz_type', 'individual', type=str) # Receive quiz_type param
 
     user_default_batch_size = current_user.current_quiz_batch_size if current_user.current_quiz_batch_size is not None else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
 
@@ -137,7 +138,8 @@ def quiz_learning_dashboard():
         'search_field': search_field,
         'quiz_set_search_options': quiz_set_search_options,
         'current_filter': current_filter,
-        'user_default_batch_size': user_default_batch_size
+        'user_default_batch_size': user_default_batch_size,
+        'quiz_type': quiz_type # Pass to template
     }
     return render_template('quiz/dashboard.html', **template_vars)
 
