@@ -201,6 +201,7 @@
 </div>
 
 <script>
+(function(){
 console.log('>>> _dashboard_individual.js: init');
 
 {# ==== Biến trạng thái Individual ==== #}
@@ -844,6 +845,7 @@ function addArchiveIconListeners() {
 }
 
 // Hàm này được gọi từ dashboard.html khi chuyển tab
+window.updateActionButtons = updateActionButtons;
 function updateActionButtons() {
     const startBtn = document.getElementById('start-learning-btn');
     const archiveBtn = document.getElementById('bulk-unarchive-btn');
@@ -1028,4 +1030,5 @@ document.addEventListener('DOMContentLoaded', function(){
 window.addEventListener('beforeunload', function() {
     localStorage.removeItem('selectedFlashcardSetIds');
 });
+})();
 </script>

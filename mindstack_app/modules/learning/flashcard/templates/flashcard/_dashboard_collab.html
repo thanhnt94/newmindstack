@@ -12,8 +12,86 @@
     }
 
     /* === Style đồng bộ Content Management (CM) + nâng cấp thẩm mỹ === */
-    /* ... (Keep existing desktop styles) ... */
-    /* ... */
+    /* Container & Layout */
+    .cm-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: none; overflow: hidden; display: flex; flex-direction: column; }
+    .cm-card--padded { padding: 1.25rem; }
+    .cm-section-header { margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    @media (min-width: 768px) { .cm-section-header { flex-direction: row; align-items: center; justify-content: space-between; } }
+
+    /* Hero */
+    .collab-hero {
+        position: relative; overflow: hidden; border-radius: 0.75rem; padding: 0.75rem 1rem;
+        background: #f8fafc; color: #0f172a; border: 1px solid #e2e8f0;
+    }
+    .collab-hero__content { display: flex; flex-direction: column; gap: 0.35rem; }
+    @media (min-width: 900px) { .collab-hero__content { flex-direction: row; align-items: center; justify-content: space-between; gap: 0.75rem; } }
+    .collab-hero__headline { display: flex; flex-direction: column; gap: 0.2rem; }
+    @media (min-width: 640px) { .collab-hero__headline { flex-direction: row; align-items: center; gap: 0.45rem; flex-wrap: wrap; } }
+    .collab-pill { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.25rem 0.75rem; border-radius: 0.5rem; background: #e2e8f0; color: #0f172a; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.72rem; }
+    .collab-pill i { color: #2563eb; }
+    .collab-eyebrow { font-size: 0.72rem; letter-spacing: 0.04em; font-weight: 700; text-transform: uppercase; color: #475569; }
+    .collab-heading { font-size: clamp(1.05rem, 2vw, 1.35rem); font-weight: 800; margin: 0; color: #0f172a; }
+    .collab-subheading { color: #334155; line-height: 1.35; max-width: 640px; font-size: 0.9rem; }
+    .collab-hero__actions { display: flex; flex-direction: column; gap: 0.35rem; }
+    @media (min-width: 640px) { .collab-hero__actions { flex-direction: row; align-items: center; flex-wrap: wrap; } }
+
+    /* Typography */
+    .cm-heading-group { display: flex; flex-direction: column; gap: 0.2rem; }
+    .cm-eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #3b82f6; }
+    .cm-heading { font-size: 1.6rem; line-height: 2rem; font-weight: 700; color: #0f172a; }
+    .cm-subheading { font-size: 0.9rem; color: #475569; }
+
+    /* Grid & Cards */
+    .cm-grid { display: grid; grid-template-columns: 1fr; gap: 1.2rem; }
+    @media (min-width: 640px) { .cm-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1100px) { .cm-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .cm-collection-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0; border-radius: 0.9rem; padding: 1rem;
+        display: flex; flex-direction: column; gap: 0.9rem; height: 100%; position: relative;
+        transition: border-color 0.15s ease, transform 0.15s ease; color: #0f172a; box-shadow: none;
+        overflow: hidden;
+    }
+    .cm-collection-card:hover { transform: translateY(-2px); border-color: #cbd5e1; }
+
+    /* Meta Tags */
+    .cm-collection-meta { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; font-size: 0.8rem; color: #475569; }
+    .cm-tag { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.35rem 0.7rem; border-radius: 0.75rem; background: #e2e8f0; color: #0f172a; font-weight: 600; border: 1px solid #cbd5e1; }
+    .cm-tag i { font-size: 0.75rem; color: #2563eb; }
+    .cm-divider { height: 1px; background: #e2e8f0; margin: 0.2rem 0; }
+
+    /* Buttons */
+    .cm-action-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.95rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.9rem; transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease; white-space: nowrap; border: 1px solid transparent; }
+    .cm-action-btn--primary { background: #22c55e; color: #0f172a; box-shadow: none; border-color: #16a34a; }
+    .cm-action-btn--primary:hover { background: #16a34a; color: white; transform: translateY(-1px); }
+
+    /* Custom Elements for Collab */
+    .collab-main-header { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem 1rem 0.25rem; background: #f8fafc; border-radius: 0.75rem 0.75rem 0 0; position: sticky; top: 0; z-index: 5; border-bottom: 1px solid #e5e7eb; }
+    @media (min-width: 900px) { .collab-main-header { flex-direction: row; align-items: center; justify-content: space-between; } }
+    .collab-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .collab-tab-btn { padding: 0.7rem 1.1rem; font-weight: 700; color: #475569; border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 0.45rem; }
+    .collab-tab-btn:hover { color: #0f172a; }
+    .collab-tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+    .collab-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-start; }
+    .collab-toolbar .search-wrapper { min-width: 260px; }
+
+    .join-input-group { display: flex; align-items: center; background: white; border: 1px solid #e2e8f0; border-radius: 0.65rem; padding: 0.25rem 0.35rem; box-shadow: none; }
+    .join-input-group input { border: none; outline: none; padding: 0.4rem 0.55rem; font-size: 0.9rem; width: 140px; text-transform: uppercase; font-family: 'DM Mono', 'Roboto Mono', monospace; background: transparent; color: #0f172a; letter-spacing: 0.08em; }
+    .join-input-group button { border-radius: 0.55rem; }
+
+    /* Modal */
+    .collab-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 3000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .collab-modal-backdrop.open { opacity: 1; pointer-events: auto; }
+    .collab-modal-content { background: white; border-radius: 1rem; width: 95%; max-width: 800px; max-height: 90vh; overflow-y:auto; transform: scale(0.95); transition: transform 0.3s; }
+    .collab-modal-backdrop.open .collab-modal-content { transform: scale(1); }
+
+    .status-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 0.22rem 0.6rem; border-radius: 0.6rem; letter-spacing: 0.04em; }
+    .status-badge.lobby { background: #e0f2fe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .status-badge.active { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+    #collab-loading { transition: opacity 0.15s ease; pointer-events: none; opacity: 0; display: none; }
+    #collab-loading.visible { display: flex; pointer-events: auto; opacity: 1; }
 
     /* Mobile Layout Overrides */
     @media (max-width: 1023px) {
@@ -204,6 +282,7 @@
 {# ... (Modal and Script below) ... #}
 {# Note: I will update the script separately to handle new IDs #}
 <script>
+(function(){
 console.log('>>> _dashboard_collab.js: init (v4.1 - Mobile Refactor)');
 
 {# ==== Configurations ==== #}
@@ -347,13 +426,18 @@ function renderMainGrid() {
 async function fetchRooms(type) {
     console.log('Fetching rooms:', type, collabUrls[type]);
     const loader = document.getElementById('collab-loading');
+    
     const showLoader = () => {
         if (!loader) return;
-        loader.classList.add('visible');
+        loader.style.display = 'flex';
+        // Use timeout to allow display change to paint before opacity transition
+        setTimeout(() => loader.classList.add('visible'), 10);
     };
+    
     const hideLoader = () => {
         if (!loader) return;
         loader.classList.remove('visible');
+        setTimeout(() => { if(!loader.classList.contains('visible')) loader.style.display = 'none'; }, 300);
     };
 
     // Safety timeout
@@ -365,13 +449,14 @@ async function fetchRooms(type) {
         const res = await fetch(collabUrls[type]);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
+        console.log('Rooms loaded:', data.rooms ? data.rooms.length : 0);
         collabState.roomsData[type] = data.rooms || [];
         collabState.pagination.page = 1;
         
         if (collabState.currentTab === type) renderMainGrid();
     } catch (err) {
         console.error('Fetch error:', err);
-        if(window.showFlashMessage) window.showFlashMessage('Lỗi tải dữ liệu phòng.', 'danger');
+        if(window.showFlashMessage) window.showFlashMessage('Lỗi tải dữ liệu phòng: ' + err.message, 'danger');
     } finally {
         clearTimeout(timeoutId);
         hideLoader();
@@ -444,12 +529,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const modal = document.getElementById('create-room-modal');
     ['open-create-room-modal', 'open-create-room-modal-mobile'].forEach(id => {
-        document.getElementById(id)?.addEventListener('click', () => {
-            modal.classList.add('open');
-            loadCollabSets();
-        });
+        const btn = document.getElementById(id);
+        if(btn) {
+            btn.addEventListener('click', () => {
+                if(modal) {
+                    modal.classList.add('open');
+                    loadCollabSets();
+                }
+            });
+        }
     });
-    document.getElementById('close-create-room-modal')?.addEventListener('click', () => modal.classList.remove('open'));
+    const closeBtn = document.getElementById('close-create-room-modal');
+    if(closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            if(modal) modal.classList.remove('open');
+        });
+    }
     
     document.getElementById('collab-create-room-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -540,6 +635,7 @@ function selectCollabSet(id, title) {
 
 async function loadCollabSets(query='') {
     const grid = document.getElementById('collab-set-grid');
+    if (!grid) return;
     if(query) grid.innerHTML = '<p class="text-center text-slate-400 py-8 text-xs"><i class="fas fa-spinner fa-spin"></i></p>';
     try {
         const url = query ? `${collabUrls.sets}?q=${encodeURIComponent(query)}` : collabUrls.sets;
@@ -570,4 +666,5 @@ async function loadCollabSets(query='') {
         grid.innerHTML = `<p class="text-center text-rose-400 py-4 text-xs">Lỗi tải dữ liệu.</p>`;
     }
 }
+})();
 </script>
