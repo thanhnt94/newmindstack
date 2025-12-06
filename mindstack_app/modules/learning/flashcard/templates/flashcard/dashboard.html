@@ -108,7 +108,30 @@
 
         /* === Responsive === */
         @media (max-width: 639px) {
-            .container { padding: 0.5rem; }
+            body {
+                height: 100dvh !important; /* Lock height to viewport */
+                overflow: hidden !important; /* Prevent body scroll */
+                padding-top: 0 !important;
+            }
+            main {
+                flex: 1 !important;
+                overflow: hidden !important; /* Prevent main scroll */
+                display: flex !important;
+                flex-direction: column !important;
+                border: none !important;
+                min-height: 0 !important;
+                margin-top: 0 !important;
+                padding-bottom: 0 !important;
+                position: static !important;
+                z-index: auto !important;
+            }
+
+            .container { 
+                margin: 0 !important; 
+                width: 100% !important; 
+                max-width: 100% !important; 
+                padding: 0.5rem;
+            }
             .flashcard-title-wrapper { margin-bottom: 1rem; }
             .flashcard-title-badge { font-size: 1.25rem; padding: 0.5rem 1rem; }
             .flashcard-title-badge .fa-clone { font-size: 1.5rem; margin-right: 0.5rem; }
@@ -133,12 +156,12 @@
     {# Biến trạng thái dùng chung cho JS #}
     <script>var currentStudyMode = 'solo';</script>
 
-    <div class="flashcard-title-wrapper">
+    <div class="flashcard-title-wrapper hidden lg:flex">
         <div id="flashcardTitle" class="flashcard-title-badge"><i class="fas fa-clone"></i>Flashcard</div>
     </div>
 
-    <div class="flex justify-center mb-6">
-        <div class="study-mode-tabs" role="tablist" aria-label="Chế độ học flashcard">
+    <div class="flex justify-center mb-6 hidden lg:flex">
+        <div class="study-mode-tabs relative z-10" role="tablist" aria-label="Chế độ học flashcard" style="pointer-events: auto;">
             <button class="study-mode-tab active" data-study-tab="solo" role="tab" aria-selected="true">Học 1 mình</button>
             <button class="study-mode-tab" data-study-tab="group" role="tab" aria-selected="false">Học theo nhóm</button>
         </div>
