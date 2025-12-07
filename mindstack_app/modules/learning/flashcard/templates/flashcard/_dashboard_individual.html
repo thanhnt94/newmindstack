@@ -116,11 +116,28 @@
                     </button>
                     <h2 class="text-lg font-bold text-gray-800">Chọn bộ thẻ</h2>
                 </div>
+                {# Mobile Selection Mode Toggle #}
+                <div class="flex items-center flex-shrink-0 ml-2">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="multi-select-toggle-mobile" class="sr-only peer"> 
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
             </div>
 
             {# Desktop Title #}
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate hidden lg:flex">
-                <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ thẻ
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between hidden lg:flex">
+                <span class="flex items-center">
+                    <i class="fas fa-list-alt mr-3 text-blue-500"></i> Bước 1: Chọn một bộ thẻ
+                </span>
+                {# Selection Mode Toggle #}
+                <div class="flex items-center flex-shrink-0 ml-auto">
+                    <span class="text-xs font-semibold text-slate-600 mr-2 whitespace-nowrap">Chọn nhiều:</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="multi-select-toggle" class="sr-only peer"> 
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
             </h2>
 
             {# Content #}
@@ -211,7 +228,7 @@ let currentFilter = "{{ current_filter | default('doing') }}";
 let doingPage = 1; let explorePage = 1; let archivePage = 1; let currentPage = (currentFilter === 'doing' ? doingPage : (currentFilter === 'explore' ? explorePage : archivePage));
 let currentSearchQuery = "{{ search_query | default('') }}";
 let currentSearchField = "{{ search_field | default('all') }}";
-let isMultiSelectMode = true;
+let isMultiSelectMode = false;
 let selectedButtonCount = parseInt("{{ user_button_count | default(3) }}");
 let selectedAutoplayMode = localStorage.getItem('flashcardAutoplayScope') || 'autoplay_learned';
 let autoplayDelaySeconds = parseInt(localStorage.getItem('flashcardAutoplayDelay') || '2', 10);
@@ -484,7 +501,7 @@ async function loadFlashcardSets(page, searchQuery, searchField, filter) {
         url.searchParams.append('q', searchQuery || '');
         url.searchParams.append('search_field', searchField || 'all');
         url.searchParams.append('filter', filter || 'doing');
-        url.searchParams.append('is_multi_select_mode', 'true');
+        url.searchParams.append('is_multi_select_mode', String(isMultiSelectMode));
 
         const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         if (!response.ok) { throw new Error('HTTP ' + response.status); }
@@ -666,11 +683,26 @@ function handleFlashcardSetSelection(setId) {
 
     const item = document.querySelector(`.flashcard-set-item[data-set-id="${setId}"]`);
     
-    if (selectedFlashcardSetIds.includes(setId)) {
-        selectedFlashcardSetIds = selectedFlashcardSetIds.filter(id => id !== setId);
-        if (item) item.classList.remove('selected-item');
+    if (isMultiSelectMode) {
+        // Chế độ chọn nhiều: Toggle
+        if (selectedFlashcardSetIds.includes(setId)) {
+            selectedFlashcardSetIds = selectedFlashcardSetIds.filter(id => id !== setId);
+            if (item) item.classList.remove('selected-item');
+        } else {
+            selectedFlashcardSetIds.push(setId);
+            if (item) item.classList.add('selected-item');
+        }
     } else {
-        selectedFlashcardSetIds.push(setId);
+        // Chế độ chọn đơn: Thay thế hoàn toàn
+        // Nếu click vào cái đã chọn rồi -> Có thể deselect hoặc giữ nguyên.
+        // UX tốt nhất: Click lại vào cái đang chọn -> Không làm gì (hoặc reload option).
+        // Click cái khác -> Chọn cái đó, bỏ cái cũ.
+        
+        // Bỏ chọn tất cả các item cũ trên UI
+        document.querySelectorAll('.flashcard-set-item.selected-item').forEach(el => el.classList.remove('selected-item'));
+        
+        // Set lại mảng chỉ chứa 1 item
+        selectedFlashcardSetIds = [setId];
         if (item) item.classList.add('selected-item');
     }
     
@@ -698,6 +730,47 @@ function handleFlashcardSetSelection(setId) {
     updateMobileNextButton();
     toggleAllSetsButtonVisibility();
 }
+
+// Listener cho nút Toggle Multi-Select (Checkbox style giống Quiz) - Desktop & Mobile
+const multiSelectToggle = document.getElementById('multi-select-toggle');
+const multiSelectToggleMobile = document.getElementById('multi-select-toggle-mobile');
+
+function syncToggles(checked) {
+    if (multiSelectToggle) multiSelectToggle.checked = checked;
+    if (multiSelectToggleMobile) multiSelectToggleMobile.checked = checked;
+}
+
+function handleMultiSelectChange(checked) {
+    isMultiSelectMode = checked;
+    syncToggles(checked);
+    
+    // Clear selection to avoid confusion when switching modes
+    selectedFlashcardSetIds = [];
+    localStorage.setItem('selectedFlashcardSetIds', JSON.stringify([]));
+    
+    // Clear UI highlights
+    syncMultiSelectionUI();
+    
+    // Reset Step 2 view
+    if (currentFilter !== 'archive') {
+            flashcardOptionsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]"><i class="fas fa-info-circle text-4xl mb-3"></i><p>Vui lòng chọn một bộ thẻ trước.</p></div>';
+    } else {
+            updateStep2Content();
+    }
+    
+    updateActionButtons();
+    updateSelectedSetsDisplay();
+}
+
+if (multiSelectToggle) {
+    multiSelectToggle.addEventListener('change', (e) => handleMultiSelectChange(e.target.checked));
+}
+if (multiSelectToggleMobile) {
+    multiSelectToggleMobile.addEventListener('change', (e) => handleMultiSelectChange(e.target.checked));
+}
+
+// Init state (default false)
+syncToggles(isMultiSelectMode);
 
 function addFlashcardSetClickListeners() {
     document.querySelectorAll('.flashcard-set-item').forEach(function(item){
