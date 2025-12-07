@@ -279,6 +279,92 @@
     </div> {# End wrapper #}
 </div>
 
+{# === MODAL: Create Room === #}
+<div id="create-room-modal" class="collab-modal-backdrop">
+    <div class="collab-modal-content p-6 max-w-2xl mx-auto flex flex-col h-[90vh] md:h-auto">
+        <div class="flex items-center justify-between mb-4 flex-shrink-0">
+            <h3 class="text-xl font-bold text-gray-800">Tạo phòng học mới</h3>
+            <button type="button" id="close-create-room-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <form id="collab-create-room-form" class="space-y-5 flex-grow overflow-y-auto pr-1">
+            <input type="hidden" id="collab-selected-container-id" name="container_id" required>
+            
+            {# 1. Chọn bộ thẻ #}
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700">1. Chọn bộ thẻ để học</label>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    <input type="text" id="collab-set-search" placeholder="Tìm bộ thẻ của bạn..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all">
+                </div>
+                <div id="collab-set-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto p-1 bg-slate-50 border border-slate-100 rounded-lg">
+                    {# JS sẽ render sets vào đây #}
+                    <div class="col-span-full flex justify-center py-8">
+                        <i class="fas fa-spinner fa-spin text-gray-400"></i>
+                    </div>
+                </div>
+                <div id="create-set-preview" class="text-sm text-slate-500 pl-1 min-h-[1.25em]"></div>
+            </div>
+
+            <div class="border-t border-slate-100 my-4"></div>
+
+            {# 2. Cấu hình phòng #}
+            <div class="space-y-4">
+                <label class="block text-sm font-semibold text-gray-700">2. Cấu hình phòng</label>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Tên phòng (Tùy chọn)</label>
+                        <input type="text" id="collab-room-title" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" placeholder="VD: Ôn thi cuối kỳ...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Chế độ</label>
+                        <select id="collab-mode-select" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none bg-white">
+                            {% for mode in flashcard_modes %}
+                                <option value="{{ mode.id }}">{{ mode.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Quyền riêng tư</label>
+                        <div class="flex items-center space-x-4 mt-1.5">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="radio" name="collab-visibility" value="public" class="form-radio text-blue-600 w-4 h-4" checked>
+                                <span class="ml-2 text-sm text-gray-700">Công khai</span>
+                            </label>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="radio" name="collab-visibility" value="private" class="form-radio text-blue-600 w-4 h-4">
+                                <span class="ml-2 text-sm text-gray-700">Riêng tư (Chỉ ai có mã)</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                         <label class="block text-xs font-medium text-gray-600 mb-1">Số lượng nút trả lời</label>
+                         <select id="collab-button-count-select" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none bg-white">
+                             <option value="2">2 nút (Đúng/Sai)</option>
+                             <option value="3" selected>3 nút (Kém/Khá/Tốt)</option>
+                             <option value="4">4 nút (Thêm Rất Tốt)</option>
+                         </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="collab-create-feedback"></div>
+            
+            <div class="pt-2 pb-1 flex-shrink-0">
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all transform active:scale-[0.98]">
+                    TẠO PHÒNG NGAY
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {# ... (Modal and Script below) ... #}
 {# Note: I will update the script separately to handle new IDs #}
 <script>
@@ -528,6 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const modal = document.getElementById('create-room-modal');
+
     ['open-create-room-modal', 'open-create-room-modal-mobile'].forEach(id => {
         const btn = document.getElementById(id);
         if(btn) {
@@ -598,12 +685,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-function handleCopyRoomCode(code) {
+window.handleCopyRoomCode = function(code) {
     navigator.clipboard.writeText(code);
     if(window.showFlashMessage) window.showFlashMessage('Đã sao chép mã: ' + code, 'success');
-}
+};
 
-async function joinCollabRoom(code, feedbackEl, options = {}) {
+window.joinCollabRoom = async function(code, feedbackEl, options = {}) {
     if (!code) return;
     const joinUrl = collabUrls.joinTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
     const viewUrl = collabUrls.viewTemplate.replace('__ROOM_CODE__', encodeURIComponent(code));
@@ -617,9 +704,10 @@ async function joinCollabRoom(code, feedbackEl, options = {}) {
     } finally {
         if (options.redirectToRoom) window.location.href = viewUrl;
     }
-}
+};
 
-function selectCollabSet(id, title) {
+// Make globally accessible
+window.selectCollabSet = function(id, title) {
     collabState.selectedSetId = id;
     document.getElementById('collab-selected-container-id').value = id;
     document.getElementById('create-set-preview').innerHTML = `Bộ thẻ: <span class="font-bold text-emerald-600">${title}</span>`;
@@ -631,7 +719,7 @@ function selectCollabSet(id, title) {
              item.className = "p-3 rounded-lg border cursor-pointer transition-all border-slate-200 bg-white hover:border-blue-300";
         }
     }
-}
+};
 
 async function loadCollabSets(query='') {
     const grid = document.getElementById('collab-set-grid');
