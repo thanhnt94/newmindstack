@@ -19,12 +19,18 @@
                 </div>
                 <div>
                     {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
-                    {{ form.password(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Mật khẩu") }}
+                    <div class="relative mt-1">
+                        {{ form.password(class="block w-full pr-10 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", placeholder="Mật khẩu", id="password-field") }}
+                        <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 focus:outline-none">
+                            <i class="fas fa-eye-slash"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="flex items-center">
                     {{ form.remember_me(class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded") }}
                     {{ form.remember_me.label(class="ml-2 block text-sm text-gray-900") }}
                 </div>
+
                 <div>
                     {{ form.submit(class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500") }}
                 </div>
@@ -34,5 +40,27 @@
             </div>
         </div>
     </div>
-</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordField = document.getElementById('password-field');
+        const togglePassword = document.getElementById('toggle-password');
+
+        if (passwordField && togglePassword) {
+            togglePassword.addEventListener('click', function() {
+                // Toggle the type attribute
+                const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordField.setAttribute('type', type);
+                
+                // Toggle the eye icon
+                const icon = this.querySelector('i');
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            });
+        }
+    });
+</script>
 {% endblock %}
