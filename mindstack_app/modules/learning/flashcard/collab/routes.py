@@ -473,6 +473,7 @@ def list_available_sets():
             'title': container.title,
             'description': container.description,
             'is_public': container.is_public,
+            'card_count': len(container.items),
         }
         for container in query.limit(50).all()
     ]
