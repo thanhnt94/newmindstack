@@ -167,6 +167,11 @@
                 </div>
             </div>
 
+            {# Fixed Control Bar (Pagination) #}
+            <div id="flashcard-control-bar" class="flex items-center justify-between py-1 px-1 bg-white border-t border-slate-200 lg:border-t lg:border-slate-100 lg:bg-transparent flex-shrink-0">
+                <div id="flashcard-pagination-slot" class="flex justify-center flex-grow items-center w-full empty:hidden [&_.pagination]:m-0 [&_nav]:m-0 [&_.page-item]:m-0 [&_.page-link]:py-1 [&_.page-link]:px-2 [&_.page-link]:text-xs"></div>
+            </div>
+
             {# Mobile Footer Step 1 #}
             <div class="mobile-footer-action lg:hidden">
                 <button id="mobile-step-1-next" class="w-full bg-gray-400 text-white font-bold py-3 rounded-lg shadow-sm flex items-center justify-center transition-colors duration-200" disabled>
@@ -512,6 +517,21 @@ async function loadFlashcardSets(page, searchQuery, searchField, filter) {
         if (!response.ok) { throw new Error('HTTP ' + response.status); }
         const html = await response.text();
         flashcardSetsContainer.innerHTML = html;
+
+        // Move pagination to fixed slot
+        const paginationSlot = document.getElementById('flashcard-pagination-slot');
+        const paginationEl = flashcardSetsContainer.querySelector('.pagination') || flashcardSetsContainer.querySelector('nav[aria-label="Page navigation"]');
+        
+        if (paginationSlot) {
+            paginationSlot.innerHTML = '';
+            if (paginationEl) {
+                paginationSlot.appendChild(paginationEl);
+                paginationSlot.classList.remove('hidden');
+            } else {
+                paginationSlot.classList.add('hidden');
+            }
+        }
+
         addFlashcardSetClickListeners();
         addPaginationAndSearchListeners();
         addArchiveIconListeners();
