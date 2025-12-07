@@ -6,6 +6,11 @@
 <style>
     /* Mobile Step Logic */
     @media (max-width: 1023px) {
+        /* Force body background to white on mobile for this page */
+        body {
+            background-color: #fff !important;
+        }
+
         /* Step 0: Mode Selection */
         #flashcard-mobile-mode-selection {
             position: relative;
@@ -26,7 +31,7 @@
             position: fixed;
             inset: 0;
             z-index: 999;
-            background-color: #f8fafc;
+            background-color: #fff;
             flex-direction: column;
             height: 100dvh;
         }
