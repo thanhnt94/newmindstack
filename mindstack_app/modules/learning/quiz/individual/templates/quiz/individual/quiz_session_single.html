@@ -17,10 +17,32 @@
     @media (max-width: 1023px) {
         body > header, nav.navbar, footer, .site-footer, .back-to-top { display: none !important; }
         body { 
-            padding-top: 115px !important; /* Header + Tabs */
-            padding-bottom: 80px; /* Bottom Bar */
+            padding-top: 100px !important; /* Reduced Header + Tabs */
+            padding-bottom: 70px; /* Reduced Bottom Bar padding */
         }
         .container { padding-left: 12px; padding-right: 12px; max-width: 100%; }
+        /* Adjusted padding for card header on mobile instead of hiding it */
+        .cm-card-header { padding: 0.5rem 0.75rem !important; }
+
+        /* Mobile Result Panel - Fixed Bottom Sheet */
+        #result-panel {
+            position: fixed !important;
+            bottom: 80px !important; /* Above the bottom bar */
+            left: 0 !important;
+            right: 0 !important;
+            margin: 0 !important;
+            border-radius: 1rem 1rem 0 0 !important;
+            border: none !important;
+            border-top: 4px solid #3b82f6 !important;
+            box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+            z-index: 50 !important;
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     }
 
     /* === UI COMPONENTS === */
@@ -31,7 +53,7 @@
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
         overflow: hidden;
         display: flex; flex-direction: column;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem; /* Reduced for more compact display */
     }
     .cm-card-header {
         padding: 1rem 1.25rem;
@@ -39,9 +61,9 @@
         background-color: #ffffff;
         display: flex; align-items: center; justify-content: space-between;
     }
-    .cm-card-body { padding: 1.25rem; flex: 1; position: relative; }
+    .cm-card-body { padding: 0.75rem; flex: 1; position: relative; }
     
-    .qb-question-text { font-size: 1.25rem; font-weight: 700; color: #1e293b; line-height: 1.5; margin-bottom: 1rem; }
+    .qb-question-text { font-size: 1.25rem; font-weight: 700; color: #1e293b; line-height: 1.5; margin-bottom: 0.25rem; }
     .qb-question-media img { width: 100%; max-height: 320px; object-fit: contain; border-radius: 0.75rem; border: 1px solid #e2e8f0; background: white; margin-bottom: 1rem; }
     
     /* Options */
@@ -164,6 +186,7 @@
         </div>
 
         <div class="flex gap-2">
+             <a href="/" class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-house"></i></a>
              <button id="mobile-exit-btn" class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-right-from-bracket"></i></button>
         </div>
     </div>
@@ -177,7 +200,7 @@
     </div>
 </div>
 
-<div class="container mx-auto px-2 py-6 max-w-7xl">
+<div class="container mx-auto px-2 py-0 max-w-7xl">
     
     {# === DESKTOP HEADER === #}
     <header class="qb-desktop-header flex items-center justify-between mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -186,6 +209,7 @@
             <p class="text-sm text-slate-500">Chế độ cá nhân</p>
         </div>
         <div class="flex gap-2">
+            <a href="/" class="cm-btn cm-btn-primary bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"><i class="fa-solid fa-house"></i> Trang chủ</a>
             <button id="desktop-exit-btn" class="cm-btn cm-btn-danger"><i class="fa-solid fa-right-from-bracket"></i> Kết thúc</button>
         </div>
     </header>
@@ -193,7 +217,7 @@
     <div class="qb-layout-grid">
         
         {# --- LEFT COL: GAMEPLAY --- #}
-        <div id="tab-pane-game" class="qb-tab-pane active space-y-6">
+        <div id="tab-pane-game" class="qb-tab-pane active space-y-3">
             
             <div class="cm-card">
                 <div class="cm-card-header">

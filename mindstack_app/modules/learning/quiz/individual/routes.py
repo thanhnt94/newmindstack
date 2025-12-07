@@ -84,12 +84,15 @@ def _build_absolute_media_url(file_path, media_folder: Optional[str] = None):
 def _serialize_quiz_learning_item(item, user_id):
     content_copy = copy.deepcopy(item.content or {})
     options = content_copy.get('options') or {}
-    content_copy['options'] = {
-        'A': options.get('A'),
-        'B': options.get('B'),
-        'C': options.get('C'),
-        'D': options.get('D'),
-    }
+    
+    # Filter out empty options to support dynamic number of answers (e.g. 2, 3, 4)
+    # This matches the behavior in Quiz Battle
+    valid_options = {}
+    for key in ['A', 'B', 'C', 'D']:
+        val = options.get(key)
+        if val not in (None, ''):
+            valid_options[key] = val
+    content_copy['options'] = valid_options
 
     media_folders = _get_media_folders_from_container(item.container if item else None)
     image_folder = media_folders.get('image')

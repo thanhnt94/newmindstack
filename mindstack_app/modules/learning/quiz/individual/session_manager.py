@@ -395,11 +395,20 @@ class QuizSessionManager:
 
             main_numbers_in_batch.append(main_number)
 
+            # Create a clean copy of content and filter options
+            content_copy = dict(item.content or {})
+            raw_options = content_copy.get('options') or {}
+            # Filter out empty options (e.g. for questions with only 2 or 3 answers)
+            content_copy['options'] = {
+                k: v for k, v in raw_options.items() 
+                if k in ('A', 'B', 'C', 'D') and v not in (None, '')
+            }
+
             item_dict = {
                 'item_id': item.item_id,
                 # THAY ĐỔI: Thêm container_id để có thể tạo URL chỉnh sửa
                 'container_id': item.container_id,
-                'content': item.content,
+                'content': content_copy,
                 'ai_explanation': item.ai_explanation,
                 'note_content': note.content if note else '',
                 'group_id': item.group_id,
