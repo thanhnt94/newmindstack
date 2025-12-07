@@ -271,7 +271,17 @@ def quiz_session():
     if 'quiz_session' not in session:
         flash('Không có phiên học Quiz nào đang hoạt động. Vui lòng chọn bộ Quiz để bắt đầu.', 'info')
         return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
-    return render_template('quiz/individual/quiz_session.html')
+    
+    # Determine which template to use based on batch size
+    try:
+        session_manager = QuizSessionManager.from_dict(session['quiz_session'])
+        if session_manager and session_manager.batch_size == 1:
+            return render_template('quiz/individual/quiz_session_single.html')
+        else:
+            return render_template('quiz/individual/quiz_session_batch.html')
+    except Exception as e:
+        current_app.logger.error(f"Error loading quiz session: {e}")
+        return render_template('quiz/individual/quiz_session_batch.html')
 
 
 @quiz_learning_bp.route('/quiz_learning/api/items/<int:item_id>', methods=['GET'])
