@@ -107,6 +107,8 @@ def initialize_database(app: Flask) -> None:
     db.create_all()
 
     inspector = inspect(db.engine)
+    
+    # Migrate flashcard_collab_rooms
     room_columns = {column['name'] for column in inspector.get_columns('flashcard_collab_rooms')}
     if 'button_count' not in room_columns:
         with db.engine.begin() as connection:
@@ -117,6 +119,20 @@ def initialize_database(app: Flask) -> None:
                 )
             )
         app.logger.info("Đã thêm cột button_count vào flashcard_collab_rooms (migrate in place).")
+
+    # Migrate api_keys
+    api_key_columns = {column['name'] for column in inspector.get_columns('api_keys')}
+    if 'provider' not in api_key_columns:
+        with db.engine.begin() as connection:
+            # SQLite doesn't support adding a non-null column without a default value in a simple way 
+            # if there are existing rows. We add it with a default.
+            connection.execute(
+                text(
+                    "ALTER TABLE api_keys "
+                    "ADD COLUMN provider VARCHAR(50) NOT NULL DEFAULT 'gemini'"
+                )
+            )
+        app.logger.info("Đã thêm cột provider vào api_keys (migrate in place).")
 
     admin_user = User.query.filter(
         or_(

@@ -1,15 +1,11 @@
 # File: mindstack_app/modules/ai_services/gemini_client.py
-# Phiên bản: 2.1
-# MỤC ĐÍCH: Khắc phục lỗi DetachedInstanceError.
-# ĐÃ SỬA: Thay đổi logic để không truyền đối tượng SQLAlchemy ra ngoài session của nó.
-#          Hàm get_key giờ sẽ trả về id và value thay vì cả object.
-#          Hàm mark_key_as_exhausted sẽ nhận key_id để tự truy vấn.
+# Phiên bản: 2.2
+# MỤC ĐÍCH: Tích hợp ApiKeyManager dùng chung và hỗ trợ chọn model động.
 
 import time
 import threading
 from flask import current_app
-from ...db_instance import db
-from ...models import ApiKey
+from .key_manager import ApiKeyManager
 
 try:
     import google.generativeai as genai
@@ -17,98 +13,25 @@ try:
 except ImportError:
     genai = None
 
-class ApiKeyManager:
-    """
-    Mô tả: Quản lý việc lấy và xoay vòng các API key từ database.
-    Hoạt động bên trong application context của Flask.
-    """
-    def __init__(self):
-        self.key_ids = []
-        self.lock = threading.Lock()
-        self.keys_loaded = False
-
-    def _load_keys(self):
-        """
-        Mô tả: Tải lại danh sách ID của các API key hợp lệ từ database.
-        Hàm này phải được gọi bên trong một application context.
-        """
-        try:
-            self.key_ids = [
-                k.key_id for k in ApiKey.query.filter_by(
-                    is_active=True, is_exhausted=False
-                ).order_by(ApiKey.last_used_timestamp.asc()).all()
-            ]
-            self.keys_loaded = True
-            current_app.logger.info(f"ApiKeyManager: Đã tải {len(self.key_ids)} ID của API key hợp lệ.")
-        except Exception as e:
-            current_app.logger.error(f"ApiKeyManager: Lỗi khi tải API keys từ database: {e}", exc_info=True)
-            self.key_ids = []
-
-    def get_key(self):
-        """
-        Mô tả: Lấy ID và giá trị của một API key khả dụng để sử dụng.
-        Returns:
-            tuple: (key_id, key_value) hoặc (None, None) nếu hết key.
-        """
-        with self.lock:
-            while True:
-                if not self.keys_loaded or not self.key_ids:
-                    self._load_keys()
-                    if not self.key_ids:
-                        current_app.logger.warning("ApiKeyManager: Không còn API key nào khả dụng.")
-                        return None, None
-                
-                if not self.key_ids:
-                    return None, None
-
-                key_id = self.key_ids.pop(0)
-                
-                try:
-                    key_obj = ApiKey.query.get(key_id)
-                    
-                    if key_obj and key_obj.is_active and not key_obj.is_exhausted:
-                        key_obj.last_used_timestamp = db.func.now()
-                        db.session.commit()
-                        # Trả về giá trị và ID, không trả về object
-                        return key_obj.key_id, key_obj.key_value
-                    else:
-                        current_app.logger.warning(f"ApiKeyManager: Key ID {key_id} không còn hợp lệ, bỏ qua.")
-                        continue
-                except Exception as e:
-                    current_app.logger.error(f"ApiKeyManager: Lỗi khi lấy và cập nhật key_id {key_id}: {e}")
-                    db.session.rollback()
-                    continue
-
-    def mark_key_as_exhausted(self, key_id):
-        """
-        Mô tả: Đánh dấu một API key là đã cạn kiệt dựa trên ID của nó.
-        """
-        with self.lock:
-            try:
-                key_obj = ApiKey.query.get(key_id)
-                if key_obj:
-                    key_obj.is_exhausted = True
-                    db.session.commit()
-                    current_app.logger.warning(f"ApiKeyManager: Đã đánh dấu API key ID {key_obj.key_id} là đã cạn kiệt.")
-            except Exception as e:
-                current_app.logger.error(f"ApiKeyManager: Lỗi khi đánh dấu key ID {key_id} là cạn kiệt: {e}")
-                db.session.rollback()
-
 class GeminiClient:
     """
     Mô tả: Lớp client để quản lý kết nối và gửi yêu cầu đến Gemini API,
     sử dụng ApiKeyManager để tăng độ tin cậy.
     """
-    def __init__(self, app_context):
+    def __init__(self, app_context, model_name='gemini-2.0-flash-lite-001'):
         """
         Mô tả: Khởi tạo Gemini Client.
+        Args:
+            app_context: Flask application context.
+            model_name (str): Tên model Gemini cần dùng.
         """
         if not genai:
             raise ImportError("Thư viện 'google-generativeai' chưa được cài đặt.")
         
         self.app_context = app_context
-        self.api_key_manager = ApiKeyManager()
-        self.model_name = 'gemini-2.0-flash-lite-001'
+        # Khởi tạo manager với provider là 'gemini'
+        self.api_key_manager = ApiKeyManager(provider='gemini')
+        self.model_name = model_name
         current_app.logger.info(f"Gemini Client đã được khởi tạo với model '{self.model_name}'.")
 
     def generate_content(self, prompt, item_info="N/A"):
@@ -120,13 +43,14 @@ class GeminiClient:
         """
         max_retries = 5
         last_error_msg = None
+        previous_key_id = None
 
         for attempt in range(max_retries):
             with self.app_context:
                 key_id, key_value = self.api_key_manager.get_key()
 
             if not key_id:
-                error_msg = "Tất cả các API key đều đã cạn kiệt hoặc không hợp lệ."
+                error_msg = "Tất cả các API key (Gemini) đều đã cạn kiệt hoặc không hợp lệ."
                 current_app.logger.error(f"GeminiClient: {error_msg}")
                 return False, error_msg
 
@@ -153,18 +77,33 @@ class GeminiClient:
                 )
                 with self.app_context:
                     self.api_key_manager.mark_key_as_exhausted(key_id)
+                previous_key_id = key_id
                 continue
             except google_exceptions.ResourceExhausted as e:
+                # Chiến lược mới: Fail Fast & Round Robin
+                # Lỗi này là tạm thời (Quota), KHÔNG được đánh dấu key là hỏng vĩnh viễn.
+                
+                if previous_key_id == key_id:
+                    # Đã quay vòng lại key cũ -> Nghĩa là tất cả key đều đang bị rate limit.
+                    # Dừng ngay lập tức, không spam API nữa.
+                    error_msg = "Tạm thời hết hạn mức Quota trên tất cả các API Key. Vui lòng thử lại sau ít phút."
+                    current_app.logger.warning(f"GeminiClient: {error_msg}")
+                    return False, error_msg
+                
+                # Nếu chưa quay vòng lại, chỉ đơn giản là thử key tiếp theo ngay lập tức.
                 current_app.logger.warning(
-                    f"GeminiClient: ResourceExhausted (429) với key ID {key_id}. Đang chuyển sang key khác..."
+                    f"GeminiClient: Key ID {key_id} bị 429 (ResourceExhausted). Đang thử key tiếp theo..."
                 )
-                time.sleep(1)
+                previous_key_id = key_id
+                # Gọi force_refresh để đảm bảo ta có danh sách mới nhất nếu có key mới thêm vào
+                self.api_key_manager.force_refresh() 
                 continue
             except google_exceptions.ServiceUnavailable as e:
                 current_app.logger.warning(
                     f"GeminiClient: ServiceUnavailable (503). Đang thử lại..."
                 )
                 time.sleep(2)
+                previous_key_id = key_id
                 continue
             except Exception as e:
                 last_error_msg = f"Lỗi server khi gọi AI: {e}"
@@ -178,13 +117,60 @@ class GeminiClient:
         current_app.logger.critical(f"GeminiClient: {final_error_msg}")
         return False, final_error_msg
 
+    @staticmethod
+    def get_available_models():
+        """
+        Mô tả: Lấy danh sách các model khả dụng từ Google API.
+        Sử dụng một API key bất kỳ đang hoạt động để truy vấn.
+        """
+        if not genai:
+            return {'success': False, 'message': "Thư viện google-generativeai chưa được cài đặt."}
+
+        try:
+            # Tạo manager tạm để lấy 1 key
+            temp_manager = ApiKeyManager(provider='gemini')
+            key_id, key_value = temp_manager.get_key()
+
+            if not key_value:
+                return {'success': False, 'message': "Không tìm thấy API Key nào khả dụng để tải danh sách model."}
+
+            genai.configure(api_key=key_value)
+            
+            models = []
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    # Clean up the name (remove 'models/' prefix if present)
+                    model_id = m.name.replace('models/', '')
+                    models.append({
+                        'id': model_id,
+                        'display_name': m.display_name,
+                        'description': m.description
+                    })
+            
+            # Sắp xếp: Flash/Lite lên đầu, Pro tiếp theo
+            def sort_key(m):
+                name = m['id'].lower()
+                if 'flash' in name and 'lite' in name: return 0
+                if 'flash' in name: return 1
+                if 'pro' in name: return 2
+                return 3
+            
+            models.sort(key=sort_key)
+            
+            return {'success': True, 'models': models}
+            
+        except Exception as e:
+            current_app.logger.error(f"Lỗi khi lấy danh sách model: {e}")
+            return {'success': False, 'message': f"Lỗi kết nối Google: {str(e)}"}
+
 # Biến toàn cục để lưu trữ instance của client
 gemini_client_instance = None
 gemini_client_lock = threading.Lock()
 
 def get_gemini_client():
     """
-    Mô tả: Hàm factory để đảm bảo chỉ có một instance của GeminiClient được tạo ra cho toàn ứng dụng.
+    DEPRECATED: Sử dụng service_manager.get_ai_service() thay thế.
+    Giữ lại để tương thích ngược tạm thời.
     """
     global gemini_client_instance
     with gemini_client_lock:

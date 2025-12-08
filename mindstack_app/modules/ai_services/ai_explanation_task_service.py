@@ -10,7 +10,7 @@ from sqlalchemy import or_
 
 from ...db_instance import db
 from ...models import LearningContainer, LearningItem
-from .gemini_client import get_gemini_client
+from .service_manager import get_ai_service
 from .prompts import get_formatted_prompt
 
 
@@ -87,8 +87,8 @@ def generate_ai_explanations(
     db.session.commit()
 
     try:
-        gemini_client = get_gemini_client()
-        if not gemini_client:
+        ai_client = get_ai_service()
+        if not ai_client:
             task.status = "error"
             task.message = "Chưa cấu hình dịch vụ AI (thiếu API key)."
             db.session.commit()
@@ -140,7 +140,7 @@ def generate_ai_explanations(
             task.message = f"Đang tạo AI Explain cho {item_info} ({idx}/{task.total}) trong {scope_label}"
             db.session.commit()
 
-            success, ai_response = gemini_client.generate_content(prompt, item_info)
+            success, ai_response = ai_client.generate_content(prompt, item_info)
             if not success:
                 task.status = "error"
                 task.message = f"Lỗi khi gọi AI cho {item_info}: {ai_response}"

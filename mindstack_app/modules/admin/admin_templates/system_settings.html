@@ -55,7 +55,51 @@
                     </div>
                     <div class="mt-3">
                         <label class="block text-xs text-slate-500">Giá trị hiện tại</label>
-                        {% if field.data_type == 'int' %}
+                        {% if field.key == 'AI_PROVIDER' %}
+                            <select name="{{ field.key }}" id="ai_provider_select" class="mt-1 w-full rounded-md border-slate-200" required onchange="toggleProviderSettings()">
+                                <option value="gemini" {% if field.value == 'gemini' %}selected{% endif %}>Google Gemini</option>
+                                <option value="huggingface" {% if field.value == 'huggingface' %}selected{% endif %}>Hugging Face</option>
+                            </select>
+                        {% elif field.key == 'GEMINI_MODEL' %}
+                            <div id="gemini_model_container">
+                                <div class="flex gap-2">
+                                    <select name="{{ field.key }}" id="gemini_model_select" class="mt-1 w-full rounded-md border-slate-200">
+                                        <optgroup label="Default">
+                                            <option value="{{ field.value }}" selected>{{ field.value }} (Hiện tại)</option>
+                                        </optgroup>
+                                        <optgroup label="Recommended">
+                                            <option value="gemini-2.0-flash-lite-001">Gemini 2.0 Flash Lite (Nhanh/Rẻ)</option>
+                                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                        </optgroup>
+                                        <option value="custom">Khác (Nhập tay)...</option>
+                                    </select>
+                                    <button type="button" onclick="fetchGeminiModels()" class="mt-1 px-3 py-2 bg-slate-100 border border-slate-300 rounded text-slate-600 hover:bg-slate-200" title="Cập nhật từ Google">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                                <input name="{{ field.key }}_custom" id="gemini_custom_input" class="mt-2 w-full rounded-md border-slate-200 text-sm hidden" placeholder="Nhập tên model Gemini...">
+                            </div>
+                        {% elif field.key == 'HUGGINGFACE_MODEL' %}
+                            <div id="hf_model_container" class="hidden">
+                                <div class="flex gap-2">
+                                    <select name="{{ field.key }}" id="hf_model_select" class="mt-1 w-full rounded-md border-slate-200">
+                                        <optgroup label="Default">
+                                            <option value="{{ field.value }}" selected>{{ field.value }} (Hiện tại)</option>
+                                        </optgroup>
+                                        <optgroup label="Recommended">
+                                            <option value="google/gemma-7b-it">Gemma 7B IT</option>
+                                            <option value="meta-llama/Llama-2-7b-chat-hf">Llama 2 7B Chat</option>
+                                        </optgroup>
+                                        <option value="custom">Khác (Nhập tay)...</option>
+                                    </select>
+                                    <button type="button" onclick="fetchHFModels()" class="mt-1 px-3 py-2 bg-slate-100 border border-slate-300 rounded text-slate-600 hover:bg-slate-200" title="Cập nhật từ Hugging Face">
+                                        <i class="fas fa-cloud-download-alt"></i>
+                                    </button>
+                                </div>
+                                <input name="{{ field.key }}_custom" id="hf_custom_input" class="mt-2 w-full rounded-md border-slate-200 text-sm hidden" placeholder="Nhập tên model Hugging Face...">
+                            </div>
+                        {% elif field.data_type == 'int' %}
                             <input type="number" name="{{ field.key }}" value="{{ field.value }}" class="mt-1 w-full rounded-md border-slate-200" placeholder="{{ field.placeholder }}" required>
                         {% else %}
                             <input name="{{ field.key }}" value="{{ field.value }}" class="mt-1 w-full rounded-md border-slate-200" placeholder="{{ field.placeholder }}" required>
@@ -304,5 +348,155 @@
             </div>
         {% endfor %}
     </div>
-</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function toggleProviderSettings() {
+        const provider = document.getElementById('ai_provider_select').value;
+        const geminiContainer = document.getElementById('gemini_model_container');
+        const hfContainer = document.getElementById('hf_model_container');
+        
+        // Cần tìm thẻ cha chứa field để ẩn hiện cả label (optional, ở đây ta ẩn nội dung field thôi)
+        // Trong loop jinja, mỗi field nằm trong một div riêng biệt, nên việc ẩn hiện div con
+        // có thể để lại label trống.
+        // Tuy nhiên, cách đơn giản nhất là dùng CSS để ẩn hiện container model.
+        
+        // Vì cấu trúc HTML đang render phẳng (các field ngang hàng trong loop), 
+        // ta sẽ dùng JS tìm div cha (parent của geminiContainer) để ẩn hiện nếu muốn đẹp hơn.
+        // Nhưng ở đây ta cứ ẩn hiện container nội dung trước.
+        
+        if (provider === 'gemini') {
+            if(geminiContainer) {
+                geminiContainer.style.display = 'block';
+                // Tìm parent của container để hiện
+                geminiContainer.closest('.border').style.display = 'block';
+            }
+            if(hfContainer) {
+                hfContainer.style.display = 'none';
+                // Tìm parent của container để ẩn
+                hfContainer.closest('.border').style.display = 'none';
+            }
+        } else {
+            if(geminiContainer) {
+                geminiContainer.style.display = 'none';
+                geminiContainer.closest('.border').style.display = 'none';
+            }
+            if(hfContainer) {
+                hfContainer.style.display = 'block';
+                hfContainer.closest('.border').style.display = 'block';
+            }
+        }
+    }
+
+    function setupCustomInput(selectId, inputId) {
+        const select = document.getElementById(selectId);
+        const input = document.getElementById(inputId);
+        if(!select || !input) return;
+
+        select.addEventListener('change', () => {
+            if (select.value === 'custom') {
+                input.classList.remove('hidden');
+                input.value = '';
+                input.required = true;
+            } else {
+                input.classList.add('hidden');
+                input.value = select.value;
+                input.required = false;
+            }
+        });
+    }
+
+    async function fetchGeminiModels() {
+        const btn = event.currentTarget; // Get button that was clicked
+        const originalHtml = btn.innerHTML;
+        const select = document.getElementById('gemini_model_select');
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch("{{ url_for('admin.fetch_gemini_models_api') }}");
+            const data = await response.json();
+
+            if (data.success) {
+                select.innerHTML = '';
+                // Add fetched options...
+                const group = document.createElement('optgroup');
+                group.label = "Available Models";
+                data.models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.text = m.display_name;
+                    group.appendChild(opt);
+                });
+                select.appendChild(group);
+                
+                // Add Custom
+                const customOpt = document.createElement('option');
+                customOpt.value = 'custom';
+                customOpt.text = 'Khác...';
+                select.appendChild(customOpt);
+                
+                alert(`Đã cập nhật ${data.models.length} model từ Google.`);
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e);
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+
+    async function fetchHFModels() {
+        const btn = event.currentTarget;
+        const originalHtml = btn.innerHTML;
+        const select = document.getElementById('hf_model_select');
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch("{{ url_for('admin.fetch_hf_models_api') }}");
+            const data = await response.json();
+
+            if (data.success) {
+                select.innerHTML = '';
+                const group = document.createElement('optgroup');
+                group.label = "Popular Text Generation Models";
+                data.models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.text = `${m.display_name} (${m.description})`;
+                    group.appendChild(opt);
+                });
+                select.appendChild(group);
+
+                const customOpt = document.createElement('option');
+                customOpt.value = 'custom';
+                customOpt.text = 'Khác...';
+                select.appendChild(customOpt);
+
+                alert(`Đã cập nhật ${data.models.length} model từ Hugging Face.`);
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e);
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setupCustomInput('gemini_model_select', 'gemini_custom_input');
+        setupCustomInput('hf_model_select', 'hf_custom_input');
+        
+        // Initial state
+        toggleProviderSettings();
+    });
+</script>
 {% endblock %}

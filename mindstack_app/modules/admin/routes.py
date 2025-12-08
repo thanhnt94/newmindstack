@@ -62,6 +62,8 @@ from ..ai_services.ai_explanation_task_service import (
     DEFAULT_REQUEST_INTERVAL_SECONDS,
     generate_ai_explanations,
 )
+from ..ai_services.gemini_client import GeminiClient
+from ..ai_services.huggingface_client import HuggingFaceClient
 from ...services.config_service import SENSITIVE_SETTING_KEYS, get_runtime_config
 
 audio_service = AudioService()
@@ -138,6 +140,30 @@ CORE_SETTING_FIELDS: list[dict[str, object]] = [
         "placeholder": Config.BACKUP_FOLDER,
         "description": "Nơi lưu trữ các gói backup được tạo từ trang quản trị.",
         "default": Config.BACKUP_FOLDER,
+    },
+    {
+        "key": "AI_PROVIDER",
+        "label": "Nhà cung cấp AI",
+        "data_type": "string",
+        "placeholder": "gemini",
+        "description": "Dịch vụ AI được sử dụng chính (gemini hoặc huggingface).",
+        "default": "gemini",
+    },
+    {
+        "key": "GEMINI_MODEL",
+        "label": "Gemini Model",
+        "data_type": "string",
+        "placeholder": "gemini-2.0-flash-lite-001",
+        "description": "Model được chọn khi Provider là Gemini.",
+        "default": "gemini-2.0-flash-lite-001",
+    },
+    {
+        "key": "HUGGINGFACE_MODEL",
+        "label": "Hugging Face Model",
+        "data_type": "string",
+        "placeholder": "google/gemma-7b-it",
+        "description": "Model được chọn khi Provider là Hugging Face.",
+        "default": "google/gemma-7b-it",
     },
 ]
 
@@ -1988,3 +2014,20 @@ def restore_backup(filename = None):
         flash(f'Lỗi khi khôi phục dữ liệu: {e}', 'danger')
 
     return redirect(url_for('admin.manage_backup_restore'))
+
+
+@admin_bp.route('/settings/fetch-gemini-models', methods=['GET'])
+def fetch_gemini_models_api():
+    """
+    API nội bộ để lấy danh sách model mới nhất từ Google.
+    """
+    result = GeminiClient.get_available_models()
+    return jsonify(result)
+
+@admin_bp.route('/settings/fetch-hf-models', methods=['GET'])
+def fetch_hf_models_api():
+    """
+    API nội bộ để lấy danh sách model mới nhất từ Hugging Face.
+    """
+    result = HuggingFaceClient.get_available_models()
+    return jsonify(result)

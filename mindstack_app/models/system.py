@@ -62,6 +62,7 @@ class ApiKey(db.Model):
     __tablename__ = 'api_keys'
 
     key_id = db.Column(db.Integer, primary_key=True)
+    provider = db.Column(db.String(50), default='gemini', nullable=False)
     key_value = db.Column(db.String(255), unique=True, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     is_exhausted = db.Column(db.Boolean, default=False)

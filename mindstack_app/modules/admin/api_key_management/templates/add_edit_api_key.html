@@ -14,6 +14,12 @@
     <div class="px-6 py-6">
         <form action="" method="post" class="space-y-6">
             {{ form.csrf_token }}
+            
+            <div class="space-y-2">
+                {{ form.provider.label(class="block text-sm font-medium text-slate-700") }}
+                {{ form.provider(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white") }}
+            </div>
+
             <div class="space-y-2">
                 {{ form.key_value.label(class="block text-sm font-medium text-slate-700") }}
                 {{ form.key_value(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono", placeholder="Dán API key của bạn vào đây") }}

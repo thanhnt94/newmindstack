@@ -148,11 +148,30 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "description": "Chuỗi kết nối cơ sở dữ liệu ứng dụng.",
             },
             {
+                "key": "AI_PROVIDER",
+                "value": "gemini",
+                "data_type": "string",
+                "description": "Dịch vụ AI được sử dụng chính (gemini hoặc huggingface).",
+            },
+            {
+                "key": "GEMINI_MODEL",
+                "value": "gemini-2.0-flash-lite-001",
+                "data_type": "string",
+                "description": "Model mặc định khi sử dụng Google Gemini.",
+            },
+            {
+                "key": "HUGGINGFACE_MODEL",
+                "value": "google/gemma-7b-it",
+                "data_type": "string",
+                "description": "Model mặc định khi sử dụng Hugging Face.",
+            },
+            {
                 "key": "FLASHCARD_PREVIEW_BONUS",
                 "value": 10,
                 "data_type": "int",
                 "description": "Điểm thưởng khi xem thẻ mới lần đầu.",
             },
+
             {
                 "key": "FLASHCARD_EARLY_REVIEW_HIGH",
                 "value": 10,

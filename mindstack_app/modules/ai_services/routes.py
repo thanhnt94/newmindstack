@@ -7,7 +7,7 @@
 from flask import request, jsonify, current_app
 from flask_login import login_required
 from . import ai_services_bp
-from .gemini_client import get_gemini_client
+from .service_manager import get_ai_service
 from .prompts import get_formatted_prompt
 from ...models import db, LearningItem
 from sqlalchemy.orm.attributes import flag_modified
@@ -40,9 +40,9 @@ def get_ai_response():
         current_app.logger.info(f"AI Service: Trả về cache cho item {item_id}.")
         return jsonify({'success': True, 'response': item.ai_explanation})
 
-    # Lấy client Gemini
-    gemini_client = get_gemini_client()
-    if not gemini_client:
+    # Lấy client AI (Gemini hoặc HF tùy cấu hình)
+    ai_client = get_ai_service()
+    if not ai_client:
         return jsonify({'success': False, 'message': 'Dịch vụ AI chưa được cấu hình (thiếu API key).'}), 503
 
     # 2. Tạo prompt động
@@ -51,10 +51,10 @@ def get_ai_response():
     if not final_prompt:
         return jsonify({'success': False, 'message': 'Không thể tạo prompt cho loại học liệu này.'}), 400
     
-    # 3. Gọi Gemini API để lấy phản hồi
+    # 3. Gọi AI API để lấy phản hồi
     try:
         item_info = f"{item.item_type} ID {item.item_id}"
-        success, ai_response = gemini_client.generate_content(final_prompt, item_info)
+        success, ai_response = ai_client.generate_content(final_prompt, item_info)
 
         if not success:
             return jsonify({'success': False, 'message': ai_response}), 503

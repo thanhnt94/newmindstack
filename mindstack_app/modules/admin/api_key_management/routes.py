@@ -35,6 +35,7 @@ def add_api_key():
     form.submit.label.text = 'Thêm API Key'
     if form.validate_on_submit():
         new_key = ApiKey(
+            provider=form.provider.data,
             key_value=form.key_value.data,
             notes=form.notes.data,
             is_active=form.is_active.data,
@@ -55,6 +56,7 @@ def edit_api_key(key_id):
     form = ApiKeyForm(obj=key)
     form.submit.label.text = 'Cập nhật API Key'
     if form.validate_on_submit():
+        key.provider = form.provider.data
         key.key_value = form.key_value.data
         key.notes = form.notes.data
         key.is_active = form.is_active.data
