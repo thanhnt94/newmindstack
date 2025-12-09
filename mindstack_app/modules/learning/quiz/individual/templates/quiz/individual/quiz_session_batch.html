@@ -760,6 +760,34 @@
         </div>
     </div>
 </div>
+
+<!-- Feedback Modal -->
+<div id="feedback-modal" class="qb-modal-overlay">
+    <div class="qb-modal-container"
+        style="max-width: 500px; margin: 0 auto; height: auto; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
+        <div class="qb-hub-header">
+            <h3 class="font-bold text-slate-800 text-lg"><i class="fa-solid fa-flag text-red-500 mr-2"></i>Báo lỗi / Góp
+                ý</h3>
+            <button id="close-feedback-btn"
+                class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="p-4">
+            <p class="text-sm text-slate-600 mb-3">Hãy mô tả vấn đề bạn gặp phải với câu hỏi này. Đóng góp của bạn giúp
+                chúng tôi cải thiện chất lượng!</p>
+            <textarea id="feedback-input"
+                class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition mb-4"
+                rows="4" placeholder="Nhập nội dung phản hồi..."></textarea>
+            <div class="flex justify-end gap-2">
+                <button id="feedback-cancel-btn"
+                    class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-2 px-4 text-sm rounded-lg">Hủy</button>
+                <button id="feedback-submit-btn"
+                    class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-2 px-4 text-sm rounded-lg">Gửi phản
+                    hồi</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -780,6 +808,7 @@
     let totalQuestionsInSession = 0;
     let sessionTotalAnswered = 0;
     let activeHubItemId = null; // Currently tracked question ID
+    let activeFeedbackItemId = null;
     const SESSION_KEY = 'quiz_session_batch_state';
 
     // URLs
@@ -1029,9 +1058,14 @@
                 <div class="question-card" data-item-id="${questionData.item_id}">
                     <div class="flex justify-between items-center text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">
                         <span>Câu ${questionNumber}</span>
-                        <button class="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition js-open-hub-btn" data-item-id="${questionData.item_id}" title="Chi tiết & Học tập">
-                            <i class="fa-solid fa-lightbulb text-lg"></i>
-                        </button>
+                        <div class="flex items-center gap-1">
+                            <button class="text-slate-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition js-feedback-btn" data-item-id="${questionData.item_id}" title="Báo lỗi / Góp ý">
+                                <i class="fa-solid fa-flag text-lg"></i>
+                            </button>
+                            <button class="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition js-open-hub-btn" data-item-id="${questionData.item_id}" title="Chi tiết & Học tập">
+                                <i class="fa-solid fa-lightbulb text-lg"></i>
+                            </button>
+                        </div>
                     </div>
                     <h2 class="text-xl font-bold text-slate-900 mb-4">${formatTextForHtml(content.question)}</h2>
                     ${mediaHtml}
@@ -1051,6 +1085,19 @@
             btn.addEventListener('click', (e) => {
                 const itemId = e.currentTarget.dataset.itemId;
                 openHub(itemId);
+            });
+        });
+        // Feedback Buttons
+        document.querySelectorAll('.js-feedback-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.dataset.itemId;
+                activeFeedbackItemId = itemId;
+                const modal = document.getElementById('feedback-modal');
+                const input = document.getElementById('feedback-input');
+                if (modal && input) {
+                    input.value = ''; // Reset input
+                    modal.classList.add('open');
+                }
             });
         });
         // Mobile Bottom Hub Button
@@ -1374,6 +1421,39 @@
         if (btn.classList.contains('js-next-batch-btn')) getNextQuestionBatch();
         if (btn.classList.contains('js-end-session-btn')) handleEndSession();
     });
+
+    // Feedback Modal Logic
+    const feedbackModal = document.getElementById('feedback-modal');
+    if (feedbackModal) {
+        const closeBtn = document.getElementById('close-feedback-btn');
+        const cancelBtn = document.getElementById('feedback-cancel-btn');
+        const submitBtn = document.getElementById('feedback-submit-btn');
+        const input = document.getElementById('feedback-input');
+
+        const closeFeedback = () => feedbackModal.classList.remove('open');
+
+        [closeBtn, cancelBtn].forEach(btn => btn?.addEventListener('click', closeFeedback));
+        feedbackModal.addEventListener('click', (e) => { if (e.target === feedbackModal) closeFeedback(); });
+
+        submitBtn?.addEventListener('click', () => {
+            const content = input.value.trim();
+            if (!content) {
+                showCustomAlert("Vui lòng nhập nội dung.", "warning");
+                return;
+            }
+            // Simulate API call
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+
+            setTimeout(() => {
+                console.log(`Sending feedback for item ${activeFeedbackItemId}: ${content}`);
+                showCustomAlert("Cảm ơn đóng góp của bạn!", "success");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Gửi phản hồi';
+                closeFeedback();
+            }, 800);
+        });
+    }
 
     function formatTextForHtml(text) { return text ? String(text).replace(/\n/g, '<br>') : ''; }
     function showCustomAlert(msg, type = 'warning') {
