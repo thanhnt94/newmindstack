@@ -1,0 +1,63 @@
+{# Mobile Interface Partial (Batch Mode) #}
+<div class="lg:hidden">
+    {# === MOBILE APP HEADER === #}
+    <div class="qb-mobile-sticky-wrapper">
+        <div class="qb-mobile-header">
+            <div class="flex items-center gap-3">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
+                    <span class="text-lg font-black text-slate-800 leading-none js-quiz-total-label">0/0</span>
+                </div>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đúng</span>
+                    <span
+                        class="text-lg font-black text-emerald-600 leading-none font-mono js-session-correct-count">0</span>
+                </div>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Điểm</span>
+                    <span class="text-lg font-black text-blue-600 leading-none font-mono js-session-accuracy">0%</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <a href="/"
+                    class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                        class="fa-solid fa-house"></i></a>
+                <button
+                    class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 js-end-session-btn"><i
+                        class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </div>
+
+        {# Progress Bar #}
+        <div class="w-full bg-slate-100 h-1">
+            <div class="bg-blue-600 h-1 transition-all duration-300 js-quiz-progress-fill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    {# === MOBILE CONTENT === #}
+    <div class="container mx-auto px-3 py-4 pb-24 max-w-7xl mt-[65px]">
+        <div class="js-quiz-content flex flex-col gap-4">
+            <!-- Loading State -->
+            <div class="flex flex-col items-center justify-center py-12 text-blue-500">
+                <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                <p>Đang tải câu hỏi...</p>
+            </div>
+        </div>
+    </div>
+
+    {# === MOBILE BOTTOM BAR === #}
+    <div class="qb-bottom-bar">
+        <div class="flex gap-2 w-full js-quiz-controls">
+            <button type="button" class="cm-btn cm-btn-primary w-full shadow-lg js-submit-batch-btn">
+                <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
+            </button>
+            <button type="button" class="cm-btn bg-emerald-600 text-white w-full shadow-lg js-next-batch-btn"
+                style="display: none;">
+                <i class="fas fa-arrow-right"></i> Tiếp theo
+            </button>
+        </div>
+    </div>
+</div>
