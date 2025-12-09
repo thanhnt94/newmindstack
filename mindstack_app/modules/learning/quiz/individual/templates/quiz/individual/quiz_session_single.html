@@ -11,7 +11,10 @@
 {{ super() }}
 <style>
     /* === CORE LAYOUT === */
-    body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
+    body {
+        background-color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+    }
 
     /* Shared Styles */
     .cm-card {
@@ -20,124 +23,383 @@
         border-radius: 0.75rem;
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
         overflow: hidden;
-        display: flex; flex-direction: column;
-        margin-bottom: 0.5rem; 
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0.5rem;
     }
+
     .cm-card-header {
         padding: 1rem 1.25rem;
         border-bottom: 1px solid #f1f5f9;
         background-color: #ffffff;
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
-    .cm-card-body { padding: 0.75rem; flex: 1; position: relative; }
-    
-    .qb-question-text { font-size: 1.25rem; font-weight: 700; color: #1e293b; line-height: 1.5; margin-bottom: 0.25rem; }
-    .qb-question-media img { width: 100%; max-height: 320px; object-fit: contain; border-radius: 0.75rem; border: 1px solid #e2e8f0; background: white; margin-bottom: 1rem; }
-    
+
+    .cm-card-body {
+        padding: 0.75rem;
+        flex: 1;
+        position: relative;
+    }
+
+    .qb-question-text {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.5;
+        margin-bottom: 0.25rem;
+    }
+
+    .qb-question-media img {
+        width: 100%;
+        max-height: 320px;
+        object-fit: contain;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        background: white;
+        margin-bottom: 1rem;
+    }
+
     /* Options */
-    .qb-options-grid { display: grid; gap: 0.75rem; }
+    .qb-options-grid {
+        display: grid;
+        gap: 0.75rem;
+    }
+
     .qb-option-label {
-        display: flex; align-items: flex-start; gap: 1rem;
-        padding: 1rem; border: 2px solid #e2e8f0; border-radius: 0.75rem;
-        cursor: pointer; transition: all 0.15s ease; background: white;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        background: white;
     }
-    .qb-option-label:hover { border-color: #94a3b8; background: #f8fafc; }
-    .qb-option-label.selected { border-color: #3b82f6; background: #eff6ff; ring: 1px solid #3b82f6; }
-    .qb-option-label.correct { border-color: #10b981; background: #ecfdf5; }
-    .qb-option-label.incorrect { border-color: #ef4444; background: #fef2f2; }
-    .qb-option-label.disabled { pointer-events: none; opacity: 0.7; }
-    
+
+    .qb-option-label:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+    }
+
+    .qb-option-label.selected {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        box-shadow: 0 0 0 1px #3b82f6;
+    }
+
+    .qb-option-label.correct {
+        border-color: #10b981;
+        background: #ecfdf5;
+    }
+
+    .qb-option-label.incorrect {
+        border-color: #ef4444;
+        background: #fef2f2;
+    }
+
+    .qb-option-label.disabled {
+        pointer-events: none;
+        opacity: 0.7;
+    }
+
     .qb-option-letter-circle {
-        display: flex; align-items: center; justify-content: center;
-        width: 32px; height: 32px; border-radius: 999px;
-        background: #f1f5f9; color: #1e293b; font-weight: 700; font-size: 0.9rem;
-        border: 1px solid #e2e8f0; flex-shrink: 0; margin-top: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #1e293b;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border: 1px solid #e2e8f0;
+        flex-shrink: 0;
+        margin-top: 2px;
     }
-    .qb-option-label.selected .qb-option-letter-circle { background: #3b82f6; color: white; border-color: #3b82f6; }
-    .qb-option-label.correct .qb-option-letter-circle { background: #10b981; color: white; border-color: #10b981; }
-    .qb-option-label.incorrect .qb-option-letter-circle { background: #ef4444; color: white; border-color: #ef4444; }
+
+    .qb-option-label.selected .qb-option-letter-circle {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .qb-option-label.correct .qb-option-letter-circle {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
+    }
+
+    .qb-option-label.incorrect .qb-option-letter-circle {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+    }
 
     /* Buttons */
-    .cm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; cursor: pointer; border: none; }
-    .cm-btn-primary { background: #2563eb; color: white; box-shadow: 0 2px 4px rgba(37,99,235,0.2); }
-    .cm-btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
-    .cm-btn-primary:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
-    .cm-btn-danger { background: white; color: #ef4444; border: 1px solid #fecaca; }
-    
+    .cm-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        cursor: pointer;
+        border: none;
+    }
+
+    .cm-btn-primary {
+        background: #2563eb;
+        color: white;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    .cm-btn-primary:hover {
+        background: #1d4ed8;
+        transform: translateY(-1px);
+    }
+
+    .cm-btn-primary:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .cm-btn-danger {
+        background: white;
+        color: #ef4444;
+        border: 1px solid #fecaca;
+    }
+
     /* === MOBILE SPECIFIC STYLES (Used in _mobile.html) === */
     .qb-mobile-sticky-wrapper {
-        position: fixed; top: 0; left: 0; right: 0; z-index: 50; 
-        background: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
+
     .qb-mobile-header {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         padding: 10px 16px 4px 16px;
     }
-    .qb-mobile-tabs-container { padding: 0 16px 10px 16px; background: white; border-bottom: 1px solid #e2e8f0; }
-    .qb-mobile-tabs { display: flex; background: #f1f5f9; border-radius: 10px; padding: 3px; }
-    .qb-mobile-tab-item {
-        flex: 1; text-align: center; padding: 8px; font-size: 0.9rem; font-weight: 600;
-        color: #64748b; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+
+    .qb-mobile-tabs-container {
+        padding: 0 16px 10px 16px;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
     }
-    .qb-mobile-tab-item.active { background: white; color: #2563eb; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+    .qb-mobile-tabs {
+        display: flex;
+        background: #f1f5f9;
+        border-radius: 10px;
+        padding: 3px;
+    }
+
+    .qb-mobile-tab-item {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #64748b;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .qb-mobile-tab-item.active {
+        background: white;
+        color: #2563eb;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
 
     .qb-bottom-bar {
-        position: fixed; bottom: 0; left: 0; right: 0;
-        background: white; padding: 12px 16px;
-        border-top: 1px solid #e2e8f0; z-index: 60;
-        display: flex; gap: 10px; align-items: center;
-        box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 12px 16px;
+        border-top: 1px solid #e2e8f0;
+        z-index: 60;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
     }
-    .qb-bottom-bar .cm-btn { flex: 1; border-radius: 12px; padding: 14px; font-size: 1rem; margin: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    
+
+    .qb-bottom-bar .cm-btn {
+        flex: 1;
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 1rem;
+        margin: 0;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
     .qb-mobile-chat-toggle {
-        position: relative; background: #eff6ff; color: #3b82f6; border: 1px solid #dbeafe;
-        border-radius: 12px; width: 3.25rem; height: 3.25rem; display: flex; align-items: center; justify-content: center;
+        position: relative;
+        background: #eff6ff;
+        color: #3b82f6;
+        border: 1px solid #dbeafe;
+        border-radius: 12px;
+        width: 3.25rem;
+        height: 3.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         flex-shrink: 0;
     }
 
     /* === HUB MODAL === */
     .qb-modal-overlay {
-        position: fixed; inset: 0; z-index: 100;
-        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
-        opacity: 0; visibility: hidden; transition: all 0.3s;
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s;
     }
+
     .qb-modal-container {
-        position: fixed; bottom: 0; left: 0; right: 0; z-index: 101;
-        background: white; height: 85vh; border-radius: 20px 20px 0 0;
-        transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 101;
+        background: white;
+        height: 85vh;
+        border-radius: 20px 20px 0 0;
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
     }
-    .qb-modal-overlay.open { opacity: 1; visibility: visible; }
-    .qb-modal-overlay.open .qb-modal-container { transform: translateY(0); }
-    
-    .qb-hub-header { padding: 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-    .qb-hub-tabs { display: flex; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
-    .qb-hub-tab-item { flex: 1; text-align: center; padding: 12px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; }
-    .qb-hub-tab-item.active { color: #2563eb; border-bottom-color: #2563eb; background: white; }
-    .qb-hub-content { flex: 1; overflow-y: auto; padding: 1.5rem; background: white; }
-    .qb-hub-pane { display: none; }
-    .qb-hub-pane.active { display: block; }
-    
+
+    .qb-modal-overlay.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .qb-modal-overlay.open .qb-modal-container {
+        transform: translateY(0);
+    }
+
+    .qb-hub-header {
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .qb-hub-tabs {
+        display: flex;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .qb-hub-tab-item {
+        flex: 1;
+        text-align: center;
+        padding: 12px;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+    }
+
+    .qb-hub-tab-item.active {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+        background: white;
+    }
+
+    .qb-hub-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        background: white;
+    }
+
+    .qb-hub-pane {
+        display: none;
+    }
+
+    .qb-hub-pane.active {
+        display: block;
+    }
+
     /* Logic for tabs */
-    .qb-tab-pane { display: none; }
-    .qb-tab-pane.active { display: block; animation: fadeIn 0.3s; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .qb-tab-pane {
+        display: none;
+    }
+
+    .qb-tab-pane.active {
+        display: block;
+        animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 
     /* Override for Mobile to hide site elements (Client-side via Media Query) */
     @media (max-width: 1023px) {
-        body > header, nav.navbar, footer, .site-footer, .back-to-top { display: none !important; }
-        body { 
-            padding-top: 100px !important; 
+
+        body>header,
+        nav.navbar,
+        footer,
+        .site-footer,
+        .back-to-top {
+            display: none !important;
+        }
+
+        body {
+            padding-top: 100px !important;
             padding-bottom: 70px;
         }
-        .container { padding-left: 12px; padding-right: 12px; max-width: 100%; }
-        .cm-card-header { padding: 0.5rem 0.75rem !important; }
+
+        .container {
+            padding-left: 12px;
+            padding-right: 12px;
+            max-width: 100%;
+        }
+
+        .cm-card-header {
+            padding: 0.5rem 0.75rem !important;
+        }
 
         /* Mobile Result Panel - Fixed Bottom Sheet */
         #mobile-result-panel {
             position: fixed !important;
-            bottom: 80px !important; /* Above the bottom bar */
+            bottom: 80px !important;
+            /* Above the bottom bar */
             left: 0 !important;
             right: 0 !important;
             margin: 0 !important;
@@ -148,23 +410,34 @@
             z-index: 50 !important;
             animation: slideUp 0.3s ease-out;
         }
-        
+
         @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
     }
 
     /* === DESKTOP BATCH-LIKE STYLES === */
     @media (min-width: 1024px) {
-        body { background-color: #f1f5f9; }
-        
+        body {
+            background-color: #f1f5f9;
+        }
+
         .quiz-shell {
             background: linear-gradient(180deg, rgba(248, 250, 252, 0.9) 0%, rgba(226, 232, 240, 0.35) 100%);
             min-height: 100vh;
         }
 
-        .quiz-shell .cm-container { gap: 1.5rem; }
+        .quiz-shell .cm-container {
+            gap: 1.5rem;
+        }
 
         .quiz-section-header {
             display: flex;
@@ -174,7 +447,9 @@
             margin-bottom: 2rem;
         }
 
-        .quiz-heading-group .cm-subheading { max-width: 38rem; }
+        .quiz-heading-group .cm-subheading {
+            max-width: 38rem;
+        }
 
         /* Stats Card (Top Right) */
         .quiz-progress-card {
@@ -184,22 +459,79 @@
             background: #ffffff;
             border: 1px solid #e2e8f0;
         }
-        
-        .progress-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-        .progress-card-title { display: flex; align-items: center; gap: 0.75rem; }
-        .progress-card-icon { 
-            width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center;
-            border-radius: 0.6rem; background: #e2e8f0; color: #1d4ed8; 
-        }
-        .progress-card-heading { font-weight: 700; color: #0f172a; }
-        
-        .progress-card-stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; }
-        .progress-stat-item { background: #f8fafc; padding: 0.5rem; border-radius: 0.5rem; text-align: center; border: 1px solid #e2e8f0; }
-        .progress-stat-value { display: block; font-weight: 700; font-size: 1.25rem; line-height: 1; margin-bottom: 0.25rem; }
-        .progress-stat-label { font-size: 0.65rem; text-transform: uppercase; color: #64748b; font-weight: 600; }
 
-        .progress-bar-track { height: 0.4rem; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 0.5rem; }
-        .progress-bar-fill { height: 100%; background: #3b82f6; transition: width 0.3s; }
+        .progress-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .progress-card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .progress-card-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.6rem;
+            background: #e2e8f0;
+            color: #1d4ed8;
+        }
+
+        .progress-card-heading {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .progress-card-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .progress-stat-item {
+            background: #f8fafc;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .progress-stat-value {
+            display: block;
+            font-weight: 700;
+            font-size: 1.25rem;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .progress-stat-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .progress-bar-track {
+            height: 0.4rem;
+            background: #e2e8f0;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: #3b82f6;
+            transition: width 0.3s;
+        }
 
         /* Main Quiz Card */
         .quiz-card {
@@ -218,611 +550,878 @@
             padding: 2rem;
         }
 
-        .question-meta { display: flex; justify-content: space-between; margin-bottom: 1rem; color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .question-title { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-bottom: 1.5rem; line-height: 1.4; }
+        .question-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .question-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+        }
 
         /* Options */
-        .qb-options-grid { display: grid; gap: 1rem; }
+        .qb-options-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
         .option-button {
-            display: flex; align-items: center; gap: 1rem; width: 100%; padding: 1rem 1.25rem;
-            border-radius: 0.75rem; border: 1px solid #cbd5e1; background: white;
-            text-align: left; font-size: 1rem; color: #334155; transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border-radius: 0.75rem;
+            border: 1px solid #cbd5e1;
+            background: white;
+            text-align: left;
+            font-size: 1rem;
+            color: #334155;
+            transition: all 0.2s;
             cursor: pointer;
         }
-        .option-button:hover { border-color: #3b82f6; background: #eff6ff; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .option-button.selected { border-color: #3b82f6; background: #eff6ff; ring: 2px solid #3b82f6; }
-        .option-button.correct { border-color: #10b981; background: #ecfdf5; }
-        .option-button.incorrect { border-color: #ef4444; background: #fef2f2; }
-        
-        .option-key { 
-            width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center;
-            background: #f1f5f9; border-radius: 50%; font-weight: 700; color: #64748b; flex-shrink: 0;
+
+        .option-button:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
-        .option-button.selected .option-key { background: #3b82f6; color: white; }
-        .option-button.correct .option-key { background: #10b981; color: white; }
-        .option-button.incorrect .option-key { background: #ef4444; color: white; }
+
+        .option-button.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+
+        .option-button.correct {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .option-button.incorrect {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .option-key {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            border-radius: 50%;
+            font-weight: 700;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+
+        .option-button.selected .option-key {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .option-button.correct .option-key {
+            background: #10b981;
+            color: white;
+        }
+
+        .option-button.incorrect .option-key {
+            background: #ef4444;
+            color: white;
+        }
 
         /* Feedback Desktop */
         .desktop-feedback-box {
-            margin-top: 1.5rem; padding: 1rem; border-radius: 0.75rem; display: flex; gap: 1rem;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            display: flex;
+            gap: 1rem;
         }
-        .desktop-feedback-box.correct { background: #ecfdf5; border: 1px solid #10b981; color: #065f46; }
-        .desktop-feedback-box.incorrect { background: #fef2f2; border: 1px solid #ef4444; color: #991b1b; }
-        
-        .desktop-action-bar { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; }
+
+        .desktop-feedback-box.correct {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+
+        .desktop-feedback-box.incorrect {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .desktop-action-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+        }
 
         /* === BATCH MODE: POST-ANSWER STYLES (Inline) === */
         .question-insights {
             border-top: 1px dashed rgba(148, 163, 184, 0.45);
-            padding-top: 2rem; margin-top: 2rem;
-            display: flex; flex-direction: column; gap: 1.5rem;
+            padding-top: 2rem;
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
         }
 
         .question-stats-card {
-            background: #ffffff; border-radius: 1rem; padding: 1.25rem;
+            background: #ffffff;
+            border-radius: 1rem;
+            padding: 1.25rem;
             border: 1px solid rgba(148, 163, 184, 0.2);
-            display: flex; flex-direction: column; gap: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        .question-stats-header { display: flex; justify-content: space-between; align-items: center; }
-        .question-stats-title { font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
-        
-        .question-stats-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-        .stat-item { background: #f8fafc; border-radius: 0.75rem; padding: 0.75rem; border: 1px solid #e2e8f0; text-align: center; }
-        .stat-value { display: block; font-size: 1.25rem; font-weight: 700; color: #0f172a; }
-        .stat-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
+        .question-stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-        .extra-info-area { display: flex; flex-direction: column; gap: 1.5rem; }
-        .info-section { background: #ffffff; border-radius: 1rem; border: 1px solid #e2e8f0; padding: 1.5rem; }
-        .info-section h4 { font-weight: 700; color: #0f172a; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; }
-        
-        .note-textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.75rem; min-height: 120px; font-size: 0.95rem; }
-        .content-display { color: #334155; line-height: 1.6; font-size: 0.95rem; }
+        .question-stats-title {
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .question-stats-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+
+        .stat-item {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .extra-info-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .info-section {
+            background: #ffffff;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+        }
+
+        .info-section h4 {
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .note-textarea {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            min-height: 120px;
+            font-size: 0.95rem;
+        }
+
+        .content-display {
+            color: #334155;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
     }
 
     @media (min-width: 1024px) {
+
         /* Force display block for tab panes used as grid items on desktop */
-        #tab-pane-game, #tab-pane-stats { display: block !important; }
+        #tab-pane-game,
+        #tab-pane-stats {
+            display: block !important;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-    {# Include BOTH partials, visibility controlled by CSS classes in files (lg:hidden vs hidden lg:block) #}
-    {% include "quiz/individual/_quiz_session_single_mobile.html" %}
-    {% include "quiz/individual/_quiz_session_single_desktop.html" %}
+{# Include BOTH partials, visibility controlled by CSS classes in files (lg:hidden vs hidden lg:block) #}
+{% include "quiz/individual/_quiz_session_single_mobile.html" %}
+{% include "quiz/individual/_quiz_session_single_desktop.html" %}
 
-    {# Hub Modal (Shared structure but styled for Desktop via CSS overrides) #}
-    <div id="explanation-hub-modal" class="qb-modal-overlay">
-        <div class="qb-modal-container desktop:max-w-xl desktop:mx-auto desktop:h-[80vh] desktop:rounded-2xl">
-            <div class="qb-hub-header">
-                <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
-                <button id="close-hub-btn" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+{# Hub Modal (Shared structure but styled for Desktop via CSS overrides) #}
+<div id="explanation-hub-modal" class="qb-modal-overlay">
+    <div class="qb-modal-container desktop:max-w-xl desktop:mx-auto desktop:h-[80vh] desktop:rounded-2xl">
+        <div class="qb-hub-header">
+            <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
+            <button id="close-hub-btn"
+                class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="qb-hub-tabs">
+            <div class="qb-hub-tab-item active" data-target="hub-expl">📖 Giải thích</div>
+            <div class="qb-hub-tab-item" data-target="hub-ai">🤖 AI Coach</div>
+            <div class="qb-hub-tab-item" data-target="hub-note">📝 Ghi chú</div>
+        </div>
+        <div class="qb-hub-content">
+            <!-- Expl Tab -->
+            <div id="hub-expl" class="qb-hub-pane active">
+                <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
+                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Giải thích:</h4>
+                    <div id="hub-explanation-text">Chưa có giải thích.</div>
+                </div>
             </div>
-            <div class="qb-hub-tabs">
-                <div class="qb-hub-tab-item active" data-target="hub-expl">📖 Giải thích</div>
-                <div class="qb-hub-tab-item" data-target="hub-ai">🤖 AI Coach</div>
-                <div class="qb-hub-tab-item" data-target="hub-note">📝 Ghi chú</div>
+            <!-- AI Tab -->
+            <div id="hub-ai" class="qb-hub-pane">
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i>
+                            <span>AI Phân Tích</span>
+                        </div>
+                        <button id="ai-generate-btn"
+                            class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
+                                class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
+                    </div>
+                    <div id="hub-ai-content"
+                        class="content-display markdown-body text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn
+                        nút để yêu cầu AI phân tích...</div>
+                </div>
             </div>
-            <div class="qb-hub-content">
-                <!-- Expl Tab -->
-                <div id="hub-expl" class="qb-hub-pane active">
-                    <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
-                        <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Giải thích:</h4>
-                        <div id="hub-explanation-text">Chưa có giải thích.</div>
+            <!-- Note Tab -->
+            <div id="hub-note" class="qb-hub-pane">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="font-bold text-slate-700">Ghi chú của bạn</h4>
+                    <button id="hub-note-edit-btn"
+                        class="hidden text-xs bg-blue-100 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-200 font-medium">
+                        <i class="fa-solid fa-pencil"></i> Sửa ghi chú
+                    </button>
+                </div>
+
+                <!-- Display Mode -->
+                <div id="hub-note-display-mode" class="hidden">
+                    <div id="hub-note-content"
+                        class="content-display min-h-[100px] bg-slate-50 p-3 rounded-lg text-slate-700 whitespace-pre-wrap">
                     </div>
                 </div>
-                <!-- AI Tab -->
-                <div id="hub-ai" class="qb-hub-pane">
-                     <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i> <span>AI Phân Tích</span></div>
-                            <button id="ai-generate-btn" class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
-                        </div>
-                        <div id="hub-ai-content" class="content-display markdown-body text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn nút để yêu cầu AI phân tích...</div>
-                    </div>
-                </div>
-                <!-- Note Tab -->
-                <div id="hub-note" class="qb-hub-pane">
-                    <div class="flex justify-between items-center mb-2">
-                        <h4 class="font-bold text-slate-700">Ghi chú của bạn</h4>
-                        <button id="hub-note-edit-btn" class="hidden text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded hover:bg-slate-200">
-                            <i class="fa-solid fa-pencil"></i> Sửa
-                        </button>
-                    </div>
 
-                    <!-- Display Mode -->
-                    <div id="hub-note-display-mode" class="hidden">
-                        <div id="hub-note-content" class="content-display markdown-body min-h-[100px] bg-slate-50 p-3 rounded-lg"></div>
-                    </div>
-
-                    <!-- Add Note Button -->
-                    <div id="hub-note-add-container">
-                        <button id="hub-note-add-btn" class="cm-btn bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 py-1.5 px-4 text-sm rounded-md w-full">
-                            <i class="fa-solid fa-plus"></i> Thêm ghi chú
-                        </button>
-                    </div>
-
-                    <!-- Edit Mode -->
-                    <div id="hub-note-edit-mode" class="hidden">
-                        <textarea id="hub-note-input" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition" rows="8" placeholder="Ghi chú của bạn..."></textarea>
-                        <div class="flex justify-end mt-2 gap-2">
-                            <button id="hub-note-cancel" class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-1.5 px-4 text-sm rounded-md">Hủy</button>
-                            <button id="hub-note-save" class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-1.5 px-4 text-sm rounded-md">Lưu ghi chú</button>
-                        </div>
+                <!-- Edit Mode -->
+                <div id="hub-note-edit-mode" class="hidden">
+                    <textarea id="hub-note-input"
+                        class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition"
+                        rows="8" placeholder="Ghi chú của bạn..."></textarea>
+                    <div class="flex justify-end mt-2 gap-2">
+                        <button id="hub-note-cancel"
+                            class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-1.5 px-4 text-sm rounded-md">Hủy</button>
+                        <button id="hub-note-save"
+                            class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-1.5 px-4 text-sm rounded-md">Lưu
+                            ghi chú</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <style>
-        /* Desktop specific overrides for Hub to center it and handle visibility */
-        @media (min-width: 1024px) {
-            .qb-modal-overlay.open .qb-modal-container { 
-                transform: translate(0, -50%) scale(1) !important; 
-                top: 50% !important; 
-                bottom: auto !important; 
-                max-width: 600px; 
-                margin: 0 auto;
-                height: 80vh;
-                border-radius: 1rem;
-            }
+</div>
+<style>
+    /* Desktop specific overrides for Hub to center it and handle visibility */
+    @media (min-width: 1024px) {
+        .qb-modal-overlay.open .qb-modal-container {
+            transform: translate(0, -50%) scale(1) !important;
+            top: 50% !important;
+            bottom: auto !important;
+            max-width: 600px;
+            margin: 0 auto;
+            height: 80vh;
+            border-radius: 1rem;
         }
-    </style>
+    }
+</style>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
-(function(){
-    // URLs & Meta
-    const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}";
-    const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}";
-    const quizDashboardUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
-    const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
-    const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-    const SESSION_KEY = 'quiz_session_single_state';
+    (function () {
+        // URLs & Meta
+        const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}";
+        const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}";
+        const quizDashboardUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
+        const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
+        const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const SESSION_KEY = 'quiz_session_single_state';
 
-    // --- State ---
-    let currentBatch = [];
-    let currentIndex = 0; 
-    let userAnswers = {};
-    let sessionStats = { total: 0, correct: 0, total_questions: 0 };
-    let currentQuestion = null;
-    let lastAnswerResult = null; // Holds the result of the last answered question
+        // --- State ---
+        let currentBatch = [];
+        let currentIndex = 0;
+        let userAnswers = {};
+        let sessionStats = { total: 0, correct: 0, total_questions: 0 };
+        let currentQuestion = null;
+        let lastAnswerResult = null; // Holds the result of the last answered question
 
-    // Helper: Update text/html for ALL matching elements (Mobile & Desktop)
-    const setText = (selector, text) => document.querySelectorAll(selector).forEach(el => el.textContent = text);
-    const setHtml = (selector, html) => document.querySelectorAll(selector).forEach(el => el.innerHTML = html);
-    const toggleClass = (selector, cls, force) => document.querySelectorAll(selector).forEach(el => el.classList.toggle(cls, force));
+        // Helper: Update text/html for ALL matching elements (Mobile & Desktop)
+        const setText = (selector, text) => document.querySelectorAll(selector).forEach(el => el.textContent = text);
+        const setHtml = (selector, html) => document.querySelectorAll(selector).forEach(el => el.innerHTML = html);
+        const toggleClass = (selector, cls, force) => document.querySelectorAll(selector).forEach(el => el.classList.toggle(cls, force));
 
-    // Elements (Single selections for event binding)
-    const dom = {
-        // Hub
-        hubModal: document.getElementById('explanation-hub-modal'),
-        openHubBtn: document.getElementById('open-hub-btn'),
-        openHubDesktopBtn: document.getElementById('open-hub-desktop-btn'),
-        closeHubBtn: document.getElementById('close-hub-btn'),
-        hubExplText: document.getElementById('hub-explanation-text'),
-        hubAiContent: document.getElementById('hub-ai-content'),
-        aiGenerateBtn: document.getElementById('ai-generate-btn'),
-        hubNoteInput: document.getElementById('hub-note-input'),
-        hubNoteSave: document.getElementById('hub-note-save'),
-    };
-
-    // --- State Management ---
-    function saveState() {
-        const state = {
-            currentBatch,
-            currentIndex,
-            userAnswers,
-            sessionStats,
-            lastAnswerResult
+        // Elements (Single selections for event binding)
+        const dom = {
+            // Hub
+            hubModal: document.getElementById('explanation-hub-modal'),
+            openHubBtn: document.getElementById('open-hub-btn'),
+            openHubDesktopBtn: document.getElementById('open-hub-desktop-btn'),
+            closeHubBtn: document.getElementById('close-hub-btn'),
+            hubExplText: document.getElementById('hub-explanation-text'),
+            hubAiContent: document.getElementById('hub-ai-content'),
+            aiGenerateBtn: document.getElementById('ai-generate-btn'),
+            hubNoteInput: document.getElementById('hub-note-input'),
+            hubNoteSave: document.getElementById('hub-note-save'),
         };
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
-    }
 
-    function loadState() {
-        const savedState = sessionStorage.getItem(SESSION_KEY);
-        if (!savedState) return false;
+        // --- State Management ---
+        function saveState() {
+            const state = {
+                currentBatch,
+                currentIndex,
+                userAnswers,
+                sessionStats,
+                lastAnswerResult
+            };
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+        }
 
-        try {
-            const state = JSON.parse(savedState);
-            currentBatch = state.currentBatch || [];
-            currentIndex = state.currentIndex || 0;
-            userAnswers = state.userAnswers || {};
-            sessionStats = state.sessionStats || { total: 0, correct: 0, total_questions: 0 };
-            lastAnswerResult = state.lastAnswerResult || null;
+        function loadState() {
+            const savedState = sessionStorage.getItem(SESSION_KEY);
+            if (!savedState) return false;
 
-            if (currentBatch.length === 0 || currentIndex >= currentBatch.length) {
+            try {
+                const state = JSON.parse(savedState);
+                currentBatch = state.currentBatch || [];
+                currentIndex = state.currentIndex || 0;
+                userAnswers = state.userAnswers || {};
+                sessionStats = state.sessionStats || { total: 0, correct: 0, total_questions: 0 };
+                lastAnswerResult = state.lastAnswerResult || null;
+
+                if (currentBatch.length === 0 || currentIndex >= currentBatch.length) {
+                    clearState();
+                    return false;
+                }
+
+                currentQuestion = currentBatch[currentIndex];
+
+                // Restore UI
+                showLoading(false);
+                renderQuestion(currentQuestion);
+                updateStatsUI();
+
+                // Restore answered state if applicable
+                const answered = lastAnswerResult && lastAnswerResult.item_id === currentQuestion.item_id;
+                if (answered) {
+                    showFeedback(lastAnswerResult);
+                    updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
+                    if (dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
+                } else {
+                    // Restore selected option if not yet answered
+                    const selected = userAnswers[currentQuestion.item_id];
+                    if (selected) {
+                        selectOption(selected);
+                    }
+                }
+                return true;
+            } catch (e) {
+                console.error("Error loading state:", e);
                 clearState();
                 return false;
             }
-            
-            currentQuestion = currentBatch[currentIndex];
+        }
 
-            // Restore UI
-            showLoading(false);
-            renderQuestion(currentQuestion);
-            updateStatsUI();
+        function clearState() {
+            sessionStorage.removeItem(SESSION_KEY);
+        }
 
-            // Restore answered state if applicable
-            const answered = lastAnswerResult && lastAnswerResult.item_id === currentQuestion.item_id;
-            if (answered) {
-                showFeedback(lastAnswerResult);
-                updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
-                if(dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
-            } else {
-                 // Restore selected option if not yet answered
-                const selected = userAnswers[currentQuestion.item_id];
-                if (selected) {
-                    selectOption(selected);
+        // --- Core Logic ---
+
+        async function loadFreshBatch() {
+            showLoading(true);
+            try {
+                const res = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!res.ok) {
+                    if (res.status === 404) return finishSession();
+                    throw new Error('Load failed');
                 }
+                const data = await res.json();
+                currentBatch = data.items || [];
+                currentIndex = 0;
+                userAnswers = {};
+                lastAnswerResult = null;
+
+                // Init Session Stats
+                sessionStats.total_questions = data.total_question_groups_in_session || data.total_items_in_session || 0;
+                sessionStats.total = data.session_total_answered || 0;
+                sessionStats.correct = data.session_correct_answers || 0;
+
+                if (currentBatch.length > 0) {
+                    renderQuestion(currentBatch[currentIndex]);
+                    updateStatsUI();
+                    saveState();
+                } else {
+                    finishSession();
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Lỗi tải câu hỏi. Vui lòng thử lại.');
+            } finally {
+                showLoading(false);
             }
-            return true;
-        } catch (e) {
-            console.error("Error loading state:", e);
-            clearState();
-            return false;
-        }
-    }
-
-    function clearState() {
-        sessionStorage.removeItem(SESSION_KEY);
-    }
-
-    // --- Core Logic ---
-
-    async function loadFreshBatch() {
-        showLoading(true);
-        try {
-            const res = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            if (!res.ok) {
-                if (res.status === 404) return finishSession();
-                throw new Error('Load failed');
-            }
-            const data = await res.json();
-            currentBatch = data.items || [];
-            currentIndex = 0;
-            userAnswers = {};
-            lastAnswerResult = null;
-            
-            // Init Session Stats
-            sessionStats.total_questions = data.total_question_groups_in_session || data.total_items_in_session || 0;
-            sessionStats.total = data.session_total_answered || 0;
-            sessionStats.correct = data.session_correct_answers || 0;
-            
-            if (currentBatch.length > 0) {
-                renderQuestion(currentBatch[currentIndex]);
-                updateStatsUI();
-                saveState();
-            } else {
-                finishSession();
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Lỗi tải câu hỏi. Vui lòng thử lại.');
-        } finally {
-            showLoading(false);
-        }
-    }
-
-    function renderQuestion(q) {
-        currentQuestion = q;
-        const qNum = (sessionStats.total + currentIndex + 1);
-        setText('.js-question-header', `Câu hỏi ${qNum}`);
-        setHtml('.js-question-text', q.content.question);
-        
-        // Media
-        setHtml('.js-question-media', '');
-        toggleClass('.js-question-media', 'hidden', true);
-        if (q.content.question_image_file) {
-            const imgHtml = `<img src="${q.content.question_image_file}">`;
-            document.querySelectorAll('.js-question-media').forEach(el => {
-                el.innerHTML = imgHtml;
-                el.classList.remove('hidden');
-            });
         }
 
-        // Options
-        const desktopGrid = document.querySelector('.hidden.lg\\:block .js-options-grid');
-        const mobileGrid = document.querySelector('.lg\\:hidden .js-options-grid');
+        function renderQuestion(q) {
+            currentQuestion = q;
+            const qNum = (sessionStats.total + currentIndex + 1);
+            setText('.js-question-header', `Câu hỏi ${qNum}`);
+            setHtml('.js-question-text', q.content.question);
 
-        const optionsHtmlMobile = Object.entries(q.content.options || {}).map(([key, val]) => `
+            // Media
+            setHtml('.js-question-media', '');
+            toggleClass('.js-question-media', 'hidden', true);
+            if (q.content.question_image_file) {
+                const imgHtml = `<img src="${q.content.question_image_file}">`;
+                document.querySelectorAll('.js-question-media').forEach(el => {
+                    el.innerHTML = imgHtml;
+                    el.classList.remove('hidden');
+                });
+            }
+
+            // Options
+            const desktopGrid = document.querySelector('.hidden.lg\\:block .js-options-grid');
+            const mobileGrid = document.querySelector('.lg\\:hidden .js-options-grid');
+
+            const optionsHtmlMobile = Object.entries(q.content.options || {}).map(([key, val]) => `
             <div class="qb-option-label" data-key="${key}">
                 <span class="qb-option-letter-circle">${key}</span>
                 <span class="text-slate-800 font-medium text-lg leading-tight mt-1">${val}</span>
             </div>
         `).join('');
 
-        const optionsHtmlDesktop = Object.entries(q.content.options || {}).map(([key, val]) => `
+            const optionsHtmlDesktop = Object.entries(q.content.options || {}).map(([key, val]) => `
             <button class="option-button" data-option="${key}">
                 <span class="option-key">${key}</span>
                 <span>${val}</span>
             </button>
         `).join('');
 
-        if (mobileGrid) {
-            mobileGrid.innerHTML = optionsHtmlMobile;
-            mobileGrid.querySelectorAll('.qb-option-label').forEach(el => el.addEventListener('click', () => selectOption(el.dataset.key)));
+            if (mobileGrid) {
+                mobileGrid.innerHTML = optionsHtmlMobile;
+                mobileGrid.querySelectorAll('.qb-option-label').forEach(el => el.addEventListener('click', () => selectOption(el.dataset.key)));
+            }
+            if (desktopGrid) {
+                desktopGrid.innerHTML = optionsHtmlDesktop;
+                desktopGrid.querySelectorAll('.option-button').forEach(el => el.addEventListener('click', () => selectOption(el.dataset.option)));
+            }
+
+            // Reset UI
+            toggleClass('.js-result-panel', 'hidden', true);
+            toggleClass('#desktop-insights-area', 'hidden', true);
+            if (dom.openHubBtn) dom.openHubBtn.classList.add('hidden');
+
+            updateActionButtons(true, '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án', 'submit');
+
+            // Reset Content
+            setText('#hub-explanation-text', "Chưa có giải thích.");
+            setHtml('#desktop-explanation-content', "");
+            toggleClass('#desktop-explanation', 'hidden', true);
+
+            const aiDefault = "Nhấn nút để yêu cầu AI phân tích...";
+            setText('#hub-ai-content', aiDefault);
+            setHtml('#desktop-ai-content', `<span class="italic text-slate-500">${aiDefault}</span>`);
+
+            // Update note UI based on whether note exists
+            const noteVal = q.note_content || "";
+            updateNoteUI(noteVal);
+            updateDesktopNoteUI(noteVal);
         }
-        if (desktopGrid) {
-            desktopGrid.innerHTML = optionsHtmlDesktop;
-            desktopGrid.querySelectorAll('.option-button').forEach(el => el.addEventListener('click', () => selectOption(el.dataset.option)));
-        }
 
-        // Reset UI
-        toggleClass('.js-result-panel', 'hidden', true);
-        toggleClass('#desktop-insights-area', 'hidden', true);
-        if(dom.openHubBtn) dom.openHubBtn.classList.add('hidden');
-        
-        updateActionButtons(true, '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án', 'submit');
-        
-        // Reset Content
-        setText('#hub-explanation-text', "Chưa có giải thích.");
-        setHtml('#desktop-explanation-content', "");
-        toggleClass('#desktop-explanation', 'hidden', true);
+        function selectOption(key) {
+            if (lastAnswerResult && lastAnswerResult.item_id === currentQuestion.item_id) return; // Don't allow re-selecting after answering
 
-        const aiDefault = "Nhấn nút để yêu cầu AI phân tích...";
-        setText('#hub-ai-content', aiDefault);
-        setHtml('#desktop-ai-content', `<span class="italic text-slate-500">${aiDefault}</span>`);
-        
-        const noteVal = q.note_content || "";
-        if(dom.hubNoteInput) dom.hubNoteInput.value = noteVal;
-        const dNote = document.getElementById('desktop-note-input');
-        if(dNote) dNote.value = noteVal;
-    }
-
-    function selectOption(key) {
-        if (lastAnswerResult && lastAnswerResult.item_id === currentQuestion.item_id) return; // Don't allow re-selecting after answering
-
-        document.querySelectorAll(`.qb-option-label, .option-button`).forEach(el => {
-            const elKey = el.dataset.key || el.dataset.option;
-            el.classList.toggle('selected', elKey === key);
-        });
-        
-        userAnswers[currentQuestion.item_id] = key;
-        updateActionButtons(false, null, null, true);
-        saveState();
-    }
-
-    async function submitAnswer() {
-        const itemId = currentQuestion.item_id;
-        const answer = userAnswers[itemId];
-        if (!answer) return;
-
-        updateActionButtons(true, '<i class="fas fa-circle-notch fa-spin"></i> Đang gửi...');
-
-        try {
-            const res = await fetch(submitAnswerBatchUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ answers: [{ item_id: itemId, user_answer: answer }] })
+            document.querySelectorAll(`.qb-option-label, .option-button`).forEach(el => {
+                const elKey = el.dataset.key || el.dataset.option;
+                el.classList.toggle('selected', elKey === key);
             });
-            const data = await res.json();
-            lastAnswerResult = data.results[0]; // Save result
 
-            showFeedback(lastAnswerResult);
-            
-            sessionStats.total++;
-            if (lastAnswerResult.is_correct) sessionStats.correct++;
-            updateStatsUI();
-
-            updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
-            if(dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
-
-            saveState(); // Save state after getting feedback
-        } catch (e) {
-            console.error(e);
-            alert('Lỗi gửi đáp án.');
-            updateActionButtons(false);
-        }
-    }
-
-    function showFeedback(result) {
-        document.querySelectorAll('.qb-option-label, .option-button').forEach(el => {
-            const elKey = el.dataset.key || el.dataset.option;
-            el.classList.add('disabled');
-            el.style.pointerEvents = 'none';
-            el.classList.remove('selected');
-            if (elKey === result.correct_answer) el.classList.add('correct');
-            if (elKey === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
-        });
-
-        toggleClass('.js-result-panel', 'hidden', false);
-        toggleClass('#desktop-insights-area', 'hidden', false);
-        
-        if (result.is_correct) {
-            setText('.js-feedback-icon', '🎉');
-            setText('.js-feedback-title', 'Chính xác!');
-            document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-emerald-600 js-feedback-title');
-            document.querySelectorAll('.desktop-feedback-box').forEach(el => { el.classList.remove('incorrect'); el.classList.add('correct'); });
-        } else {
-            setText('.js-feedback-icon', '🤔');
-            setText('.js-feedback-title', 'Sai rồi');
-            document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-rose-600 js-feedback-title');
-            document.querySelectorAll('.desktop-feedback-box').forEach(el => { el.classList.remove('correct'); el.classList.add('incorrect'); });
-        }
-        setText('.js-feedback-answer', result.correct_answer);
-
-        const explanationText = result.explanation || "Chưa có giải thích.";
-        const explanationHtml = explanationText.replace(/\r?\n/g, '<br>');
-        if(dom.hubExplText) dom.hubExplText.innerHTML = explanationHtml;
-        const dtExplContent = document.getElementById('desktop-explanation-content');
-        if (dtExplContent) {
-            dtExplContent.innerHTML = explanationHtml;
-            document.getElementById('desktop-explanation').classList.toggle('hidden', !result.explanation);
-        }
-        
-        if (currentQuestion.ai_explanation) {
-            if(dom.hubAiContent) dom.hubAiContent.innerHTML = currentQuestion.ai_explanation;
-            setHtml('#desktop-ai-content', currentQuestion.ai_explanation);
-        }
-    }
-
-    function nextQuestion() {
-        lastAnswerResult = null; // Clear last answer result before moving on
-        currentIndex++;
-
-        if (currentIndex < currentBatch.length) {
-            renderQuestion(currentBatch[currentIndex]);
+            userAnswers[currentQuestion.item_id] = key;
+            updateActionButtons(false, null, null, true);
             saveState();
-        } else {
-            loadFreshBatch(); // Load a new set of questions
         }
-    }
 
-    function finishSession() {
-        clearState();
-        alert('Đã hoàn thành phiên học!');
-        window.location.href = quizDashboardUrl;
-    }
+        async function submitAnswer() {
+            const itemId = currentQuestion.item_id;
+            const answer = userAnswers[itemId];
+            if (!answer) return;
 
-    function showLoading(show) {
-        toggleClass('.js-quiz-loading', 'hidden', !show);
-        toggleClass('.js-quiz-content', 'hidden', show);
-    }
+            updateActionButtons(true, '<i class="fas fa-circle-notch fa-spin"></i> Đang gửi...');
 
-    function updateActionButtons(disabled, text, action, primary) {
-        document.querySelectorAll('#mobile-action-btn, #desktop-action-btn').forEach(btn => {
-            if(!btn) return;
-            if(disabled !== undefined) btn.disabled = disabled;
-            if(text) btn.innerHTML = text;
-            if(action) btn.dataset.action = action;
-            if(primary) btn.classList.add('cm-btn-primary');
-        });
-    }
+            try {
+                const res = await fetch(submitAnswerBatchUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ answers: [{ item_id: itemId, user_answer: answer }] })
+                });
+                const data = await res.json();
+                lastAnswerResult = data.results[0]; // Save result
 
-    function updateStatsUI() {
-        const acc = sessionStats.total > 0 ? Math.round((sessionStats.correct / sessionStats.total) * 100) : 0;
-        setText('.js-stat-total', sessionStats.total);
-        setText('.js-stat-correct', sessionStats.correct);
-        setText('.js-stat-accuracy', `${acc}%`);
-        setText('.js-stat-progress-text', `${sessionStats.total}/${sessionStats.total_questions}`);
-        document.querySelectorAll('.js-stat-progress-bar').forEach(el => {
-            el.style.width = `${(sessionStats.total / (sessionStats.total_questions || 1)) * 100}%`;
-        });
-    }
+                showFeedback(lastAnswerResult);
 
-    // --- Event Handlers (AI, Notes, Navigation) ---
-    const handleAiGenerate = async (btn) => { /* ... (unchanged) ... */ };
-    const handleSaveNote = async (btn, inputEl) => { /* ... (unchanged) ... */ };
+                sessionStats.total++;
+                if (lastAnswerResult.is_correct) sessionStats.correct++;
+                updateStatsUI();
 
-    // ... (keep the AI and Note handlers from original script, they are self-contained) ...
-    // --- AI & Notes Handlers (Unified) ---
-    const handleAiGenerateImpl = async (btn) => {
-        if(!btn) return;
-        btn.disabled = true;
-        const loadingText = "Đang tạo...";
-        if(dom.hubAiContent) dom.hubAiContent.textContent = loadingText;
-        setHtml('#desktop-ai-content', `<i class="fas fa-spinner fa-spin"></i> ${loadingText}`);
-        
-        try {
-            const res = await fetch(getAiResponseUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ item_id: currentQuestion.item_id, prompt_type: 'explanation' })
+                updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
+                if (dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
+
+                saveState(); // Save state after getting feedback
+            } catch (e) {
+                console.error(e);
+                alert('Lỗi gửi đáp án.');
+                updateActionButtons(false);
+            }
+        }
+
+        function showFeedback(result) {
+            document.querySelectorAll('.qb-option-label, .option-button').forEach(el => {
+                const elKey = el.dataset.key || el.dataset.option;
+                el.classList.add('disabled');
+                el.style.pointerEvents = 'none';
+                el.classList.remove('selected');
+                if (elKey === result.correct_answer) el.classList.add('correct');
+                if (elKey === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
             });
-            const data = await res.json();
-            const content = data.html_content || data.response;
-            
-            if(dom.hubAiContent) dom.hubAiContent.innerHTML = content;
-            setHtml('#desktop-ai-content', content);
-            
-            currentQuestion.ai_explanation = content;
-            saveState(); // Save state after getting AI explanation
-        } catch (e) {
-            const errHtml = '<span class="text-red-500">Lỗi khi gọi AI.</span>';
-            if(dom.hubAiContent) dom.hubAiContent.innerHTML = errHtml;
-            setHtml('#desktop-ai-content', errHtml);
+
+            toggleClass('.js-result-panel', 'hidden', false);
+            toggleClass('#desktop-insights-area', 'hidden', false);
+
+            if (result.is_correct) {
+                setText('.js-feedback-icon', '🎉');
+                setText('.js-feedback-title', 'Chính xác!');
+                document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-emerald-600 js-feedback-title');
+                document.querySelectorAll('.desktop-feedback-box').forEach(el => { el.classList.remove('incorrect'); el.classList.add('correct'); });
+            } else {
+                setText('.js-feedback-icon', '🤔');
+                setText('.js-feedback-title', 'Sai rồi');
+                document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-rose-600 js-feedback-title');
+                document.querySelectorAll('.desktop-feedback-box').forEach(el => { el.classList.remove('correct'); el.classList.add('incorrect'); });
+            }
+            setText('.js-feedback-answer', result.correct_answer);
+
+            const explanationText = result.explanation || "Chưa có giải thích.";
+            const explanationHtml = explanationText.replace(/\r?\n/g, '<br>');
+            if (dom.hubExplText) dom.hubExplText.innerHTML = explanationHtml;
+            const dtExplContent = document.getElementById('desktop-explanation-content');
+            if (dtExplContent) {
+                dtExplContent.innerHTML = explanationHtml;
+                document.getElementById('desktop-explanation').classList.toggle('hidden', !result.explanation);
+            }
+
+            if (currentQuestion.ai_explanation) {
+                if (dom.hubAiContent) dom.hubAiContent.innerHTML = currentQuestion.ai_explanation;
+                setHtml('#desktop-ai-content', currentQuestion.ai_explanation);
+            }
         }
-        btn.disabled = false;
-    };
 
-    const handleSaveNoteImpl = async (btn, inputEl) => {
-        if(!btn || !inputEl) return;
-        const originalText = btn.innerHTML;
-        const content = inputEl.value;
-        
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lưu...';
-        btn.disabled = true;
+        function nextQuestion() {
+            lastAnswerResult = null; // Clear last answer result before moving on
+            currentIndex++;
 
-        try {
-            await fetch(saveNoteUrlTemplate.replace('0', currentQuestion.item_id), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ content })
-            });
-            currentQuestion.note_content = content;
-            
-            if(dom.hubNoteInput && dom.hubNoteInput !== inputEl) dom.hubNoteInput.value = content;
-            const dInput = document.getElementById('desktop-note-input');
-            if(dInput && dInput !== inputEl) dInput.value = content;
-            
-            alert('Đã lưu ghi chú.');
-            saveState(); // Save state after saving note
-        } catch (e) {
-            alert('Lỗi lưu ghi chú.');
+            if (currentIndex < currentBatch.length) {
+                renderQuestion(currentBatch[currentIndex]);
+                saveState();
+            } else {
+                loadFreshBatch(); // Load a new set of questions
+            }
         }
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    };
 
-    // Bind Event Listeners
-    if(dom.aiGenerateBtn) dom.aiGenerateBtn.addEventListener('click', () => handleAiGenerateImpl(dom.aiGenerateBtn));
-    const dAiBtn = document.getElementById('desktop-ai-generate-btn');
-    if(dAiBtn) dAiBtn.addEventListener('click', () => handleAiGenerateImpl(dAiBtn));
-
-    if(dom.hubNoteSave) dom.hubNoteSave.addEventListener('click', () => handleSaveNoteImpl(dom.hubNoteSave, dom.hubNoteInput));
-    const dNoteSave = document.getElementById('desktop-note-save');
-    const dNoteInput = document.getElementById('desktop-note-input');
-    if(dNoteSave) dNoteSave.addEventListener('click', () => handleSaveNoteImpl(dNoteSave, dNoteInput));
-
-    const handleAction = () => {
-        const btn = document.querySelector('#mobile-action-btn:not([disabled]), #desktop-action-btn:not([disabled])');
-        if(!btn) return;
-        if (btn.dataset.action === 'submit') submitAnswer();
-        else nextQuestion();
-    };
-    document.getElementById('mobile-action-btn')?.addEventListener('click', handleAction);
-    document.getElementById('desktop-action-btn')?.addEventListener('click', handleAction);
-
-    // Hub & Tabs
-    if(dom.hubModal) {
-        if(dom.openHubBtn) dom.openHubBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
-        if(dom.openHubDesktopBtn) dom.openHubDesktopBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
-        if(dom.closeHubBtn) dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
-    }
-    document.querySelectorAll('.qb-hub-tab-item').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.qb-hub-tab-item').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.qb-hub-pane').forEach(p => p.classList.remove('active'));
-            tab.classList.add('active');
-            document.getElementById(tab.dataset.target)?.classList.add('active');
-        });
-    });
-
-    // Exit
-    const exitHandler = () => { 
-        if(confirm('Kết thúc phiên làm bài?')) {
+        function finishSession() {
             clearState();
+            alert('Đã hoàn thành phiên học!');
             window.location.href = quizDashboardUrl;
-        } 
-    };
-    document.getElementById('mobile-exit-btn')?.addEventListener('click', exitHandler);
-    document.getElementById('desktop-exit-btn')?.addEventListener('click', exitHandler);
-
-    // --- Init ---
-    function init() {
-        if (!loadState()) {
-            loadFreshBatch();
         }
-    }
 
-    init();
+        function showLoading(show) {
+            toggleClass('.js-quiz-loading', 'hidden', !show);
+            toggleClass('.js-quiz-content', 'hidden', show);
+        }
 
-})();
+        function updateActionButtons(disabled, text, action, primary) {
+            document.querySelectorAll('#mobile-action-btn, #desktop-action-btn').forEach(btn => {
+                if (!btn) return;
+                if (disabled !== undefined) btn.disabled = disabled;
+                if (text) btn.innerHTML = text;
+                if (action) btn.dataset.action = action;
+                if (primary) btn.classList.add('cm-btn-primary');
+            });
+        }
+
+        function updateStatsUI() {
+            const acc = sessionStats.total > 0 ? Math.round((sessionStats.correct / sessionStats.total) * 100) : 0;
+            setText('.js-stat-total', sessionStats.total);
+            setText('.js-stat-correct', sessionStats.correct);
+            setText('.js-stat-accuracy', `${acc}%`);
+            setText('.js-stat-progress-text', `${sessionStats.total}/${sessionStats.total_questions}`);
+            document.querySelectorAll('.js-stat-progress-bar').forEach(el => {
+                el.style.width = `${(sessionStats.total / (sessionStats.total_questions || 1)) * 100}%`;
+            });
+        }
+
+        // --- Event Handlers (AI, Notes, Navigation) ---
+        const handleAiGenerate = async (btn) => { /* ... (unchanged) ... */ };
+        const handleSaveNote = async (btn, inputEl) => { /* ... (unchanged) ... */ };
+
+        // ... (keep the AI and Note handlers from original script, they are self-contained) ...
+        // --- AI & Notes Handlers (Unified) ---
+        const handleAiGenerateImpl = async (btn) => {
+            if (!btn) return;
+            btn.disabled = true;
+            const loadingText = "Đang tạo...";
+            if (dom.hubAiContent) dom.hubAiContent.textContent = loadingText;
+            setHtml('#desktop-ai-content', `<i class="fas fa-spinner fa-spin"></i> ${loadingText}`);
+
+            try {
+                const res = await fetch(getAiResponseUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ item_id: currentQuestion.item_id, prompt_type: 'explanation' })
+                });
+                const data = await res.json();
+                const content = data.html_content || data.response;
+
+                if (dom.hubAiContent) dom.hubAiContent.innerHTML = content;
+                setHtml('#desktop-ai-content', content);
+
+                currentQuestion.ai_explanation = content;
+                saveState(); // Save state after getting AI explanation
+            } catch (e) {
+                const errHtml = '<span class="text-red-500">Lỗi khi gọi AI.</span>';
+                if (dom.hubAiContent) dom.hubAiContent.innerHTML = errHtml;
+                setHtml('#desktop-ai-content', errHtml);
+            }
+            btn.disabled = false;
+        };
+
+        const handleSaveNoteImpl = async (btn, inputEl) => {
+            if (!btn || !inputEl) return;
+            const originalText = btn.innerHTML;
+            const content = inputEl.value;
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lưu...';
+            btn.disabled = true;
+
+            try {
+                await fetch(saveNoteUrlTemplate.replace('0', currentQuestion.item_id), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ content })
+                });
+                currentQuestion.note_content = content;
+
+                if (dom.hubNoteInput && dom.hubNoteInput !== inputEl) dom.hubNoteInput.value = content;
+                const dInput = document.getElementById('desktop-note-input');
+                if (dInput && dInput !== inputEl) dInput.value = content;
+
+                // Update UI to display mode
+                updateNoteUI(content);
+                updateDesktopNoteUI(content);
+
+                alert('Đã lưu ghi chú.');
+                saveState(); // Save state after saving note
+            } catch (e) {
+                alert('Lỗi lưu ghi chú.');
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        };
+
+        // Function to update note UI based on content
+        function updateNoteUI(noteContent) {
+            const displayMode = document.getElementById('hub-note-display-mode');
+            const editMode = document.getElementById('hub-note-edit-mode');
+            const editBtn = document.getElementById('hub-note-edit-btn');
+            const noteContentDiv = document.getElementById('hub-note-content');
+
+            if (noteContent && noteContent.trim()) {
+                // Has note - show display mode
+                if (displayMode) displayMode.classList.remove('hidden');
+                if (editMode) editMode.classList.add('hidden');
+                if (editBtn) editBtn.classList.remove('hidden');
+                if (noteContentDiv) noteContentDiv.textContent = noteContent;
+                if (dom.hubNoteInput) dom.hubNoteInput.value = noteContent;
+            } else {
+                // No note - show edit mode
+                if (displayMode) displayMode.classList.add('hidden');
+                if (editMode) editMode.classList.remove('hidden');
+                if (editBtn) editBtn.classList.add('hidden');
+                if (dom.hubNoteInput) dom.hubNoteInput.value = '';
+            }
+        }
+
+        // Function to update desktop note UI based on content
+        function updateDesktopNoteUI(noteContent) {
+            const displayMode = document.getElementById('desktop-note-display-mode');
+            const editMode = document.getElementById('desktop-note-edit-mode');
+            const editBtn = document.getElementById('desktop-note-edit-btn');
+            const noteContentDiv = document.getElementById('desktop-note-content');
+            const dNoteInput = document.getElementById('desktop-note-input');
+
+            if (noteContent && noteContent.trim()) {
+                // Has note - show display mode
+                if (displayMode) displayMode.classList.remove('hidden');
+                if (editMode) editMode.classList.add('hidden');
+                if (editBtn) editBtn.classList.remove('hidden');
+                if (noteContentDiv) noteContentDiv.textContent = noteContent;
+                if (dNoteInput) dNoteInput.value = noteContent;
+            } else {
+                // No note - show edit mode
+                if (displayMode) displayMode.classList.add('hidden');
+                if (editMode) editMode.classList.remove('hidden');
+                if (editBtn) editBtn.classList.add('hidden');
+                if (dNoteInput) dNoteInput.value = '';
+            }
+        }
+
+        // Bind Event Listeners
+        if (dom.aiGenerateBtn) dom.aiGenerateBtn.addEventListener('click', () => handleAiGenerateImpl(dom.aiGenerateBtn));
+        const dAiBtn = document.getElementById('desktop-ai-generate-btn');
+        if (dAiBtn) dAiBtn.addEventListener('click', () => handleAiGenerateImpl(dAiBtn));
+
+        if (dom.hubNoteSave) dom.hubNoteSave.addEventListener('click', () => handleSaveNoteImpl(dom.hubNoteSave, dom.hubNoteInput));
+        const dNoteSave = document.getElementById('desktop-note-save');
+        const dNoteInput = document.getElementById('desktop-note-input');
+        if (dNoteSave) dNoteSave.addEventListener('click', () => handleSaveNoteImpl(dNoteSave, dNoteInput));
+
+        // Note edit button - switch to edit mode
+        const hubNoteEditBtn = document.getElementById('hub-note-edit-btn');
+        if (hubNoteEditBtn) {
+            hubNoteEditBtn.addEventListener('click', () => {
+                const displayMode = document.getElementById('hub-note-display-mode');
+                const editMode = document.getElementById('hub-note-edit-mode');
+                if (displayMode) displayMode.classList.add('hidden');
+                if (editMode) editMode.classList.remove('hidden');
+                if (hubNoteEditBtn) hubNoteEditBtn.classList.add('hidden');
+            });
+        }
+
+        // Note cancel button - back to display mode or hide if no content
+        const hubNoteCancelBtn = document.getElementById('hub-note-cancel');
+        if (hubNoteCancelBtn) {
+            hubNoteCancelBtn.addEventListener('click', () => {
+                const noteContent = currentQuestion?.note_content || '';
+                updateNoteUI(noteContent);
+            });
+        }
+
+        // Desktop note edit button - switch to edit mode
+        const desktopNoteEditBtn = document.getElementById('desktop-note-edit-btn');
+        if (desktopNoteEditBtn) {
+            desktopNoteEditBtn.addEventListener('click', () => {
+                const displayMode = document.getElementById('desktop-note-display-mode');
+                const editMode = document.getElementById('desktop-note-edit-mode');
+                if (displayMode) displayMode.classList.add('hidden');
+                if (editMode) editMode.classList.remove('hidden');
+                if (desktopNoteEditBtn) desktopNoteEditBtn.classList.add('hidden');
+            });
+        }
+
+        // Desktop note cancel button - back to display mode or hide if no content
+        const desktopNoteCancelBtn = document.getElementById('desktop-note-cancel');
+        if (desktopNoteCancelBtn) {
+            desktopNoteCancelBtn.addEventListener('click', () => {
+                const noteContent = currentQuestion?.note_content || '';
+                updateDesktopNoteUI(noteContent);
+            });
+        }
+
+        const handleAction = () => {
+            const btn = document.querySelector('#mobile-action-btn:not([disabled]), #desktop-action-btn:not([disabled])');
+            if (!btn) return;
+            if (btn.dataset.action === 'submit') submitAnswer();
+            else nextQuestion();
+        };
+        document.getElementById('mobile-action-btn')?.addEventListener('click', handleAction);
+        document.getElementById('desktop-action-btn')?.addEventListener('click', handleAction);
+
+        // Hub & Tabs
+        if (dom.hubModal) {
+            if (dom.openHubBtn) dom.openHubBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
+            if (dom.openHubDesktopBtn) dom.openHubDesktopBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
+            if (dom.closeHubBtn) dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
+        }
+        document.querySelectorAll('.qb-hub-tab-item').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.qb-hub-tab-item').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.qb-hub-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.target)?.classList.add('active');
+            });
+        });
+
+        // Exit
+        const exitHandler = () => {
+            if (confirm('Kết thúc phiên làm bài?')) {
+                clearState();
+                window.location.href = quizDashboardUrl;
+            }
+        };
+        document.getElementById('mobile-exit-btn')?.addEventListener('click', exitHandler);
+        document.getElementById('desktop-exit-btn')?.addEventListener('click', exitHandler);
+
+        // --- Init ---
+        function init() {
+            if (!loadState()) {
+                loadFreshBatch();
+            }
+        }
+
+        init();
+
+    })();
 </script>
 {% endblock %}
