@@ -12,6 +12,7 @@ from mindstack_app.models import (
     QuizProgress,
     User,
     UserNote,
+    ContainerContributor,
     db,
 )
 from .algorithms import (
@@ -426,6 +427,78 @@ class QuizSessionManager:
                 item_dict['content']['question_audio_file'] = self._get_media_absolute_url(
                     item_dict['content']['question_audio_file'], 'audio', container=container_obj
                 )
+
+            # Calculate User Stats for this question
+            # Note: This might cause N+1 query issue if batch is large. For generic batch size (10-20) it's acceptable.
+            # Optimization: could query stats for all items in batch in one go, but keeping it simple for now.
+            if self.user_id:
+                progress = QuizProgress.query.filter_by(
+                    user_id=self.user_id,
+                    item_id=item.item_id
+                ).first()
+                
+                if progress:
+                    times_answered = (progress.times_correct or 0) + (progress.times_incorrect or 0)
+                    correct_count = progress.times_correct or 0
+                    incorrect_count = progress.times_incorrect or 0
+                    accuracy = round((correct_count / times_answered * 100), 1) if times_answered > 0 else 0
+                    
+                    # History (Last 5 attempts, newest first)
+                    history = progress.review_history or []
+                    recent_history = history[-5:][::-1] if history else []
+                    
+                    last_reviewed_str = progress.last_reviewed.strftime("%d/%m %H:%M") if progress.last_reviewed else "--"
+
+                    item_dict['user_stats'] = {
+                        'has_data': True,
+                        'times_answered': times_answered,
+                        'correct_count': correct_count,
+                        'incorrect_count': incorrect_count,
+                        'accuracy': accuracy,
+                        'streak': progress.correct_streak or 0,
+                        'last_reviewed': last_reviewed_str,
+                        'recent_history': recent_history
+                    }
+                else:
+                    item_dict['user_stats'] = {
+                        'has_data': False,
+                        'times_answered': 0,
+                        'correct_count': 0,
+                        'incorrect_count': 0,
+                        'accuracy': 0,
+                        'streak': 0,
+                        'last_reviewed': '--',
+                        'recent_history': []
+                    }
+            else:
+                 item_dict['user_stats'] = {
+                    'has_data': False,
+                    'times_answered': 0,
+                    'correct_count': 0,
+                    'incorrect_count': 0,
+                    'accuracy': 0,
+                    'streak': 0,
+                    'last_reviewed': '--',
+                    'recent_history': []
+                }
+
+            # Determine can_edit
+            can_edit = False
+            if current_user.is_authenticated and current_user.user_role == User.ROLE_ADMIN:
+                can_edit = True
+            elif hasattr(item, 'container') and item.container:
+                if item.container.creator_user_id == self.user_id:
+                    can_edit = True
+                else:
+                    contributor = ContainerContributor.query.filter_by(
+                        container_id=item.container_id,
+                        user_id=self.user_id,
+                        permission_level='editor'
+                    ).first()
+                    if contributor:
+                        can_edit = True
+
+            item_dict['can_edit'] = can_edit
 
             items_data.append(item_dict)
             newly_processed_item_ids.append(item.item_id)

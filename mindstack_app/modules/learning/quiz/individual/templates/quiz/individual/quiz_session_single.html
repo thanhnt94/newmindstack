@@ -862,6 +862,50 @@
         </div>
     </div>
 </div>
+<!-- Edit Item Modal -->
+<div id="edit-item-modal" class="qb-modal-overlay">
+    <div class="qb-modal-container"
+        style="max-width: 900px; margin: 0 auto; height: 90vh; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
+        <div class="qb-hub-header">
+            <h3 class="font-bold text-slate-800 text-lg"><i
+                    class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i>Chỉnh sửa câu hỏi</h3>
+            <button id="close-edit-modal-btn"
+                class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="flex-1 bg-slate-50 relative overflow-hidden">
+            <iframe id="edit-item-iframe" src="" class="w-full h-full border-none" title="Edit Item"></iframe>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Modal -->
+<div id="feedback-modal" class="qb-modal-overlay">
+    <div class="qb-modal-container"
+        style="max-width: 500px; margin: 0 auto; height: auto; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
+        <div class="qb-hub-header">
+            <h3 class="font-bold text-slate-800 text-lg"><i class="fa-solid fa-flag text-red-500 mr-2"></i>Báo lỗi / Góp
+                ý</h3>
+            <button id="close-feedback-btn"
+                class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="p-4">
+            <p class="text-sm text-slate-600 mb-3">Hãy mô tả vấn đề bạn gặp phải với câu hỏi này. Đóng góp của bạn giúp
+                chúng tôi cải thiện chất lượng!</p>
+            <textarea id="feedback-input"
+                class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition mb-4"
+                rows="4" placeholder="Nhập nội dung phản hồi..."></textarea>
+            <div class="flex justify-end gap-2">
+                <button id="feedback-cancel-btn"
+                    class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-2 px-4 text-sm rounded-lg">Hủy</button>
+                <button id="feedback-submit-btn"
+                    class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-2 px-4 text-sm rounded-lg">Gửi phản
+                    hồi</button>
+            </div>
+        </div>
+    </div>
+</div>
 <style>
     /* Desktop specific overrides for Hub to center it and handle visibility */
     @media (min-width: 1024px) {
@@ -1075,10 +1119,28 @@
             setText('#hub-ai-content', aiDefault);
             setHtml('#desktop-ai-content', `<span class="italic text-slate-500">${aiDefault}</span>`);
 
+            // Reset AI Buttons
+            const aiBtns = [document.getElementById('ai-generate-btn'), document.getElementById('desktop-ai-generate-btn')];
+            aiBtns.forEach(btn => {
+                if (btn) {
+                    btn.classList.remove('hidden');
+                    btn.disabled = false;
+                }
+            });
+
             // Update note UI based on whether note exists
             const noteVal = q.note_content || "";
             updateNoteUI(noteVal);
             updateDesktopNoteUI(noteVal);
+
+            // Edit & Feedback Buttons - Reset to hidden state
+            const mobileEditBtn = document.getElementById('mobile-edit-btn');
+            const desktopEditBtn = document.getElementById('desktop-edit-btn');
+            const mobileFeedbackBtn = document.getElementById('mobile-feedback-btn');
+
+            if (mobileEditBtn) mobileEditBtn.classList.add('hidden');
+            if (desktopEditBtn) desktopEditBtn.classList.add('hidden');
+            if (mobileFeedbackBtn) mobileFeedbackBtn.classList.add('hidden');
         }
 
         function selectOption(key) {
@@ -1109,6 +1171,67 @@
                 });
                 const data = await res.json();
                 lastAnswerResult = data.results[0]; // Save result
+
+                // Update Local Stats immediately
+                if (currentQuestion.user_stats) {
+                    const s = currentQuestion.user_stats;
+                    s.times_answered++;
+                    s.last_reviewed = "Vừa xong";
+
+                    const isCorrect = lastAnswerResult.is_correct;
+                    if (isCorrect) {
+                        s.correct_count++;
+                        s.streak++;
+                    } else {
+                        s.incorrect_count++;
+                        s.streak = 0;
+                    }
+                    s.accuracy = Math.round((s.correct_count / s.times_answered) * 1000) / 10; // Round to 1 decimal
+
+                    // Add to history
+                    if (!s.recent_history) s.recent_history = [];
+                    s.recent_history.unshift({
+                        timestamp: new Date().toISOString(),
+                        user_answer: answer,
+                        is_correct: isCorrect
+                    });
+                    if (s.recent_history.length > 5) s.recent_history.pop();
+
+                    // Force UI Update
+                    setText('.js-qstat-times', s.times_answered);
+                    setText('.js-qstat-accuracy', s.accuracy + '%');
+                    setText('.js-qstat-streak', s.streak);
+                    setText('.js-qstat-last', s.last_reviewed);
+                    setText('.js-qstat-correct', s.correct_count);
+                    setText('.js-qstat-incorrect', s.incorrect_count);
+
+                    // Update History List UI
+                    const histContainer = document.querySelector('.js-qstat-history');
+                    if (histContainer) {
+                        const html = s.recent_history.map(h => {
+                            // Helper for timestamp formatting handled purely in JS here
+                            const date = new Date(h.timestamp);
+                            let timeStr = "Vừa xong";
+                            if (h.timestamp.indexOf('T') > 0 && !h.timestamp.includes('Vừa xong')) { // Simple check if it's ISO string
+                                timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric' });
+                            }
+
+                            const isCorr = h.is_correct;
+                            const icon = isCorr ? '<i class="fa-solid fa-check text-emerald-500"></i>' : '<i class="fa-solid fa-xmark text-rose-500"></i>';
+                            const ans = h.user_answer || '?';
+                            return `
+                                <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                                    <span class="text-xs text-slate-500">${timeStr}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-700">Chọn ${ans}</span>
+                                        ${icon}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                        histContainer.innerHTML = html;
+                    }
+                }
 
                 showFeedback(lastAnswerResult);
 
@@ -1165,12 +1288,93 @@
             if (currentQuestion.ai_explanation) {
                 if (dom.hubAiContent) dom.hubAiContent.innerHTML = currentQuestion.ai_explanation;
                 setHtml('#desktop-ai-content', currentQuestion.ai_explanation);
+
+                // Hide generate buttons if AI explanation already exists
+                document.querySelectorAll('#ai-generate-btn, #desktop-ai-generate-btn').forEach(btn => {
+                    if (btn) btn.classList.add('hidden');
+                });
+            }
+
+            // Reveal Edit and Feedback Buttons
+            const mobileEditBtn = document.getElementById('mobile-edit-btn');
+            const desktopEditBtn = document.getElementById('desktop-edit-btn');
+            // FIX: Correct URL Prefix is /content/quizzes not /content_management
+            const editUrl = `/content/quizzes/${currentQuestion.container_id}/items/edit/${currentQuestion.item_id}`;
+
+            if (currentQuestion.can_edit) {
+                if (mobileEditBtn) {
+                    mobileEditBtn.classList.remove('hidden');
+                    mobileEditBtn.onclick = (e) => {
+                        e.preventDefault();
+                        if (window.openEditModal) window.openEditModal(editUrl);
+                    };
+                }
+                if (desktopEditBtn) {
+                    desktopEditBtn.classList.remove('hidden');
+                    desktopEditBtn.removeAttribute('href');
+                    desktopEditBtn.onclick = (e) => {
+                        e.preventDefault();
+                        if (window.openEditModal) window.openEditModal(editUrl);
+                    };
+                }
+            }
+
+            // Show feedback button
+            const mobileFeedbackBtn = document.getElementById('mobile-feedback-btn');
+            if (mobileFeedbackBtn) mobileFeedbackBtn.classList.remove('hidden');
+
+            // Update Question Stats (Mobile)
+            // Update Question Stats (Mobile)
+            if (currentQuestion.user_stats) {
+                const s = currentQuestion.user_stats;
+                setText('.js-qstat-times', s.times_answered);
+                setText('.js-qstat-accuracy', s.accuracy + '%');
+                setText('.js-qstat-streak', s.streak);
+                setText('.js-qstat-last', s.last_reviewed);
+                setText('.js-qstat-correct', s.correct_count);
+                setText('.js-qstat-incorrect', s.incorrect_count);
+
+                // History List
+                const histContainer = document.querySelector('.js-qstat-history');
+                if (histContainer && s.recent_history && s.recent_history.length > 0) {
+                    const html = s.recent_history.map(h => {
+                        const date = new Date(h.timestamp);
+                        const timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric' });
+                        const isCorr = h.is_correct;
+                        const icon = isCorr ? '<i class="fa-solid fa-check text-emerald-500"></i>' : '<i class="fa-solid fa-xmark text-rose-500"></i>';
+                        const ans = h.user_answer || '?';
+                        return `
+                            <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                                <span class="text-xs text-slate-500">${timeStr}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-slate-700">Chọn ${ans}</span>
+                                    ${icon}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    histContainer.innerHTML = html;
+                } else if (histContainer) {
+                    histContainer.innerHTML = '<div class="text-center text-xs text-slate-400 italic">Chưa có dữ liệu</div>';
+                }
+
+            } else {
+                setText('.js-qstat-times', '0');
+                setText('.js-qstat-accuracy', '0%');
+                setText('.js-qstat-last', '--');
+                setText('.js-qstat-streak', '0');
+                setText('.js-qstat-correct', '0');
+                setText('.js-qstat-incorrect', '0');
             }
         }
 
         function nextQuestion() {
             lastAnswerResult = null; // Clear last answer result before moving on
             currentIndex++;
+
+            // Auto-switch back to Game tab if on mobile
+            const gameTab = document.querySelector('.qb-mobile-tab-item[data-tab="game"]');
+            if (gameTab) gameTab.click();
 
             if (currentIndex < currentBatch.length) {
                 renderQuestion(currentBatch[currentIndex]);
@@ -1239,12 +1443,15 @@
 
                 currentQuestion.ai_explanation = content;
                 saveState(); // Save state after getting AI explanation
+
+                // Hide the button after successful generation
+                btn.classList.add('hidden');
             } catch (e) {
                 const errHtml = '<span class="text-red-500">Lỗi khi gọi AI.</span>';
                 if (dom.hubAiContent) dom.hubAiContent.innerHTML = errHtml;
                 setHtml('#desktop-ai-content', errHtml);
+                btn.disabled = false;
             }
-            btn.disabled = false;
         };
 
         const handleSaveNoteImpl = async (btn, inputEl) => {
@@ -1388,6 +1595,24 @@
         document.getElementById('mobile-action-btn')?.addEventListener('click', handleAction);
         document.getElementById('desktop-action-btn')?.addEventListener('click', handleAction);
 
+
+        // Mobile Tabs Logic
+        document.querySelectorAll('.qb-mobile-tab-item').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Deactivate all tabs and panes
+                document.querySelectorAll('.qb-mobile-tab-item').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.remove('active'));
+
+                // Activate clicked tab
+                tab.classList.add('active');
+
+                // Activate target pane
+                const targetId = `tab-pane-${tab.dataset.tab}`;
+                const targetPane = document.getElementById(targetId);
+                if (targetPane) targetPane.classList.add('active');
+            });
+        });
+
         // Hub & Tabs
         if (dom.hubModal) {
             if (dom.openHubBtn) dom.openHubBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
@@ -1403,6 +1628,81 @@
             });
         });
 
+
+        // Edit Modal Logic
+        const editModal = document.getElementById('edit-item-modal');
+        if (editModal) {
+            const closeBtn = document.getElementById('close-edit-modal-btn');
+            const iframe = document.getElementById('edit-item-iframe');
+
+            window.openEditModal = (url) => {
+                if (iframe) iframe.src = url + (url.includes('?') ? '&' : '?') + 'is_modal=true';
+                editModal.classList.add('open');
+            };
+
+            const closeEditModal = () => {
+                editModal.classList.remove('open');
+                if (iframe) iframe.src = '';
+
+                // Refresh current question data
+                if (currentQuestion && currentQuestion.item_id) {
+                    fetch(`/learn/quiz_learning/api/items/${currentQuestion.item_id}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success && data.item) {
+                                // Update current batch data
+                                currentBatch[currentIndex] = { ...currentBatch[currentIndex], ...data.item };
+                                // Re-render
+                                renderQuestion(currentBatch[currentIndex]);
+                                saveState();
+                            }
+                        })
+                        .catch(err => console.error("Failed to refresh question:", err));
+                }
+            };
+
+            if (closeBtn) closeBtn.addEventListener('click', closeEditModal);
+            editModal.addEventListener('click', (e) => { if (e.target === editModal) closeEditModal(); });
+        }
+
+        // Feedback Modal Logic
+        const feedbackModal = document.getElementById('feedback-modal');
+        if (feedbackModal) {
+            const openFeedbackBtn = document.getElementById('mobile-feedback-btn');
+            const closeBtn = document.getElementById('close-feedback-btn');
+            const cancelBtn = document.getElementById('feedback-cancel-btn');
+            const submitBtn = document.getElementById('feedback-submit-btn');
+            const input = document.getElementById('feedback-input');
+
+            const openFeedback = () => feedbackModal.classList.add('open');
+            const closeFeedback = () => feedbackModal.classList.remove('open');
+
+            if (openFeedbackBtn) openFeedbackBtn.addEventListener('click', openFeedback);
+
+            [closeBtn, cancelBtn].forEach(btn => btn?.addEventListener('click', closeFeedback));
+            feedbackModal.addEventListener('click', (e) => { if (e.target === feedbackModal) closeFeedback(); });
+
+            submitBtn?.addEventListener('click', () => {
+                const content = input.value.trim();
+                if (!content) {
+                    alert("Vui lòng nhập nội dung.");
+                    return;
+                }
+                // Simulate API call
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+
+                setTimeout(() => {
+                    console.log(`Sending feedback for item ${currentQuestion?.item_id}: ${content}`);
+                    alert("Cảm ơn đóng góp của bạn!");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Gửi phản hồi';
+                    input.value = '';
+                    closeFeedback();
+                }, 800);
+            });
+        }
+
         // Exit
         const exitHandler = () => {
             if (confirm('Kết thúc phiên làm bài?')) {
@@ -1415,6 +1715,12 @@
 
         // --- Init ---
         function init() {
+            // Check for force new session flag from Dashboard
+            if (localStorage.getItem('force_new_session') === 'true') {
+                clearState();
+                localStorage.removeItem('force_new_session');
+            }
+
             if (!loadState()) {
                 loadFreshBatch();
             }

@@ -602,6 +602,11 @@
     async function loadQuizModes(setId) {
         if (currentFilter === 'archive') return;
         if (!quizModesContainer) return;
+
+        // Reset selected mode when reloading modes to ensure fresh selection
+        selectedQuizMode = null;
+        updateActionButtons();
+
         quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-32 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải chế độ...</p></div>';
 
         try {
@@ -620,7 +625,8 @@
             }
 
             const fullUrl = new URL(url, window.location.origin);
-            if (selectedQuizMode) fullUrl.searchParams.append('selected_mode', selectedQuizMode);
+            // Remove passing selected_mode since we reset it
+            // if (selectedQuizMode) fullUrl.searchParams.append('selected_mode', selectedQuizMode);
             fullUrl.searchParams.append('user_default_batch_size', selectedSessionSize);
 
             const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -647,11 +653,8 @@
                 });
             });
 
-            // Auto select mode
-            if (!selectedQuizMode) {
-                const first = Array.from(modes).find(m => parseInt(m.dataset.count) > 0);
-                if (first) first.click();
-            }
+            // Auto select REMOVED to force user selection
+            // updateActionButtons is already called via reset at top, but calling again is fine or just leave it.
 
         } catch (e) {
             quizModesContainer.innerHTML = '<p class="text-center text-rose-500">Lỗi tải chế độ học.</p>';
@@ -816,6 +819,15 @@
     });
 
     document.getElementById('start-learning-btn')?.addEventListener('click', () => {
+        // Clear previous session state from LocalStorage
+        localStorage.removeItem('quiz_session_state');
+        localStorage.removeItem('quiz_batch_questions');
+        localStorage.removeItem('current_batch');
+
+        // Signal new session to the single quiz page
+        localStorage.setItem('force_new_session', 'true');
+
+        // ... existing start logic ...
         let startUrl;
         const batchSize = selectedSessionSize || 10;
         if (selectedQuizSetIds.length === 1 && selectedQuizSetIds[0] === 'all') {

@@ -108,6 +108,21 @@ def _serialize_quiz_learning_item(item, user_id):
 
     note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
 
+    can_edit = False
+    if current_user.is_authenticated and current_user.user_role == User.ROLE_ADMIN:
+        can_edit = True
+    elif item and item.container:
+        if item.container.creator_user_id == user_id:
+            can_edit = True
+        elif user_id: # Check contributors if not creator
+            contributor = ContainerContributor.query.filter_by(
+                container_id=item.container_id,
+                user_id=user_id,
+                permission_level='editor'
+            ).first()
+            if contributor:
+                can_edit = True
+
     return {
         'item_id': item.item_id,
         'container_id': item.container_id,
@@ -116,6 +131,7 @@ def _serialize_quiz_learning_item(item, user_id):
         'note_content': note.content if note else '',
         'group_id': item.group_id,
         'group_details': None,
+        'can_edit': can_edit,
     }
 
 
