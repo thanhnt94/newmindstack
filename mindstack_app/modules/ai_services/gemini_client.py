@@ -36,10 +36,33 @@ class GeminiClient:
 
     def generate_content(self, prompt, item_info="N/A"):
         """
-        Mô tả: Gửi một prompt đến Gemini API và nhận lại nội dung.
+        Mô tả: Gửi một prompt đến Gemini API.
+        Hỗ trợ FALLBACK MODEL: Nếu model đầu tiên thất bại (do quota/lỗi), tự động thử model tiếp theo trong danh sách.
+        Danh sách model được định nghĩa trong self.model_name (cách nhau bởi dấu phẩy).
+        """
+        # Phân tách danh sách model (hỗ trợ chuỗi comma-separated)
+        raw_models = self.model_name.split(',') if ',' in self.model_name else [self.model_name]
+        models_to_try = [m.strip() for m in raw_models if m.strip()]
+        
+        final_error_msg = None
 
-        Trả về tuple (success: bool, message: str) để phân biệt rõ giữa kết quả
-        hợp lệ và thông báo lỗi.
+        for index, model_chk in enumerate(models_to_try):
+            current_app.logger.info(f"GeminiClient: [Model {index + 1}/{len(models_to_try)}] Đang thử model '{model_chk}'...")
+            
+            success, result = self._generate_with_single_model(model_chk, prompt, item_info)
+            if success:
+                if index > 0:
+                    current_app.logger.info(f"GeminiClient: Fallback thành công switch sang model '{model_chk}'.")
+                return True, result
+            
+            final_error_msg = result
+            current_app.logger.warning(f"GeminiClient: Model '{model_chk}' thất bại. Đang thử model tiếp theo (nếu có)...")
+
+        return False, f"Tất cả các model ({', '.join(models_to_try)[:50]}...) đều thất bại. Lỗi cuối: {final_error_msg}"
+
+    def _generate_with_single_model(self, model_target, prompt, item_info):
+        """
+        Mô tả: Logic cốt lõi để gọi API với một model cụ thể và xoay vòng Key.
         """
         max_retries = 5
         last_error_msg = None
@@ -51,71 +74,58 @@ class GeminiClient:
 
             if not key_id:
                 error_msg = "Tất cả các API key (Gemini) đều đã cạn kiệt hoặc không hợp lệ."
-                current_app.logger.error(f"GeminiClient: {error_msg}")
+                # Nếu hết key thì dù đổi model cũng vô dụng (thường là vậy), nhưng để chắc chắn ta cứ return False
+                # để vòng lặp ngoài quyết định.
                 return False, error_msg
 
             current_app.logger.info(
-                f"GeminiClient: Sử dụng API key ID {key_id} cho {item_info} (Lần thử {attempt + 1})"
+                f"GeminiClient: Sử dụng Key ID {key_id} cho model '{model_target}' (Lần thử {attempt + 1})"
             )
 
             try:
                 genai.configure(api_key=key_value)
-                model = genai.GenerativeModel(self.model_name)
+                model = genai.GenerativeModel(model_target)
                 response = model.generate_content(prompt)
 
                 if response.parts:
                     return True, response.text
 
                 feedback = response.prompt_feedback
-                last_error_msg = f"AI không thể tạo nội dung. Phản hồi từ Google: {feedback}"
-                current_app.logger.warning(
-                    f"GeminiClient: Phản hồi trống cho {item_info}. {last_error_msg}"
-                )
+                last_error_msg = f"AI không thể tạo nội dung. Phản hồi: {feedback}"
+                current_app.logger.warning(f"GeminiClient: Phản hồi trống. {last_error_msg}")
+            
             except google_exceptions.PermissionDenied as e:
-                current_app.logger.error(
-                    f"GeminiClient: Lỗi PermissionDenied với key ID {key_id}: {e}. Đánh dấu là cạn kiệt."
-                )
+                current_app.logger.error(f"GeminiClient: Key ID {key_id} bị từ chối (PermissionDenied). Đánh dấu cạn kiệt.")
                 with self.app_context:
                     self.api_key_manager.mark_key_as_exhausted(key_id)
                 previous_key_id = key_id
                 continue
+
             except google_exceptions.ResourceExhausted as e:
-                # Chiến lược mới: Fail Fast & Round Robin
-                # Lỗi này là tạm thời (Quota), KHÔNG được đánh dấu key là hỏng vĩnh viễn.
-                
+                # 429 Quota Limit
                 if previous_key_id == key_id:
-                    # Đã quay vòng lại key cũ -> Nghĩa là tất cả key đều đang bị rate limit.
-                    # Dừng ngay lập tức, không spam API nữa.
-                    error_msg = "Tạm thời hết hạn mức Quota trên tất cả các API Key. Vui lòng thử lại sau ít phút."
+                    # Đã quay vòng key mà vẫn lỗi cũ -> Tạm dừng model này
+                    error_msg = "Hết hạn mức Quota (ResourceExhausted) trên tất cả Key cho model này."
                     current_app.logger.warning(f"GeminiClient: {error_msg}")
                     return False, error_msg
                 
-                # Nếu chưa quay vòng lại, chỉ đơn giản là thử key tiếp theo ngay lập tức.
-                current_app.logger.warning(
-                    f"GeminiClient: Key ID {key_id} bị 429 (ResourceExhausted). Đang thử key tiếp theo..."
-                )
+                current_app.logger.warning(f"GeminiClient: Key ID {key_id} bị 429. Thử key khác...")
                 previous_key_id = key_id
-                # Gọi force_refresh để đảm bảo ta có danh sách mới nhất nếu có key mới thêm vào
-                self.api_key_manager.force_refresh() 
+                self.api_key_manager.force_refresh()
                 continue
+
             except google_exceptions.ServiceUnavailable as e:
-                current_app.logger.warning(
-                    f"GeminiClient: ServiceUnavailable (503). Đang thử lại..."
-                )
+                current_app.logger.warning("GeminiClient: ServiceUnavailable (503). Thử lại...")
                 time.sleep(2)
-                previous_key_id = key_id
                 continue
+
             except Exception as e:
-                last_error_msg = f"Lỗi server khi gọi AI: {e}"
-                current_app.logger.error(
-                    f"GeminiClient: Lỗi khi gọi Gemini API cho {item_info} với key ID {key_id}: {e}",
-                    exc_info=True,
-                )
+                last_error_msg = f"Lỗi không xác định: {e}"
+                current_app.logger.error(f"GeminiClient: Lỗi call API: {e}", exc_info=True)
+                # Lỗi lạ thì break ngay để thử model khác (hoặc fail luôn)
                 break
 
-        final_error_msg = last_error_msg or "Đã thử tất cả API key nhưng đều thất bại."
-        current_app.logger.critical(f"GeminiClient: {final_error_msg}")
-        return False, final_error_msg
+        return False, last_error_msg or "Thất bại sau nhiều lần thử Key."
 
     @staticmethod
     def get_available_models():
