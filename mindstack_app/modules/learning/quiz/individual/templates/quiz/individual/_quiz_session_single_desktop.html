@@ -101,10 +101,28 @@
                             <div class="info-section user-note-section">
                                 <h4>
                                     <span><i class="fas fa-sticky-note text-yellow-500"></i> Ghi chú của bạn</span>
+                                    <button id="desktop-note-edit-btn" class="hidden text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded hover:bg-slate-200">
+                                        <i class="fa-solid fa-pencil"></i> Sửa
+                                    </button>
                                 </h4>
-                                <div class="note-edit-mode">
+
+                                <!-- Display Mode -->
+                                <div id="desktop-note-display-mode" class="hidden">
+                                    <div id="desktop-note-content" class="content-display markdown-body min-h-[50px]"></div>
+                                </div>
+
+                                <!-- Add Note Button -->
+                                <div id="desktop-note-add-container">
+                                    <button id="desktop-note-add-btn" class="cm-btn bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 py-1.5 px-4 text-sm rounded-md">
+                                        <i class="fa-solid fa-plus"></i> Thêm ghi chú
+                                    </button>
+                                </div>
+
+                                <!-- Edit Mode -->
+                                <div id="desktop-note-edit-mode" class="hidden">
                                     <textarea id="desktop-note-input" class="note-textarea" placeholder="Ghi chú cho câu này..."></textarea>
-                                    <div class="flex justify-end mt-2">
+                                    <div class="flex justify-end mt-2 gap-2">
+                                        <button id="desktop-note-cancel" class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-1.5 px-4 text-sm rounded-md">Hủy</button>
                                         <button id="desktop-note-save" class="cm-btn bg-emerald-600 text-white hover:bg-emerald-700 py-1.5 px-4 text-sm rounded-md">Lưu ghi chú</button>
                                     </div>
                                 </div>

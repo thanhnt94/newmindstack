@@ -325,8 +325,33 @@
                 </div>
                 <!-- Note Tab -->
                 <div id="hub-note" class="qb-hub-pane">
-                    <textarea id="hub-note-input" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition" rows="8" placeholder="Ghi chú của bạn..."></textarea>
-                    <button id="hub-note-save" class="mt-2 w-full py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm hover:bg-blue-200">Lưu ghi chú</button>
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-bold text-slate-700">Ghi chú của bạn</h4>
+                        <button id="hub-note-edit-btn" class="hidden text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded hover:bg-slate-200">
+                            <i class="fa-solid fa-pencil"></i> Sửa
+                        </button>
+                    </div>
+
+                    <!-- Display Mode -->
+                    <div id="hub-note-display-mode" class="hidden">
+                        <div id="hub-note-content" class="content-display markdown-body min-h-[100px] bg-slate-50 p-3 rounded-lg"></div>
+                    </div>
+
+                    <!-- Add Note Button -->
+                    <div id="hub-note-add-container">
+                        <button id="hub-note-add-btn" class="cm-btn bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 py-1.5 px-4 text-sm rounded-md w-full">
+                            <i class="fa-solid fa-plus"></i> Thêm ghi chú
+                        </button>
+                    </div>
+
+                    <!-- Edit Mode -->
+                    <div id="hub-note-edit-mode" class="hidden">
+                        <textarea id="hub-note-input" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition" rows="8" placeholder="Ghi chú của bạn..."></textarea>
+                        <div class="flex justify-end mt-2 gap-2">
+                            <button id="hub-note-cancel" class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-1.5 px-4 text-sm rounded-md">Hủy</button>
+                            <button id="hub-note-save" class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-1.5 px-4 text-sm rounded-md">Lưu ghi chú</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -358,25 +383,20 @@
     const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
     const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-    
-    // State
+    const SESSION_KEY = 'quiz_session_single_state';
+
+    // --- State ---
     let currentBatch = [];
     let currentIndex = 0; 
     let userAnswers = {};
     let sessionStats = { total: 0, correct: 0, total_questions: 0 };
     let currentQuestion = null;
+    let lastAnswerResult = null; // Holds the result of the last answered question
 
     // Helper: Update text/html for ALL matching elements (Mobile & Desktop)
     const setText = (selector, text) => document.querySelectorAll(selector).forEach(el => el.textContent = text);
     const setHtml = (selector, html) => document.querySelectorAll(selector).forEach(el => el.innerHTML = html);
     const toggleClass = (selector, cls, force) => document.querySelectorAll(selector).forEach(el => el.classList.toggle(cls, force));
-
-    function formatTextForHtml(text) {
-        if (text === null || text === undefined) return '';
-        const tempDiv = document.createElement('div');
-        tempDiv.textContent = text;
-        return tempDiv.innerHTML.replace(/\r?\n/g, '<br>');
-    }
 
     // Elements (Single selections for event binding)
     const dom = {
@@ -385,7 +405,6 @@
         openHubBtn: document.getElementById('open-hub-btn'),
         openHubDesktopBtn: document.getElementById('open-hub-desktop-btn'),
         closeHubBtn: document.getElementById('close-hub-btn'),
-        
         hubExplText: document.getElementById('hub-explanation-text'),
         hubAiContent: document.getElementById('hub-ai-content'),
         aiGenerateBtn: document.getElementById('ai-generate-btn'),
@@ -393,9 +412,70 @@
         hubNoteSave: document.getElementById('hub-note-save'),
     };
 
+    // --- State Management ---
+    function saveState() {
+        const state = {
+            currentBatch,
+            currentIndex,
+            userAnswers,
+            sessionStats,
+            lastAnswerResult
+        };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+    }
+
+    function loadState() {
+        const savedState = sessionStorage.getItem(SESSION_KEY);
+        if (!savedState) return false;
+
+        try {
+            const state = JSON.parse(savedState);
+            currentBatch = state.currentBatch || [];
+            currentIndex = state.currentIndex || 0;
+            userAnswers = state.userAnswers || {};
+            sessionStats = state.sessionStats || { total: 0, correct: 0, total_questions: 0 };
+            lastAnswerResult = state.lastAnswerResult || null;
+
+            if (currentBatch.length === 0 || currentIndex >= currentBatch.length) {
+                clearState();
+                return false;
+            }
+            
+            currentQuestion = currentBatch[currentIndex];
+
+            // Restore UI
+            showLoading(false);
+            renderQuestion(currentQuestion);
+            updateStatsUI();
+
+            // Restore answered state if applicable
+            const answered = lastAnswerResult && lastAnswerResult.item_id === currentQuestion.item_id;
+            if (answered) {
+                showFeedback(lastAnswerResult);
+                updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
+                if(dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
+            } else {
+                 // Restore selected option if not yet answered
+                const selected = userAnswers[currentQuestion.item_id];
+                if (selected) {
+                    selectOption(selected);
+                }
+            }
+            return true;
+        } catch (e) {
+            console.error("Error loading state:", e);
+            clearState();
+            return false;
+        }
+    }
+
+    function clearState() {
+        sessionStorage.removeItem(SESSION_KEY);
+    }
+
     // --- Core Logic ---
 
-    async function loadBatch() {
+    async function loadFreshBatch() {
         showLoading(true);
         try {
             const res = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -406,15 +486,18 @@
             const data = await res.json();
             currentBatch = data.items || [];
             currentIndex = 0;
+            userAnswers = {};
+            lastAnswerResult = null;
             
             // Init Session Stats
             sessionStats.total_questions = data.total_question_groups_in_session || data.total_items_in_session || 0;
             sessionStats.total = data.session_total_answered || 0;
             sessionStats.correct = data.session_correct_answers || 0;
-            updateStatsUI();
-
+            
             if (currentBatch.length > 0) {
                 renderQuestion(currentBatch[currentIndex]);
+                updateStatsUI();
+                saveState();
             } else {
                 finishSession();
             }
@@ -444,66 +527,48 @@
         }
 
         // Options
-        const optionsHtml = Object.entries(q.content.options || {}).map(([key, val]) => `
+        const desktopGrid = document.querySelector('.hidden.lg\\:block .js-options-grid');
+        const mobileGrid = document.querySelector('.lg\\:hidden .js-options-grid');
+
+        const optionsHtmlMobile = Object.entries(q.content.options || {}).map(([key, val]) => `
             <div class="qb-option-label" data-key="${key}">
                 <span class="qb-option-letter-circle">${key}</span>
                 <span class="text-slate-800 font-medium text-lg leading-tight mt-1">${val}</span>
             </div>
         `).join('');
-        setHtml('.js-options-grid', optionsHtml);
-        
-        // Add listeners to ALL option containers (both views)
-        document.querySelectorAll('.js-options-grid').forEach(grid => {
-            grid.querySelectorAll('.qb-option-label').forEach(el => {
-                el.addEventListener('click', () => selectOption(el.dataset.key));
-            });
-        });
-        
-        // Populate Desktop Batch-Like Options
-        const desktopOptionsHtml = Object.entries(q.content.options || {}).map(([key, val]) => `
+
+        const optionsHtmlDesktop = Object.entries(q.content.options || {}).map(([key, val]) => `
             <button class="option-button" data-option="${key}">
                 <span class="option-key">${key}</span>
                 <span>${val}</span>
             </button>
         `).join('');
-        // We need to inject this into the desktop grid specifically if it uses a different class structure, 
-        // but our CSS update made .qb-options-grid work for both. 
-        // Ideally, we update the HTML to distinguish or just use the same structure. 
-        // For now, let's assume .js-options-grid handles both or we target desktop specifically.
-        // Actually, looking at _desktop partial, it uses .js-options-grid too. 
-        // Let's inject the BUTTON structure for desktop if we can detect it, or update the partial.
-        // Better: Update .js-options-grid in desktop partial to use the button structure directly? 
-        // Or just let JS inject different HTML based on parent? 
-        // Current JS injects the MOBILE structure (div with .qb-option-label).
-        // Let's fix this: We will update the desktop grid manually.
-        const desktopGrid = document.querySelector('.hidden.lg\\:block .js-options-grid');
-        if(desktopGrid) {
-            desktopGrid.innerHTML = desktopOptionsHtml;
-            desktopGrid.querySelectorAll('.option-button').forEach(el => {
-                el.addEventListener('click', () => selectOption(el.dataset.option));
-            });
+
+        if (mobileGrid) {
+            mobileGrid.innerHTML = optionsHtmlMobile;
+            mobileGrid.querySelectorAll('.qb-option-label').forEach(el => el.addEventListener('click', () => selectOption(el.dataset.key)));
+        }
+        if (desktopGrid) {
+            desktopGrid.innerHTML = optionsHtmlDesktop;
+            desktopGrid.querySelectorAll('.option-button').forEach(el => el.addEventListener('click', () => selectOption(el.dataset.option)));
         }
 
         // Reset UI
         toggleClass('.js-result-panel', 'hidden', true);
-        toggleClass('#desktop-insights-area', 'hidden', true); // Hide desktop inline insights
+        toggleClass('#desktop-insights-area', 'hidden', true);
         if(dom.openHubBtn) dom.openHubBtn.classList.add('hidden');
-        if(dom.openHubDesktopBtn) dom.openHubDesktopBtn.classList.add('hidden'); // Hide "Tools" button initially
         
-        // Reset Buttons
         updateActionButtons(true, '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án', 'submit');
         
-        // Reset Content (Both Hub and Desktop Inline)
+        // Reset Content
         setText('#hub-explanation-text', "Chưa có giải thích.");
         setHtml('#desktop-explanation-content', "");
         toggleClass('#desktop-explanation', 'hidden', true);
 
-        // AI Content
         const aiDefault = "Nhấn nút để yêu cầu AI phân tích...";
         setText('#hub-ai-content', aiDefault);
         setHtml('#desktop-ai-content', `<span class="italic text-slate-500">${aiDefault}</span>`);
         
-        // Note Content
         const noteVal = q.note_content || "";
         if(dom.hubNoteInput) dom.hubNoteInput.value = noteVal;
         const dNote = document.getElementById('desktop-note-input');
@@ -511,20 +576,16 @@
     }
 
     function selectOption(key) {
-        // Update selection in Mobile
-        document.querySelectorAll('.qb-option-label').forEach(el => {
-            if (el.dataset.key === key) el.classList.add('selected');
-            else el.classList.remove('selected');
-        });
-        
-        // Update selection in Desktop
-        document.querySelectorAll('.option-button').forEach(el => {
-            if (el.dataset.option === key) el.classList.add('selected');
-            else el.classList.remove('selected');
+        if (lastAnswerResult && lastAnswerResult.item_id === currentQuestion.item_id) return; // Don't allow re-selecting after answering
+
+        document.querySelectorAll(`.qb-option-label, .option-button`).forEach(el => {
+            const elKey = el.dataset.key || el.dataset.option;
+            el.classList.toggle('selected', elKey === key);
         });
         
         userAnswers[currentQuestion.item_id] = key;
-        updateActionButtons(false, null, null, true); // Enable primary style
+        updateActionButtons(false, null, null, true);
+        saveState();
     }
 
     async function submitAnswer() {
@@ -541,24 +602,18 @@
                 body: JSON.stringify({ answers: [{ item_id: itemId, user_answer: answer }] })
             });
             const data = await res.json();
-            const result = data.results[0];
+            lastAnswerResult = data.results[0]; // Save result
 
-            // Show Feedback
-            showFeedback(result);
+            showFeedback(lastAnswerResult);
             
-            // Update Stats
             sessionStats.total++;
-            if (result.is_correct) sessionStats.correct++;
+            if (lastAnswerResult.is_correct) sessionStats.correct++;
             updateStatsUI();
 
-            // Setup Next Button
             updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
-            
-            // Show Hub Button (Mobile)
             if(dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
-            // Show Hub/Tools Button (Desktop - if needed, though now inline)
-            // if(dom.openHubDesktopBtn) dom.openHubDesktopBtn.classList.remove('hidden'); 
 
+            saveState(); // Save state after getting feedback
         } catch (e) {
             console.error(e);
             alert('Lỗi gửi đáp án.');
@@ -567,59 +622,40 @@
     }
 
     function showFeedback(result) {
-        // Highlight Options in Mobile View
-        document.querySelectorAll('.qb-option-label').forEach(el => {
+        document.querySelectorAll('.qb-option-label, .option-button').forEach(el => {
+            const elKey = el.dataset.key || el.dataset.option;
             el.classList.add('disabled');
+            el.style.pointerEvents = 'none';
             el.classList.remove('selected');
-            if (el.dataset.key === result.correct_answer) el.classList.add('correct');
-            if (el.dataset.key === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
-        });
-        
-        // Highlight Options in Desktop View (Batch Style)
-        document.querySelectorAll('.option-button').forEach(el => {
-            el.style.pointerEvents = 'none'; // Disable clicks
-            el.classList.remove('selected');
-            if (el.dataset.option === result.correct_answer) el.classList.add('correct');
-            else if (el.dataset.option === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
+            if (elKey === result.correct_answer) el.classList.add('correct');
+            if (elKey === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
         });
 
-        // Show Panel
         toggleClass('.js-result-panel', 'hidden', false);
-        toggleClass('#desktop-insights-area', 'hidden', false); // Reveal desktop inline insights
+        toggleClass('#desktop-insights-area', 'hidden', false);
         
-        // Update Content
         if (result.is_correct) {
             setText('.js-feedback-icon', '🎉');
             setText('.js-feedback-title', 'Chính xác!');
             document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-emerald-600 js-feedback-title');
-            document.querySelectorAll('.desktop-feedback-box').forEach(el => {
-                 el.classList.remove('incorrect'); el.classList.add('correct');
-            });
+            document.querySelectorAll('.desktop-feedback-box').forEach(el => { el.classList.remove('incorrect'); el.classList.add('correct'); });
         } else {
             setText('.js-feedback-icon', '🤔');
             setText('.js-feedback-title', 'Sai rồi');
             document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-rose-600 js-feedback-title');
-             document.querySelectorAll('.desktop-feedback-box').forEach(el => {
-                 el.classList.remove('correct'); el.classList.add('incorrect');
-            });
+            document.querySelectorAll('.desktop-feedback-box').forEach(el => { el.classList.remove('correct'); el.classList.add('incorrect'); });
         }
         setText('.js-feedback-answer', result.correct_answer);
 
-        // Populate Explanations (Hub & Desktop Inline)
         const explanationText = result.explanation || "Chưa có giải thích.";
         const explanationHtml = explanationText.replace(/\r?\n/g, '<br>');
         if(dom.hubExplText) dom.hubExplText.innerHTML = explanationHtml;
-        
-        if (result.explanation) {
-             const dtExpl = document.getElementById('desktop-explanation');
-             const dtExplContent = document.getElementById('desktop-explanation-content');
-             if(dtExpl && dtExplContent) {
-                 dtExpl.classList.remove('hidden');
-                 dtExplContent.innerHTML = explanationHtml;
-             }
+        const dtExplContent = document.getElementById('desktop-explanation-content');
+        if (dtExplContent) {
+            dtExplContent.innerHTML = explanationHtml;
+            document.getElementById('desktop-explanation').classList.toggle('hidden', !result.explanation);
         }
         
-        // Populate AI if already exists
         if (currentQuestion.ai_explanation) {
             if(dom.hubAiContent) dom.hubAiContent.innerHTML = currentQuestion.ai_explanation;
             setHtml('#desktop-ai-content', currentQuestion.ai_explanation);
@@ -627,31 +663,30 @@
     }
 
     function nextQuestion() {
-        const dtExpl = document.getElementById('desktop-explanation');
-        if(dtExpl) dtExpl.classList.add('hidden');
-        
+        lastAnswerResult = null; // Clear last answer result before moving on
         currentIndex++;
+
         if (currentIndex < currentBatch.length) {
             renderQuestion(currentBatch[currentIndex]);
+            saveState();
         } else {
-            loadBatch(); 
+            loadFreshBatch(); // Load a new set of questions
         }
     }
 
     function finishSession() {
+        clearState();
         alert('Đã hoàn thành phiên học!');
         window.location.href = quizDashboardUrl;
     }
 
-    // --- Helpers ---
     function showLoading(show) {
         toggleClass('.js-quiz-loading', 'hidden', !show);
         toggleClass('.js-quiz-content', 'hidden', show);
     }
 
     function updateActionButtons(disabled, text, action, primary) {
-        const btns = [document.getElementById('mobile-action-btn'), document.getElementById('desktop-action-btn')];
-        btns.forEach(btn => {
+        document.querySelectorAll('#mobile-action-btn, #desktop-action-btn').forEach(btn => {
             if(!btn) return;
             if(disabled !== undefined) btn.disabled = disabled;
             if(text) btn.innerHTML = text;
@@ -662,19 +697,22 @@
 
     function updateStatsUI() {
         const acc = sessionStats.total > 0 ? Math.round((sessionStats.correct / sessionStats.total) * 100) : 0;
-        
-        setText('.js-stat-total', sessionStats.total); // Covers desktop total + mobile progress parts if mapped
-        setText('.js-stat-correct', sessionStats.correct); // Mobile header score
+        setText('.js-stat-total', sessionStats.total);
+        setText('.js-stat-correct', sessionStats.correct);
         setText('.js-stat-accuracy', `${acc}%`);
         setText('.js-stat-progress-text', `${sessionStats.total}/${sessionStats.total_questions}`);
-        
         document.querySelectorAll('.js-stat-progress-bar').forEach(el => {
-            el.style.width = `${(sessionStats.total / sessionStats.total_questions) * 100}%`;
+            el.style.width = `${(sessionStats.total / (sessionStats.total_questions || 1)) * 100}%`;
         });
     }
 
+    // --- Event Handlers (AI, Notes, Navigation) ---
+    const handleAiGenerate = async (btn) => { /* ... (unchanged) ... */ };
+    const handleSaveNote = async (btn, inputEl) => { /* ... (unchanged) ... */ };
+
+    // ... (keep the AI and Note handlers from original script, they are self-contained) ...
     // --- AI & Notes Handlers (Unified) ---
-    const handleAiGenerate = async (btn) => {
+    const handleAiGenerateImpl = async (btn) => {
         if(!btn) return;
         btn.disabled = true;
         const loadingText = "Đang tạo...";
@@ -690,11 +728,11 @@
             const data = await res.json();
             const content = data.html_content || data.response;
             
-            // Update BOTH views
             if(dom.hubAiContent) dom.hubAiContent.innerHTML = content;
             setHtml('#desktop-ai-content', content);
             
             currentQuestion.ai_explanation = content;
+            saveState(); // Save state after getting AI explanation
         } catch (e) {
             const errHtml = '<span class="text-red-500">Lỗi khi gọi AI.</span>';
             if(dom.hubAiContent) dom.hubAiContent.innerHTML = errHtml;
@@ -703,7 +741,7 @@
         btn.disabled = false;
     };
 
-    const handleSaveNote = async (btn, inputEl) => {
+    const handleSaveNoteImpl = async (btn, inputEl) => {
         if(!btn || !inputEl) return;
         const originalText = btn.innerHTML;
         const content = inputEl.value;
@@ -719,12 +757,12 @@
             });
             currentQuestion.note_content = content;
             
-            // Sync value to other view's input
             if(dom.hubNoteInput && dom.hubNoteInput !== inputEl) dom.hubNoteInput.value = content;
             const dInput = document.getElementById('desktop-note-input');
             if(dInput && dInput !== inputEl) dInput.value = content;
             
             alert('Đã lưu ghi chú.');
+            saveState(); // Save state after saving note
         } catch (e) {
             alert('Lỗi lưu ghi chú.');
         }
@@ -732,68 +770,58 @@
         btn.disabled = false;
     };
 
-    // Bind AI Buttons
-    if(dom.aiGenerateBtn) dom.aiGenerateBtn.addEventListener('click', () => handleAiGenerate(dom.aiGenerateBtn));
+    // Bind Event Listeners
+    if(dom.aiGenerateBtn) dom.aiGenerateBtn.addEventListener('click', () => handleAiGenerateImpl(dom.aiGenerateBtn));
     const dAiBtn = document.getElementById('desktop-ai-generate-btn');
-    if(dAiBtn) dAiBtn.addEventListener('click', () => handleAiGenerate(dAiBtn));
+    if(dAiBtn) dAiBtn.addEventListener('click', () => handleAiGenerateImpl(dAiBtn));
 
-    // Bind Note Save Buttons
-    if(dom.hubNoteSave) dom.hubNoteSave.addEventListener('click', () => handleSaveNote(dom.hubNoteSave, dom.hubNoteInput));
+    if(dom.hubNoteSave) dom.hubNoteSave.addEventListener('click', () => handleSaveNoteImpl(dom.hubNoteSave, dom.hubNoteInput));
     const dNoteSave = document.getElementById('desktop-note-save');
     const dNoteInput = document.getElementById('desktop-note-input');
-    if(dNoteSave) dNoteSave.addEventListener('click', () => handleSaveNote(dNoteSave, dNoteInput));
+    if(dNoteSave) dNoteSave.addEventListener('click', () => handleSaveNoteImpl(dNoteSave, dNoteInput));
 
-    // Event Delegation for Action Buttons
     const handleAction = () => {
-        const btn = document.getElementById('mobile-action-btn') || document.getElementById('desktop-action-btn');
+        const btn = document.querySelector('#mobile-action-btn:not([disabled]), #desktop-action-btn:not([disabled])');
+        if(!btn) return;
         if (btn.dataset.action === 'submit') submitAnswer();
         else nextQuestion();
     };
+    document.getElementById('mobile-action-btn')?.addEventListener('click', handleAction);
+    document.getElementById('desktop-action-btn')?.addEventListener('click', handleAction);
 
-    const mBtn = document.getElementById('mobile-action-btn');
-    const dBtn = document.getElementById('desktop-action-btn');
-    if(mBtn) mBtn.addEventListener('click', handleAction);
-    if(dBtn) dBtn.addEventListener('click', handleAction);
-
-    // Mobile Tabs
-    document.querySelectorAll('.qb-mobile-tab-item').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.qb-mobile-tab-item').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.remove('active'));
-            
-            tab.classList.add('active');
-            const pane = document.getElementById(`tab-pane-${tab.dataset.tab}`);
-            if(pane) pane.classList.add('active');
-        });
-    });
-
-    // Hub Modal
+    // Hub & Tabs
     if(dom.hubModal) {
         if(dom.openHubBtn) dom.openHubBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
         if(dom.openHubDesktopBtn) dom.openHubDesktopBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
         if(dom.closeHubBtn) dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
     }
-    
-    // Hub Tabs
     document.querySelectorAll('.qb-hub-tab-item').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.qb-hub-tab-item').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.qb-hub-pane').forEach(p => p.classList.remove('active'));
             tab.classList.add('active');
-            const pane = document.getElementById(tab.dataset.target);
-            if(pane) pane.classList.add('active');
+            document.getElementById(tab.dataset.target)?.classList.add('active');
         });
     });
 
     // Exit
-    const exitHandler = () => { if(confirm('Kết thúc phiên làm bài?')) finishSession(); };
-    const mExit = document.getElementById('mobile-exit-btn');
-    if(mExit) mExit.addEventListener('click', exitHandler);
-    const dExit = document.getElementById('desktop-exit-btn');
-    if(dExit) dExit.addEventListener('click', exitHandler);
+    const exitHandler = () => { 
+        if(confirm('Kết thúc phiên làm bài?')) {
+            clearState();
+            window.location.href = quizDashboardUrl;
+        } 
+    };
+    document.getElementById('mobile-exit-btn')?.addEventListener('click', exitHandler);
+    document.getElementById('desktop-exit-btn')?.addEventListener('click', exitHandler);
 
-    // Init
-    loadBatch();
+    // --- Init ---
+    function init() {
+        if (!loadState()) {
+            loadFreshBatch();
+        }
+    }
+
+    init();
 
 })();
 </script>
