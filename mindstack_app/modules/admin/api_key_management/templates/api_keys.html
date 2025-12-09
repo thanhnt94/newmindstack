@@ -399,6 +399,7 @@ endblock %}
     }
 
             // --- TABS LOGIC ---
+            // --- TABS LOGIC ---
             function switchTab(tabName) {
                 document.getElementById('view-config').classList.add('hidden');
             document.getElementById('view-logs').classList.add('hidden');
@@ -411,7 +412,15 @@ endblock %}
             const activeBtn = document.getElementById('tab-' + tabName);
             activeBtn.classList.add('border-blue-500', 'text-blue-600');
             activeBtn.classList.remove('border-transparent', 'text-slate-500');
-    }
+
+            // Update URL Hash to support refresh/bookmarks
+            const hash = '#view-' + tabName;
+            if(history.replaceState) {
+                history.replaceState(null, null, hash);
+                } else {
+                window.location.hash = hash;
+                }
+            }
 
             // --- TOGGLE PROVIDER ---
             function toggleProviderSettings() {
