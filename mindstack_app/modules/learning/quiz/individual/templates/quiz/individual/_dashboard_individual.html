@@ -7,45 +7,113 @@
 
 <style>
     /* === Style CMS cho Individual === */
-    .cm-section-card { 
-        background: white; 
-        border-radius: 0.75rem; 
+    .cm-section-card {
+        background: white;
+        border-radius: 0.75rem;
         /* Match Flashcard shadow-lg */
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
-        padding: 1.5rem; 
-        border: none; 
-        display: flex; 
-        flex-direction: column; 
-        height: 100%; 
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        padding: 1.5rem;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
     }
-    
-    .tab-filter-button { flex-grow: 1; padding: 0.75rem; text-align: center; font-size: 0.875rem; font-weight: 500; color: #6b7280; transition: all 0.2s; border-bottom: 2px solid transparent; }
-    .tab-filter-button:hover { color: #374151; }
-    .tab-filter-button.active { border-bottom-color: #3b82f6; color: #3b82f6; }
-    
-    .quiz-set-item { position: relative; background: #fff; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 1rem; transition: all 0.2s ease; cursor: pointer; }
-    .quiz-set-item:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-color: #cbd5e1; }
-    .quiz-set-item.selected-item { border-color: #3b82f6 !important; background-color: #eff6ff !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
-    
-    .quiz-mode-item { cursor: pointer; transition: all 0.2s; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; }
-    .quiz-mode-item:hover { border-color: #93c5fd; background: #f8fafc; }
-    .quiz-mode-item.selected-mode { border-color: #3b82f6; background-color: #eff6ff; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
-    
-    .selected-set-item { background-color: #dbeafe; color: #1e3a8a; border-radius: 9999px; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 600; margin: 0.25rem; display: inline-flex; align-items: center; }
-    .selected-set-item i { margin-left: 0.5rem; cursor: pointer; }
+
+    .tab-filter-button {
+        flex-grow: 1;
+        padding: 0.75rem;
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+        transition: all 0.2s;
+        border-bottom: 2px solid transparent;
+    }
+
+    .tab-filter-button:hover {
+        color: #374151;
+    }
+
+    .tab-filter-button.active {
+        border-bottom-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+    .quiz-set-item {
+        position: relative;
+        background: #fff;
+        border-radius: 0.75rem;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .quiz-set-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border-color: #cbd5e1;
+    }
+
+    .quiz-set-item.selected-item {
+        border-color: #3b82f6 !important;
+        background-color: #eff6ff !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    }
+
+    .quiz-mode-item {
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+
+    .quiz-mode-item:hover {
+        border-color: #93c5fd;
+        background: #f8fafc;
+    }
+
+    .quiz-mode-item.selected-mode {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    }
+
+    .selected-set-item {
+        background-color: #dbeafe;
+        color: #1e3a8a;
+        border-radius: 9999px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin: 0.25rem;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .selected-set-item i {
+        margin-left: 0.5rem;
+        cursor: pointer;
+    }
 
     /* Mobile Step Logic - App-like Fixed Layout */
     @media (max-width: 1023px) {
+
         /* Force body background to white on mobile for this page */
         body {
             background-color: #fff !important;
         }
-        
+
         /* Step 0: Mode Selection Overlay */
         #mobile-mode-selection {
-            position: relative; /* Flow naturally below navbar */
-            min-height: 80vh; /* Ensure visibility even if parent height varies */
-            overflow: hidden; /* Prevent scroll */
+            position: relative;
+            /* Flow naturally below navbar */
+            min-height: 80vh;
+            /* Ensure visibility even if parent height varies */
+            overflow: hidden;
+            /* Prevent scroll */
             z-index: 1;
             background-color: #fff;
             display: flex;
@@ -56,28 +124,42 @@
         }
 
         /* Full Screen Containers for Steps */
-        #step-1-card, #step-2-card { 
-            display: none; /* Hidden by default until mode selected */
-            position: fixed; 
-            inset: 0; /* Top/Left/Right/Bottom: 0 */
-            z-index: 999; /* Highest priority */
-            background-color: #fff; 
-            border-radius: 0; 
-            border: none; 
+        #step-1-card,
+        #step-2-card {
+            display: none;
+            /* Hidden by default until mode selected */
+            position: fixed;
+            inset: 0;
+            /* Top/Left/Right/Bottom: 0 */
+            z-index: 999;
+            /* Highest priority */
+            background-color: #fff;
+            border-radius: 0;
+            border: none;
             margin: 0 !important;
             padding: 0 !important;
             flex-direction: column;
-            height: 100dvh; 
-            box-shadow: none; 
+            height: 100dvh;
+            box-shadow: none;
         }
 
         /* Toggle Logic for Steps */
-        .mobile-mode-individual #step-1-card { display: flex; }
-        .mobile-mode-individual.mobile-step-2-active #step-1-card { display: none; }
-        .mobile-mode-individual.mobile-step-2-active #step-2-card { display: flex; }
-        
+        .mobile-mode-individual #step-1-card {
+            display: flex;
+        }
+
+        .mobile-mode-individual.mobile-step-2-active #step-1-card {
+            display: none;
+        }
+
+        .mobile-mode-individual.mobile-step-2-active #step-2-card {
+            display: flex;
+        }
+
         /* Hide Step 0 when mode is selected */
-        .mobile-mode-individual #mobile-mode-selection { display: none; }
+        .mobile-mode-individual #mobile-mode-selection {
+            display: none;
+        }
 
         /* Header Sections (Title, Tabs, Search) */
         .mobile-header-section {
@@ -86,17 +168,20 @@
             padding: 1rem;
             padding-bottom: 0.5rem;
             border-bottom: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            z-index: 10; /* Keep relative to step cards, as this is internal header */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            z-index: 10;
+            /* Keep relative to step cards, as this is internal header */
         }
 
         /* Scrollable Content Areas */
-        #quiz-sets-container, #quiz-modes-container {
+        #quiz-sets-container,
+        #quiz-modes-container {
             flex-grow: 1;
             overflow-y: auto;
             max-height: none !important;
             padding: 1rem;
-            padding-bottom: 100px; /* Ensure content isn't hidden behind fixed footer */
+            padding-bottom: 100px;
+            /* Ensure content isn't hidden behind fixed footer */
             background-color: #f8fafc;
         }
 
@@ -107,54 +192,88 @@
             padding: 1rem;
             border-top: 1px solid #e2e8f0;
             box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
-            z-index: 1000; /* Increased to be above step cards (z-999) */
+            z-index: 1000;
+            /* Increased to be above step cards (z-999) */
         }
 
         /* Button styling overrides for mobile footer */
-        #mobile-step-1-next, #start-learning-btn, #bulk-unarchive-btn {
+        #mobile-step-1-next,
+        #start-learning-btn,
+        #bulk-unarchive-btn {
             width: 100%;
             margin: 0;
             border-radius: 0.75rem;
             padding: 1rem;
             font-size: 1rem;
         }
-        
+
         /* Hide desktop spacers/margins if needed */
-        .mb-4 { margin-bottom: 0.5rem !important; }
-        h2 { font-size: 1.1rem !important; margin-bottom: 0.5rem !important; }
+        .mb-4 {
+            margin-bottom: 0.5rem !important;
+        }
+
+        h2 {
+            font-size: 1.1rem !important;
+            margin-bottom: 0.5rem !important;
+        }
 
         /* Custom mobile styles for multi-select toggle and pagination */
-        .h2-title-wrapper { /* New wrapper for h2 content */
+        .h2-title-wrapper {
+            /* New wrapper for h2 content */
             display: flex;
             align-items: center;
             flex-grow: 1;
         }
+
         .mobile-control-bar {
             display: flex;
             flex-direction: column;
-            align-items: center; /* Center horizontally */
+            align-items: center;
+            /* Center horizontally */
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
         }
+
         .mobile-control-bar #quiz-pagination-slot {
-            width: 100%; /* Take full width */
-            justify-content: center; /* Center pagination */
-            display: flex; /* Make pagination a flex container for centering its items */
+            width: 100%;
+            /* Take full width */
+            justify-content: center;
+            /* Center pagination */
+            display: flex;
+            /* Make pagination a flex container for centering its items */
         }
-        
+
         /* Step 2 Actions Visibility on Mobile */
-        #step-2-actions { display: none; } /* Hidden by default on mobile (Step 1) */
-        .mobile-step-2-active #step-2-actions { display: flex; } /* Show on Step 2 */
+        #step-2-actions {
+            display: none;
+        }
+
+        /* Hidden by default on mobile (Step 1) */
+        .mobile-step-2-active #step-2-actions {
+            display: flex;
+        }
+
+        /* Show on Step 2 */
     }
-    @media (min-width: 1024px) { /* Desktop styles */
-        #mobile-mode-selection { display: none; } /* Hide Step 0 on Desktop */
-        
+
+    @media (min-width: 1024px) {
+
+        /* Desktop styles */
+        #mobile-mode-selection {
+            display: none;
+        }
+
+        /* Hide Step 0 on Desktop */
+
         /* Default flex behavior for control bar on desktop */
         #quiz-control-bar {
             justify-content: space-between;
         }
+
         #quiz-pagination-slot {
-            justify-content: center; /* Center pagination on desktop */        }
+            justify-content: center;
+            /* Center pagination on desktop */
+        }
     }
 </style>
 
@@ -163,15 +282,18 @@
     {# === MOBILE STEP 0: MODE SELECTION === #}
     <div id="mobile-mode-selection" class="lg:hidden space-y-6">
         <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-4xl">
+            <div
+                class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-4xl">
                 <i class="fas fa-graduation-cap"></i>
             </div>
             <h1 class="text-2xl font-bold text-gray-800">Trung tâm Luyện thi</h1>
             <p class="text-gray-500 mt-2">Chọn chế độ để bắt đầu</p>
         </div>
-        
-        <button id="btn-mode-individual" class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
-            <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
+
+        <button id="btn-mode-individual"
+            class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
+            <div
+                class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
                 <i class="fas fa-user"></i>
             </div>
             <div class="text-left">
@@ -181,8 +303,10 @@
             <i class="fas fa-chevron-right text-gray-300 ml-auto"></i>
         </button>
 
-        <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard', quiz_type='battle') }}" class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
-            <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0">
+        <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard', quiz_type='battle') }}"
+            class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
+            <div
+                class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0">
                 <i class="fas fa-bolt"></i>
             </div>
             <div class="text-left">
@@ -204,37 +328,46 @@
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between">
                     <span class="h2-title-wrapper">
                         {# Mobile Back Button (to Step 0) #}
-                        <button id="mobile-step-1-back" class="lg:hidden mr-4 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center">
+                        <button id="mobile-step-1-back"
+                            class="lg:hidden mr-4 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center">
                             <i class="fas fa-arrow-left"></i>
                         </button>
-                        <i class="fas fa-list-alt mr-3 text-blue-500 hidden lg:inline"></i> 
+                        <i class="fas fa-list-alt mr-3 text-blue-500 hidden lg:inline"></i>
                         <span>Bước 1: Chọn bộ câu hỏi</span>
                     </span>
                     {# Selection Mode Toggle - Universal placement #}
                     <div class="flex items-center flex-shrink-0 ml-auto">
                         <span class="text-xs font-semibold text-slate-600 mr-2 whitespace-nowrap">Chọn nhiều:</span>
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="multi-select-toggle" class="sr-only peer"> 
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                            <input type="checkbox" id="multi-select-toggle" class="sr-only peer">
+                            <div
+                                class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600">
+                            </div>
                         </label>
                     </div>
                 </h2>
-                
+
                 <div class="flex border-b border-gray-200 mb-4 lg:mb-4">
-                    <button id="filter-doing" class="tab-filter-button flex items-center justify-center active" data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang làm</span></button>
-                    <button id="filter-explore" class="tab-filter-button flex items-center justify-center" data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
-                    <button id="filter-archive" class="tab-filter-button flex items-center justify-center" data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
+                    <button id="filter-doing" class="tab-filter-button flex items-center justify-center active"
+                        data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang làm</span></button>
+                    <button id="filter-explore" class="tab-filter-button flex items-center justify-center"
+                        data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
+                    <button id="filter-archive" class="tab-filter-button flex items-center justify-center"
+                        data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
                 </div>
 
                 <div class="mb-1" id="quiz-search-form-container">
                     {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
-                    {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm...", search_field=search_field, search_options=display_search_options) }}
+                    {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm...",
+                    search_field=search_field, search_options=display_search_options) }}
                 </div>
-                
+
                 {# Selected Sets Display (Restored) #}
-                <div id="selected-sets-display" class="flex flex-wrap items-center gap-2 text-xs hidden bg-blue-50 p-2 rounded-lg mb-2 max-h-24 overflow-y-auto"></div>
+                <div id="selected-sets-display"
+                    class="flex flex-wrap items-center gap-2 text-xs hidden bg-blue-50 p-2 rounded-lg mb-2 max-h-24 overflow-y-auto">
+                </div>
             </div>
-            
+
             {# Scrollable List #}
             <div id="quiz-sets-container" class="flex-grow overflow-y-auto max-h-[500px] lg:p-0 space-y-3">
                 <div class="flex flex-col items-center justify-center h-48 text-blue-500">
@@ -242,17 +375,22 @@
                     <p>Đang tải danh sách...</p>
                 </div>
             </div>
-            
+
             {# Fixed Control Bar (Toggle + Pagination) - Moved to bottom #}
-            <div id="quiz-control-bar" class="flex items-center justify-between py-1 px-1 bg-white border-t border-slate-200 lg:border-t lg:border-slate-100 lg:bg-transparent flex-shrink-0 mobile-control-bar">
+            <div id="quiz-control-bar"
+                class="flex items-center justify-between py-1 px-1 bg-white border-t border-slate-200 lg:border-t lg:border-slate-100 lg:bg-transparent flex-shrink-0 mobile-control-bar">
                 {# Original location of multi-select toggle - NOW REMOVED #}
                 {# Pagination will be moved here by JS #}
-                <div id="quiz-pagination-slot" class="flex justify-end flex-grow items-center empty:hidden [&_.pagination]:m-0 [&_nav]:m-0 [&_.page-item]:m-0 [&_.page-link]:py-1 [&_.page-link]:px-2 [&_.page-link]:text-xs"></div>
+                <div id="quiz-pagination-slot"
+                    class="flex justify-end flex-grow items-center empty:hidden [&_.pagination]:m-0 [&_nav]:m-0 [&_.page-item]:m-0 [&_.page-link]:py-1 [&_.page-link]:px-2 [&_.page-link]:text-xs">
+                </div>
             </div>
-            
+
             {# Mobile Step 1 Navigation Bar #}
             <div class="p-3 bg-white border-t border-gray-200 lg:hidden flex-shrink-0">
-                <button id="mobile-step-1-next" class="w-full bg-gray-400 text-white font-bold py-3 rounded-lg shadow-sm flex items-center justify-center transition-colors duration-200" disabled>
+                <button id="mobile-step-1-next"
+                    class="w-full bg-gray-400 text-white font-bold py-3 rounded-lg shadow-sm flex items-center justify-center transition-colors duration-200"
+                    disabled>
                     Tiếp tục <i class="fas fa-arrow-right ml-2"></i>
                 </button>
             </div>
@@ -261,11 +399,14 @@
         {# === STEP 2 === #}
         <div id="step-2-card" class="cm-section-card">
             {# Header #}
-            <div class="mobile-header-section flex items-center mb-0 lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none lg:block">
-                <button id="mobile-step-2-back" class="lg:hidden mr-4 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center">
+            <div
+                class="mobile-header-section flex items-center mb-0 lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none lg:block">
+                <button id="mobile-step-2-back"
+                    class="lg:hidden mr-4 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </button>
-                <h2 id="step-2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                <h2 id="step-2-title"
+                    class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
                     <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
                 </h2>
             </div>
@@ -278,414 +419,431 @@
             </div>
         </div>
     </div>
-            {# Footer Actions (Global for Desktop, Step 2 for Mobile) #}
-            <div id="step-2-actions" class="mobile-footer-section mt-4 text-center lg:bg-transparent lg:border-none lg:shadow-none lg:p-0 lg:static fixed bottom-0 left-0 right-0 flex-shrink-0">
-                <div class="flex justify-center w-full">
-                    <button id="start-learning-btn" class="start-button w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center">
-                        <i class="fas fa-play-circle mr-2"></i> Bắt đầu
-                    </button>
-                    <button id="bulk-unarchive-btn" class="start-button w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center">
-                        <i class="fas fa-box-open mr-2"></i> Bỏ lưu trữ
-                    </button>
-                </div>
-            </div>
+    {# Footer Actions (Global for Desktop, Step 2 for Mobile) #}
+    <div id="step-2-actions"
+        class="mobile-footer-section mt-4 text-center lg:bg-transparent lg:border-none lg:shadow-none lg:p-0 lg:static fixed bottom-0 left-0 right-0 flex-shrink-0">
+        <div class="flex justify-center w-full">
+            <button id="start-learning-btn"
+                class="start-button w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center">
+                <i class="fas fa-play-circle mr-2"></i> Bắt đầu
+            </button>
+            <button id="bulk-unarchive-btn"
+                class="start-button w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center">
+                <i class="fas fa-box-open mr-2"></i> Bỏ lưu trữ
+            </button>
+        </div>
     </div>
+</div>
 <script>
-console.log('>>> _dashboard_individual.js: init');
+    console.log('>>> _dashboard_individual.js: init');
 
-{# ==== Biến trạng thái ==== #}
-let selectedQuizSetIds = [];
-let selectedQuizMode = null;
-let selectedSessionSize = parseInt("{{ user_default_batch_size | default(10) }}");
-let currentFilter = "{{ current_filter | default('doing') }}";
-let doingPage = 1, explorePage = 1, archivePage = 1;
-let currentPage = (currentFilter === 'doing' ? doingPage : (currentFilter === 'explore' ? explorePage : archivePage));
-let currentSearchQuery = "{{ search_query | default('') }}";
-let currentSearchField = "{{ search_field | default('all') }}";
-let isMultiSelectMode = false; // Initialized by toggle state
+    // ==== Biến trạng thái ====
+    let selectedQuizSetIds = [];
+    let selectedQuizMode = null;
+    let selectedSessionSize = parseInt("{{ user_default_batch_size | default(10) }}");
+    let currentFilter = "{{ current_filter | default('doing') }}";
+    let doingPage = 1, explorePage = 1, archivePage = 1;
+    let currentPage = (currentFilter === 'doing' ? doingPage : (currentFilter === 'explore' ? explorePage : archivePage));
+    let currentSearchQuery = "{{ search_query | default('') }}";
+    let currentSearchField = "{{ search_field | default('all') }}";
+    let isMultiSelectMode = false; // Initialized by toggle state
 
-const quizSetsContainer = document.getElementById('quiz-sets-container');
-const quizModesContainer = document.getElementById('quiz-modes-container');
-const selectedSetsDisplay = document.getElementById('selected-sets-display');
-const step2Title = document.getElementById('step-2-title');
-const quizSearchForm = document.querySelector('#quiz-search-form-container form');
-const mobileNextBtn = document.getElementById('mobile-step-1-next');
-const mobileBackBtn = document.getElementById('mobile-step-2-back');
-const mobileStep0Btn = document.getElementById('btn-mode-individual');
-const mobileStep1BackBtn = document.getElementById('mobile-step-1-back');
-const quizSection = document.getElementById('quiz-solo-section');
+    const quizSetsContainer = document.getElementById('quiz-sets-container');
+    const quizModesContainer = document.getElementById('quiz-modes-container');
+    const selectedSetsDisplay = document.getElementById('selected-sets-display');
+    const step2Title = document.getElementById('step-2-title');
+    const quizSearchForm = document.querySelector('#quiz-search-form-container form');
+    const mobileNextBtn = document.getElementById('mobile-step-1-next');
+    const mobileBackBtn = document.getElementById('mobile-step-2-back');
+    const mobileStep0Btn = document.getElementById('btn-mode-individual');
+    const mobileStep1BackBtn = document.getElementById('mobile-step-1-back');
+    const quizSection = document.getElementById('quiz-solo-section');
 
-// --- START: Mobile Mode Selection Logic ---
-if (mobileStep0Btn) {
-    mobileStep0Btn.addEventListener('click', () => {
-        quizSection.classList.add('mobile-mode-individual');
-    });
-}
-
-if (mobileStep1BackBtn) {
-    mobileStep1BackBtn.addEventListener('click', () => {
-        quizSection.classList.remove('mobile-mode-individual');
-    });
-}
-// --- END: Mobile Mode Selection Logic ---
-
-// --- START: Mobile Footer Navigation ---
-// (Footer buttons removed per user request)
-// --- END: Mobile Footer Navigation ---
-
-
-// --- START: Toggle References and Syncing ---
-const multiSelectToggle = document.getElementById('multi-select-toggle'); // Single toggle element
-
-// Determine initial state based on toggle state
-if (multiSelectToggle) {
-    isMultiSelectMode = multiSelectToggle.checked;
-    multiSelectToggle.addEventListener('change', (e) => {
-        isMultiSelectMode = e.target.checked;
-        handleMultiSelectChange();
-    });
-}
-
-function handleMultiSelectChange() {
-    selectedQuizSetIds = []; // Clear selection on mode switch
-    localStorage.removeItem('selectedQuizSetIds');
-    syncMultiSelectionUI();
-    loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter); // Reload to update UI (checkbox vs radio)
-    updateActionButtons();
-}
-// --- END: Toggle References and Syncing ---
-
-
-// URL Configs (Fix paths)
-const quizModesPartialBaseUrlById = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_by_id', set_id=0) or '#' }}";
-const quizModesPartialBaseUrlAll = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_all') or '#' }}";
-const quizModesPartialBaseUrlMulti = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_multi', set_ids_str='0') or '#' }}";
-const startQuizSessionBaseUrlAllTemplate = "{{ url_for('learning.quiz_learning.start_quiz_session_all', mode='MODE_PLACEHOLDER') }}";
-const startQuizSessionBaseUrlMultiTemplate = "{{ url_for('learning.quiz_learning.start_quiz_session_multi', mode='MODE_PLACEHOLDER') }}";
-const startQuizSessionBaseUrlByIdTemplate = "{{ url_for('learning.quiz_learning.start_quiz_session_by_id', set_id=0, mode='MODE_PLACEHOLDER') }}";
-const getQuizSetsPartialUrl = "{{ url_for('learning.quiz_learning.get_quiz_sets_partial') or '#' }}";
-const saveQuizSettingsUrl = "{{ url_for('learning.quiz_learning.save_quiz_settings') }}";
-const toggleArchiveUrl = "{{ url_for('learning.quiz_learning.toggle_archive', set_id=0) or '#' }}";
-const bulkUnarchiveUrl = "{{ url_for('learning.quiz_learning.bulk_unarchive') }}";
-
-// === Mobile Navigation ===
-function updateMobileNextButton() {
-    if(!mobileNextBtn) return;
-    const count = selectedQuizSetIds.length;
-    mobileNextBtn.innerHTML = `Tiếp tục <i class="fas fa-arrow-right ml-2"></i>`;
-    mobileNextBtn.disabled = count === 0;
-    if(count > 0) {
-        mobileNextBtn.classList.remove('bg-gray-400');
-        mobileNextBtn.classList.add('bg-blue-600');
-    } else {
-        mobileNextBtn.classList.add('bg-gray-400');
-        mobileNextBtn.classList.remove('bg-blue-600');
-    }
-}
-
-mobileNextBtn?.addEventListener('click', () => {
-    document.getElementById('quiz-solo-section').classList.add('mobile-step-2-active');
-});
-
-mobileBackBtn?.addEventListener('click', () => {
-    document.getElementById('quiz-solo-section').classList.remove('mobile-step-2-active');
-});
-
-async function loadQuizSets(page, searchQuery, searchField, filter) {
-    if(!quizSetsContainer) return;
-    quizSetsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-32 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải...</p></div>';
-    
-    if (localStorage.getItem('selectedQuizSetIds')) selectedQuizSetIds = JSON.parse(localStorage.getItem('selectedQuizSetIds'));
-    else selectedQuizSetIds = [];
-    
-    updateSelectedSetsDisplay();
-    updateActionButtons();
-    updateMobileNextButton(); // Init Mobile Button
-
-    try {
-        const url = new URL(getQuizSetsPartialUrl, window.location.origin);
-        url.searchParams.append('page', page);
-        url.searchParams.append('q', searchQuery || '');
-        url.searchParams.append('search_field', searchField || 'all');
-        url.searchParams.append('filter', filter || 'doing');
-        url.searchParams.append('is_multi_select_mode', isMultiSelectMode.toString());
-
-        const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        if (!response.ok) throw new Error();
-        
-        quizSetsContainer.innerHTML = await response.text();
-        
-        // Move pagination to fixed slot
-        const paginationSlot = document.getElementById('quiz-pagination-slot');
-        const paginationEl = quizSetsContainer.querySelector('.pagination') || quizSetsContainer.querySelector('nav[aria-label="Page navigation"]');
-        
-        if (paginationSlot) {
-            paginationSlot.innerHTML = '';
-            if (paginationEl) {
-                paginationSlot.appendChild(paginationEl);
-                // Center pagination (new request)
-                paginationSlot.classList.add('w-full', 'flex', 'justify-center'); 
-                paginationSlot.classList.remove('hidden');
-            } else {
-                paginationSlot.classList.add('hidden');
-            }
-        }
-        
-        addQuizSetClickListeners();
-        addPaginationListeners();
-        addArchiveIconListeners();
-        syncMultiSelectionUI();
-        
-    } catch (e) {
-        quizSetsContainer.innerHTML = '<p class="text-center text-rose-500 p-4">Lỗi tải dữ liệu.</p>';
-    }
-}
-
-async function loadQuizModes(setId) {
-    if (currentFilter === 'archive') return;
-    if (!quizModesContainer) return;
-    quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-32 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải chế độ...</p></div>';
-    
-    try {
-        let url;
-        if (Array.isArray(setId)) {
-            if (setId.length === 0) {
-                 quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-48 text-gray-400"><i class="fas fa-info-circle text-4xl mb-3 opacity-50"></i><p>Vui lòng chọn bộ câu hỏi.</p></div>';
-                 return;
-            }
-            if (setId.length === 1 && setId[0] === 'all') url = quizModesPartialBaseUrlAll;
-            else url = quizModesPartialBaseUrlMulti.replace('/0', '/' + setId.join(','));
-        } else if (setId === 'all') {
-            url = quizModesPartialBaseUrlAll;
-        } else {
-            url = quizModesPartialBaseUrlById.replace('/0', '/' + setId);
-        }
-
-        const fullUrl = new URL(url, window.location.origin);
-        if (selectedQuizMode) fullUrl.searchParams.append('selected_mode', selectedQuizMode);
-        fullUrl.searchParams.append('user_default_batch_size', selectedSessionSize);
-
-        const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        if (!response.ok) throw new Error();
-        
-        quizModesContainer.innerHTML = await response.text();
-        
-        // Xử lý Dropdown số câu
-        const sizeSelect = document.getElementById('session-size-select');
-        if(sizeSelect) {
-            sizeSelect.value = selectedSessionSize;
-            sizeSelect.addEventListener('change', function() { selectedSessionSize = parseInt(this.value); });
-        }
-        
-        // Xử lý Click Mode
-        const modes = quizModesContainer.querySelectorAll('.quiz-mode-item');
-        modes.forEach(mode => {
-            mode.addEventListener('click', function() {
-                if(parseInt(this.dataset.count) === 0) return;
-                modes.forEach(m => m.classList.remove('selected-mode'));
-                this.classList.add('selected-mode');
-                selectedQuizMode = this.dataset.modeId;
-                updateActionButtons();
-            });
+    // --- START: Mobile Mode Selection Logic ---
+    if (mobileStep0Btn) {
+        mobileStep0Btn.addEventListener('click', () => {
+            quizSection.classList.add('mobile-mode-individual');
+            // Fix: Update URL to persist state on reload
+            const url = new URL(window.location);
+            url.searchParams.set('view', 'setup');
+            history.pushState({}, '', url);
         });
-
-        // Auto select mode
-        if (!selectedQuizMode) {
-            const first = Array.from(modes).find(m => parseInt(m.dataset.count) > 0);
-            if(first) first.click();
-        }
-
-    } catch (e) {
-        quizModesContainer.innerHTML = '<p class="text-center text-rose-500">Lỗi tải chế độ học.</p>';
     }
-}
 
-function syncMultiSelectionUI() {
-    document.querySelectorAll('.quiz-set-item').forEach(item => {
-        const id = item.dataset.setId;
-        if (selectedQuizSetIds.includes(id)) item.classList.add('selected-item');
-        else item.classList.remove('selected-item');
+    if (mobileStep1BackBtn) {
+        mobileStep1BackBtn.addEventListener('click', () => {
+            quizSection.classList.remove('mobile-mode-individual');
+            // Fix: Remove param from URL on back
+            const url = new URL(window.location);
+            url.searchParams.delete('view');
+            history.pushState({}, '', url);
+        });
+    }
+
+    // Fix: Restore state on load if param exists
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('view') === 'setup') {
+        quizSection.classList.add('mobile-mode-individual');
+    }
+    // --- END: Mobile Mode Selection Logic ---
+
+    // --- START: Mobile Footer Navigation ---
+    // (Footer buttons removed per user request)
+    // --- END: Mobile Footer Navigation ---
+
+
+    // --- START: Toggle References and Syncing ---
+    const multiSelectToggle = document.getElementById('multi-select-toggle'); // Single toggle element
+
+    // Determine initial state based on toggle state
+    if (multiSelectToggle) {
+        isMultiSelectMode = multiSelectToggle.checked;
+        multiSelectToggle.addEventListener('change', (e) => {
+            isMultiSelectMode = e.target.checked;
+            handleMultiSelectChange();
+        });
+    }
+
+    function handleMultiSelectChange() {
+        selectedQuizSetIds = []; // Clear selection on mode switch
+        localStorage.removeItem('selectedQuizSetIds');
+        syncMultiSelectionUI();
+        loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter); // Reload to update UI (checkbox vs radio)
+        updateActionButtons();
+    }
+    // --- END: Toggle References and Syncing ---
+
+
+    // URL Configs (Fix paths)
+    const quizModesPartialBaseUrlById = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_by_id', set_id=0) or '#' }}";
+    const quizModesPartialBaseUrlAll = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_all') or '#' }}";
+    const quizModesPartialBaseUrlMulti = "{{ url_for('learning.quiz_learning.get_quiz_modes_partial_multi', set_ids_str='0') or '#' }}";
+    const startQuizSessionBaseUrlAllTemplate = "{{ url_for('learning.quiz_learning.start_quiz_session_all', mode='MODE_PLACEHOLDER') }}";
+    const startQuizSessionBaseUrlMultiTemplate = "{{ url_for('learning.quiz_learning.start_quiz_session_multi', mode='MODE_PLACEHOLDER') }}";
+    const startQuizSessionBaseUrlByIdTemplate = "{{ url_for('learning.quiz_learning.start_quiz_session_by_id', set_id=0, mode='MODE_PLACEHOLDER') }}";
+    const getQuizSetsPartialUrl = "{{ url_for('learning.quiz_learning.get_quiz_sets_partial') or '#' }}";
+    const saveQuizSettingsUrl = "{{ url_for('learning.quiz_learning.save_quiz_settings') }}";
+    const toggleArchiveUrl = "{{ url_for('learning.quiz_learning.toggle_archive', set_id=0) or '#' }}";
+    const bulkUnarchiveUrl = "{{ url_for('learning.quiz_learning.bulk_unarchive') }}";
+
+    // === Mobile Navigation ===
+    function updateMobileNextButton() {
+        if (!mobileNextBtn) return;
+        const count = selectedQuizSetIds.length;
+        mobileNextBtn.innerHTML = `Tiếp tục <i class="fas fa-arrow-right ml-2"></i>`;
+        mobileNextBtn.disabled = count === 0;
+        if (count > 0) {
+            mobileNextBtn.classList.remove('bg-gray-400');
+            mobileNextBtn.classList.add('bg-blue-600');
+        } else {
+            mobileNextBtn.classList.add('bg-gray-400');
+            mobileNextBtn.classList.remove('bg-blue-600');
+        }
+    }
+
+    mobileNextBtn?.addEventListener('click', () => {
+        document.getElementById('quiz-solo-section').classList.add('mobile-step-2-active');
     });
-    updateSelectedSetsDisplay();
-    updateMobileNextButton(); // Sync button
-}
 
-function updateSelectedSetsDisplay() {
-    if (!selectedSetsDisplay) return;
-    
-    selectedSetsDisplay.innerHTML = ''; // Clear previous content
+    mobileBackBtn?.addEventListener('click', () => {
+        document.getElementById('quiz-solo-section').classList.remove('mobile-step-2-active');
+    });
 
-    if (selectedQuizSetIds.length > 0) {
-        selectedSetsDisplay.classList.remove('hidden');
-        
-        const selectedTitlesHtml = selectedQuizSetIds.map(setId => {
-            const setItem = document.querySelector(`.quiz-set-item[data-set-id="${setId}"]`);
-            const title = setItem ? setItem.dataset.title : `Bộ #${setId}`;
-            return `
+    async function loadQuizSets(page, searchQuery, searchField, filter) {
+        if (!quizSetsContainer) return;
+        quizSetsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-32 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải...</p></div>';
+
+        if (localStorage.getItem('selectedQuizSetIds')) selectedQuizSetIds = JSON.parse(localStorage.getItem('selectedQuizSetIds'));
+        else selectedQuizSetIds = [];
+
+        updateSelectedSetsDisplay();
+        updateActionButtons();
+        updateMobileNextButton(); // Init Mobile Button
+
+        try {
+            const url = new URL(getQuizSetsPartialUrl, window.location.origin);
+            url.searchParams.append('page', page);
+            url.searchParams.append('q', searchQuery || '');
+            url.searchParams.append('search_field', searchField || 'all');
+            url.searchParams.append('filter', filter || 'doing');
+            url.searchParams.append('is_multi_select_mode', isMultiSelectMode.toString());
+
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error();
+
+            quizSetsContainer.innerHTML = await response.text();
+
+            // Move pagination to fixed slot
+            const paginationSlot = document.getElementById('quiz-pagination-slot');
+            const paginationEl = quizSetsContainer.querySelector('.pagination') || quizSetsContainer.querySelector('nav[aria-label="Page navigation"]');
+
+            if (paginationSlot) {
+                paginationSlot.innerHTML = '';
+                if (paginationEl) {
+                    paginationSlot.appendChild(paginationEl);
+                    // Center pagination (new request)
+                    paginationSlot.classList.add('w-full', 'flex', 'justify-center');
+                    paginationSlot.classList.remove('hidden');
+                } else {
+                    paginationSlot.classList.add('hidden');
+                }
+            }
+
+            addQuizSetClickListeners();
+            addPaginationListeners();
+            addArchiveIconListeners();
+            syncMultiSelectionUI();
+
+        } catch (e) {
+            quizSetsContainer.innerHTML = '<p class="text-center text-rose-500 p-4">Lỗi tải dữ liệu.</p>';
+        }
+    }
+
+    async function loadQuizModes(setId) {
+        if (currentFilter === 'archive') return;
+        if (!quizModesContainer) return;
+        quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-32 text-blue-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải chế độ...</p></div>';
+
+        try {
+            let url;
+            if (Array.isArray(setId)) {
+                if (setId.length === 0) {
+                    quizModesContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-48 text-gray-400"><i class="fas fa-info-circle text-4xl mb-3 opacity-50"></i><p>Vui lòng chọn bộ câu hỏi.</p></div>';
+                    return;
+                }
+                if (setId.length === 1 && setId[0] === 'all') url = quizModesPartialBaseUrlAll;
+                else url = quizModesPartialBaseUrlMulti.replace('/0', '/' + setId.join(','));
+            } else if (setId === 'all') {
+                url = quizModesPartialBaseUrlAll;
+            } else {
+                url = quizModesPartialBaseUrlById.replace('/0', '/' + setId);
+            }
+
+            const fullUrl = new URL(url, window.location.origin);
+            if (selectedQuizMode) fullUrl.searchParams.append('selected_mode', selectedQuizMode);
+            fullUrl.searchParams.append('user_default_batch_size', selectedSessionSize);
+
+            const response = await fetch(fullUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error();
+
+            quizModesContainer.innerHTML = await response.text();
+
+            // Xử lý Dropdown số câu
+            const sizeSelect = document.getElementById('session-size-select');
+            if (sizeSelect) {
+                sizeSelect.value = selectedSessionSize;
+                sizeSelect.addEventListener('change', function () { selectedSessionSize = parseInt(this.value); });
+            }
+
+            // Xử lý Click Mode
+            const modes = quizModesContainer.querySelectorAll('.quiz-mode-item');
+            modes.forEach(mode => {
+                mode.addEventListener('click', function () {
+                    if (parseInt(this.dataset.count) === 0) return;
+                    modes.forEach(m => m.classList.remove('selected-mode'));
+                    this.classList.add('selected-mode');
+                    selectedQuizMode = this.dataset.modeId;
+                    updateActionButtons();
+                });
+            });
+
+            // Auto select mode
+            if (!selectedQuizMode) {
+                const first = Array.from(modes).find(m => parseInt(m.dataset.count) > 0);
+                if (first) first.click();
+            }
+
+        } catch (e) {
+            quizModesContainer.innerHTML = '<p class="text-center text-rose-500">Lỗi tải chế độ học.</p>';
+        }
+    }
+
+    function syncMultiSelectionUI() {
+        document.querySelectorAll('.quiz-set-item').forEach(item => {
+            const id = item.dataset.setId;
+            if (selectedQuizSetIds.includes(id)) item.classList.add('selected-item');
+            else item.classList.remove('selected-item');
+        });
+        updateSelectedSetsDisplay();
+        updateMobileNextButton(); // Sync button
+    }
+
+    function updateSelectedSetsDisplay() {
+        if (!selectedSetsDisplay) return;
+
+        selectedSetsDisplay.innerHTML = ''; // Clear previous content
+
+        if (selectedQuizSetIds.length > 0) {
+            selectedSetsDisplay.classList.remove('hidden');
+
+            const selectedTitlesHtml = selectedQuizSetIds.map(setId => {
+                const setItem = document.querySelector(`.quiz-set-item[data-set-id="${setId}"]`);
+                const title = setItem ? setItem.dataset.title : `Bộ #${setId}`;
+                return `
                 <span class="selected-set-item">
                     ${title}
                     <i class="fas fa-times ml-1 cursor-pointer" onclick="removeSelectedQuizSet('${setId}')"></i>
                 </span>
             `;
-        }).join('');
+            }).join('');
 
-        selectedSetsDisplay.innerHTML = `
+            selectedSetsDisplay.innerHTML = `
             <span class="text-gray-500 text-sm mr-2">Đã chọn:</span>
             ${selectedTitlesHtml}
         `;
-        
-        // Only show "Clear All" button if in multi-select mode
-        if (isMultiSelectMode) {
-            const clearBtn = document.createElement('button');
-            clearBtn.className = "text-xs text-rose-500 font-semibold hover:underline ml-2";
-            clearBtn.textContent = "Bỏ chọn tất cả";
-            clearBtn.onclick = () => {
-                selectedQuizSetIds = [];
-                localStorage.removeItem('selectedQuizSetIds');
-                syncMultiSelectionUI();
-                loadQuizModes([]);
-                updateActionButtons();
-            };
-            selectedSetsDisplay.appendChild(clearBtn);
-        }
 
-    } else {
-        selectedSetsDisplay.classList.add('hidden');
-    }
-}
+            // Only show "Clear All" button if in multi-select mode
+            if (isMultiSelectMode) {
+                const clearBtn = document.createElement('button');
+                clearBtn.className = "text-xs text-rose-500 font-semibold hover:underline ml-2";
+                clearBtn.textContent = "Bỏ chọn tất cả";
+                clearBtn.onclick = () => {
+                    selectedQuizSetIds = [];
+                    localStorage.removeItem('selectedQuizSetIds');
+                    syncMultiSelectionUI();
+                    loadQuizModes([]);
+                    updateActionButtons();
+                };
+                selectedSetsDisplay.appendChild(clearBtn);
+            }
 
-// Global function to remove a single selected set
-window.removeSelectedQuizSet = (setIdToRemove) => {
-    selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setIdToRemove);
-    localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
-    syncMultiSelectionUI();
-    loadQuizModes(selectedQuizSetIds);
-    updateActionButtons();
-};
-
-function handleQuizSetSelection(setId) {
-    if (!isMultiSelectMode) {
-        // Single Select Mode logic
-        selectedQuizSetIds = [setId];
-    } else {
-        // Multi Select Mode logic
-        if (setId === 'all' && !selectedQuizSetIds.includes('all')) selectedQuizSetIds = ['all'];
-        else if (selectedQuizSetIds.includes('all')) selectedQuizSetIds = [setId];
-        else {
-            if (selectedQuizSetIds.includes(setId)) selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setId);
-            else selectedQuizSetIds.push(setId);
+        } else {
+            selectedSetsDisplay.classList.add('hidden');
         }
     }
-    
-    localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
-    syncMultiSelectionUI();
-    loadQuizModes(selectedQuizSetIds);
-    updateActionButtons();
-}
 
-function addQuizSetClickListeners() {
-    document.querySelectorAll('.quiz-set-item').forEach(item => {
-        item.addEventListener('click', function() { handleQuizSetSelection(this.dataset.setId); });
+    // Global function to remove a single selected set
+    window.removeSelectedQuizSet = (setIdToRemove) => {
+        selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setIdToRemove);
+        localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
+        syncMultiSelectionUI();
+        loadQuizModes(selectedQuizSetIds);
+        updateActionButtons();
+    };
+
+    function handleQuizSetSelection(setId) {
+        if (!isMultiSelectMode) {
+            // Single Select Mode logic
+            selectedQuizSetIds = [setId];
+        } else {
+            // Multi Select Mode logic
+            if (setId === 'all' && !selectedQuizSetIds.includes('all')) selectedQuizSetIds = ['all'];
+            else if (selectedQuizSetIds.includes('all')) selectedQuizSetIds = [setId];
+            else {
+                if (selectedQuizSetIds.includes(setId)) selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setId);
+                else selectedQuizSetIds.push(setId);
+            }
+        }
+
+        localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
+        syncMultiSelectionUI();
+        loadQuizModes(selectedQuizSetIds);
+        updateActionButtons();
+    }
+
+    function addQuizSetClickListeners() {
+        document.querySelectorAll('.quiz-set-item').forEach(item => {
+            item.addEventListener('click', function () { handleQuizSetSelection(this.dataset.setId); });
+        });
+    }
+
+    function addPaginationListeners() {
+        document.querySelectorAll('.pagination a').forEach(a => {
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                const url = new URL(this.href);
+                currentPage = parseInt(url.searchParams.get('page')) || 1;
+                loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+            });
+        });
+    }
+
+    function addArchiveIconListeners() {
+        document.querySelectorAll('.archive-icon').forEach(icon => {
+            icon.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const setId = icon.dataset.setId;
+                const url = toggleArchiveUrl.replace('/0', '/' + setId);
+                try {
+                    const res = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (res.ok) loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
+                } catch { }
+            });
+        });
+    }
+
+    function updateActionButtons() {
+        const startBtn = document.getElementById('start-learning-btn');
+        const archiveBtn = document.getElementById('bulk-unarchive-btn');
+
+        if (currentFilter === 'archive') {
+            if (startBtn) startBtn.style.display = 'none';
+            if (archiveBtn) {
+                archiveBtn.style.display = 'flex';
+                archiveBtn.disabled = selectedQuizSetIds.length === 0;
+            }
+        } else {
+            if (archiveBtn) archiveBtn.style.display = 'none';
+            if (startBtn) {
+                startBtn.style.display = 'flex';
+                const ready = selectedQuizSetIds.length > 0 && selectedQuizMode;
+                startBtn.disabled = !ready;
+                startBtn.className = ready
+                    ? "start-button bg-blue-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-lg shadow-blue-600/30 flex items-center justify-center mx-auto transform hover:-translate-y-1"
+                    : "start-button bg-gray-400 text-white px-8 py-3 rounded-xl text-lg font-bold cursor-not-allowed flex items-center justify-center mx-auto";
+            }
+        }
+    }
+
+    // Listeners
+    quizSearchForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        currentSearchQuery = e.target.elements.q.value;
+        currentSearchField = e.target.elements.search_field?.value || 'all';
+        currentPage = 1;
+        loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
     });
-}
 
-function addPaginationListeners() {
-    document.querySelectorAll('.pagination a').forEach(a => {
-        a.addEventListener('click', function(e) {
-            e.preventDefault();
-            const url = new URL(this.href);
-            currentPage = parseInt(url.searchParams.get('page')) || 1;
+    document.querySelectorAll('.tab-filter-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-filter-button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            currentPage = 1;
+            updateStep2Content();
             loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
         });
     });
-}
 
-function addArchiveIconListeners() {
-    document.querySelectorAll('.archive-icon').forEach(icon => {
-        icon.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const setId = icon.dataset.setId;
-            const url = toggleArchiveUrl.replace('/0', '/' + setId);
-            try {
-                const res = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (res.ok) loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
-            } catch {}
-        });
-    });
-}
-
-function updateActionButtons() {
-    const startBtn = document.getElementById('start-learning-btn');
-    const archiveBtn = document.getElementById('bulk-unarchive-btn');
-    
-    if (currentFilter === 'archive') {
-        if(startBtn) startBtn.style.display = 'none';
-        if(archiveBtn) {
-            archiveBtn.style.display = 'flex';
-            archiveBtn.disabled = selectedQuizSetIds.length === 0;
+    document.getElementById('start-learning-btn')?.addEventListener('click', () => {
+        let startUrl;
+        const batchSize = selectedSessionSize || 10;
+        if (selectedQuizSetIds.length === 1 && selectedQuizSetIds[0] === 'all') {
+            startUrl = new URL(startQuizSessionBaseUrlAllTemplate.replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
+        } else if (selectedQuizSetIds.length === 1) {
+            startUrl = new URL(startQuizSessionBaseUrlByIdTemplate.replace('0', selectedQuizSetIds[0]).replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
+        } else {
+            startUrl = new URL(startQuizSessionBaseUrlMultiTemplate.replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
+            startUrl.searchParams.append('set_ids', selectedQuizSetIds.join(','));
         }
-    } else {
-        if(archiveBtn) archiveBtn.style.display = 'none';
-        if(startBtn) {
-            startBtn.style.display = 'flex';
-            const ready = selectedQuizSetIds.length > 0 && selectedQuizMode;
-            startBtn.disabled = !ready;
-            startBtn.className = ready 
-                ? "start-button bg-blue-600 text-white px-8 py-3 rounded-xl text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-lg shadow-blue-600/30 flex items-center justify-center mx-auto transform hover:-translate-y-1"
-                : "start-button bg-gray-400 text-white px-8 py-3 rounded-xl text-lg font-bold cursor-not-allowed flex items-center justify-center mx-auto";
+        startUrl.searchParams.append('batch_size', batchSize);
+        localStorage.removeItem('selectedQuizSetIds');
+        window.location.href = startUrl.toString();
+    });
+
+    function updateStep2Content() {
+        if (currentFilter === 'archive') {
+            quizModesContainer.innerHTML = `<div class="flex flex-col items-center justify-center h-48 text-gray-500"><p>Chọn bộ quiz để bỏ lưu trữ.</p></div>`;
+            if (step2Title) step2Title.innerHTML = `<i class="fas fa-info-circle mr-3 text-blue-500"></i> Quản lý Archive`;
+        } else {
+            if (step2Title) step2Title.innerHTML = `<i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học`;
+            if (selectedQuizSetIds.length > 0) loadQuizModes(selectedQuizSetIds);
         }
     }
-}
 
-// Listeners
-quizSearchForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    currentSearchQuery = e.target.elements.q.value;
-    currentSearchField = e.target.elements.search_field?.value || 'all';
-    currentPage = 1;
-    loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
-});
-
-document.querySelectorAll('.tab-filter-button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-filter-button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = btn.dataset.filter;
-        currentPage = 1;
-        updateStep2Content();
+    document.addEventListener('DOMContentLoaded', () => {
+        // Reset selection on reload (User Request)
+        localStorage.removeItem('selectedQuizSetIds');
         loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
     });
-});
-
-document.getElementById('start-learning-btn')?.addEventListener('click', () => {
-    let startUrl;
-    const batchSize = selectedSessionSize || 10;
-    if (selectedQuizSetIds.length === 1 && selectedQuizSetIds[0] === 'all') {
-        startUrl = new URL(startQuizSessionBaseUrlAllTemplate.replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
-    } else if (selectedQuizSetIds.length === 1) {
-        startUrl = new URL(startQuizSessionBaseUrlByIdTemplate.replace('0', selectedQuizSetIds[0]).replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
-    } else {
-        startUrl = new URL(startQuizSessionBaseUrlMultiTemplate.replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
-        startUrl.searchParams.append('set_ids', selectedQuizSetIds.join(','));
-    }
-    startUrl.searchParams.append('batch_size', batchSize);
-    localStorage.removeItem('selectedQuizSetIds');
-    window.location.href = startUrl.toString();
-});
-
-function updateStep2Content() {
-    if (currentFilter === 'archive') {
-        quizModesContainer.innerHTML = `<div class="flex flex-col items-center justify-center h-48 text-gray-500"><p>Chọn bộ quiz để bỏ lưu trữ.</p></div>`;
-        if(step2Title) step2Title.innerHTML = `<i class="fas fa-info-circle mr-3 text-blue-500"></i> Quản lý Archive`;
-    } else {
-        if(step2Title) step2Title.innerHTML = `<i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học`;
-        if(selectedQuizSetIds.length > 0) loadQuizModes(selectedQuizSetIds);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Reset selection on reload (User Request)
-    localStorage.removeItem('selectedQuizSetIds');
-    loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
-});
 </script>
