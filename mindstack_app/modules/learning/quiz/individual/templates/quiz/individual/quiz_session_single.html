@@ -320,7 +320,7 @@
                             <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i> <span>AI Phân Tích</span></div>
                             <button id="ai-generate-btn" class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
                         </div>
-                        <div id="hub-ai-content" class="text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn nút để yêu cầu AI phân tích...</div>
+                        <div id="hub-ai-content" class="content-display markdown-body text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn nút để yêu cầu AI phân tích...</div>
                     </div>
                 </div>
                 <!-- Note Tab -->
@@ -606,7 +606,8 @@
         setText('.js-feedback-answer', result.correct_answer);
 
         // Populate Explanations (Hub & Desktop Inline)
-        const explanationHtml = result.explanation || "Chưa có giải thích.";
+        const explanationText = result.explanation || "Chưa có giải thích.";
+        const explanationHtml = explanationText.replace(/\r?\n/g, '<br>');
         if(dom.hubExplText) dom.hubExplText.innerHTML = explanationHtml;
         
         if (result.explanation) {
@@ -614,7 +615,7 @@
              const dtExplContent = document.getElementById('desktop-explanation-content');
              if(dtExpl && dtExplContent) {
                  dtExpl.classList.remove('hidden');
-                 dtExplContent.innerHTML = result.explanation;
+                 dtExplContent.innerHTML = explanationHtml;
              }
         }
         

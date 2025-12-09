@@ -6,10 +6,12 @@
 
 from flask import request, jsonify, current_app
 from flask_login import login_required
+import mistune
 from . import ai_services_bp
 from .service_manager import get_ai_service
 from .prompts import get_formatted_prompt
 from ...models import db, LearningItem
+from ...modules.shared.utils.html_sanitizer import sanitize_rich_text
 from sqlalchemy.orm.attributes import flag_modified
 
 @ai_services_bp.route('/ai/get-ai-response', methods=['POST'])
@@ -38,7 +40,9 @@ def get_ai_response():
     # 1. Kiểm tra cache trước khi gọi AI, trừ khi có yêu cầu tái tạo
     if prompt_type == 'explanation' and item.ai_explanation and not force_regenerate:
         current_app.logger.info(f"AI Service: Trả về cache cho item {item_id}.")
-        return jsonify({'success': True, 'response': item.ai_explanation})
+        # Đảm bảo cache trả về cũng là HTML
+        html_content = sanitize_rich_text(mistune.html(item.ai_explanation))
+        return jsonify({'success': True, 'response': html_content})
 
     # Lấy client AI (Gemini hoặc HF tùy cấu hình)
     ai_client = get_ai_service()
@@ -59,12 +63,18 @@ def get_ai_response():
         if not success:
             return jsonify({'success': False, 'message': ai_response}), 503
 
-        # 4. Nếu là yêu cầu giải thích, lưu lại kết quả vào cache
+        # 4. Nếu là yêu cầu giải thích, chuyển Markdown sang HTML, sanitize và lưu lại kết quả
         if prompt_type == 'explanation':
-            item.ai_explanation = ai_response
+            # Giữ lại bản gốc Markdown để có thể tái tạo nếu cần
+            # item.ai_explanation_raw = ai_response 
+            
+            html_content = sanitize_rich_text(mistune.html(ai_response))
+            item.ai_explanation = html_content
             db.session.commit()
-            current_app.logger.info(f"AI Service: Đã lưu cache cho item {item_id}.")
+            current_app.logger.info(f"AI Service: Đã lưu cache (HTML) cho item {item_id}.")
+            return jsonify({'success': True, 'response': html_content})
 
+        # Đối với các loại khác, trả về response gốc
         return jsonify({'success': True, 'response': ai_response})
     except Exception as e:
         current_app.logger.error(f"Lỗi khi xử lý yêu cầu AI cho item {item_id}: {e}", exc_info=True)

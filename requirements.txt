@@ -30,6 +30,7 @@ audioop-lts>=0.2; python_version >= "3.13" # Cung cấp lại mô-đun audioop b
 # --- Tích hợp AI ---
 google-generativeai>=0.3 # Thư viện để tương tác với Google Gemini API
 huggingface_hub>=0.16.0 # Thư viện để tương tác với Hugging Face API
+mistune>=2.0 # Thư viện để chuyển đổi Markdown sang HTML
 
 # --- Các thư viện phụ thuộc quan trọng khác ---
 Jinja2>=3.0 # Engine template cho Flask
