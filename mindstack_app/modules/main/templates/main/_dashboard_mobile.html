@@ -1,136 +1,229 @@
-{# ================= MOBILE APP INTERFACE (LG:HIDDEN) ================= #}
-<div class="lg:hidden bg-slate-50 min-h-screen pb-24">
-    
-    {# 1. Sticky Header #}
-    <div class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-5 py-3 flex items-center justify-between">
-        <div>
-            <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">MindStack</p>
-            <h1 class="text-lg font-extrabold text-slate-800">Hi, {{ current_user.username }} 👋</h1>
-        </div>
-        <a href="{{ url_for('user_profile.view_profile') }}" class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-100 to-blue-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm active:scale-95 transition-transform">
-            <i class="fa-solid fa-user"></i>
-        </a>
-    </div>
+{# ================= MOBILE APP INTERFACE (TRUE NATIVE UI WRAPPER) ================= #}
+{# Use fixed positioning to overlay the standard site layout, creating a true "App" feel #}
+<div
+    class="lg:hidden fixed inset-0 z-[100] bg-slate-50 flex flex-col font-sans h-[100dvh] w-full safe-area-inset-bottom">
 
-    {# 2. Motivation #}
-    {% if motivation_message %}
-    <div class="px-5 pt-4 pb-2">
-        <p class="text-xs text-slate-500 italic">"{{ motivation_message }}"</p>
-    </div>
-    {% endif %}
-
-    {# 3. Horizontal Stats Scroll (Snap Cards) #}
-    <div class="px-5 py-2 overflow-x-auto flex gap-3 no-scrollbar snap-x scroll-pl-5">
-        {% for card in score_cards %}
-            <div class="snap-start flex-shrink-0 w-32 bg-gradient-to-br {{ card.accent }} text-white rounded-2xl p-3 shadow-md flex flex-col justify-between h-24 relative overflow-hidden">
-                <div class="absolute right-0 top-0 p-2 opacity-10">
-                    <i class="fa-solid fa-{{ card.icon }} text-4xl"></i>
-                </div>
-                <i class="fa-solid fa-{{ card.icon }} text-lg opacity-90 relative z-10"></i>
-                <div class="relative z-10">
-                    <p class="text-xl font-bold leading-none">{{ "{:,}".format(card.value) }}</p>
-                    <p class="text-[9px] uppercase font-bold tracking-wide opacity-80 mt-1">{{ card.label }}</p>
-                </div>
+    {# === 1. TOP NAVBAR (FIXED) === #}
+    {# === 1. TOP NAVBAR (FIXED) === #}
+    {# === 1. TOP NAVBAR (FIXED) === #}
+    <div
+        class="flex-shrink-0 bg-white/95 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-slate-100 shadow-sm relative z-20">
+        <div class="flex items-center gap-3">
+            <!-- LOGO / BRAND -->
+            <div
+                class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-600 flex items-center justify-center shadow-md shadow-blue-200">
+                <i class="fa-solid fa-brain text-white text-lg"></i>
             </div>
-        {% endfor %}
+            <div>
+                <h1 class="text-xs font-extrabold text-slate-900 uppercase tracking-widest leading-none mb-0.5">
+                    MindStack</h1>
+                <p class="text-[10px] text-slate-500 font-bold">Hi, {{ current_user.username }}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 shadow-sm">
+                <i class="fa-solid fa-fire text-amber-500 text-[10px]"></i>
+                <span class="text-[10px] font-bold text-amber-700">{{ score_cards[3].value if score_cards|length > 3
+                    else 0 }}</span>
+            </div>
+            <a href="{{ url_for('user_profile.view_profile') }}"
+                class="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors">
+                <i class="fa-solid fa-user text-xs"></i>
+            </a>
+        </div>
     </div>
 
-    {# 4. Main Modules Grid #}
-    <div class="px-5 mt-6 mb-2">
-        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center"><i class="fa-solid fa-layer-group text-indigo-500 mr-2"></i> Học tập</h3>
+    {# === 2. MAIN CONTENT AREA (SCROLLABLE) === #}
+    <div class="flex-grow overflow-y-auto overflow-x-hidden p-4 space-y-5 pb-24 relative">
+
+        {# Motivation / Daily Insight #}
+        {% if motivation_message %}
+        <div class="bg-white border border-blue-100 rounded-2xl p-3.5 flex items-start gap-3 shadow-sm relative overflow-hidden active:scale-[0.99] transition-transform cursor-pointer group"
+            onclick="this.querySelector('p').classList.toggle('line-clamp-2')">
+            <!-- Decor -->
+            <div
+                class="absolute right-0 top-0 w-16 h-16 bg-gradient-to-br from-blue-50 to-sky-50 rounded-bl-3xl -mr-4 -mt-4 z-0">
+            </div>
+
+            <div
+                class="relative z-10 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 flex-shrink-0">
+                <i class="fa-solid fa-quote-left text-xs"></i>
+            </div>
+            <div class="relative z-10 flex-grow pt-0.5">
+                <h4 class="text-[10px] font-bold text-blue-500 uppercase tracking-wide mb-0.5">Focus Today</h4>
+                <p
+                    class="text-xs text-slate-600 font-medium line-clamp-2 transition-all leading-relaxed group-hover:text-slate-800">
+                    {{ motivation_message }}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Stats Widgets -->
         <div class="grid grid-cols-2 gap-3">
-             <!-- Flashcard -->
-             <a href="{{ url_for('learning.flashcard.dashboard') }}" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-all">
-                <div class="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 text-xl">
-                    <i class="fa-solid fa-clone"></i>
+            <div
+                class="bg-gradient-to-br from-blue-500 to-sky-600 rounded-2xl p-4 text-white shadow-lg shadow-blue-200/50 relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-3 opacity-10"><i class="fa-solid fa-star text-4xl"></i></div>
+                <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">Điểm thưởng</p>
+                <p class="text-2xl font-bold mt-1">{{ "{:,}".format(score_cards[0].value) if score_cards else 0 }}</p>
+            </div>
+            <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-center">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Đã học</p>
+                <p class="text-2xl font-bold text-slate-800 mt-1">{{ "{:,}".format(score_cards[1].value) if
+                    score_cards|length > 1 else 0 }}</p>
+            </div>
+        </div>
+
+        <!-- App Launcher Grid -->
+        <div>
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Góc học tập</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <!-- Flashcard -->
+                <a href="{{ url_for('learning.flashcard.dashboard') }}"
+                    class="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm active:scale-95 transition-transform">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-clone"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-sm font-bold text-slate-700">Flashcard</h4>
+                        <p class="text-[10px] text-slate-400">Ôn tập thẻ nhớ</p>
+                    </div>
+                </a>
+
+                <!-- Quiz -->
+                <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}"
+                    class="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm active:scale-95 transition-transform">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-question-circle"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-sm font-bold text-slate-700">Quiz</h4>
+                        <p class="text-[10px] text-slate-400">Luyện tập</p>
+                    </div>
+                </a>
+
+                <!-- Course -->
+                <a href="{{ url_for('learning.course_learning.course_learning_dashboard') }}"
+                    class="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm active:scale-95 transition-transform">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-sm font-bold text-slate-700">Khóa học</h4>
+                        <p class="text-[10px] text-slate-400">Lộ trình học</p>
+                    </div>
+                </a>
+
+                <!-- Battle -->
+                <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}"
+                    class="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm active:scale-95 transition-transform">
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-gamepad"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-sm font-bold text-slate-700">Battle</h4>
+                        <p class="text-[10px] text-slate-400">Thi đấu</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Focus/Goal Section -->
+        <div>
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Tiêu điểm</h3>
+            </div>
+            {% if goal_progress %}
+            {% set main_goal = goal_progress[0] %}
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <span class="text-xs font-bold text-slate-700">{{ main_goal.title }}</span>
+                    </div>
+                    <span class="text-xs font-bold text-blue-600">{{ main_goal.percent }}%</span>
                 </div>
-                <span class="text-sm font-bold text-slate-700">Flashcard</span>
-             </a>
-             <!-- Quiz -->
-             <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-all">
-                <div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 text-xl">
-                    <i class="fa-solid fa-question-circle"></i>
+                <div class="w-full bg-slate-100 rounded-full h-2 mb-2">
+                    <div class="bg-blue-500 h-2 rounded-full" style="width: {{ main_goal.percent }}%"></div>
                 </div>
-                <span class="text-sm font-bold text-slate-700">Quiz</span>
-             </a>
-             <!-- Courses -->
-             <a href="{{ url_for('learning.course_learning.course_learning_dashboard') }}" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-all">
-                <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 text-xl">
-                    <i class="fa-solid fa-graduation-cap"></i>
+                <p class="text-[10px] text-slate-400">Đã hoàn thành {{ main_goal.current_value }}/{{
+                    main_goal.target_value }} {{ main_goal.unit }} today.</p>
+            </div>
+            {% else %}
+            <a href="{{ url_for('content_management.content_dashboard') }}"
+                class="block bg-slate-800 text-white p-4 rounded-2xl shadow-lg relative overflow-hidden">
+                <div class="relative z-10">
+                    <h4 class="font-bold text-sm">Studio Sáng Tạo</h4>
+                    <p class="text-[10px] text-slate-300 mt-1">Tạo bộ thẻ và nội dung mới ngay.</p>
                 </div>
-                <span class="text-sm font-bold text-slate-700">Khóa học</span>
-             </a>
-             <!-- Battle -->
-             <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-all">
-                <div class="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center text-rose-600 text-xl">
-                    <i class="fa-solid fa-gamepad"></i>
-                </div>
-                <span class="text-sm font-bold text-slate-700">Battle</span>
-             </a>
+                <i class="fa-solid fa-pen-nib absolute right-3 bottom-0 text-5xl text-white/10"></i>
+            </a>
+            {% endif %}
         </div>
     </div>
 
-    {# 5. Goals Horizontal Scroll #}
-    <div class="mt-6 pl-5">
-        <div class="flex items-center justify-between mb-3 pr-5">
-            <h3 class="text-sm font-bold text-slate-800 flex items-center"><i class="fa-solid fa-bullseye text-rose-500 mr-2"></i> Mục tiêu</h3>
-            <a href="{{ url_for('goals.manage_goals') }}" class="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded-lg">Quản lý</a>
-        </div>
-        <div class="flex overflow-x-auto gap-3 pb-4 no-scrollbar snap-x scroll-pl-5 pr-5">
-             {% for goal in goal_progress %}
-                <div class="snap-start flex-shrink-0 w-[75vw] bg-white border border-slate-100 rounded-xl p-4 shadow-sm relative">
-                    <div class="flex items-start justify-between gap-3 mb-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center border border-slate-100">
-                                <i class="fa-solid fa-{{ goal.icon }}"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-sm font-bold text-slate-800 line-clamp-1">{{ goal.title }}</h4>
-                                {% if goal.due_date %}
-                                <p class="text-[10px] text-slate-400">Hạn: {{ goal.due_date.strftime('%d/%m') }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <span class="text-xs font-bold text-indigo-600">{{ goal.percent }}%</span>
-                    </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2 mb-2">
-                        <div class="bg-indigo-500 h-2 rounded-full transition-all duration-500" style="width: {{ goal.percent }}%"></div>
-                    </div>
-                    <div class="flex justify-between text-[10px] text-slate-500 font-medium">
-                        <span>Tiến độ</span>
-                        <span>{{ goal.current_value }} / {{ goal.target_value }} {{ goal.unit }}</span>
-                    </div>
-                    <a href="{{ goal.url }}" class="absolute inset-0"></a>
+    {# === 3. BOTTOM TAB BAR (FIXED) === #}
+    {# === 3. BOTTOM DOCK (FLOATING & HIGHLIGHTED) === #}
+    <div class="flex-shrink-0 bg-white border-t border-slate-100 pb-safe relative z-30">
+        <div class="flex justify-between items-end px-4 py-2 h-[64px]">
+
+            <!-- 1. Home -->
+            <a href="#"
+                class="flex flex-col items-center gap-1 text-slate-400 w-12 hover:text-blue-600 transition-colors pb-1 group">
+                <div class="w-6 h-6 flex items-center justify-center group-hover:-translate-y-1 transition-transform">
+                    <i class="fa-solid fa-house text-xl group-hover:text-blue-600"></i>
                 </div>
-             {% else %}
-                <div class="snap-start w-full text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                    <p class="text-xs text-slate-400">Bạn chưa đặt mục tiêu nào.</p>
-                    <a href="{{ url_for('goals.manage_goals') }}" class="text-xs font-bold text-indigo-500 mt-1 inline-block">Đặt mục tiêu ngay</a>
+                <span class="text-[9px] font-bold group-hover:text-blue-600">Home</span>
+            </a>
+
+            <!-- 2. Goals -->
+            <a href="{{ url_for('goals.manage_goals') }}"
+                class="flex flex-col items-center gap-1 text-slate-400 w-12 hover:text-amber-500 transition-colors pb-1 group">
+                <div class="w-6 h-6 flex items-center justify-center group-hover:-translate-y-1 transition-transform">
+                    <i class="fa-solid fa-bullseye text-xl group-hover:text-amber-500"></i>
                 </div>
-             {% endfor %}
+                <span class="text-[9px] font-bold group-hover:text-amber-500">Mục tiêu</span>
+            </a>
+
+            <!-- 3. Create (Inline) -->
+            <a href="{{ url_for('content_management.content_dashboard') }}"
+                class="flex flex-col items-center gap-1 text-slate-400 w-12 hover:text-blue-600 transition-colors pb-1 group">
+                <div
+                    class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:-translate-y-1 transition-transform border border-blue-100 shadow-sm">
+                    <i class="fa-solid fa-plus text-lg text-blue-600"></i>
+                </div>
+                <span class="text-[9px] font-bold group-hover:text-blue-600">Tạo mới</span>
+            </a>
+
+            <!-- 4. Stats -->
+            <a href="{{ url_for('stats.dashboard') }}"
+                class="flex flex-col items-center gap-1 text-slate-400 w-12 hover:text-cyan-500 transition-colors pb-1 group">
+                <div class="w-6 h-6 flex items-center justify-center group-hover:-translate-y-1 transition-transform">
+                    <i class="fa-solid fa-chart-pie text-xl group-hover:text-cyan-500"></i>
+                </div>
+                <span class="text-[9px] font-bold group-hover:text-cyan-500">Thống kê</span>
+            </a>
+
+            <!-- 5. Profile -->
+            <a href="{{ url_for('user_profile.view_profile') }}"
+                class="flex flex-col items-center gap-1 text-slate-400 w-12 hover:text-rose-500 transition-colors pb-1 group">
+                <div class="w-6 h-6 flex items-center justify-center group-hover:-translate-y-1 transition-transform">
+                    <i class="fa-solid fa-user text-xl group-hover:text-rose-500"></i>
+                </div>
+                <span class="text-[9px] font-bold group-hover:text-rose-500">Cá nhân</span>
+            </a>
         </div>
     </div>
 
-    {# 6. Content Management Banner #}
-    <div class="px-5 mt-2">
-        <a href="{{ url_for('content_management.content_dashboard') }}" class="block bg-slate-800 text-white rounded-2xl p-5 shadow-lg shadow-slate-200 active:scale-[0.98] transition-transform relative overflow-hidden">
-            <div class="absolute -right-4 -bottom-4 text-slate-700 opacity-20">
-                <i class="fa-solid fa-pen-to-square text-8xl"></i>
-            </div>
-            <div class="relative z-10 flex items-center justify-between">
-                <div>
-                    <h4 class="font-bold text-base">Quản lý nội dung</h4>
-                    <p class="text-xs text-slate-300 mt-1 max-w-[200px]">Tạo bộ thẻ, câu hỏi mới và chia sẻ với mọi người.</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
-                    <i class="fa-solid fa-arrow-right"></i>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    {# 7. Simple Footer Links #}
-    <div class="px-5 mt-8 text-center pb-8">
-        <a href="{{ url_for('stats.dashboard') }}" class="text-xs font-semibold text-slate-400 hover:text-indigo-500 uppercase tracking-widest">Xem thống kê chi tiết</a>
-    </div>
 </div>
+
+<style>
+    /* Utility to ensure Bottom Tab Bar sits above OS UI (Home Bar) on newer phones */
+    .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
+</style>
