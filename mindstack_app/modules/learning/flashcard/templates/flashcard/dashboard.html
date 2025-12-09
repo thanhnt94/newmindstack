@@ -378,9 +378,11 @@
     <div class="flex justify-center mb-6 hidden lg:flex">
         <div class="study-mode-tabs relative z-10" role="tablist" aria-label="Chế độ học flashcard"
             style="pointer-events: auto;">
-            <button class="study-mode-tab active" data-study-tab="solo" role="tab" aria-selected="true">Học 1
+            <button type="button" class="study-mode-tab active" data-study-tab="solo" role="tab"
+                aria-selected="true">Học 1
                 mình</button>
-            <button class="study-mode-tab" data-study-tab="group" role="tab" aria-selected="false">Học theo
+            <button type="button" class="study-mode-tab" data-study-tab="group" role="tab" aria-selected="false">Học
+                theo
                 nhóm</button>
         </div>
     </div>
@@ -403,7 +405,7 @@
 
     // Fix: Restore mode from URL
     const urlParams = new URLSearchParams(window.location.search);
-    let currentStudyMode = urlParams.get('mode') || 'solo';
+    currentStudyMode = urlParams.get('mode') || 'solo';
     // Ensure valid mode
     if (currentStudyMode !== 'solo' && currentStudyMode !== 'group') currentStudyMode = 'solo';
 
@@ -414,6 +416,7 @@
     const bulkUnarchiveBtn = document.getElementById('bulk-unarchive-btn');
 
     function switchStudyMode(mode) {
+        console.log('switchStudyMode:', mode);
         if (!mode) return;
         currentStudyMode = mode;
 
@@ -425,6 +428,7 @@
         });
 
         if (mode === 'solo') {
+            console.log('Showing Solo Section');
             if (soloSection) soloSection.classList.remove('hidden');
             if (groupSection) groupSection.classList.add('hidden');
 
@@ -433,11 +437,15 @@
                 updateActionButtons();
             }
         } else {
+            console.log('Showing Group Section');
             if (soloSection) soloSection.classList.add('hidden');
             if (groupSection) groupSection.classList.remove('hidden');
 
             if (startLearningBtn) startLearningBtn.style.display = 'none';
             if (bulkUnarchiveBtn) bulkUnarchiveBtn.style.display = 'none';
+
+            // Force refresh Collab data
+            if (window.refreshCollab) window.refreshCollab();
         }
 
         // Fix: Update URL
@@ -452,11 +460,13 @@
     // Logic chuyển Tab
     studyModeTabs.forEach((tab) => {
         tab.addEventListener('click', () => {
+            console.log('Tab Clicked:', tab.dataset.studyTab);
             switchStudyMode(tab.dataset.studyTab);
         });
     });
 
     // Initialize on load
+    console.log('Initializing Study Mode:', currentStudyMode);
     switchStudyMode(currentStudyMode);
 </script>
 {% endblock %}

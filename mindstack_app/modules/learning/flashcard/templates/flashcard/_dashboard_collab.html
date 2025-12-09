@@ -1077,6 +1077,12 @@
     };
 
     // Make globally accessible
+    window.refreshCollab = function () {
+        if (collabState && collabState.currentTab) {
+            fetchRooms(collabState.currentTab);
+        }
+    };
+
     window.selectCollabSet = function (id, title) {
         collabState.selectedSetId = id;
         document.getElementById('collab-selected-container-id').value = id;
