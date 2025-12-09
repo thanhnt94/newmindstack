@@ -1,6 +1,6 @@
 {# =============================== #}
 {# File: mindstack_app/modules/learning/quiz/individual/templates/quiz/individual/quiz_session_single.html #}
-{# Phiên bản: 4.0 (App-like UI - Single Question Mode) #}
+{# Phiên bản: 4.4 (Responsive Split - Client-Side Toggle) #}
 {# =============================== #}
 
 {% extends "base.html" %}
@@ -13,39 +13,7 @@
     /* === CORE LAYOUT === */
     body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
 
-    /* Hide Default Site Elements on Mobile to fake an "App" */
-    @media (max-width: 1023px) {
-        body > header, nav.navbar, footer, .site-footer, .back-to-top { display: none !important; }
-        body { 
-            padding-top: 100px !important; /* Reduced Header + Tabs */
-            padding-bottom: 70px; /* Reduced Bottom Bar padding */
-        }
-        .container { padding-left: 12px; padding-right: 12px; max-width: 100%; }
-        /* Adjusted padding for card header on mobile instead of hiding it */
-        .cm-card-header { padding: 0.5rem 0.75rem !important; }
-
-        /* Mobile Result Panel - Fixed Bottom Sheet */
-        #result-panel {
-            position: fixed !important;
-            bottom: 80px !important; /* Above the bottom bar */
-            left: 0 !important;
-            right: 0 !important;
-            margin: 0 !important;
-            border-radius: 1rem 1rem 0 0 !important;
-            border: none !important;
-            border-top: 4px solid #3b82f6 !important;
-            box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.1) !important;
-            z-index: 50 !important;
-            animation: slideUp 0.3s ease-out;
-        }
-        
-        @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-    }
-
-    /* === UI COMPONENTS === */
+    /* Shared Styles */
     .cm-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
@@ -53,7 +21,7 @@
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
         overflow: hidden;
         display: flex; flex-direction: column;
-        margin-bottom: 0.5rem; /* Reduced for more compact display */
+        margin-bottom: 0.5rem; 
     }
     .cm-card-header {
         padding: 1rem 1.25rem;
@@ -96,7 +64,7 @@
     .cm-btn-primary:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
     .cm-btn-danger { background: white; color: #ef4444; border: 1px solid #fecaca; }
     
-    /* === MOBILE SPECIFIC === */
+    /* === MOBILE SPECIFIC STYLES (Used in _mobile.html) === */
     .qb-mobile-sticky-wrapper {
         position: fixed; top: 0; left: 0; right: 0; z-index: 50; 
         background: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -150,221 +118,233 @@
     .qb-hub-content { flex: 1; overflow-y: auto; padding: 1.5rem; background: white; }
     .qb-hub-pane { display: none; }
     .qb-hub-pane.active { display: block; }
-
-    /* Desktop Adjustments */
-    @media (min-width: 1024px) {
-        .qb-mobile-sticky-wrapper, .qb-bottom-bar { display: none; }
-        .qb-layout-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
-    }
-    @media (max-width: 1023px) {
-        .qb-desktop-header { display: none !important; }
-        .qb-layout-grid { display: block; }
-        .qb-tab-pane { display: none; }
-        .qb-tab-pane.active { display: block; animation: fadeIn 0.3s; }
-        
-        /* Hide desktop-specific side panels on mobile, they will be in tabs/modals */
-        .desktop-only-panel { display: none !important; }
-    }
+    
+    /* Logic for tabs */
+    .qb-tab-pane { display: none; }
+    .qb-tab-pane.active { display: block; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Override for Mobile to hide site elements (Client-side via Media Query) */
+    @media (max-width: 1023px) {
+        body > header, nav.navbar, footer, .site-footer, .back-to-top { display: none !important; }
+        body { 
+            padding-top: 100px !important; 
+            padding-bottom: 70px;
+        }
+        .container { padding-left: 12px; padding-right: 12px; max-width: 100%; }
+        .cm-card-header { padding: 0.5rem 0.75rem !important; }
+
+        /* Mobile Result Panel - Fixed Bottom Sheet */
+        #mobile-result-panel {
+            position: fixed !important;
+            bottom: 80px !important; /* Above the bottom bar */
+            left: 0 !important;
+            right: 0 !important;
+            margin: 0 !important;
+            border-radius: 1rem 1rem 0 0 !important;
+            border: none !important;
+            border-top: 4px solid #3b82f6 !important;
+            box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+            z-index: 50 !important;
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    }
+
+    /* === DESKTOP BATCH-LIKE STYLES === */
+    @media (min-width: 1024px) {
+        body { background-color: #f1f5f9; }
+        
+        .quiz-shell {
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.9) 0%, rgba(226, 232, 240, 0.35) 100%);
+            min-height: 100vh;
+        }
+
+        .quiz-shell .cm-container { gap: 1.5rem; }
+
+        .quiz-section-header {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .quiz-heading-group .cm-subheading { max-width: 38rem; }
+
+        /* Stats Card (Top Right) */
+        .quiz-progress-card {
+            width: 400px;
+            padding: 1.25rem 1.5rem;
+            border-radius: 1.1rem;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .progress-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+        .progress-card-title { display: flex; align-items: center; gap: 0.75rem; }
+        .progress-card-icon { 
+            width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center;
+            border-radius: 0.6rem; background: #e2e8f0; color: #1d4ed8; 
+        }
+        .progress-card-heading { font-weight: 700; color: #0f172a; }
+        
+        .progress-card-stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; }
+        .progress-stat-item { background: #f8fafc; padding: 0.5rem; border-radius: 0.5rem; text-align: center; border: 1px solid #e2e8f0; }
+        .progress-stat-value { display: block; font-weight: 700; font-size: 1.25rem; line-height: 1; margin-bottom: 0.25rem; }
+        .progress-stat-label { font-size: 0.65rem; text-transform: uppercase; color: #64748b; font-weight: 600; }
+
+        .progress-bar-track { height: 0.4rem; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 0.5rem; }
+        .progress-bar-fill { height: 100%; background: #3b82f6; transition: width 0.3s; }
+
+        /* Main Quiz Card */
+        .quiz-card {
+            background: white;
+            border-radius: 1.25rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            box-shadow: 0 24px 50px -35px rgba(15, 23, 42, 0.45);
+            padding: 2rem;
+            min-height: 500px;
+        }
+
+        .question-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            padding: 2rem;
+        }
+
+        .question-meta { display: flex; justify-content: space-between; margin-bottom: 1rem; color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .question-title { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-bottom: 1.5rem; line-height: 1.4; }
+
+        /* Options */
+        .qb-options-grid { display: grid; gap: 1rem; }
+        .option-button {
+            display: flex; align-items: center; gap: 1rem; width: 100%; padding: 1rem 1.25rem;
+            border-radius: 0.75rem; border: 1px solid #cbd5e1; background: white;
+            text-align: left; font-size: 1rem; color: #334155; transition: all 0.2s;
+            cursor: pointer;
+        }
+        .option-button:hover { border-color: #3b82f6; background: #eff6ff; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .option-button.selected { border-color: #3b82f6; background: #eff6ff; ring: 2px solid #3b82f6; }
+        .option-button.correct { border-color: #10b981; background: #ecfdf5; }
+        .option-button.incorrect { border-color: #ef4444; background: #fef2f2; }
+        
+        .option-key { 
+            width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center;
+            background: #f1f5f9; border-radius: 50%; font-weight: 700; color: #64748b; flex-shrink: 0;
+        }
+        .option-button.selected .option-key { background: #3b82f6; color: white; }
+        .option-button.correct .option-key { background: #10b981; color: white; }
+        .option-button.incorrect .option-key { background: #ef4444; color: white; }
+
+        /* Feedback Desktop */
+        .desktop-feedback-box {
+            margin-top: 1.5rem; padding: 1rem; border-radius: 0.75rem; display: flex; gap: 1rem;
+        }
+        .desktop-feedback-box.correct { background: #ecfdf5; border: 1px solid #10b981; color: #065f46; }
+        .desktop-feedback-box.incorrect { background: #fef2f2; border: 1px solid #ef4444; color: #991b1b; }
+        
+        .desktop-action-bar { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; }
+
+        /* === BATCH MODE: POST-ANSWER STYLES (Inline) === */
+        .question-insights {
+            border-top: 1px dashed rgba(148, 163, 184, 0.45);
+            padding-top: 2rem; margin-top: 2rem;
+            display: flex; flex-direction: column; gap: 1.5rem;
+        }
+
+        .question-stats-card {
+            background: #ffffff; border-radius: 1rem; padding: 1.25rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            display: flex; flex-direction: column; gap: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .question-stats-header { display: flex; justify-content: space-between; align-items: center; }
+        .question-stats-title { font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .question-stats-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+        .stat-item { background: #f8fafc; border-radius: 0.75rem; padding: 0.75rem; border: 1px solid #e2e8f0; text-align: center; }
+        .stat-value { display: block; font-size: 1.25rem; font-weight: 700; color: #0f172a; }
+        .stat-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
+
+        .extra-info-area { display: flex; flex-direction: column; gap: 1.5rem; }
+        .info-section { background: #ffffff; border-radius: 1rem; border: 1px solid #e2e8f0; padding: 1.5rem; }
+        .info-section h4 { font-weight: 700; color: #0f172a; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; }
+        
+        .note-textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.75rem; min-height: 120px; font-size: 0.95rem; }
+        .content-display { color: #334155; line-height: 1.6; font-size: 0.95rem; }
+    }
+
+    @media (min-width: 1024px) {
+        /* Force display block for tab panes used as grid items on desktop */
+        #tab-pane-game, #tab-pane-stats { display: block !important; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-{# === MOBILE APP HEADER === #}
-<div class="qb-mobile-sticky-wrapper">
-    <div class="qb-mobile-header">
-        <div class="flex items-center gap-3">
-            <div class="flex flex-col">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
-                <span id="mobile-progress-display" class="text-lg font-black text-slate-800 leading-none">--/--</span>
+    {# Include BOTH partials, visibility controlled by CSS classes in files (lg:hidden vs hidden lg:block) #}
+    {% include "quiz/individual/_quiz_session_single_mobile.html" %}
+    {% include "quiz/individual/_quiz_session_single_desktop.html" %}
+
+    {# Hub Modal (Shared structure but styled for Desktop via CSS overrides) #}
+    <div id="explanation-hub-modal" class="qb-modal-overlay">
+        <div class="qb-modal-container desktop:max-w-xl desktop:mx-auto desktop:h-[80vh] desktop:rounded-2xl">
+            <div class="qb-hub-header">
+                <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
+                <button id="close-hub-btn" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="h-6 w-px bg-slate-200"></div>
-            <div class="flex flex-col">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đúng</span>
-                <span id="mobile-score-display" class="text-lg font-black text-emerald-600 leading-none font-mono">0</span>
+            <div class="qb-hub-tabs">
+                <div class="qb-hub-tab-item active" data-target="hub-expl">📖 Giải thích</div>
+                <div class="qb-hub-tab-item" data-target="hub-ai">🤖 AI Coach</div>
+                <div class="qb-hub-tab-item" data-target="hub-note">📝 Ghi chú</div>
             </div>
-        </div>
-
-        <div class="flex gap-2">
-             <a href="/" class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-house"></i></a>
-             <button id="mobile-exit-btn" class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-right-from-bracket"></i></button>
-        </div>
-    </div>
-
-    {# === MOBILE TABS === #}
-    <div class="qb-mobile-tabs-container">
-        <div class="qb-mobile-tabs">
-            <div class="qb-mobile-tab-item active" data-tab="game">Câu hỏi</div>
-            <div class="qb-mobile-tab-item" data-tab="stats">Thống kê</div>
-        </div>
-    </div>
-</div>
-
-<div class="container mx-auto px-2 py-0 max-w-7xl">
-    
-    {# === DESKTOP HEADER === #}
-    <header class="qb-desktop-header flex items-center justify-between mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-900">Làm bài Quiz</h1>
-            <p class="text-sm text-slate-500">Chế độ cá nhân</p>
-        </div>
-        <div class="flex gap-2">
-            <a href="/" class="cm-btn cm-btn-primary bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"><i class="fa-solid fa-house"></i> Trang chủ</a>
-            <button id="desktop-exit-btn" class="cm-btn cm-btn-danger"><i class="fa-solid fa-right-from-bracket"></i> Kết thúc</button>
-        </div>
-    </header>
-
-    <div class="qb-layout-grid">
-        
-        {# --- LEFT COL: GAMEPLAY --- #}
-        <div id="tab-pane-game" class="qb-tab-pane active space-y-3">
-            
-            <div class="cm-card">
-                <div class="cm-card-header">
-                    <span class="font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-circle-question text-blue-500"></i> <span id="question-header-text">Câu hỏi --</span></span>
-                </div>
-                <div class="cm-card-body relative">
-                    <!-- Loading State -->
-                    <div id="quiz-loading" class="flex flex-col items-center justify-center py-12 text-blue-500">
-                        <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                        <p>Đang tải câu hỏi...</p>
+            <div class="qb-hub-content">
+                <!-- Expl Tab -->
+                <div id="hub-expl" class="qb-hub-pane active">
+                    <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
+                        <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Giải thích:</h4>
+                        <div id="hub-explanation-text">Chưa có giải thích.</div>
                     </div>
-
-                    <!-- Question Content -->
-                    <div id="quiz-content" class="hidden">
-                        <h2 id="question-text" class="qb-question-text">--</h2>
-                        <div id="question-media" class="qb-question-media hidden"></div>
-                        
-                        <div id="question-options" class="qb-options-grid mt-4">
-                            <!-- Options injected here -->
+                </div>
+                <!-- AI Tab -->
+                <div id="hub-ai" class="qb-hub-pane">
+                     <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i> <span>AI Phân Tích</span></div>
+                            <button id="ai-generate-btn" class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
                         </div>
+                        <div id="hub-ai-content" class="text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn nút để yêu cầu AI phân tích...</div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Feedback / Result Panel (Desktop: Inline, Mobile: Hub/Inline) -->
-            <div id="result-panel" class="cm-card border-l-4 border-l-blue-500 hidden">
-                <div class="cm-card-body">
-                    <div class="flex items-start gap-4">
-                        <div id="feedback-icon" class="text-3xl">💡</div>
-                        <div class="flex-1">
-                            <h3 id="feedback-title" class="text-lg font-bold text-slate-900">Kết quả</h3>
-                            <div class="flex gap-4 text-sm mt-2">
-                                <div class="bg-slate-50 px-3 py-2 rounded border border-slate-100">
-                                    <span class="block text-xs text-slate-400 uppercase">Đáp án đúng</span>
-                                    <span id="feedback-correct-answer" class="font-bold text-emerald-600">--</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Note Tab -->
+                <div id="hub-note" class="qb-hub-pane">
+                    <textarea id="hub-note-input" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition" rows="8" placeholder="Ghi chú của bạn..."></textarea>
+                    <button id="hub-note-save" class="mt-2 w-full py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm hover:bg-blue-200">Lưu ghi chú</button>
                 </div>
-            </div>
-
-            <!-- Desktop Only: Explanation & AI Preview -->
-            <div class="desktop-only-panel space-y-4 hidden lg:block">
-                 <div id="desktop-explanation" class="cm-card hidden">
-                    <div class="cm-card-header"><span class="font-bold">Giải thích</span></div>
-                    <div class="cm-card-body">
-                         <div id="desktop-explanation-content" class="markdown-body text-sm"></div>
-                    </div>
-                 </div>
-            </div>
-
-        </div>
-
-        {# --- RIGHT COL: STATS (Desktop) / TAB (Mobile) --- #}
-        <div id="tab-pane-stats" class="qb-tab-pane space-y-6">
-            <div class="cm-card">
-                <div class="cm-card-header">
-                    <span class="font-bold text-emerald-600"><i class="fa-solid fa-chart-pie"></i> Thống kê phiên</span>
-                </div>
-                <div class="cm-card-body">
-                    <div class="grid grid-cols-2 gap-4 text-center">
-                         <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                             <div class="text-xs text-slate-500 uppercase">Đã làm</div>
-                             <div id="stat-total" class="text-2xl font-bold text-slate-800">0</div>
-                         </div>
-                         <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-                             <div class="text-xs text-emerald-600 uppercase">Chính xác</div>
-                             <div id="stat-accuracy" class="text-2xl font-bold text-emerald-700">0%</div>
-                         </div>
-                    </div>
-                    <div class="mt-4">
-                        <div class="flex justify-between text-xs text-slate-500 mb-1">
-                            <span>Tiến độ</span>
-                            <span id="stat-progress-text">0/0</span>
-                        </div>
-                        <div class="w-full bg-slate-100 rounded-full h-2.5">
-                            <div id="stat-progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-             <div class="cm-card desktop-only-panel">
-                <div class="cm-card-header">
-                    <span class="font-bold text-slate-700">Công cụ</span>
-                </div>
-                <div class="cm-card-body flex flex-col gap-2">
-                    <button id="open-hub-desktop-btn" class="cm-btn cm-btn-primary w-full"><i class="fa-solid fa-book-open"></i> Xem chi tiết & Ghi chú</button>
-                    <button class="cm-btn w-full border border-slate-200 hover:bg-slate-50" onclick="window.location.reload()"><i class="fa-solid fa-rotate"></i> Tải lại câu hỏi</button>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-{# === MOBILE BOTTOM BAR === #}
-<div class="qb-bottom-bar">
-    <button type="button" id="open-hub-btn" class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 hidden" aria-label="Mở chi tiết">
-        <i class="fa-solid fa-lightbulb text-xl"></i>
-    </button>
-
-    <button type="button" id="mobile-action-btn" class="cm-btn cm-btn-primary w-full shadow-lg" disabled>
-        <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
-    </button>
-</div>
-
-{# === HUB MODAL (Explanation, AI, Notes) === #}
-<div id="explanation-hub-modal" class="qb-modal-overlay">
-    <div class="qb-modal-container">
-        <div class="qb-hub-header">
-            <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
-            <button id="close-hub-btn" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="qb-hub-tabs">
-            <div class="qb-hub-tab-item active" data-target="hub-expl">📖 Giải thích</div>
-            <div class="qb-hub-tab-item" data-target="hub-ai">🤖 AI Coach</div>
-            <div class="qb-hub-tab-item" data-target="hub-note">📝 Ghi chú</div>
-        </div>
-        <div class="qb-hub-content">
-            <!-- Expl Tab -->
-            <div id="hub-expl" class="qb-hub-pane active">
-                <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
-                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Giải thích:</h4>
-                    <div id="hub-explanation-text">Chưa có giải thích.</div>
-                </div>
-            </div>
-            <!-- AI Tab -->
-            <div id="hub-ai" class="qb-hub-pane">
-                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i> <span>AI Phân Tích</span></div>
-                        <button id="ai-generate-btn" class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
-                    </div>
-                    <div id="hub-ai-content" class="text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn nút để yêu cầu AI phân tích...</div>
-                </div>
-            </div>
-            <!-- Note Tab -->
-            <div id="hub-note" class="qb-hub-pane">
-                <textarea id="hub-note-input" class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition" rows="8" placeholder="Ghi chú của bạn..."></textarea>
-                <button id="hub-note-save" class="mt-2 w-full py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm hover:bg-blue-200">Lưu ghi chú</button>
             </div>
         </div>
     </div>
-</div>
-
+    <style>
+        /* Desktop specific overrides for Hub to center it and handle visibility */
+        @media (min-width: 1024px) {
+            .qb-modal-overlay.open .qb-modal-container { 
+                transform: translate(0, -50%) scale(1) !important; 
+                top: 50% !important; 
+                bottom: auto !important; 
+                max-width: 600px; 
+                margin: 0 auto;
+                height: 80vh;
+                border-radius: 1rem;
+            }
+        }
+    </style>
 {% endblock %}
 
 {% block scripts %}
@@ -374,42 +354,38 @@
     // URLs & Meta
     const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}";
     const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}";
-    const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
+    const quizDashboardUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
     const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
     const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
-    const quizDashboardUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     
     // State
     let currentBatch = [];
-    let currentIndex = 0; // Current question index within batch
+    let currentIndex = 0; 
     let userAnswers = {};
     let sessionStats = { total: 0, correct: 0, total_questions: 0 };
     let currentQuestion = null;
 
-    // Elements
-    const dom = {
-        loading: document.getElementById('quiz-loading'),
-        content: document.getElementById('quiz-content'),
-        qHeader: document.getElementById('question-header-text'),
-        qText: document.getElementById('question-text'),
-        qMedia: document.getElementById('question-media'),
-        qOptions: document.getElementById('question-options'),
-        mobileActionBtn: document.getElementById('mobile-action-btn'),
-        resultPanel: document.getElementById('result-panel'),
-        
-        // Stats
-        mobileProgress: document.getElementById('mobile-progress-display'),
-        mobileScore: document.getElementById('mobile-score-display'),
-        statTotal: document.getElementById('stat-total'),
-        statAccuracy: document.getElementById('stat-accuracy'),
-        statProgressText: document.getElementById('stat-progress-text'),
-        statProgressBar: document.getElementById('stat-progress-bar'),
+    // Helper: Update text/html for ALL matching elements (Mobile & Desktop)
+    const setText = (selector, text) => document.querySelectorAll(selector).forEach(el => el.textContent = text);
+    const setHtml = (selector, html) => document.querySelectorAll(selector).forEach(el => el.innerHTML = html);
+    const toggleClass = (selector, cls, force) => document.querySelectorAll(selector).forEach(el => el.classList.toggle(cls, force));
 
+    function formatTextForHtml(text) {
+        if (text === null || text === undefined) return '';
+        const tempDiv = document.createElement('div');
+        tempDiv.textContent = text;
+        return tempDiv.innerHTML.replace(/\r?\n/g, '<br>');
+    }
+
+    // Elements (Single selections for event binding)
+    const dom = {
         // Hub
         hubModal: document.getElementById('explanation-hub-modal'),
         openHubBtn: document.getElementById('open-hub-btn'),
+        openHubDesktopBtn: document.getElementById('open-hub-desktop-btn'),
         closeHubBtn: document.getElementById('close-hub-btn'),
+        
         hubExplText: document.getElementById('hub-explanation-text'),
         hubAiContent: document.getElementById('hub-ai-content'),
         aiGenerateBtn: document.getElementById('ai-generate-btn'),
@@ -443,6 +419,7 @@
                 finishSession();
             }
         } catch (e) {
+            console.error(e);
             alert('Lỗi tải câu hỏi. Vui lòng thử lại.');
         } finally {
             showLoading(false);
@@ -452,51 +429,102 @@
     function renderQuestion(q) {
         currentQuestion = q;
         const qNum = (sessionStats.total + currentIndex + 1);
-        dom.qHeader.textContent = `Câu hỏi ${qNum}`;
-        dom.qText.innerHTML = q.content.question;
+        setText('.js-question-header', `Câu hỏi ${qNum}`);
+        setHtml('.js-question-text', q.content.question);
         
         // Media
-        dom.qMedia.innerHTML = '';
-        dom.qMedia.classList.add('hidden');
+        setHtml('.js-question-media', '');
+        toggleClass('.js-question-media', 'hidden', true);
         if (q.content.question_image_file) {
-            dom.qMedia.innerHTML += `<img src="${q.content.question_image_file}">`;
-            dom.qMedia.classList.remove('hidden');
+            const imgHtml = `<img src="${q.content.question_image_file}">`;
+            document.querySelectorAll('.js-question-media').forEach(el => {
+                el.innerHTML = imgHtml;
+                el.classList.remove('hidden');
+            });
         }
 
         // Options
-        dom.qOptions.innerHTML = Object.entries(q.content.options || {}).map(([key, val]) => `
+        const optionsHtml = Object.entries(q.content.options || {}).map(([key, val]) => `
             <div class="qb-option-label" data-key="${key}">
                 <span class="qb-option-letter-circle">${key}</span>
                 <span class="text-slate-800 font-medium text-lg leading-tight mt-1">${val}</span>
             </div>
         `).join('');
-
-        // Reset UI
-        dom.resultPanel.classList.add('hidden');
-        dom.openHubBtn.classList.add('hidden');
-        dom.mobileActionBtn.disabled = true;
-        dom.mobileActionBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án';
-        dom.mobileActionBtn.dataset.action = 'submit';
+        setHtml('.js-options-grid', optionsHtml);
         
-        // Add listeners
-        dom.qOptions.querySelectorAll('.qb-option-label').forEach(el => {
-            el.addEventListener('click', () => selectOption(el.dataset.key));
+        // Add listeners to ALL option containers (both views)
+        document.querySelectorAll('.js-options-grid').forEach(grid => {
+            grid.querySelectorAll('.qb-option-label').forEach(el => {
+                el.addEventListener('click', () => selectOption(el.dataset.key));
+            });
         });
         
-        // Reset Hub Content
-        dom.hubExplText.textContent = "Chưa có giải thích.";
-        dom.hubAiContent.textContent = "Nhấn nút để yêu cầu AI phân tích...";
-        dom.hubNoteInput.value = q.note_content || "";
+        // Populate Desktop Batch-Like Options
+        const desktopOptionsHtml = Object.entries(q.content.options || {}).map(([key, val]) => `
+            <button class="option-button" data-option="${key}">
+                <span class="option-key">${key}</span>
+                <span>${val}</span>
+            </button>
+        `).join('');
+        // We need to inject this into the desktop grid specifically if it uses a different class structure, 
+        // but our CSS update made .qb-options-grid work for both. 
+        // Ideally, we update the HTML to distinguish or just use the same structure. 
+        // For now, let's assume .js-options-grid handles both or we target desktop specifically.
+        // Actually, looking at _desktop partial, it uses .js-options-grid too. 
+        // Let's inject the BUTTON structure for desktop if we can detect it, or update the partial.
+        // Better: Update .js-options-grid in desktop partial to use the button structure directly? 
+        // Or just let JS inject different HTML based on parent? 
+        // Current JS injects the MOBILE structure (div with .qb-option-label).
+        // Let's fix this: We will update the desktop grid manually.
+        const desktopGrid = document.querySelector('.hidden.lg\\:block .js-options-grid');
+        if(desktopGrid) {
+            desktopGrid.innerHTML = desktopOptionsHtml;
+            desktopGrid.querySelectorAll('.option-button').forEach(el => {
+                el.addEventListener('click', () => selectOption(el.dataset.option));
+            });
+        }
+
+        // Reset UI
+        toggleClass('.js-result-panel', 'hidden', true);
+        toggleClass('#desktop-insights-area', 'hidden', true); // Hide desktop inline insights
+        if(dom.openHubBtn) dom.openHubBtn.classList.add('hidden');
+        if(dom.openHubDesktopBtn) dom.openHubDesktopBtn.classList.add('hidden'); // Hide "Tools" button initially
+        
+        // Reset Buttons
+        updateActionButtons(true, '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án', 'submit');
+        
+        // Reset Content (Both Hub and Desktop Inline)
+        setText('#hub-explanation-text', "Chưa có giải thích.");
+        setHtml('#desktop-explanation-content', "");
+        toggleClass('#desktop-explanation', 'hidden', true);
+
+        // AI Content
+        const aiDefault = "Nhấn nút để yêu cầu AI phân tích...";
+        setText('#hub-ai-content', aiDefault);
+        setHtml('#desktop-ai-content', `<span class="italic text-slate-500">${aiDefault}</span>`);
+        
+        // Note Content
+        const noteVal = q.note_content || "";
+        if(dom.hubNoteInput) dom.hubNoteInput.value = noteVal;
+        const dNote = document.getElementById('desktop-note-input');
+        if(dNote) dNote.value = noteVal;
     }
 
     function selectOption(key) {
-        dom.qOptions.querySelectorAll('.qb-option-label').forEach(el => {
+        // Update selection in Mobile
+        document.querySelectorAll('.qb-option-label').forEach(el => {
             if (el.dataset.key === key) el.classList.add('selected');
             else el.classList.remove('selected');
         });
+        
+        // Update selection in Desktop
+        document.querySelectorAll('.option-button').forEach(el => {
+            if (el.dataset.option === key) el.classList.add('selected');
+            else el.classList.remove('selected');
+        });
+        
         userAnswers[currentQuestion.item_id] = key;
-        dom.mobileActionBtn.disabled = false;
-        dom.mobileActionBtn.classList.add('cm-btn-primary');
+        updateActionButtons(false, null, null, true); // Enable primary style
     }
 
     async function submitAnswer() {
@@ -504,8 +532,7 @@
         const answer = userAnswers[itemId];
         if (!answer) return;
 
-        dom.mobileActionBtn.disabled = true;
-        dom.mobileActionBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Đang gửi...';
+        updateActionButtons(true, '<i class="fas fa-circle-notch fa-spin"></i> Đang gửi...');
 
         try {
             const res = await fetch(submitAnswerBatchUrl, {
@@ -525,50 +552,63 @@
             updateStatsUI();
 
             // Setup Next Button
-            dom.mobileActionBtn.disabled = false;
-            dom.mobileActionBtn.innerHTML = '<i class="fa-solid fa-arrow-right"></i> Tiếp theo';
-            dom.mobileActionBtn.dataset.action = 'next';
+            updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
             
-            // Show Hub Button
-            dom.openHubBtn.classList.remove('hidden');
+            // Show Hub Button (Mobile)
+            if(dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
+            // Show Hub/Tools Button (Desktop - if needed, though now inline)
+            // if(dom.openHubDesktopBtn) dom.openHubDesktopBtn.classList.remove('hidden'); 
 
         } catch (e) {
+            console.error(e);
             alert('Lỗi gửi đáp án.');
-            dom.mobileActionBtn.disabled = false;
+            updateActionButtons(false);
         }
     }
 
     function showFeedback(result) {
-        // Highlight Options
-        dom.qOptions.querySelectorAll('.qb-option-label').forEach(el => {
+        // Highlight Options in Mobile View
+        document.querySelectorAll('.qb-option-label').forEach(el => {
             el.classList.add('disabled');
-            el.classList.remove('selected'); // Remove selection style to apply specific states
+            el.classList.remove('selected');
             if (el.dataset.key === result.correct_answer) el.classList.add('correct');
             if (el.dataset.key === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
         });
+        
+        // Highlight Options in Desktop View (Batch Style)
+        document.querySelectorAll('.option-button').forEach(el => {
+            el.style.pointerEvents = 'none'; // Disable clicks
+            el.classList.remove('selected');
+            if (el.dataset.option === result.correct_answer) el.classList.add('correct');
+            else if (el.dataset.option === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
+        });
 
         // Show Panel
-        dom.resultPanel.classList.remove('hidden');
-        const icon = document.getElementById('feedback-icon');
-        const title = document.getElementById('feedback-title');
-        const ans = document.getElementById('feedback-correct-answer');
+        toggleClass('.js-result-panel', 'hidden', false);
+        toggleClass('#desktop-insights-area', 'hidden', false); // Reveal desktop inline insights
         
+        // Update Content
         if (result.is_correct) {
-            icon.textContent = '🎉';
-            title.textContent = 'Chính xác!';
-            title.className = 'text-lg font-bold text-emerald-600';
+            setText('.js-feedback-icon', '🎉');
+            setText('.js-feedback-title', 'Chính xác!');
+            document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-emerald-600 js-feedback-title');
+            document.querySelectorAll('.desktop-feedback-box').forEach(el => {
+                 el.classList.remove('incorrect'); el.classList.add('correct');
+            });
         } else {
-            icon.textContent = '🤔';
-            title.textContent = 'Sai rồi';
-            title.className = 'text-lg font-bold text-rose-600';
+            setText('.js-feedback-icon', '🤔');
+            setText('.js-feedback-title', 'Sai rồi');
+            document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-rose-600 js-feedback-title');
+             document.querySelectorAll('.desktop-feedback-box').forEach(el => {
+                 el.classList.remove('correct'); el.classList.add('incorrect');
+            });
         }
-        ans.textContent = result.correct_answer;
+        setText('.js-feedback-answer', result.correct_answer);
 
-        // Populate Hub
-        if (result.explanation) dom.hubExplText.innerHTML = result.explanation;
-        if (currentQuestion.ai_explanation) dom.hubAiContent.innerHTML = currentQuestion.ai_explanation;
+        // Populate Explanations (Hub & Desktop Inline)
+        const explanationHtml = result.explanation || "Chưa có giải thích.";
+        if(dom.hubExplText) dom.hubExplText.innerHTML = explanationHtml;
         
-        // Show Desktop Explanation
         if (result.explanation) {
              const dtExpl = document.getElementById('desktop-explanation');
              const dtExplContent = document.getElementById('desktop-explanation-content');
@@ -577,10 +617,15 @@
                  dtExplContent.innerHTML = result.explanation;
              }
         }
+        
+        // Populate AI if already exists
+        if (currentQuestion.ai_explanation) {
+            if(dom.hubAiContent) dom.hubAiContent.innerHTML = currentQuestion.ai_explanation;
+            setHtml('#desktop-ai-content', currentQuestion.ai_explanation);
+        }
     }
 
     function nextQuestion() {
-        // Clear previous state
         const dtExpl = document.getElementById('desktop-explanation');
         if(dtExpl) dtExpl.classList.add('hidden');
         
@@ -588,7 +633,7 @@
         if (currentIndex < currentBatch.length) {
             renderQuestion(currentBatch[currentIndex]);
         } else {
-            loadBatch(); // Load next batch
+            loadBatch(); 
         }
     }
 
@@ -599,25 +644,42 @@
 
     // --- Helpers ---
     function showLoading(show) {
-        dom.loading.classList.toggle('hidden', !show);
-        dom.content.classList.toggle('hidden', show);
+        toggleClass('.js-quiz-loading', 'hidden', !show);
+        toggleClass('.js-quiz-content', 'hidden', show);
+    }
+
+    function updateActionButtons(disabled, text, action, primary) {
+        const btns = [document.getElementById('mobile-action-btn'), document.getElementById('desktop-action-btn')];
+        btns.forEach(btn => {
+            if(!btn) return;
+            if(disabled !== undefined) btn.disabled = disabled;
+            if(text) btn.innerHTML = text;
+            if(action) btn.dataset.action = action;
+            if(primary) btn.classList.add('cm-btn-primary');
+        });
     }
 
     function updateStatsUI() {
         const acc = sessionStats.total > 0 ? Math.round((sessionStats.correct / sessionStats.total) * 100) : 0;
-        dom.mobileScore.textContent = sessionStats.correct;
-        dom.mobileProgress.textContent = `${sessionStats.total}/${sessionStats.total_questions}`;
         
-        dom.statTotal.textContent = sessionStats.total;
-        dom.statAccuracy.textContent = `${acc}%`;
-        dom.statProgressText.textContent = `${sessionStats.total}/${sessionStats.total_questions}`;
-        dom.statProgressBar.style.width = `${(sessionStats.total / sessionStats.total_questions) * 100}%`;
+        setText('.js-stat-total', sessionStats.total); // Covers desktop total + mobile progress parts if mapped
+        setText('.js-stat-correct', sessionStats.correct); // Mobile header score
+        setText('.js-stat-accuracy', `${acc}%`);
+        setText('.js-stat-progress-text', `${sessionStats.total}/${sessionStats.total_questions}`);
+        
+        document.querySelectorAll('.js-stat-progress-bar').forEach(el => {
+            el.style.width = `${(sessionStats.total / sessionStats.total_questions) * 100}%`;
+        });
     }
 
-    // --- AI & Notes ---
-    dom.aiGenerateBtn.addEventListener('click', async () => {
-        dom.aiGenerateBtn.disabled = true;
-        dom.hubAiContent.textContent = "Đang tạo...";
+    // --- AI & Notes Handlers (Unified) ---
+    const handleAiGenerate = async (btn) => {
+        if(!btn) return;
+        btn.disabled = true;
+        const loadingText = "Đang tạo...";
+        if(dom.hubAiContent) dom.hubAiContent.textContent = loadingText;
+        setHtml('#desktop-ai-content', `<i class="fas fa-spinner fa-spin"></i> ${loadingText}`);
+        
         try {
             const res = await fetch(getAiResponseUrl, {
                 method: 'POST',
@@ -626,16 +688,28 @@
             });
             const data = await res.json();
             const content = data.html_content || data.response;
-            dom.hubAiContent.innerHTML = content;
+            
+            // Update BOTH views
+            if(dom.hubAiContent) dom.hubAiContent.innerHTML = content;
+            setHtml('#desktop-ai-content', content);
+            
             currentQuestion.ai_explanation = content;
         } catch (e) {
-            dom.hubAiContent.textContent = "Lỗi khi gọi AI.";
+            const errHtml = '<span class="text-red-500">Lỗi khi gọi AI.</span>';
+            if(dom.hubAiContent) dom.hubAiContent.innerHTML = errHtml;
+            setHtml('#desktop-ai-content', errHtml);
         }
-        dom.aiGenerateBtn.disabled = false;
-    });
+        btn.disabled = false;
+    };
 
-    dom.hubNoteSave.addEventListener('click', async () => {
-        const content = dom.hubNoteInput.value;
+    const handleSaveNote = async (btn, inputEl) => {
+        if(!btn || !inputEl) return;
+        const originalText = btn.innerHTML;
+        const content = inputEl.value;
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lưu...';
+        btn.disabled = true;
+
         try {
             await fetch(saveNoteUrlTemplate.replace('0', currentQuestion.item_id), {
                 method: 'POST',
@@ -643,34 +717,61 @@
                 body: JSON.stringify({ content })
             });
             currentQuestion.note_content = content;
+            
+            // Sync value to other view's input
+            if(dom.hubNoteInput && dom.hubNoteInput !== inputEl) dom.hubNoteInput.value = content;
+            const dInput = document.getElementById('desktop-note-input');
+            if(dInput && dInput !== inputEl) dInput.value = content;
+            
             alert('Đã lưu ghi chú.');
         } catch (e) {
             alert('Lỗi lưu ghi chú.');
         }
-    });
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    };
 
-    // --- Event Bindings ---
-    dom.mobileActionBtn.addEventListener('click', () => {
-        if (dom.mobileActionBtn.dataset.action === 'submit') submitAnswer();
+    // Bind AI Buttons
+    if(dom.aiGenerateBtn) dom.aiGenerateBtn.addEventListener('click', () => handleAiGenerate(dom.aiGenerateBtn));
+    const dAiBtn = document.getElementById('desktop-ai-generate-btn');
+    if(dAiBtn) dAiBtn.addEventListener('click', () => handleAiGenerate(dAiBtn));
+
+    // Bind Note Save Buttons
+    if(dom.hubNoteSave) dom.hubNoteSave.addEventListener('click', () => handleSaveNote(dom.hubNoteSave, dom.hubNoteInput));
+    const dNoteSave = document.getElementById('desktop-note-save');
+    const dNoteInput = document.getElementById('desktop-note-input');
+    if(dNoteSave) dNoteSave.addEventListener('click', () => handleSaveNote(dNoteSave, dNoteInput));
+
+    // Event Delegation for Action Buttons
+    const handleAction = () => {
+        const btn = document.getElementById('mobile-action-btn') || document.getElementById('desktop-action-btn');
+        if (btn.dataset.action === 'submit') submitAnswer();
         else nextQuestion();
-    });
+    };
+
+    const mBtn = document.getElementById('mobile-action-btn');
+    const dBtn = document.getElementById('desktop-action-btn');
+    if(mBtn) mBtn.addEventListener('click', handleAction);
+    if(dBtn) dBtn.addEventListener('click', handleAction);
 
     // Mobile Tabs
     document.querySelectorAll('.qb-mobile-tab-item').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.qb-mobile-tab-item').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.remove('active', 'block')); // Remove block/active
+            document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.remove('active'));
             
             tab.classList.add('active');
             const pane = document.getElementById(`tab-pane-${tab.dataset.tab}`);
-            pane.classList.add('active'); // CSS handles display:block via class
+            if(pane) pane.classList.add('active');
         });
     });
 
     // Hub Modal
-    dom.openHubBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
-    dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
-    document.getElementById('open-hub-desktop-btn').addEventListener('click', () => dom.hubModal.classList.add('open')); // Desktop link
+    if(dom.hubModal) {
+        if(dom.openHubBtn) dom.openHubBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
+        if(dom.openHubDesktopBtn) dom.openHubDesktopBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
+        if(dom.closeHubBtn) dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
+    }
     
     // Hub Tabs
     document.querySelectorAll('.qb-hub-tab-item').forEach(tab => {
@@ -678,14 +779,17 @@
             document.querySelectorAll('.qb-hub-tab-item').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.qb-hub-pane').forEach(p => p.classList.remove('active'));
             tab.classList.add('active');
-            document.getElementById(tab.dataset.target).classList.add('active');
+            const pane = document.getElementById(tab.dataset.target);
+            if(pane) pane.classList.add('active');
         });
     });
 
     // Exit
     const exitHandler = () => { if(confirm('Kết thúc phiên làm bài?')) finishSession(); };
-    document.getElementById('mobile-exit-btn').addEventListener('click', exitHandler);
-    document.getElementById('desktop-exit-btn').addEventListener('click', exitHandler);
+    const mExit = document.getElementById('mobile-exit-btn');
+    if(mExit) mExit.addEventListener('click', exitHandler);
+    const dExit = document.getElementById('desktop-exit-btn');
+    if(dExit) dExit.addEventListener('click', exitHandler);
 
     // Init
     loadBatch();

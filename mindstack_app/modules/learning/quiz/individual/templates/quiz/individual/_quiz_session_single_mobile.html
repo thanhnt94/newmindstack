@@ -1,0 +1,126 @@
+{# Mobile Interface Partial #}
+<div class="lg:hidden">
+    {# === MOBILE APP HEADER === #}
+    <div class="qb-mobile-sticky-wrapper">
+        <div class="qb-mobile-header">
+            <div class="flex items-center gap-3">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
+                    <span class="text-lg font-black text-slate-800 leading-none js-stat-progress-text">--/--</span>
+                </div>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đúng</span>
+                    <span class="text-lg font-black text-emerald-600 leading-none font-mono js-stat-correct">0</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                 <a href="/" class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-house"></i></a>
+                 <button id="mobile-exit-btn" class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </div>
+
+        {# === MOBILE TABS === #}
+        <div class="qb-mobile-tabs-container">
+            <div class="qb-mobile-tabs">
+                <div class="qb-mobile-tab-item active" data-tab="game">Câu hỏi</div>
+                <div class="qb-mobile-tab-item" data-tab="stats">Thống kê</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-2 py-0 max-w-7xl">
+        
+        <div class="qb-layout-grid">
+            
+            {# --- TAB 1: GAMEPLAY --- #}
+            <div id="tab-pane-game" class="qb-tab-pane active space-y-3">
+                
+                <div class="cm-card">
+                    <div class="cm-card-header">
+                        <span class="font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-circle-question text-blue-500"></i> <span class="js-question-header">Câu hỏi --</span></span>
+                    </div>
+                    <div class="cm-card-body relative">
+                        <!-- Loading State -->
+                        <div class="flex flex-col items-center justify-center py-12 text-blue-500 js-quiz-loading">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                            <p>Đang tải câu hỏi...</p>
+                        </div>
+
+                        <!-- Question Content -->
+                        <div class="hidden js-quiz-content">
+                            <h2 class="qb-question-text js-question-text">--</h2>
+                            <div class="qb-question-media hidden js-question-media"></div>
+                            
+                            <div class="qb-options-grid mt-4 js-options-grid">
+                                <!-- Options injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback / Result Panel (Fixed Bottom Sheet on Mobile) -->
+                <div id="mobile-result-panel" class="cm-card border-l-4 border-l-blue-500 hidden js-result-panel">
+                    <div class="cm-card-body">
+                        <div class="flex items-start gap-4">
+                            <div class="text-3xl js-feedback-icon">💡</div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-slate-900 js-feedback-title">Kết quả</h3>
+                                <div class="flex gap-4 text-sm mt-2">
+                                    <div class="bg-slate-50 px-3 py-2 rounded border border-slate-100">
+                                        <span class="block text-xs text-slate-400 uppercase">Đáp án đúng</span>
+                                        <span class="font-bold text-emerald-600 js-feedback-answer">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            {# --- TAB 2: STATS --- #}
+            <div id="tab-pane-stats" class="qb-tab-pane space-y-6">
+                <div class="cm-card">
+                    <div class="cm-card-header">
+                        <span class="font-bold text-emerald-600"><i class="fa-solid fa-chart-pie"></i> Thống kê phiên</span>
+                    </div>
+                    <div class="cm-card-body">
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                             <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                 <div class="text-xs text-slate-500 uppercase">Đã làm</div>
+                                 <div class="text-2xl font-bold text-slate-800 js-stat-total">0</div>
+                             </div>
+                             <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                                 <div class="text-xs text-emerald-600 uppercase">Chính xác</div>
+                                 <div class="text-2xl font-bold text-emerald-700 js-stat-accuracy">0%</div>
+                             </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-xs text-slate-500 mb-1">
+                                <span>Tiến độ</span>
+                                <span class="js-stat-progress-text">0/0</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2.5">
+                                <div class="bg-blue-600 h-2.5 rounded-full js-stat-progress-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {# === MOBILE BOTTOM BAR === #}
+    <div class="qb-bottom-bar">
+        <button type="button" id="open-hub-btn" class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 hidden" aria-label="Mở chi tiết">
+            <i class="fa-solid fa-lightbulb text-xl"></i>
+        </button>
+
+        <button type="button" id="mobile-action-btn" class="cm-btn cm-btn-primary w-full shadow-lg" disabled>
+            <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
+        </button>
+    </div>
+</div>
