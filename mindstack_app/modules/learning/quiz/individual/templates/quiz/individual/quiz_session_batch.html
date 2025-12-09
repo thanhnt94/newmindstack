@@ -367,45 +367,74 @@
 
     .option-button {
         display: flex;
-        align-items: flex-start;
-        gap: 0.85rem;
+        align-items: center;
+        gap: 1rem;
         width: 100%;
-        padding: 1rem 1.1rem;
-        border-radius: 0.9rem;
-        border: 1px solid rgba(148, 163, 184, 0.7);
-        background: rgba(255, 255, 255, 0.9);
-        color: #0f172a;
-        font-size: 0.95rem;
-        line-height: 1.5;
-        transition: all 0.25s ease;
+        padding: 1rem 1.25rem;
+        border-radius: 0.75rem;
+        border: 1px solid #cbd5e1;
+        background: white;
+        text-align: left;
+        font-size: 1rem;
+        color: #334155;
+        transition: all 0.2s;
         cursor: pointer;
     }
 
     .option-button:hover {
-        border-color: #1d4ed8;
-        box-shadow: 0 10px 24px -18px rgba(29, 78, 216, 0.9);
+        border-color: #3b82f6;
+        background: #eff6ff;
         transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
     .option-button span:first-child {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #1e293b;
         font-weight: 700;
-        min-width: 1.5rem;
-        color: #1d4ed8;
+        font-size: 0.9rem;
+        border: 1px solid #e2e8f0;
+        flex-shrink: 0;
     }
 
     .option-button.selected {
-        border-color: #1d4ed8;
-        background: rgba(37, 99, 235, 0.08);
+        border-color: #3b82f6;
+        background: #eff6ff;
+        box-shadow: 0 0 0 1px #3b82f6;
+    }
+
+    .option-button.selected span:first-child {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
     }
 
     .option-button.correct {
-        border-color: #16a34a;
-        background: rgba(22, 163, 74, 0.12);
+        border-color: #10b981;
+        background: #ecfdf5;
+    }
+
+    .option-button.correct span:first-child {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
     }
 
     .option-button.incorrect {
-        border-color: #dc2626;
-        background: rgba(220, 38, 38, 0.12);
+        border-color: #ef4444;
+        background: #fef2f2;
+    }
+
+    .option-button.incorrect span:first-child {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
     }
 
     .quiz-image {
@@ -859,7 +888,6 @@
                 `<div class="feedback-box feedback-incorrect"><span class="feedback-icon"><i class="fas fa-times-circle"></i></span><div class="feedback-text"><strong>Sai rồi</strong><span>Đáp án đúng: ${result.correct_answer}</span></div></div>`;
             if (result.explanation) {
                 feedbackHtml += `<div class="feedback-explanation hidden lg:block"><strong>Giải thích:</strong><div class="mt-1 text-sm text-slate-700">${formatTextForHtml(result.explanation)}</div></div>`;
-                feedbackHtml += `<div class="lg:hidden mt-2 text-xs text-center text-blue-600 font-medium opacity-75"><i class="fa-solid fa-lightbulb"></i> Nhấn nút đèn bên dưới để xem chi tiết</div>`;
             }
             feedbackArea.innerHTML = feedbackHtml;
             card.querySelectorAll('.option-button').forEach(btn => {
