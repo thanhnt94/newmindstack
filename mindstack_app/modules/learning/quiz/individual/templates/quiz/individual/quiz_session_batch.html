@@ -1205,6 +1205,13 @@
     // Hub Listeners
     dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
 
+    // Close Hub when clicking outside content (on the overlay)
+    dom.hubModal.addEventListener('click', (e) => {
+        if (e.target === dom.hubModal) {
+            dom.hubModal.classList.remove('open');
+        }
+    });
+
     document.querySelectorAll('.qb-hub-tab-item').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.qb-hub-tab-item').forEach(t => t.classList.remove('active'));
