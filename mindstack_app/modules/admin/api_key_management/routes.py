@@ -4,9 +4,12 @@
 
 from flask import abort, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
+from sqlalchemy import desc, func
+from datetime import datetime, timedelta
 from . import api_key_management_bp
 from .forms import ApiKeyForm
 from ....models import db, ApiKey
+from ....models.system import SystemSetting, AILog
 
 @api_key_management_bp.before_request
 @login_required
@@ -18,13 +21,144 @@ def admin_required():
         flash('Bạn không có quyền truy cập trang này.', 'danger')
         abort(403)
 
-@api_key_management_bp.route('/')
+@api_key_management_bp.route('/', methods=['GET', 'POST'])
 def list_api_keys():
     """
-    Mô tả: Hiển thị danh sách tất cả API key.
+    Mô tả: Dashboard AI Coach - Hiển thị Keys, Settings và Log hoạt động.
     """
+    # 1. Fetch API Keys
     keys = ApiKey.query.order_by(ApiKey.key_id.asc()).all()
-    return render_template('api_keys.html', keys=keys)
+    
+    # 2. Fetch Usage Logs with Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    pagination = AILog.query.order_by(desc(AILog.timestamp)).paginate(page=page, per_page=per_page, error_out=False)
+    logs = pagination.items
+    
+    # 3. Fetch Chart Data (Last 7 Days) - Grouped by Model
+    seven_days_ago = datetime.now() - timedelta(days=7)
+    
+    # Query: Date, Model, Count, Sum(PromptChars), Sum(ResponseChars)
+    stats_query = db.session.query(
+        func.date(AILog.timestamp).label('date'),
+        AILog.model_name,
+        func.count(AILog.log_id),
+        func.sum(AILog.prompt_chars),
+        func.sum(AILog.response_chars)
+    ).filter(AILog.timestamp >= seven_days_ago)\
+     .group_by('date', AILog.model_name).all()
+     
+    # Transform data for Chart.js
+    dates_set = set()
+    models_set = set()
+    
+    # Maps for different metrics
+    # 'YYYY-MM-DD' -> { 'model_a': 10 }
+    map_requests = {} 
+    # 'YYYY-MM-DD' -> { 'model_a': 5000 }
+    map_tokens = {}
+
+    for date_str, model_name, count, sum_prompt, sum_response in stats_query:
+        if not date_str or not model_name: continue
+        dates_set.add(date_str)
+        models_set.add(model_name)
+        
+        if date_str not in map_requests: map_requests[date_str] = {}
+        if date_str not in map_tokens: map_tokens[date_str] = {}
+        
+        map_requests[date_str][model_name] = count
+        # Total chars ~ tokens (rough approx)
+        total_chars = (sum_prompt or 0) + (sum_response or 0)
+        map_tokens[date_str][model_name] = total_chars
+    
+    # Sort labels (Dates)
+    sorted_dates = sorted(list(dates_set))
+    if not sorted_dates:
+        sorted_dates = [(seven_days_ago + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(8)]
+    
+    # Build Datasets lists
+    datasets_requests = []
+    datasets_tokens = []
+    
+    for model in sorted(list(models_set)):
+        counts_req = []
+        counts_tok = []
+        for d in sorted_dates:
+            counts_req.append(map_requests.get(d, {}).get(model, 0))
+            counts_tok.append(map_tokens.get(d, {}).get(model, 0))
+            
+        # Common structure
+        datasets_requests.append({ 'label': model, 'data': counts_req })
+        datasets_tokens.append({ 'label': model, 'data': counts_tok })
+    
+    chart_payload = {
+        'labels': sorted_dates,
+        'datasets_requests': datasets_requests,
+        'datasets_tokens': datasets_tokens
+    }
+
+    # 4. Fetch Current AI Settings
+    def get_setting_value(key, default):
+        setting = SystemSetting.query.filter_by(key=key).first()
+        if not setting:
+            return default
+        return setting.value
+
+    current_provider = get_setting_value('AI_PROVIDER', 'gemini')
+    gemini_model = get_setting_value('GEMINI_MODEL', 'gemini-1.5-flash')
+    hf_model = get_setting_value('HUGGINGFACE_MODEL', 'google/gemma-7b-it')
+    
+    settings = {
+        'provider': current_provider,
+        'gemini_model': gemini_model,
+        'hf_model': hf_model
+    }
+
+    return render_template('api_keys.html', keys=keys, logs=logs, pagination=pagination, ai_settings=settings, chart_data=chart_payload)
+
+@api_key_management_bp.route('/update_settings', methods=['POST'])
+def update_ai_settings():
+    """
+    Mô tả: Xử lý form cập nhật configuration cho AI Coach.
+    """
+    provider = request.form.get('AI_PROVIDER')
+    gemini_model = request.form.get('GEMINI_MODEL')
+    hf_model = request.form.get('HUGGINGFACE_MODEL')
+    
+    # Custom input logic (fallback to custom if selected, but actually our new UI 
+    # uses hidden inputs that already resolve to the final string, so we just take the main input)
+    # Check for legacy custom input mapping if needed, 
+    # but based on previous refactor, 'gemini_model' hidden input holds the full CSV string.
+    
+    # Safety Check
+    if req_gemini_custom := request.form.get('GEMINI_MODEL_custom'):
+        if gemini_model == 'custom':
+            gemini_model = req_gemini_custom
+
+    if req_hf_custom := request.form.get('HUGGINGFACE_MODEL_custom'):
+        if hf_model == 'custom':
+            hf_model = req_hf_custom
+
+    try:
+        def update_or_create(key, value):
+            setting = SystemSetting.query.filter_by(key=key).first()
+            if setting:
+                setting.value = value
+            else:
+                setting = SystemSetting(key=key, value=value, description="AI Coach Setting")
+                db.session.add(setting)
+
+        if provider: update_or_create('AI_PROVIDER', provider)
+        if gemini_model: update_or_create('GEMINI_MODEL', gemini_model)
+        if hf_model: update_or_create('HUGGINGFACE_MODEL', hf_model)
+
+        db.session.commit()
+        flash('Đã cập nhật cấu hình AI Coach thành công.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Lỗi cập nhật: {str(e)}', 'danger')
+
+    return redirect(url_for('.list_api_keys'))
 
 @api_key_management_bp.route('/add', methods=['GET', 'POST'])
 def add_api_key():

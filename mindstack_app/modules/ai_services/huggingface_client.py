@@ -30,6 +30,29 @@ class HuggingFaceClient:
         self.model_name = model_name
         current_app.logger.info(f"HuggingFace Client đã được khởi tạo với model '{self.model_name}'.")
 
+    def _log_interaction(self, key_id, model, prompt_len, response_len, duration_sec, status, error_msg, item_info):
+        """Helper to save log to DB without crashing the app on error."""
+        try:
+            with self.app_context:
+                from ...models.system import AILog
+                from ...db_instance import db
+                
+                log_entry = AILog(
+                    provider='huggingface',
+                    model_name=model,
+                    key_id=key_id,
+                    prompt_chars=prompt_len,
+                    response_chars=response_len,
+                    processing_time_ms=int(duration_sec * 1000),
+                    status=status,
+                    error_message=str(error_msg)[:1000] if error_msg else None, 
+                    item_info=item_info
+                )
+                db.session.add(log_entry)
+                db.session.commit()
+        except Exception as e:
+            current_app.logger.error(f"HuggingFaceClient: Failed to write to log: {e}")
+
     def generate_content(self, prompt, item_info="N/A"):
         """
         Mô tả: Gửi một prompt đến HF Inference API và nhận lại nội dung.
@@ -38,6 +61,12 @@ class HuggingFaceClient:
         last_error_msg = None
 
         for attempt in range(max_retries):
+            # Init metrics
+            start_time = time.time()
+            status = 'error'
+            error_details = None
+            response_len = 0
+            
             with self.app_context:
                 key_id, key_value = self.api_key_manager.get_key()
 
@@ -67,7 +96,10 @@ class HuggingFaceClient:
                     )
                     # Lấy nội dung trả về
                     if chat_response.choices and chat_response.choices[0].message:
-                        return True, chat_response.choices[0].message.content
+                        content = chat_response.choices[0].message.content
+                        response_len = len(content)
+                        status = 'success'
+                        return True, content
                 except (AttributeError, StopIteration, ValueError, Exception) as e:
                     # Fallback nếu chat thất bại (hoặc model không hỗ trợ chat qua endpoint này)
                     # Lưu ý: Exception ở đây bắt rộng hơn để bắt cả lỗi HTTP 404/500 từ requests bên dưới
@@ -81,9 +113,12 @@ class HuggingFaceClient:
                         temperature=0.7
                     )
                     if response:
+                        response_len = len(response)
+                        status = 'success'
                         return True, response
 
                 last_error_msg = "AI trả về phản hồi trống."
+                error_details = last_error_msg
                 current_app.logger.warning(
                     f"HuggingFaceClient: Phản hồi trống cho {item_info}."
                 )
@@ -91,6 +126,7 @@ class HuggingFaceClient:
             except Exception as e:
                 error_str = str(e)
                 last_error_msg = f"Lỗi gọi HF API: {error_str}"
+                error_details = error_str
                 
                 # Xử lý các lỗi thường gặp
                 if "401" in error_str or "Unauthorized" in error_str:
@@ -104,7 +140,7 @@ class HuggingFaceClient:
                         f"HuggingFaceClient: Rate limit (429) với key ID {key_id}. Đổi key..."
                     )
                     time.sleep(2)
-                    continue
+                    # Loop will continue
                 elif "503" in error_str or "Model is loading" in error_str:
                      # Cold start: Model đang được tải lên GPU, cần đợi lâu hơn
                      wait_time = 20
@@ -112,16 +148,19 @@ class HuggingFaceClient:
                         f"HuggingFaceClient: Model '{self.model_name}' đang khởi động (cold start). Đợi {wait_time}s rồi thử lại..."
                     )
                      time.sleep(wait_time)
-                     # Giảm attempt đi 1 để không bị tính là thất bại (cho phép thử lại nhiều lần cho lỗi này)
-                     # Tuy nhiên trong vòng for range() không thể giảm biến chạy, ta có thể dùng continue
-                     # nhưng cần cẩn thận lặp vô hạn. Ở đây ta chấp nhận mất 1 attempt nhưng đợi lâu.
-                     continue
-                
-                current_app.logger.error(
-                    f"HuggingFaceClient: Lỗi không xác định với key ID {key_id}: {e}",
-                    exc_info=True
+                     # Loop will continue
+                else:
+                    current_app.logger.error(
+                        f"HuggingFaceClient: Lỗi không xác định với key ID {key_id}: {e}",
+                        exc_info=True
+                    )
+                    # Continue default logic
+            
+            finally:
+                duration = time.time() - start_time
+                self._log_interaction(
+                    key_id, self.model_name, len(prompt), response_len, duration, status, error_details, item_info
                 )
-                continue
 
         final_error_msg = last_error_msg or "Đã thử các API key nhưng thất bại."
         current_app.logger.critical(f"HuggingFaceClient: {final_error_msg}")

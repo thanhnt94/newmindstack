@@ -60,6 +60,29 @@ class GeminiClient:
 
         return False, f"Tất cả các model ({', '.join(models_to_try)[:50]}...) đều thất bại. Lỗi cuối: {final_error_msg}"
 
+    def _log_interaction(self, key_id, model, prompt_len, response_len, duration_sec, status, error_msg, item_info):
+        """Helper to save log to DB without crashing the app on error."""
+        try:
+            with self.app_context:
+                from ...models.system import AILog
+                from ...db_instance import db
+                
+                log_entry = AILog(
+                    provider='gemini',
+                    model_name=model,
+                    key_id=key_id,
+                    prompt_chars=prompt_len,
+                    response_chars=response_len,
+                    processing_time_ms=int(duration_sec * 1000),
+                    status=status,
+                    error_message=str(error_msg)[:1000] if error_msg else None, # Truncate if too long
+                    item_info=item_info
+                )
+                db.session.add(log_entry)
+                db.session.commit()
+        except Exception as e:
+            current_app.logger.error(f"GeminiClient: Failed to write to usage log: {e}")
+
     def _generate_with_single_model(self, model_target, prompt, item_info):
         """
         Mô tả: Logic cốt lõi để gọi API với một model cụ thể và xoay vòng Key.
@@ -69,13 +92,17 @@ class GeminiClient:
         previous_key_id = None
 
         for attempt in range(max_retries):
+            # Init metrics for this attempt
+            start_time = time.time()
+            status = 'error'
+            error_details = None
+            response_len = 0
+            
             with self.app_context:
                 key_id, key_value = self.api_key_manager.get_key()
 
             if not key_id:
                 error_msg = "Tất cả các API key (Gemini) đều đã cạn kiệt hoặc không hợp lệ."
-                # Nếu hết key thì dù đổi model cũng vô dụng (thường là vậy), nhưng để chắc chắn ta cứ return False
-                # để vòng lặp ngoài quyết định.
                 return False, error_msg
 
             current_app.logger.info(
@@ -88,42 +115,61 @@ class GeminiClient:
                 response = model.generate_content(prompt)
 
                 if response.parts:
+                    response_len = len(response.text)
+                    status = 'success'
                     return True, response.text
 
                 feedback = response.prompt_feedback
                 last_error_msg = f"AI không thể tạo nội dung. Phản hồi: {feedback}"
+                error_details = last_error_msg
                 current_app.logger.warning(f"GeminiClient: Phản hồi trống. {last_error_msg}")
             
             except google_exceptions.PermissionDenied as e:
-                current_app.logger.error(f"GeminiClient: Key ID {key_id} bị từ chối (PermissionDenied). Đánh dấu cạn kiệt.")
+                error_details = f"PermissionDenied: {e}"
+                current_app.logger.error(f"GeminiClient: Key ID {key_id} bị từ chối. Đánh dấu cạn kiệt.")
                 with self.app_context:
                     self.api_key_manager.mark_key_as_exhausted(key_id)
                 previous_key_id = key_id
-                continue
-
+                # Logic continue handled by loop structure, but we need to log first (via finally)
+            
             except google_exceptions.ResourceExhausted as e:
+                error_details = "ResourceExhausted (Quota Limit)"
                 # 429 Quota Limit
                 if previous_key_id == key_id:
-                    # Đã quay vòng key mà vẫn lỗi cũ -> Tạm dừng model này
                     error_msg = "Hết hạn mức Quota (ResourceExhausted) trên tất cả Key cho model này."
                     current_app.logger.warning(f"GeminiClient: {error_msg}")
+                    # Log explicit error before returning
+                    self._log_interaction(key_id, model_target, len(prompt), 0, time.time() - start_time, 'error', error_details + " (All keys exhausted)", item_info)
                     return False, error_msg
                 
                 current_app.logger.warning(f"GeminiClient: Key ID {key_id} bị 429. Thử key khác...")
                 previous_key_id = key_id
                 self.api_key_manager.force_refresh()
-                continue
-
+                # Continue loop
+            
             except google_exceptions.ServiceUnavailable as e:
+                error_details = "ServiceUnavailable (503)"
                 current_app.logger.warning("GeminiClient: ServiceUnavailable (503). Thử lại...")
                 time.sleep(2)
-                continue
-
+                # Continue loop
+            
             except Exception as e:
                 last_error_msg = f"Lỗi không xác định: {e}"
+                error_details = str(e)
                 current_app.logger.error(f"GeminiClient: Lỗi call API: {e}", exc_info=True)
-                # Lỗi lạ thì break ngay để thử model khác (hoặc fail luôn)
+                # Lỗi lạ thì break
                 break
+            
+            finally:
+                # Log this specific attempt
+                duration = time.time() - start_time
+                # If we are continuing (retrying), status is 'error'
+                # If we returned True above, this finally block runs BEFORE return? 
+                # Yes, in Python `finally` runs before `return`.
+                # But inside `try`, I already set status='success' before returning.
+                
+                # Wait, if I return in `try`, `finally` executes.
+                self._log_interaction(key_id, model_target, len(prompt), response_len, duration, status, error_details, item_info)
 
         return False, last_error_msg or "Thất bại sau nhiều lần thử Key."
 
