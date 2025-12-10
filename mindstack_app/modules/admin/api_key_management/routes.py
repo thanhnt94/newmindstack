@@ -8,7 +8,7 @@ from sqlalchemy import desc, func
 from datetime import datetime, timedelta
 from . import api_key_management_bp
 from .forms import ApiKeyForm
-from ....models import db, ApiKey
+from ....models import db, ApiKey, BackgroundTask
 from ....models.system import SystemSetting, AILog
 
 @api_key_management_bp.before_request
@@ -235,9 +235,11 @@ def get_sets_for_autogen(content_type):
 @api_key_management_bp.route('/autogen/start', methods=['POST'])
 def start_autogen():
     """
-    Mô tả: Bắt đầu quá trình auto-generate content.
+    Mô tả: Bắt đầu quá trình auto-generate content (Background Task).
     """
-    from .autogen_service import batch_generate_content
+    from .autogen_service import run_autogen_background
+    import threading
+    from flask import current_app
     
     try:
         data = request.get_json()
@@ -249,8 +251,126 @@ def start_autogen():
         if not content_type or not set_id:
             return jsonify({'success': False, 'message': 'Missing required parameters'}), 400
         
-        result = batch_generate_content(content_type, set_id, api_delay, max_items)
-        return jsonify(result)
+        # Check for existing task record (Singleton pattern for this task name)
+        task = BackgroundTask.query.filter_by(task_name='autogen_content').first()
+        
+        if task:
+            # If exists, check if running
+            if task.status == 'running':
+                 return jsonify({'success': False, 'message': 'A task is already running', 'task_id': task.task_id}), 409
+            
+            # Reset existing task for new run
+            task.status = 'pending'
+            task.progress = 0
+            task.total = 0
+            task.message = 'Initializing...'
+            task.stop_requested = False
+            task.is_enabled = True
+        else:
+            # Create new task record if never existed
+            task = BackgroundTask(
+                task_name='autogen_content',
+                status='pending',
+                progress=0,
+                total=0,
+                message='Initializing...',
+                is_enabled=True
+            )
+            db.session.add(task)
+
+        db.session.commit()
+
+        # Start background thread
+        # We need to capture the real app object to pass to the thread, 
+        # because current_app is a proxy that won't work in the new thread without context.
+        app = current_app._get_current_object()
+        
+        thread = threading.Thread(
+            target=run_autogen_background,
+            args=(app, content_type, set_id, api_delay, max_items, task.task_id),
+            name='autogen_content_thread'
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({'success': True, 'message': 'Task started', 'task_id': task.task_id})
         
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@api_key_management_bp.route('/autogen/status', methods=['GET'])
+def get_autogen_status():
+    """
+    Get status of the running or last autogen task.
+    """
+    import threading
+    task = BackgroundTask.query.filter_by(task_name='autogen_content').order_by(BackgroundTask.task_id.desc()).first()
+    
+    if not task:
+        return jsonify({'active': False})
+    
+    # Check if task is technically "running" but thread is gone (server restart/crash)
+    if task.status in ['running', 'pending']:
+        is_thread_alive = False
+        for t in threading.enumerate():
+            if t.name == 'autogen_content_thread':
+                is_thread_alive = True
+                break
+        
+        if not is_thread_alive:
+            # Thread is dead but DB says running -> Stale state
+            task.status = 'interrupted'
+            task.message = f"Task interrupted (server restart or crash). Last state: {task.message}"
+            db.session.commit()
+    
+    return jsonify({
+        'active': True,
+        'task_id': task.task_id,
+        'status': task.status,
+        'progress': task.progress,
+        'total': task.total,
+        'message': task.message,
+        'last_updated': task.last_updated.isoformat() if task.last_updated else None
+    })
+
+@api_key_management_bp.route('/autogen/logs', methods=['GET'])
+def get_autogen_logs():
+    """
+    Get activity logs for the current or last autogen task.
+    """
+    # Get the latest task
+    task = BackgroundTask.query.filter_by(task_name='autogen_content').order_by(BackgroundTask.task_id.desc()).first()
+    
+    if not task:
+        return jsonify({'success': False, 'logs': []})
+    
+    # Get logs for this task
+    # We use the relationship if available, or query directly
+    # Importing BackgroundTaskLog needed
+    from ....models import BackgroundTaskLog
+    
+    logs = BackgroundTaskLog.query.filter_by(task_id=task.task_id).order_by(BackgroundTaskLog.created_at.asc()).all()
+    
+    log_data = []
+    for log in logs:
+        log_data.append({
+            'timestamp': log.created_at.isoformat(),
+            'message': log.message,
+            'status': log.status
+        })
+        
+    return jsonify({'success': True, 'logs': log_data})
+
+
+@api_key_management_bp.route('/autogen/stop', methods=['POST'])
+def stop_autogen():
+    """
+    Request to stop the running task.
+    """
+    task = BackgroundTask.query.filter_by(task_name='autogen_content', status='running').first()
+    if task:
+        task.stop_requested = True
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Stop requested'})
+    return jsonify({'success': False, 'message': 'No running task found'})

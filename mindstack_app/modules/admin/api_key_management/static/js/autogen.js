@@ -7,6 +7,7 @@
     let currentContentType = 'quiz';
     let isGenerating = false;
     let isInitialized = false;
+    let pollInterval = null;
 
     // Initialize when autogen tab is shown
     function initializeAutogen() {
@@ -14,6 +15,9 @@
         if (!isInitialized) {
             console.log('[Autogen] Loading quiz sets...');
             loadSets('quiz');
+            // Check if task is already running
+            checkStatus();
+            loadLogs(); // Load existing logs from DB
             isInitialized = true;
         } else {
             console.log('[Autogen] Already initialized, skipping');
@@ -56,24 +60,14 @@
         console.log('[Autogen] loadSets called with type:', type);
         try {
             const url = '/admin/api-keys/autogen/get-sets/' + type;
-            console.log('[Autogen] Fetching from URL:', url);
-            const response = await fetch(url, {
-                credentials: 'same-origin'
-            });
-            console.log('[Autogen] Response status:', response.status);
+            const response = await fetch(url, { credentials: 'same-origin' });
             const data = await response.json();
-            console.log('[Autogen] Response data:', data);
 
             if (data.success) {
                 const selectId = type === 'quiz' ? 'quiz-set-select' : 'flashcard-set-select';
                 const select = document.getElementById(selectId);
+                if (!select) return;
 
-                if (!select) {
-                    console.error('[Autogen] Select element not found:', selectId);
-                    return;
-                }
-
-                console.log('[Autogen] Found', data.sets.length, 'sets');
                 select.innerHTML = '<option value="">-- Chọn bộ ' + (type === 'quiz' ? 'quiz' : 'flashcard') + ' --</option>';
 
                 data.sets.forEach(function (set) {
@@ -85,18 +79,12 @@
                     option.dataset.toGenerate = set.to_generate;
                     select.appendChild(option);
                 });
-
-                select.onchange = function () {
-                    updateSetInfo(type);
-                };
-
-                console.log('[Autogen] Successfully populated select with', data.sets.length, 'options');
+                
+                select.onchange = function () { updateSetInfo(type); };
             } else {
-                console.error('[Autogen] API returned error:', data.message);
                 addLog('error', 'Lỗi: ' + (data.message || 'Không thể tải danh sách'));
             }
         } catch (e) {
-            console.error('[Autogen] Error loading sets:', e);
             addLog('error', 'Lỗi tải danh sách: ' + e.message);
         }
     }
@@ -119,11 +107,12 @@
             document.getElementById(type + '-to-generate').textContent = toGenerate;
 
             info.classList.remove('hidden');
-
+            
+            // Recalculate estimated time
             const delay = parseInt(document.getElementById('api-delay-slider').value);
             const maxItems = parseInt(document.getElementById('max-items-select').value);
             const itemsToProcess = maxItems > 0 ? Math.min(maxItems, toGenerate) : toGenerate;
-            const estimatedSeconds = itemsToProcess * ((delay * 60) + 2);  // delay is in minutes, convert to seconds
+            const estimatedSeconds = itemsToProcess * ((delay * 60) + 2);
             const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
 
             document.getElementById('estimated-time').textContent = '~' + estimatedMinutes + ' phút';
@@ -136,12 +125,8 @@
     // Update Delay Display
     window.updateDelayDisplay = function (value) {
         document.getElementById('api-delay-value').textContent = value;
-
-        const type = currentContentType;
-        const selectId = type === 'quiz' ? 'quiz-set-select' : 'flashcard-set-select';
-        const select = document.getElementById(selectId);
-        if (select.value) {
-            updateSetInfo(type);
+        if (document.getElementById(currentContentType === 'quiz' ? 'quiz-set-select' : 'flashcard-set-select').value) {
+            updateSetInfo(currentContentType);
         }
     };
 
@@ -157,33 +142,25 @@
             return;
         }
 
-        if (!confirm('Bắt đầu tạo nội dung AI? Quá trình này có thể mất vài phút.')) {
+        if (!confirm('Bắt đầu tạo nội dung AI? Tác vụ sẽ chạy ngầm.')) {
             return;
         }
 
-        isGenerating = true;
-
-        document.getElementById('btn-start-generation').disabled = true;
-        document.getElementById('btn-stop-generation').disabled = false;
-        updateStatus('running', 'Đang chạy...');
-
-        document.getElementById('activity-log').innerHTML = '';
-
         const setId = select.value;
         const apiDelayMinutes = parseInt(document.getElementById('api-delay-slider').value);
-        const apiDelaySeconds = apiDelayMinutes * 60;  // Convert minutes to seconds
+        const apiDelaySeconds = apiDelayMinutes * 60;
         const maxItems = parseInt(document.getElementById('max-items-select').value);
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
-        addLog('info', 'Bắt đầu tạo ' + currentContentType + ' cho set #' + setId);
-        addLog('info', 'Delay: ' + apiDelayMinutes + ' phút (' + apiDelaySeconds + 's), Max items: ' + (maxItems === -1 ? 'Unlimited' : maxItems));
+        addLog('info', 'Đang gửi yêu cầu...');
 
         try {
             const response = await fetch('/admin/api-keys/autogen/start', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
                 },
-                credentials: 'same-origin',
                 body: JSON.stringify({
                     content_type: currentContentType,
                     set_id: setId,
@@ -195,52 +172,139 @@
             const data = await response.json();
 
             if (data.success) {
-                const results = data.results;
-
-                document.getElementById('progress-current').textContent = results.total_processed;
-                document.getElementById('progress-total').textContent = results.total_processed;
-                document.getElementById('progress-bar').style.width = '100%';
-                document.getElementById('progress-percent').textContent = '100';
-
-                addLog('success', '✅ Hoàn thành! Tổng: ' + results.total_processed + ', Thành công: ' + results.success_count + ', Lỗi: ' + results.error_count);
-
-                if (results.items) {
-                    results.items.forEach(function (item) {
-                        if (item.status === 'success') {
-                            addLog('success', '#' + item.id + ': ' + (item.content || 'Generated successfully'));
-                        } else {
-                            addLog('error', '#' + item.id + ': ' + item.error);
-                        }
-                    });
-                }
-
-                updateStatus('completed', 'Hoàn thành');
-                loadSets(currentContentType);
+                addLog('success', 'Task started! ID: ' + data.task_id);
+                isGenerating = true;
+                startPolling();
             } else {
-                addLog('error', 'Lỗi: ' + data.message);
-                updateStatus('error', 'Lỗi');
+                addLog('error', 'Không thể bắt đầu: ' + data.message);
             }
-
         } catch (e) {
             addLog('error', 'Lỗi kết nối: ' + e.message);
-            updateStatus('error', 'Lỗi');
-        } finally {
-            isGenerating = false;
-            document.getElementById('btn-start-generation').disabled = false;
-            document.getElementById('btn-stop-generation').disabled = true;
         }
     };
 
     // Stop Generation
-    window.stopGeneration = function () {
+    window.stopGeneration = async function () {
         if (!isGenerating) return;
-
-        if (confirm('Dừng quá trình tạo? (Chức năng này chưa được implement)')) {
-            addLog('warning', 'Đã yêu cầu dừng (chức năng đang phát triển)');
+        
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        if (confirm('Bạn có chắc chắn muốn dừng tác vụ?')) {
+            try {
+                const response = await fetch('/admin/api-keys/autogen/stop', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    addLog('warning', 'Đã gửi yêu cầu dừng.');
+                } else {
+                    addLog('error', 'Lỗi: ' + data.message);
+                }
+            } catch (e) {
+                addLog('error', 'Lỗi kết nối: ' + e.message);
+            }
         }
     };
 
-    // Update Status
+    function startPolling() {
+        if (pollInterval) clearInterval(pollInterval);
+        
+        updateButtons(true);
+        updateStatus('running', 'Đang xử lý...');
+
+        pollInterval = setInterval(async () => {
+            await checkStatus();
+            await loadLogs();
+        }, 2000);
+    }
+    
+    async function loadLogs() {
+        try {
+            const response = await fetch('/admin/api-keys/autogen/logs');
+            const data = await response.json();
+            
+            if (data.success && data.logs) {
+                const logContainer = document.getElementById('activity-log');
+                logContainer.innerHTML = ''; 
+                
+                if (data.logs.length === 0) {
+                     logContainer.innerHTML = '<div class="text-center text-slate-400 italic py-8">Chưa có hoạt động nào</div>';
+                     return;
+                }
+
+                data.logs.forEach(log => {
+                    let type = 'info';
+                    if (log.status === 'error' || (log.message && log.message.includes('Error'))) type = 'error';
+                    else if (log.status === 'completed') type = 'success';
+                    else if (log.status === 'cancelled') type = 'warning';
+                    
+                    addLogEntry(type, log.message, log.timestamp);
+                });
+                
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        } catch (e) {
+            console.error('Error loading logs:', e);
+        }
+    }
+
+    async function checkStatus() {
+        try {
+            const response = await fetch('/admin/api-keys/autogen/status');
+            const data = await response.json();
+            
+            if (!data.active) {
+                if (isGenerating) {
+                    isGenerating = false;
+                    clearInterval(pollInterval);
+                    updateButtons(false);
+                }
+                return;
+            }
+            
+            document.getElementById('progress-current').textContent = data.progress;
+            document.getElementById('progress-total').textContent = data.total;
+            
+            const percent = data.total > 0 ? Math.round((data.progress / data.total) * 100) : 0;
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-percent').textContent = percent;
+            
+            const statusBadge = document.getElementById('generation-status');
+            
+            if (data.status === 'running' || data.status === 'pending') {
+                isGenerating = true;
+                updateButtons(true);
+                updateStatus('running', data.message);
+            } else {
+                isGenerating = false;
+                if (pollInterval) clearInterval(pollInterval);
+                updateButtons(false);
+                
+                if (data.status === 'completed') {
+                    updateStatus('completed', data.message);
+                    loadSets(currentContentType); 
+                } else if (data.status === 'error') {
+                    updateStatus('error', data.message);
+                } else if (data.status === 'cancelled') {
+                    updateStatus('error', 'Đã hủy');
+                }
+                loadLogs();
+            }
+            
+        } catch (e) {
+            console.error('Polling error:', e);
+        }
+    }
+    
+    function updateButtons(running) {
+        document.getElementById('btn-start-generation').disabled = running;
+        document.getElementById('btn-stop-generation').disabled = !running;
+    }
+
     function updateStatus(status, text) {
         const badge = document.getElementById('generation-status');
         badge.className = 'px-3 py-1 rounded-full text-xs font-bold';
@@ -260,33 +324,46 @@
         }
     }
 
-    // Add Log
-    function addLog(type, message) {
+    function addLogEntry(type, message, timestamp) {
         const log = document.getElementById('activity-log');
         const entry = document.createElement('div');
         entry.className = 'flex items-start gap-2 p-2 rounded text-sm';
-
-        const timestamp = new Date().toLocaleTimeString('vi-VN');
+        
+        let timeStr;
+        if (timestamp) {
+            // Parse ISO string from server and convert to local time
+            try {
+                timeStr = new Date(timestamp).toLocaleTimeString();
+            } catch (e) {
+                timeStr = timestamp; // Fallback if parsing fails
+            }
+        } else {
+            timeStr = new Date().toLocaleTimeString();
+        }
 
         if (type === 'success') {
             entry.className += ' bg-emerald-50 text-emerald-700';
-            entry.innerHTML = '<i class="fas fa-check-circle mt-0.5"></i><div class="flex-grow"><span class="text-xs text-emerald-500">' + timestamp + '</span> ' + message + '</div>';
+            entry.innerHTML = '<i class="fas fa-check-circle mt-0.5"></i><div class="flex-grow"><span class="text-xs text-emerald-500">' + timeStr + '</span> ' + message + '</div>';
         } else if (type === 'error') {
             entry.className += ' bg-rose-50 text-rose-700';
-            entry.innerHTML = '<i class="fas fa-times-circle mt-0.5"></i><div class="flex-grow"><span class="text-xs text-rose-500">' + timestamp + '</span> ' + message + '</div>';
+            entry.innerHTML = '<i class="fas fa-times-circle mt-0.5"></i><div class="flex-grow"><span class="text-xs text-rose-500">' + timeStr + '</span> ' + message + '</div>';
         } else if (type === 'warning') {
             entry.className += ' bg-amber-50 text-amber-700';
-            entry.innerHTML = '<i class="fas fa-exclamation-triangle mt-0.5"></i><div class="flex-grow"><span class="text-xs text-amber-500">' + timestamp + '</span> ' + message + '</div>';
+            entry.innerHTML = '<i class="fas fa-exclamation-triangle mt-0.5"></i><div class="flex-grow"><span class="text-xs text-amber-500">' + timeStr + '</span> ' + message + '</div>';
         } else {
             entry.className += ' bg-slate-50 text-slate-700';
-            entry.innerHTML = '<i class="fas fa-info-circle mt-0.5"></i><div class="flex-grow"><span class="text-xs text-slate-500">' + timestamp + '</span> ' + message + '</div>';
+            entry.innerHTML = '<i class="fas fa-info-circle mt-0.5"></i><div class="flex-grow"><span class="text-xs text-slate-500">' + timeStr + '</span> ' + message + '</div>';
         }
 
         log.appendChild(entry);
+    }
+    
+    function addLog(type, message) {
+        addLogEntry(type, message);
+        const log = document.getElementById('activity-log');
         log.scrollTop = log.scrollHeight;
     }
 
-    // Clear Log
     window.clearLog = function () {
         document.getElementById('activity-log').innerHTML = '<div class="text-center text-slate-400 italic py-8">Chưa có hoạt động nào</div>';
     };
