@@ -8,122 +8,211 @@
 {% block title %}Học Quiz - MindStack{% endblock %}
 
 {% block head %}
-    {{ super() }}
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
-        
-        /* === Styles dùng chung === */
-        .quiz-title-wrapper { display: flex; justify-content: center; margin-bottom: 2rem; width: 100%; }
+{{ super() }}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f9fafb;
+    }
+
+    /* === Styles dùng chung === */
+    .quiz-title-wrapper {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+
+    .quiz-title-badge {
+        width: 100%;
+        max-width: 100%;
+        background: #e0f2fe;
+        color: #1e3a8a;
+        font-size: 2rem;
+        font-weight: 800;
+        padding: 0.75rem 2.5rem;
+        border-radius: 9999px;
+        border: 2px solid #bfdbfe;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        letter-spacing: 0.05em;
+        transition: all .3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .quiz-title-badge .fa-question-circle {
+        margin-right: .75rem;
+        font-size: 2.25rem;
+    }
+
+    .quiz-title-badge:hover {
+        box-shadow: 0 6px 14px rgba(30, 58, 138, 0.20);
+        border-color: #60a5fa;
+        transform: translateY(-2px);
+    }
+
+    .study-mode-tabs {
+        display: inline-flex;
+        background: #e5e7eb;
+        border-radius: 9999px;
+        padding: 0.25rem;
+        gap: 0.25rem;
+    }
+
+    .study-mode-tab {
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        color: #4b5563;
+        border: 1px solid transparent;
+        background: transparent;
+        transition: all 0.2s ease-in-out;
+        white-space: nowrap;
+        /* Prevent text wrapping */
+    }
+
+    .study-mode-tab.active {
+        background: #ffffff;
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Responsive */
+    @media (max-width: 639px) {
+        body {
+            height: 100dvh !important;
+            /* Lock height to viewport */
+            overflow: hidden !important;
+            /* Prevent body scroll */
+            padding-top: 0 !important;
+        }
+
+        main {
+            flex: 1 !important;
+            overflow: hidden !important;
+            /* Prevent main scroll */
+            display: flex !important;
+            flex-direction: column !important;
+            border: none !important;
+            min-height: 0 !important;
+            margin-top: 0 !important;
+            padding-bottom: 0 !important;
+            position: static !important;
+            z-index: auto !important;
+        }
+
+        .container {
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        /* Full width container */
+        .quiz-title-wrapper {
+            margin-bottom: 0.75rem;
+        }
+
+        /* Giảm khoảng cách dưới tiêu đề */
         .quiz-title-badge {
-            width: 100%; max-width: 100%; background: #e0f2fe; color: #1e3a8a;
-            font-size: 2rem; font-weight: 800; padding: 0.75rem 2.5rem;
-            border-radius: 9999px; border: 2px solid #bfdbfe;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-            letter-spacing: 0.05em; transition: all .3s ease;
-            display: inline-flex; align-items: center; justify-content: center;
-        }
-        .quiz-title-badge .fa-question-circle { margin-right: .75rem; font-size: 2.25rem; }
-        .quiz-title-badge:hover {
-            box-shadow: 0 6px 14px rgba(30,58,138,0.20);
-            border-color: #60a5fa; transform: translateY(-2px);
+            font-size: 1.1rem;
+            padding: 0.4rem 0.8rem;
         }
 
-        .study-mode-tabs { display: inline-flex; background: #e5e7eb; border-radius: 9999px; padding: 0.25rem; gap: 0.25rem; }
+        /* Giảm kích thước và padding badge */
+        .quiz-title-badge .fa-question-circle {
+            font-size: 1.4rem;
+            margin-right: 0.4rem;
+        }
+
+        /* Tối ưu icon */
+
+        /* Giảm padding cho card chính */
+        .cm-section-card {
+            padding: 0.75rem;
+        }
+
+        .study-mode-tabs {
+            /* Fixed positioning for mobile tabs */
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            /* Full width */
+            margin: 0 !important;
+            /* Remove margins */
+            z-index: 1000 !important;
+            /* Ensure tabs are on top */
+            background-color: white !important;
+            /* Solid background */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+            /* Subtle shadow */
+
+            /* Layout for tabs themselves */
+            display: flex !important;
+            justify-content: space-around !important;
+            /* Spread tabs out */
+            padding: 0.5rem 1rem !important;
+            /* Inner padding for the fixed bar */
+            border-radius: 0 !important;
+            /* Remove border-radius for full width */
+        }
+
         .study-mode-tab {
-            padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 600; color: #4b5563;
-            border: 1px solid transparent; background: transparent; transition: all 0.2s ease-in-out;
-            white-space: nowrap; /* Prevent text wrapping */
+            flex-grow: 1;
+            /* Distribute space evenly */
+            text-align: center;
+            padding: 0.5rem 0.5rem;
+            /* Adjust padding for smaller screens */
         }
-        .study-mode-tab.active {
-            background: #ffffff; color: #1d4ed8; border-color: #bfdbfe; box-shadow: 0 4px 6px rgba(0,0,0,0.06);
-        }
-
-        /* Responsive */
-        @media (max-width: 639px) {
-            body {
-                height: 100dvh !important; /* Lock height to viewport */
-                overflow: hidden !important; /* Prevent body scroll */
-                padding-top: 0 !important;
-            }
-            main {
-                flex: 1 !important;
-                overflow: hidden !important; /* Prevent main scroll */
-                display: flex !important;
-                flex-direction: column !important;
-                border: none !important;
-                min-height: 0 !important;
-                margin-top: 0 !important;
-                padding-bottom: 0 !important;
-                position: static !important;
-                z-index: auto !important;
-            }
-
-            .container { margin: 0 !important; width: 100% !important; max-width: 100% !important; } /* Full width container */
-            .quiz-title-wrapper { margin-bottom: 0.75rem; } /* Giảm khoảng cách dưới tiêu đề */
-            .quiz-title-badge { font-size: 1.1rem; padding: 0.4rem 0.8rem; } /* Giảm kích thước và padding badge */
-            .quiz-title-badge .fa-question-circle { font-size: 1.4rem; margin-right: 0.4rem; } /* Tối ưu icon */
-            
-            /* Giảm padding cho card chính */
-            .cm-section-card { padding: 0.75rem; }
-
-            .study-mode-tabs {
-                /* Fixed positioning for mobile tabs */
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                width: 100% !important; /* Full width */
-                margin: 0 !important; /* Remove margins */
-                z-index: 1000 !important; /* Ensure tabs are on top */
-                background-color: white !important; /* Solid background */
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; /* Subtle shadow */
-                
-                /* Layout for tabs themselves */
-                display: flex !important;
-                justify-content: space-around !important; /* Spread tabs out */
-                padding: 0.5rem 1rem !important; /* Inner padding for the fixed bar */
-                border-radius: 0 !important; /* Remove border-radius for full width */
-            }
-            .study-mode-tab {
-                flex-grow: 1; /* Distribute space evenly */
-                text-align: center;
-                padding: 0.5rem 0.5rem; /* Adjust padding for smaller screens */
-            }
-        }
-    </style>
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+{# Mobile Version - Navbar and Bottom Nav #}
+{% include 'quiz/_dashboard_mobile.html' %}
+
+{# Desktop Title and Tabs (Desktop Only) #}
+<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 hidden lg:block">
     <div class="quiz-title-wrapper hidden lg:flex">
         <div id="quizTitle" class="quiz-title-badge"><i class="fas fa-question-circle"></i>Quiz</div>
     </div>
 
     <!-- Re-added the flex justify-center mb-6 wrapper around tabs for desktop flow -->
-    <div class="flex justify-center mb-6 lg:flex hidden"> 
+    <div class="flex justify-center mb-6 lg:flex hidden">
         <div class="study-mode-tabs" role="tablist" aria-label="Chế độ học quiz">
-            <button class="study-mode-tab {% if quiz_type == 'individual' %}active{% endif %}" data-study-tab="individual" role="tab" aria-selected="{% if quiz_type == 'individual' %}true{% else %}false{% endif %}">Học 1 mình</button>
-            <button class="study-mode-tab {% if quiz_type == 'battle' %}active{% endif %}" data-study-tab="battle" role="role" aria-selected="{% if quiz_type == 'battle' %}true{% else %}false{% endif %}">Thi đấu nhóm</button>
+            <button class="study-mode-tab {% if quiz_type == 'individual' %}active{% endif %}"
+                data-study-tab="individual" role="tab"
+                aria-selected="{% if quiz_type == 'individual' %}true{% else %}false{% endif %}">Học 1 mình</button>
+            <button class="study-mode-tab {% if quiz_type == 'battle' %}active{% endif %}" data-study-tab="battle"
+                role="role" aria-selected="{% if quiz_type == 'battle' %}true{% else %}false{% endif %}">Thi đấu
+                nhóm</button>
         </div>
     </div>
+</div>
 
-    <div id="quiz-individual-section" {% if quiz_type != 'individual' %}class="hidden"{% endif %}>
+{# Content - Both Mobile and Desktop #}
+<div class="container mx-auto px-1 sm:px-6 lg:px-8">
+    <div id="quiz-individual-section" {% if quiz_type !='individual' %}class="hidden" {% endif %}>
         {% include 'quiz/individual/_dashboard_individual.html' %}
     </div>
-    
-    <div id="quiz-battle-section" {% if quiz_type != 'battle' %}class="hidden"{% endif %}>
+
+    <div id="quiz-battle-section" {% if quiz_type !='battle' %}class="hidden" {% endif %}>
         {% include 'quiz_battle/_dashboard_battle.html' %}
     </div>
-
 </div>
+
 {% endblock content %}
 
 {% block scripts %}
-    {{ super() }}
-    <script>
+{{ super() }}
+<script>
     document.addEventListener('DOMContentLoaded', () => {
         console.log('>>> quiz/dashboard.js: init (v2.3)');
-        
+
         let currentQuizMode = "{{ quiz_type|default('individual') }}";
         const individualSection = document.getElementById('quiz-individual-section');
         const battleSection = document.getElementById('quiz-battle-section');
@@ -168,15 +257,15 @@
                 switchQuizMode(event.currentTarget.dataset.studyTab);
             });
         });
-        
+
         // Ensure correct section is visible on initial load
         if (individualSection) individualSection.classList.toggle('hidden', currentQuizMode !== 'individual');
         if (battleSection) battleSection.classList.toggle('hidden', currentQuizMode !== 'battle');
-        
-        if(currentQuizMode === 'battle' && typeof initGroupBattleDeck === 'function' && !window.groupBattleInitialized) {
+
+        if (currentQuizMode === 'battle' && typeof initGroupBattleDeck === 'function' && !window.groupBattleInitialized) {
             initGroupBattleDeck();
             window.groupBattleInitialized = true;
         }
     });
-    </script>
+</script>
 {% endblock scripts %}

@@ -367,7 +367,11 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+{# Mobile Version - Navbar and Bottom Nav #}
+{% include 'flashcard/_dashboard_mobile.html' %}
+
+{# Desktop Title and Tabs (Desktop Only) #}
+<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 hidden lg:block">
     {# Biến trạng thái dùng chung cho JS #}
     <script>var currentStudyMode = 'solo';</script>
 
@@ -386,13 +390,14 @@
                 nhóm</button>
         </div>
     </div>
+</div>
 
+{# Content - Both Mobile and Desktop #}
+<div class="container mx-auto px-1 sm:px-6 lg:px-8">
     {# --- Chế độ Individual --- #}
-    {# Đã sửa đường dẫn include ở đây #}
     {% include 'flashcard/_dashboard_individual.html' %}
 
     {# --- Chế độ Collab --- #}
-    {# Đã sửa đường dẫn include ở đây #}
     {% include 'flashcard/_dashboard_collab.html' %}
 
 </div>
