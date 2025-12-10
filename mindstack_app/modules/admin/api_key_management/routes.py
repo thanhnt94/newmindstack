@@ -2,7 +2,7 @@
 # Phiên bản: 1.0
 # Mục đích: Chứa các route và logic cho việc quản lý API keys.
 
-from flask import abort, render_template, redirect, url_for, flash, request
+from flask import abort, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import desc, func
 from datetime import datetime, timedelta
@@ -12,11 +12,18 @@ from ....models import db, ApiKey
 from ....models.system import SystemSetting, AILog
 
 @api_key_management_bp.before_request
-@login_required
 def admin_required():
     """
     Mô tả: Middleware để đảm bảo chỉ có admin mới truy cập được module này.
     """
+    # Allow static files to be accessed without login checks
+    if request.endpoint and request.endpoint == 'api_key_management.static':
+        return
+
+    if not current_user.is_authenticated:
+        flash('Vui lòng đăng nhập.', 'warning')
+        return redirect(url_for('auth.login', next=request.url))
+
     if current_user.user_role != 'admin':
         flash('Bạn không có quyền truy cập trang này.', 'danger')
         abort(403)
@@ -55,7 +62,7 @@ def list_api_keys():
     # Maps for different metrics
     # 'YYYY-MM-DD' -> { 'model_a': 10 }
     map_requests = {} 
-    # 'YYYY-MM-DD' -> { 'model_a': 5000 }
+    # 'YYYY-MM-DD'-> { 'model_a': 5000 }
     map_tokens = {}
 
     for date_str, model_name, count, sum_prompt, sum_response in stats_query:
@@ -210,3 +217,40 @@ def delete_api_key(key_id):
     db.session.commit()
     flash('Đã xóa API key thành công.', 'success')
     return redirect(url_for('.list_api_keys'))
+
+
+# ==================== AUTO-GENERATE ROUTES ====================
+
+@api_key_management_bp.route('/autogen/get-sets/<content_type>', methods=['GET'])
+def get_sets_for_autogen(content_type):
+    """
+    Mô tả: Lấy danh sách quiz sets hoặc flashcard sets với thông tin missing content.
+    """
+    from .autogen_service import get_sets_with_missing_content
+    
+    result = get_sets_with_missing_content(content_type)
+    return jsonify(result)
+
+
+@api_key_management_bp.route('/autogen/start', methods=['POST'])
+def start_autogen():
+    """
+    Mô tả: Bắt đầu quá trình auto-generate content.
+    """
+    from .autogen_service import batch_generate_content
+    
+    try:
+        data = request.get_json()
+        content_type = data.get('content_type')
+        set_id = data.get('set_id')
+        api_delay = int(data.get('api_delay', 2))
+        max_items = int(data.get('max_items', 25))
+        
+        if not content_type or not set_id:
+            return jsonify({'success': False, 'message': 'Missing required parameters'}), 400
+        
+        result = batch_generate_content(content_type, set_id, api_delay, max_items)
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
