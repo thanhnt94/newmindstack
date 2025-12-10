@@ -54,6 +54,7 @@ class UserForm(FlaskForm):
     password = PasswordField('Mật khẩu', validators=[Optional()]) # Luôn Optional trong form
     password2 = PasswordField('Nhập lại mật khẩu', validators=[Optional(), EqualTo('password', message='Mật khẩu không khớp.')]) # Luôn Optional
     user_role = SelectField('Quyền người dùng', validators=[DataRequired()])
+    timezone = SelectField('Múi giờ', validators=[Optional()])
     submit = SubmitField('Lưu')
 
     # Xóa phương thức __init__ tùy chỉnh và original_data_setter.
@@ -78,6 +79,26 @@ class UserForm(FlaskForm):
         self.user_role.choices = role_choices
         if not self.user_role.data:
             self.user_role.data = User.ROLE_FREE
+            
+        # Populate timezone choices
+        common_timezones = [
+            ('UTC', 'UTC'),
+            ('Asia/Ho_Chi_Minh', 'Vietnam (GMT+7)'),
+            ('Asia/Bangkok', 'Bangkok (GMT+7)'),
+            ('Asia/Tokyo', 'Tokyo (GMT+9)'),
+            ('Asia/Seoul', 'Seoul (GMT+9)'),
+            ('Asia/Shanghai', 'Shanghai (GMT+8)'),
+            ('Asia/Singapore', 'Singapore (GMT+8)'),
+            ('Europe/London', 'London (GMT+0/BST)'),
+            ('Europe/Paris', 'Paris (GMT+1/CET)'),
+            ('Europe/Berlin', 'Berlin (GMT+1/CET)'),
+            ('America/New_York', 'New York (GMT-5/EST)'),
+            ('America/Los_Angeles', 'Los Angeles (GMT-8/PST)'),
+            ('Australia/Sydney', 'Sydney (GMT+10/AEDT)'),
+        ]
+        self.timezone.choices = common_timezones
+        if not self.timezone.data:
+            self.timezone.data = 'UTC' # Default fallback if not set
 
     def validate_username(self, username_field):
         """

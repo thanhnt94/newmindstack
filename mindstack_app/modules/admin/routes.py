@@ -165,6 +165,14 @@ CORE_SETTING_FIELDS: list[dict[str, object]] = [
         "description": "Model được chọn khi Provider là Hugging Face.",
         "default": "google/gemma-7b-it",
     },
+    {
+        "key": "SYSTEM_TIMEZONE",
+        "label": "Múi giờ hệ thống",
+        "data_type": "string",
+        "placeholder": "UTC",
+        "description": "Múi giờ mặc định cho toàn bộ hệ thống (ví dụ: Asia/Ho_Chi_Minh).",
+        "default": "UTC",
+    },
 ]
 
 CORE_SETTING_KEYS = {field["key"] for field in CORE_SETTING_FIELDS}

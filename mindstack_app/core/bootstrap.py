@@ -134,6 +134,18 @@ def initialize_database(app: Flask) -> None:
             )
         app.logger.info("Đã thêm cột provider vào api_keys (migrate in place).")
 
+    # Migrate users (timezone)
+    user_columns = {column['name'] for column in inspector.get_columns('users')}
+    if 'timezone' not in user_columns:
+        with db.engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE users "
+                    "ADD COLUMN timezone VARCHAR(50) DEFAULT 'UTC'"
+                )
+            )
+        app.logger.info("Đã thêm cột timezone vào users (migrate in place).")
+
     admin_user = User.query.filter(
         or_(
             User.user_role == User.ROLE_ADMIN,

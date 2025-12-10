@@ -37,6 +37,7 @@ def edit_profile():
     if form.validate_on_submit():
         user.username = form.username.data
         user.email = form.email.data
+        user.timezone = form.timezone.data
         # Không cho phép người dùng tự đổi user_role của mình
         # user.user_role = form.user_role.data
         
@@ -57,6 +58,7 @@ def edit_profile():
         # Ẩn trường user_role khi người dùng tự sửa profile
         # form.user_role.data = user.user_role
         form.email.data = user.email
+        form.timezone.data = user.timezone or 'UTC' # Default to UTC if not set
 
     return render_template('edit_profile.html', form=form, title='Sửa Profile', user=user)
 

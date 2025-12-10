@@ -33,6 +33,7 @@ class User(UserMixin, db.Model):
     user_role = db.Column(db.String(50), default=ROLE_FREE, nullable=False)
     total_score = db.Column(db.Integer, default=0)
     last_seen = db.Column(db.DateTime(timezone=True))
+    timezone = db.Column(db.String(50), default='UTC')
     telegram_chat_id = db.Column(db.String(100), nullable=True, unique=True)
 
     current_flashcard_container_id = db.Column(

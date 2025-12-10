@@ -142,6 +142,27 @@
                                 class="mt-2 w-full rounded-md border-slate-200 text-sm hidden"
                                 placeholder="Nhập tên model Hugging Face...">
                         </div>
+                        {% elif field.key == 'SYSTEM_TIMEZONE' %}
+                        <select name="{{ field.key }}" class="mt-1 w-full rounded-md border-slate-200">
+                            {% set timezones = [
+                                ('UTC', 'UTC'),
+                                ('Asia/Ho_Chi_Minh', 'Vietnam (GMT+7)'),
+                                ('Asia/Bangkok', 'Bangkok (GMT+7)'),
+                                ('Asia/Tokyo', 'Tokyo (GMT+9)'),
+                                ('Asia/Seoul', 'Seoul (GMT+9)'),
+                                ('Asia/Shanghai', 'Shanghai (GMT+8)'),
+                                ('Asia/Singapore', 'Singapore (GMT+8)'),
+                                ('Europe/London', 'London (GMT+0/BST)'),
+                                ('Europe/Paris', 'Paris (GMT+1/CET)'),
+                                ('Europe/Berlin', 'Berlin (GMT+1/CET)'),
+                                ('America/New_York', 'New York (GMT-5/EST)'),
+                                ('America/Los_Angeles', 'Los Angeles (GMT-8/PST)'),
+                                ('Australia/Sydney', 'Sydney (GMT+10/AEDT)')
+                            ] %}
+                            {% for tz_code, tz_label in timezones %}
+                            <option value="{{ tz_code }}" {% if field.value == tz_code %}selected{% endif %}>{{ tz_label }}</option>
+                            {% endfor %}
+                        </select>
                         {% elif field.data_type == 'int' %}
                         <input type="number" name="{{ field.key }}" value="{{ field.value }}"
                             class="mt-1 w-full rounded-md border-slate-200" placeholder="{{ field.placeholder }}"

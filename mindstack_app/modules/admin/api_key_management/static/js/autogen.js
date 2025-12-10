@@ -330,15 +330,20 @@
         entry.className = 'flex items-start gap-2 p-2 rounded text-sm';
         
         let timeStr;
+        const timeZone = window.USER_TIMEZONE || 'UTC';
+        
         if (timestamp) {
-            // Parse ISO string from server and convert to local time
+            // Parse ISO string from server and convert to user's preferred timezone
             try {
-                timeStr = new Date(timestamp).toLocaleTimeString();
+                timeStr = new Date(timestamp).toLocaleTimeString('vi-VN', { timeZone: timeZone });
             } catch (e) {
-                timeStr = timestamp; // Fallback if parsing fails
+                timeStr = timestamp; // Fallback if parsing/timezone fails
             }
         } else {
-            timeStr = new Date().toLocaleTimeString();
+            // For client-side generated logs (immediate feedback), use current time
+            // but try to respect the timezone if possible, though new Date() is system time.
+            // To be strictly correct, we should format new Date() with the target timezone.
+            timeStr = new Date().toLocaleTimeString('vi-VN', { timeZone: timeZone });
         }
 
         if (type === 'success') {
