@@ -434,8 +434,8 @@ endblock %}
     let chartDataGlobal = null;
 
     document.addEventListener('DOMContentLoaded', function () {
-        chartDataGlobal = {{ chart_data | tojson | safe }
-    };
+        chartDataGlobal = {{ chart_data | tojson | safe }};
+
 
 
     if (chartDataGlobal) {
