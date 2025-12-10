@@ -1,0 +1,227 @@
+{# ================= GOALS MOBILE - APP-LIKE INTERFACE ================= #}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<div class="lg:hidden fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard"
+    style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+
+    {# === CLEAN BACKGROUND === #}
+    <div class="fixed inset-0 bg-gradient-to-b from-slate-50 to-slate-100 -z-10"></div>
+
+    {# === TOP NAVBAR === #}
+    {% include 'main/_navbar_mobile.html' %}
+
+    {# === MAIN CONTENT === #}
+    <div class="flex-grow overflow-y-auto overflow-x-hidden p-5 space-y-5 pb-24 relative">
+
+        {# Header #}
+        <div class="animate-fade-in-up" style="animation-delay: 0.1s">
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Mục tiêu học tập</h1>
+            <p class="text-sm text-slate-600 mt-1">Theo dõi tiến độ và hoàn thành mục tiêu của bạn</p>
+        </div>
+
+        {# Add Goal Button #}
+        <button onclick="document.getElementById('addGoalModal').classList.remove('hidden')"
+            class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all animate-fade-in-up"
+            style="animation-delay: 0.2s">
+            <i class="fa-solid fa-plus text-xl"></i>
+            <span class="text-base font-bold">Thêm mục tiêu mới</span>
+        </button>
+
+        {# Goals List #}
+        <div class="space-y-4">
+            {% for goal in goal_progress %}
+            <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+                style="animation-delay: {{ 0.3 + loop.index0 * 0.1 }}s">
+                {# Header #}
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-start gap-3 flex-grow">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white flex-shrink-0">
+                            <i class="fa-solid fa-{{ goal.icon }} text-xl"></i>
+                        </div>
+                        <div class="flex-grow min-w-0">
+                            <h3 class="text-base font-black text-slate-900">{{ goal.title }}</h3>
+                            <div class="flex flex-wrap items-center gap-2 mt-1">
+                                <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                    {{ goal.period_label }}
+                                </span>
+                                {% if goal.due_date %}
+                                <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                    <i class="fa-solid fa-clock"></i> {{ goal.due_date.strftime('%d/%m') }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <span class="text-2xl font-black text-purple-600">{{ goal.percent }}%</span>
+                </div>
+
+                {# Description #}
+                {% if goal.description %}
+                <p class="text-sm text-slate-600 mb-3">{{ goal.description }}</p>
+                {% endif %}
+
+                {# Progress Bar #}
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                        <span>{{ goal.current_value }}/{{ goal.target_value }} {{ goal.unit }}</span>
+                    </div>
+                    <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full transition-all duration-1000"
+                            style="width: {{ goal.percent }}%"></div>
+                    </div>
+                </div>
+
+                {# Actions #}
+                <div class="flex items-center gap-2">
+                    <a href="{{ goal.url }}"
+                        class="flex-grow flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors">
+                        <i class="fa-solid fa-arrow-right"></i>
+                        Tiếp tục học
+                    </a>
+                    <a href="{{ url_for('goals.edit_goal', goal_id=goal.id) }}"
+                        class="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                        <i class="fa-solid fa-pen"></i>
+                    </a>
+                    <form method="post" action="{{ url_for('goals.delete_goal', goal_id=goal.id) }}"
+                        onsubmit="return confirm('Xóa mục tiêu này?');" class="inline">
+                        {{ form.hidden_tag() }}
+                        <button type="submit"
+                            class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white border border-slate-200 rounded-3xl p-8 text-center animate-fade-in-up"
+                style="animation-delay: 0.3s">
+                <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-bullseye text-3xl text-slate-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">Chưa có mục tiêu</h3>
+                <p class="text-sm text-slate-600">Tạo mục tiêu đầu tiên để bắt đầu theo dõi tiến độ học tập</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# === BOTTOM NAV === #}
+    {% set active_page = 'goals' %}
+    {% include 'main/_bottom_nav_mobile.html' %}
+</div>
+
+{# === ADD GOAL MODAL === #}
+<div id="addGoalModal" class="hidden fixed inset-0 z-[200] flex items-end lg:hidden">
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        onclick="document.getElementById('addGoalModal').classList.add('hidden')"></div>
+
+    <div class="relative bg-white rounded-t-3xl w-full max-h-[85vh] overflow-y-auto animate-slide-up">
+        <div class="sticky top-0 bg-white border-b border-slate-200 px-5 py-4 flex items-center justify-between z-10">
+            <h2 class="text-xl font-black text-slate-900">Thêm mục tiêu mới</h2>
+            <button onclick="document.getElementById('addGoalModal').classList.add('hidden')"
+                class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200">
+                <i class="fa-solid fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <form method="post" class="p-5 space-y-4">
+            {{ form.hidden_tag() }}
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 block">
+                        {{ form.goal_type.label.text }}
+                    </label>
+                    {{ form.goal_type(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
+                    focus:border-indigo-500 focus:ring-0') }}
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 block">
+                        {{ form.period.label.text }}
+                    </label>
+                    {{ form.period(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
+                    focus:border-indigo-500 focus:ring-0') }}
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 block">
+                    {{ form.title.label.text }}
+                </label>
+                {{ form.title(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
+                focus:border-indigo-500 focus:ring-0', placeholder='Tên mục tiêu') }}
+            </div>
+
+            <div>
+                <label class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 block">
+                    {{ form.target_value.label.text }}
+                </label>
+                {{ form.target_value(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
+                focus:border-indigo-500 focus:ring-0', placeholder='Ví dụ: 20') }}
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 block">
+                        {{ form.start_date.label.text }}
+                    </label>
+                    {{ form.start_date(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
+                    focus:border-indigo-500 focus:ring-0') }}
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 block">
+                        {{ form.due_date.label.text }}
+                    </label>
+                    {{ form.due_date(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
+                    focus:border-indigo-500 focus:ring-0') }}
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 block">
+                    {{ form.notes.label.text }}
+                </label>
+                {{ form.notes(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
+                focus:border-indigo-500 focus:ring-0', rows='3', placeholder='Ghi chú...') }}
+            </div>
+
+            {{ form.submit(class_='w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-base
+            px-6 py-4 rounded-xl hover:shadow-lg transition-all') }}
+        </form>
+    </div>
+</div>
+
+<style>
+    @keyframes fade-in-up {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slide-up {
+        from {
+            transform: translateY(100%);
+        }
+
+        to {
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fade-in-up 0.6s ease-out backwards;
+    }
+
+    .animate-slide-up {
+        animation: slide-up 0.3s ease-out;
+    }
+</style>
