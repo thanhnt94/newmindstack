@@ -9,29 +9,8 @@
     {# === CLEAN BACKGROUND === #}
     <div class="fixed inset-0 bg-gradient-to-b from-slate-50 to-slate-100 -z-10"></div>
 
-    {# === 1. TOP NAVBAR - MODERN === #}
-    <div
-        class="flex-shrink-0 bg-white px-5 py-4 flex items-center justify-between border-b border-slate-200 relative z-20">
-        <div class="flex items-center gap-3 animate-slide-in-left">
-            <!-- BRAND TEXT ONLY -->
-            <div>
-                <h1 class="text-base font-black text-slate-900 tracking-tight leading-none mb-0.5">
-                    MindStack</h1>
-                <p class="text-xs text-slate-500 font-medium">Xin chào, {{ current_user.username }}</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3 animate-slide-in-right">
-            <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-2 rounded-xl">
-                <i class="fa-solid fa-fire text-white text-sm"></i>
-                <span class="text-sm font-bold text-white">{{ score_cards[3].value if score_cards|length > 3 else 0
-                    }}</span>
-            </div>
-            <a href="{{ url_for('user_profile.view_profile') }}"
-                class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-indigo-100 hover:text-indigo-600 transition-colors">
-                <i class="fa-solid fa-user text-base"></i>
-            </a>
-        </div>
-    </div>
+    {# === TOP NAVBAR === #}
+    {% include 'main/_navbar_mobile.html' %}
 
     {# === 2. MAIN CONTENT AREA === #}
     <div class="flex-grow overflow-y-auto overflow-x-hidden p-5 space-y-5 pb-24 relative">

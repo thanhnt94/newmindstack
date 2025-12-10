@@ -14,9 +14,5 @@
             <span class="text-sm font-bold text-white">{{ score_cards[3].value if score_cards and score_cards|length > 3
                 else 0 }}</span>
         </div>
-        <a href="{{ url_for('user_profile.view_profile') }}"
-            class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-indigo-100 hover:text-indigo-600 transition-colors">
-            <i class="fa-solid fa-user text-base"></i>
-        </a>
     </div>
 </div>
