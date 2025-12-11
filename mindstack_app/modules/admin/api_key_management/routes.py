@@ -353,9 +353,14 @@ def get_autogen_logs():
     logs = BackgroundTaskLog.query.filter_by(task_id=task.task_id).order_by(BackgroundTaskLog.created_at.asc()).all()
     
     log_data = []
+    from datetime import timezone
     for log in logs:
+        dt = log.created_at
+        if dt and dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+            
         log_data.append({
-            'timestamp': log.created_at.isoformat(),
+            'timestamp': dt.isoformat() if dt else None,
             'message': log.message,
             'status': log.status
         })
@@ -363,14 +368,22 @@ def get_autogen_logs():
     return jsonify({'success': True, 'logs': log_data})
 
 
-@api_key_management_bp.route('/autogen/stop', methods=['POST'])
-def stop_autogen():
+@api_key_management_bp.route('/redirect-item/<int:item_id>', methods=['GET'])
+def redirect_to_item_context(item_id):
     """
-    Request to stop the running task.
+    Helper route to find the parent container of an item and redirect to its edit page.
     """
-    task = BackgroundTask.query.filter_by(task_name='autogen_content', status='running').first()
-    if task:
-        task.stop_requested = True
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Stop requested'})
-    return jsonify({'success': False, 'message': 'No running task found'})
+    from ....models.learning import LearningItem
+    
+    item = LearningItem.query.get_or_404(item_id)
+    
+    if item.item_type in ['QUIZ_MCQ', 'QUIZ_TEXT']:
+        return redirect(url_for('content_management.content_management_quizzes.edit_quiz_item', 
+                                set_id=item.container_id, item_id=item.item_id))
+                                
+    elif item.item_type == 'FLASHCARD':
+        return redirect(url_for('content_management.content_management_flashcards.edit_flashcard_item', 
+                                set_id=item.container_id, item_id=item.item_id))
+    
+    flash(f"Unknown item type: {item.item_type}", "warning")
+    return redirect(url_for('.list_api_keys'))

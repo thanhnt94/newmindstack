@@ -92,6 +92,45 @@ def register_context_processors(app: Flask) -> None:
     def inject_user() -> dict[str, object]:
         return {"current_user": current_user}
 
+    @app.template_filter('user_timezone')
+    def user_timezone_filter(dt, fmt='%Y-%m-%d %H:%M:%S'):
+        """Converts a UTC datetime to the user's timezone."""
+        if not dt:
+            return ''
+        
+        # Ensure timezone-aware (assume UTC if naive)
+        if dt.tzinfo is None:
+            from datetime import timezone
+            dt = dt.replace(tzinfo=timezone.utc)
+            
+        # Determine target timezone
+        tz_name = 'UTC'
+        if current_user.is_authenticated and getattr(current_user, 'timezone', None):
+            tz_name = current_user.timezone
+        else:
+            # Try to get system default from SystemSetting
+            from ..models import SystemSetting
+            # Note: This query might be heavy for a template filter if not cached.
+            # Ideally, config should be loaded in app.config.
+            # Checking app.config first (if loaded by config_service)
+            if app.config.get('SYSTEM_TIMEZONE'):
+                tz_name = app.config.get('SYSTEM_TIMEZONE')
+
+        try:
+            # Try using zoneinfo (Python 3.9+)
+            try:
+                from zoneinfo import ZoneInfo
+                tz = ZoneInfo(tz_name)
+            except ImportError:
+                # Fallback to pytz
+                import pytz
+                tz = pytz.timezone(tz_name)
+                
+            local_dt = dt.astimezone(tz)
+            return local_dt.strftime(fmt)
+        except Exception:
+            return dt.strftime(fmt)
+
 
 def register_blueprints(app: Flask) -> None:
     """Register all default blueprints with the app."""

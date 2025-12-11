@@ -5,20 +5,13 @@ from flask import current_app
 from ....models import db, BackgroundTask
 from ....models.learning import LearningContainer, LearningItem
 from ...ai_services.service_manager import get_ai_service
+from ...ai_services.prompts import get_formatted_prompt
 import time
 import threading
 
 
 def get_sets_with_missing_content(content_type):
-    """
-    Get list of quiz/flashcard containers with missing content count.
-    
-    Args:
-        content_type: 'quiz' or 'flashcard'
-    
-    Returns:
-        List of dicts with container info and missing content counts
-    """
+    # ... (no change) ...
     try:
         # Map frontend content_type to database container_type
         db_content_type = content_type
@@ -66,59 +59,19 @@ def get_sets_with_missing_content(content_type):
 def generate_quiz_explanation(item, ai_client):
     """
     Generate explanation for a quiz question using AI.
-    
-    Args:
-        item: LearningItem object with quiz content
-        ai_client: AI service client
-    
-    Returns:
-        tuple: (success, content_or_error)
     """
     try:
-        content = item.content
-        if not isinstance(content, dict):
-            return False, "Invalid content format"
+        # Use centralized prompt logic
+        prompt = get_formatted_prompt(item, purpose='explanation')
         
-        question_text = content.get('question', '')
-        options = content.get('options', {})
-        correct_answer = content.get('correct_answer', '')
-        
-        # Build options text
-        options_text = '\n'.join([f"{key}) {value}" for key, value in options.items()])
-        
-        prompt = f"""Tạo explanation (giải thích) cho câu hỏi trắc nghiệm sau:
+        if not prompt:
+            return False, "Could not generate prompt (missing data or configuration)"
 
-Câu hỏi: {question_text}
-{options_text}
-
-Đáp án đúng: {correct_answer}
-
-Hãy viết explanation ngắn gọn (2-3 câu) giải thích tại sao đáp án này đúng."""
-
-        # generate_content usually returns dict or object, 
-        # but let's check how the client wrapper behaves.
-        # Looking at GeminiClient (previous read), it returns (True, text) or (False, error).
-        # Wait, get_ai_service returns HybridAIClient or GeminiClient.
-        # GeminiClient.generate_content returns (True, result) or (False, error_msg).
-        # HybridAIClient likely follows suit or returns result dict.
-        # Let's check HybridAIClient later if needed, but safe assumption is we need to handle whatever it returns.
-        # Actually, let's look at previous code:
-        # response = ai_client.generate_content(...)
-        # if response and response.get('content'): ...
-        
-        # This implies ai_client.generate_content returns a DICT like {'content': ...}.
-        # My reading of GeminiClient showed it returning (True, result)...
-        # There might be a discrepancy. 
-        # Let's check HybridAIClient or assume the old code was correct about the return type being a DICT.
-        # "if response and response.get('content'):"
-        
         response = ai_client.generate_content(
             prompt=prompt,
             item_info=f"Quiz Item #{item.item_id}"
         )
         
-        # Adapting to potentially different return types from different clients
-        # If it returns a dict (Standard Service Wrapper):
         if isinstance(response, dict):
             if response.get('content'):
                 return True, response['content'].strip()
@@ -126,7 +79,6 @@ Hãy viết explanation ngắn gọn (2-3 câu) giải thích tại sao đáp á
                 return False, response['error']
             return False, "Empty response content"
             
-        # If it returns a tuple (GeminiClient raw):
         if isinstance(response, tuple) and len(response) == 2:
             success, data = response
             return success, data
@@ -141,28 +93,13 @@ Hãy viết explanation ngắn gọn (2-3 câu) giải thích tại sao đáp á
 def generate_flashcard_hint(item, ai_client):
     """
     Generate hint for a flashcard using AI.
-    
-    Args:
-        item: LearningItem object with flashcard content
-        ai_client: AI service client
-    
-    Returns:
-        tuple: (success, content_or_error)
     """
     try:
-        content = item.content
-        if not isinstance(content, dict):
-            return False, "Invalid content format"
+        # Use centralized prompt logic
+        prompt = get_formatted_prompt(item, purpose='explanation')
         
-        question = content.get('question', '')
-        answer = content.get('answer', '')
-        
-        prompt = f"""Tạo hint (gợi ý) cho flashcard sau:
-
-Mặt trước (Question): {question}
-Mặt sau (Answer): {answer}
-
-Hãy viết hint ngắn gọn (1-2 câu) giúp người học nhớ được đáp án mà không tiết lộ trực tiếp."""
+        if not prompt:
+            return False, "Could not generate prompt (missing data or configuration)"
 
         response = ai_client.generate_content(
             prompt=prompt,
