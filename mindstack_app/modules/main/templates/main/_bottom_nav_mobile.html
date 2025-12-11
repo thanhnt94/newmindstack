@@ -1,104 +1,151 @@
-{# ================= MOBILE BOTTOM NAVIGATION - REUSABLE ================= #}
+{# ================= MOBILE BOTTOM NAVIGATION - PREMIUM DESIGN ================= #}
 {# Pass active_page parameter to highlight current page, e.g. active_page='home' #}
 
 {# === BOTTOM TAB BAR WITH LEARNING MENU === #}
 <div class="flex-shrink-0 relative z-30" style="padding-bottom: env(safe-area-inset-bottom, 8px);">
     <!-- Learning Menu Overlay with Blur -->
     <div id="arcMenuOverlay"
-        class="fixed inset-0 bg-black/30 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300 z-40">
+        class="fixed inset-0 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 z-40">
     </div>
 
-    <!-- Learning Menu - Vertical Stack -->
-    <div id="arcMenu" class="fixed bottom-28 left-1/2 opacity-0 pointer-events-none transition-all duration-300 z-50"
+    <!-- Learning Menu - Floating Cards -->
+    <div id="arcMenu" class="fixed bottom-32 left-1/2 opacity-0 pointer-events-none transition-all duration-300 z-50"
         style="transform: translateX(-50%);">
         <div class="flex flex-col items-center gap-3">
             <!-- Quiz -->
             <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}"
-                class="flex items-center gap-4 bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all arc-item w-[240px]">
-                <div class="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <i class="fa-solid fa-question-circle text-3xl"></i>
+                class="flex items-center gap-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
+                <div
+                    class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <i class="fa-solid fa-circle-question text-3xl"></i>
                 </div>
                 <div class="flex-grow text-left">
-                    <p class="text-base font-black">Quiz</p>
+                    <p class="text-lg font-black">Quiz</p>
                     <p class="text-xs opacity-90 font-medium">Luyện tập câu hỏi</p>
                 </div>
+                <i class="fa-solid fa-arrow-right text-white/60"></i>
             </a>
 
             <!-- Flashcard -->
             <a href="{{ url_for('learning.flashcard.dashboard') }}"
-                class="flex items-center gap-4 bg-blue-500 text-white px-6 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all arc-item w-[240px]">
-                <div class="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                class="flex items-center gap-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-blue-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
+                <div
+                    class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
                     <i class="fa-solid fa-clone text-3xl"></i>
                 </div>
                 <div class="flex-grow text-left">
-                    <p class="text-base font-black">Flashcard</p>
+                    <p class="text-lg font-black">Flashcard</p>
                     <p class="text-xs opacity-90 font-medium">Ôn tập thẻ nhớ</p>
                 </div>
+                <i class="fa-solid fa-arrow-right text-white/60"></i>
             </a>
 
             <!-- Course -->
             <a href="{{ url_for('learning.course_learning.course_learning_dashboard') }}"
-                class="flex items-center gap-4 bg-amber-500 text-white px-6 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all arc-item w-[240px]">
-                <div class="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                class="flex items-center gap-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-amber-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
+                <div
+                    class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
                     <i class="fa-solid fa-graduation-cap text-3xl"></i>
                 </div>
                 <div class="flex-grow text-left">
-                    <p class="text-base font-black">Course</p>
+                    <p class="text-lg font-black">Course</p>
                     <p class="text-xs opacity-90 font-medium">Lộ trình học tập</p>
                 </div>
+                <i class="fa-solid fa-arrow-right text-white/60"></i>
             </a>
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar -->
-    <div class="bg-white border-t border-slate-200">
-        <div class="flex justify-between items-end px-5 py-3">
-            <!-- 1. Home -->
-            <a href="{{ url_for('main.dashboard') }}"
-                class="flex flex-col items-center gap-1 transition-all hover:scale-105 {% if active_page == 'home' %}text-indigo-600{% else %}text-slate-400{% endif %}">
-                <div
-                    class="w-11 h-11 rounded-2xl {% if active_page == 'home' %}bg-indigo-600{% else %}bg-slate-100{% endif %} flex items-center justify-center shadow-sm">
-                    <i
-                        class="fa-solid fa-house {% if active_page == 'home' %}text-white{% else %}text-slate-600{% endif %} text-lg"></i>
-                </div>
-                <span class="text-[10px] font-bold">Home</span>
-            </a>
+    <!-- Bottom Navigation Bar - Floating Glassmorphism -->
+    <div class="px-4 pb-2">
+        <div class="bg-white/80 backdrop-blur-xl border border-white/40 rounded-[2rem] shadow-2xl shadow-slate-900/10">
+            <div class="flex justify-between items-end px-4 py-3">
+                <!-- 1. Home -->
+                <a href="{{ url_for('main.dashboard') }}"
+                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative">
+                    <div class="relative">
+                        {% if active_page == 'home' %}
+                        <div class="absolute inset-0 bg-indigo-500 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
+                        {% endif %}
+                        <div
+                            class="relative w-12 h-12 rounded-2xl {% if active_page == 'home' %}bg-gradient-to-br from-indigo-500 to-indigo-600{% else %}bg-slate-100 group-hover:bg-slate-200{% endif %} flex items-center justify-center shadow-lg transition-all">
+                            <i
+                                class="fa-solid fa-house {% if active_page == 'home' %}text-white{% else %}text-slate-600{% endif %} text-lg"></i>
+                        </div>
+                    </div>
+                    <span
+                        class="text-[10px] font-bold {% if active_page == 'home' %}text-indigo-600{% else %}text-slate-500{% endif %}">Home</span>
+                </a>
 
-            <!-- 2. Goals -->
-            <a href="{{ url_for('goals.manage_goals') }}"
-                class="flex flex-col items-center gap-1 transition-all hover:scale-105 pb-1 {% if active_page == 'goals' %}text-amber-500{% else %}text-slate-400 hover:text-amber-500{% endif %}">
-                <div class="w-10 h-10 flex items-center justify-center">
-                    <i class="fa-solid fa-bullseye text-2xl"></i>
-                </div>
-                <span class="text-[10px] font-bold">Mục tiêu</span>
-            </a>
+                <!-- 2. Goals -->
+                <a href="{{ url_for('goals.manage_goals') }}"
+                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative">
+                    <div class="relative">
+                        {% if active_page == 'goals' %}
+                        <div class="absolute inset-0 bg-amber-500 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
+                        {% endif %}
+                        <div
+                            class="relative w-12 h-12 rounded-2xl {% if active_page == 'goals' %}bg-gradient-to-br from-amber-500 to-orange-500{% else %}bg-slate-100 group-hover:bg-slate-200{% endif %} flex items-center justify-center shadow-lg transition-all">
+                            <i
+                                class="fa-solid fa-bullseye {% if active_page == 'goals' %}text-white{% else %}text-slate-600{% endif %} text-lg"></i>
+                        </div>
+                    </div>
+                    <span
+                        class="text-[10px] font-bold {% if active_page == 'goals' %}text-amber-600{% else %}text-slate-500{% endif %}">Mục
+                        tiêu</span>
+                </a>
 
-            <!-- 3. Learn (Center - Elevated Circle) -->
-            <button id="learnButton" class="flex flex-col items-center -mt-7 transition-all hover:scale-105 relative">
-                <div
-                    class="w-[68px] h-[68px] rounded-full bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center transition-transform active:scale-95 shadow-xl border-[5px] border-white">
-                    <i id="learnIcon" class="fa-solid fa-brain text-white text-[28px] transition-transform"></i>
-                </div>
-                <span class="text-[10px] font-bold text-purple-600 mt-1.5">Học</span>
-            </button>
+                <!-- 3. Learn (Center - Elevated) -->
+                <button id="learnButton"
+                    class="flex flex-col items-center -mt-8 transition-all hover:scale-110 relative group">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-2xl opacity-40 animate-pulse">
+                    </div>
+                    <div
+                        class="relative w-[72px] h-[72px] rounded-full bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 flex items-center justify-center transition-all shadow-2xl shadow-purple-500/50 border-4 border-white group-hover:shadow-purple-500/70">
+                        <i id="learnIcon"
+                            class="fa-solid fa-brain text-white text-[32px] transition-transform duration-300"></i>
+                    </div>
+                    <span
+                        class="text-[10px] font-black text-purple-600 mt-2 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full">Học</span>
+                </button>
 
-            <!-- 4. Stats -->
-            <a href="{{ url_for('stats.dashboard') }}"
-                class="flex flex-col items-center gap-1 transition-all hover:scale-105 pb-1 {% if active_page == 'stats' %}text-cyan-500{% else %}text-slate-400 hover:text-cyan-500{% endif %}">
-                <div class="w-10 h-10 flex items-center justify-center">
-                    <i class="fa-solid fa-chart-pie text-2xl"></i>
-                </div>
-                <span class="text-[10px] font-bold">Thống kê</span>
-            </a>
+                <!-- 4. Stats -->
+                <a href="{{ url_for('stats.dashboard') }}"
+                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative">
+                    <div class="relative">
+                        {% if active_page == 'stats' %}
+                        <div class="absolute inset-0 bg-cyan-500 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
+                        {% endif %}
+                        <div
+                            class="relative w-12 h-12 rounded-2xl {% if active_page == 'stats' %}bg-gradient-to-br from-cyan-500 to-blue-500{% else %}bg-slate-100 group-hover:bg-slate-200{% endif %} flex items-center justify-center shadow-lg transition-all">
+                            <i
+                                class="fa-solid fa-chart-line {% if active_page == 'stats' %}text-white{% else %}text-slate-600{% endif %} text-lg"></i>
+                        </div>
+                    </div>
+                    <span
+                        class="text-[10px] font-bold {% if active_page == 'stats' %}text-cyan-600{% else %}text-slate-500{% endif %}">Thống
+                        kê</span>
+                </a>
 
-            <!-- 5. Profile -->
-            <a href="{{ url_for('user_profile.view_profile') }}"
-                class="flex flex-col items-center gap-1 transition-all hover:scale-105 pb-1 {% if active_page == 'profile' %}text-rose-500{% else %}text-slate-400 hover:text-rose-500{% endif %}">
-                <div class="w-10 h-10 flex items-center justify-center">
-                    <i class="fa-solid fa-user text-2xl"></i>
-                </div>
-                <span class="text-[10px] font-bold">Cá nhân</span>
-            </a>
+                <!-- 5. Profile -->
+                <a href="{{ url_for('user_profile.view_profile') }}"
+                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative">
+                    <div class="relative">
+                        {% if active_page == 'profile' %}
+                        <div class="absolute inset-0 bg-rose-500 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
+                        {% endif %}
+                        <div
+                            class="relative w-12 h-12 rounded-2xl {% if active_page == 'profile' %}bg-gradient-to-br from-rose-500 to-pink-500{% else %}bg-slate-100 group-hover:bg-slate-200{% endif %} flex items-center justify-center shadow-lg transition-all">
+                            <i
+                                class="fa-solid fa-user {% if active_page == 'profile' %}text-white{% else %}text-slate-600{% endif %} text-lg"></i>
+                        </div>
+                    </div>
+                    <span
+                        class="text-[10px] font-bold {% if active_page == 'profile' %}text-rose-600{% else %}text-slate-500{% endif %}">Cá
+                        nhân</span>
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -124,9 +171,9 @@
             const arcItems = document.querySelectorAll('.arc-item');
             arcItems.forEach((item, index) => {
                 setTimeout(() => {
-                    item.style.transform = 'scale(1)';
+                    item.style.transform = 'translateY(0) scale(1)';
                     item.style.opacity = '1';
-                }, index * 50);
+                }, index * 80);
             });
         } else {
             arcMenu.classList.add('opacity-0', 'pointer-events-none');
@@ -137,7 +184,7 @@
 
             const arcItems = document.querySelectorAll('.arc-item');
             arcItems.forEach(item => {
-                item.style.transform = 'scale(0)';
+                item.style.transform = 'translateY(20px) scale(0.8)';
                 item.style.opacity = '0';
             });
         }
@@ -149,8 +196,9 @@
     document.addEventListener('DOMContentLoaded', () => {
         const arcItems = document.querySelectorAll('.arc-item');
         arcItems.forEach(item => {
-            item.style.transform = 'scale(0)';
+            item.style.transform = 'translateY(20px) scale(0.8)';
             item.style.opacity = '0';
+            item.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
         });
     });
 </script>

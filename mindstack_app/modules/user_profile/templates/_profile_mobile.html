@@ -121,23 +121,15 @@
             <span>Chỉnh sửa Profile</span>
         </a>
 
-        {# Quick Actions #}
-        <div class="grid grid-cols-2 gap-3 animate-fade-in-up" style="animation-delay: 0.8s">
-            <a href="{{ url_for('main.dashboard') }}"
-                class="flex flex-col items-center gap-2 bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <i class="fa-solid fa-home text-xl"></i>
-                </div>
-                <span class="text-sm font-bold text-slate-900">Dashboard</span>
-            </a>
-            <a href="{{ url_for('stats.dashboard') }}"
-                class="flex flex-col items-center gap-2 bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
-                    <i class="fa-solid fa-chart-pie text-xl"></i>
-                </div>
-                <span class="text-sm font-bold text-slate-900">Thống kê</span>
-            </a>
-        </div>
+        {# Logout Button #}
+        <form action="{{ url_for('auth.logout') }}" method="post" class="animate-fade-in-up"
+            style="animation-delay: 0.8s">
+            <button type="submit"
+                class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-red-500 to-rose-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all font-bold text-base">
+                <i class="fa-solid fa-right-from-bracket text-xl"></i>
+                <span>Đăng xuất</span>
+            </button>
+        </form>
     </div>
 
     {# === BOTTOM NAV === #}
