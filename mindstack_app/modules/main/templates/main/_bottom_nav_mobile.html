@@ -72,15 +72,15 @@
                     class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
                     {% if active_page == 'home' %}
                     <div
-                        class="w-13 h-13 rounded-full bg-indigo-600 shadow-lg shadow-indigo-500/50 flex items-center justify-center transition-all">
-                        <i class="fa-solid fa-house text-white text-xl"></i>
+                        class="w-14 h-14 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-500/50 flex items-center justify-center transition-all">
+                        <i class="fa-solid fa-house text-white text-2xl"></i>
                     </div>
                     {% else %}
                     <i
                         class="fa-solid fa-house text-slate-400 text-2xl group-hover:text-indigo-600 transition-colors"></i>
-                    {% endif %}
                     <span
-                        class="text-[11px] font-bold {% if active_page == 'home' %}text-indigo-600{% else %}text-slate-400 group-hover:text-indigo-600{% endif %} transition-colors">Home</span>
+                        class="text-[11px] font-bold text-slate-400 group-hover:text-indigo-600 transition-colors">Home</span>
+                    {% endif %}
                 </a>
 
                 <!-- 2. Goals -->
@@ -88,16 +88,15 @@
                     class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
                     {% if active_page == 'goals' %}
                     <div
-                        class="w-13 h-13 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50 flex items-center justify-center transition-all">
-                        <i class="fa-solid fa-bullseye text-white text-xl"></i>
+                        class="w-14 h-14 rounded-2xl bg-amber-500 shadow-lg shadow-amber-500/50 flex items-center justify-center transition-all">
+                        <i class="fa-solid fa-bullseye text-white text-2xl"></i>
                     </div>
                     {% else %}
                     <i
                         class="fa-solid fa-bullseye text-slate-400 text-2xl group-hover:text-amber-500 transition-colors"></i>
-                    {% endif %}
-                    <span
-                        class="text-[11px] font-bold {% if active_page == 'goals' %}text-amber-600{% else %}text-slate-400 group-hover:text-amber-600{% endif %} transition-colors">Mục
+                    <span class="text-[11px] font-bold text-slate-400 group-hover:text-amber-600 transition-colors">Mục
                         tiêu</span>
+                    {% endif %}
                 </a>
 
                 <!-- 3. Learn (Center - Elevated) -->
@@ -123,16 +122,15 @@
                     class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
                     {% if active_page == 'stats' %}
                     <div
-                        class="w-13 h-13 rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/50 flex items-center justify-center transition-all">
-                        <i class="fa-solid fa-chart-line text-white text-xl"></i>
+                        class="w-14 h-14 rounded-2xl bg-cyan-500 shadow-lg shadow-cyan-500/50 flex items-center justify-center transition-all">
+                        <i class="fa-solid fa-chart-line text-white text-2xl"></i>
                     </div>
                     {% else %}
                     <i
                         class="fa-solid fa-chart-line text-slate-400 text-2xl group-hover:text-cyan-500 transition-colors"></i>
-                    {% endif %}
-                    <span
-                        class="text-[11px] font-bold {% if active_page == 'stats' %}text-cyan-600{% else %}text-slate-400 group-hover:text-cyan-600{% endif %} transition-colors">Thống
+                    <span class="text-[11px] font-bold text-slate-400 group-hover:text-cyan-600 transition-colors">Thống
                         kê</span>
+                    {% endif %}
                 </a>
 
                 <!-- 5. Profile -->
@@ -140,15 +138,14 @@
                     class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
                     {% if active_page == 'profile' %}
                     <div
-                        class="w-13 h-13 rounded-full bg-rose-500 shadow-lg shadow-rose-500/50 flex items-center justify-center transition-all">
-                        <i class="fa-solid fa-user text-white text-xl"></i>
+                        class="w-14 h-14 rounded-2xl bg-rose-500 shadow-lg shadow-rose-500/50 flex items-center justify-center transition-all">
+                        <i class="fa-solid fa-user text-white text-2xl"></i>
                     </div>
                     {% else %}
                     <i class="fa-solid fa-user text-slate-400 text-2xl group-hover:text-rose-500 transition-colors"></i>
-                    {% endif %}
-                    <span
-                        class="text-[11px] font-bold {% if active_page == 'profile' %}text-rose-600{% else %}text-slate-400 group-hover:text-rose-600{% endif %} transition-colors">Cá
+                    <span class="text-[11px] font-bold text-slate-400 group-hover:text-rose-600 transition-colors">Cá
                         nhân</span>
+                    {% endif %}
                 </a>
             </div>
         </div>
