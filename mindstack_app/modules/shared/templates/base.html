@@ -1,11 +1,12 @@
 {#
-    File: mindstack_app/modules/shared/templates/base.html
-    Phiên bản: 6.0
-    Mục đích: Đã khôi phục trạng thái ban đầu để tránh ảnh hưởng đến các trang khác.
+File: mindstack_app/modules/shared/templates/base.html
+Phiên bản: 6.0
+Mục đích: Đã khôi phục trạng thái ban đầu để tránh ảnh hưởng đến các trang khác.
 #}
 {% from 'includes/_navbar.html' import render_navbar %}
 <!doctype html>
 <html lang="vi">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -15,13 +16,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    
+
     <script>
-        (function(){
+        (function () {
             if (typeof window === 'undefined') return;
             const originalWarn = console.warn.bind(console);
             window.__TAILWIND_ORIGINAL_WARN__ = originalWarn;
-            console.warn = function(...args) {
+            console.warn = function (...args) {
                 if (args.length && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) {
                     return;
                 }
@@ -40,16 +41,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked@9.1.4/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
-    
+
+    <!-- Alpine.js for reactive UI components -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
             color: #333333;
         }
+
         .active-link {
             border-bottom: 3px solid #3b82f6;
             color: #3b82f6;
         }
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -63,12 +69,14 @@
             z-index: 1000;
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease; 
+            transition: opacity 0.3s ease, visibility 0.3s ease;
         }
+
         .modal-overlay.open {
             opacity: 1;
             visibility: visible !important;
         }
+
         .modal-content {
             background-color: #ffffff;
             border-radius: 0.75rem;
@@ -80,19 +88,22 @@
             flex-direction: column;
             position: relative;
             transform: scale(0.95);
-            transition: transform 0.3s ease; 
+            transition: transform 0.3s ease;
             border: none;
             visibility: hidden;
         }
+
         .modal-overlay.open .modal-content {
             transform: scale(1);
-            visibility: visible !important; 
+            visibility: visible !important;
         }
+
         .modal-iframe {
             width: 100%;
             height: 100%;
             border: none;
         }
+
         /* ===== Bổ sung CSS cho layout Flexbox và ẩn trên di động ===== */
         body.flashcard-session-active {
             display: flex;
@@ -100,28 +111,32 @@
             min-height: 100vh;
         }
 
-        body.flashcard-session-active > header,
-        body.flashcard-session-active > footer {
+        body.flashcard-session-active>header,
+        body.flashcard-session-active>footer {
             display: none;
         }
-        
-        body.flashcard-session-active > main {
+
+        body.flashcard-session-active>main {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            overflow: auto; /* Cho phép cuộn trên màn hình di động */
+            overflow: auto;
+            /* Cho phép cuộn trên màn hình di động */
         }
+
         /* THÊM MỚI: CSS để loại bỏ padding trên mobile */
         @media (max-width: 1024px) {
-            body.flashcard-session-active > main {
+            body.flashcard-session-active>main {
                 padding: 0 !important;
             }
         }
 
         @media (min-width: 1024px) {
-            body.flashcard-session-active > header,
-            body.flashcard-session-active > footer {
-                display: block; /* Hiển thị lại trên desktop */
+
+            body.flashcard-session-active>header,
+            body.flashcard-session-active>footer {
+                display: block;
+                /* Hiển thị lại trên desktop */
             }
         }
 
@@ -149,7 +164,7 @@
             list-style-type: decimal;
         }
 
-        .markdown-body li + li {
+        .markdown-body li+li {
             margin-top: 0.35rem;
         }
 
@@ -165,12 +180,29 @@
             margin-bottom: 0.75rem;
         }
 
-        .markdown-body h1 { font-size: 1.75rem; }
-        .markdown-body h2 { font-size: 1.5rem; }
-        .markdown-body h3 { font-size: 1.3rem; }
-        .markdown-body h4 { font-size: 1.1rem; }
-        .markdown-body h5 { font-size: 1rem; }
-        .markdown-body h6 { font-size: 0.95rem; }
+        .markdown-body h1 {
+            font-size: 1.75rem;
+        }
+
+        .markdown-body h2 {
+            font-size: 1.5rem;
+        }
+
+        .markdown-body h3 {
+            font-size: 1.3rem;
+        }
+
+        .markdown-body h4 {
+            font-size: 1.1rem;
+        }
+
+        .markdown-body h5 {
+            font-size: 1rem;
+        }
+
+        .markdown-body h6 {
+            font-size: 0.95rem;
+        }
 
         .markdown-body blockquote {
             border-left: 4px solid #c4c4c4;
@@ -216,7 +248,7 @@
         }
     </style>
     <script>
-        (function() {
+        (function () {
             const fallbackFormat = (text) => {
                 if (text === null || text === undefined) {
                     return '';
@@ -235,7 +267,7 @@
                 });
             }
 
-            window.renderMarkdown = function(text, options = {}) {
+            window.renderMarkdown = function (text, options = {}) {
                 const { treatAsHtml = false } = options;
                 if (text === null || text === undefined) {
                     return '';
@@ -259,7 +291,7 @@
                 return fallbackFormat(value);
             };
 
-            window.applyMarkdownToElement = function(element, text, options = {}) {
+            window.applyMarkdownToElement = function (element, text, options = {}) {
                 if (!element) return;
                 const html = window.renderMarkdown ? window.renderMarkdown(text, options) : fallbackFormat(text);
                 element.innerHTML = html;
@@ -271,6 +303,7 @@
     </script>
     {% block head %}{% endblock %}
 </head>
+
 <body class="bg-gray-100 flex flex-col min-h-screen{% block body_class %}{% endblock %}">
     <header class="bg-white shadow-md relative z-50">
         {# THAY ĐỔI: Gọi macro render_navbar để hiển thị navbar #}
@@ -281,24 +314,27 @@
         {# Flash Messages #}
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div id="flash-messages-container" class="absolute top-4 right-4 z-50 flex flex-col space-y-2 max-w-sm">
-                {% for category, message in messages %}
-                <div class="flex items-center p-2 rounded-md shadow-lg bg-gray-800 text-white relative text-sm opacity-100 transition-opacity duration-500" data-dismissible>
-                    {% if category == 'success' %}<i class="fas fa-check-circle text-green-400 mr-2"></i>
-                    {% elif category == 'info' %}<i class="fas fa-info-circle text-blue-400 mr-2"></i>
-                    {% elif category == 'danger' %}<i class="fas fa-times-circle text-red-400 mr-2"></i>
-                    {% elif category == 'warning' %}<i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
-                    {% else %}<i class="fas fa-bell text-gray-400 mr-2"></i>{% endif %}
-                    <span class="block sm:inline">{{ message }}</span>
-                    <button class="ml-auto pl-2 text-gray-400 hover:text-white" onclick="this.parentNode.remove();">
-                        <span class="sr-only">Đóng</span>
-                        <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
-                        </svg>
-                    </button>
-                </div>
-                {% endfor %}
+        <div id="flash-messages-container" class="absolute top-4 right-4 z-50 flex flex-col space-y-2 max-w-sm">
+            {% for category, message in messages %}
+            <div class="flex items-center p-2 rounded-md shadow-lg bg-gray-800 text-white relative text-sm opacity-100 transition-opacity duration-500"
+                data-dismissible>
+                {% if category == 'success' %}<i class="fas fa-check-circle text-green-400 mr-2"></i>
+                {% elif category == 'info' %}<i class="fas fa-info-circle text-blue-400 mr-2"></i>
+                {% elif category == 'danger' %}<i class="fas fa-times-circle text-red-400 mr-2"></i>
+                {% elif category == 'warning' %}<i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
+                {% else %}<i class="fas fa-bell text-gray-400 mr-2"></i>{% endif %}
+                <span class="block sm:inline">{{ message }}</span>
+                <button class="ml-auto pl-2 text-gray-400 hover:text-white" onclick="this.parentNode.remove();">
+                    <span class="sr-only">Đóng</span>
+                    <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                    </svg>
+                </button>
             </div>
+            {% endfor %}
+        </div>
         {% endif %}
         {% endwith %}
 
@@ -310,7 +346,7 @@
             <p class="text-gray-500">&copy; 2025 Mindstack App. All Rights Reserved.</p>
         </div>
     </footer>
-    
+
     <div id="modalOverlay" class="modal-overlay">
         <div class="modal-content w-full h-full md:w-2/3 lg:w-1/2">
             <iframe id="modalIframe" class="modal-iframe"></iframe>
@@ -319,28 +355,28 @@
 
     <script>
         // Các hàm toàn cục để iframe con có thể gọi
-        window.openModal = function(url) { 
-            const modalOverlay = document.getElementById('modalOverlay'); 
-            const modalIframe = document.getElementById('modalIframe'); 
+        window.openModal = function (url) {
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalIframe = document.getElementById('modalIframe');
             if (modalOverlay && modalIframe) {
                 let finalUrl = url.includes('?') ? `${url}&is_modal=true` : `${url}?is_modal=true`;
-                modalIframe.src = finalUrl; 
+                modalIframe.src = finalUrl;
                 modalOverlay.classList.add('open');
-                document.body.style.overflow = 'hidden'; 
+                document.body.style.overflow = 'hidden';
             }
-        }; 
+        };
 
-        window.closeModal = function() { 
-            const modalOverlay = document.getElementById('modalOverlay'); 
-            const modalIframe = document.getElementById('modalIframe'); 
+        window.closeModal = function () {
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalIframe = document.getElementById('modalIframe');
             if (modalOverlay && modalIframe) {
                 modalOverlay.classList.remove('open');
-                modalIframe.src = ''; 
-                document.body.style.overflow = ''; 
+                modalIframe.src = '';
+                document.body.style.overflow = '';
             }
-        }; 
+        };
 
-        window.showFlashMessage = function(message, category) { 
+        window.showFlashMessage = function (message, category) {
             const container = document.getElementById('flash-messages-container');
             if (!container) return;
             const alertDiv = document.createElement('div');
@@ -353,21 +389,21 @@
             else alertDiv.classList.add('bg-gray-500');
 
             container.appendChild(alertDiv);
-            setTimeout(() => alertDiv.classList.remove('opacity-0'), 10); 
+            setTimeout(() => alertDiv.classList.remove('opacity-0'), 10);
             setTimeout(() => {
                 alertDiv.classList.add('opacity-0');
                 setTimeout(() => alertDiv.remove(), 500);
             }, 5000);
-        }; 
+        };
 
         // Hàm loadTabContent này sẽ được cập nhật để tải nội dung AJAX cho các tab trong content_dashboard
         // Tuy nhiên, ở đây nó đang được sử dụng để reload trang.
         // Cần lưu ý nếu có xung đột với logic AJAX của content_dashboard
-        window.loadTabContent = function(tabName) { 
-            window.location.reload(); 
-        }; 
+        window.loadTabContent = function (tabName) {
+            window.location.reload();
+        };
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Tự động đóng flash messages
             document.querySelectorAll('[data-dismissible]').forEach(notification => {
                 setTimeout(() => {
@@ -379,17 +415,17 @@
             const modalOverlay = document.getElementById('modalOverlay');
 
             // Lắng nghe sự kiện click để mở modal
-            document.addEventListener('click', function(event) {
-                const target = event.target.closest('.open-modal-btn'); 
+            document.addEventListener('click', function (event) {
+                const target = event.target.closest('.open-modal-btn');
                 if (target && target.dataset.modalUrl) {
-                    event.preventDefault(); 
+                    event.preventDefault();
                     window.openModal(target.dataset.modalUrl);
                 }
             });
 
             // Lắng nghe sự kiện click để đóng modal
             if (modalOverlay) {
-                modalOverlay.addEventListener('click', function(event) {
+                modalOverlay.addEventListener('click', function (event) {
                     if (event.target === modalOverlay) {
                         window.closeModal();
                     }
@@ -399,4 +435,5 @@
     </script>
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

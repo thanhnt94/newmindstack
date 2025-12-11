@@ -1,4 +1,75 @@
 {# ================= GOALS DESKTOP - ENHANCED LAYOUT ================= #}
+<script>
+    // Define Alpine.js data function BEFORE the HTML that uses it
+    window.goalWizardDesktopData = function () {
+        return {
+            step: 1,
+            scope: 'global',
+            domain: 'general',
+            metric: 'points',
+            reference_id: '',
+            showDates: false,
+            domainsGlobal: [
+                { value: 'general', label: 'Điểm số & XP', icon: 'fa-solid fa-star', desc: 'Tích luỹ điểm kinh nghiệm toàn hệ thống' },
+                { value: 'flashcard', label: 'Flashcard', icon: 'fa-solid fa-clone', desc: 'Thống kê số lượng thẻ đã học' },
+                { value: 'quiz', label: 'Quiz', icon: 'fa-solid fa-circle-question', desc: 'Thống kê số câu hỏi đã làm' }
+            ],
+            metricsMap: {
+                'general': [{ value: 'points', label: 'Tổng điểm kinh nghiệm (XP)' }],
+                'flashcard': [
+                    { value: 'items_reviewed', label: 'Số thẻ đã ôn (lượt)' },
+                    { value: 'new_items', label: 'Học thẻ mới (số lượng)' },
+                    { value: 'mastered', label: 'Thẻ đạt mức thuần thục' }
+                ],
+                'quiz': [
+                    { value: 'items_answered', label: 'Số câu hỏi đã làm' },
+                    { value: 'items_correct', label: 'Số câu trả lời đúng' },
+                    { value: 'points', label: 'Điểm số Quiz' }
+                ]
+            },
+            get availableMetrics() {
+                return this.metricsMap[this.domain] || [];
+            },
+            setScope(val) {
+                this.scope = val;
+                this.domain = 'general';
+                this.reference_id = '';
+                if (this.metricsMap[this.domain] && this.metricsMap[this.domain].length > 0) {
+                    this.metric = this.metricsMap[this.domain][0].value;
+                }
+            },
+            setDomain(val) {
+                this.domain = val;
+                if (this.metricsMap[val] && this.metricsMap[val].length > 0) {
+                    this.metric = this.metricsMap[val][0].value;
+                }
+            },
+            setContainer(type, id) {
+                this.reference_id = id;
+                this.domain = type;
+                if (this.metricsMap[type] && this.metricsMap[type].length > 0) {
+                    this.metric = this.metricsMap[type][0].value;
+                }
+            },
+            nextStep() {
+                if (this.step === 2) {
+                    if (this.scope === 'container' && !this.reference_id) {
+                        alert('Vui lòng chọn một bộ học liệu.');
+                        return;
+                    }
+                    if (this.scope === 'global' && !this.domain) {
+                        alert('Vui lòng chọn một chỉ số.');
+                        return;
+                    }
+                }
+                if (this.step < 3) this.step++;
+            },
+            prevStep() {
+                if (this.step > 1) this.step--;
+            }
+        };
+    };
+</script>
 <div class="hidden lg:block bg-transparent py-10">
     <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <header class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
@@ -104,7 +175,7 @@
             </div>
 
             <!-- Create Column (Wizard Style) -->
-            <div class="space-y-6" x-data="goalWizardForm">
+            <div class="space-y-6" x-data="goalWizardDesktopData()">
                 <div
                     class="bg-slate-900 text-white rounded-3xl p-8 shadow-lg relative overflow-hidden min-h-[500px] flex flex-col">
                     <!-- Background Decoration -->
@@ -128,7 +199,7 @@
                     </div>
 
                     <!-- Wizard Content -->
-                    <form method="post" class="relative z-10 flex-grow flex flex-col">
+                    <form method="post" class="relative z-10 flex-grow flex flex-col" novalidate>
                         {{ form.hidden_tag() }}
 
                         <!-- STEP 1: Scope Selection -->
@@ -151,7 +222,7 @@
                                             <div class="text-sm text-white/50">Tính điểm và tiến độ trên tất cả các học
                                                 liệu</div>
                                         </div>
-                                        <div class="mt-auto" x-show="scope === 'global'">
+                                        <div class="mt-auto" x-show="scope === 'global'" style="display: none;">
                                             <i class="fa-solid fa-check-circle text-indigo-400 text-2xl"></i>
                                         </div>
                                     </div>
@@ -169,7 +240,7 @@
                                             <div class="text-sm text-white/50">Đặt mục tiêu riêng cho từng bộ Flashcard
                                                 hoặc Quiz</div>
                                         </div>
-                                        <div class="mt-auto" x-show="scope === 'container'">
+                                        <div class="mt-auto" x-show="scope === 'container'" style="display: none;">
                                             <i class="fa-solid fa-check-circle text-indigo-400 text-2xl"></i>
                                         </div>
                                     </div>
@@ -374,96 +445,3 @@
                     </form>
                 </div>
             </div>
-        </section>
-    </div>
-
-    <!-- Alpine.js Logic -->
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('goalWizardForm', () => ({
-                step: 1,
-                scope: 'global', // 'global' or 'container'
-                domain: 'general',
-                metric: 'points',
-                reference_id: '',
-                showDates: false,
-
-                domainsGlobal: [
-                    { value: 'general', label: 'Điểm số & XP', icon: 'fa-solid fa-star', desc: 'Tích luỹ điểm kinh nghiệm toàn hệ thống' },
-                    { value: 'flashcard', label: 'Flashcard', icon: 'fa-solid fa-clone', desc: 'Thống kê số lượng thẻ đã học' },
-                    { value: 'quiz', label: 'Quiz', icon: 'fa-solid fa-circle-question', desc: 'Thống kê số câu hỏi đã làm' }
-                ],
-
-                metricsMap: {
-                    'general': [
-                        { value: 'points', label: 'Tổng điểm kinh nghiệm (XP)' }
-                    ],
-                    'flashcard': [
-                        { value: 'items_reviewed', label: 'Số thẻ đã ôn (lượt)' },
-                        { value: 'new_items', label: 'Học thẻ mới (số lượng)' },
-                        { value: 'mastered', label: 'Thẻ đạt mức thuần thục' }
-                    ],
-                    'quiz': [
-                        { value: 'items_answered', label: 'Số câu hỏi đã làm' },
-                        { value: 'items_correct', label: 'Số câu trả lời đúng' },
-                        { value: 'points', label: 'Điểm số Quiz' }
-                    ]
-                },
-
-                get availableMetrics() {
-                    // For container scope, domain is set by container type
-                    return this.metricsMap[this.domain] || [];
-                },
-
-                setScope(val) {
-                    this.scope = val;
-                    // Reset domain and reference_id when scope changes
-                    this.domain = 'general'; // Default domain
-                    this.reference_id = '';
-                    // Reset metric to first available for the new default domain
-                    if (this.metricsMap[this.domain] && this.metricsMap[this.domain].length > 0) {
-                        this.metric = this.metricsMap[this.domain][0].value;
-                    }
-                },
-
-                setDomain(val) {
-                    this.domain = val;
-                    // Reset metric
-                    if (this.metricsMap[val] && this.metricsMap[val].length > 0) {
-                        this.metric = this.metricsMap[val][0].value;
-                    }
-                },
-
-                setContainer(type, id) {
-                    this.reference_id = id;
-                    this.domain = type; // 'flashcard' or 'quiz'
-                    // Reset metric
-                    if (this.metricsMap[type] && this.metricsMap[type].length > 0) {
-                        this.metric = this.metricsMap[type][0].value;
-                    }
-                },
-
-                nextStep() {
-                    // Validation
-                    if (this.step === 1) {
-                        // No specific validation needed for step 1, as scope is always selected
-                    } else if (this.step === 2) {
-                        if (this.scope === 'container' && !this.reference_id) {
-                            alert('Vui lòng chọn một bộ học liệu.');
-                            return;
-                        }
-                        if (this.scope === 'global' && !this.domain) {
-                            alert('Vui lòng chọn một chỉ số.');
-                            return;
-                        }
-                    }
-                    if (this.step < 3) this.step++;
-                },
-
-                prevStep() {
-                    if (this.step > 1) this.step--;
-                }
-            }));
-        });
-    </script>
-</div>

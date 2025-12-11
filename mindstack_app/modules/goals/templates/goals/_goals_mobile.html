@@ -2,7 +2,78 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<!-- Alpine.js should be loaded in base.html. If not, this might fail, but assuming standard stack -->
+
+<script>
+    // Define Alpine.js data function BEFORE the HTML that uses it
+    window.goalWizardMobileData = function () {
+        return {
+            step: 1,
+            scope: 'global',
+            domain: 'general',
+            metric: 'points',
+            reference_id: '',
+            showDates: false,
+            domainsGlobal: [
+                { value: 'general', label: 'Điểm số & XP', icon: 'fa-solid fa-star', desc: 'Tích luỹ điểm kinh nghiệm toàn hệ thống' },
+                { value: 'flashcard', label: 'Flashcard', icon: 'fa-solid fa-clone', desc: 'Thống kê số lượng thẻ đã học' },
+                { value: 'quiz', label: 'Quiz', icon: 'fa-solid fa-circle-question', desc: 'Thống kê số câu hỏi đã làm' }
+            ],
+            metricsMap: {
+                'general': [{ value: 'points', label: 'Tổng điểm kinh nghiệm (XP)' }],
+                'flashcard': [
+                    { value: 'items_reviewed', label: 'Số thẻ đã ôn (lượt)' },
+                    { value: 'new_items', label: 'Học thẻ mới (số lượng)' },
+                    { value: 'mastered', label: 'Thẻ đạt mức thuần thục' }
+                ],
+                'quiz': [
+                    { value: 'items_answered', label: 'Số câu hỏi đã làm' },
+                    { value: 'items_correct', label: 'Số câu trả lời đúng' },
+                    { value: 'points', label: 'Điểm số Quiz' }
+                ]
+            },
+            get availableMetrics() {
+                return this.metricsMap[this.domain] || [];
+            },
+            setScope(val) {
+                this.scope = val;
+                this.domain = 'general';
+                this.reference_id = '';
+                if (this.metricsMap[this.domain] && this.metricsMap[this.domain].length > 0) {
+                    this.metric = this.metricsMap[this.domain][0].value;
+                }
+            },
+            setDomain(val) {
+                this.domain = val;
+                if (this.metricsMap[val] && this.metricsMap[val].length > 0) {
+                    this.metric = this.metricsMap[val][0].value;
+                }
+            },
+            setContainer(type, id) {
+                this.reference_id = id;
+                this.domain = type;
+                if (this.metricsMap[type] && this.metricsMap[type].length > 0) {
+                    this.metric = this.metricsMap[type][0].value;
+                }
+            },
+            nextStep() {
+                if (this.step === 2) {
+                    if (this.scope === 'container' && !this.reference_id) {
+                        alert('Vui lòng chọn một bộ học liệu.');
+                        return;
+                    }
+                    if (this.scope === 'global' && !this.domain) {
+                        alert('Vui lòng chọn một chỉ số.');
+                        return;
+                    }
+                }
+                if (this.step < 3) this.step++;
+            },
+            prevStep() {
+                if (this.step > 1) this.step--;
+            }
+        };
+    };
+</script>
 
 <div class="lg:hidden fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard"
     style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
@@ -107,7 +178,7 @@
 </div>
 
 {# === ADD GOAL MODAL (WIZARD) === #}
-<div id="addGoalModal" class="hidden fixed inset-0 z-[200] flex items-end lg:hidden" x-data="goalWizardForm">
+<div id="addGoalModal" class="hidden fixed inset-0 z-[200] flex items-end lg:hidden" x-data="goalWizardMobileData()">
     <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onclick="document.getElementById('addGoalModal').classList.add('hidden')"></div>
 
@@ -119,7 +190,7 @@
             <div>
                 <h2 class="text-xl font-black text-slate-900">Mục tiêu mới</h2>
                 <div class="flex items-center gap-1 mt-1">
-                    <span class="text-xs font-semibold text-slate-500">Bước <span x-text="step"></span>/3</span>
+                    <span class="text-xs font-semibold text-slate-500">Bước <span x-text="step">1</span>/3</span>
                     <div class="flex gap-1">
                         <template x-for="i in 3">
                             <div class="h-1 rounded-full transition-all"
@@ -135,7 +206,7 @@
         </div>
 
         <!-- Wizard Body -->
-        <form method="post" class="flex flex-col flex-1 overflow-y-auto px-5 py-6">
+        <form method="post" class="flex flex-col flex-1 overflow-y-auto px-5 py-6" novalidate>
             {{ form.hidden_tag() }}
 
             <!-- STEP 1: Scope -->
@@ -157,7 +228,8 @@
                             <span class="block text-sm font-bold text-slate-900"
                                 :class="scope === 'global' ? 'text-indigo-900' : ''">Toàn hệ thống</span>
                         </div>
-                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'global'"></i>
+                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'global'"
+                            style="display: none;"></i>
                     </div>
 
                     <!-- Container -->
@@ -172,7 +244,8 @@
                             <span class="block text-sm font-bold text-slate-900"
                                 :class="scope === 'container' ? 'text-indigo-900' : ''">Bộ cụ thể</span>
                         </div>
-                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'container'"></i>
+                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'container'"
+                            style="display: none;"></i>
                     </div>
                 </div>
                 <input type="hidden" name="scope" x-model="scope">
@@ -250,6 +323,8 @@
                         {% endif %}
                     </div>
                 </div>
+
+                <!-- Alpine.js Logic -->
 
                 <select name="domain" x-model="domain" class="hidden">
                     <option value="general">General</option>
