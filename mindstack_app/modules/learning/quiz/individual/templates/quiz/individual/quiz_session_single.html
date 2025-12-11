@@ -1093,13 +1093,15 @@
                 }
             });
 
-            // Toggle Transcript Button
-            if (transcriptBtn) {
-                if (hasAudio) {
-                    transcriptBtn.classList.remove('hidden');
-                } else {
-                    transcriptBtn.classList.add('hidden');
-                }
+            // Toggle Transcript Button (Both Mobile & Desktop)
+            const mobileTranscriptBtn = document.getElementById('mobile-transcript-btn');
+
+            if (hasAudio) {
+                if (transcriptBtn) transcriptBtn.classList.remove('hidden');
+                if (mobileTranscriptBtn) mobileTranscriptBtn.classList.remove('hidden');
+            } else {
+                if (transcriptBtn) transcriptBtn.classList.add('hidden');
+                if (mobileTranscriptBtn) mobileTranscriptBtn.classList.add('hidden');
             }
 
             // Options
@@ -1325,53 +1327,9 @@
             const mobileEditBtn = document.getElementById('mobile-edit-btn');
             const desktopEditBtn = document.getElementById('desktop-edit-btn');
             // FIX: Correct URL Prefix is /content/quizzes not /content_management
-            // Handle Media
-            const mediaContainer = dom.questionMedia || document.querySelector('.js-question-media');
-            const mobileMediaContainer = document.getElementById('mobile-question-media');
-            const transcriptBtn = document.getElementById('desktop-transcript-btn');
 
-            if (mediaContainer) {
-                if (currentQuestion.question_image || currentQuestion.question_audio) {
-                    mediaContainer.classList.remove('hidden');
 
-                    let mediaHtml = '';
-                    if (currentQuestion.question_image) {
-                        mediaHtml += `<img src="${currentQuestion.question_image}" alt="Question Image" class="max-w-full h-auto rounded-lg mx-auto">`;
-                    }
-                    if (currentQuestion.question_audio) {
-                        mediaHtml += `<div class="mt-4"><audio controls class="w-full"><source src="${currentQuestion.question_audio}" type="audio/mpeg">Your browser does not support the audio element.</audio></div>`;
-                    }
-                    mediaContainer.innerHTML = mediaHtml;
 
-                    // Also update mobile
-                    if (mobileMediaContainer) {
-                        mobileMediaContainer.classList.remove('hidden');
-                        mobileMediaContainer.innerHTML = mediaHtml;
-                    }
-
-                    // Show Transcript Button if audio exists and user has edit rights (simple check for now, can be robust)
-                    // You requested "cho người có quyền sửa". We can check a flag 'can_edit' if passed from backend
-                    // For now, let's just show it if audio exists. Or do we strict check?
-                    // User said: "(cho người có quyền sửa bộ quiz)". 
-                    // Let's assume the 'desktop-edit-btn' visibility logic handles the permission check for the group.
-                    // We can reuse that or check a global variable.
-                    // Let's check if desktop-edit-btn is visible/not-hidden
-                    const editBtn = document.getElementById('desktop-edit-btn');
-                    // Actually, editBtn logic is typically handled in backend template rendering or JS if `can_edit` is passed.
-                    // Let's assume we show it if audio is present.
-                    if (currentQuestion.question_audio && transcriptBtn) {
-                        transcriptBtn.classList.remove('hidden');
-                    } else if (transcriptBtn) {
-                        transcriptBtn.classList.add('hidden');
-                    }
-
-                } else {
-                    mediaContainer.classList.add('hidden');
-                    mediaContainer.innerHTML = '';
-                    if (mobileMediaContainer) mobileMediaContainer.classList.add('hidden');
-                    if (transcriptBtn) transcriptBtn.classList.add('hidden');
-                }
-            }
 
             const editUrl = `/content/quizzes/${currentQuestion.container_id}/items/edit/${currentQuestion.item_id}`;
 
@@ -1791,7 +1749,10 @@
         // === TRANSCRIPT MODAL LOGIC ===
         const initTranscriptLogic = () => {
             const modal = document.getElementById('transcript-modal');
-            const openBtn = document.getElementById('desktop-transcript-btn');
+            const openBtns = [
+                document.getElementById('desktop-transcript-btn'),
+                document.getElementById('mobile-transcript-btn')
+            ];
             const closeBtns = [
                 document.getElementById('close-transcript-modal'),
                 document.getElementById('close-transcript-modal-btn'),
@@ -1803,16 +1764,18 @@
             const errorDiv = document.getElementById('transcript-error');
             const errorMsg = document.getElementById('transcript-error-msg');
 
-            if (!modal || !openBtn) return;
+            if (!modal) return;
 
             const closeModal = () => {
                 modal.classList.add('hidden');
-                contentDiv.textContent = ''; // Clear content
+                // Don't clear content immediately so it doesn't flash empty if re-opened? 
+                // Actually existing logic clears it. Stick to existing.
+                contentDiv.textContent = '';
             };
 
             closeBtns.forEach(btn => btn?.addEventListener('click', closeModal));
 
-            openBtn.addEventListener('click', async () => {
+            const openTranscript = async () => {
                 if (!currentQuestion || !currentQuestion.item_id) return;
 
                 // Show modal
@@ -1871,7 +1834,9 @@
                     errorDiv.classList.remove('hidden');
                     if (errorMsg) errorMsg.textContent = e.message;
                 }
-            });
+            };
+
+            openBtns.forEach(btn => btn?.addEventListener('click', openTranscript));
         };
         initTranscriptLogic();
 
