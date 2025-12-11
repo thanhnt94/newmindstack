@@ -1,0 +1,297 @@
+{% extends "admin_layout.html" %}
+{% set active_page = 'voice_service' %}
+
+{% block title %}Voice Service Control Panel{% endblock %}
+{% block page_title %}Voice Service Control Panel{% endblock %}
+{% block page_subtitle %}Manage Text-to-Speech (TTS) and Speech-to-Text (STT) operations.{% endblock %}
+
+{% block extra_head %}
+<style>
+    .data-card {
+        border-radius: 1rem;
+        background-color: #ffffff;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        box-shadow: 0 18px 40px -30px rgba(15, 23, 42, 0.45);
+    }
+
+    .data-card-header {
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .progress-bar-container {
+        width: 100%;
+        background-color: rgba(148, 163, 184, 0.2);
+        border-radius: 9999px;
+        overflow: hidden;
+        height: 1.1rem;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, rgba(37, 99, 235, 0.9), rgba(59, 130, 246, 0.8));
+        transition: width 0.3s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.7rem;
+    }
+
+    .task-status-badge {
+        padding: 0.35rem 0.85rem;
+        border-radius: 9999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-idle {
+        background-color: #f1f5f9;
+        color: #475569;
+    }
+
+    .status-running {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .status-completed {
+        background-color: #dcfce7;
+        color: #15803d;
+    }
+
+    .status-error {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+
+    .action-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Alpine.js cloak */
+    [x-cloak] {
+        display: none !important;
+    }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="{ activeTab: 'flashcard' }" class="grid grid-cols-1 gap-6">
+
+    <!-- Tab Navigation -->
+    <div class="flex space-x-1 bg-slate-200 p-1 rounded-xl">
+        <button @click="activeTab = 'flashcard'"
+            :class="activeTab === 'flashcard' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-white/50'"
+            class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all">
+            <i class="fas fa-volume-up mr-2"></i> Flashcard TTS (Text-to-Speech)
+        </button>
+        <button @click="activeTab = 'quiz'"
+            :class="activeTab === 'quiz' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-600 hover:bg-white/50'"
+            class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all">
+            <i class="fas fa-microphone-lines mr-2"></i> Quiz STT (Speech-to-Text)
+        </button>
+    </div>
+
+    <!-- Tab Contents -->
+
+    <!-- FLASHCARD TAB -->
+    <div x-show="activeTab === 'flashcard'" x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+        class="data-card">
+        <div class="data-card-header px-6 py-5 flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Audio for Flashcards</h2>
+                <p class="text-sm text-slate-500">Auto-generate audio files from flashcard text content.</p>
+            </div>
+            <button onclick="window.location.reload()"
+                class="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800">
+                <i class="fas fa-rotate-right"></i> Refresh
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            {% include '_voice_tasks_table.html' %}
+        </div>
+    </div>
+
+    <!-- QUIZ TAB -->
+    <div x-show="activeTab === 'quiz'" x-cloak x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+        class="data-card border-none shadow-none bg-transparent">
+        <div class="data-card">
+            <div class="data-card-header px-6 py-5 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold text-slate-900">Transcript for Quizzes</h2>
+                    <p class="text-sm text-slate-500">Transcribe audio files in quizzes to text automatically.</p>
+                </div>
+                <button onclick="window.location.reload()"
+                    class="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-rotate-right"></i> Refresh
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200" id="quiz-tasks-table">
+                    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold">Task Name</th>
+                            <th class="px-6 py-3 text-left font-semibold">Status</th>
+                            <th class="px-6 py-3 text-left font-semibold">Progress</th>
+                            <th class="px-6 py-3 text-left font-semibold">Message</th>
+                            <th class="px-6 py-3 text-left font-semibold">Enabled</th>
+                            <th class="px-6 py-3 text-left font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        {% set quiz_task_found = false %}
+                        {% for task in tasks %}
+                        {% if task.task_name == 'transcribe_quiz_audio' %}
+                        {% set quiz_task_found = true %}
+                        <tr class="hover:bg-slate-50 task-row" data-task-id="{{ task.task_id }}">
+                            <td class="px-6 py-4 font-medium text-slate-900">Transcribe Audio</td>
+                            <td class="px-6 py-4">
+                                <span class="task-status-badge status-{{ task.status }}">{{ task.status }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% set progress_percentage = (task.progress / task.total * 100) if task.total > 0 else 0
+                                %}
+                                <div class="progress-bar-container w-32">
+                                    <div class="progress-bar-fill" style="width: {{ progress_percentage }}%;">{{
+                                        progress_percentage|int }}%</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600 max-w-xs truncate" title="{{ task.message }}">{{
+                                task.message }}</td>
+                            <td class="px-6 py-4">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" value="" class="sr-only peer toggle-task-checkbox" {% if
+                                        task.is_enabled %}checked{% endif %} {% if task.status=='running' %}disabled{%
+                                        endif %}>
+                                    <div
+                                        class="w-11 h-6 bg-slate-300 rounded-full peer peer-focus:ring-4 peer-focus:ring-emerald-200 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600">
+                                    </div>
+                                </label>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col gap-3">
+                                    <div>
+                                        <select
+                                            class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 container-scope-select"
+                                            {% if task.status=='running' %}disabled{% endif %}>
+                                            <option value="">All Quiz Sets</option>
+                                            {% for container in quiz_containers %}
+                                            <option value="{{ container.container_id }}">{{ container.title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <button type="button"
+                                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md transition action-button task-toggle-btn {% if task.status == 'running' %}bg-rose-100 text-rose-700 hover:bg-rose-200{% else %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200{% endif %}"
+                                            data-state="{{ 'stop' if task.status == 'running' else 'start' }}" {% if
+                                            task.status !='running' and not task.is_enabled %}disabled{% endif %}>
+                                            <i
+                                                class="fas {% if task.status == 'running' %}fa-stop{% else %}fa-play{% endif %}"></i>
+                                            <span class="text-sm font-semibold task-toggle-label">{{ 'Stop' if
+                                                task.status == 'running' else 'Start' }}</span>
+                                        </button>
+                                        <a href="{{ url_for('admin.view_task_logs', task_id=task.task_id) }}"
+                                            class="text-slate-500 hover:text-slate-700" title="View Logs">
+                                            <i class="fas fa-list-alt text-lg"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        {% if not quiz_task_found %}
+                        <tr>
+                            <td colspan="6" class="p-4 text-center text-slate-400">Task "transcribe_quiz_audio" not
+                                found. Check background tasks table.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) {
+        axios.defaults.headers.common['X-CSRFToken'] = csrfToken;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Universal Handler for both tables
+        document.querySelectorAll('table').forEach(table => {
+            table.addEventListener('change', async function (event) {
+                if (event.target.classList.contains('toggle-task-checkbox')) {
+                    const row = event.target.closest('tr');
+                    const taskId = row.dataset.taskId;
+                    try {
+                        const response = await axios.post(`/admin/tasks/toggle/${taskId}`);
+                        if (response.data.success) {
+                            showFlashMessage('Task status updated.', 'success');
+                            // UI update handled by reload usually, but we can toggle attrs
+                            const btn = row.querySelector('.task-toggle-btn');
+                            if (btn) btn.disabled = !event.target.checked;
+                        }
+                    } catch (e) {
+                        showFlashMessage('Error toggling task.', 'danger');
+                        event.target.checked = !event.target.checked;
+                    }
+                }
+            });
+
+            table.addEventListener('click', async function (event) {
+                const toggleBtn = event.target.closest('.task-toggle-btn');
+                const row = event.target.closest('tr');
+                if (!toggleBtn || !row) return;
+
+                const taskId = row.dataset.taskId;
+                const action = toggleBtn.dataset.state;
+
+                if (action === 'start') {
+                    const scopeSelect = row.querySelector('.container-scope-select');
+                    let containerId = scopeSelect ? scopeSelect.value : null;
+
+                    toggleBtn.disabled = true;
+                    try {
+                        const payload = containerId ? { container_id: containerId } : {};
+                        const response = await axios.post(`/admin/tasks/start/${taskId}`, payload);
+                        if (response.data.success) {
+                            showFlashMessage('Task started.', 'success');
+                            setTimeout(() => window.location.reload(), 1000);
+                        } else {
+                            showFlashMessage(response.data.message, 'danger');
+                            toggleBtn.disabled = false;
+                        }
+                    } catch (e) {
+                        const msg = e.response?.data?.message || 'Error starting task.';
+                        showFlashMessage(msg, 'danger');
+                        toggleBtn.disabled = false;
+                    }
+                } else {
+                    try {
+                        const response = await axios.post(`/admin/tasks/stop/${taskId}`);
+                        if (response.data.success) {
+                            showFlashMessage('Stop requested.', 'info');
+                            setTimeout(() => window.location.reload(), 1000);
+                        }
+                    } catch (e) {
+                        showFlashMessage('Error stopping task.', 'danger');
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

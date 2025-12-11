@@ -14,8 +14,7 @@ import asyncio
 import random
 import time
 
-from gtts import gTTS
-from pydub import AudioSegment
+from .....services.voice_service import VoiceService
 
 from .....db_instance import db
 from .....models import LearningContainer, LearningItem, User, BackgroundTask
@@ -38,6 +37,8 @@ class AudioService:
             )
         except Exception as e:
             logger.critical(f"Lỗi không mong muốn khi khởi tạo AudioService: {e}", exc_info=True)
+        
+        self.voice_service = VoiceService()
 
     def _get_cache_dir(self) -> str:
         return get_runtime_config('FLASHCARD_AUDIO_CACHE_DIR', Config.FLASHCARD_AUDIO_CACHE_DIR)
@@ -49,39 +50,15 @@ class AudioService:
 
     def _generate_tts_sync(self, text, lang='en'):
         """
-        Mô tả: Tạo file audio Text-to-Speech (TTS) từ một đoạn văn bản bằng gTTS.
-               Đây là hàm đồng bộ, sẽ được gọi trong executor.
-        Args:
-            text (str): Đoạn văn bản cần chuyển đổi thành audio.
-            lang (str): Ngôn ngữ của văn bản (mặc định là 'en').
-        Returns:
-            tuple: (đường dẫn file tạm thời, thành công (bool), thông báo lỗi/thành công).
-                   Trả về (None, False, message) nếu có lỗi.
+        Mô tả: Tạo file audio Text-to-Speech (TTS) sử dụng VoiceService.
         """
-        temp_path = None
         log_prefix = "[GENERATE_TTS_SYNC]"
         try:
-            if not text or not text.strip():
-                logger.warning(f"{log_prefix} Nhận được text rỗng hoặc chỉ chứa khoảng trắng. Không tạo TTS.")
-                return None, False, "Nội dung văn bản rỗng."
-
-            logger.debug(f"{log_prefix} Đang tạo TTS cho lang '{lang}', text '{text[:50]}...'")
-            tts = gTTS(text=text, lang=lang, slow=False)
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmpfile:
-                temp_path = tmpfile.name
-            tts.save(temp_path)
-            logger.info(f"{log_prefix} Đã tạo file TTS tạm thời thành công: {temp_path}")
+            temp_path = self.voice_service.text_to_speech(text, lang)
             return temp_path, True, "Tạo TTS thành công."
         except Exception as e:
-            error_message = f"Lỗi khi tạo TTS cho lang '{lang}' và text '{text[:50]}...': {e}"
-            logger.error(f"{log_prefix} {error_message}", exc_info=True)
-            if temp_path and os.path.exists(temp_path):
-                try:
-                    os.remove(temp_path)
-                    logger.debug(f"{log_prefix} Đã xóa file TTS tạm lỗi: {temp_path}")
-                except OSError as e_remove:
-                    logger.error(f"{log_prefix} Lỗi xóa file TTS tạm lỗi {temp_path}: {e_remove}")
-            return None, False, f"Lỗi tạo audio từ Google Text-to-Speech. Có thể do giới hạn API hoặc lỗi kết nối: {e}"
+            logger.error(f"{log_prefix} Lỗi tạo TTS: {e}")
+            return None, False, str(e)
 
     async def _generate_concatenated_audio(self, audio_content_string, output_format="mp3", pause_ms=400):
         """
@@ -165,17 +142,7 @@ class AudioService:
             
             def concatenate_sync_internal():
                 try:
-                    combined = AudioSegment.from_file(temp_files[0])
-                    silence = AudioSegment.silent(duration=pause_ms) if pause_ms > 0 else None
-                    for i in range(1, len(temp_files)):
-                        if silence: combined += silence
-                        combined += AudioSegment.from_file(temp_files[i])
-                    
-                    with tempfile.NamedTemporaryFile(suffix=f".{output_format}", delete=False) as tmp:
-                        exported_path = tmp.name
-                    combined.export(exported_path, format=output_format)
-                    logger.info(f"{log_prefix} Ghép thành công -> {exported_path}")
-                    return exported_path, True, "Ghép audio thành công."
+                    return self.voice_service.concatenate_audio_files(temp_files, output_format, pause_ms), True, "Ghép audio thành công."
                 except Exception as e_concat:
                     logger.error(f"{log_prefix} Lỗi khi ghép đồng bộ: {e_concat}", exc_info=True)
                     return None, False, f"Lỗi khi ghép các đoạn audio: {e_concat}"

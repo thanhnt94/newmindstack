@@ -39,6 +39,8 @@ quiz_learning_bp = Blueprint(
     'quiz_learning', __name__, template_folder='templates'
 )
 
+from .quiz_audio_service import QuizAudioService
+
 _individual_templates_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
 _shared_quiz_templates_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'templates')
@@ -353,7 +355,77 @@ def get_question_batch():
         current_app.logger.debug("--- Kết thúc get_question_batch (LỖI) ---")
         return jsonify({'message': f'Lỗi khi tải câu hỏi: {str(e)}'}), 500
 
-@quiz_learning_bp.route('/submit_answer_batch', methods=['POST'])
+
+@quiz_learning_bp.route('/api/transcript/<int:item_id>', methods=['POST'])
+@login_required
+def get_quiz_transcript(item_id):
+    """
+    API: Returns transcript for a quiz item. 
+    If transcript is missing but audio exists, performs synchronous STT (using VoiceService).
+    """
+    from sqlalchemy.orm.attributes import flag_modified
+    
+    item = LearningItem.query.get_or_404(item_id)
+    
+    # Permission check (optional but recommended: check if user can access this item)
+    # Since this is a viewing action (mostly), read access is enough. 
+    # But transcript generation usually implies edit/admin rights or premium feature.
+    # User asked: "cho người có quyền sửa bộ quiz".
+    # We should restart check container permission.
+    container = LearningContainer.query.get(item.container_id)
+    if not container:
+        return jsonify({'success': False, 'message': 'Container not found'}), 404
+        
+    # Check edit permission
+    can_edit = (container.user_id == current_user.user_id) or (current_user.role == 'admin')
+    if not can_edit:
+         return jsonify({'success': False, 'message': 'Bạn không có quyền xem/tạo transcript cho bộ này.'}), 403
+
+    content = item.content or {}
+    transcript = content.get('audio_transcript')
+    if transcript:
+         return jsonify({'success': True, 'transcript': transcript, 'cached': True})
+    
+    # If no transcript, check for audio
+    # Try different keys
+    audio_rel_path = content.get('question_audio') or content.get('audio_url')
+    if not audio_rel_path:
+         return jsonify({'success': False, 'message': 'Không tìm thấy file audio trong câu hỏi.'}), 404
+    
+    # Resolve Path
+    # Audio paths are relative to static folder (usually)
+    # We need absolute path for VoiceService
+    # Try to resolve similarly to how we serve it, or assuming it is in static/uploads
+    # This might depend on your upload logic.
+    # Often: 'uploads/quiz_media/...'
+    
+    base_static = os.path.join(current_app.root_path, 'static')
+    full_path = os.path.join(base_static, audio_rel_path.lstrip('/\\'))
+    
+    if not os.path.exists(full_path):
+        return jsonify({'success': False, 'message': f'File audio không tồn tại trên server: {audio_rel_path}'}), 404
+        
+    try:
+        service = QuizAudioService()
+        transcript = service.voice_service.speech_to_text(full_path, lang='vi-VN')
+        
+        if transcript:
+            # Save to DB
+            new_content = dict(content)
+            new_content['audio_transcript'] = transcript
+            item.content = new_content
+            flag_modified(item, "content")
+            db.session.commit()
+            
+            return jsonify({'success': True, 'transcript': transcript, 'cached': False})
+        else:
+             return jsonify({'success': False, 'message': 'Không thể nhận diện văn bản (kết quả rỗng).'}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error generating transcript for item {item_id}: {e}")
+        return jsonify({'success': False, 'message': f'Lỗi xử lý: {str(e)}'}), 500
+
+@quiz_learning_bp.route('/api/items/batch', methods=['POST'])
 @login_required
 def submit_answer_batch():
     """

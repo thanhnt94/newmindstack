@@ -58,6 +58,7 @@ from datetime import date, time
 from ...config import Config
 from ..learning.flashcard.individual.audio_service import AudioService
 from ..learning.flashcard.individual.image_service import ImageService
+from ..learning.quiz.individual.quiz_audio_service import QuizAudioService
 from ..ai_services.ai_explanation_task_service import (
     DEFAULT_REQUEST_INTERVAL_SECONDS,
     generate_ai_explanations,
@@ -68,6 +69,7 @@ from ...services.config_service import SENSITIVE_SETTING_KEYS, get_runtime_confi
 
 audio_service = AudioService()
 image_service = ImageService()
+quiz_audio_service = QuizAudioService()
 
 # Danh mục các gói dữ liệu có thể sao lưu/khôi phục
 DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
@@ -1055,6 +1057,43 @@ def delete_media_item():
     return redirect(url_for('admin.media_library', folder=parent_folder or None))
 
 
+@admin_bp.route('/voice-service')
+@login_required
+def voice_service_panel():
+    """
+    Mô tả: Hiển thị trang quản lý Voice Service: tạo audio cho flashcard, dọn dẹp cache.
+    """
+    # Lấy các tác vụ liên quan đến audio
+    voice_task_names = ['generate_audio_cache', 'clean_audio_cache', 'transcribe_quiz_audio']
+    
+    # Ensure tasks exist
+    for t_name in voice_task_names:
+        if not BackgroundTask.query.filter_by(task_name=t_name).first():
+            new_task = BackgroundTask(task_name=t_name, status='idle')
+            db.session.add(new_task)
+    db.session.commit()
+
+    tasks = BackgroundTask.query.filter(BackgroundTask.task_name.in_(voice_task_names)).all()
+    
+    flashcard_containers = (
+        LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
+        .order_by(LearningContainer.title.asc())
+        .all()
+    )
+
+    quiz_containers = (
+        LearningContainer.query.filter_by(container_type='QUIZ_SET')
+        .order_by(LearningContainer.title.asc())
+        .all()
+    )
+    
+    return render_template(
+        'voice_service_panel.html',
+        tasks=tasks,
+        flashcard_containers=flashcard_containers,
+        quiz_containers=quiz_containers
+    )
+
 @admin_bp.route('/tasks')
 def manage_background_tasks():
     """
@@ -1175,9 +1214,11 @@ def start_task(task_id):
 
     # Chạy tác vụ (hiện tại là đồng bộ, nên nâng cấp lên thread/process)
     if task.task_name == 'generate_audio_cache':
-        asyncio.run(audio_service.generate_cache_for_all_cards(task, container_ids=container_scope_ids))
+        audio_service.generate_cache_for_all_cards(task, container_ids=container_scope_ids)
     elif task.task_name == 'clean_audio_cache':
         audio_service.clean_orphan_audio_cache(task)
+    elif task.task_name == 'transcribe_quiz_audio':
+        quiz_audio_service.transcribe_quiz_audio(task, container_ids=container_scope_ids)
     elif task.task_name == 'generate_image_cache':
         asyncio.run(image_service.generate_images_for_missing_cards(task, container_ids=container_scope_ids))
     elif task.task_name == 'clean_image_cache':
