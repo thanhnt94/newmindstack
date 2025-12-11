@@ -1066,14 +1066,40 @@
             setHtml('.js-question-text', q.content.question);
 
             // Media
-            setHtml('.js-question-media', '');
-            toggleClass('.js-question-media', 'hidden', true);
+            const mediaContainer = document.querySelectorAll('.js-question-media');
+            const transcriptBtn = document.getElementById('desktop-transcript-btn');
+
+            let mediaHtml = '';
+            let hasMedia = false;
+            let hasAudio = false;
+
             if (q.content.question_image_file) {
-                const imgHtml = `<img src="${q.content.question_image_file}">`;
-                document.querySelectorAll('.js-question-media').forEach(el => {
-                    el.innerHTML = imgHtml;
+                mediaHtml += `<img src="${q.content.question_image_file}" alt="Question Image" class="max-w-full h-auto rounded-lg mx-auto mb-4 border border-slate-200">`;
+                hasMedia = true;
+            }
+            if (q.content.question_audio_file) {
+                mediaHtml += `<div class="mt-2 mb-4 w-full flex justify-center"><audio controls class="w-full max-w-md"><source src="${q.content.question_audio_file}" type="audio/mpeg">Your browser does not support the audio element.</audio></div>`;
+                hasMedia = true;
+                hasAudio = true;
+            }
+
+            mediaContainer.forEach(el => {
+                if (hasMedia) {
+                    el.innerHTML = mediaHtml;
                     el.classList.remove('hidden');
-                });
+                } else {
+                    el.innerHTML = '';
+                    el.classList.add('hidden');
+                }
+            });
+
+            // Toggle Transcript Button
+            if (transcriptBtn) {
+                if (hasAudio) {
+                    transcriptBtn.classList.remove('hidden');
+                } else {
+                    transcriptBtn.classList.add('hidden');
+                }
             }
 
             // Options
