@@ -2,7 +2,7 @@
 {# Pass active_page parameter to highlight current page, e.g. active_page='home' #}
 
 {# === BOTTOM TAB BAR WITH LEARNING MENU === #}
-<div class="flex-shrink-0 relative z-30" style="padding-bottom: env(safe-area-inset-bottom, 8px);">
+<div class="flex-shrink-0 relative z-30">
     <!-- Learning Menu Overlay with Blur -->
     <div id="arcMenuOverlay"
         class="fixed inset-0 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 z-40">
@@ -56,93 +56,98 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar - Floating Glassmorphism -->
-    <div class="px-4 pb-2">
-        <div class="bg-white/80 backdrop-blur-xl border border-white/40 rounded-[2rem] shadow-2xl shadow-slate-900/10">
-            <div class="flex justify-between items-end px-4 py-3">
+    <!-- Bottom Navigation Bar - Stuck to Bottom with Gradient -->
+    <div class="relative">
+        <!-- Gradient Background -->
+        <div
+            class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white to-transparent pointer-events-none">
+        </div>
+
+        <!-- Main Nav Bar -->
+        <div class="relative bg-white border-t-2 border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+            style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+            <div class="flex justify-between items-end px-5 py-3">
                 <!-- 1. Home -->
                 <a href="{{ url_for('main.dashboard') }}"
-                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative">
-                    <div class="relative">
-                        {% if active_page == 'home' %}
-                        <div class="absolute inset-0 bg-indigo-500 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
-                        {% endif %}
-                        <div
-                            class="relative w-12 h-12 rounded-2xl {% if active_page == 'home' %}bg-gradient-to-br from-indigo-500 to-indigo-600{% else %}bg-slate-100 group-hover:bg-slate-200{% endif %} flex items-center justify-center shadow-lg transition-all">
-                            <i
-                                class="fa-solid fa-house {% if active_page == 'home' %}text-white{% else %}text-slate-600{% endif %} text-lg"></i>
-                        </div>
+                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
+                    {% if active_page == 'home' %}
+                    <div
+                        class="w-13 h-13 rounded-full bg-indigo-600 shadow-lg shadow-indigo-500/50 flex items-center justify-center transition-all">
+                        <i class="fa-solid fa-house text-white text-xl"></i>
                     </div>
+                    {% else %}
+                    <i
+                        class="fa-solid fa-house text-slate-400 text-2xl group-hover:text-indigo-600 transition-colors"></i>
+                    {% endif %}
                     <span
-                        class="text-[10px] font-bold {% if active_page == 'home' %}text-indigo-600{% else %}text-slate-500{% endif %}">Home</span>
+                        class="text-[11px] font-bold {% if active_page == 'home' %}text-indigo-600{% else %}text-slate-400 group-hover:text-indigo-600{% endif %} transition-colors">Home</span>
                 </a>
 
                 <!-- 2. Goals -->
                 <a href="{{ url_for('goals.manage_goals') }}"
-                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative">
-                    <div class="relative">
-                        {% if active_page == 'goals' %}
-                        <div class="absolute inset-0 bg-amber-500 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
-                        {% endif %}
-                        <div
-                            class="relative w-12 h-12 rounded-2xl {% if active_page == 'goals' %}bg-gradient-to-br from-amber-500 to-orange-500{% else %}bg-slate-100 group-hover:bg-slate-200{% endif %} flex items-center justify-center shadow-lg transition-all">
-                            <i
-                                class="fa-solid fa-bullseye {% if active_page == 'goals' %}text-white{% else %}text-slate-600{% endif %} text-lg"></i>
-                        </div>
+                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
+                    {% if active_page == 'goals' %}
+                    <div
+                        class="w-13 h-13 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50 flex items-center justify-center transition-all">
+                        <i class="fa-solid fa-bullseye text-white text-xl"></i>
                     </div>
+                    {% else %}
+                    <i
+                        class="fa-solid fa-bullseye text-slate-400 text-2xl group-hover:text-amber-500 transition-colors"></i>
+                    {% endif %}
                     <span
-                        class="text-[10px] font-bold {% if active_page == 'goals' %}text-amber-600{% else %}text-slate-500{% endif %}">Mục
+                        class="text-[11px] font-bold {% if active_page == 'goals' %}text-amber-600{% else %}text-slate-400 group-hover:text-amber-600{% endif %} transition-colors">Mục
                         tiêu</span>
                 </a>
 
                 <!-- 3. Learn (Center - Elevated) -->
                 <button id="learnButton"
-                    class="flex flex-col items-center -mt-8 transition-all hover:scale-110 relative group">
+                    class="flex flex-col items-center -mt-12 transition-all hover:scale-110 relative group min-w-[60px]">
+                    <!-- Glow Ring -->
                     <div
-                        class="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-2xl opacity-40 animate-pulse">
+                        class="absolute -inset-3 bg-gradient-to-br from-purple-500 via-pink-500 to-purple-500 rounded-full blur-2xl opacity-50 animate-pulse">
                     </div>
-                    <div
-                        class="relative w-[72px] h-[72px] rounded-full bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 flex items-center justify-center transition-all shadow-2xl shadow-purple-500/50 border-4 border-white group-hover:shadow-purple-500/70">
-                        <i id="learnIcon"
-                            class="fa-solid fa-brain text-white text-[32px] transition-transform duration-300"></i>
+
+                    <!-- Main Button -->
+                    <div class="relative">
+                        <div
+                            class="w-[84px] h-[84px] rounded-full bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 flex items-center justify-center transition-all shadow-2xl shadow-purple-500/60 border-[6px] border-white group-hover:shadow-purple-500/80 group-active:scale-95">
+                            <i id="learnIcon"
+                                class="fa-solid fa-brain text-white text-[38px] transition-transform duration-300"></i>
+                        </div>
                     </div>
-                    <span
-                        class="text-[10px] font-black text-purple-600 mt-2 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full">Học</span>
                 </button>
 
                 <!-- 4. Stats -->
                 <a href="{{ url_for('stats.dashboard') }}"
-                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative">
-                    <div class="relative">
-                        {% if active_page == 'stats' %}
-                        <div class="absolute inset-0 bg-cyan-500 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
-                        {% endif %}
-                        <div
-                            class="relative w-12 h-12 rounded-2xl {% if active_page == 'stats' %}bg-gradient-to-br from-cyan-500 to-blue-500{% else %}bg-slate-100 group-hover:bg-slate-200{% endif %} flex items-center justify-center shadow-lg transition-all">
-                            <i
-                                class="fa-solid fa-chart-line {% if active_page == 'stats' %}text-white{% else %}text-slate-600{% endif %} text-lg"></i>
-                        </div>
+                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
+                    {% if active_page == 'stats' %}
+                    <div
+                        class="w-13 h-13 rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/50 flex items-center justify-center transition-all">
+                        <i class="fa-solid fa-chart-line text-white text-xl"></i>
                     </div>
+                    {% else %}
+                    <i
+                        class="fa-solid fa-chart-line text-slate-400 text-2xl group-hover:text-cyan-500 transition-colors"></i>
+                    {% endif %}
                     <span
-                        class="text-[10px] font-bold {% if active_page == 'stats' %}text-cyan-600{% else %}text-slate-500{% endif %}">Thống
+                        class="text-[11px] font-bold {% if active_page == 'stats' %}text-cyan-600{% else %}text-slate-400 group-hover:text-cyan-600{% endif %} transition-colors">Thống
                         kê</span>
                 </a>
 
                 <!-- 5. Profile -->
                 <a href="{{ url_for('user_profile.view_profile') }}"
-                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative">
-                    <div class="relative">
-                        {% if active_page == 'profile' %}
-                        <div class="absolute inset-0 bg-rose-500 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
-                        {% endif %}
-                        <div
-                            class="relative w-12 h-12 rounded-2xl {% if active_page == 'profile' %}bg-gradient-to-br from-rose-500 to-pink-500{% else %}bg-slate-100 group-hover:bg-slate-200{% endif %} flex items-center justify-center shadow-lg transition-all">
-                            <i
-                                class="fa-solid fa-user {% if active_page == 'profile' %}text-white{% else %}text-slate-600{% endif %} text-lg"></i>
-                        </div>
+                    class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
+                    {% if active_page == 'profile' %}
+                    <div
+                        class="w-13 h-13 rounded-full bg-rose-500 shadow-lg shadow-rose-500/50 flex items-center justify-center transition-all">
+                        <i class="fa-solid fa-user text-white text-xl"></i>
                     </div>
+                    {% else %}
+                    <i class="fa-solid fa-user text-slate-400 text-2xl group-hover:text-rose-500 transition-colors"></i>
+                    {% endif %}
                     <span
-                        class="text-[10px] font-bold {% if active_page == 'profile' %}text-rose-600{% else %}text-slate-500{% endif %}">Cá
+                        class="text-[11px] font-bold {% if active_page == 'profile' %}text-rose-600{% else %}text-slate-400 group-hover:text-rose-600{% endif %} transition-colors">Cá
                         nhân</span>
                 </a>
             </div>
