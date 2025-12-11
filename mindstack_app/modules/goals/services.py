@@ -219,38 +219,141 @@ def get_learning_activity(user_id: int) -> dict[str, object]:
 
 def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object]) -> list[dict[str, object]]:
     """Return a serialisable representation of the user's goals."""
+    from ...models import LearningItem, FlashcardProgress, QuizProgress
 
-    def _goal_value(goal: LearningGoal) -> int:
+    def _get_metric_value(goal: LearningGoal) -> int:
+        # 1. Determine period range
+        now = datetime.now(timezone.utc)
+        start_time = None
+        if goal.period == 'daily':
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif goal.period == 'weekly':
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)
+        elif goal.period == 'monthly':
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=30)
+        
+        # 2. General Goals (Points)
+        if goal.domain == 'general':
+            # Use pre-calculated global metrics for speed if possible
+            if goal.metric == 'points':
+                if goal.period == 'daily': return metrics['score_today']
+                if goal.period == 'weekly': return metrics['score_week']
+                if goal.period == 'total': return metrics['score_total']
+            return 0
+
+        # 3. Flashcard Goals
+        if goal.domain == 'flashcard':
+            query = db.session.query(func.count(FlashcardProgress.progress_id))
+            if goal.scope == 'container' and goal.reference_id:
+                query = query.join(LearningItem, FlashcardProgress.item_id == LearningItem.item_id).filter(LearningItem.container_id == goal.reference_id)
+            else:
+                 query = query.filter(FlashcardProgress.user_id == goal.user_id) # Explicit user filter for global query if not using joins (though metrics dict has global)
+
+            # Apply Metric Filter
+            if goal.metric == 'items_reviewed':
+                 # Use global metrics if possible for speed
+                 if goal.scope == 'global':
+                     if goal.period == 'daily': return metrics['flashcard_reviews_today']
+                     if goal.period == 'weekly': return metrics['flashcard_reviews_week']
+                 
+                 # Otherwise custom query
+                 query = query.filter(FlashcardProgress.last_reviewed.isnot(None))
+                 if start_time:
+                     query = query.filter(FlashcardProgress.last_reviewed >= start_time)
+                 return query.scalar() or 0
+            
+            elif goal.metric == 'new_items':
+                 # "New" usually means status changed from 'new' to something else? 
+                 # Or just "learning/mastered"?
+                 # Actually `first_seen_timestamp` captures when they started.
+                 query = query.filter(FlashcardProgress.first_seen_timestamp.isnot(None))
+                 if start_time:
+                     query = query.filter(FlashcardProgress.first_seen_timestamp >= start_time)
+                 return query.scalar() or 0
+                 
+            elif goal.metric == 'mastered':
+                 query = query.filter(FlashcardProgress.status == 'mastered')
+                 # Mastered is a state, accumulated over time. Period might mean "mastered WITHIN this period" or "currently mastered"
+                 # Usually users want "Total Mastered". If daily, maybe "Newly mastered today"? 
+                 # Current schema doesn't track "when mastered". So assume Total.
+                 return query.scalar() or 0
+
+        # 4. Quiz Goals
+        if goal.domain == 'quiz':
+            # Similar logic for Quiz
+            query = db.session.query(func.count(QuizProgress.progress_id))
+            if goal.scope == 'container' and goal.reference_id:
+                query = query.join(LearningItem, QuizProgress.item_id == LearningItem.item_id).filter(LearningItem.container_id == goal.reference_id)
+            else:
+                 query = query.filter(QuizProgress.user_id == goal.user_id)
+
+            if goal.metric == 'items_answered':
+                 if goal.scope == 'global':
+                      if goal.period == 'daily': return metrics['quiz_attempts_today']
+                      if goal.period == 'weekly': return metrics['quiz_attempts_week']
+                 
+                 query = query.filter(QuizProgress.last_reviewed.isnot(None))
+                 if start_time:
+                      query = query.filter(QuizProgress.last_reviewed >= start_time)
+                 return query.scalar() or 0
+
+            elif goal.metric == 'points':
+                 # Points specific to quiz? Currently stored in ScoreLog, difficult to filter by container without joins.
+                 # Let's skip for MVP or assume global points.
+                 return 0
+                 
+            elif goal.metric == 'items_correct':
+                 # Total correct answers accumulated?
+                 # QuizProgress stores `times_correct`. 
+                 # We can sum `times_correct`.
+                 query = db.session.query(func.sum(QuizProgress.times_correct))
+                 if goal.scope == 'container' and goal.reference_id:
+                    query = query.join(LearningItem, QuizProgress.item_id == LearningItem.item_id).filter(LearningItem.container_id == goal.reference_id)
+                 else:
+                    query = query.filter(QuizProgress.user_id == goal.user_id)
+                 
+                 # Period check is hard for `times_correct` as it's a counter.
+                 # We can only return TOTAL correct.
+                 return query.scalar() or 0
+
+        # Fallback to legacy logic
         if goal.goal_type == 'flashcards_reviewed':
-            if goal.period == 'daily':
-                return metrics['flashcard_reviews_today']
-            if goal.period == 'weekly':
-                return metrics['flashcard_reviews_week']
+            if goal.period == 'daily': return metrics['flashcard_reviews_today']
+            if goal.period == 'weekly': return metrics['flashcard_reviews_week']
             return metrics['flashcard_summary']['mastered']
         if goal.goal_type == 'quizzes_practiced':
-            if goal.period == 'daily':
-                return metrics['quiz_attempts_today']
-            if goal.period == 'weekly':
-                return metrics['quiz_attempts_week']
-            return metrics['quiz_summary']['mastered']
-        if goal.goal_type == 'lessons_completed':
-            if goal.period == 'daily':
-                return metrics['course_updates_today']
-            if goal.period == 'weekly':
-                return metrics['course_updates_week']
-            return metrics['course_summary']['completed']
+             if goal.period == 'daily': return metrics['quiz_attempts_today']
+             if goal.period == 'weekly': return metrics['quiz_attempts_week']
+             return metrics['quiz_summary']['mastered']
+             
         return 0
 
     progress: list[dict[str, object]] = []
 
     for goal in goals:
+        # Determine display props properties based on domain/metric
         config = GOAL_TYPE_CONFIG.get(goal.goal_type)
         if not config:
-            continue
-        current_value = _goal_value(goal)
+            # Generate default config display
+            config = {
+                'label': goal.title or 'Mục tiêu',
+                'description': goal.description or '',
+                'unit': 'điểm' if goal.metric == 'points' else 'lượt',
+                'icon': 'star',
+                'endpoint': 'main.dashboard'
+            }
+            if goal.domain == 'flashcard': 
+                config['icon'] = 'clone'
+                config['endpoint'] = 'learning.flashcard.dashboard'
+            elif goal.domain == 'quiz': 
+                config['icon'] = 'circle-question'
+                config['endpoint'] = 'learning.quiz_learning.quiz_learning_dashboard'
+
+        current_value = _get_metric_value(goal)
         percent = 0
         if goal.target_value:
             percent = min(100, round((current_value / goal.target_value) * 100)) if goal.target_value else 0
+        
         progress.append(
             {
                 'id': goal.goal_id,
@@ -267,6 +370,8 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 'due_date': goal.due_date,
                 'notes': goal.notes,
                 'is_active': goal.is_active,
+                'domain': goal.domain, # For template icon logic
+                'scope': goal.scope,
             }
         )
 

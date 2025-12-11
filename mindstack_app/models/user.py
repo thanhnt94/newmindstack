@@ -200,7 +200,12 @@ class LearningGoal(db.Model):
 
     goal_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    goal_type = db.Column(db.String(50), nullable=False)
+    goal_type = db.Column(db.String(50), nullable=False) # Legacy or specific identifier
+    domain = db.Column(db.String(50), default='general', nullable=False) # general, flashcard, quiz
+    scope = db.Column(db.String(50), default='global', nullable=False) # global, container
+    reference_id = db.Column(db.Integer, nullable=True) # container_id if scope=container
+    metric = db.Column(db.String(50), default='points', nullable=False) # points, reviewed, new, correct
+    
     period = db.Column(db.String(20), nullable=False, default='daily')
     target_value = db.Column(db.Integer, nullable=False)
     title = db.Column(db.String(120), nullable=True)

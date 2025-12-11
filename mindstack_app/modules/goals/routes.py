@@ -18,31 +18,36 @@ from .services import build_goal_progress, get_learning_activity
 @login_required
 def manage_goals():
     """Allow users to review and create their personalised learning goals."""
+    from ...models import LearningContainer
 
     form = LearningGoalForm()
-    form.goal_type.choices = [(key, config['label']) for key, config in GOAL_TYPE_CONFIG.items()]
-
+    # Legacy support removed from form but kept in model if needed. 
+    # Current form does not use goal_type select anymore, it uses domain/scope/metric.
+    
     if form.validate_on_submit():
-        selected_type = form.goal_type.data
-        config = GOAL_TYPE_CONFIG.get(selected_type)
-        if config is None:
-            flash('Loại mục tiêu không hợp lệ.', 'error')
-        else:
-            goal = LearningGoal(
-                user_id=current_user.user_id,
-                goal_type=selected_type,
-                period=form.period.data,
-                target_value=form.target_value.data,
-                title=form.title.data.strip() if form.title.data else config['label'],
-                description=config['description'],
-                start_date=form.start_date.data,
-                due_date=form.due_date.data,
-                notes=form.notes.data.strip() if form.notes.data else None,
-            )
-            db.session.add(goal)
-            db.session.commit()
-            flash('Đã lưu mục tiêu học tập mới!', 'success')
-            return redirect(url_for('goals.manage_goals'))
+        # Determine goal_type from domain/metric for backward compatibility or internal logic
+        # For now, we can just set it to something descriptive like 'custom' or '{domain}_{metric}'
+        generated_type = f"{form.domain.data}_{form.metric.data}"
+        
+        goal = LearningGoal(
+            user_id=current_user.user_id,
+            goal_type=generated_type, # Legacy field, using composite key
+            domain=form.domain.data,
+            scope=form.scope.data,
+            reference_id=int(form.reference_id.data) if form.reference_id.data else None,
+            metric=form.metric.data,
+            period=form.period.data,
+            target_value=form.target_value.data,
+            title=form.title.data.strip() if form.title.data else f"Mục tiêu {form.metric.data}",
+            description=form.description.data,
+            start_date=form.start_date.data,
+            due_date=form.due_date.data,
+            notes=form.notes.data.strip() if form.notes.data else None,
+        )
+        db.session.add(goal)
+        db.session.commit()
+        flash('Đã lưu mục tiêu học tập mới!', 'success')
+        return redirect(url_for('goals.manage_goals'))
 
     goals_query = (
         LearningGoal.query.filter(
@@ -58,6 +63,10 @@ def manage_goals():
     )
     metrics = get_learning_activity(current_user.user_id)
     goal_progress = build_goal_progress(pagination.items, metrics)
+    
+    # Fetch containers for selector
+    flashcard_sets = LearningContainer.query.filter_by(container_type='FLASHCARD_SET').order_by(LearningContainer.title).all()
+    quiz_sets = LearningContainer.query.filter_by(container_type='QUIZ_SET').order_by(LearningContainer.title).all()
 
     return render_template(
         'goals/manage.html',
@@ -66,6 +75,8 @@ def manage_goals():
         goal_progress=goal_progress,
         period_labels=PERIOD_LABELS,
         config=GOAL_TYPE_CONFIG,
+        flashcard_sets=flashcard_sets,
+        quiz_sets=quiz_sets
     )
 
 
