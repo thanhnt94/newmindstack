@@ -98,42 +98,81 @@
         cursor: pointer;
     }
 
-    /* Mobile Step Logic - App-like Fixed Layout */
+    /* Mobile Step Logic - Premium App-like Fixed Layout */
     @media (max-width: 1023px) {
 
-        /* Force body background to white on mobile for this page */
+        /* App-like List Items */
+        .quiz-set-item {
+            border: 1px solid #f1f5f9;
+            /* Subtle border */
+            border-radius: 1.25rem;
+            /* rounded-2xl */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+            margin-bottom: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .quiz-set-item:active {
+            transform: scale(0.98);
+            transition: transform 0.1s;
+        }
+
+        /* Mobile Segmented Control Tabs */
+        .mobile-header-section .flex.border-b {
+            border: none !important;
+            background-color: #f1f5f9;
+            padding: 0.25rem;
+            border-radius: 0.75rem;
+            gap: 0.25rem;
+            margin-bottom: 1rem !important;
+        }
+
+        .tab-filter-button {
+            border: none !important;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .tab-filter-button.active {
+            background-color: white;
+            color: #0f172a;
+            /* Slate 900 */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            font-weight: 700;
+        }
+
+        /* Force body background */
         body {
-            background-color: #fff !important;
+            background-color: #f8fafc !important;
+            /* Slate-50 */
         }
 
         /* Step 0: Mode Selection Overlay */
         #mobile-mode-selection {
             position: relative;
-            /* Flow naturally below navbar */
             min-height: 80vh;
-            /* Ensure visibility even if parent height varies */
             overflow: hidden;
-            /* Prevent scroll */
             z-index: 1;
-            background-color: #fff;
+            /* background-color: #f8fafc; Inherit from body */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 1rem;
+            padding: 1.5rem;
         }
 
         /* Full Screen Containers for Steps */
         #step-1-card,
         #step-2-card {
             display: none;
-            /* Hidden by default until mode selected */
             position: fixed;
             inset: 0;
-            /* Top/Left/Right/Bottom: 0 */
             z-index: 999;
-            /* Highest priority */
-            background-color: #fff;
+            background-color: #f8fafc;
+            /* Match body */
             border-radius: 0;
             border: none;
             margin: 0 !important;
@@ -156,7 +195,6 @@
             display: flex;
         }
 
-        /* Hide Step 0 when mode is selected */
         .mobile-mode-individual #mobile-mode-selection {
             display: none;
         }
@@ -165,12 +203,10 @@
         .mobile-header-section {
             flex-shrink: 0;
             background: white;
-            padding: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            padding: 1.25rem 1.25rem 0.75rem 1.25rem;
+            border-bottom: 1px solid #f1f5f9;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
             z-index: 10;
-            /* Keep relative to step cards, as this is internal header */
         }
 
         /* Scrollable Content Areas */
@@ -180,8 +216,8 @@
             overflow-y: auto;
             max-height: none !important;
             padding: 1rem;
-            padding-bottom: 100px;
-            /* Ensure content isn't hidden behind fixed footer */
+            padding-bottom: 120px;
+            /* Extra padding for floating bottom bar */
             background-color: #f8fafc;
         }
 
@@ -190,10 +226,9 @@
             flex-shrink: 0;
             background: white;
             padding: 1rem;
-            border-top: 1px solid #e2e8f0;
-            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+            border-top: 1px solid #f1f5f9;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
             z-index: 1000;
-            /* Increased to be above step cards (z-999) */
         }
 
         /* Button styling overrides for mobile footer */
@@ -202,24 +237,30 @@
         #bulk-unarchive-btn {
             width: 100%;
             margin: 0;
-            border-radius: 0.75rem;
+            border-radius: 1rem;
+            /* Rounded-2xl equivalentish */
             padding: 1rem;
             font-size: 1rem;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
         }
 
-        /* Hide desktop spacers/margins if needed */
+        #mobile-step-1-next:disabled {
+            background-color: #e2e8f0;
+            color: #94a3b8;
+            box-shadow: none;
+        }
+
+        /* Hide desktop spacers/margins */
         .mb-4 {
             margin-bottom: 0.5rem !important;
         }
 
         h2 {
-            font-size: 1.1rem !important;
             margin-bottom: 0.5rem !important;
         }
 
-        /* Custom mobile styles for multi-select toggle and pagination */
         .h2-title-wrapper {
-            /* New wrapper for h2 content */
             display: flex;
             align-items: center;
             flex-grow: 1;
@@ -229,18 +270,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* Center horizontally */
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
+            padding: 0.5rem 0;
+            background: #fff;
         }
 
         .mobile-control-bar #quiz-pagination-slot {
             width: 100%;
-            /* Take full width */
             justify-content: center;
-            /* Center pagination */
             display: flex;
-            /* Make pagination a flex container for centering its items */
         }
 
         /* Step 2 Actions Visibility on Mobile */
@@ -248,31 +285,22 @@
             display: none;
         }
 
-        /* Hidden by default on mobile (Step 1) */
         .mobile-step-2-active #step-2-actions {
             display: flex;
         }
-
-        /* Show on Step 2 */
     }
 
     @media (min-width: 1024px) {
-
-        /* Desktop styles */
         #mobile-mode-selection {
             display: none;
         }
 
-        /* Hide Step 0 on Desktop */
-
-        /* Default flex behavior for control bar on desktop */
         #quiz-control-bar {
             justify-content: space-between;
         }
 
         #quiz-pagination-slot {
             justify-content: center;
-            /* Center pagination on desktop */
         }
     }
 </style>
@@ -280,41 +308,49 @@
 <div id="quiz-solo-section" class="space-y-6 h-full">
 
     {# === MOBILE STEP 0: MODE SELECTION === #}
-    <div id="mobile-mode-selection" class="lg:hidden space-y-6">
-        <div class="text-center mb-8">
+    <div id="mobile-mode-selection" class="lg:hidden space-y-8 w-full max-w-md mx-auto">
+        <div class="text-center mb-4">
             <div
-                class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-4xl">
-                <i class="fas fa-graduation-cap"></i>
+                class="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-200 transform rotate-3">
+                <i class="fas fa-graduation-cap text-white text-4xl drop-shadow-md"></i>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800">Trung tâm Luyện thi</h1>
-            <p class="text-gray-500 mt-2">Chọn chế độ để bắt đầu</p>
+            <h1 class="text-3xl font-black text-slate-800 tracking-tight">Luyện thi</h1>
+            <p class="text-slate-500 font-medium mt-2 text-base">Chọn chế độ học tập của bạn</p>
         </div>
 
-        <button id="btn-mode-individual"
-            class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
-            <div
-                class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
-                <i class="fas fa-user"></i>
-            </div>
-            <div class="text-left">
-                <h3 class="font-bold text-gray-800 text-lg">Luyện tập cá nhân</h3>
-                <p class="text-sm text-gray-500">Tự ôn luyện theo tốc độ riêng</p>
-            </div>
-            <i class="fas fa-chevron-right text-gray-300 ml-auto"></i>
-        </button>
+        <div class="space-y-4 w-full">
+            <!-- Individual Mode -->
+            <button id="btn-mode-individual"
+                class="w-full bg-white p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-5 active:scale-95 transition-transform group">
+                <div
+                    class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="text-left flex-grow">
+                    <h3 class="font-bold text-slate-800 text-lg mb-0.5">Cá nhân</h3>
+                    <p class="text-xs text-slate-500 font-medium">Tự ôn luyện theo tốc độ riêng</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </button>
 
-        <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard', quiz_type='battle') }}"
-            class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
-            <div
-                class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0">
-                <i class="fas fa-bolt"></i>
-            </div>
-            <div class="text-left">
-                <h3 class="font-bold text-gray-800 text-lg">Đấu trường nhóm</h3>
-                <p class="text-sm text-gray-500">Thi đấu trực tiếp với bạn bè</p>
-            </div>
-            <i class="fas fa-chevron-right text-gray-300 ml-auto"></i>
-        </a>
+            <!-- Battle Mode -->
+            <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard', quiz_type='battle') }}"
+                class="block w-full bg-white p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-5 active:scale-95 transition-transform group">
+                <div
+                    class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl shadow-sm group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="text-left flex-grow">
+                    <h3 class="font-bold text-slate-800 text-lg mb-0.5">Thi đấu</h3>
+                    <p class="text-xs text-slate-500 font-medium">Tranh tài trực tiếp cùng bạn bè</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </a>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-full">
