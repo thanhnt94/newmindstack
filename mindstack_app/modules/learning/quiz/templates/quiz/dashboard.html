@@ -135,30 +135,19 @@
         }
 
         .study-mode-tabs {
-            /* Fixed positioning for mobile tabs */
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
+            /* Mobile tabs layout */
             width: 100% !important;
-            /* Full width */
             margin: 0 !important;
-            /* Remove margins */
-            z-index: 1000 !important;
-            /* Ensure tabs are on top */
-            background-color: white !important;
-            /* Solid background */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-            /* Subtle shadow */
+            background-color: transparent !important;
+            /* Let parent background show or clear */
 
             /* Layout for tabs themselves */
             display: flex !important;
-            justify-content: space-around !important;
-            /* Spread tabs out */
+            justify-content: space-between !important;
             padding: 0.5rem 1rem !important;
-            /* Inner padding for the fixed bar */
+            /* Inner padding */
             border-radius: 0 !important;
-            /* Remove border-radius for full width */
+            gap: 0.5rem !important;
         }
 
         .study-mode-tab {
@@ -183,7 +172,7 @@
     </div>
 
     <!-- Re-added the flex justify-center mb-6 wrapper around tabs for desktop flow -->
-    <div class="flex justify-center mb-6 lg:flex hidden">
+    <div class="flex justify-center mb-6">
         <div class="study-mode-tabs" role="tablist" aria-label="Chế độ học quiz">
             <button class="study-mode-tab {% if quiz_type == 'individual' %}active{% endif %}"
                 data-study-tab="individual" role="tab"
