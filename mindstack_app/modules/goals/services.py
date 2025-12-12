@@ -431,6 +431,13 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
             else:
                 history_7_days.append(log_map.get(d, False))
 
+        final_url = url_for(config['endpoint'])
+        if goal.scope == 'container' and goal.reference_id:
+            if goal.domain == 'flashcard':
+                final_url = url_for('learning.flashcard.dashboard', preSelect=goal.reference_id, view='setup')
+            elif goal.domain == 'quiz':
+                final_url = url_for('learning.quiz_learning.quiz_learning_dashboard', preSelect=goal.reference_id, view='setup')
+
         progress.append(
             {
                 'id': goal.goal_id,
@@ -441,7 +448,7 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 'target_value': goal.target_value,
                 'unit': config['unit'],
                 'percent': percent,
-                'url': url_for(config['endpoint']),
+                'url': final_url,
                 'icon': config['icon'],
                 'start_date': goal.start_date,
                 'due_date': goal.due_date,
@@ -451,14 +458,11 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 'scope': goal.scope,
                 'display_scope': display_scope,
                 'is_completed': is_today_met,
-                'history_7_days': history_7_days, # New Field
-                # New Stats
+                'history_7_days': history_7_days, 
                 'days_since_start': days_since_start,
                 'metric_label': metric_label,
                 'reference_id': goal.reference_id,
-                'container_url': url_for('learning.flashcard.dashboard', preSelect=goal.reference_id) if goal.domain == 'flashcard' and goal.scope == 'container' and goal.reference_id else (
-                                 url_for('learning.quiz_learning.quiz_learning_dashboard', preSelect=goal.reference_id) if goal.domain == 'quiz' and goal.scope == 'container' and goal.reference_id else None
-                )
+                'container_url': final_url
             }
         )
 

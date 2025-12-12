@@ -526,11 +526,16 @@
     if (preSelectId) {
         selectedQuizSetIds = [preSelectId];
         localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
-        loadQuizModes(selectedQuizSetIds);
-        if (quizSection) {
-            quizSection.classList.add('mobile-mode-individual');
-            quizSection.classList.add('mobile-step-2-active');
-        }
+
+        // Use timeout to allow initial render/state settle
+        setTimeout(() => {
+            loadQuizModes(selectedQuizSetIds);
+            const section = document.getElementById('quiz-solo-section');
+            if (section) {
+                section.classList.add('mobile-mode-individual');
+                section.classList.add('mobile-step-2-active');
+            }
+        }, 150);
     }
     // --- END: Mobile Mode Selection Logic ---
 
@@ -901,8 +906,11 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Reset selection on reload (User Request)
-        localStorage.removeItem('selectedQuizSetIds');
+        // Reset selection on reload (User Request) but keep if preSelect exists
+        const psId = new URLSearchParams(window.location.search).get('preSelect');
+        if (!psId) {
+            localStorage.removeItem('selectedQuizSetIds');
+        }
         loadQuizSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
     });
 </script>

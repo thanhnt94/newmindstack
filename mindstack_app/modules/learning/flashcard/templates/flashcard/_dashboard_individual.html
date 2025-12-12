@@ -373,12 +373,15 @@
         if (preSelectId) {
             selectedFlashcardSetIds = [preSelectId];
             localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
-            loadFlashcardOptions(preSelectId);
 
-            if (soloSection) {
-                soloSection.classList.add('mobile-mode-individual');
-                soloSection.classList.add('mobile-step-2-active');
-            }
+            setTimeout(() => {
+                loadFlashcardOptions(preSelectId);
+                const section = document.getElementById('flashcard-solo-section');
+                if (section) {
+                    section.classList.add('mobile-mode-individual');
+                    section.classList.add('mobile-step-2-active');
+                }
+            }, 150);
         }
 
         if (mobileStep1Next) {
@@ -1191,8 +1194,11 @@
 
         // Khởi tạo khi load file
         document.addEventListener('DOMContentLoaded', function () {
-            // Reset selection on reload (User Request)
-            localStorage.removeItem('selectedFlashcardSetIds');
+            // Reset selection on reload (User Request) but keep if preSelect exists
+            const psId = new URLSearchParams(window.location.search).get('preSelect');
+            if (!psId) {
+                localStorage.removeItem('selectedFlashcardSetIds');
+            }
             isMultiSelectMode = true;
             updateStep2Content();
             loadFlashcardSets(currentPage, currentSearchQuery, currentSearchField, currentFilter);
