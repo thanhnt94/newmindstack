@@ -1999,7 +1999,8 @@ def add_quiz_item(set_id):
             'explanation': form.guidance.data,
             'pre_question_text': form.pre_question_text.data,
             'question_image_file': _process_relative_url(form.question_image_file.data, image_folder),
-            'question_audio_file': _process_relative_url(form.question_audio_file.data, audio_folder)
+            'question_audio_file': _process_relative_url(form.question_audio_file.data, audio_folder),
+            'audio_transcript': form.audio_transcript.data
         }
         if form.ai_prompt.data:
             content_dict['ai_prompt'] = form.ai_prompt.data
@@ -2118,6 +2119,7 @@ def edit_quiz_item(set_id, item_id):
         form.guidance.data = quiz_item.content.get('explanation')
         form.question_image_file.data = quiz_item.content.get('question_image_file')
         form.question_audio_file.data = quiz_item.content.get('question_audio_file')
+        form.audio_transcript.data = quiz_item.content.get('audio_transcript')
         form.ai_explanation.data = quiz_item.ai_explanation
         form.ai_prompt.data = quiz_item.content.get('ai_prompt')
         form.order_in_container.data = quiz_item.order_in_container
@@ -2163,6 +2165,7 @@ def edit_quiz_item(set_id, item_id):
         quiz_item.content['explanation'] = form.guidance.data
         quiz_item.content['question_image_file'] = _process_relative_url(form.question_image_file.data, image_folder)
         quiz_item.content['question_audio_file'] = _process_relative_url(form.question_audio_file.data, audio_folder)
+        quiz_item.content['audio_transcript'] = form.audio_transcript.data
         quiz_item.ai_explanation = form.ai_explanation.data
 
         if form.ai_prompt.data:

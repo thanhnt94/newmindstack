@@ -245,6 +245,7 @@ class QuizItemForm(FlaskForm):
     )
     group_item_order = IntegerField('Thứ tự trong group', validators=[Optional()])
     ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
+    audio_transcript = TextAreaField('Transcript Audio', validators=[Optional()])
     ai_prompt = TextAreaField('AI Prompt tùy chỉnh (cho câu hỏi này)', 
                               description='Nhập prompt tùy chỉnh để ghi đè prompt của bộ quiz hoặc mặc định hệ thống. Nếu để trống, hệ thống sẽ tự động sử dụng prompt cấp trên.',
                               validators=[Optional()])
