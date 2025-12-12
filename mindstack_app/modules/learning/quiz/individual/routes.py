@@ -363,53 +363,133 @@ def get_quiz_transcript(item_id):
     API: Returns transcript for a quiz item. 
     If transcript is missing but audio exists, performs synchronous STT (using VoiceService).
     """
-    from sqlalchemy.orm.attributes import flag_modified
-    
-    item = LearningItem.query.get_or_404(item_id)
-    
-    # Permission check (optional but recommended: check if user can access this item)
-    # Since this is a viewing action (mostly), read access is enough. 
-    # But transcript generation usually implies edit/admin rights or premium feature.
-    # User asked: "cho người có quyền sửa bộ quiz".
-    # We should restart check container permission.
-    container = LearningContainer.query.get(item.container_id)
-    if not container:
-        return jsonify({'success': False, 'message': 'Container not found'}), 404
-        
-    # Check edit permission
-    can_edit = (container.user_id == current_user.user_id) or (current_user.role == 'admin')
-    if not can_edit:
-         return jsonify({'success': False, 'message': 'Bạn không có quyền xem/tạo transcript cho bộ này.'}), 403
-
-    content = item.content or {}
-    transcript = content.get('audio_transcript')
-    if transcript:
-         return jsonify({'success': True, 'transcript': transcript, 'cached': True})
-    
-    # If no transcript, check for audio
-    # Try different keys
-    audio_rel_path = content.get('question_audio') or content.get('audio_url')
-    if not audio_rel_path:
-         return jsonify({'success': False, 'message': 'Không tìm thấy file audio trong câu hỏi.'}), 404
-    
-    # Resolve Path
-    # Audio paths are relative to static folder (usually)
-    # We need absolute path for VoiceService
-    # Try to resolve similarly to how we serve it, or assuming it is in static/uploads
-    # This might depend on your upload logic.
-    # Often: 'uploads/quiz_media/...'
-    
-    base_static = os.path.join(current_app.root_path, 'static')
-    full_path = os.path.join(base_static, audio_rel_path.lstrip('/\\'))
-    
-    if not os.path.exists(full_path):
-        return jsonify({'success': False, 'message': f'File audio không tồn tại trên server: {audio_rel_path}'}), 404
-        
     try:
+        from sqlalchemy.orm.attributes import flag_modified
+        
+        item = LearningItem.query.get(item_id)
+        if not item:
+            return jsonify({'success': False, 'message': 'Không tìm thấy câu hỏi.'}), 404
+        
+        # Permission check (optional but recommended: check if user can access this item)
+        # Since this is a viewing action (mostly), read access is enough. 
+        # But transcript generation usually implies edit/admin rights or premium feature.
+        # User asked: "cho người có quyền sửa bộ quiz".
+        # We should restart check container permission.
+        container = LearningContainer.query.get(item.container_id)
+        if not container:
+            return jsonify({'success': False, 'message': 'Container not found'}), 404
+            
+        # Check edit permission
+        can_edit = (container.creator_user_id == current_user.user_id) or (current_user.role == 'admin')
+        if not can_edit:
+             return jsonify({'success': False, 'message': 'Bạn không có quyền xem/tạo transcript cho bộ này.'}), 403
+
+        content = item.content or {}
+        current_app.logger.info(f"TRANSCRIPT DEBUG: Item {item_id} content keys: {list(content.keys())}")
+        current_app.logger.info(f"TRANSCRIPT DEBUG: Full content: {content}")
+        
+        transcript = content.get('audio_transcript')
+        if transcript:
+             return jsonify({'success': True, 'transcript': transcript, 'cached': True})
+        
+        # If no transcript, check for audio
+        # Try different keys
+        audio_rel_path = content.get('question_audio') or content.get('question_audio_file') or content.get('audio_url')
+        current_app.logger.info(f"TRANSCRIPT DEBUG: Found audio path: {audio_rel_path}")
+
+        if not audio_rel_path:
+             return jsonify({'success': False, 'message': 'Không tìm thấy thông tin audio (URL) trong dữ liệu câu hỏi.'}), 400
+        
+        # Resolve Path
+        # STRATEGY: Mimic _build_absolute_media_url exactly as used in serializer
+        media_folders = _get_media_folders_from_container(container)
+        audio_folder = media_folders.get('audio')
+        
+        # This returns path relative to static root (assuming current usage patterns)
+        relative_path = build_relative_media_path(audio_rel_path, audio_folder)
+        
+        if not relative_path:
+             return jsonify({'success': False, 'message': 'Không thể xác định đường dẫn file audio.'}), 400
+             
+        if relative_path.startswith(('http://', 'https://')):
+             return jsonify({'success': False, 'message': 'Audio là URL ngoài, không hỗ trợ transcript tự động.'}), 400
+
+        # Primary Path Logic: Check multiple candidates to be robust
+        candidates = []
+        
+        # 1. Configured static folder (Best bet)
+        if current_app.static_folder:
+            candidates.append(current_app.static_folder)
+            
+        # 2. Standard Flask static folder (mindstack_app/static)
+        standard_static = os.path.join(current_app.root_path, 'static')
+        if standard_static not in candidates:
+            candidates.append(standard_static)
+            
+        # 3. Project Root Uploads (newmindstack/uploads) - assuming app is in newmindstack/mindstack_app
+        project_uploads = os.path.abspath(os.path.join(current_app.root_path, '..', 'uploads'))
+        if project_uploads not in candidates:
+            candidates.append(project_uploads)
+
+        current_app.logger.info(f"TRANSCRIPT DEBUG: Candidates for audio root: {candidates}")
+
+        full_path = None
+        checked_paths = []
+
+        for base in candidates:
+            # candidate_path = base / relative_path
+            p = os.path.join(base, relative_path)
+            checked_paths.append(p)
+            if os.path.exists(p):
+                full_path = p
+                current_app.logger.info(f"TRANSCRIPT DEBUG: Found audio at '{full_path}'")
+                break
+        
+        if not full_path:
+             msg = f"Không tìm thấy file audio trên server. Đã kiểm tra: {'; '.join(checked_paths)}"
+             current_app.logger.error(f"TRANSCRIPT ERROR: {msg}")
+             return jsonify({'success': False, 'message': msg}), 400
+            
+        # Determine language
+        # Default to Vietnamese
+        lang_code = 'vi-VN'
+        
+        # Heuristic: Check container info for Japanese indicators
+        # This is a simple auto-detect strategy. In production, a dedicated field 'locale' on the Container is better.
+        container_text = (container.title or '') + ' ' + (container.description or '') + ' ' + (container.tags or '')
+        container_text_lower = container_text.lower()
+        
+        if any(kw in container_text_lower for kw in ['jlpt', 'japanese', 'tiếng nhật', 'n5', 'n4', 'n3', 'n2', 'n1', 'nihongo']):
+            lang_code = 'ja-JP'
+            current_app.logger.info(f"TRANSCRIPT INFO: Detected Japanese context from container info. Switching STT to {lang_code}.")
+        elif any(kw in container_text_lower for kw in ['english', 'tiếng anh', 'toeic', 'ielts']):
+             lang_code = 'en-US'
+             current_app.logger.info(f"TRANSCRIPT INFO: Detected English context from container info. Switching STT to {lang_code}.")
+
         service = QuizAudioService()
-        transcript = service.voice_service.speech_to_text(full_path, lang='vi-VN')
+        transcript = service.voice_service.speech_to_text(full_path, lang=lang_code)
         
         if transcript:
+            # Post-processing: Format text for better readability if Japanese
+            if lang_code == 'ja-JP':
+                 import re
+                 # 1. Newline before "X番" (Question X)
+                 # Pattern: Look for number followed by '番', precede with double newline
+                 transcript = re.sub(r'(?<!^)(\s*)(\d+番)', r'\n\n\2', transcript)
+
+                 # 2. Newline before numbers 1, 2, 3, 4 that look like choices
+                 # Pattern: Space + Digit + Space? or Digit + space
+                 # This is aggressive but necessary for raw STT output which often looks like "...です 1 それは..."
+                 # We look for " 1 ", " 2 ", " 3 ", " 4 "
+                 transcript = re.sub(r'(\s+)([1-4])(\s+)', r'\n\2 ', transcript)
+                 
+                 # 3. Handling 'san' (3) if mistakenly transcribed as 'さん' or 'サン' amidst choices
+                 # Dangerous if 'san' is used as honorific, so maybe skip for now or restrict strictly.
+                 # Let's stick to numerical choices which Google STT usually produces.
+                 
+                 # 4. Clean up multiple newlines
+                 transcript = re.sub(r'\n{3,}', '\n\n', transcript)
+
             # Save to DB
             new_content = dict(content)
             new_content['audio_transcript'] = transcript
@@ -422,8 +502,8 @@ def get_quiz_transcript(item_id):
              return jsonify({'success': False, 'message': 'Không thể nhận diện văn bản (kết quả rỗng).'}), 500
 
     except Exception as e:
-        current_app.logger.error(f"Error generating transcript for item {item_id}: {e}")
-        return jsonify({'success': False, 'message': f'Lỗi xử lý: {str(e)}'}), 500
+        current_app.logger.error(f"Error generating transcript for item {item_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Lỗi hệ thống: {str(e)}'}), 500
 
 @quiz_learning_bp.route('/api/items/batch', methods=['POST'])
 @login_required

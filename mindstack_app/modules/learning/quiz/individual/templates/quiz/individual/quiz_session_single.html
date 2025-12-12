@@ -932,6 +932,7 @@
         const quizDashboardUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
         const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
         const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
+        const transcriptUrlTemplate = "{{ url_for('learning.quiz_learning.get_quiz_transcript', item_id=0) }}";
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const SESSION_KEY = 'quiz_session_single_state';
 
@@ -1798,13 +1799,20 @@
 
                 try {
                     // Verify audio URL exists
-                    const audioUrl = currentQuestion.question_audio || currentQuestion.audio_url;
+                    // Verify audio URL exists: Check multiple possible properties
+                    const audioUrl = (currentQuestion.content && currentQuestion.content.question_audio_file) ||
+                        currentQuestion.question_audio ||
+                        currentQuestion.audio_url;
+
                     if (!audioUrl) {
+                        console.error("DEBUG: currentQuestion structure:", currentQuestion);
                         throw new Error("Không tìm thấy file audio.");
                     }
 
-                    // Call API
-                    const response = await fetch(`/learn/quiz_learning/api/transcript/${currentQuestion.item_id}`, {
+                    // Call API using template
+                    const url = transcriptUrlTemplate.replace('/0', '/' + currentQuestion.item_id); // Safe replacement assuming /0 is the placeholder format
+
+                    const response = await fetch(url.replace('0', currentQuestion.item_id), { // Fallback replacement strategy just in case
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

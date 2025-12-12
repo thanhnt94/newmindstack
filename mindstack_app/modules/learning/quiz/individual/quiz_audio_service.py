@@ -1,9 +1,9 @@
 
 import logging
 import os
-from .....db_instance import db
-from .....models import LearningContainer, LearningItem, BackgroundTask
-from .....services.voice_service import VoiceService
+from mindstack_app.db_instance import db
+from mindstack_app.models import LearningContainer, LearningItem, BackgroundTask
+from mindstack_app.services.voice_service import VoiceService
 
 logger = logging.getLogger(__name__)
 
