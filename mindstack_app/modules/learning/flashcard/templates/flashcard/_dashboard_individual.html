@@ -369,6 +369,18 @@
             soloSection.classList.add('mobile-mode-individual');
         }
 
+        const preSelectId = new URLSearchParams(window.location.search).get('preSelect');
+        if (preSelectId) {
+            selectedFlashcardSetIds = [preSelectId];
+            localStorage.setItem('selectedFlashcardSetIds', JSON.stringify(selectedFlashcardSetIds));
+            loadFlashcardOptions(preSelectId);
+
+            if (soloSection) {
+                soloSection.classList.add('mobile-mode-individual');
+                soloSection.classList.add('mobile-step-2-active');
+            }
+        }
+
         if (mobileStep1Next) {
             mobileStep1Next.addEventListener('click', () => {
                 soloSection.classList.add('mobile-step-2-active');

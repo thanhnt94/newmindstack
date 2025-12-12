@@ -456,8 +456,8 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 'days_since_start': days_since_start,
                 'metric_label': metric_label,
                 'reference_id': goal.reference_id,
-                'container_url': url_for('learning.flashcard.dashboard') if goal.domain == 'flashcard' and goal.scope == 'container' and goal.reference_id else (
-                                 url_for('learning.quiz_learning.quiz_learning_dashboard') if goal.domain == 'quiz' and goal.scope == 'container' and goal.reference_id else None
+                'container_url': url_for('learning.flashcard.dashboard', preSelect=goal.reference_id) if goal.domain == 'flashcard' and goal.scope == 'container' and goal.reference_id else (
+                                 url_for('learning.quiz_learning.quiz_learning_dashboard', preSelect=goal.reference_id) if goal.domain == 'quiz' and goal.scope == 'container' and goal.reference_id else None
                 )
             }
         )

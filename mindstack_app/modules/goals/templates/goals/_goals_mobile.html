@@ -15,6 +15,8 @@
             domain: 'general',
             metric: 'points',
             reference_id: '',
+            target_value: '',
+            title: '',
             showDates: false,
             domainsGlobal: [
                 { value: 'general', label: 'Điểm số & XP', icon: 'fa-solid fa-star', desc: 'Tích luỹ điểm kinh nghiệm toàn hệ thống' },
@@ -59,6 +61,9 @@
                 }
             },
             nextStep() {
+                if (this.step === 1) {
+                    if (!this.scope) return;
+                }
                 if (this.step === 2) {
                     if (this.scope === 'container' && !this.reference_id) {
                         alert('Vui lòng chọn một bộ học liệu.');
@@ -69,10 +74,24 @@
                         return;
                     }
                 }
-                if (this.step < 3) this.step++;
+                if (this.step === 3) {
+                    if (!this.target_value) {
+                        alert('Vui lòng nhập số lượng cần đạt.');
+                        return;
+                    }
+                }
+                if (this.step < 4) this.step++;
             },
             prevStep() {
                 if (this.step > 1) this.step--;
+            },
+            submitForm(e) {
+                if (!this.title.trim()) {
+                    e.preventDefault();
+                    alert('Vui lòng đặt tên cho mục tiêu của bạn.');
+                    return false;
+                }
+                return true;
             }
         };
     };
@@ -127,19 +146,55 @@
     {# === MAIN CONTENT === #}
     <div class="flex-grow overflow-y-auto overflow-x-hidden p-5 space-y-5 pb-24 relative">
 
-        {# Header #}
-        <div class="animate-fade-in-up" style="animation-delay: 0.1s">
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Mục tiêu</h1>
-            <p class="text-sm text-slate-600 mt-1">Theo dõi và chinh phục các cột mốc</p>
+        {% set total = goal_progress|length %}
+        {% set completed = goal_progress|selectattr('is_completed')|list|length %}
+        {% set percent = (completed / total * 100)|round|int if total > 0 else 0 %}
+
+        {# Hero Summary Widget #}
+        <div class="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl shadow-indigo-200 relative overflow-hidden animate-fade-in-up"
+            style="animation-delay: 0.1s">
+            <!-- Decorative Background -->
+            <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10 blur-xl"></div>
+            <div class="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-10 -mb-10 blur-xl">
+            </div>
+
+            <div class="flex justify-between items-center relative z-10">
+                <div>
+                    <p class="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <i class="fa-solid fa-calendar-day"></i> Hôm nay
+                    </p>
+                    <div class="flex items-baseline gap-1">
+                        <h2 class="text-4xl font-black">{{ completed }}</h2>
+                        <span class="text-lg text-indigo-200 font-bold">/{{ total }}</span>
+                    </div>
+                    <p class="text-indigo-100 text-sm font-medium mt-1">Mục tiêu hoàn thành</p>
+                </div>
+
+                <!-- Ring Chart -->
+                <div class="relative w-20 h-20 flex items-center justify-center">
+                    <svg class="transform -rotate-90 w-20 h-20">
+                        <circle cx="40" cy="40" r="36" stroke="currentColor" stroke-width="8" fill="transparent"
+                            class="text-indigo-500" />
+                        <circle cx="40" cy="40" r="36" stroke="currentColor" stroke-width="8" fill="transparent"
+                            class="text-white transition-all duration-1000 ease-out" stroke-dasharray="226"
+                            stroke-dashoffset="{{ 226 - (226 * percent) / 100 }}" stroke-linecap="round" />
+                    </svg>
+                    <span class="absolute text-sm font-black">{{ percent }}%</span>
+                </div>
+            </div>
         </div>
 
-        {# Add Goal Button #}
+        {# Floating Action Button (FAB) #}
         <button onclick="document.getElementById('addGoalModal').classList.remove('hidden')"
-            class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all animate-fade-in-up"
+            class="fixed bottom-24 right-5 w-14 h-14 bg-slate-900 text-white rounded-full shadow-2xl shadow-slate-400/50 flex items-center justify-center z-40 animate-fade-in-up active:scale-90 transition-transform hover:bg-slate-800"
             style="animation-delay: 0.2s">
             <i class="fa-solid fa-plus text-xl"></i>
-            <span class="text-base font-bold">Thêm mục tiêu mới</span>
         </button>
+
+        <div class="flex items-center justify-between animate-fade-in-up" style="animation-delay: 0.2s">
+            <h3 class="text-lg font-bold text-slate-800">Danh sách</h3>
+            <!-- Filter or other actions could go here -->
+        </div>
 
         {# Goals List #}
         <div class="space-y-4">
@@ -385,7 +440,7 @@
     <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onclick="document.getElementById('addGoalModal').classList.add('hidden')"></div>
 
-    <div class="relative bg-white rounded-t-3xl w-full max-h-[90vh] flex flex-col animate-slide-up h-[85vh]">
+    <div class="relative bg-white rounded-t-3xl w-full max-h-[90vh] flex flex-col animate-slide-up h-auto pb-safe">
 
         <!-- Header -->
         <div
@@ -393,9 +448,9 @@
             <div>
                 <h2 class="text-xl font-black text-slate-900">Mục tiêu mới</h2>
                 <div class="flex items-center gap-1 mt-1">
-                    <span class="text-xs font-semibold text-slate-500">Bước <span x-text="step">1</span>/3</span>
+                    <span class="text-xs font-semibold text-slate-500">Bước <span x-text="step">1</span>/4</span>
                     <div class="flex gap-1">
-                        <template x-for="i in 3">
+                        <template x-for="i in 4">
                             <div class="h-1 rounded-full transition-all"
                                 :class="i <= step ? 'w-4 bg-indigo-600' : 'w-2 bg-slate-200'"></div>
                         </template>
@@ -409,10 +464,18 @@
         </div>
 
         <!-- Wizard Body -->
-        <form method="post" class="flex flex-col flex-1 overflow-y-auto px-5 py-6" novalidate>
+        <form method="post" class="flex flex-col flex-1 overflow-y-auto px-5 py-6" novalidate
+            @submit="submitForm($event)">
             {{ form.csrf_token }}
-            <!-- Manual hidden fields bonded to Alpine data -->
-            <!-- reference_id is added in container section -->
+
+            <!-- Hidden Fields for Alpine Data Binding -->
+            <input type="hidden" name="scope" x-model="scope">
+            <select name="domain" x-model="domain" class="hidden">
+                <option value="general">General</option>
+                <option value="flashcard">Flashcard</option>
+                <option value="quiz">Quiz</option>
+            </select>
+            <input type="hidden" name="reference_id" x-model="reference_id">
 
             <!-- STEP 1: Scope -->
             <div x-show="step === 1" x-transition:enter="transition ease-out duration-300"
@@ -433,8 +496,7 @@
                             <span class="block text-sm font-bold text-slate-900"
                                 :class="scope === 'global' ? 'text-indigo-900' : ''">Toàn hệ thống</span>
                         </div>
-                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'global'"
-                            style="display: none;"></i>
+                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'global'"></i>
                     </div>
 
                     <!-- Container -->
@@ -449,14 +511,12 @@
                             <span class="block text-sm font-bold text-slate-900"
                                 :class="scope === 'container' ? 'text-indigo-900' : ''">Bộ cụ thể</span>
                         </div>
-                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'container'"
-                            style="display: none;"></i>
+                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'container'"></i>
                     </div>
                 </div>
-                <input type="hidden" name="scope" x-model="scope">
             </div>
 
-            <!-- STEP 2: Subject -->
+            <!-- STEP 2: Context Selection -->
             <div x-show="step === 2" x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 translate-x-10" x-transition:enter-end="opacity-100 translate-x-0"
                 class="space-y-6" style="display: none;">
@@ -558,83 +618,47 @@
                             </div>
                             {% endif %}
                         </div>
-
-                        <!-- Helper Text -->
-                        <div x-show="domain === 'general'" class="text-center py-10 text-slate-400">
-                            <p class="text-sm">Vui lòng chọn loại học liệu ở trên.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Alpine.js Logic -->
-
-                <select name="domain" x-model="domain" class="hidden">
-                    <option value="general">General</option>
-                    <option value="flashcard">Flashcard</option>
-                    <option value="quiz">Quiz</option>
-                </select>
-                <input type="hidden" name="reference_id" x-model="reference_id">
-                <div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-4">Chi tiết mục tiêu</h3>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">Tiêu chí đo
-                                lường</label>
-                            <select name="metric" x-model="metric"
-                                class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-0">
-                                <template x-for="m in availableMetrics" :key="m.value">
-                                    <option :value="m.value" x-text="m.label"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">{{
-                                    form.period.label.text }}</label>
-                                {{ form.period(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm
-                                font-medium focus:border-indigo-500 focus:ring-0') }}
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">Số lượng</label>
-                                {{ form.target_value(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3
-                                text-sm font-medium focus:border-indigo-500 focus:ring-0', placeholder='...') }}
-                            </div>
-                        </div>
-
-                        <div class="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
-                            <label class="flex items-center gap-3 cursor-pointer" @click="showDates = !showDates">
-                                <div class="w-10 h-6 rounded-full bg-white border border-slate-200 relative transition-colors"
-                                    :class="showDates ? 'bg-indigo-600 border-indigo-600' : ''">
-                                    <div class="w-4 h-4 rounded-full bg-slate-400 absolute top-0.5 left-1 transition-transform bg-white shadow-sm"
-                                        :class="showDates ? 'translate-x-4' : ''"></div>
-                                </div>
-                                <span class="text-sm font-bold text-indigo-900">Đặt thời hạn (Ngày)</span>
-                            </label>
-
-                            <div x-show="showDates" x-transition
-                                class="mt-4 grid grid-cols-2 gap-3 pt-3 border-t border-indigo-100/50">
-                                <div>
-                                    <label class="text-[0.65rem] font-bold text-indigo-400 uppercase mb-1 block">Bắt
-                                        đầu</label>
-                                    {{ form.start_date(class_='w-full rounded-lg border border-indigo-200 px-2 py-2
-                                    text-xs font-medium focus:border-indigo-500 focus:ring-0') }}
-                                </div>
-                                <div>
-                                    <label class="text-[0.65rem] font-bold text-indigo-400 uppercase mb-1 block">Kết
-                                        thúc</label>
-                                    {{ form.due_date(class_='w-full rounded-lg border border-indigo-200 px-2 py-2
-                                    text-xs font-medium focus:border-indigo-500 focus:ring-0') }}
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- STEP 3 -->
+            <!-- STEP 3: Metrics & Parameters -->
             <div x-show="step === 3" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-x-10" x-transition:enter-end="opacity-100 translate-x-0"
+                class="space-y-6" style="display: none;">
+
+                <h3 class="text-lg font-bold text-slate-900 mb-4">Mục tiêu cụ thể</h3>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">Tiêu chí đo lường</label>
+                        <select name="metric" x-model="metric"
+                            class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-0">
+                            <template x-for="m in availableMetrics" :key="m.value">
+                                <option :value="m.value" x-text="m.label"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">Chu kỳ</label>
+                        {{ form.period(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm
+                        font-medium focus:border-indigo-500 focus:ring-0') }}
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">Số lượng cần đạt</label>
+                        {{ form.target_value(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3
+                        text-xl font-bold text-center focus:border-indigo-500 focus:ring-0', placeholder='0',
+                        **{'x-model': 'target_value'}) }}
+                        <p class="text-xs text-slate-400 text-center mt-2">Ví dụ: 50 từ vựng / ngày</p>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- STEP 4: Finalize -->
+            <div x-show="step === 4" x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 translate-x-10" x-transition:enter-end="opacity-100 translate-x-0"
                 class="space-y-6" style="display: none;">
                 <div class="text-center py-6">
@@ -643,22 +667,52 @@
                         <i class="fa-solid fa-check text-4xl"></i>
                     </div>
                     <h3 class="text-xl font-black text-slate-900">Hoàn tất!</h3>
-                    <p class="text-sm text-slate-500 px-6">Bạn đã thiết lập xong các thông số, hãy đặt tên gợi nhớ cuối
-                        cùng.</p>
+                    <p class="text-sm text-slate-500 px-6">Hãy đặt một cái tên thật ý nghĩa để nhắc nhở bản thân.</p>
                 </div>
 
                 <div class="space-y-4">
                     <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">{{ form.title.label.text
-                            }}</label>
-                        {{ form.title(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
-                        focus:border-indigo-500 focus:ring-0', placeholder='Tên mục tiêu') }}
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block flex items-center gap-1">
+                            {{ form.title.label.text }} <span class="text-rose-500">*</span>
+                        </label>
+                        {{ form.title(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-bold
+                        focus:border-indigo-500 focus:ring-0', placeholder='Ví dụ: Chinh phục TOEIC 900', **{'x-model':
+                        'title'}) }}
+                        <p class="text-xs text-rose-500 mt-1" x-show="!title && step===4">Vui lòng nhập tên mục tiêu</p>
                     </div>
+
                     <div>
                         <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">{{ form.notes.label.text
                             }}</label>
                         {{ form.notes(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
-                        focus:border-indigo-500 focus:ring-0', rows='3', placeholder='Ghi chú quan trọng...') }}
+                        focus:border-indigo-500 focus:ring-0', rows='2', placeholder='Ghi chú quan trọng...') }}
+                    </div>
+
+                    <div class="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                        <label class="flex items-center gap-3 cursor-pointer" @click="showDates = !showDates">
+                            <div class="w-10 h-6 rounded-full bg-white border border-slate-200 relative transition-colors"
+                                :class="showDates ? 'bg-indigo-600 border-indigo-600' : ''">
+                                <div class="w-4 h-4 rounded-full bg-slate-400 absolute top-0.5 left-1 transition-transform bg-white shadow-sm"
+                                    :class="showDates ? 'translate-x-4' : ''"></div>
+                            </div>
+                            <span class="text-sm font-bold text-indigo-900">Giới hạn thời gian (Tùy chọn)</span>
+                        </label>
+
+                        <div x-show="showDates" x-transition
+                            class="mt-4 grid grid-cols-2 gap-3 pt-3 border-t border-indigo-100/50">
+                            <div>
+                                <label
+                                    class="text-[0.65rem] font-bold text-indigo-400 uppercase mb-1 block">Bắtđầu</label>
+                                {{ form.start_date(class_='w-full rounded-lg border border-indigo-200 px-2 py-2
+                                text-xs font-medium focus:border-indigo-500 focus:ring-0') }}
+                            </div>
+                            <div>
+                                <label class="text-[0.65rem] font-bold text-indigo-400 uppercase mb-1 block">Kết
+                                    thúc</label>
+                                {{ form.due_date(class_='w-full rounded-lg border border-indigo-200 px-2 py-2
+                                text-xs font-medium focus:border-indigo-500 focus:ring-0') }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -666,15 +720,16 @@
             <!-- Bottom Actions -->
             <div class="mt-auto pt-6 flex gap-3">
                 <button type="button" @click="prevStep()" x-show="step > 1"
-                    class="w-1/3 py-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200">
+                    class="w-1/3 py-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
                     Quay lại
                 </button>
-                <button type="button" @click="nextStep()" x-show="step < 3"
-                    class="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/30">
+                <button type="button" @click="nextStep()" x-show="step < 4"
+                    class="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/30 transition-all active:scale-95">
                     Tiếp theo
                 </button>
-                <button type="submit" x-show="step === 3"
-                    class="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/30">
+                <button type="submit" x-show="step === 4"
+                    class="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="!title">
                     Hoàn thành
                 </button>
             </div>

@@ -521,6 +521,17 @@
     if (urlParams.get('view') === 'setup') {
         quizSection.classList.add('mobile-mode-individual');
     }
+
+    const preSelectId = urlParams.get('preSelect');
+    if (preSelectId) {
+        selectedQuizSetIds = [preSelectId];
+        localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
+        loadQuizModes(selectedQuizSetIds);
+        if (quizSection) {
+            quizSection.classList.add('mobile-mode-individual');
+            quizSection.classList.add('mobile-step-2-active');
+        }
+    }
     // --- END: Mobile Mode Selection Logic ---
 
     // --- START: Mobile Footer Navigation ---
