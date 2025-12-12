@@ -1765,6 +1765,17 @@
             const errorDiv = document.getElementById('transcript-error');
             const errorMsg = document.getElementById('transcript-error-msg');
 
+            // Edit Elements
+            const editBtn = document.getElementById('transcript-edit-btn');
+            const editContainer = document.getElementById('transcript-edit-container');
+            const editorTextarea = document.getElementById('transcript-editor');
+            const editActions = document.getElementById('transcript-edit-actions');
+            const saveBtn = document.getElementById('transcript-save-btn');
+            const cancelBtn = document.getElementById('transcript-cancel-btn');
+            const closeMainBtn = document.getElementById('transcript-close-main-btn');
+
+            let currentTranscriptText = "";
+
             if (!modal) return;
 
             const closeModal = () => {
@@ -1776,43 +1787,109 @@
 
             closeBtns.forEach(btn => btn?.addEventListener('click', closeModal));
 
+            const toggleEditMode = (isEditing) => {
+                if (isEditing) {
+                    contentDiv.classList.add('hidden');
+                    emptyDiv.classList.add('hidden');
+                    editContainer.classList.remove('hidden');
+                    editBtn.classList.add('hidden');
+                    editActions.classList.remove('hidden');
+                    closeMainBtn.classList.add('hidden');
+                    editorTextarea.value = currentTranscriptText;
+                } else {
+                    editContainer.classList.add('hidden');
+                    editActions.classList.add('hidden');
+                    closeMainBtn.classList.remove('hidden');
+                    contentDiv.classList.remove('hidden');
+                    // Show edit button only if we have permission (handled by openTranscript)
+                    // Ideally we check a flag, but for now we'll re-show it if we are just cancelling. 
+                    // Real logic is inside openTranscript to set initial visibility.
+                    if (modal.dataset.canEdit === "true") {
+                        editBtn.classList.remove('hidden');
+                    }
+                }
+            };
+
+            // Save Handler
+            const saveTranscript = async () => {
+                const newText = editorTextarea.value;
+                if (!currentQuestion || !currentQuestion.item_id) return;
+
+                // UI Loading state
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+                try {
+                    const url = transcriptUrlTemplate.replace('/0', '/' + currentQuestion.item_id) + '/update';
+                    const response = await fetch(url.replace('0', currentQuestion.item_id), { // Careful with replacement
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ transcript: newText })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        currentTranscriptText = newText;
+                        contentDiv.textContent = newText;
+                        currentQuestion.audio_transcript = newText; // Update cache
+                        toggleEditMode(false);
+                    } else {
+                        alert(data.message || "Lỗi khi lưu.");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Lỗi kết nối khi lưu transcript.");
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Lưu';
+                }
+            };
+
             const openTranscript = async () => {
                 if (!currentQuestion || !currentQuestion.item_id) return;
 
                 // Show modal
                 modal.classList.remove('hidden');
 
-                // Reset states
+                // Reset UI
                 loadingDiv.classList.remove('hidden');
                 contentDiv.classList.add('hidden');
                 emptyDiv.classList.add('hidden');
                 errorDiv.classList.add('hidden');
-                contentDiv.textContent = '';
 
-                // Check if we already have it locally (cached in currentQuestion)
-                if (currentQuestion.audio_transcript) {
-                    loadingDiv.classList.add('hidden');
-                    contentDiv.classList.remove('hidden');
-                    contentDiv.textContent = currentQuestion.audio_transcript;
-                    return;
-                }
+                // Reset Edit UI
+                toggleEditMode(false);
+                editBtn.classList.add('hidden'); // Hide by default until we know permission
+                modal.dataset.canEdit = "false";
+
+                currentTranscriptText = "";
 
                 try {
-                    // Verify audio URL exists
-                    // Verify audio URL exists: Check multiple possible properties
+                    // Check local cache first?
+                    // We need to check permission every time or store it in currentQuestion?
+                    // Let's assume currentQuestion might have it if we fetched before.
+                    // But for simplicity, we treat local cache as just text. 
+                    // To get permission, we might need to hit API if not known.
+                    // Compromise: If cached, show text immediately, THEN fetch ID/Permission in background?
+                    // Or just always fetch. Fetch is fast.
+
+                    // Verify audio first locally
                     const audioUrl = (currentQuestion.content && currentQuestion.content.question_audio_file) ||
                         currentQuestion.question_audio ||
                         currentQuestion.audio_url;
 
                     if (!audioUrl) {
-                        console.error("DEBUG: currentQuestion structure:", currentQuestion);
+                        // console.error("DEBUG: currentQuestion structure:", currentQuestion); // Removed debug log
                         throw new Error("Không tìm thấy file audio.");
                     }
 
-                    // Call API using template
-                    const url = transcriptUrlTemplate.replace('/0', '/' + currentQuestion.item_id); // Safe replacement assuming /0 is the placeholder format
+                    // Call API to get text + permission
+                    const url = transcriptUrlTemplate.replace('/0', '/' + currentQuestion.item_id);
 
-                    const response = await fetch(url.replace('0', currentQuestion.item_id), { // Fallback replacement strategy just in case
+                    const response = await fetch(url.replace('0', currentQuestion.item_id), {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1821,21 +1898,40 @@
                     });
 
                     const data = await response.json();
-
                     loadingDiv.classList.add('hidden');
 
                     if (data.success) {
                         const text = data.transcript;
+                        const canEdit = data.can_edit;
+
+                        modal.dataset.canEdit = canEdit ? "true" : "false";
+
                         if (text) {
                             contentDiv.classList.remove('hidden');
                             contentDiv.textContent = text;
-                            // Cache it
+                            currentTranscriptText = text;
                             currentQuestion.audio_transcript = text;
+
+                            if (canEdit) {
+                                editBtn.classList.remove('hidden');
+                            }
                         } else {
                             emptyDiv.classList.remove('hidden');
+                            if (canEdit) {
+                                // If empty but can edit, show empty message AND edit button?
+                                // Or auto-switch to edit mode? 
+                                // Let's show edit button.
+                                editBtn.classList.remove('hidden');
+                            }
                         }
                     } else {
-                        throw new Error(data.message || "Lỗi server.");
+                        // Special handling for 404 (Not found/Not allowed to generate)
+                        if (response.status === 404) {
+                            emptyDiv.classList.remove('hidden');
+                            // Cannot edit/generate
+                        } else {
+                            throw new Error(data.message || "Lỗi server.");
+                        }
                     }
                 } catch (e) {
                     loadingDiv.classList.add('hidden');
@@ -1845,6 +1941,13 @@
             };
 
             openBtns.forEach(btn => btn?.addEventListener('click', openTranscript));
+
+            // Attach Edit Listeners
+            if (editBtn) editBtn.addEventListener('click', () => toggleEditMode(true));
+            if (cancelBtn) cancelBtn.addEventListener('click', () => toggleEditMode(false));
+            if (saveBtn) saveBtn.addEventListener('click', saveTranscript);
+
+            // Allow clicking outside to close (optional, existing logic usually handles this via specific close buttons or overlay click)
         };
         initTranscriptLogic();
 

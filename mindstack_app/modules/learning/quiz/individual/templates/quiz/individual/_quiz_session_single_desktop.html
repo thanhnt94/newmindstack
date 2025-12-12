@@ -208,9 +208,17 @@
                 <p class="text-xs text-slate-400 mt-2">Việc này có thể mất vài giây với audio dài.</p>
             </div>
 
+            <!-- View Mode -->
             <div id="transcript-content"
                 class="text-slate-700 text-base leading-relaxed whitespace-pre-wrap font-serif">
                 <!-- Content will be injected here -->
+            </div>
+
+            <!-- Edit Mode -->
+            <div id="transcript-edit-container" class="hidden">
+                <textarea id="transcript-editor"
+                    class="w-full h-64 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-serif text-base leading-relaxed"
+                    placeholder="Nhập nội dung transcript..."></textarea>
             </div>
 
             <div id="transcript-empty" class="hidden text-center py-8 text-slate-400 flex flex-col items-center">
@@ -225,6 +233,39 @@
                     <h4 class="font-bold text-sm">Không thể lấy transcript</h4>
                     <p class="text-sm mt-1" id="transcript-error-msg">Lỗi kết nối.</p>
                 </div>
+            </div>
+        </div>
+
+        {# Modal Footer with Actions #}
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center rounded-b-2xl">
+            <!-- Left: Status/Info -->
+            <div class="text-xs text-slate-400 italic">
+                AI Speech-to-Text
+            </div>
+
+            <!-- Right: Buttons -->
+            <div class="flex items-center gap-2">
+                <button type="button" id="transcript-edit-btn"
+                    class="hidden text-blue-600 hover:text-blue-700 px-3 py-1.5 text-sm font-medium transition">
+                    <i class="fas fa-pen mr-1"></i> Sửa
+                </button>
+
+                <div id="transcript-edit-actions" class="hidden flex items-center gap-2">
+                    <button type="button" id="transcript-cancel-btn"
+                        class="text-slate-500 hover:text-slate-700 px-3 py-1.5 text-sm font-medium transition">
+                        Hủy
+                    </button>
+                    <button type="button" id="transcript-save-btn"
+                        class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-1.5 rounded-lg text-sm font-medium transition shadow-sm">
+                        Lưu
+                    </button>
+                </div>
+
+                <button type="button" onclick="document.getElementById('transcript-modal').classList.add('hidden')"
+                    class="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg transition"
+                    id="transcript-close-main-btn">
+                    Đóng
+                </button>
             </div>
         </div>
 

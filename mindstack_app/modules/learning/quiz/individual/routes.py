@@ -381,22 +381,33 @@ def get_quiz_transcript(item_id):
             
         # Check edit permission
         can_edit = (container.creator_user_id == current_user.user_id) or (current_user.role == 'admin')
-        if not can_edit:
-             return jsonify({'success': False, 'message': 'Bạn không có quyền xem/tạo transcript cho bộ này.'}), 403
-
+        
         content = item.content or {}
         current_app.logger.info(f"TRANSCRIPT DEBUG: Item {item_id} content keys: {list(content.keys())}")
         current_app.logger.info(f"TRANSCRIPT DEBUG: Full content: {content}")
         
         transcript = content.get('audio_transcript')
         if transcript:
-             return jsonify({'success': True, 'transcript': transcript, 'cached': True})
+             return jsonify({
+                 'success': True, 
+                 'transcript': transcript, 
+                 'cached': True,
+                 'can_edit': can_edit
+             })
         
-        # If no transcript, check for audio
-        # Try different keys
+        # If no transcript, we need to generate it.
+        # Strict Rule: Only Editors can trigger generation (cost/resource control).
+        if not can_edit:
+             return jsonify({
+                 'success': False, 
+                 'message': 'Chưa có transcript cho câu hỏi này. Vui lòng liên hệ admin/người tạo để tạo transcript.',
+                 'can_edit': False
+             }), 404
+
+        # Extract audio path from content
         audio_rel_path = content.get('question_audio') or content.get('question_audio_file') or content.get('audio_url')
         current_app.logger.info(f"TRANSCRIPT DEBUG: Found audio path: {audio_rel_path}")
-
+        
         if not audio_rel_path:
              return jsonify({'success': False, 'message': 'Không tìm thấy thông tin audio (URL) trong dữ liệu câu hỏi.'}), 400
         
@@ -451,43 +462,24 @@ def get_quiz_transcript(item_id):
              return jsonify({'success': False, 'message': msg}), 400
             
         # Determine language
-        # Default to Vietnamese
         lang_code = 'vi-VN'
-        
-        # Heuristic: Check container info for Japanese indicators
-        # This is a simple auto-detect strategy. In production, a dedicated field 'locale' on the Container is better.
         container_text = (container.title or '') + ' ' + (container.description or '') + ' ' + (container.tags or '')
         container_text_lower = container_text.lower()
         
         if any(kw in container_text_lower for kw in ['jlpt', 'japanese', 'tiếng nhật', 'n5', 'n4', 'n3', 'n2', 'n1', 'nihongo']):
             lang_code = 'ja-JP'
-            current_app.logger.info(f"TRANSCRIPT INFO: Detected Japanese context from container info. Switching STT to {lang_code}.")
         elif any(kw in container_text_lower for kw in ['english', 'tiếng anh', 'toeic', 'ielts']):
              lang_code = 'en-US'
-             current_app.logger.info(f"TRANSCRIPT INFO: Detected English context from container info. Switching STT to {lang_code}.")
 
         service = QuizAudioService()
         transcript = service.voice_service.speech_to_text(full_path, lang=lang_code)
         
         if transcript:
-            # Post-processing: Format text for better readability if Japanese
+            # Post-processing
             if lang_code == 'ja-JP':
                  import re
-                 # 1. Newline before "X番" (Question X)
-                 # Pattern: Look for number followed by '番', precede with double newline
                  transcript = re.sub(r'(?<!^)(\s*)(\d+番)', r'\n\n\2', transcript)
-
-                 # 2. Newline before numbers 1, 2, 3, 4 that look like choices
-                 # Pattern: Space + Digit + Space? or Digit + space
-                 # This is aggressive but necessary for raw STT output which often looks like "...です 1 それは..."
-                 # We look for " 1 ", " 2 ", " 3 ", " 4 "
                  transcript = re.sub(r'(\s+)([1-4])(\s+)', r'\n\2 ', transcript)
-                 
-                 # 3. Handling 'san' (3) if mistakenly transcribed as 'さん' or 'サン' amidst choices
-                 # Dangerous if 'san' is used as honorific, so maybe skip for now or restrict strictly.
-                 # Let's stick to numerical choices which Google STT usually produces.
-                 
-                 # 4. Clean up multiple newlines
                  transcript = re.sub(r'\n{3,}', '\n\n', transcript)
 
             # Save to DB
@@ -497,12 +489,55 @@ def get_quiz_transcript(item_id):
             flag_modified(item, "content")
             db.session.commit()
             
-            return jsonify({'success': True, 'transcript': transcript, 'cached': False})
+            return jsonify({
+                'success': True, 
+                'transcript': transcript, 
+                'cached': False,
+                'can_edit': can_edit
+            })
         else:
              return jsonify({'success': False, 'message': 'Không thể nhận diện văn bản (kết quả rỗng).'}), 500
 
     except Exception as e:
         current_app.logger.error(f"Error generating transcript for item {item_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Lỗi hệ thống: {str(e)}'}), 500
+
+
+@quiz_learning_bp.route('/api/transcript/<int:item_id>/update', methods=['POST'])
+@login_required
+def update_quiz_transcript(item_id):
+    """API: Manually update the transcript text."""
+    try:
+        from sqlalchemy.orm.attributes import flag_modified
+        
+        data = request.get_json()
+        new_text = data.get('transcript')
+        
+        item = LearningItem.query.get(item_id)
+        if not item:
+            return jsonify({'success': False, 'message': 'Không tìm thấy câu hỏi.'}), 404
+            
+        container = LearningContainer.query.get(item.container_id)
+        if not container:
+            return jsonify({'success': False, 'message': 'Container not found'}), 404
+
+        # Permission check
+        can_edit = (container.creator_user_id == current_user.user_id) or (current_user.role == 'admin')
+        if not can_edit:
+             return jsonify({'success': False, 'message': 'Bạn không có quyền sửa transcript.'}), 403
+             
+        content = item.content or {}
+        new_content = dict(content)
+        new_content['audio_transcript'] = new_text
+        
+        item.content = new_content
+        flag_modified(item, "content")
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Cập nhật thành công.'})
+
+    except Exception as e:
+        current_app.logger.error(f"Error updating transcript for item {item_id}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Lỗi hệ thống: {str(e)}'}), 500
 
 @quiz_learning_bp.route('/api/items/batch', methods=['POST'])
