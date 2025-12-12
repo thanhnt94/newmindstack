@@ -1095,8 +1095,14 @@
             });
 
             // Toggle Transcript Button (Both Mobile & Desktop)
+            // USER REQUEST: Only show transcript AFTER answering.
+            // So we hide it initially here.
             const mobileTranscriptBtn = document.getElementById('mobile-transcript-btn');
 
+            if (transcriptBtn) transcriptBtn.classList.add('hidden');
+            if (mobileTranscriptBtn) mobileTranscriptBtn.classList.add('hidden');
+
+            /* Original Logic (Show immediately) - Disabled
             if (hasAudio) {
                 if (transcriptBtn) transcriptBtn.classList.remove('hidden');
                 if (mobileTranscriptBtn) mobileTranscriptBtn.classList.remove('hidden');
@@ -1104,6 +1110,7 @@
                 if (transcriptBtn) transcriptBtn.classList.add('hidden');
                 if (mobileTranscriptBtn) mobileTranscriptBtn.classList.add('hidden');
             }
+            */
 
             // Options
             const desktopGrid = document.querySelector('.hidden.lg\\:block .js-options-grid');
@@ -1355,6 +1362,19 @@
             // Show feedback button
             const mobileFeedbackBtn = document.getElementById('mobile-feedback-btn');
             if (mobileFeedbackBtn) mobileFeedbackBtn.classList.remove('hidden');
+
+            // Show Transcript Button (Post-Answer)
+            // Check if question has audio
+            const hasAudio = (currentQuestion.content && currentQuestion.content.question_audio_file) ||
+                currentQuestion.question_audio ||
+                currentQuestion.audio_url;
+
+            if (hasAudio) {
+                const tBtn = document.getElementById('desktop-transcript-btn');
+                const mTBtn = document.getElementById('mobile-transcript-btn');
+                if (tBtn) tBtn.classList.remove('hidden');
+                if (mTBtn) mTBtn.classList.remove('hidden');
+            }
 
             // Update Question Stats (Mobile)
             // Update Question Stats (Mobile)
@@ -1916,19 +1936,29 @@
                                 editBtn.classList.remove('hidden');
                             }
                         } else {
+                            // Is empty but success? Rare case.
+                            // If user can edit, let them add.
                             emptyDiv.classList.remove('hidden');
-                            if (canEdit) {
-                                // If empty but can edit, show empty message AND edit button?
-                                // Or auto-switch to edit mode? 
-                                // Let's show edit button.
-                                editBtn.classList.remove('hidden');
-                            }
+                            if (canEdit) editBtn.classList.remove('hidden');
                         }
                     } else {
-                        // Special handling for 404 (Not found/Not allowed to generate)
-                        if (response.status === 404) {
+                        // Handle server-side logic refusal (e.g., Not Editor)
+                        // The server returns 404 now with a message if not editor.
+                        // Or success=False.
+                        // We should show the message in the "Empty" or "Error" area.
+                        if (response.status === 404 || response.status === 403) {
+                            // "Chưa có transcript... vui lòng liên hệ admin"
+                            // Show this message in the empty/info area, not as a crash.
                             emptyDiv.classList.remove('hidden');
-                            // Cannot edit/generate
+                            // Find the paragraph in emptyDiv and update it temporarily?
+                            // Or just use errorDiv for clearer feedback.
+                            // Let's use errorDiv for clarity if it's a "refusal".
+                            // But wait, user said "nó ghi chưa có nội dung" -> probably hitting emptyDiv default text.
+
+                            // Let's update emptyDiv text to be dynamic based on server message
+                            const emptyTextP = emptyDiv.querySelector('p');
+                            if (emptyTextP) emptyTextP.textContent = data.message || "Chưa có transcript.";
+
                         } else {
                             throw new Error(data.message || "Lỗi server.");
                         }
