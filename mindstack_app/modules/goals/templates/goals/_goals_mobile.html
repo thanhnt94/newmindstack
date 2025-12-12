@@ -104,56 +104,91 @@
         {# Goals List #}
         <div class="space-y-4">
             {% for goal in goal_progress %}
-            <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+            <div class="bg-white border rounded-3xl p-5 shadow-sm animate-fade-in-up transition-all relative overflow-hidden group"
+                :class="'{{ 'border-emerald-500 bg-emerald-50/50' if goal.is_completed else 'border-slate-200' }}'"
                 style="animation-delay: {{ 0.3 + loop.index0 * 0.1 }}s">
+
+                {# Completed Overlay/Badge #}
+                {% if goal.is_completed %}
+                <div
+                    class="absolute top-0 right-0 bg-emerald-500 text-white text-[0.6rem] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl z-10 shadow-sm">
+                    Hoàn thành
+                </div>
+                {% endif %}
+
                 {# Header #}
                 <div class="flex items-start justify-between mb-4">
-                    <div class="flex items-start gap-3 flex-grow">
+                    <div class="flex items-start gap-3 flex-grow min-w-0">
+                        {# Icon based on Domain #}
                         <div
-                            class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white flex-shrink-0">
-                            <i class="fa-solid fa-{{ goal.icon }} text-xl"></i>
+                            class="w-12 h-12 rounded-2xl flex items-center justify-center text-white flex-shrink-0 shadow-sm
+                             {{ 'bg-gradient-to-br from-emerald-500 to-teal-600' if goal.is_completed else ('bg-gradient-to-br from-indigo-500 to-purple-600' if goal.domain == 'general' else ('bg-gradient-to-br from-blue-500 to-cyan-600' if goal.domain == 'flashcard' else 'bg-gradient-to-br from-orange-500 to-amber-600')) }}">
+                            {% if goal.domain == 'flashcard' %}
+                            <i class="fa-solid fa-clone text-xl"></i>
+                            {% elif goal.domain == 'quiz' %}
+                            <i class="fa-solid fa-circle-question text-xl"></i>
+                            {% else %}
+                            <i class="fa-solid fa-star text-xl"></i>
+                            {% endif %}
                         </div>
+
                         <div class="flex-grow min-w-0">
-                            <h3 class="text-base font-black text-slate-900">{{ goal.title }}</h3>
+                            <h3
+                                class="text-base font-black text-slate-900 line-clamp-1 {{ 'text-emerald-900' if goal.is_completed else '' }}">
+                                {{ goal.title }}</h3>
                             <div class="flex flex-wrap items-center gap-2 mt-1">
-                                <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                <!-- Period Badge -->
+                                <span
+                                    class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full border border-opacity-10 
+                                      {{ 'text-emerald-700 bg-emerald-100 border-emerald-700' if goal.is_completed else 'text-slate-600 bg-slate-100 border-slate-400' }}">
                                     {{ goal.period_label }}
                                 </span>
-                                {% if goal.scope == 'container' %}
-                                <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
-                                    Cụ thể
+
+                                <!-- Scope Badge -->
+                                <span
+                                    class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full border border-opacity-10 max-w-[150px] truncate
+                                       {{ 'text-emerald-700 bg-emerald-100 border-emerald-700' if goal.is_completed else 'text-indigo-600 bg-indigo-50 border-indigo-200' }}">
+                                    {{ goal.display_scope }}
                                 </span>
-                                {% endif %}
                             </div>
                         </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="block text-2xl font-black text-purple-600">{{ goal.percent }}%</span>
                     </div>
                 </div>
 
                 {# Progress Bar #}
                 <div class="mb-4">
-                    <div class="flex justify-between text-xs font-bold text-slate-500 mb-2">
-                        <span>{{ goal.current_value }}/{{ goal.target_value }} {{ goal.unit }}</span>
+                    <div
+                        class="flex justify-between text-xs font-bold mb-2 {{ 'text-emerald-700' if goal.is_completed else 'text-slate-500' }}">
+                        <span>{{ goal.current_value }} / {{ goal.target_value }} {{ goal.unit }}</span>
+                        <span class="text-base">{{ goal.percent }}%</span>
                     </div>
-                    <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full transition-all duration-1000"
+                    <div
+                        class="h-3 rounded-full overflow-hidden bg-opacity-20 {{ 'bg-emerald-200' if goal.is_completed else 'bg-slate-100' }}">
+                        <div class="h-full rounded-full transition-all duration-1000 {{ 'bg-gradient-to-r from-emerald-500 to-teal-500' if goal.is_completed else 'bg-gradient-to-r from-purple-600 to-indigo-600' }}"
                             style="width: {{ goal.percent }}%"></div>
                     </div>
                 </div>
 
                 {# Actions #}
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 opacity-100 transition-opacity">
+                    {% if not goal.is_completed %}
                     <a href="{{ goal.url }}"
-                        class="flex-grow flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors">
-                        Tiếp tục
+                        class="flex-grow flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95">
+                        <i class="fa-solid fa-play text-xs"></i> Tiếp tục
                     </a>
+                    {% else %}
+                    <div
+                        class="flex-grow flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2.5 rounded-xl font-bold text-sm cursor-default">
+                        <i class="fa-solid fa-check-circle"></i> Đã hoàn thành
+                    </div>
+                    {% endif %}
+
                     <form method="post" action="{{ url_for('goals.delete_goal', goal_id=goal.id) }}"
                         onsubmit="return confirm('Xóa mục tiêu này?');" class="inline">
                         {{ form.hidden_tag() }}
                         <button type="submit"
-                            class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors">
+                            class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors 
+                                   {{ 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' if goal.is_completed else 'bg-rose-50 text-rose-500 hover:bg-rose-100' }}">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </form>
@@ -207,7 +242,9 @@
 
         <!-- Wizard Body -->
         <form method="post" class="flex flex-col flex-1 overflow-y-auto px-5 py-6" novalidate>
-            {{ form.hidden_tag() }}
+            {{ form.csrf_token }}
+            <!-- Manual hidden fields bonded to Alpine data -->
+            <!-- reference_id is added in container section -->
 
             <!-- STEP 1: Scope -->
             <div x-show="step === 1" x-transition:enter="transition ease-out duration-300"
@@ -281,46 +318,83 @@
                 </div>
 
                 <!-- IF CONTAINER: Choose Container -->
-                <div x-show="scope === 'container'" class="space-y-4">
+                <div x-show="scope === 'container'" class="space-y-6">
                     <h3 class="text-lg font-bold text-slate-900">Chọn bộ học liệu</h3>
 
-                    <div class="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
-                        {% if flashcard_sets %}
-                        <div>
-                            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Flashcard Sets
-                            </div>
+                    <!-- Type Tabs -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div @click="setDomain('flashcard'); reference_id = ''"
+                            class="rounded-xl border p-3 flex flex-col items-center gap-2 cursor-pointer transition-all active:scale-95"
+                            :class="domain === 'flashcard' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-500'">
+                            <i class="fa-solid fa-clone text-xl"></i>
+                            <span class="text-sm font-bold">Flashcard</span>
+                        </div>
+                        <div @click="setDomain('quiz'); reference_id = ''"
+                            class="rounded-xl border p-3 flex flex-col items-center gap-2 cursor-pointer transition-all active:scale-95"
+                            :class="domain === 'quiz' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-500'">
+                            <i class="fa-solid fa-circle-question text-xl"></i>
+                            <span class="text-sm font-bold">Quiz</span>
+                        </div>
+                    </div>
+
+                    <!-- Lists -->
+                    <div class="max-h-[40vh] overflow-y-auto pr-1">
+                        <!-- Flashcard List -->
+                        <div x-show="domain === 'flashcard'" class="space-y-3 animate-slide-up">
+                            {% if flashcard_sets %}
                             <div class="space-y-2">
                                 {% for c in flashcard_sets %}
                                 <div @click="setContainer('flashcard', '{{ c.container_id }}')"
                                     class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3 active:bg-indigo-50 transition-colors"
-                                    :class="(domain === 'flashcard' && reference_id == '{{ c.container_id }}') ? 'ring-2 ring-indigo-500 border-transparent bg-indigo-50' : ''">
+                                    :class="reference_id == '{{ c.container_id }}' ? 'ring-2 ring-indigo-500 border-transparent bg-indigo-50' : ''">
                                     <i class="fa-solid fa-clone text-slate-400"></i>
-                                    <span class="font-bold text-slate-700 text-sm flex-grow">{{ c.title }}</span>
+                                    <div class="flex-grow">
+                                        <span class="font-bold text-slate-700 text-sm block line-clamp-1">{{ c.title
+                                            }}</span>
+                                        <span class="text-xs text-slate-400 block mt-0.5">Đã học</span>
+                                    </div>
                                     <i class="fa-solid fa-check text-indigo-600"
-                                        x-show="domain === 'flashcard' && reference_id == '{{ c.container_id }}'"></i>
+                                        x-show="reference_id == '{{ c.container_id }}'"></i>
                                 </div>
                                 {% endfor %}
                             </div>
+                            {% else %}
+                            <div class="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                <p class="text-slate-500 text-sm">Bạn chưa học bộ Flashcard nào.</p>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
 
-                        {% if quiz_sets %}
-                        <div>
-                            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Quiz Sets</div>
+                        <!-- Quiz List -->
+                        <div x-show="domain === 'quiz'" class="space-y-3 animate-slide-up">
+                            {% if quiz_sets %}
                             <div class="space-y-2">
                                 {% for c in quiz_sets %}
                                 <div @click="setContainer('quiz', '{{ c.container_id }}')"
                                     class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3 active:bg-indigo-50 transition-colors"
-                                    :class="(domain === 'quiz' && reference_id == '{{ c.container_id }}') ? 'ring-2 ring-indigo-500 border-transparent bg-indigo-50' : ''">
+                                    :class="reference_id == '{{ c.container_id }}' ? 'ring-2 ring-indigo-500 border-transparent bg-indigo-50' : ''">
                                     <i class="fa-solid fa-circle-question text-slate-400"></i>
-                                    <span class="font-bold text-slate-700 text-sm flex-grow">{{ c.title }}</span>
+                                    <div class="flex-grow">
+                                        <span class="font-bold text-slate-700 text-sm block line-clamp-1">{{ c.title
+                                            }}</span>
+                                        <span class="text-xs text-slate-400 block mt-0.5">Đã học</span>
+                                    </div>
                                     <i class="fa-solid fa-check text-indigo-600"
-                                        x-show="domain === 'quiz' && reference_id == '{{ c.container_id }}'"></i>
+                                        x-show="reference_id == '{{ c.container_id }}'"></i>
                                 </div>
                                 {% endfor %}
                             </div>
+                            {% else %}
+                            <div class="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                <p class="text-slate-500 text-sm">Bạn chưa học bộ Quiz nào.</p>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
+
+                        <!-- Helper Text -->
+                        <div x-show="domain === 'general'" class="text-center py-10 text-slate-400">
+                            <p class="text-sm">Vui lòng chọn loại học liệu ở trên.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -331,6 +405,7 @@
                     <option value="flashcard">Flashcard</option>
                     <option value="quiz">Quiz</option>
                 </select>
+                <input type="hidden" name="reference_id" x-model="reference_id">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900 mb-4">Chi tiết mục tiêu</h3>
 

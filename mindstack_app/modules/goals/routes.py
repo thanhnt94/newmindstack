@@ -25,6 +25,9 @@ def manage_goals():
     # Current form does not use goal_type select anymore, it uses domain/scope/metric.
     
     if form.validate_on_submit():
+        print(f"GOAL SUBMISSION: Data={form.data}")
+        print(f"GOAL SUBMISSION: Reference ID Type={type(form.reference_id.data)} Value='{form.reference_id.data}'")
+        
         # Determine goal_type from domain/metric for backward compatibility or internal logic
         # For now, we can just set it to something descriptive like 'custom' or '{domain}_{metric}'
         generated_type = f"{form.domain.data}_{form.metric.data}"
@@ -46,6 +49,7 @@ def manage_goals():
         )
         db.session.add(goal)
         db.session.commit()
+        print(f"GOAL SAVED: ID={goal.goal_id} Title='{goal.title}'")
         flash('Đã lưu mục tiêu học tập mới!', 'success')
         return redirect(url_for('goals.manage_goals'))
 
@@ -55,6 +59,7 @@ def manage_goals():
         )
         .order_by(LearningGoal.created_at.desc())
     )
+    print(f"GOAL QUERY: User={current_user.user_id} Count={goals_query.count()}")
 
     pagination = get_pagination_data(
         goals_query,
@@ -64,9 +69,23 @@ def manage_goals():
     metrics = get_learning_activity(current_user.user_id)
     goal_progress = build_goal_progress(pagination.items, metrics)
     
-    # Fetch containers for selector
-    flashcard_sets = LearningContainer.query.filter_by(container_type='FLASHCARD_SET').order_by(LearningContainer.title).all()
-    quiz_sets = LearningContainer.query.filter_by(container_type='QUIZ_SET').order_by(LearningContainer.title).all()
+    # Fetch containers for selector (Only those learned/accessed by user)
+    from ...models import UserContainerState
+    
+    def get_user_sets(ctype):
+        return (
+            LearningContainer.query
+            .join(UserContainerState, LearningContainer.container_id == UserContainerState.container_id)
+            .filter(
+                UserContainerState.user_id == current_user.user_id,
+                LearningContainer.container_type == ctype
+            )
+            .order_by(UserContainerState.last_accessed.desc())
+            .all()
+        )
+
+    flashcard_sets = get_user_sets('FLASHCARD_SET')
+    quiz_sets = get_user_sets('QUIZ_SET')
 
     return render_template(
         'goals/manage.html',

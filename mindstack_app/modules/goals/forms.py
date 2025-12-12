@@ -20,7 +20,7 @@ class LearningGoalForm(FlaskForm):
     period = SelectField('Chu kỳ', choices=PERIOD_CHOICES, default='daily', validators=[DataRequired()])
     target_value = IntegerField('Mục tiêu', validators=[DataRequired(), NumberRange(min=1)])
     
-    title = StringField('Tên mục tiêu', validators=[Optional(), Length(max=120)])
+    title = StringField('Tên mục tiêu', validators=[DataRequired(message="Vui lòng đặt tên cho mục tiêu."), Length(max=120)])
     description = TextAreaField('Mô tả', validators=[Optional(), Length(max=255)])
     
     start_date = DateField('Bắt đầu từ', format='%Y-%m-%d', validators=[Optional()])

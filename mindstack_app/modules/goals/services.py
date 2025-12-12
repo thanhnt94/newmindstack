@@ -330,6 +330,14 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
 
     progress: list[dict[str, object]] = []
 
+    # Fetch all referenced containers in one batch for efficiency
+    reference_ids = {goal.reference_id for goal in goals if goal.scope == 'container' and goal.reference_id}
+    containers = {}
+    if reference_ids:
+        from ...models import LearningContainer
+        found_containers = LearningContainer.query.filter(LearningContainer.container_id.in_(reference_ids)).all()
+        containers = {c.container_id: c.title for c in found_containers}
+
     for goal in goals:
         # Determine display props properties based on domain/metric
         config = GOAL_TYPE_CONFIG.get(goal.goal_type)
@@ -354,6 +362,14 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
         if goal.target_value:
             percent = min(100, round((current_value / goal.target_value) * 100)) if goal.target_value else 0
         
+        container_title = None
+        if goal.scope == 'container' and goal.reference_id:
+            container_title = containers.get(goal.reference_id)
+            
+        display_scope = 'Toàn hệ thống'
+        if goal.scope == 'container':
+             display_scope = container_title if container_title else 'Bộ cụ thể'
+
         progress.append(
             {
                 'id': goal.goal_id,
@@ -370,8 +386,10 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 'due_date': goal.due_date,
                 'notes': goal.notes,
                 'is_active': goal.is_active,
-                'domain': goal.domain, # For template icon logic
+                'domain': goal.domain, 
                 'scope': goal.scope,
+                'display_scope': display_scope,
+                'is_completed': percent >= 100
             }
         )
 
