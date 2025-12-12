@@ -4,6 +4,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <script>
+    // Initialize goal data safely
+    window._goalData = {{ goal_progress | tojson | safe }};
+
     // Define Alpine.js data function BEFORE the HTML that uses it
     window.goalWizardMobileData = function () {
         return {
@@ -73,10 +76,47 @@
             }
         };
     };
+    // List Logic for Analytics
+    window.goalListLogic = function () {
+        return {
+            showAnalytics: false,
+            selectedGoal: null,
+            goals: window._goalData || [],
+            selectGoal(id) {
+                // Find goal by ID
+                this.selectedGoal = this.goals.find(g => g.id == id);
+                if (this.selectedGoal) {
+                    this.showAnalytics = true;
+                }
+            },
+            get last7Days() {
+                const days = [];
+                const now = new Date();
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(now.getDate() - i);
+                    // Fix: getDay() returns 0 for Sunday, 1 for Monday... 6 for Saturday.
+                    // Vietnamese: T2 (Mon), T3 (Tue)... T7 (Sat), CN (Sun).
+                    // So map: 1->T2, 2->T3... 6->T7, 0->CN.
+                    const map = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+                    days.push(map[d.getDay()]);
+                }
+                return days;
+            },
+            get remaining() {
+                if (!this.selectedGoal) return 0;
+                return Math.max(0, this.selectedGoal.target_value - this.selectedGoal.current_value);
+            },
+            get progressColor() {
+                if (!this.selectedGoal) return 'gray';
+                return this.selectedGoal.is_completed ? 'emerald' : 'indigo';
+            }
+        }
+    }
 </script>
 
 <div class="lg:hidden fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard"
-    style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+    style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;" x-data="goalListLogic()">
 
     {# === CLEAN BACKGROUND === #}
     <div class="fixed inset-0 bg-gradient-to-b from-slate-50 to-slate-100 -z-10"></div>
@@ -144,9 +184,16 @@
                                     {{ goal.period_label }}
                                 </span>
 
+                                <!-- Metric Label Badge (New) -->
+                                <span
+                                    class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full border border-opacity-10 
+                                      {{ 'text-emerald-700 bg-emerald-100 border-emerald-700' if goal.is_completed else 'text-purple-600 bg-purple-50 border-purple-200' }}">
+                                    {{ goal.metric_label }}
+                                </span>
+
                                 <!-- Scope Badge -->
                                 <span
-                                    class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full border border-opacity-10 max-w-[150px] truncate
+                                    class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full border border-opacity-10 max-w-[120px] truncate
                                        {{ 'text-emerald-700 bg-emerald-100 border-emerald-700' if goal.is_completed else 'text-indigo-600 bg-indigo-50 border-indigo-200' }}">
                                     {{ goal.display_scope }}
                                 </span>
@@ -167,10 +214,28 @@
                         <div class="h-full rounded-full transition-all duration-1000 {{ 'bg-gradient-to-r from-emerald-500 to-teal-500' if goal.is_completed else 'bg-gradient-to-r from-purple-600 to-indigo-600' }}"
                             style="width: {{ goal.percent }}%"></div>
                     </div>
+
+                    <!-- Statistics Mini-Footer -->
+                    <div class="flex items-center gap-4 mt-3 pt-3 border-t border-slate-50 border-opacity-50">
+                        <div class="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                            <i class="fa-regular fa-calendar-check"></i>
+                            <span>{{ goal.days_since_start }} ngày thực hiện</span>
+                        </div>
+                        <!-- Placeholder for future Habits integration -->
+                        <!-- <div class="flex items-center gap-1.5 text-xs font-medium text-rose-400">
+                             <i class="fa-solid fa-fire"></i> 5 ngày chuỗi
+                        </div> -->
+                    </div>
                 </div>
 
                 {# Actions #}
                 <div class="flex items-center gap-2 opacity-100 transition-opacity">
+                    <!-- Analytics Button -->
+                    <button type="button" @click.stop="selectGoal({{ goal.id }})"
+                        class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-slate-50 text-slate-500 hover:bg-slate-100 active:bg-slate-200">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </button>
+
                     {% if not goal.is_completed %}
                     <a href="{{ goal.url }}"
                         class="flex-grow flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95">
@@ -210,6 +275,142 @@
     {# === BOTTOM NAV === #}
     {% set active_page = 'goals' %}
     {% include 'main/_bottom_nav_mobile.html' %}
+
+    {# === ANALYTICS MODAL === #}
+    <div x-show="showAnalytics" class="fixed inset-0 z-[200] flex items-end lg:hidden" style="display: none;">
+
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity" @click="showAnalytics = false"
+            x-transition.opacity></div>
+
+        <div
+            class="relative bg-white rounded-t-3xl w-full max-h-[85vh] overflow-y-auto animate-slide-up p-6 pb-12 shadow-2xl">
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 shrink-0"></div>
+
+            <template x-if="selectedGoal">
+                <div class="space-y-6">
+                    <!-- Title & Icon -->
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white mx-auto mb-3 text-2xl shadow-lg"
+                            :class="selectedGoal.is_completed ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-indigo-500 to-purple-600'">
+                            <i :class="'fa-solid fa-' + selectedGoal.icon"></i>
+                        </div>
+                        <h2 class="text-xl font-black text-slate-900 px-4" x-text="selectedGoal.title"></h2>
+                        <div class="flex flex-wrap justify-center gap-2 mt-2">
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full border"
+                                :class="selectedGoal.is_completed ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-500 bg-slate-50 border-slate-200'"
+                                x-text="selectedGoal.period_label"></span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full border"
+                                :class="selectedGoal.is_completed ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-purple-600 bg-purple-50 border-purple-200'"
+                                x-text="selectedGoal.metric_label"></span>
+                        </div>
+                    </div>
+
+                    <!-- Main Progress Circle -->
+                    <div class="flex justify-center py-2">
+                        <div class="relative w-40 h-40">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12"
+                                    fill="transparent" class="text-slate-100" />
+                                <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12"
+                                    fill="transparent"
+                                    :class="selectedGoal.is_completed ? 'text-emerald-500' : 'text-indigo-600'"
+                                    :stroke-dasharray="440"
+                                    :stroke-dashoffset="440 - (440 * selectedGoal.percent) / 100"
+                                    class="transition-all duration-1000 ease-out" stroke-linecap="round" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-3xl font-black text-slate-900"
+                                    x-text="selectedGoal.percent + '%'"></span>
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Hoàn thành</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Hiện tại</div>
+                            <div class="text-xl font-black text-slate-800">
+                                <span x-text="selectedGoal.current_value"></span>
+                                <span class="text-xs font-medium text-slate-400 ml-0.5"
+                                    x-text="selectedGoal.unit"></span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Mục tiêu</div>
+                            <div class="text-xl font-black text-slate-800">
+                                <span x-text="selectedGoal.target_value"></span>
+                                <span class="text-xs font-medium text-slate-400 ml-0.5"
+                                    x-text="selectedGoal.unit"></span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Còn lại</div>
+                            <div class="text-xl font-black text-rose-500">
+                                <span x-text="remaining"></span>
+                                <span class="text-xs font-medium text-rose-300 ml-0.5"
+                                    x-text="selectedGoal.unit"></span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Thời gian</div>
+                            <div class="text-xl font-black text-indigo-600">
+                                <span x-text="selectedGoal.days_since_start"></span>
+                                <span class="text-xs font-medium text-indigo-300 ml-0.5">ngày</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Container Link -->
+                    <template x-if="selectedGoal.container_url">
+                        <a :href="selectedGoal.container_url"
+                            class="block w-full py-3 bg-indigo-50 text-indigo-700 font-bold text-center rounded-xl border border-indigo-200 hover:bg-indigo-100 transition-colors">
+                            <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>
+                            Đến bộ học liệu này
+                        </a>
+                    </template>
+
+                    <!-- History Calendar (Mockup) -->
+                    <div class="border-t border-slate-100 pt-6">
+                        <div class="flex items-center justify-between mb-3 ml-1">
+                            <h4 class="text-sm font-bold text-slate-900">Lịch sử 7 ngày qua</h4>
+                            <span class="text-[0.6rem] text-slate-400 bg-slate-100 px-2 py-1 rounded-full">Beta</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <template x-for="(day, index) in last7Days">
+                                <div class="flex flex-col items-center gap-1">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm transition-all"
+                                        :class="(index === 6 && selectedGoal.is_completed) ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-300'">
+                                        <i class="fa-solid fa-check"
+                                            x-show="index === 6 && selectedGoal.is_completed"></i>
+                                        <span x-show="!(index === 6 && selectedGoal.is_completed)"
+                                            class="text-[0.6rem] scale-75">•</span>
+                                    </div>
+                                    <span class="text-[0.6rem] text-slate-400 font-bold" x-text="day"></span>
+                                </div>
+                            </template>
+                        </div>
+                        <p class="text-center text-[0.65rem] text-slate-400 mt-4 italic">
+                            Biểu đồ lịch sử đang ghi nhận dữ liệu mới...
+                        </p>
+                    </div>
+
+                    <!-- Dates -->
+                    <template x-if="selectedGoal.start_date || selectedGoal.due_date">
+                        <div
+                            class="bg-indigo-50 rounded-xl p-4 flex items-center justify-between text-sm border border-indigo-100">
+                            <div class="text-indigo-900 font-medium">
+                                <i class="fa-regular fa-calendar mr-2"></i>
+                                <span x-text="selectedGoal.start_date ? selectedGoal.start_date : '...'"></span>
+                                -
+                                <span x-text="selectedGoal.due_date ? selectedGoal.due_date : '...'"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </div>
 </div>
 
 {# === ADD GOAL MODAL (WIZARD) === #}

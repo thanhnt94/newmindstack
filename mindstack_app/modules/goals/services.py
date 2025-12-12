@@ -338,6 +338,8 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
         found_containers = LearningContainer.query.filter(LearningContainer.container_id.in_(reference_ids)).all()
         containers = {c.container_id: c.title for c in found_containers}
 
+    today = datetime.now(timezone.utc).date()
+    
     for goal in goals:
         # Determine display props properties based on domain/metric
         config = GOAL_TYPE_CONFIG.get(goal.goal_type)
@@ -370,6 +372,25 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
         if goal.scope == 'container':
              display_scope = container_title if container_title else 'Bộ cụ thể'
 
+        # Calculate Statistics
+        days_since_start = 0
+        days_missed = 0
+        if goal.start_date:
+            delta = today - goal.start_date
+            days_since_start = max(0, delta.days)
+            # Simple heuristic: if goal is periodic (daily) and percent < 100 today, it might count as missed?
+            # Ideally we need a history table to know exact days missed.
+            # For now, just return days since start.
+        
+        # Metric human label
+        metric_label = 'Tiêu chí'
+        if goal.metric == 'items_reviewed': metric_label = 'Thẻ đã ôn'
+        elif goal.metric == 'new_items': metric_label = 'Thẻ mới học'
+        elif goal.metric == 'mastered': metric_label = 'Thẻ thuộc bài'
+        elif goal.metric == 'items_answered': metric_label = 'Câu hỏi đã làm'
+        elif goal.metric == 'items_correct': metric_label = 'Câu đúng'
+        elif goal.metric == 'points': metric_label = 'Điểm số (XP)'
+
         progress.append(
             {
                 'id': goal.goal_id,
@@ -389,7 +410,14 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 'domain': goal.domain, 
                 'scope': goal.scope,
                 'display_scope': display_scope,
-                'is_completed': percent >= 100
+                'is_completed': percent >= 100,
+                # New Stats
+                'days_since_start': days_since_start,
+                'metric_label': metric_label,
+                'reference_id': goal.reference_id,
+                'container_url': url_for('learning.flashcard.dashboard') if goal.domain == 'flashcard' and goal.scope == 'container' and goal.reference_id else (
+                                 url_for('learning.quiz_learning.quiz_dashboard_set', set_id=goal.reference_id) if goal.domain == 'quiz' and goal.scope == 'container' and goal.reference_id else None
+                )
             }
         )
 
