@@ -144,119 +144,94 @@
         {# Goals List #}
         <div class="space-y-4">
             {% for goal in goal_progress %}
-            <div class="bg-white border rounded-3xl p-5 shadow-sm animate-fade-in-up transition-all relative overflow-hidden group"
-                :class="'{{ 'border-emerald-500 bg-emerald-50/50' if goal.is_completed else 'border-slate-200' }}'"
+            <div class="bg-white rounded-2xl border border-slate-100 p-3 shadow-sm relative overflow-hidden transition-all active:scale-[0.99]"
+                :class="'{{ 'border-emerald-500 bg-emerald-50/30' if goal.is_completed else '' }}'"
                 style="animation-delay: {{ 0.3 + loop.index0 * 0.1 }}s">
 
-                {# Completed Overlay/Badge #}
-                {% if goal.is_completed %}
-                <div
-                    class="absolute top-0 right-0 bg-emerald-500 text-white text-[0.6rem] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl z-10 shadow-sm">
-                    Hoàn thành
-                </div>
-                {% endif %}
-
-                {# Header #}
-                <div class="flex items-start justify-between mb-4">
-                    <div class="flex items-start gap-3 flex-grow min-w-0">
-                        {# Icon based on Domain #}
+                <div class="flex gap-3">
+                    {# Left: Icon #}
+                    <div class="shrink-0">
                         <div
-                            class="w-12 h-12 rounded-2xl flex items-center justify-center text-white flex-shrink-0 shadow-sm
+                            class="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm
                              {{ 'bg-gradient-to-br from-emerald-500 to-teal-600' if goal.is_completed else ('bg-gradient-to-br from-indigo-500 to-purple-600' if goal.domain == 'general' else ('bg-gradient-to-br from-blue-500 to-cyan-600' if goal.domain == 'flashcard' else 'bg-gradient-to-br from-orange-500 to-amber-600')) }}">
                             {% if goal.domain == 'flashcard' %}
-                            <i class="fa-solid fa-clone text-xl"></i>
+                            <i class="fa-solid fa-clone text-sm"></i>
                             {% elif goal.domain == 'quiz' %}
-                            <i class="fa-solid fa-circle-question text-xl"></i>
+                            <i class="fa-solid fa-circle-question text-sm"></i>
                             {% else %}
-                            <i class="fa-solid fa-star text-xl"></i>
+                            <i class="fa-solid fa-star text-sm"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# Center: Content #}
+                    <div class="flex-1 min-w-0 flex flex-col justify-center">
+                        {# Top: Title & Actions #}
+                        <div class="flex items-start justify-between">
+                            <h3
+                                class="font-bold text-slate-800 text-sm truncate pr-2 {{ 'text-emerald-900' if goal.is_completed else '' }}">
+                                {{ goal.title }}
+                            </h3>
+
+                            {# Actions (Chart, Delete) #}
+                            <div class="flex items-center gap-1 shrink-0 -mt-1 -mr-1">
+                                <button type="button" @click="selectGoal({{ goal.id }})"
+                                    class="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                                    <i class="fa-solid fa-chart-simple text-xs"></i>
+                                </button>
+                                <form action="{{ url_for('goals.delete_goal', goal_id=goal.id) }}" method="POST"
+                                    onsubmit="return confirm('Bạn có chắc chắn muốn xóa mục tiêu này?');"
+                                    class="inline-block">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                    <button type="submit"
+                                        class="w-7 h-7 flex items-center justify-center rounded-full text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors">
+                                        <i class="fa-solid fa-trash text-[0.65rem]"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {# Middle: Info (Period • Metric • Scope) #}
+                        <div class="flex items-center gap-1 text-[0.65rem] text-slate-500 mb-2 truncate">
+                            <span
+                                class="font-bold uppercase {{ 'text-emerald-600' if goal.is_completed else 'text-indigo-600' }}">{{
+                                goal.period_label }}</span>
+                            <span class="text-slate-300">•</span>
+                            <span>{{ goal.metric_label }}</span>
+                            {% if goal.display_scope != 'Toàn hệ thống' %}
+                            <span class="text-slate-300">•</span>
+                            <span class="truncate max-w-[80px]">{{ goal.display_scope }}</span>
                             {% endif %}
                         </div>
 
-                        <div class="flex-grow min-w-0">
-                            <h3
-                                class="text-base font-black text-slate-900 line-clamp-1 {{ 'text-emerald-900' if goal.is_completed else '' }}">
-                                {{ goal.title }}</h3>
-                            <div class="flex flex-wrap items-center gap-2 mt-1">
-                                <!-- Period Badge -->
-                                <span
-                                    class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full border border-opacity-10 
-                                      {{ 'text-emerald-700 bg-emerald-100 border-emerald-700' if goal.is_completed else 'text-slate-600 bg-slate-100 border-slate-400' }}">
-                                    {{ goal.period_label }}
-                                </span>
-
-                                <!-- Metric Label Badge (New) -->
-                                <span
-                                    class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full border border-opacity-10 
-                                      {{ 'text-emerald-700 bg-emerald-100 border-emerald-700' if goal.is_completed else 'text-purple-600 bg-purple-50 border-purple-200' }}">
-                                    {{ goal.metric_label }}
-                                </span>
-
-                                <!-- Scope Badge -->
-                                <span
-                                    class="text-[0.65rem] font-bold px-2 py-0.5 rounded-full border border-opacity-10 max-w-[120px] truncate
-                                       {{ 'text-emerald-700 bg-emerald-100 border-emerald-700' if goal.is_completed else 'text-indigo-600 bg-indigo-50 border-indigo-200' }}">
-                                    {{ goal.display_scope }}
-                                </span>
+                        {# Bottom: Progress & Play #}
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between items-end mb-1">
+                                    <span class="text-[0.65rem] font-medium text-slate-500">
+                                        <span class="text-slate-900 font-bold">{{ goal.current_value }}</span>/{{
+                                        goal.target_value }} {{ goal.unit }}
+                                    </span>
+                                    <span
+                                        class="text-[0.65rem] font-bold {{ 'text-emerald-600' if goal.is_completed else 'text-indigo-600' }}">
+                                        {{ goal.percent }}%
+                                    </span>
+                                </div>
+                                <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-1000 {{ 'bg-emerald-500' if goal.is_completed else 'bg-indigo-500' }}"
+                                        style="width: {{ goal.percent }}%"></div>
+                                </div>
                             </div>
+
+                            {# Play Button #}
+                            <a href="{{ goal.url }}"
+                                class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95
+                                      {{ 'bg-emerald-100 text-emerald-600' if goal.is_completed else 'bg-indigo-600 text-white shadow-indigo-200' }}">
+                                <i
+                                    class="fa-solid {{ 'fa-check' if goal.is_completed else 'fa-play text-[0.65rem] ml-0.5' }}"></i>
+                            </a>
                         </div>
                     </div>
-                </div>
-
-                {# Progress Bar #}
-                <div class="mb-4">
-                    <div
-                        class="flex justify-between text-xs font-bold mb-2 {{ 'text-emerald-700' if goal.is_completed else 'text-slate-500' }}">
-                        <span>{{ goal.current_value }} / {{ goal.target_value }} {{ goal.unit }}</span>
-                        <span class="text-base">{{ goal.percent }}%</span>
-                    </div>
-                    <div
-                        class="h-3 rounded-full overflow-hidden bg-opacity-20 {{ 'bg-emerald-200' if goal.is_completed else 'bg-slate-100' }}">
-                        <div class="h-full rounded-full transition-all duration-1000 {{ 'bg-gradient-to-r from-emerald-500 to-teal-500' if goal.is_completed else 'bg-gradient-to-r from-purple-600 to-indigo-600' }}"
-                            style="width: {{ goal.percent }}%"></div>
-                    </div>
-
-                    <!-- Statistics Mini-Footer -->
-                    <div class="flex items-center gap-4 mt-3 pt-3 border-t border-slate-50 border-opacity-50">
-                        <div class="flex items-center gap-1.5 text-xs font-medium text-slate-400">
-                            <i class="fa-regular fa-calendar-check"></i>
-                            <span>{{ goal.days_since_start }} ngày thực hiện</span>
-                        </div>
-                        <!-- Placeholder for future Habits integration -->
-                        <!-- <div class="flex items-center gap-1.5 text-xs font-medium text-rose-400">
-                             <i class="fa-solid fa-fire"></i> 5 ngày chuỗi
-                        </div> -->
-                    </div>
-                </div>
-
-                {# Actions #}
-                <div class="flex items-center gap-2 opacity-100 transition-opacity">
-                    <!-- Analytics Button -->
-                    <button type="button" @click.stop="selectGoal({{ goal.id }})"
-                        class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-slate-50 text-slate-500 hover:bg-slate-100 active:bg-slate-200">
-                        <i class="fa-solid fa-chart-pie"></i>
-                    </button>
-
-                    {% if not goal.is_completed %}
-                    <a href="{{ goal.url }}"
-                        class="flex-grow flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95">
-                        <i class="fa-solid fa-play text-xs"></i> Tiếp tục
-                    </a>
-                    {% else %}
-                    <div
-                        class="flex-grow flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2.5 rounded-xl font-bold text-sm cursor-default">
-                        <i class="fa-solid fa-check-circle"></i> Đã hoàn thành
-                    </div>
-                    {% endif %}
-
-                    <form method="post" action="{{ url_for('goals.delete_goal', goal_id=goal.id) }}"
-                        onsubmit="return confirm('Xóa mục tiêu này?');" class="inline">
-                        {{ form.hidden_tag() }}
-                        <button type="submit"
-                            class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors 
-                                   {{ 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' if goal.is_completed else 'bg-rose-50 text-rose-500 hover:bg-rose-100' }}">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </form>
                 </div>
             </div>
             {% else %}
@@ -365,34 +340,26 @@
                     <template x-if="selectedGoal.container_url">
                         <a :href="selectedGoal.container_url"
                             class="block w-full py-3 bg-indigo-50 text-indigo-700 font-bold text-center rounded-xl border border-indigo-200 hover:bg-indigo-100 transition-colors">
-                            <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>
-                            Đến bộ học liệu này
-                        </a>
                     </template>
 
-                    <!-- History Calendar (Mockup) -->
+                    <!-- History Calendar -->
                     <div class="border-t border-slate-100 pt-6">
                         <div class="flex items-center justify-between mb-3 ml-1">
                             <h4 class="text-sm font-bold text-slate-900">Lịch sử 7 ngày qua</h4>
-                            <span class="text-[0.6rem] text-slate-400 bg-slate-100 px-2 py-1 rounded-full">Beta</span>
                         </div>
                         <div class="flex justify-between">
-                            <template x-for="(day, index) in last7Days">
+                            <template x-for="(met, index) in selectedGoal.history_7_days">
                                 <div class="flex flex-col items-center gap-1">
                                     <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm transition-all"
-                                        :class="(index === 6 && selectedGoal.is_completed) ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-300'">
-                                        <i class="fa-solid fa-check"
-                                            x-show="index === 6 && selectedGoal.is_completed"></i>
-                                        <span x-show="!(index === 6 && selectedGoal.is_completed)"
-                                            class="text-[0.6rem] scale-75">•</span>
+                                        :class="met ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-300'">
+                                        <i class="fa-solid fa-check" x-show="met"></i>
+                                        <span x-show="!met" class="text-[0.6rem] scale-75">•</span>
                                     </div>
-                                    <span class="text-[0.6rem] text-slate-400 font-bold" x-text="day"></span>
+                                    <span class="text-[0.6rem] text-slate-400 font-bold"
+                                        x-text="last7Days[index]"></span>
                                 </div>
                             </template>
                         </div>
-                        <p class="text-center text-[0.65rem] text-slate-400 mt-4 italic">
-                            Biểu đồ lịch sử đang ghi nhận dữ liệu mới...
-                        </p>
                     </div>
 
                     <!-- Dates -->

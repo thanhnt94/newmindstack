@@ -219,8 +219,8 @@ def get_learning_activity(user_id: int) -> dict[str, object]:
 
 def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object]) -> list[dict[str, object]]:
     """Return a serialisable representation of the user's goals."""
-    from ...models import LearningItem, FlashcardProgress, QuizProgress
-
+    from ...models import LearningItem, FlashcardProgress, QuizProgress, GoalDailyHistory
+    
     def _get_metric_value(goal: LearningGoal) -> int:
         # 1. Determine period range
         now = datetime.now(timezone.utc)
@@ -340,6 +340,8 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
 
     today = datetime.now(timezone.utc).date()
     
+    history_updates_pending = False
+
     for goal in goals:
         # Determine display props properties based on domain/metric
         config = GOAL_TYPE_CONFIG.get(goal.goal_type)
@@ -374,13 +376,10 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
 
         # Calculate Statistics
         days_since_start = 0
-        days_missed = 0
+        # days_missed = 0 # (Removed unused variable)
         if goal.start_date:
             delta = today - goal.start_date
             days_since_start = max(0, delta.days)
-            # Simple heuristic: if goal is periodic (daily) and percent < 100 today, it might count as missed?
-            # Ideally we need a history table to know exact days missed.
-            # For now, just return days since start.
         
         # Metric human label
         metric_label = 'Tiêu chí'
@@ -390,6 +389,47 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
         elif goal.metric == 'items_answered': metric_label = 'Câu hỏi đã làm'
         elif goal.metric == 'items_correct': metric_label = 'Câu đúng'
         elif goal.metric == 'points': metric_label = 'Điểm số (XP)'
+
+        # --- History Tracking Logic ---
+        is_today_met = percent >= 100
+        
+        # Upsert Today's History
+        todays_log = GoalDailyHistory.query.filter_by(goal_id=goal.goal_id, date=today).first()
+        if not todays_log:
+            todays_log = GoalDailyHistory(
+                goal_id=goal.goal_id,
+                date=today,
+                current_value=current_value,
+                target_value=goal.target_value,
+                is_met=is_today_met
+            )
+            db.session.add(todays_log)
+            history_updates_pending = True
+        else:
+            # Only update if changed to avoid unnecessary heavy DB usage if possible, 
+            # though SQLAlchemy handles dirty checks.
+            if todays_log.current_value != current_value or todays_log.is_met != is_today_met:
+                todays_log.current_value = current_value
+                todays_log.is_met = is_today_met
+                todays_log.target_value = goal.target_value
+                history_updates_pending = True
+
+        # Fetch Last 6 Days for Chart
+        start_history = today - timedelta(days=6)
+        past_logs = GoalDailyHistory.query.filter(
+            GoalDailyHistory.goal_id == goal.goal_id,
+            GoalDailyHistory.date >= start_history,
+            GoalDailyHistory.date < today
+        ).all()
+        
+        log_map = {l.date: l.is_met for l in past_logs}
+        history_7_days = []
+        for i in range(6, -1, -1): # [6, 5, 4, 3, 2, 1, 0]
+            d = today - timedelta(days=i)
+            if i == 0: # Today
+                history_7_days.append(is_today_met)
+            else:
+                history_7_days.append(log_map.get(d, False))
 
         progress.append(
             {
@@ -410,15 +450,23 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 'domain': goal.domain, 
                 'scope': goal.scope,
                 'display_scope': display_scope,
-                'is_completed': percent >= 100,
+                'is_completed': is_today_met,
+                'history_7_days': history_7_days, # New Field
                 # New Stats
                 'days_since_start': days_since_start,
                 'metric_label': metric_label,
                 'reference_id': goal.reference_id,
                 'container_url': url_for('learning.flashcard.dashboard') if goal.domain == 'flashcard' and goal.scope == 'container' and goal.reference_id else (
-                                 url_for('learning.quiz_learning.quiz_dashboard_set', set_id=goal.reference_id) if goal.domain == 'quiz' and goal.scope == 'container' and goal.reference_id else None
+                                 url_for('learning.quiz_learning.quiz_learning_dashboard') if goal.domain == 'quiz' and goal.scope == 'container' and goal.reference_id else None
                 )
             }
         )
 
+    if history_updates_pending:
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            # Do not raise, as display is more important than history log in this context
+    
     return progress

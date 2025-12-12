@@ -228,6 +228,32 @@ class LearningGoal(db.Model):
     )
 
 
+class GoalDailyHistory(db.Model):
+    """Daily snapshot of goal progress for history tracking."""
+    
+    __tablename__ = 'goal_daily_history'
+
+    history_id = db.Column(db.Integer, primary_key=True)
+    goal_id = db.Column(db.Integer, db.ForeignKey('learning_goals.goal_id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)  # The date this record represents
+    
+    current_value = db.Column(db.Integer, default=0) # Value achieved on this date (or cumulative, depending on logic)
+    target_value = db.Column(db.Integer, default=0)  # Snapshot of target
+    is_met = db.Column(db.Boolean, default=False)
+    
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    goal = db.relationship(
+        'LearningGoal',
+        backref=db.backref('history_logs', lazy='dynamic', cascade='all, delete-orphan'),
+        lazy=True,
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint('goal_id', 'date', name='_goal_daily_uc'),
+    )
+
+
 class UserNote(db.Model):
     """Personal notes for specific learning items."""
 
