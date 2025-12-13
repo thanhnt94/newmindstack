@@ -113,6 +113,36 @@
             </div>
         </div>
 
+        {# Badges #}
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+            style="animation-delay: 0.65s">
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-medal text-yellow-500"></i> Bộ sưu tập huy hiệu
+            </h3>
+
+            {% if badges %}
+            <div class="grid grid-cols-4 gap-4">
+                {% for ub in badges %}
+                <div class="flex flex-col items-center active:scale-95 transition-transform cursor-pointer"
+                    onclick="alert('{{ ub.badge.name }}\n{{ ub.badge.description }}')">
+                    <div
+                        class="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-50 to-amber-100 flex items-center justify-center border border-amber-200 shadow-sm mb-2">
+                        <i class="{{ ub.badge.icon_class }} text-2xl text-amber-600"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-center text-slate-700 leading-tight w-full line-clamp-2">{{
+                        ub.badge.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <i class="fa-solid fa-shield-cat text-4xl text-slate-300 mb-3"></i>
+                <p class="text-sm text-slate-500 font-medium">Chưa có huy hiệu nào</p>
+                <p class="text-xs text-slate-400 mt-1">Hãy chăm chỉ học tập nhé!</p>
+            </div>
+            {% endif %}
+        </div>
+
         {# Edit Button #}
         <a href="{{ url_for('user_profile.edit_profile') }}"
             class="flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all font-bold text-base animate-fade-in-up"

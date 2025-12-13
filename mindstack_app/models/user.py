@@ -192,6 +192,16 @@ class ScoreLog(db.Model):
     timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
     item_type = db.Column(db.String(50), nullable=True)
 
+    def to_dict(self):
+        return {
+            'log_id': self.log_id,
+            'score_change': self.score_change,
+            'amount': self.score_change,
+            'reason': self.reason,
+            'item_type': self.item_type,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+        }
+
 
 class LearningGoal(db.Model):
     """Stores personalised learning goals for each user."""

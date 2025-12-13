@@ -1785,9 +1785,64 @@
       window.flashcardViewport.refresh();
     }
 
+    // --- THÊM MỚI: Xử lý tự động tái tạo audio khi lỗi ---
+    async function handleAudioError(audioEl, itemId, side, contentToRead) {
+      if (!audioEl || audioEl.dataset.retried === 'true') return;
+      if (!contentToRead) return;
+
+      console.log(`[AudioRecovery] Phát hiện lỗi ở ${side} audio. Đang thử tái tạo...`);
+      audioEl.dataset.retried = 'true';
+
+      try {
+        const response = await fetch(regenerateAudioUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+          body: JSON.stringify({ item_id: itemId, side: side, content_to_read: contentToRead })
+        });
+        const result = await response.json();
+
+        if (result.success && result.audio_url) {
+          console.log(`[AudioRecovery] Tái tạo thành công. URL mới: ${result.audio_url}`);
+          // Thêm timestamp để ép trình duyệt tải lại file mới
+          audioEl.src = `${result.audio_url}?t=${new Date().getTime()}`;
+          // Không tự động play để tránh xung đột với logic autoplay hiện có, 
+          // nhưng lần bấm play tiếp theo sẽ dùng URL đúng.
+        } else {
+          console.warn(`[AudioRecovery] Tái tạo thất bại: ${result.message}`);
+        }
+      } catch (err) {
+        console.error(`[AudioRecovery] Lỗi kết nối API:`, err);
+      }
+    }
+
+    function setupAudioErrorHandler(itemId, frontContent, backContent) {
+      const frontAudio = document.getElementById('front-audio');
+      const backAudio = document.getElementById('back-audio');
+
+      if (frontAudio) {
+        frontAudio.addEventListener('error', () => {
+          handleAudioError(frontAudio, itemId, 'front', frontContent);
+        });
+      }
+
+      if (backAudio) {
+        backAudio.addEventListener('error', () => {
+          handleAudioError(backAudio, itemId, 'back', backContent);
+        });
+      }
+    }
+    // ----------------------------------------------------
+
     if (card) {
       card.dataset.cardCategory = cardCategory || 'default';
     }
+
+    // Thiết lập xử lý lỗi audio
+    setupAudioErrorHandler(
+      itemId,
+      c.front_audio_content || '',
+      c.back_audio_content || ''
+    );
 
     const flipToBack = () => {
       stopAllFlashcardAudio();

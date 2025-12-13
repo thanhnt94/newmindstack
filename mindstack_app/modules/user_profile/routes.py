@@ -24,7 +24,9 @@ def profile_required():
 @user_profile_bp.route('/view')
 def view_profile():
     # current_user đã có sẵn nhờ Flask-Login
-    return render_template('profile.html', user=current_user)
+    from ...modules.gamification.models import UserBadge
+    badges = UserBadge.query.filter_by(user_id=current_user.user_id).join(UserBadge.badge).all()
+    return render_template('profile.html', user=current_user, badges=badges)
 
 # Route để chỉnh sửa profile cá nhân
 @user_profile_bp.route('/edit', methods=['GET', 'POST'])

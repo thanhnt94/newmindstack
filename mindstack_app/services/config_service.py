@@ -141,12 +141,7 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "data_type": "path",
                 "description": "Thư mục lưu trữ bản sao lưu (backups).",
             },
-            {
-                "key": "DATABASE_URI",
-                "value": app_obj.config.get("SQLALCHEMY_DATABASE_URI"),
-                "data_type": "string",
-                "description": "Chuỗi kết nối cơ sở dữ liệu ứng dụng.",
-            },
+
             {
                 "key": "AI_PROVIDER",
                 "value": "gemini",

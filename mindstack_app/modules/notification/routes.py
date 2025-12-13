@@ -1,8 +1,9 @@
-from flask import render_template, jsonify, request
+from flask import render_template, jsonify, request, current_app
 from flask_login import login_required, current_user
 from . import notification_bp
 from .services import NotificationService
 from .models import PushSubscription
+from ...db_instance import db
 
 @notification_bp.route('/api/list')
 @login_required
@@ -28,6 +29,8 @@ def api_mark_read(notif_id):
 @login_required
 def api_mark_all_read():
     NotificationService.mark_all_as_read(current_user.user_id)
+    return jsonify({'success': True})
+
 @notification_bp.route('/api/subscribe', methods=['POST'])
 @login_required
 def api_subscribe():
@@ -60,9 +63,13 @@ def api_subscribe():
     return jsonify({'success': True})
 
 @notification_bp.route('/api/vapid-public-key')
-@login_required
 def api_vapid_key():
-    from flask import current_app
+    from ...services.config_service import get_runtime_config
+    # Usually VAPID keys are in config, assuming key name 'VAPID_PUBLIC_KEY'
+    # Fallback to empty if not set
+    pub_key = get_runtime_config('VAPID_PUBLIC_KEY', current_app.config.get('VAPID_PUBLIC_KEY'))
+    return jsonify({'publicKey': pub_key})
+
 @notification_bp.route('/sw.js')
 def service_worker():
     from flask import send_from_directory, current_app

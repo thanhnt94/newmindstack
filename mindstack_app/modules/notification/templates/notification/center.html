@@ -196,10 +196,16 @@
         },
 
         async requestPermission() {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                document.getElementById('push-permission-ui').classList.add('hidden');
-                this.checkPushPermission();
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    document.getElementById('push-permission-ui').classList.add('hidden');
+                    this.checkPushPermission();
+                } else if (permission === 'denied') {
+                    alert('Bạn đã chặn thông báo cho trang web này. Vui lòng vào cài đặt trình duyệt (biểu tượng ổ khóa trên thanh địa chỉ) để Bật lại/Reset quyền thông báo.');
+                }
+            } catch (e) {
+                alert('Lỗi trình duyệt: ' + e.message);
             }
         },
 
@@ -208,8 +214,12 @@
                 const reg = await navigator.serviceWorker.register('/notifications/sw.js');
 
                 const keyRes = await fetch('/notifications/api/vapid-public-key');
+                if (!keyRes.ok) throw new Error('Không thể lấy VAPID Key');
+
                 const keyData = await keyRes.json();
                 const vapidKey = keyData.publicKey;
+
+                if (!vapidKey) throw new Error('VAPID Key chưa được cấu hình');
 
                 const convertedKey = this.urlBase64ToUint8Array(vapidKey);
 
@@ -230,6 +240,7 @@
 
             } catch (err) {
                 console.error('Subscription failed', err);
+                alert('Lỗi đăng ký nhận tin: ' + err.message + '\nHãy thử tải lại trang.');
             }
         },
 

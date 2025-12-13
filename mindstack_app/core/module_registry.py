@@ -89,4 +89,6 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.telegram_bot", "telegram_bot_bp", url_prefix="/telegram", version="1.0"),
     ModuleDefinition("mindstack_app.modules.notification", "notification_bp", url_prefix="/notifications", version="1.0"),
     ModuleDefinition("mindstack_app.modules.translator", "translator_bp", url_prefix="/translator", version="1.0"),
+    ModuleDefinition("mindstack_app.modules.gamification", "gamification_bp", version="1.0"),
+    ModuleDefinition("mindstack_app.modules.gamification", "gamification_api_bp", version="1.0"),
 )

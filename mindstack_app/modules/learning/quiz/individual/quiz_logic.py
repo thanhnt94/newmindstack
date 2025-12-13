@@ -5,7 +5,8 @@
 # ĐÃ SỬA: Cập nhật logic truy vấn và tạo bản ghi để tương tác với bảng QuizProgress.
 # ĐÃ SỬA: Thêm item_type vào ScoreLog khi tạo bản ghi.
 
-from mindstack_app.models import LearningItem, QuizProgress, ScoreLog, User, db
+from mindstack_app.models import LearningItem, QuizProgress, User, db
+from mindstack_app.modules.gamification.services import ScoreService
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
 import datetime
@@ -125,24 +126,20 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     flag_modified(progress, "review_history") # Đánh dấu trường JSON đã thay đổi
 
     # 6. Cập nhật tổng điểm của người dùng
-    user = User.query.get(user_id)
-    if user:
-        user.total_score = (user.total_score or 0) + score_change
-    updated_total_score = user.total_score if user else current_user_total_score + score_change
-
-    # 7. Ghi log vào ScoreLog
+    # 6. Cập nhật điểm và ghi log thông qua ScoreService
     reason = "Quiz Correct Answer" if is_correct else "Quiz Incorrect Answer"
     if is_first_time:
         reason += " (First Time Bonus)"
-    
-    new_score_log = ScoreLog(
+
+    result = ScoreService.award_points(
         user_id=user_id,
-        item_id=item_id,
-        score_change=score_change,
+        amount=score_change,
         reason=reason,
-        item_type='QUIZ_MCQ' # THÊM: Lưu loại item
+        item_id=item_id,
+        item_type='QUIZ_MCQ'
     )
-    db.session.add(new_score_log)
+    
+    updated_total_score = result.get('new_total') if result.get('success') and result.get('new_total') is not None else (current_user_total_score + score_change)
 
     # 8. Commit các thay đổi vào cơ sở dữ liệu
     db.session.commit()

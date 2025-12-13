@@ -32,6 +32,7 @@ from .user import (
     ContainerContributor,
 )
 from .system import ApiKey, BackgroundTask, BackgroundTaskLog, SystemSetting
+from ..modules.gamification.models import Badge, UserBadge
 
 __all__ = [
     'db',
@@ -64,4 +65,6 @@ __all__ = [
     'BackgroundTask',
     'BackgroundTaskLog',
     'ApiKey',
+    'Badge',
+    'UserBadge',
 ]

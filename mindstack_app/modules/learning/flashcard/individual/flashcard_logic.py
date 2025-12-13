@@ -3,7 +3,8 @@
 # MỤC ĐÍCH: Nâng cấp logic để hỗ trợ chế độ Collab không ảnh hưởng SRS.
 # ĐÃ SỬA: Thêm tham số update_srs để kiểm soát việc cập nhật tiến độ học tập.
 
-from .....models import db, User, LearningItem, FlashcardProgress, ScoreLog
+from .....models import db, User, LearningItem, FlashcardProgress
+from mindstack_app.modules.gamification.services import ScoreService
 from sqlalchemy.orm.attributes import flag_modified
 import datetime
 import math
@@ -132,20 +133,19 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
             score_change = 0
             if is_first_preview and was_new_card:
                 score_change = _get_score_value('FLASHCARD_PREVIEW_BONUS', 10)
-                if user:
-                    user.total_score = (user.total_score or 0) + score_change
-                new_score_log = ScoreLog(
+                ScoreService.award_points(
                     user_id=user_id,
-                    item_id=item_id,
-                    score_change=score_change,
+                    amount=score_change,
                     reason="Flashcard New Card Preview Bonus",
+                    item_id=item_id,
                     item_type='FLASHCARD'
                 )
-                db.session.add(new_score_log)
 
             safe_commit(db.session)
 
             if user:
+                # Reload user để lấy điểm mới nhất từ DB
+                db.session.refresh(user)
                 updated_total_score = user.total_score
             else:
                 updated_total_score = current_user_total_score + score_change
@@ -265,21 +265,20 @@ def process_flashcard_answer(user_id, item_id, user_answer_quality, current_user
             score_change = 0
 
     # Cập nhật điểm cho User
-    user = User.query.get(user_id)
-    if user:
-        user.total_score = (user.total_score or 0) + score_change
-    updated_total_score = user.total_score if user else current_user_total_score + score_change
-
-    # Ghi log điểm (luôn ghi dù SRS có update hay không)
+    # Cập nhật điểm cho User thông qua ScoreService
     log_reason = f"Flashcard Answer (Quality: {user_answer_quality})"
     if not update_srs:
         log_reason += " [Collab Mode]"
-        
-    new_score_log = ScoreLog(
-        user_id=user_id, item_id=item_id, score_change=score_change,
-        reason=log_reason, item_type='FLASHCARD'
+
+    result = ScoreService.award_points(
+        user_id=user_id,
+        amount=score_change,
+        reason=log_reason,
+        item_id=item_id,
+        item_type='FLASHCARD'
     )
-    db.session.add(new_score_log)
+    
+    updated_total_score = result.get('new_total') if result.get('success') and result.get('new_total') is not None else (current_user_total_score + score_change)
     
     safe_commit(db.session)
     

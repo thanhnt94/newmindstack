@@ -20,6 +20,7 @@ from ....models import (
     db,
 )
 from mindstack_app.services.config_service import get_runtime_config
+from mindstack_app.modules.gamification.services import ScoreService
 
 course_learning_bp = Blueprint('course_learning', __name__, template_folder='templates')
 
@@ -175,20 +176,13 @@ def update_lesson_progress(lesson_id):
     lesson_completed = previous_percentage < 100 and progress.completion_percentage >= 100
 
     if lesson_completed:
-        user = None
-        lesson_score = _get_score_value('COURSE_LESSON_COMPLETION_SCORE', 15)
         if lesson_score:
-            user = User.query.get(current_user.user_id)
-            if user:
-                user.total_score = (user.total_score or 0) + lesson_score
-            db.session.add(
-                ScoreLog(
-                    user_id=current_user.user_id,
-                    item_id=lesson.item_id,
-                    score_change=lesson_score,
-                    reason='Lesson Completed',
-                    item_type='LESSON'
-                )
+            ScoreService.award_points(
+                user_id=current_user.user_id,
+                amount=lesson_score,
+                reason='Lesson Completed',
+                item_id=lesson.item_id,
+                item_type='LESSON',
             )
 
         lesson_ids = [
@@ -213,18 +207,12 @@ def update_lesson_progress(lesson_id):
                 if not already_logged:
                     course_score = _get_score_value('COURSE_COMPLETION_SCORE', 50)
                     if course_score:
-                        user = user or User.query.get(current_user.user_id)
-                        if user:
-                            user.total_score = (user.total_score or 0) + course_score
-
-                        db.session.add(
-                            ScoreLog(
-                                user_id=current_user.user_id,
-                                item_id=container.container_id,
-                                score_change=course_score,
-                                reason='Course Completed',
-                                item_type='COURSE'
-                            )
+                        ScoreService.award_points(
+                            user_id=current_user.user_id,
+                            amount=course_score,
+                            reason='Course Completed',
+                            item_id=container.container_id,
+                            item_type='COURSE'
                         )
 
     db.session.commit()

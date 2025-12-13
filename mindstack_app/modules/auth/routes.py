@@ -20,6 +20,14 @@ def login():
             return redirect(url_for('auth.login'))
         
         login_user(user, remember=form.remember_me.data)
+        
+        try:
+            from ...modules.gamification.services import ScoreService
+            ScoreService.record_daily_login(user.user_id)
+        except Exception as e:
+            # Login should verify succeed even if gamification fails
+            pass
+
         flash('Đăng nhập thành công!', 'success')
         
         next_page = request.args.get('next')
