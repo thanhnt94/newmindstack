@@ -694,28 +694,22 @@ def regenerate_audio_from_content():
             audio_folder = None
             if container:
                 audio_folder = getattr(container, 'media_audio_folder', None)
+                if not audio_folder:
+                    audio_folder = _ensure_container_media_folder(container, 'audio')
 
-            # Nếu container không có thư mục audio được chỉ định, dùng config mặc định
             if not audio_folder:
-                audio_folder = current_app.config.get('DEFAULT_AUDIO_FOLDER', 'audio')
+                return jsonify({'success': False, 'message': 'Bộ thẻ chưa được cấu hình thư mục audio.'}), 400
 
-            # Lấy thư mục uploads gốc
-            upload_root = current_app.config.get('UPLOAD_FOLDER')
-            if not upload_root:
-                from mindstack_app.config import Config
-                upload_root = Config.UPLOAD_FOLDER
-
-            audio_dir = os.path.join(upload_root, audio_folder)
             try:
-                os.makedirs(audio_dir, exist_ok=True)
+                os.makedirs(os.path.join(current_app.static_folder, audio_folder), exist_ok=True)
             except OSError as folder_exc:
                 current_app.logger.error(
-                    "Không thể tạo thư mục audio %s: %s", audio_dir, folder_exc, exc_info=True
+                    "Không thể tạo thư mục audio %s: %s", audio_folder, folder_exc, exc_info=True
                 )
                 return jsonify({'success': False, 'message': 'Không thể chuẩn bị thư mục lưu audio.'}), 500
 
             filename = os.path.basename(path_or_url)
-            destination = os.path.join(audio_dir, filename)
+            destination = os.path.join(current_app.static_folder, audio_folder, filename)
 
             try:
                 if os.path.abspath(path_or_url) != os.path.abspath(destination):
@@ -723,11 +717,10 @@ def regenerate_audio_from_content():
                         os.remove(destination)
                     shutil.move(path_or_url, destination)
                 stored_value = normalize_media_value_for_storage(filename, audio_folder)
-                # Đường dẫn relative cho uploads route
-                relative_path = os.path.join(audio_folder, filename).replace('\\', '/')
+                relative_path = build_relative_media_path(stored_value, audio_folder)
             except Exception as move_exc:  # pylint: disable=broad-except
                 current_app.logger.error(
-                    "Lỗi khi di chuyển audio vào thư mục %s: %s", audio_dir, move_exc, exc_info=True
+                    "Lỗi khi di chuyển audio vào thư mục %s: %s", audio_folder, move_exc, exc_info=True
                 )
                 return jsonify({'success': False, 'message': 'Không thể lưu file audio.'}), 500
 
@@ -745,7 +738,7 @@ def regenerate_audio_from_content():
             return jsonify({
                 'success': True,
                 'message': 'Đã tạo audio thành công.',
-                'audio_url': f'/uploads/{relative_path}',
+                'audio_url': url_for('static', filename=relative_path),
                 'relative_path': relative_path,
                 'stored_value': stored_value,
             })
@@ -757,3 +750,4 @@ def regenerate_audio_from_content():
         return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi xử lý yêu cầu.'}), 500
     finally:
         loop.close()
+
