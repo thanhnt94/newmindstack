@@ -1,0 +1,206 @@
+{# =============================== #}
+{# File: _dashboard_individual_desktop.html #}
+{# Mục đích: Giao diện desktop học Quiz cá nhân (Solo) - CMS Style. #}
+{# =============================== #}
+
+{% from 'includes/_search_form.html' import render_search_form %}
+
+<style>
+    /* === Desktop Dashboard Styles === */
+    .cm-section-card {
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        padding: 1.5rem;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .tab-filter-button {
+        flex-grow: 1;
+        padding: 0.75rem;
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+        transition: all 0.2s;
+        border-bottom: 2px solid transparent;
+    }
+
+    .tab-filter-button:hover {
+        color: #374151;
+    }
+
+    .tab-filter-button.active {
+        border-bottom-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+    .quiz-set-item {
+        position: relative;
+        background: #fff;
+        border-radius: 0.75rem;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .quiz-set-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border-color: #cbd5e1;
+    }
+
+    .quiz-set-item.selected-item {
+        border-color: #3b82f6 !important;
+        background-color: #eff6ff !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    }
+
+    .quiz-mode-item {
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+
+    .quiz-mode-item:hover {
+        border-color: #93c5fd;
+        background: #f8fafc;
+    }
+
+    .quiz-mode-item.selected-mode {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    }
+
+    .selected-set-item {
+        background-color: #dbeafe;
+        color: #1e3a8a;
+        border-radius: 9999px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin: 0.25rem;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .selected-set-item i {
+        margin-left: 0.5rem;
+        cursor: pointer;
+    }
+
+    #quiz-control-bar {
+        justify-content: space-between;
+    }
+
+    #quiz-pagination-slot {
+        justify-content: center;
+    }
+</style>
+
+<div id="quiz-solo-section" class="space-y-6 h-full">
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-full">
+
+        {# === STEP 1: QUIZ SET SELECTION === #}
+        <div id="step-1-card" class="cm-section-card">
+
+            {# Header Group #}
+            <div class="mobile-header-section p-0 bg-transparent border-none shadow-none">
+
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between">
+                    <span class="h2-title-wrapper">
+                        <i class="fas fa-list-alt mr-3 text-blue-500"></i>
+                        <span>Bước 1: Chọn bộ câu hỏi</span>
+                    </span>
+                    {# Selection Mode Toggle #}
+                    <div class="flex items-center flex-shrink-0 ml-auto">
+                        <span class="text-xs font-semibold text-slate-600 mr-2 whitespace-nowrap">Chọn nhiều:</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="multi-select-toggle" class="sr-only peer">
+                            <div
+                                class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600">
+                            </div>
+                        </label>
+                    </div>
+                </h2>
+
+                <div class="flex border-b border-gray-200 mb-4">
+                    <button id="filter-doing" class="tab-filter-button flex items-center justify-center active"
+                        data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang làm</span></button>
+                    <button id="filter-explore" class="tab-filter-button flex items-center justify-center"
+                        data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
+                    <button id="filter-archive" class="tab-filter-button flex items-center justify-center"
+                        data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
+                </div>
+
+                <div class="mb-1" id="quiz-search-form-container">
+                    {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
+                    {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm...",
+                    search_field=search_field, search_options=display_search_options) }}
+                </div>
+
+                {# Selected Sets Display #}
+                <div id="selected-sets-display"
+                    class="flex flex-wrap items-center gap-2 text-xs hidden bg-blue-50 p-2 rounded-lg mb-2 max-h-24 overflow-y-auto">
+                </div>
+            </div>
+
+            {# Scrollable List #}
+            <div id="quiz-sets-container" class="flex-grow overflow-y-auto max-h-[500px] p-0 space-y-3">
+                <div class="flex flex-col items-center justify-center h-48 text-blue-500">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Đang tải danh sách...</p>
+                </div>
+            </div>
+
+            {# Control Bar (Pagination) #}
+            <div id="quiz-control-bar"
+                class="flex items-center justify-between py-1 px-1 bg-white border-t border-slate-100 flex-shrink-0">
+                <div id="quiz-pagination-slot"
+                    class="flex justify-end flex-grow items-center empty:hidden [&_.pagination]:m-0 [&_nav]:m-0 [&_.page-item]:m-0 [&_.page-link]:py-1 [&_.page-link]:px-2 [&_.page-link]:text-xs">
+                </div>
+            </div>
+        </div>
+
+        {# === STEP 2: MODE SELECTION === #}
+        <div id="step-2-card" class="cm-section-card">
+            {# Header #}
+            <div class="mobile-header-section p-0 bg-transparent border-none shadow-none block">
+                <h2 id="step-2-title"
+                    class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center truncate">
+                    <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
+                </h2>
+            </div>
+            {# List #}
+            <div id="quiz-modes-container" class="flex-grow overflow-y-auto max-h-[500px] p-0">
+                <div class="flex flex-col items-center justify-center h-48 text-gray-400">
+                    <i class="fas fa-info-circle text-4xl mb-3 opacity-50"></i>
+                    <p>Vui lòng chọn bộ câu hỏi ở bước 1.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Footer Actions #}
+    <div id="step-2-actions" class="mt-4 text-center bg-transparent border-none shadow-none p-0 static">
+        <div class="flex justify-center w-full">
+            <button id="start-learning-btn"
+                class="start-button w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center">
+                <i class="fas fa-play-circle mr-2"></i> Bắt đầu
+            </button>
+            <button id="bulk-unarchive-btn"
+                class="start-button w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-lg font-bold hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 shadow-md flex items-center justify-center">
+                <i class="fas fa-box-open mr-2"></i> Bỏ lưu trữ
+            </button>
+        </div>
+    </div>
+</div>
