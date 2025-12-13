@@ -111,6 +111,30 @@
                     </div>
                 </div>
             </div>
+
+            {# Telegram #}
+            <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+                style="animation-delay: 0.62s">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white">
+                        <i class="fab fa-telegram-plane text-2xl"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Telegram Bot</p>
+                        {% if user.telegram_chat_id %}
+                        <p class="text-base font-bold text-green-600 mt-1 flex items-center">
+                            <i class="fa-solid fa-check-circle mr-1"></i> Đã kết nối
+                        </p>
+                        {% else %}
+                        <a href="{{ telegram_link }}" target="_blank"
+                            class="inline-block mt-1 text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
+                            Kết nối ngay <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
 
         {# Badges #}

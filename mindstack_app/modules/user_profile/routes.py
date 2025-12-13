@@ -24,9 +24,19 @@ def profile_required():
 @user_profile_bp.route('/view')
 def view_profile():
     # current_user đã có sẵn nhờ Flask-Login
+    # current_user đã có sẵn nhờ Flask-Login
     from ...modules.gamification.models import UserBadge
     badges = UserBadge.query.filter_by(user_id=current_user.user_id).join(UserBadge.badge).all()
-    return render_template('profile.html', user=current_user, badges=badges)
+    
+    # Telegram Link
+    try:
+        from ...modules.telegram_bot.services import generate_connect_link
+        telegram_link = generate_connect_link(current_user.user_id)
+    except Exception as e:
+        telegram_link = '#'
+        print(f"Error generating telegram link: {e}")
+
+    return render_template('profile.html', user=current_user, badges=badges, telegram_link=telegram_link)
 
 # Route để chỉnh sửa profile cá nhân
 @user_profile_bp.route('/edit', methods=['GET', 'POST'])

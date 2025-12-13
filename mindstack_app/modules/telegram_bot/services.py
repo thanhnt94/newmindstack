@@ -26,6 +26,22 @@ def send_telegram_message(chat_id, text):
         print(f"Error sending telegram: {e}")
         return False
 
+from flask import current_app
+from itsdangerous import URLSafeTimedSerializer
+
+def get_serializer():
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+
+def get_bot_username():
+    setting = SystemSetting.query.filter_by(key='telegram_bot_username').first()
+    return setting.value if setting else 'MindStackBot'
+
+def generate_connect_link(user_id):
+    s = get_serializer()
+    token = s.dumps(user_id, salt='telegram-connect')
+    bot_name = get_bot_username()
+    return f"https://t.me/{bot_name}?start={token}"
+
 def process_update(update):
     """Xử lý update từ Webhook Telegram"""
     message = update.get('message')
@@ -36,17 +52,22 @@ def process_update(update):
     text = message.get('text', '').strip()
     
     if text.startswith('/start'):
-        # Cú pháp: /start <username>
-        # Ví dụ: /start admin
+        # Cú pháp: /start <token>
         parts = text.split()
         if len(parts) > 1:
-            username = parts[1]
-            user = User.query.filter_by(username=username).first()
-            if user:
-                user.telegram_chat_id = str(chat_id)
-                db.session.commit()
-                send_telegram_message(chat_id, f"✅ Xin chào <b>{user.username}</b>!\nBạn đã kết nối thành công với Mindstack.\nTôi sẽ nhắc nhở bạn học tập vào lúc <b>07:00</b> mỗi sáng.")
-            else:
-                send_telegram_message(chat_id, "❌ Không tìm thấy username này trong hệ thống Mindstack.")
+            token = parts[1]
+            try:
+                s = get_serializer()
+                user_id = s.loads(token, salt='telegram-connect', max_age=3600) # Valid for 1 hour
+                
+                user = User.query.get(user_id)
+                if user:
+                    user.telegram_chat_id = str(chat_id)
+                    db.session.commit()
+                    send_telegram_message(chat_id, f"✅ Xin chào <b>{user.username}</b>!\nBạn đã kết nối thành công với Mindstack.\nTôi sẽ gửi thông báo học tập cho bạn tại đây.")
+                else:
+                    send_telegram_message(chat_id, "❌ Không tìm thấy user.")
+            except Exception as e:
+                send_telegram_message(chat_id, "❌ Link kết nối không hợp lệ hoặc đã hết hạn (chỉ có hiệu lực trong 1 giờ).")
         else:
-             send_telegram_message(chat_id, "👋 Chào bạn! Để kết nối tài khoản, vui lòng gửi lệnh:\n\n<code>/start username_cua_ban</code>")
+            send_telegram_message(chat_id, "👋 Chào bạn! Hãy nhấn vào nút 'Kết nối Telegram' trên website Mindstack để bắt đầu.")
