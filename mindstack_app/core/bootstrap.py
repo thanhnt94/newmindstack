@@ -68,23 +68,29 @@ def register_extensions(app: Flask) -> None:
 
 
 def configure_static_uploads(app: Flask) -> None:
-    """Configure upload folder and register route for serving uploads."""
-    from flask import send_from_directory, current_app
-    from ..config import Config
+    """Point Flask's static handling to the uploads directory."""
+    from flask import send_from_directory
 
-    # Get upload folder from config or use default
-    default_upload_folder = app.config.get('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
-    os.makedirs(default_upload_folder, exist_ok=True)
+    app.static_folder = os.path.join(BASE_DIR, "uploads")
+    app.static_url_path = "/static"
+    app.logger.info("Đã cấu hình thư mục tĩnh 'uploads' tại URL: %s", app.static_url_path)
 
-    # Register route for uploads (separate from static assets)
-    @app.route('/uploads/<path:filename>')
-    def serve_uploads(filename):
-        # Dynamically get upload folder from current config (may change at runtime)
-        upload_folder = current_app.config.get('UPLOAD_FOLDER', default_upload_folder)
-        return send_from_directory(upload_folder, filename)
+    # Route riêng để serve favicon từ thư mục source (mindstack_app/static)
+    @app.route('/favicon.ico')
+    def favicon_ico():
+        return send_from_directory(
+            os.path.join(app.root_path, 'static'),
+            'favicon.ico',
+            mimetype='image/x-icon'
+        )
 
-    app.logger.info("Đã cấu hình route uploads tại /uploads -> %s", default_upload_folder)
-    # Note: Default static folder (mindstack_app/static) is preserved for app assets (favicon, css, js).
+    @app.route('/favicon.png')
+    def favicon_png():
+        return send_from_directory(
+            os.path.join(app.root_path, 'static'),
+            'favicon.png',
+            mimetype='image/png'
+        )
 
 
 
