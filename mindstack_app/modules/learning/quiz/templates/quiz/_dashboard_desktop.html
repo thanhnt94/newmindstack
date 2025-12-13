@@ -1,0 +1,19 @@
+{# ================= QUIZ DASHBOARD DESKTOP ================= #}
+{# Desktop Title and Tabs #}
+<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 hidden lg:block">
+    <div class="quiz-title-wrapper hidden lg:flex">
+        <div id="quizTitle" class="quiz-title-badge"><i class="fas fa-question-circle"></i>Quiz</div>
+    </div>
+
+    <!-- Re-added the flex justify-center mb-6 wrapper around tabs for desktop flow -->
+    <div class="flex justify-center mb-6">
+        <div class="study-mode-tabs" role="tablist" aria-label="Chế độ học quiz">
+            <button class="study-mode-tab {% if quiz_type == 'individual' %}active{% endif %}"
+                data-study-tab="individual" role="tab"
+                aria-selected="{% if quiz_type == 'individual' %}true{% else %}false{% endif %}">Học 1 mình</button>
+            <button class="study-mode-tab {% if quiz_type == 'battle' %}active{% endif %}" data-study-tab="battle"
+                role="role" aria-selected="{% if quiz_type == 'battle' %}true{% else %}false{% endif %}">Thi đấu
+                nhóm</button>
+        </div>
+    </div>
+</div>
