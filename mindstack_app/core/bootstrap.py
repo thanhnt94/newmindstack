@@ -69,19 +69,23 @@ def register_extensions(app: Flask) -> None:
 
 def configure_static_uploads(app: Flask) -> None:
     """Configure upload folder and register route for serving uploads."""
-    from flask import send_from_directory
+    from flask import send_from_directory, current_app
+    from ..config import Config
 
-    # Ensure upload folder exists
-    upload_folder = os.path.join(BASE_DIR, "uploads")
-    os.makedirs(upload_folder, exist_ok=True)
+    # Get upload folder from config or use default
+    default_upload_folder = app.config.get('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
+    os.makedirs(default_upload_folder, exist_ok=True)
 
     # Register route for uploads (separate from static assets)
     @app.route('/uploads/<path:filename>')
     def serve_uploads(filename):
+        # Dynamically get upload folder from current config (may change at runtime)
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', default_upload_folder)
         return send_from_directory(upload_folder, filename)
 
-    app.logger.info("Đã cấu hình route uploads tại /uploads -> %s", upload_folder)
+    app.logger.info("Đã cấu hình route uploads tại /uploads -> %s", default_upload_folder)
     # Note: Default static folder (mindstack_app/static) is preserved for app assets (favicon, css, js).
+
 
 
 def register_context_processors(app: Flask) -> None:
