@@ -31,6 +31,12 @@ def api_mark_all_read():
     NotificationService.mark_all_as_read(current_user.user_id)
     return jsonify({'success': True})
 
+@notification_bp.route('/api/delete/<int:notif_id>', methods=['DELETE'])
+@login_required
+def api_delete_notification(notif_id):
+    success = NotificationService.delete(notif_id, current_user.user_id)
+    return jsonify({'success': success})
+
 @notification_bp.route('/api/subscribe', methods=['POST'])
 @login_required
 def api_subscribe():

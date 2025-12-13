@@ -89,6 +89,21 @@ class NotificationService:
             db.session.commit()
             return True
         return False
+
+    @staticmethod
+    def mark_all_as_read(user_id):
+        Notification.query.filter_by(user_id=user_id, is_read=False).update({'is_read': True})
+        db.session.commit()
+        return True
+
+    @staticmethod
+    def delete(notification_id, user_id):
+        notif = Notification.query.filter_by(id=notification_id, user_id=user_id).first()
+        if notif:
+            db.session.delete(notif)
+            db.session.commit()
+            return True
+        return False
         
     @staticmethod
     def check_daily_study_reminder(user_id):
