@@ -844,6 +844,165 @@
             border-radius: 1rem;
         }
     }
+
+    /* === HUB MODAL - APP-LIKE STYLING (Copied from Single Mode) === */
+    .qb-modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease-out;
+    }
+
+    .qb-modal-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 101;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        height: 85vh;
+        border-radius: 24px 24px 0 0;
+        transform: translateY(100%);
+        transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 -20px 60px rgba(15, 23, 42, 0.15), 0 -4px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .qb-modal-container::before {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 36px;
+        height: 4px;
+        background: #cbd5e1;
+        border-radius: 2px;
+    }
+
+    .qb-modal-overlay.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .qb-modal-overlay.open .qb-modal-container {
+        transform: translateY(0);
+    }
+
+    .qb-hub-header {
+        padding: 1.25rem 1.25rem 0.75rem;
+        background: transparent;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+    }
+
+    .qb-hub-header h3 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.01em;
+    }
+
+    .qb-hub-header button {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: #f1f5f9;
+        color: #64748b;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .qb-hub-header button:hover {
+        background: #e2e8f0;
+        color: #334155;
+    }
+
+    .qb-hub-tabs {
+        display: flex;
+        background: #f1f5f9;
+        padding: 4px;
+        margin: 0 1rem 0.5rem;
+        border-radius: 12px;
+        gap: 4px;
+        border: none;
+    }
+
+    .qb-hub-tab-item {
+        flex: 1;
+        text-align: center;
+        padding: 10px 12px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: #64748b;
+        cursor: pointer;
+        border-radius: 9px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .qb-hub-tab-item:hover:not(.active) {
+        color: #475569;
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .qb-hub-tab-item.active {
+        color: #2563eb;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Hub Content Cards Styling */
+    .qb-hub-pane .bg-blue-50,
+    .qb-hub-pane .bg-gradient-to-r {
+        border-radius: 16px !important;
+        border: 1px solid rgba(59, 130, 246, 0.1) !important;
+    }
+
+    .qb-hub-pane {
+        display: none;
+    }
+
+    .qb-hub-pane.active {
+        display: block;
+        animation: hubFadeIn 0.25s ease-out;
+    }
+
+    @keyframes hubFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Allow selection in content for translator */
+    .markdown-body,
+    .qb-hub-content,
+    .question-card {
+        user-select: text !important;
+        -webkit-user-select: text !important;
+    }
 </style>
 {% endblock %}
 
@@ -853,8 +1012,9 @@
 {% include "quiz/individual/session/_quiz_session_batch_desktop.html" %}
 
 {# Hub Modal (Shared) #}
-<div id="hub-modal" class="qb-modal-overlay">
-    <div class="qb-modal-container">
+{# Hub Modal (Shared) #}
+<div id="explanation-hub-modal" class="qb-modal-overlay">
+    <div class="qb-modal-container desktop:max-w-xl desktop:mx-auto desktop:h-[80vh] desktop:rounded-2xl">
 
         <div class="qb-hub-header">
             <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
@@ -1826,7 +1986,7 @@
 
     // === HUB LOGIC ===
     const dom = {
-        hubModal: document.getElementById('hub-modal'),
+        hubModal: document.getElementById('explanation-hub-modal'),
         closeHubBtn: document.getElementById('close-hub-btn'),
         hubExplText: document.getElementById('hub-explanation-text'),
         hubAiContent: document.getElementById('hub-ai-content'),

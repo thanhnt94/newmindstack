@@ -37,6 +37,10 @@ const MsTranslator = {
             const explanationVisible = document.querySelector('.explanation-container') ||
                 document.querySelector('.result-feedback') ||
                 document.querySelector('.correct-answer-display') ||
+                document.querySelector('.option-button.correct') || /* Quiz Answered */
+                document.querySelector('.js-result-panel:not(.hidden)') || /* Single Mode Result */
+                document.querySelector('.qb-modal-overlay.open') || /* Hub/Modal Open */
+                document.querySelector('.question-insights:not(.hidden)') || /* Batch Inline (if used) */
                 // Also check if we are in "Review" mode or "History"
                 path.includes('/review');
 

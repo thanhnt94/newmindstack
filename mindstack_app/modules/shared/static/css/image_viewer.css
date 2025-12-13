@@ -1,0 +1,87 @@
+/* MindStack Image Viewer CSS */
+
+.ms-iv-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.ms-iv-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.ms-iv-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    display: flex;
+    justify-content: flex-end;
+    z-index: 10001;
+}
+
+.ms-iv-close {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.ms-iv-close:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.ms-iv-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* Important for creating a viewport for the image */
+}
+
+.ms-iv-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    cursor: zoom-in;
+    touch-action: none; /* Disable browser zooming/scrolling to allow custom handling */
+}
+
+.ms-iv-img.panning {
+    transition: none; /* Disable transition during drag for smoothness */
+    cursor: grabbing;
+}
+
+.ms-iv-hint {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.8);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    pointer-events: none;
+    z-index: 10000;
+}

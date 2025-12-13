@@ -521,7 +521,7 @@
         }
 
         body {
-            padding-top: 140px !important;
+            padding-top: 165px !important;
             padding-bottom: 70px;
         }
 
@@ -921,6 +921,14 @@
         #tab-pane-stats {
             display: block !important;
         }
+    }
+
+    /* Allow selection in content for translator */
+    .markdown-body,
+    .qb-hub-content,
+    .question-card {
+        user-select: text !important;
+        -webkit-user-select: text !important;
     }
 </style>
 {% endblock %}

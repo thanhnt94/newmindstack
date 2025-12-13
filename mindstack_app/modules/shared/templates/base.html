@@ -437,6 +437,9 @@ Mục đích: Đã khôi phục trạng thái ban đầu để tránh ảnh hư�
         });
     </script>
     <script src="{{ url_for('translator.static', filename='js/translator.js') }}"></script>
+    {# Image Viewer Helper #}
+    <link rel="stylesheet" href="{{ url_for('shared.static', filename='css/image_viewer.css') }}">
+    <script src="{{ url_for('shared.static', filename='js/image_viewer.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 
