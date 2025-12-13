@@ -2,7 +2,65 @@ from flask import render_template, request, redirect, url_for, flash, current_ap
 from flask_login import login_required, current_user
 from . import admin_bp
 from ...modules.gamification.models import Badge
-from ...models import db
+from ...models import db, SystemSetting
+
+@admin_bp.route('/gamification/points')
+@login_required
+def gamification_points():
+    """Hiển thị trang cấu hình điểm số."""
+    if current_user.user_role != 'admin':
+        flash('Bạn không có quyền truy cập.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    return render_template('admin_gamification/points_settings.html', active_tab='points', config=current_app.config, active_page='badges')
+
+@admin_bp.route('/gamification/points/update', methods=['POST'])
+@login_required
+def update_gamification_points():
+    """Cập nhật các giá trị cấu hình điểm số."""
+    if current_user.user_role != 'admin':
+        return redirect(url_for('main.dashboard'))
+    
+    try:
+        updated_count = 0
+        for key, value in request.form.items():
+            # Chỉ xử lý các key viết hoa (convention cho config)
+            if not key.isupper():
+                continue
+            
+            # Tìm setting trong DB
+            setting = SystemSetting.query.filter_by(key=key).first()
+            if setting:
+                # Basic type conversion based on inferred type or try int
+                if setting.data_type == 'int':
+                    try:
+                        setting.value = int(value)
+                    except ValueError:
+                        setting.value = 0 # Fallback
+                elif setting.data_type == 'bool':
+                    setting.value = (value.lower() in ['true', '1', 'on'])
+                else:
+                    setting.value = value
+                
+                updated_count += 1
+            else:
+                # Nếu chưa có trong DB (lạ, vì config_service ensure_defaults), tạo mới?
+                # Tốt nhất là bỏ qua hoặc log warning.
+                current_app.logger.warning(f"Setting key {key} not found in DB during update.")
+
+        db.session.commit()
+        
+        # Reload config ngay lập tức
+        if 'config_service' in current_app.extensions:
+            current_app.extensions['config_service'].load_settings(force=True)
+
+        flash(f'Đã cập nhật {updated_count} cấu hình điểm số.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating gamification points: {e}")
+        flash('Có lỗi xảy ra khi lưu cấu hình.', 'error')
+
+    return redirect(url_for('admin.gamification_points'))
 
 @admin_bp.route('/gamification/badges')
 @login_required
@@ -10,17 +68,18 @@ def list_badges():
     """Hiển thị danh sách huy hiệu."""
     if current_user.user_role != 'admin':
         flash('Bạn không có quyền truy cập.', 'error')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
         
     badges = Badge.query.order_by(Badge.created_at.desc()).all()
-    return render_template('admin_gamification/badges_list.html', badges=badges)
+    # Pass active_tab='badges'
+    return render_template('admin_gamification/badges_list.html', badges=badges, active_tab='badges', active_page='badges')
 
 @admin_bp.route('/gamification/badges/new', methods=['GET', 'POST'])
 @login_required
 def create_badge():
     """Tạo huy hiệu mới."""
     if current_user.user_role != 'admin':
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
 
     if request.method == 'POST':
         try:
@@ -53,7 +112,7 @@ def create_badge():
 def edit_badge(badge_id):
     """Sửa huy hiệu."""
     if current_user.user_role != 'admin':
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
         
     badge = Badge.query.get_or_404(badge_id)
     
@@ -81,7 +140,7 @@ def edit_badge(badge_id):
 def delete_badge(badge_id):
     """Xóa huy hiệu."""
     if current_user.user_role != 'admin':
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
     
     badge = Badge.query.get_or_404(badge_id)
     try:

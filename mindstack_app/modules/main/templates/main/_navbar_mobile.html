@@ -1,26 +1,31 @@
-{# ================= MOBILE TOP NAVBAR - REUSABLE ================= #}
-<div class="flex-shrink-0 bg-white px-5 py-4 flex items-center justify-between border-b border-slate-200 relative z-20">
-    <div class="flex items-center gap-3 animate-slide-in-left">
-        <!-- BRAND TEXT -->
+{# ================= MOBILE TOP NAVBAR - REUSABLE (Synced with Dashboard V2) ================= #}
+<div
+    class="lg:hidden px-6 pt-5 pb-3 flex items-center justify-between sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md">
+    <div class="flex items-center gap-3">
+        <div
+            class="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold border-2 border-white shadow-sm text-lg">
+            {{ current_user.username[0] | upper }}
+        </div>
         <div>
-            <h1 class="text-base font-black text-slate-900 tracking-tight leading-none mb-0.5">
-                MindStack</h1>
-            <p class="text-xs text-slate-500 font-medium">Xin chào, {{ current_user.username }}</p>
+            <h1 class="text-lg font-bold text-slate-800 leading-none">Hi, {{ current_user.username }}!</h1>
+            <p class="text-xs text-slate-500 font-medium mt-1 line-clamp-1">Chúc bạn một ngày học tập hiệu quả!</p>
         </div>
     </div>
-    <div class="flex items-center gap-3 animate-slide-in-right">
+
+    <div class="flex items-center gap-2">
         <!-- Notification Bell -->
         <button id="mobile-noti-btn" onclick="toggleNotificationCenter()"
-            class="relative w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600 transition-colors active:scale-95 border border-slate-100 shadow-sm">
+            class="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors shadow-sm relative active:scale-95">
             <i class="fa-solid fa-bell"></i>
             <span id="mobile-noti-badge"
                 class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm hidden">0</span>
         </button>
 
-        <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-2 rounded-xl">
-            <i class="fa-solid fa-fire text-white text-sm"></i>
-            <span class="text-sm font-bold text-white">{{ score_cards[3].value if score_cards and score_cards|length > 3
-                else 0 }}</span>
+        <!-- Total Score -->
+        <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+            <i class="fa-solid fa-star text-amber-500 text-sm animation-bounce"></i>
+            <span class="text-xs font-bold text-slate-700">{{ "{:,}".format(current_user.total_score if
+                current_user.total_score is not none else 0) }}</span>
         </div>
     </div>
 </div>

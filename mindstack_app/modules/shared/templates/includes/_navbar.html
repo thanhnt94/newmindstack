@@ -64,6 +64,16 @@ Mục đích: Cập nhật navbar theo yêu cầu:
 
     <ul class="flex items-center space-x-4">
         {% if current_user.is_authenticated %}
+
+        <!-- Total Score -->
+        <li class="relative hidden sm:block">
+            <div class="flex items-center bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full border border-amber-200">
+                <i class="fas fa-star text-amber-500 mr-2 animation-bounce"></i>
+                <span class="font-bold text-sm">{{ "{:,}".format(current_user.total_score if current_user.total_score is
+                    not none else 0) }}</span>
+            </div>
+        </li>
+
         <!-- Notification Bell -->
         <li class="relative">
             <button id="desktop-noti-btn" onclick="toggleNotificationCenter()"

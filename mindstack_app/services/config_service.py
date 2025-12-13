@@ -221,6 +221,12 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "data_type": "int",
                 "description": "Điểm thưởng hoàn thành toàn bộ khóa học.",
             },
+            {
+                "key": "DAILY_LOGIN_SCORE",
+                "value": 10,
+                "data_type": "int",
+                "description": "Điểm thưởng cho lần đăng nhập đầu tiên trong ngày.",
+            },
         ]
 
     @app.before_request

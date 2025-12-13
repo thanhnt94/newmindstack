@@ -75,8 +75,10 @@ class ScoreService:
         ).first()
         
         if not existing:
-            # Thưởng 10 điểm cho việc đăng nhập
-            return ScoreService.award_points(user_id, 10, 'Đăng nhập hàng ngày', item_type='LOGIN')
+            # Thưởng điểm cho việc đăng nhập
+            from mindstack_app.services.config_service import get_runtime_config
+            points = int(get_runtime_config('DAILY_LOGIN_SCORE', 10))
+            return ScoreService.award_points(user_id, points, 'Đăng nhập hàng ngày', item_type='LOGIN')
         
         # Nếu đã login rồi thì vẫn check badge (phòng trường hợp cấu hình badge thay đổi)
         BadgeService.check_and_award_badges(user_id, 'LOGIN')

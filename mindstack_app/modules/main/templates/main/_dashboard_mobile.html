@@ -25,6 +25,11 @@
             </button>
 
             <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+                <i class="fa-solid fa-star text-amber-500 text-sm animation-bounce"></i>
+                <span class="text-xs font-bold text-slate-700">{{ "{:,}".format(score_overview.total) }}</span>
+            </div>
+
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
                 <i class="fa-solid fa-fire text-orange-500 text-sm animation-bounce"></i>
                 <span class="text-xs font-bold text-slate-700">{{ score_overview.active_days }}</span>
             </div>
