@@ -1,22 +1,26 @@
 {#
-    File: mindstack_app/modules/shared/templates/includes/_navbar.html
-    Phiên bản: 3.2
-    Mục đích: Cập nhật navbar theo yêu cầu:
-              - Thêm link "Quản lý Phản hồi" vào menu thả xuống của người dùng.
-              - Thêm link "Quản lý nội dung" vào menu thả xuống của người dùng.
-              - Sửa lỗi `BuildError` bằng cách đổi endpoint từ 'content_management.dashboard' sang 'content_management.content_dashboard'.
-              - ĐÃ THÊM: Thêm link "Mục tiêu học tập" vào menu thả xuống.
+File: mindstack_app/modules/shared/templates/includes/_navbar.html
+Phiên bản: 3.2
+Mục đích: Cập nhật navbar theo yêu cầu:
+- Thêm link "Quản lý Phản hồi" vào menu thả xuống của người dùng.
+- Thêm link "Quản lý nội dung" vào menu thả xuống của người dùng.
+- Sửa lỗi `BuildError` bằng cách đổi endpoint từ 'content_management.dashboard' sang
+'content_management.content_dashboard'.
+- ĐÃ THÊM: Thêm link "Mục tiêu học tập" vào menu thả xuống.
 #}
 {% macro render_navbar(current_user, request) %}
 <style>
-    @media (max-width: 767px) { /* Tailwind's 'md' breakpoint is 768px */
+    @media (max-width: 767px) {
+
+        /* Tailwind's 'md' breakpoint is 768px */
         .navbar-text-mobile-hide {
             display: none !important;
         }
     }
 </style>
 <nav class="container mx-auto px-2 sm:px-3 md:px-4 py-3 flex items-center justify-between">
-    <a href="{{ url_for('main.index') }}" class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">
+    <a href="{{ url_for('main.index') }}"
+        class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">
         <i class="fas fa-brain text-2xl md:text-3xl text-blue-400"></i>
         <span class="text-lg md:text-[20px] font-normal navbar-text-mobile-hide">Mindstack</span>
     </a>
@@ -60,40 +64,59 @@
 
     <ul class="flex items-center space-x-4">
         {% if current_user.is_authenticated %}
+        <!-- Notification Bell -->
+        <li class="relative">
+            <button id="desktop-noti-btn" onclick="toggleNotificationCenter()"
+                class="text-gray-600 hover:text-blue-500 transition-colors relative p-1 focus:outline-none">
+                <i class="fas fa-bell text-xl"></i>
+                <span id="desktop-noti-badge"
+                    class="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+            </button>
+        </li>
+
         <li class="relative group">
             <a class="text-gray-600 font-medium hover:text-blue-500 flex items-center" href="#">
                 <span class="hidden md:inline mr-2">{{ current_user.username }}</span>
                 <i class="fas fa-user-circle text-2xl md:text-xl"></i>
             </a>
-            <div class="absolute right-0 w-48 origin-top-right transform scale-95 opacity-0 invisible group-hover:visible group-hover:opacity-100 group-hover:scale-100 transition duration-200 ease-out z-50">
+            <div
+                class="absolute right-0 w-48 origin-top-right transform scale-95 opacity-0 invisible group-hover:visible group-hover:opacity-100 group-hover:scale-100 transition duration-200 ease-out z-50">
                 <div class="bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
-                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('user_profile.view_profile') }}">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="{{ url_for('user_profile.view_profile') }}">
                         <i class="fas fa-user mr-2 w-4"></i> Profile
                     </a>
-                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('notes.manage_notes') }}">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="{{ url_for('notes.manage_notes') }}">
                         <i class="fas fa-sticky-note mr-2 w-4"></i> Ghi chú của tôi
                     </a>
-                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('stats.dashboard') }}">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="{{ url_for('stats.dashboard') }}">
                         <i class="fas fa-chart-line mr-2 w-4"></i> Thống kê
                     </a>
                     {# THÊM MỚI: Link Mục tiêu học tập #}
-                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('goals.manage_goals') }}">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="{{ url_for('goals.manage_goals') }}">
                         <i class="fas fa-bullseye mr-2 w-4"></i> Mục tiêu học tập
                     </a>
                     {# Link Quản lý nội dung #}
-                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('content_management.content_dashboard') }}">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="{{ url_for('content_management.content_dashboard') }}">
                         <i class="fas fa-folder-open mr-2 w-4"></i> Quản lý nội dung
                     </a>
-                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('feedback.manage_feedback') }}">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="{{ url_for('feedback.manage_feedback') }}">
                         <i class="fas fa-comment-dots mr-2 w-4"></i> Quản lý Phản hồi
                     </a>
                     {% if current_user.user_role == 'admin' %}
-                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('admin.admin_dashboard') }}">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="{{ url_for('admin.admin_dashboard') }}">
                         <i class="fas fa-user-shield mr-2 w-4"></i> Admin
                     </a>
                     {% endif %}
                     <div class="h-px bg-gray-200 my-1"></div>
-                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('auth.logout') }}">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="{{ url_for('auth.logout') }}">
                         <i class="fas fa-sign-out-alt mr-2 w-4"></i> Đăng xuất
                     </a>
                 </div>
@@ -104,7 +127,8 @@
             <a class="text-blue-600 hover:text-blue-800 font-medium" href="{{ url_for('auth.login') }}">Đăng nhập</a>
         </li>
         <li>
-            <a class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300" href="{{ url_for('auth.register') }}">Đăng ký</a>
+            <a class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300"
+                href="{{ url_for('auth.register') }}">Đăng ký</a>
         </li>
         {% endif %}
     </ul>

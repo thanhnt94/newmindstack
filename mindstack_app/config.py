@@ -58,5 +58,10 @@ class Config:
     os.makedirs(FLASHCARD_AUDIO_CACHE_DIR, exist_ok=True)
     os.makedirs(FLASHCARD_IMAGE_CACHE_DIR, exist_ok=True)
     
+    # VAPID Keys for Web Push
+    VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY') or 'vBQf0zqOP5TLHh-c2WHtDtDTXiu1Ob8u-C7trsxJovM'
+    VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY') or 'BIoWOOLv0kTB0pee0MDsAOFrS0HdQoJOntmlwXOGRt84vh46XJns0lYspcAm5lPo82u3gbcHBEcVUqwJgAEODaQ'
+    VAPID_EMAIL = os.environ.get('VAPID_EMAIL') or 'mailto:admin@mindstack.app'
+
     # THÊM MỚI: Đảm bảo thư mục backup tồn tại khi ứng dụng khởi chạy
     os.makedirs(BACKUP_FOLDER, exist_ok=True)
