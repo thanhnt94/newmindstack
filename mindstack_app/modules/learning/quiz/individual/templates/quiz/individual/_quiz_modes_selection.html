@@ -1,39 +1,10 @@
-<div class="w-full space-y-3">
-    {# Dropdown chọn số lượng câu hỏi trong phiên học #}
-    <div class="mb-4 p-4 bg-white rounded-lg border border-gray-200">
-        <label for="session-size-select" class="block text-sm font-medium text-gray-700 mb-2">Số câu hỏi trong một phiên học:</label>
-        <select id="session-size-select" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-            <option value="1" {% if user_default_batch_size == 1 %}selected{% endif %}>1 câu</option>
-            <option value="3" {% if user_default_batch_size == 3 %}selected{% endif %}>3 câu</option>
-            <option value="5" {% if user_default_batch_size == 5 %}selected{% endif %}>5 câu</option>
-            <option value="10" {% if user_default_batch_size == 10 %}selected{% endif %}>10 câu</option>
-            <option value="20" {% if user_default_batch_batch_size == 20 %}selected{% endif %}>20 câu</option>
-            <option value="50" {% if user_default_batch_size == 50 %}selected{% endif %}>50 câu</option>
-        </select>
-    </div>
-
-    {% if modes %}
-        {% for mode in modes %}
-            {# Chỉ hiển thị các mode được yêu cầu #}
-            {% if mode.id in ['new_only', 'due_only', 'hard_only'] %}
-            {% set is_disabled_mode = (mode.count == 0) %}
-            <div class="quiz-mode-item bg-white p-4 rounded-lg border border-gray-200 transition-colors duration-200 flex justify-between items-center 
-                        {% if is_disabled_mode %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:bg-gray-100{% endif %}" 
-                 data-mode-id="{{ mode.id }}"
-                 data-count="{{ mode.count }}"
-                 {% if is_disabled_mode %}title="Chế độ này không có câu hỏi nào khả dụng."{% endif %}>
-                <h3 class="font-semibold text-gray-800">{{ mode.name }}</h3>
-                <div class="flex items-center">
-                    {# THAY ĐỔI: Loại bỏ nền, padding và bo tròn, tăng kích thước font để đồng bộ với giao diện phẳng #}
-                    <span class="text-lg font-semibold text-gray-700">{{ mode.count }}</span>
-                </div>
-            </div>
-            {% endif %}
-        {% endfor %}
-    {% else %}
-        <div class="text-center py-12 px-6 text-gray-600">
-            <i class="fas fa-info-circle text-5xl text-gray-300 mb-4"></i>
-            <p>Không có chế độ học nào khả dụng.</p>
-        </div>
-    {% endif %}
+{# =============================== #}
+{# File: _quiz_modes_selection.html #}
+{# Wrapper to switch between mobile/desktop modes templates #}
+{# =============================== #}
+<div class="lg:hidden">
+    {% include 'quiz/individual/_quiz_modes_selection_mobile.html' %}
+</div>
+<div class="hidden lg:block">
+    {% include 'quiz/individual/_quiz_modes_selection_desktop.html' %}
 </div>
