@@ -837,6 +837,7 @@
 {# Hub Modal (Shared) #}
 <div id="hub-modal" class="qb-modal-overlay">
     <div class="qb-modal-container">
+
         <div class="qb-hub-header">
             <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
             <button id="close-hub-btn"
@@ -980,12 +981,11 @@
                 const titles = JSON.parse(storedTitles);
                 const titleString = Object.values(titles).join(', ');
                 if (titleString) {
-                    setText('.js-quiz-set-title', titleString.length > 35 ? titleString.substring(0, 35) + '...' : titleString);
+                    setText('.js-quiz-set-title', titleString); // Full title, no truncation
                 }
             }
-            // Mode Label
-            const modeName = getModeNameFromStorage(); // Implement helper
-            setText('.js-quiz-mode-label', modeName);
+            // Mode Label - Static as per user request
+            setText('.js-quiz-mode-label', "QUIZ INDIVIDUAL BATCH");
         } catch (e) {
             console.error('Error loading titles', e);
         }
@@ -1076,6 +1076,9 @@
             currentQuestionBatch.forEach(q => {
                 renderFeedbackForQuestion(q); // Helper to render feedback
             });
+            // Reveal all hints/explanations after submission
+            document.querySelectorAll('.js-hint-btn').forEach(btn => btn.classList.remove('hidden'));
+            document.querySelectorAll('.js-batch-explain-btn').forEach(btn => btn.classList.remove('hidden'));
         }
     }
 
@@ -1287,14 +1290,18 @@
                 <div class="question-card" data-item-id="${questionData.item_id}">
                     <div class="flex justify-between items-center text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">
                         <span>Câu ${questionNumber}</span>
-                        <div class="flex items-center gap-1">
-                            <button class="text-slate-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition js-feedback-btn" data-item-id="${questionData.item_id}" title="Báo lỗi / Góp ý">
-                                <i class="fa-solid fa-flag text-lg"></i>
-                            </button>
-                            <button class="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition js-open-hub-btn" data-item-id="${questionData.item_id}" title="Chi tiết & Học tập">
-                                <i class="fa-solid fa-lightbulb text-lg"></i>
-                            </button>
-                        </div>
+                        <div class="flex items-center gap-3">
+                         <div class="flex gap-2">
+                             <button class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-colors js-report-error-btn"
+                                     data-question-id="${questionData.item_id}" title="Báo lỗi">
+                                 <i class="fa-regular fa-flag"></i>
+                             </button>
+                             <button class="w-8 h-8 rounded-full bg-slate-50 text-yellow-500 hover:bg-yellow-50 flex items-center justify-center transition-colors js-hint-btn hidden"
+                                     data-question-id="${questionData.item_id}" title="Gợi ý/Giải thích">
+                                 <i class="fa-regular fa-lightbulb"></i>
+                             </button>
+                         </div>
+                    </div>
                     </div>
                     <h2 class="text-xl font-bold text-slate-900 mb-4">${formatTextForHtml(content.question)}</h2>
                     ${mediaHtml}

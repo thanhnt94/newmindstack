@@ -8,9 +8,9 @@
                 <div class="flex items-center gap-2 overflow-hidden">
                     <span class="qb-context-pill">
                         <i class="fa-solid fa-layer-group"></i>
-                        <span class="js-quiz-mode-label uppercase tracking-wider">Loading...</span>
+                        <span class="js-quiz-mode-label uppercase tracking-wider">Quiz Individual Batch</span>
                     </span>
-                    <span class="font-bold text-slate-700 text-sm qb-context-trunc js-quiz-set-title">--</span>
+                    {# Title removed from Row 1 #}
                 </div>
                 <div class="flex gap-2">
                     <a href="/"
@@ -22,24 +22,43 @@
                 </div>
             </div>
 
-            {# --- Row 2: Stats --- #}
-            <div class="flex items-center justify-between px-4 py-3 bg-white">
-                <div class="flex items-center gap-4">
-                    <div class="flex flex-col">
+            {# --- Row 2: Stats & Title --- #}
+            <div class="flex items-center px-4 py-3 bg-white gap-3 overflow-hidden">
+                {# Stats Group #}
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    {# Progress #}
+                    <div class="flex flex-col items-center">
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
-                        <span class="text-lg font-black text-slate-800 leading-none js-quiz-total-label">0/0</span>
+                        <span class="text-base font-black text-slate-800 leading-none js-quiz-total-label">0/0</span>
                     </div>
+
                     <div class="h-6 w-px bg-slate-200"></div>
-                    <div class="flex flex-col">
+
+                    {# Correct #}
+                    <div class="flex flex-col items-center">
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đúng</span>
                         <span
-                            class="text-lg font-black text-emerald-600 leading-none font-mono js-session-correct-count">0</span>
+                            class="text-base font-black text-emerald-600 leading-none font-mono js-session-correct-count">0</span>
+                    </div>
+
+                    <div class="h-6 w-px bg-slate-200"></div>
+
+                    {# Accuracy #}
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Điểm</span>
+                        <span
+                            class="text-base font-black text-blue-600 leading-none font-mono js-session-accuracy">0%</span>
                     </div>
                 </div>
 
-                <div class="flex flex-col items-end">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Điểm số</span>
-                    <span class="text-lg font-black text-blue-600 leading-none font-mono js-session-accuracy">0%</span>
+                {# Separator #}
+                <div class="h-8 w-px bg-slate-300 flex-shrink-0"></div>
+
+                {# Title Group #}
+                <div class="flex flex-col overflow-hidden flex-1 items-center text-center">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bộ câu hỏi</span>
+                    <span
+                        class="text-sm font-bold text-slate-700 leading-tight qb-header-title-full js-quiz-set-title line-clamp-2">--</span>
                 </div>
             </div>
         </div>
@@ -69,7 +88,8 @@
     <div class="qb-bottom-bar">
         <div class="flex gap-2 w-full js-quiz-controls">
             <button type="button"
-                class="w-12 flex-shrink-0 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200 js-mobile-hub-btn">
+                class="w-12 flex-shrink-0 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200 js-batch-explain-btn hidden"
+                style="display: none;">
                 <i class="fa-solid fa-lightbulb text-xl"></i>
             </button>
             <button type="button" class="cm-btn cm-btn-primary w-full shadow-lg js-submit-batch-btn">

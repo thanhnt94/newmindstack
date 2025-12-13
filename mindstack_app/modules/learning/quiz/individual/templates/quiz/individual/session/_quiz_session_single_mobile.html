@@ -2,38 +2,63 @@
 <div class="lg:hidden">
     {# === MOBILE APP HEADER === #}
     <div class="qb-mobile-sticky-wrapper">
-        {# === CONTEXT BAR: Mode & Quiz Set Name === #}
-        <div class="qb-context-bar">
-            <div class="qb-context-mode">
-                <i class="fa-solid fa-user"></i>
-                <span>Quiz Individual</span>
-            </div>
-            <div class="qb-context-set js-quiz-set-name">
-                <i class="fa-solid fa-folder-open"></i>
-                <span class="truncate">Đang tải...</span>
-            </div>
-        </div>
-
-        <div class="qb-mobile-header">
-            <div class="flex items-center gap-3">
-                <div class="flex flex-col">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
-                    <span class="text-lg font-black text-slate-800 leading-none js-stat-progress-text">--/--</span>
+        <div class="qb-mobile-header flex-col items-stretch !p-0">
+            {# --- Row 1: Context Info --- #}
+            <div class="qb-context-bar justify-between">
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <span class="qb-context-pill">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span class="uppercase tracking-wider">Quiz Individual</span>
+                    </span>
                 </div>
-                <div class="h-6 w-px bg-slate-200"></div>
-                <div class="flex flex-col">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đúng</span>
-                    <span class="text-lg font-black text-emerald-600 leading-none font-mono js-stat-correct">0</span>
+                <div class="flex gap-2">
+                    <a href="/"
+                        class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200"><i
+                            class="fa-solid fa-house text-xs"></i></a>
+                    <button id="mobile-exit-btn"
+                        class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200"><i
+                            class="fa-solid fa-right-from-bracket text-xs"></i></button>
                 </div>
             </div>
 
-            <div class="flex gap-2">
-                <a href="/"
-                    class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
-                        class="fa-solid fa-house"></i></a>
-                <button id="mobile-exit-btn"
-                    class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
-                        class="fa-solid fa-right-from-bracket"></i></button>
+            {# --- Row 2: Stats & Title --- #}
+            <div class="flex items-center px-4 py-3 bg-white gap-3 overflow-hidden">
+                {# Stats Group #}
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    {# Progress #}
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
+                        <span class="text-base font-black text-slate-800 leading-none js-stat-progress-text">0/0</span>
+                    </div>
+
+                    <div class="h-6 w-px bg-slate-200"></div>
+
+                    {# Correct #}
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đúng</span>
+                        <span
+                            class="text-base font-black text-emerald-600 leading-none font-mono js-stat-correct">0</span>
+                    </div>
+
+                    <div class="h-6 w-px bg-slate-200"></div>
+
+                    {# Accuracy #}
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Điểm</span>
+                        <span
+                            class="text-base font-black text-blue-600 leading-none font-mono js-stat-accuracy">0%</span>
+                    </div>
+                </div>
+
+                {# Separator #}
+                <div class="h-8 w-px bg-slate-300 flex-shrink-0"></div>
+
+                {# Title Group #}
+                <div class="flex flex-col overflow-hidden flex-1 items-center text-center">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bộ câu hỏi</span>
+                    <span
+                        class="text-sm font-bold text-slate-700 leading-tight qb-header-title-full js-quiz-set-title line-clamp-2">--</span>
+                </div>
             </div>
         </div>
 
