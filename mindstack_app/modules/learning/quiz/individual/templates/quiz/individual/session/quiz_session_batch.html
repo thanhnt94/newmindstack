@@ -1490,71 +1490,6 @@
                     ${mediaHtml}
                     <div class="options-container">${optionsHtml}</div>
                     <div class="feedback-area mt-4"></div>
-                    
-                    <!-- INSIGHTS & LEARNING SECTION (Unified style) -->
-                    <div class="question-insights hidden mt-6 border-t border-slate-100 pt-6" id="insights-${questionData.item_id}">
-                        
-                        <!-- 1. Explanation (Standard) -->
-                        <div class="mb-6 explanation-section hidden lg:block">
-                            <h5 class="flex items-center text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">
-                                <i class="fas fa-info-circle text-blue-500 mr-2"></i> Giải thích chi tiết
-                            </h5>
-                            <div class="text-slate-700 leading-relaxed explanation-content markdown-body bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                ${questionData.explanation ? formatTextForHtml(questionData.explanation) : '<span class="italic text-slate-400">Chưa có giải thích.</span>'}
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            <!-- 2. AI Coach -->
-                            <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 hover:border-blue-200 transition-colors">
-                                <div class="flex justify-between items-center mb-3">
-                                    <h5 class="text-sm font-bold text-blue-800 flex items-center">
-                                        <i class="fas fa-robot mr-2 text-lg"></i> AI Coach
-                                    </h5>
-                                    <button class="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition font-medium shadow-sm js-ai-gen-btn ${questionData.ai_explanation ? 'hidden' : ''}" 
-                                            data-id="${questionData.item_id}">
-                                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Giải thích AI
-                                    </button>
-                                </div>
-                                <div class="text-sm text-slate-700 markdown-body ai-content prose prose-sm max-w-none" id="ai-content-${questionData.item_id}">
-                                     ${questionData.ai_explanation || '<span class="italic text-slate-500 text-xs">Nhấn nút để yêu cầu AI phân tích chi tiết câu hỏi này.</span>'}
-                                </div>
-                            </div>
-
-                            <!-- 3. Personal Notes -->
-                            <div class="bg-yellow-50/50 p-4 rounded-xl border border-yellow-100 hover:border-yellow-200 transition-colors">
-                                 <div class="flex justify-between items-center mb-3">
-                                    <h5 class="text-sm font-bold text-yellow-800 flex items-center">
-                                        <i class="fas fa-sticky-note mr-2 text-lg"></i> Ghi chú
-                                    </h5>
-                                    <button class="text-xs text-yellow-700 hover:text-yellow-900 font-medium bg-white border border-yellow-200 px-3 py-1.5 rounded-lg shadow-sm js-note-edit-switch-btn" 
-                                            data-id="${questionData.item_id}">
-                                        <i class="fa-solid fa-pen mr-1"></i> Sửa
-                                    </button>
-                                </div>
-                                
-                                <!-- Display Mode -->
-                                <div class="note-display text-sm text-slate-700 whitespace-pre-wrap ${questionData.note_content ? '' : 'hidden'}" 
-                                     id="note-display-${questionData.item_id}">
-                                    ${questionData.note_content || ''}
-                                </div>
-                                
-                                <!-- Edit Mode -->
-                                <div class="note-edit ${questionData.note_content ? 'hidden' : ''}" id="note-edit-${questionData.item_id}">
-                                    <textarea class="w-full p-3 border border-yellow-300 rounded-lg text-sm mb-2 focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-white" 
-                                              rows="3" 
-                                              id="note-input-${questionData.item_id}"
-                                              placeholder="Viết ghi chú của bạn...">${questionData.note_content || ''}</textarea>
-                                    <div class="flex justify-end gap-2">
-                                         <button class="text-xs bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 px-3 py-1.5 rounded-lg font-medium js-note-cancel-btn" 
-                                                 data-id="${questionData.item_id}">Hủy</button>
-                                         <button class="text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm js-note-save-btn" 
-                                                 data-id="${questionData.item_id}">Lưu ghi chú</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             `;
     }
@@ -1626,6 +1561,15 @@
             btn.addEventListener('click', () => {
                 if (activeHubItemId) openHub(activeHubItemId);
                 else showCustomAlert("Hãy cuộn tới một câu hỏi.", "info");
+            });
+        });
+
+        // Lightbulb Button (Open Hub Modal)
+        document.querySelectorAll('.js-hint-btn').forEach(btn => {
+            btn.classList.remove('hidden'); // Ensure visible
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.dataset.questionId;
+                if (itemId) openHub(itemId);
             });
         });
 
