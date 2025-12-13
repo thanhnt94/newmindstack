@@ -1,54 +1,84 @@
-{# ================= MOBILE APP INTERFACE - MODERN FLAT DESIGN (v3.0) ================= #}
-<div class="lg:hidden fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard"
+{# ================= MOBILE APP INTERFACE - APP STYLE V2 (Scroll Btn) ================= #}
+<div class="lg:hidden fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard bg-slate-50"
     style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
 
-    {# === BACKGROUND === #}
-    <div class="fixed inset-0 bg-slate-50 -z-10"></div>
-    <div class="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-indigo-50/50 to-transparent -z-10"></div>
-
-    {# === TOP HEADER === #}
-    <div class="px-5 pt-4 pb-2 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
+    {# === HEADER === #}
+    <div class="px-6 pt-5 pb-3 flex items-center justify-between sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md">
         <div class="flex items-center gap-3">
-            {# Avatar Placeholder - Could be replaced with user image #}
             <div
-                class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold border-2 border-white shadow-sm">
+                class="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold border-2 border-white shadow-sm text-lg">
                 {{ current_user.username[0] | upper }}
             </div>
             <div>
-                <h1 class="text-base font-bold text-slate-800 leading-none">Hi, {{ current_user.username }}! 👋</h1>
-                <p class="text-xs text-slate-500 font-medium mt-1 line-clamp-1">{{ motivation_message or 'Sẵn sàng học
-                    tập chưa?' }}</p>
+                <h1 class="text-lg font-bold text-slate-800 leading-none">Hi, {{ current_user.username }}!</h1>
+                <p class="text-xs text-slate-500 font-medium mt-1 line-clamp-1">{{ motivation_message or 'Sẵn sàng bứt
+                    phá hôm nay?' }}</p>
             </div>
         </div>
 
-        {# Streak Badge #}
         <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
-            <i class="fa-solid fa-fire text-orange-500 text-xs animation-bounce"></i>
-            <span class="text-xs font-bold text-slate-700">{{ score_overview.active_days }} <span
-                    class="font-normal text-slate-400">ngày</span></span>
+            <i class="fa-solid fa-fire text-orange-500 text-sm animation-bounce"></i>
+            <span class="text-xs font-bold text-slate-700">{{ score_overview.active_days }}</span>
         </div>
     </div>
 
     {# === SCROLLABLE CONTENT === #}
-    <div class="flex-grow overflow-y-auto overflow-x-hidden p-5 space-y-6 pb-28 relative no-scrollbar">
+    <div class="flex-grow overflow-y-auto overflow-x-hidden px-6 pb-28 space-y-8 no-scrollbar pt-2">
 
-        {# 1. SHORTCUTS (Horizontal Scroll) #}
+        {# 1. HERO MOTIVATION CARD #}
+        {% if motivation_message %}
+        <div
+            class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden active:scale-[0.98] transition-transform">
+            <div class="absolute top-0 right-0 p-6 opacity-20">
+                <i class="fa-solid fa-quote-right text-6xl"></i>
+            </div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-3 opacity-90">
+                    <span class="bg-white/20 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">💡
+                        Daily Focus</span>
+                </div>
+                <p class="text-base font-medium leading-relaxed">
+                    {{ motivation_message }}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        {# 2. QUICK ACTIONS (Horizontal Scroll) #}
         {% if shortcut_actions %}
         <div>
-            <div class="flex items-center justify-between mb-3 px-1">
-                <h3 class="text-sm font-bold text-slate-800">Gợi ý cho bạn</h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>⚡</span> Gợi ý nhanh
+                </h3>
+                {# Manual Scroll Buttons #}
+                <div class="flex gap-2">
+                    <button
+                        onclick="document.getElementById('shortcuts-scroll').scrollBy({left: -200, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <button
+                        onclick="document.getElementById('shortcuts-scroll').scrollBy({left: 200, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
             </div>
-            <div class="flex gap-3 overflow-x-auto no-scrollbar snap-x -mx-5 px-5 pb-2">
+            <div id="shortcuts-scroll"
+                class="flex gap-4 overflow-x-auto no-scrollbar snap-x -mx-6 px-6 pb-2 scroll-smooth">
                 {% for action in shortcut_actions %}
                 <a href="{{ action.url }}"
-                    class="snap-start flex-shrink-0 w-64 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 active:scale-95 transition-transform">
+                    class="snap-start flex-shrink-0 w-40 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32 active:scale-95 transition-transform group hover:border-indigo-200">
                     <div
-                        class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg flex-shrink-0">
+                        class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:bg-indigo-100 transition-colors">
                         <i class="fa-solid fa-{{ action.icon }}"></i>
                     </div>
-                    <div class="min-w-0">
-                        <h4 class="font-bold text-sm text-slate-800 truncate">{{ action.title }}</h4>
-                        <p class="text-xs text-slate-500 line-clamp-1">{{ action.description }}</p>
+                    <div>
+                        <h4
+                            class="font-bold text-sm text-slate-800 leading-tight mb-1 group-hover:text-indigo-700 transition-colors">
+                            {{ action.title }}</h4>
+                        <p class="text-[10px] text-slate-400 line-clamp-1">{{ action.description }}</p>
                     </div>
                 </a>
                 {% endfor %}
@@ -56,169 +86,135 @@
         </div>
         {% endif %}
 
-        {# 2. STATS OVERVIEW (2x2 Grid) #}
-        <div>
-            <h3 class="text-sm font-bold text-slate-800 mb-3 px-1">Tổng quan</h3>
-            <div class="grid grid-cols-2 gap-3">
-                <!-- Score (Dark) -->
-                <div
-                    class="bg-slate-900 text-white p-4 rounded-2xl relative overflow-hidden shadow-lg shadow-slate-200">
-                    <i class="fa-solid fa-trophy absolute -bottom-2 -right-2 text-5xl text-white/10 rotate-12"></i>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Tổng điểm</p>
-                    <p class="text-2xl font-bold mt-1 tracking-tight">{{ "{:,}".format(score_overview.total) }}</p>
-                    <div class="mt-2 text-[10px] text-emerald-400 flex items-center gap-1">
-                        <i class="fa-solid fa-arrow-up"></i> {{ "{:,}".format(score_overview.today) }} hôm nay
-                    </div>
-                </div>
-
-                <!-- Due Cards (White) -->
-                <a href="{{ url_for('learning.flashcard.dashboard') }}"
-                    class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm relative active:scale-95 transition-transform">
-                    <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center mb-2">
-                        <i class="fa-solid fa-bolt text-xs"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-800">{{ flashcard_summary.due }}</p>
-                    <p class="text-xs font-semibold text-slate-500">Thẻ cần ôn</p>
-                </a>
-
-                <!-- Mastered (White) -->
-                <div class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm relative">
-                    <div
-                        class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center mb-2">
-                        <i class="fa-solid fa-check-circle text-xs"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-800">{{ quiz_summary.mastered }}</p>
-                    <p class="text-xs font-semibold text-slate-500">Quiz thành thạo</p>
-                </div>
-
-                <!-- Week Progress (White) -->
-                <div class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm relative">
-                    <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center mb-2">
-                        <i class="fa-solid fa-chart-line text-xs"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-800">{{ score_overview.week }}</p>
-                    <p class="text-xs font-semibold text-slate-500">Điểm tuần này</p>
-                </div>
+        {# 3. LIVE STATS #}
+        <div class="grid grid-cols-2 gap-4">
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-indigo-600 text-3xl font-black mb-1">{{ "{:,}".format(score_overview.total) }}</div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Điểm thưởng</div>
+            </div>
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-emerald-500 text-3xl font-black mb-1">{{ quiz_summary.mastered }}</div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Quiz Mastered</div>
             </div>
         </div>
 
-        {# 3. GOALS CAROUSEL #}
+        {# 4. YOUR GOALS #}
         {% if goal_progress %}
         <div>
-            <div class="flex items-center justify-between mb-3 px-1">
-                <h3 class="text-sm font-bold text-slate-800">Mục tiêu của bạn</h3>
-                <a href="{{ url_for('goals.manage_goals') }}" class="text-xs font-semibold text-indigo-600">Xem tất
-                    cả</a>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>🎯</span> Mục tiêu
+                </h3>
+                {# Manual Scroll Buttons #}
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('goals-scroll').scrollBy({left: -300, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <button onclick="document.getElementById('goals-scroll').scrollBy({left: 300, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
             </div>
-            <div class="flex gap-3 overflow-x-auto no-scrollbar snap-x -mx-5 px-5 pb-2">
+            <div id="goals-scroll" class="flex gap-4 overflow-x-auto no-scrollbar snap-x -mx-6 px-6 pb-4 scroll-smooth">
                 {% for goal in goal_progress %}
                 <div
-                    class="snap-center flex-shrink-0 w-[85vw] max-w-sm bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-                    <div
-                        class="absolute top-0 left-0 w-1 h-full {{ 'bg-emerald-500' if goal.is_completed else 'bg-indigo-500' }}">
-                    </div>
-                    <div class="flex items-start justify-between gap-3 pl-2">
-                        <div class="flex gap-3">
+                    class="snap-center flex-shrink-0 w-[80vw] bg-white rounded-3xl p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-50 relative overflow-hidden group hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex gap-3 items-center">
                             <div
-                                class="w-10 h-10 rounded-xl {{ 'bg-emerald-50 text-emerald-600' if goal.is_completed else 'bg-indigo-50 text-indigo-600' }} flex items-center justify-center">
+                                class="w-12 h-12 rounded-2xl {{ 'bg-emerald-100 text-emerald-600' if goal.is_completed else 'bg-slate-100 text-slate-600' }} flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-{{ goal.icon }}"></i>
                             </div>
                             <div>
-                                <h4 class="text-sm font-bold text-slate-800 line-clamp-1">{{ goal.title }}</h4>
-                                <p class="text-xs text-slate-500 mt-0.5">{{ goal.description or 'Tiếp tục cố gắng!' }}
-                                </p>
+                                <h4
+                                    class="font-bold text-slate-800 text-base line-clamp-1 group-hover:text-indigo-700 transition-colors">
+                                    {{ goal.title }}</h4>
+                                <div class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                                    <span>{{ goal.current_value }}/{{ goal.target_value }} {{ goal.unit }}</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <span
-                                class="text-lg font-black {{ 'text-emerald-600' if goal.is_completed else 'text-indigo-600' }}">{{
-                                goal.percent }}%</span>
-                        </div>
+                        <div
+                            class="text-xl font-black {{ 'text-emerald-500' if goal.is_completed else 'text-slate-900' }}">
+                            {{ goal.percent }}%</div>
                     </div>
-                    <div class="mt-4 pl-2 flex items-center gap-3">
-                        <div class="flex-grow h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full transition-all duration-1000 {{ 'bg-emerald-500' if goal.is_completed else 'bg-indigo-500' }}"
-                                style="width: {{ goal.percent }}%"></div>
-                        </div>
-                        <a href="{{ goal.url }}"
-                            class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center {{ 'bg-emerald-500' if goal.is_completed else 'bg-slate-900' }} text-white shadow-md active:scale-95 transition-transform">
-                            <i class="fa-solid fa-play text-xs ml-0.5"></i>
-                        </a>
+
+                    <div class="w-full bg-slate-100 rounded-full h-3 mb-4 overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-1000 {{ 'bg-emerald-500' if goal.is_completed else 'bg-slate-800' }}"
+                            style="width: {{ goal.percent }}%"></div>
                     </div>
+
+                    <a href="{{ goal.url }}"
+                        class="w-full py-3 rounded-xl font-bold text-center block {{ 'bg-emerald-50 text-emerald-600' if goal.is_completed else 'bg-slate-900 text-white shadow-lg shadow-slate-200 hover:bg-slate-800' }} transition-colors">
+                        {{ 'Hoàn thành' if goal.is_completed else 'Tiếp tục' }}
+                    </a>
                 </div>
                 {% endfor %}
             </div>
         </div>
         {% endif %}
 
-        {# 4. EXPLORE / QUICK ACCESS #}
-        <div>
-            <h3 class="text-sm font-bold text-slate-800 mb-3 px-1">Khám phá</h3>
-            <div class="space-y-3">
-                <!-- Flashcard Banner -->
-                <a href="{{ url_for('learning.flashcard.dashboard') }}"
-                    class="block relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg shadow-indigo-200 active:scale-[0.98] transition-transform">
-                    <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-white/20 rounded-full blur-xl"></div>
-                    <div class="relative z-10 flex items-center justify-between">
-                        <div>
-                            <h4 class="font-bold text-lg">Flashcard</h4>
-                            <p class="text-xs text-blue-100 mt-1 max-w-[70%]">Ôn tập thông minh với thuật toán SM-2</p>
-                        </div>
-                        <div
-                            class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                            <i class="fa-solid fa-arrow-right text-sm"></i>
-                        </div>
+        {# 5. EXPLORE BANNERS #}
+        <div class="space-y-4">
+            <h3 class="text-sm font-bold text-slate-800 mb-2">Chế độ học</h3>
+
+            <a href="{{ url_for('learning.flashcard.dashboard') }}"
+                class="block relative overflow-hidden rounded-3xl h-32 active:scale-[0.98] transition-transform group">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500 group-hover:scale-105 transition-transform duration-500">
+                </div>
+                <div
+                    class="absolute right-0 bottom-0 w-32 h-32 bg-white/20 rounded-full translate-y-1/2 translate-x-1/4 blur-2xl">
+                </div>
+                <div class="relative z-10 h-full p-6 flex flex-col justify-center text-white">
+                    <div class="flex items-center gap-3 mb-1">
+                        <i class="fa-solid fa-clone text-xl opacity-80"></i>
+                        <h4 class="font-bold text-xl">Flashcard</h4>
+                    </div>
+                    <p class="text-blue-100 text-sm font-medium">Lặp lại ngắt quãng</p>
+                </div>
+            </a>
+
+            <div class="grid grid-cols-2 gap-4">
+                <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}"
+                    class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-emerald-200 group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                        <i class="fa-solid fa-circle-question text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-emerald-700">Luyện Quiz</h4>
+                        <p class="text-xs text-slate-400">Trắc nghiệm</p>
                     </div>
                 </a>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}"
-                        class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition-transform">
-                        <div
-                            class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
-                            <i class="fa-solid fa-circle-question"></i>
-                        </div>
-                        <h4 class="font-bold text-sm text-slate-800">Luyện Quiz</h4>
-                        <p class="text-[10px] text-slate-500 mt-0.5">Trắc nghiệm đa dạng</p>
-                    </a>
-
-                    <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}"
-                        class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition-transform">
-                        <div class="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center mb-3">
-                            <i class="fa-solid fa-bolt"></i>
-                        </div>
-                        <h4 class="font-bold text-sm text-slate-800">Thi đấu</h4>
-                        <p class="text-[10px] text-slate-500 mt-0.5">Thách đấu bạn bè</p>
-                    </a>
-                </div>
-
-                <a href="{{ url_for('content_management.content_dashboard') }}"
-                    class="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm active:scale-[0.99] transition-transform">
+                <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}"
+                    class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-rose-200 group">
                     <div
-                        class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-layer-group"></i>
+                        class="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+                        <i class="fa-solid fa-bolt text-lg"></i>
                     </div>
-                    <div class="flex-grow">
-                        <h4 class="font-bold text-sm text-slate-800">Quản lý nội dung</h4>
-                        <p class="text-xs text-slate-500">Tạo bộ thẻ & quiz của bạn</p>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-rose-700">Đấu trường</h4>
+                        <p class="text-xs text-slate-400">Thách đấu</p>
                     </div>
-                    <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
                 </a>
             </div>
         </div>
 
-        {# Footer Spacer #}
         <div class="h-6"></div>
     </div>
 
-    {# === BOTTOM NAV === #}
+    {# === NAVIGATION === #}
     {% set active_page = 'home' %}
     {% include 'main/_bottom_nav_mobile.html' %}
-
 </div>
 
 <style>
-    /* Custom Scrollbar Hide */
     .no-scrollbar::-webkit-scrollbar {
         display: none;
     }
@@ -228,20 +224,7 @@
         scrollbar-width: none;
     }
 
-    /* Animation fix */
     .animation-bounce {
         animation: bounce 2s infinite;
-    }
-
-    @keyframes bounce {
-
-        0%,
-        100% {
-            transform: translateY(0);
-        }
-
-        50% {
-            transform: translateY(-3px);
-        }
     }
 </style>
