@@ -122,14 +122,12 @@
         </a>
 
         {# Logout Button #}
-        <form action="{{ url_for('auth.logout') }}" method="post" class="animate-fade-in-up"
+        <a href="{{ url_for('auth.logout') }}"
+            class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-red-500 to-rose-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all font-bold text-base animate-fade-in-up"
             style="animation-delay: 0.8s">
-            <button type="submit"
-                class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-red-500 to-rose-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all font-bold text-base">
-                <i class="fa-solid fa-right-from-bracket text-xl"></i>
-                <span>Đăng xuất</span>
-            </button>
-        </form>
+            <i class="fa-solid fa-right-from-bracket text-xl"></i>
+            <span>Đăng xuất</span>
+        </a>
     </div>
 
     {# === BOTTOM NAV === #}

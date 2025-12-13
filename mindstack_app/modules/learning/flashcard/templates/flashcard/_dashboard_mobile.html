@@ -35,29 +35,7 @@
             min-height: 100vh !important;
         }
 
-        /* FORCE show flashcard solo section on mobile */
-        #flashcard-solo-section {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-
-        /* Hide group section on mobile by default */
-        #flashcard-group-section {
-            display: none !important;
-        }
-
-        /* FORCE show mode selection (Step 0) */
-        #flashcard-mobile-mode-selection {
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            min-height: 60vh !important;
-            padding: 2rem 1rem !important;
-        }
+        /* Removed forced display rules to allow JS switching */
 
         /* Adjust container for flashcard */
         .container {

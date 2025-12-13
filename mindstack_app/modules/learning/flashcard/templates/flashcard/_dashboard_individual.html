@@ -9,23 +9,25 @@
 
         /* Force body background to white on mobile for this page */
         body {
-            background-color: #fff !important;
+            background-color: #f8fafc !important;
         }
 
         /* Step 0: Mode Selection */
         #flashcard-mobile-mode-selection {
             position: relative;
-            min-height: 80vh;
+            height: calc(100dvh - 160px);
+            min-height: unset;
             /* Ensure visibility even if parent height varies */
             overflow: hidden;
             z-index: 30;
             /* Ensure clickable, below navbar (z-50) */
-            background-color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
+            /* background-color: #fff; REMOVED */
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 1.5rem;
+            margin-top: 0 !important;
         }
 
         /* Full Screen Containers for Steps */
@@ -102,41 +104,50 @@
 <div id="flashcard-solo-section" class="space-y-6 h-full lg:h-auto">
 
     {# === MOBILE STEP 0: MODE SELECTION === #}
-    <div id="flashcard-mobile-mode-selection" class="lg:hidden space-y-6">
-        <div class="text-center mb-8">
+    {# === MOBILE STEP 0: MODE SELECTION (APP STYLE) === #}
+    <div id="flashcard-mobile-mode-selection" class="lg:hidden space-y-8 w-full max-w-md mx-auto">
+        <div class="text-center mb-4">
             <div
-                class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-4xl">
-                <i class="fas fa-clone"></i>
+                class="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-200 transform -rotate-3">
+                <i class="fas fa-clone text-white text-4xl drop-shadow-md"></i>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800">Học Flashcard</h1>
-            <p class="text-gray-500 mt-2">Chọn chế độ để bắt đầu</p>
+            <h1 class="text-3xl font-black text-slate-800 tracking-tight">Học Flashcard</h1>
+            <p class="text-slate-500 font-medium mt-2 text-base">Chọn chế độ ôn tập của bạn</p>
         </div>
 
-        <button id="btn-mode-individual"
-            class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
-            <div
-                class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
-                <i class="fas fa-user"></i>
-            </div>
-            <div class="text-left">
-                <h3 class="font-bold text-gray-800 text-lg">Học 1 mình</h3>
-                <p class="text-sm text-gray-500">Ôn tập theo tốc độ riêng</p>
-            </div>
-            <i class="fas fa-chevron-right text-gray-300 ml-auto"></i>
-        </button>
+        <div class="space-y-4 w-full">
+            <!-- Individual Mode -->
+            <button id="btn-mode-individual"
+                class="w-full bg-white p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-5 active:scale-95 transition-transform group">
+                <div
+                    class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="text-left flex-grow">
+                    <h3 class="font-bold text-slate-800 text-lg mb-0.5">Cá nhân</h3>
+                    <p class="text-xs text-slate-500 font-medium">Ôn tập theo tốc độ riêng</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </button>
 
-        <button id="btn-mode-group"
-            class="w-full max-w-xs bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center space-x-4 active:scale-95">
-            <div
-                class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="text-left">
-                <h3 class="font-bold text-gray-800 text-lg">Học theo nhóm</h3>
-                <p class="text-sm text-gray-500">Cùng bạn bè ôn tập</p>
-            </div>
-            <i class="fas fa-chevron-right text-gray-300 ml-auto"></i>
-        </button>
+            <!-- Group Mode -->
+            <button id="btn-mode-group"
+                class="w-full bg-white p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-5 active:scale-95 transition-transform group">
+                <div
+                    class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl shadow-sm group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="text-left flex-grow">
+                    <h3 class="font-bold text-slate-800 text-lg mb-0.5">Học nhóm</h3>
+                    <p class="text-xs text-slate-500 font-medium">Cùng bạn bè ôn tập</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </button>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
@@ -339,18 +350,10 @@
 
         if (btnModeGroup) {
             btnModeGroup.addEventListener('click', () => {
-                // Manual Switch to Group Mode
-
-                // Update global state and Switch Tab logic in dashboard.html will handle URL update via click if we used that, 
-                // but here we manually do it or trigger the tab.
-
-                // Trigger the actual desktop tab to Ensure consistency
-                const groupTab = document.querySelector('[data-study-tab="group"]');
-                if (groupTab) groupTab.click();
-
-                // Force trigger Collab Tab to load data
-                const collabPublicTab = document.querySelector('.collab-tab-btn[data-collab-tab="public"]');
-                if (collabPublicTab) collabPublicTab.click();
+                // Force navigation to Group Mode via URL reload to ensure clean state
+                const url = new URL(window.location);
+                url.searchParams.set('mode', 'group');
+                window.location.href = url.toString();
             });
         }
 
