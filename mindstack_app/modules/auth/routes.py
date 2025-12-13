@@ -5,7 +5,29 @@ from flask_login import login_user, logout_user, current_user
 from . import auth_bp
 from .forms import LoginForm, RegistrationForm
 from ...models import User
+from datetime import datetime, timezone
 from ...db_instance import db
+
+@auth_bp.before_app_request
+def update_last_seen():
+    """Update user's last_seen timestamp."""
+    if current_user.is_authenticated:
+        # Use timezone-aware UTC
+        now = datetime.now(timezone.utc)
+        
+        last_seen = current_user.last_seen
+        # If DB returns naive datetime, assume UTC
+        if last_seen and last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
+            
+        # Update only if 5 minutes have passed since last update
+        if last_seen is None or \
+           (now - last_seen).total_seconds() > 300:
+            current_user.last_seen = now
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():

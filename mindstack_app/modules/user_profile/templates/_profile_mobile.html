@@ -90,8 +90,8 @@
                     </div>
                     <div class="flex-grow">
                         <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Lần cuối hoạt động</p>
-                        <p class="text-base font-bold text-slate-900 mt-1">{{ user.last_seen if user.last_seen else
-                            'Chưa có' }}</p>
+                        <p class="text-base font-bold text-slate-900 mt-1">{{ user.last_seen.strftime('%Y-%m-%d
+                            %H:%M:%S') if user.last_seen else 'Chưa có' }}</p>
                     </div>
                 </div>
             </div>

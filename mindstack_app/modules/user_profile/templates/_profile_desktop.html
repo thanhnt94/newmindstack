@@ -25,7 +25,7 @@
                     <i class="fas fa-calendar-alt text-blue-500 mr-3 text-xl"></i>
                     <div>
                         <p class="font-semibold">Lần cuối hoạt động:</p>
-                        <p>{{ user.last_seen if user.last_seen else 'Chưa có' }}</p>
+                        <p>{{ user.last_seen.strftime('%Y-%m-%d %H:%M:%S') if user.last_seen else 'Chưa có' }}</p>
                     </div>
                 </div>
 
