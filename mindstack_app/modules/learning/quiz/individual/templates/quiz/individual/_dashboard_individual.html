@@ -218,6 +218,11 @@
             background-color: #f8fafc;
         }
 
+        /* Hide session size selector in content on mobile (moved to footer) */
+        #quiz-modes-container .lg\:hidden .mb-4.p-4.bg-white.rounded-lg.border.border-gray-200:has(#session-size-select) {
+            display: none !important;
+        }
+
         /* Footer Actions */
         .mobile-footer-section {
             flex-shrink: 0;
@@ -525,6 +530,13 @@
                 <h2 class="hidden lg:flex text-xl sm:text-2xl font-bold text-gray-800 mb-4 items-center truncate">
                     <i class="fas fa-cogs mr-3 text-blue-500"></i> Bước 2: Tùy chỉnh phiên học
                 </h2>
+
+                {# Mobile: Selected Sets Display - positioned after header #}
+                <div id="mobile-selected-sets-header" class="lg:hidden w-full mb-2 hidden">
+                    <div class="text-xs text-slate-500 mb-1 font-medium">Bộ đã chọn:</div>
+                    <div id="mobile-selected-sets-chips-header" class="flex flex-wrap gap-1 max-h-12 overflow-y-auto">
+                    </div>
+                </div>
             </div>
             {# List #}
             <div id="quiz-modes-container" class="flex-grow overflow-y-auto max-h-[500px] lg:p-0">
@@ -539,11 +551,20 @@
     <div id="step-2-actions"
         class="mobile-footer-section mt-4 lg:bg-transparent lg:border-none lg:shadow-none lg:p-0 lg:static fixed bottom-0 left-0 right-0 flex-shrink-0 flex flex-col">
 
-        {# Mobile: Selected Sets Display - Full width row on top #}
-        <div id="mobile-selected-sets-display" class="lg:hidden w-full mb-2 px-1 hidden">
-            <div class="text-xs text-slate-500 mb-1 font-medium">Bộ đã chọn:</div>
-            <div id="mobile-selected-sets-chips" class="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
-                {# Chips will be inserted here by JS #}
+        {# Mobile: Session Size Selector #}
+        <div id="mobile-session-size-row" class="lg:hidden w-full mb-2 px-1 hidden">
+            <div class="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                <span class="text-sm text-slate-600 font-medium">Số câu:</span>
+                <select id="mobile-session-size-select"
+                    class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-300 focus:border-blue-400">
+                    <option value="1" {% if user_default_batch_size==1 %}selected{% endif %}>1 câu</option>
+                    <option value="3" {% if user_default_batch_size==3 %}selected{% endif %}>3 câu</option>
+                    <option value="5" {% if user_default_batch_size==5 %}selected{% endif %}>5 câu</option>
+                    <option value="10" {% if user_default_batch_size==10 or user_default_batch_size is not defined
+                        %}selected{% endif %}>10 câu</option>
+                    <option value="20" {% if user_default_batch_size==20 %}selected{% endif %}>20 câu</option>
+                    <option value="50" {% if user_default_batch_size==50 %}selected{% endif %}>50 câu</option>
+                </select>
             </div>
         </div>
 
@@ -685,30 +706,85 @@
 
     mobileNextBtn?.addEventListener('click', () => {
         document.getElementById('quiz-solo-section').classList.add('mobile-step-2-active');
-        updateMobileStep2Display(); // Update selected sets display
+        updateMobileStep2Display();
+        // Save step to URL
+        const url = new URL(window.location);
+        url.searchParams.set('mobile_step', '2');
+        window.history.replaceState({}, '', url);
     });
 
     mobileBackBtn?.addEventListener('click', () => {
         document.getElementById('quiz-solo-section').classList.remove('mobile-step-2-active');
+        // Remove step from URL
+        const url = new URL(window.location);
+        url.searchParams.delete('mobile_step');
+        window.history.replaceState({}, '', url);
     });
+
+    // Restore mobile step on page load
+    function restoreMobileStep() {
+        // Use setTimeout to ensure DOM is ready
+        setTimeout(() => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mobileStep = urlParams.get('mobile_step');
+            console.log('restoreMobileStep called:', mobileStep, 'IDs:', selectedQuizSetIds);
+
+            if (mobileStep === '2' && selectedQuizSetIds.length > 0) {
+                const soloSection = document.getElementById('quiz-solo-section');
+                console.log('Found soloSection:', soloSection);
+                if (soloSection) {
+                    // Need BOTH classes for step 2 to display on mobile
+                    soloSection.classList.add('mobile-mode-individual');
+                    soloSection.classList.add('mobile-step-2-active');
+                    console.log('Classes added:', soloSection.className);
+                    updateMobileStep2Display();
+                    // Also load quiz modes for step 2
+                    if (selectedQuizSetIds.length === 1) {
+                        loadQuizModes(selectedQuizSetIds[0]);
+                    } else {
+                        loadQuizModes('multi');
+                    }
+                }
+            }
+        }, 100);
+    }
 
     // Update Step 2 mobile selected sets display
     function updateMobileStep2Display() {
-        const displayEl = document.getElementById('mobile-selected-sets-display');
-        const chipsEl = document.getElementById('mobile-selected-sets-chips');
-        if (!displayEl || !chipsEl) return;
+        // Selected sets in header
+        const headerDisplayEl = document.getElementById('mobile-selected-sets-header');
+        const headerChipsEl = document.getElementById('mobile-selected-sets-chips-header');
 
-        if (selectedQuizSetIds.length > 0) {
-            const chipsHtml = selectedQuizSetIds.map(id => {
-                const title = selectedQuizSetTitles[id] || `Bộ #${id}`;
-                // Truncate long titles
-                const shortTitle = title.length > 25 ? title.substring(0, 22) + '...' : title;
-                return `<span class="inline-flex items-center bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">${shortTitle}</span>`;
-            }).join('');
-            chipsEl.innerHTML = chipsHtml;
-            displayEl.classList.remove('hidden');
-        } else {
-            displayEl.classList.add('hidden');
+        // Session size in footer
+        const sessionSizeRow = document.getElementById('mobile-session-size-row');
+        const mobileSessionSelect = document.getElementById('mobile-session-size-select');
+
+        // Show selected sets in header
+        if (headerDisplayEl && headerChipsEl) {
+            if (selectedQuizSetIds.length > 0) {
+                const chipsHtml = selectedQuizSetIds.map(id => {
+                    const title = selectedQuizSetTitles[id] || `Bộ #${id}`;
+                    return `<span class="inline-flex items-center bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">${title}</span>`;
+                }).join('');
+                headerChipsEl.innerHTML = chipsHtml;
+                headerDisplayEl.classList.remove('hidden');
+            } else {
+                headerDisplayEl.classList.add('hidden');
+            }
+        }
+
+        // Show session size row in footer with default value
+        if (sessionSizeRow) {
+            sessionSizeRow.classList.remove('hidden');
+            if (mobileSessionSelect) {
+                mobileSessionSelect.value = selectedSessionSize;
+                mobileSessionSelect.onchange = () => {
+                    selectedSessionSize = parseInt(mobileSessionSelect.value);
+                    // Sync with desktop selector if exists
+                    const desktopSelect = document.getElementById('session-size-select');
+                    if (desktopSelect) desktopSelect.value = selectedSessionSize;
+                };
+            }
         }
     }
 
@@ -760,6 +836,7 @@
             addPaginationListeners();
             addArchiveIconListeners();
             syncMultiSelectionUI();
+            restoreMobileStep(); // Restore step 2 if reload
 
         } catch (e) {
             quizSetsContainer.innerHTML = '<p class="text-center text-rose-500 p-4">Lỗi tải dữ liệu.</p>';
