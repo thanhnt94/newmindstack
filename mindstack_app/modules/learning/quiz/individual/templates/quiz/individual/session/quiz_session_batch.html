@@ -299,6 +299,146 @@
         color: #1d4ed8;
     }
 
+    /* === CONTEXT BAR STYLES (Shared) === */
+    .qb-context-bar {
+        background: linear-gradient(to right, #f8fafc, #f1f5f9);
+        border-bottom: 1px solid #e2e8f0;
+        padding: 8px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+
+    .qb-context-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: white;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        font-weight: 600;
+        color: #334155;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .qb-context-pill i {
+        color: #3b82f6;
+        font-size: 0.8rem;
+    }
+
+    .qb-context-trunc {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 150px;
+    }
+
+    /* === QUICK NAVIGATION BAR (Batch Specific) === */
+    .qb-quick-nav-wrapper {
+        position: fixed;
+        bottom: 64px;
+        /* Matches default bottom bar height */
+        left: 0;
+        right: 0;
+        z-index: 55;
+        background: rgba(255, 255, 255, 1);
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.02);
+        padding: 8px 0;
+        display: none;
+        align-items: center;
+        height: 60px;
+        /* Fixed height for consistency */
+    }
+
+    @media(max-width: 1024px) {
+        .qb-quick-nav-wrapper {
+            display: flex;
+        }
+    }
+
+    .qb-quick-nav-scroll {
+        flex: 1;
+        display: flex;
+        gap: 10px;
+        padding: 0 8px;
+        /* Padding for scroll content */
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        scroll-behavior: smooth;
+        align-items: center;
+    }
+
+    .qb-quick-nav-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
+    .qb-nav-scroll-btn {
+        width: 32px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        color: #64748b;
+        border: none;
+        z-index: 2;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .qb-nav-scroll-btn:active {
+        background: #f1f5f9;
+        color: #3b82f6;
+    }
+
+    .qb-nav-item {
+        width: 36px;
+        /* Slightly larger touch target */
+        height: 36px;
+        border-radius: 50%;
+        background: white;
+        border: 1px solid #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #64748b;
+        flex-shrink: 0;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .qb-nav-item.active {
+        border-color: #3b82f6;
+        color: #3b82f6;
+        background: #eff6ff;
+        transform: scale(1.1);
+        font-weight: 700;
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+    }
+
+    .qb-nav-item.answered {
+        background: #ecfdf5;
+        border-color: #10b981;
+        color: #059669;
+    }
+
+    .qb-nav-item.active.answered {
+        border-color: #10b981;
+        background: #d1fae5;
+        color: #059669;
+    }
+
     /* === MOBILE SPECIFIC STYLES (Copied & Adapted for Batch Mobile View) === */
     .qb-mobile-sticky-wrapper {
         position: fixed;
@@ -826,9 +966,40 @@
     window.addEventListener('scroll', handleScroll);
 
     function init() {
+        loadQuizTitleFromStorage();
         if (!loadState()) {
             getNextQuestionBatch();
         }
+    }
+
+    function loadQuizTitleFromStorage() {
+        try {
+            // Title
+            const storedTitles = localStorage.getItem('selectedQuizSetTitles');
+            if (storedTitles) {
+                const titles = JSON.parse(storedTitles);
+                const titleString = Object.values(titles).join(', ');
+                if (titleString) {
+                    setText('.js-quiz-set-title', titleString.length > 35 ? titleString.substring(0, 35) + '...' : titleString);
+                }
+            }
+            // Mode Label
+            const modeName = getModeNameFromStorage(); // Implement helper
+            setText('.js-quiz-mode-label', modeName);
+        } catch (e) {
+            console.error('Error loading titles', e);
+        }
+    }
+
+    function getModeNameFromStorage() {
+        // Simple mapping based on potentially stored mode ID or infer from URL if possible
+        // Ideally we pass this from backend, but for now let's try to parse from URL or default
+        const urlParams = new URLSearchParams(window.location.search);
+        // If needed, we can store selectedModeName in localStorage in dashboard like we do for titles
+        // For now, let's map common IDs if known, or return "Luyện tập"
+        // Let's check if we can get it from the URL segment if it's there
+        return "Luyện tập"; // Placeholder or enhance
+        // Better: Update dashboard to save mode name!
     }
 
     // --- State Management ---
@@ -1025,8 +1196,66 @@
         attachOptionHandlers();
         if (!isRestoring) toggleControlButtons('answering');
 
+        renderQuickNav();
+        checkCompletionStatus(); // Validate initially (likely disabled)
+
         // Allow DOM to settle then trigger scroll check
         setTimeout(handleScroll, 500);
+    }
+
+    function renderQuickNav() {
+        const container = document.getElementById('batch-quick-nav-content');
+        if (!container) return;
+
+        const navHtml = currentQuestionBatch.map((q, idx) => {
+            const num = (currentBatchMeta.startIndex || 0) + idx + 1;
+            const isAnswered = userAnswers.hasOwnProperty(q.item_id);
+            return `<div class="qb-nav-item ${isAnswered ? 'answered' : ''}" data-index="${idx}">${num}</div>`;
+        }).join('');
+
+        container.innerHTML = navHtml;
+
+        // Attach click handlers
+        container.querySelectorAll('.qb-nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const idx = parseInt(item.dataset.index);
+                const card = document.querySelectorAll('.question-card')[idx];
+                if (card) {
+                    // Mobile header offset approx 130px now with 2 rows
+                    const offset = 140;
+                    const bodyRect = document.body.getBoundingClientRect().top;
+                    const elementRect = card.getBoundingClientRect().top;
+                    const elementPosition = elementRect - bodyRect;
+                    const offsetPosition = elementPosition - offset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+
+                    // Update active state manually
+                    container.querySelectorAll('.qb-nav-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // Center the clicked item in scroll view
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            });
+        });
+
+        // Scroll Buttons Logic
+        const leftBtn = document.getElementById('quick-nav-left');
+        const rightBtn = document.getElementById('quick-nav-right');
+        const scrollAmount = 150;
+
+        if (leftBtn && rightBtn) {
+            leftBtn.addEventListener('click', () => {
+                container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            });
+            rightBtn.addEventListener('click', () => {
+                container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            });
+        }
     }
 
     function buildQuestionCardHtml(questionData, index) {
@@ -1118,7 +1347,17 @@
         document.querySelectorAll(`.option-button[data-question-id="${questionId}"]`).forEach(b => b.classList.remove('selected'));
         document.querySelectorAll(`.option-button[data-question-id="${questionId}"][data-option="${selectedOption}"]`).forEach(b => b.classList.add('selected'));
         saveState();
+        updateQuickNavState(questionId);
         checkCompletionStatus();
+    }
+
+    function updateQuickNavState(questionId) {
+        // Find index of question
+        const idx = currentQuestionBatch.findIndex(q => q.item_id == questionId);
+        if (idx !== -1) {
+            const navItem = document.querySelector(`.qb-nav-item[data-index="${idx}"]`);
+            if (navItem) navItem.classList.add('answered');
+        }
     }
 
     function checkCompletionStatus() {
