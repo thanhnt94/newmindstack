@@ -2,6 +2,18 @@
 <div class="lg:hidden">
     {# === MOBILE APP HEADER === #}
     <div class="qb-mobile-sticky-wrapper">
+        {# === CONTEXT BAR: Mode & Quiz Set Name === #}
+        <div class="qb-context-bar">
+            <div class="qb-context-mode">
+                <i class="fa-solid fa-user"></i>
+                <span>Quiz Individual</span>
+            </div>
+            <div class="qb-context-set js-quiz-set-name">
+                <i class="fa-solid fa-folder-open"></i>
+                <span class="truncate">Đang tải...</span>
+            </div>
+        </div>
+
         <div class="qb-mobile-header">
             <div class="flex items-center gap-3">
                 <div class="flex flex-col">
@@ -33,6 +45,7 @@
             </div>
         </div>
     </div>
+
 
     <div class="container mx-auto px-2 py-0 max-w-7xl">
 

@@ -189,6 +189,61 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
+    /* Context Bar - Mode & Quiz Set Name */
+    .qb-context-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px 6px;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-bottom: 1px solid #bae6fd;
+        gap: 12px;
+    }
+
+    .qb-context-mode {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #0ea5e9;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .qb-context-mode i {
+        font-size: 0.65rem;
+    }
+
+    .qb-context-set {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #0369a1;
+        font-size: 0.8rem;
+        font-weight: 600;
+        min-width: 0;
+        flex: 1;
+        justify-content: flex-end;
+    }
+
+    .qb-context-set i {
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .qb-context-set span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 180px;
+    }
+
     .qb-mobile-header {
         display: flex;
         align-items: center;
@@ -477,7 +532,7 @@
         }
 
         body {
-            padding-top: 100px !important;
+            padding-top: 140px !important;
             padding-bottom: 70px;
         }
 
@@ -2144,8 +2199,37 @@
         };
         initTranscriptLogic();
 
+        // Feature: Load Quiz Set Title from LocalStorage
+        function loadQuizTitleFromStorage() {
+            try {
+                const storedTitles = JSON.parse(localStorage.getItem('selectedQuizSetTitles') || '{}');
+                const titleKeys = Object.keys(storedTitles);
+                const headerSetLabel = document.querySelector('.js-quiz-set-name span');
+
+                if (headerSetLabel) {
+                    if (titleKeys.length > 0) {
+                        // Get the first title or a summary
+                        const mainTitle = storedTitles[titleKeys[0]];
+                        headerSetLabel.textContent = titleKeys.length === 1 ? mainTitle : `${mainTitle} (+${titleKeys.length - 1})`;
+
+                        // Add tooltip via simple title attribute
+                        headerSetLabel.parentElement.title = Object.values(storedTitles).join(', ');
+                    } else {
+                        headerSetLabel.textContent = "Phiên học Quiz";
+                    }
+                }
+            } catch (e) {
+                console.error("Lỗi khi tải tên bộ quiz:", e);
+                const headerSetLabel = document.querySelector('.js-quiz-set-name span');
+                if (headerSetLabel) headerSetLabel.textContent = "Phiên học Quiz";
+            }
+        }
+
         // --- Init ---
         function init() {
+            // Load title immediately
+            loadQuizTitleFromStorage();
+
             // Check for force new session flag from Dashboard
             if (localStorage.getItem('force_new_session') === 'true') {
                 clearState();
