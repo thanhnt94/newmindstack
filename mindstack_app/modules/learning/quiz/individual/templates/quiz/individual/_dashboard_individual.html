@@ -103,13 +103,14 @@
 
         /* App-like List Items */
         .quiz-set-item {
-            border: 1px solid #f1f5f9;
-            /* Subtle border */
-            border-radius: 1.25rem;
-            /* rounded-2xl */
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+            border: 1px solid #e2e8f0;
+            /* Slate-200 */
+            border-radius: 1rem;
+            /* rounded-2xl equivalent */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            /* shadow-sm */
             margin-bottom: 0.75rem;
-            padding: 1.25rem;
+            padding: 1rem;
         }
 
         .quiz-set-item:active {
@@ -120,7 +121,8 @@
         /* Mobile Segmented Control Tabs */
         .mobile-header-section .flex.border-b {
             border: none !important;
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
+            /* Slate-50 */
             padding: 0.25rem;
             border-radius: 0.75rem;
             gap: 0.25rem;
@@ -133,14 +135,16 @@
             padding: 0.5rem;
             font-size: 0.8rem;
             color: #64748b;
+            /* Slate-500 */
             margin: 0;
+            font-weight: 500;
         }
 
         .tab-filter-button.active {
             background-color: white;
             color: #0f172a;
-            /* Slate 900 */
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            /* Slate-900 */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
             font-weight: 700;
         }
 
@@ -203,9 +207,10 @@
         .mobile-header-section {
             flex-shrink: 0;
             background: white;
-            padding: 1.25rem 1.25rem 0.75rem 1.25rem;
-            border-bottom: 1px solid #f1f5f9;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            /* Slate-200 */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             z-index: 10;
         }
 
@@ -608,6 +613,10 @@
         if (localStorage.getItem('selectedQuizSetIds')) selectedQuizSetIds = JSON.parse(localStorage.getItem('selectedQuizSetIds'));
         else selectedQuizSetIds = [];
 
+        // Fix: Initialize Title Map
+        if (localStorage.getItem('selectedQuizSetTitles')) selectedQuizSetTitles = JSON.parse(localStorage.getItem('selectedQuizSetTitles'));
+        else selectedQuizSetTitles = {};
+
         updateSelectedSetsDisplay();
         updateActionButtons();
         updateMobileNextButton(); // Init Mobile Button
@@ -732,8 +741,12 @@
             selectedSetsDisplay.classList.remove('hidden');
 
             const selectedTitlesHtml = selectedQuizSetIds.map(setId => {
-                const setItem = document.querySelector(`.quiz-set-item[data-set-id="${setId}"]`);
-                const title = setItem ? setItem.dataset.title : `Bộ #${setId}`;
+                // Fix: Try getting title from map first, then DOM, then fallback
+                let title = selectedQuizSetTitles[setId];
+                if (!title) {
+                    const setItem = document.querySelector(`.quiz-set-item[data-set-id="${setId}"]`);
+                    title = setItem ? setItem.dataset.title : `Bộ #${setId}`;
+                }
                 return `
                 <span class="selected-set-item">
                     ${title}
@@ -754,7 +767,9 @@
                 clearBtn.textContent = "Bỏ chọn tất cả";
                 clearBtn.onclick = () => {
                     selectedQuizSetIds = [];
+                    selectedQuizSetTitles = {}; // Clear titles
                     localStorage.removeItem('selectedQuizSetIds');
+                    localStorage.removeItem('selectedQuizSetTitles');
                     syncMultiSelectionUI();
                     loadQuizModes([]);
                     updateActionButtons();
@@ -770,27 +785,48 @@
     // Global function to remove a single selected set
     window.removeSelectedQuizSet = (setIdToRemove) => {
         selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setIdToRemove);
+        delete selectedQuizSetTitles[setIdToRemove]; // Remove title
         localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
+        localStorage.setItem('selectedQuizSetTitles', JSON.stringify(selectedQuizSetTitles)); // Sync storage
         syncMultiSelectionUI();
         loadQuizModes(selectedQuizSetIds);
         updateActionButtons();
     };
 
-    function handleQuizSetSelection(setId) {
+    // Fix: Add Title Storage
+    let selectedQuizSetTitles = {};
+
+    function handleQuizSetSelection(setId, setTitle = null) {
         if (!isMultiSelectMode) {
             // Single Select Mode logic
             selectedQuizSetIds = [setId];
+            selectedQuizSetTitles = {}; // Reset titles
+            if (setTitle) selectedQuizSetTitles[setId] = setTitle;
         } else {
             // Multi Select Mode logic
-            if (setId === 'all' && !selectedQuizSetIds.includes('all')) selectedQuizSetIds = ['all'];
-            else if (selectedQuizSetIds.includes('all')) selectedQuizSetIds = [setId];
+            if (setId === 'all' && !selectedQuizSetIds.includes('all')) {
+                selectedQuizSetIds = ['all'];
+                selectedQuizSetTitles = { 'all': 'Tất cả các bộ' };
+            }
+            else if (selectedQuizSetIds.includes('all')) {
+                selectedQuizSetIds = [setId];
+                selectedQuizSetTitles = {};
+                if (setTitle) selectedQuizSetTitles[setId] = setTitle;
+            }
             else {
-                if (selectedQuizSetIds.includes(setId)) selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setId);
-                else selectedQuizSetIds.push(setId);
+                if (selectedQuizSetIds.includes(setId)) {
+                    selectedQuizSetIds = selectedQuizSetIds.filter(id => id !== setId);
+                    delete selectedQuizSetTitles[setId];
+                }
+                else {
+                    selectedQuizSetIds.push(setId);
+                    if (setTitle) selectedQuizSetTitles[setId] = setTitle;
+                }
             }
         }
 
         localStorage.setItem('selectedQuizSetIds', JSON.stringify(selectedQuizSetIds));
+        localStorage.setItem('selectedQuizSetTitles', JSON.stringify(selectedQuizSetTitles)); // Save Titles
         syncMultiSelectionUI();
         loadQuizModes(selectedQuizSetIds);
         updateActionButtons();
@@ -798,7 +834,7 @@
 
     function addQuizSetClickListeners() {
         document.querySelectorAll('.quiz-set-item').forEach(item => {
-            item.addEventListener('click', function () { handleQuizSetSelection(this.dataset.setId); });
+            item.addEventListener('click', function () { handleQuizSetSelection(this.dataset.setId, this.dataset.title); });
         });
     }
 

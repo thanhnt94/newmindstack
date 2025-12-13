@@ -16,36 +16,48 @@
         {% for set in quiz_sets %}
         {% set is_disabled = (set.total_items == 0) %}
         {% set set_state = set.user_state | default({'is_archived': false}) %}
-        <div class="quiz-set-item bg-white p-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 relative {% if is_disabled %}opacity-50{% else %}cursor-pointer{% endif %} {% if set_state.is_archived %}archived{% endif %}"
+        <div class="quiz-set-item bg-white p-4 rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 relative {% if is_disabled %}opacity-60 grayscale{% else %}cursor-pointer active:scale-[0.98]{% endif %} {% if set_state.is_archived %}bg-slate-50{% endif %}"
             data-set-id="{{ set.container_id }}" data-total-items="{{ set.total_items }}"
             data-completion-percentage="{{ set.completion_percentage | default(0) | int }}"
             data-title="{{ set.title }}">
 
-            <!-- Thanh tiến độ -->
-            <div class="absolute inset-y-0 left-0 rounded-l-xl"
-                style="width: {{ set.completion_percentage | default(0) }}%; background: #FDE68A; z-index: 0;"></div>
+            <!-- Thanh tiến độ - Slim & Subtle -->
+            <div class="absolute bottom-0 left-0 h-1 rounded-full transition-all duration-500"
+                style="width: {{ set.completion_percentage | default(0) }}%; background: #3b82f6; opacity: 0.8;"></div>
 
-            <div class="relative z-10 flex justify-between items-center w-full">
-                <div class="flex-grow">
-                    <h3 class="font-semibold text-gray-800 my-0">{{ set.title }}</h3>
-                    <p class="relative text-gray-500 text-xs mt-1">tạo bởi {{ set.creator.username }}</p>
+            <div class="relative z-10 flex justify-between items-start w-full gap-3">
+                <div class="flex-grow min-w-0">
+                    <h3 class="font-bold text-slate-800 text-base leading-tight mb-1 truncate">{{ set.title }}</h3>
+                    <div class="flex items-center text-xs text-slate-500 space-x-2">
+                        <span
+                            class="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-medium truncate max-w-[100px]">{{
+                            set.creator.username }}</span>
+                        {% if set.completion_percentage and set.completion_percentage > 0 %}
+                        <span class="text-blue-600 font-semibold">{{ set.completion_percentage | int }}%</span>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="flex-shrink-0 ml-4 flex items-center space-x-2">
-                    {# Nút Archive/Unarchive, chỉ hiển thị khi KHÔNG ở chế độ multi-selection và KHÔNG ở tab Archive #}
+
+                <div class="flex-shrink-0 flex items-center gap-3">
+                    {# Nút Archive/Unarchive #}
                     {% if current_filter != 'archive' %}
-                    <div class="archive-icon" data-set-id="{{ set.container_id }}">
-                        <i
-                            class="fas fa-archive {% if set_state.is_archived %}text-blue-500{% else %}text-gray-400{% endif %}"></i>
+                    <div class="archive-icon w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+                        data-set-id="{{ set.container_id }}">
+                        <i class="fas fa-archive {% if set_state.is_archived %}text-blue-500{% endif %}"></i>
                     </div>
                     {% endif %}
-                    {# Hiển thị số lượng câu hỏi #}
-                    <span class="text-lg font-semibold text-gray-700 quiz-set-completion-text">
-                        {% if current_filter == 'doing' %}
-                        {{ set.item_count_display }}
-                        {% else %}
-                        {{ set.total_items }}
-                        {% endif %}
-                    </span>
+
+                    {# Hiển thị số lượng câu hỏi - Badge style #}
+                    <div
+                        class="flex flex-col items-center justify-center bg-slate-50 rounded-lg px-2.5 py-1 min-w-[3rem] border border-slate-100">
+                        <span class="text-sm font-bold text-slate-700 leading-none">
+                            {% if current_filter == 'doing' %}
+                            {{ set.item_count_display }}
+                            {% else %}
+                            {{ set.total_items }}
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
