@@ -86,18 +86,17 @@
 
     {# === MOBILE BOTTOM BAR === #}
     <div class="qb-bottom-bar">
-        <div class="flex gap-2 w-full js-quiz-controls">
-            <button type="button"
-                class="w-12 flex-shrink-0 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200 js-batch-explain-btn hidden">
-                <i class="fa-solid fa-lightbulb text-xl"></i>
-            </button>
-            <button type="button" class="cm-btn cm-btn-primary w-full shadow-lg js-submit-batch-btn">
-                <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
-            </button>
-            <button type="button" class="cm-btn bg-emerald-600 text-white w-full shadow-lg js-next-batch-btn"
-                style="display: none;">
-                <i class="fas fa-arrow-right"></i> Tiếp theo
-            </button>
-        </div>
+        <button type="button"
+            class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 js-batch-explain-btn js-mobile-hub-btn hidden">
+            <i class="fa-solid fa-lightbulb text-xl"></i>
+        </button>
+
+        <button type="button" class="cm-btn cm-btn-primary w-full shadow-lg js-submit-batch-btn">
+            <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
+        </button>
+
+        <button type="button" class="cm-btn cm-btn-primary w-full shadow-lg js-next-batch-btn" style="display: none;">
+            <i class="fas fa-arrow-right"></i> Tiếp theo
+        </button>
     </div>
 </div>
