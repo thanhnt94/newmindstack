@@ -118,15 +118,9 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
 
 
 # Các cấu hình cốt lõi muốn cho phép chỉnh sửa nhanh trên giao diện admin
+# Đã gom theo nhóm để UI dễ quản lý hơn
 CORE_SETTING_FIELDS: list[dict[str, object]] = [
-    {
-        "key": "ITEMS_PER_PAGE",
-        "label": "Số mục trên mỗi trang",
-        "data_type": "int",
-        "placeholder": "12",
-        "description": "Điều chỉnh số lượng bản ghi hiển thị mặc định trong bảng và danh sách.",
-        "default": Config.ITEMS_PER_PAGE,
-    },
+    # === NHÓM: Đường dẫn hệ thống ===
     {
         "key": "UPLOAD_FOLDER",
         "label": "Thư mục lưu file tải lên",
@@ -134,6 +128,7 @@ CORE_SETTING_FIELDS: list[dict[str, object]] = [
         "placeholder": Config.UPLOAD_FOLDER,
         "description": "Vị trí lưu trữ tệp do người dùng tải lên (ảnh, âm thanh, tài liệu...).",
         "default": Config.UPLOAD_FOLDER,
+        "group": "paths",
     },
     {
         "key": "BACKUP_FOLDER",
@@ -142,30 +137,26 @@ CORE_SETTING_FIELDS: list[dict[str, object]] = [
         "placeholder": Config.BACKUP_FOLDER,
         "description": "Nơi lưu trữ các gói backup được tạo từ trang quản trị.",
         "default": Config.BACKUP_FOLDER,
+        "group": "paths",
     },
     {
-        "key": "AI_PROVIDER",
-        "label": "Nhà cung cấp AI",
-        "data_type": "string",
-        "placeholder": "gemini",
-        "description": "Dịch vụ AI được sử dụng chính (gemini hoặc huggingface).",
-        "default": "gemini",
+        "key": "DEFAULT_AUDIO_FOLDER",
+        "label": "Thư mục audio mặc định",
+        "data_type": "path",
+        "placeholder": "upload/audio",
+        "description": "Thư mục lưu audio nếu container không có cấu hình riêng.",
+        "default": "upload/audio",
+        "group": "paths",
     },
+    # === NHÓM: Cấu hình chung ===
     {
-        "key": "GEMINI_MODEL",
-        "label": "Gemini Model",
-        "data_type": "string",
-        "placeholder": "gemini-2.0-flash-lite-001",
-        "description": "Model được chọn khi Provider là Gemini.",
-        "default": "gemini-2.0-flash-lite-001",
-    },
-    {
-        "key": "HUGGINGFACE_MODEL",
-        "label": "Hugging Face Model",
-        "data_type": "string",
-        "placeholder": "google/gemma-7b-it",
-        "description": "Model được chọn khi Provider là Hugging Face.",
-        "default": "google/gemma-7b-it",
+        "key": "ITEMS_PER_PAGE",
+        "label": "Số mục trên mỗi trang",
+        "data_type": "int",
+        "placeholder": "12",
+        "description": "Điều chỉnh số lượng bản ghi hiển thị mặc định trong bảng và danh sách.",
+        "default": Config.ITEMS_PER_PAGE,
+        "group": "system",
     },
     {
         "key": "SYSTEM_TIMEZONE",
@@ -174,8 +165,23 @@ CORE_SETTING_FIELDS: list[dict[str, object]] = [
         "placeholder": "UTC",
         "description": "Múi giờ mặc định cho toàn bộ hệ thống (ví dụ: Asia/Ho_Chi_Minh).",
         "default": "UTC",
+        "group": "system",
     },
 ]
+
+# Định nghĩa các nhóm settings để hiển thị trên UI
+CORE_SETTING_GROUPS = {
+    "paths": {
+        "label": "Đường dẫn hệ thống",
+        "icon": "fas fa-folder-open",
+        "description": "Cấu hình các thư mục lưu trữ file của hệ thống.",
+    },
+    "system": {
+        "label": "Cấu hình chung",
+        "icon": "fas fa-cog",
+        "description": "Các tham số vận hành cơ bản của hệ thống.",
+    },
+}
 
 CORE_SETTING_KEYS = {field["key"] for field in CORE_SETTING_FIELDS}
 
@@ -297,6 +303,26 @@ def _get_core_settings() -> list[dict[str, object]]:
         resolved_settings.append({**field, "value": current_value})
 
     return resolved_settings
+
+
+def _get_grouped_core_settings() -> dict[str, dict[str, object]]:
+    """Nhóm các cấu hình cốt lõi theo group để hiển thị trên UI."""
+
+    grouped: dict[str, dict[str, object]] = {}
+    for group_key, group_info in CORE_SETTING_GROUPS.items():
+        grouped[group_key] = {
+            **group_info,
+            "fields": [],
+        }
+
+    for field in CORE_SETTING_FIELDS:
+        current_value = get_runtime_config(field["key"], field["default"])
+        resolved_field = {**field, "value": current_value}
+        group_key = field.get("group", "other")
+        if group_key in grouped:
+            grouped[group_key]["fields"].append(resolved_field)
+
+    return grouped
 
 
 def _refresh_runtime_settings(force: bool = True) -> None:
@@ -1329,6 +1355,7 @@ def manage_system_settings():
         maintenance_mode=maintenance_mode,
         telegram_token_setting=telegram_token_setting,
         core_settings=_get_core_settings(),
+        grouped_core_settings=_get_grouped_core_settings(),
         settings_by_category=_categorize_settings(settings),
         category_order=category_order,
         category_labels=SETTING_CATEGORY_LABELS,
@@ -2080,3 +2107,129 @@ def fetch_hf_models_api():
     """
     result = HuggingFaceClient.get_available_models()
     return jsonify(result)
+
+
+@admin_bp.route('/settings/browse-directories', methods=['GET'])
+def browse_directories_api():
+    """
+    API nội bộ để duyệt thư mục trên server cho chức năng chọn đường dẫn.
+    Trả về danh sách thư mục con của đường dẫn được chỉ định.
+    """
+    base_path = request.args.get('path', '')
+    
+    # Nếu không có path, bắt đầu từ thư mục gốc của project
+    if not base_path:
+        base_path = current_app.root_path
+    
+    # Đảm bảo path tồn tại và là thư mục
+    if not os.path.exists(base_path) or not os.path.isdir(base_path):
+        return jsonify({
+            'success': False,
+            'message': 'Đường dẫn không tồn tại hoặc không phải thư mục.',
+            'directories': [],
+            'current_path': base_path,
+        })
+    
+    try:
+        directories = []
+        for item in os.listdir(base_path):
+            item_path = os.path.join(base_path, item)
+            if os.path.isdir(item_path):
+                # Bỏ qua thư mục ẩn và một số thư mục hệ thống
+                if item.startswith('.') or item in ('__pycache__', 'node_modules', '.git', 'venv', '.venv'):
+                    continue
+                directories.append({
+                    'name': item,
+                    'path': item_path.replace('\\', '/'),
+                })
+        
+        # Sắp xếp theo tên
+        directories.sort(key=lambda x: x['name'].lower())
+        
+        # Lấy parent path
+        parent_path = os.path.dirname(base_path)
+        if parent_path == base_path:
+            parent_path = None
+        
+        return jsonify({
+            'success': True,
+            'directories': directories,
+            'current_path': base_path.replace('\\', '/'),
+            'parent_path': parent_path.replace('\\', '/') if parent_path else None,
+        })
+    except PermissionError:
+        return jsonify({
+            'success': False,
+            'message': 'Không có quyền truy cập thư mục này.',
+            'directories': [],
+            'current_path': base_path,
+        })
+    except Exception as e:
+        current_app.logger.error(f"Lỗi khi duyệt thư mục: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}',
+            'directories': [],
+            'current_path': base_path,
+        })
+
+
+@admin_bp.route('/settings/create-directory', methods=['POST'])
+def create_directory_api():
+    """
+    API nội bộ để tạo thư mục mới trong folder picker.
+    """
+    data = request.get_json(silent=True) or {}
+    parent_path = data.get('parent_path', '')
+    folder_name = (data.get('folder_name') or '').strip()
+    
+    if not folder_name:
+        return jsonify({
+            'success': False,
+            'message': 'Tên thư mục không được để trống.',
+        })
+    
+    # Loại bỏ ký tự không hợp lệ
+    import re
+    folder_name = re.sub(r'[<>:"/\\|?*]', '', folder_name)
+    if not folder_name:
+        return jsonify({
+            'success': False,
+            'message': 'Tên thư mục chứa ký tự không hợp lệ.',
+        })
+    
+    if not parent_path:
+        parent_path = current_app.root_path
+    
+    if not os.path.exists(parent_path) or not os.path.isdir(parent_path):
+        return jsonify({
+            'success': False,
+            'message': 'Thư mục cha không tồn tại.',
+        })
+    
+    new_path = os.path.join(parent_path, folder_name)
+    
+    if os.path.exists(new_path):
+        return jsonify({
+            'success': False,
+            'message': 'Thư mục đã tồn tại.',
+        })
+    
+    try:
+        os.makedirs(new_path, exist_ok=True)
+        return jsonify({
+            'success': True,
+            'message': f'Đã tạo thư mục "{folder_name}".',
+            'new_path': new_path.replace('\\', '/'),
+        })
+    except PermissionError:
+        return jsonify({
+            'success': False,
+            'message': 'Không có quyền tạo thư mục.',
+        })
+    except Exception as e:
+        current_app.logger.error(f"Lỗi khi tạo thư mục: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}',
+        })

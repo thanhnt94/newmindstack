@@ -694,11 +694,10 @@ def regenerate_audio_from_content():
             audio_folder = None
             if container:
                 audio_folder = getattr(container, 'media_audio_folder', None)
-                if not audio_folder:
-                    audio_folder = _ensure_container_media_folder(container, 'audio')
 
+            # Nếu container không có thư mục audio được chỉ định, dùng config mặc định
             if not audio_folder:
-                return jsonify({'success': False, 'message': 'Bộ thẻ chưa được cấu hình thư mục audio.'}), 400
+                audio_folder = current_app.config.get('DEFAULT_AUDIO_FOLDER', 'upload/audio')
 
             try:
                 os.makedirs(os.path.join(current_app.static_folder, audio_folder), exist_ok=True)

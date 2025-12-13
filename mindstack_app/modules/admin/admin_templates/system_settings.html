@@ -44,107 +44,41 @@
 
 <div class="data-card mt-8">
     <div class="data-card-header px-6 py-5">
-        <h2 class="text-xl font-semibold text-slate-900">Cấu hình vận hành nhanh</h2>
-        <p class="text-sm text-slate-500 mt-1">Điều chỉnh các tham số quan trọng như phân trang và thư mục lưu trữ.</p>
+        <h2 class="text-xl font-semibold text-slate-900">Cấu hình vận hành</h2>
+        <p class="text-sm text-slate-500 mt-1">Điều chỉnh các tham số hệ thống quan trọng, được nhóm theo danh mục.</p>
     </div>
     <div class="px-6 py-6">
-        <form action="{{ url_for('admin.update_core_settings') }}" method="post" class="space-y-4">
+        <form action="{{ url_for('admin.update_core_settings') }}" method="post" class="space-y-6">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {% for field in core_settings %}
-                <div class="border border-slate-200 rounded-lg p-4 bg-slate-50/60">
-                    <div class="flex items-start justify-between gap-3">
+
+            {% for group_key, group in grouped_core_settings.items() %}
+            <div class="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                <div class="px-5 py-4 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <i class="{{ group.icon }} text-blue-600"></i>
+                        </div>
                         <div>
-                            <p class="text-sm font-semibold text-slate-900">{{ field.label }}</p>
-                            <p class="text-xs text-slate-500 mt-1">{{ field.description }}</p>
+                            <h3 class="text-lg font-semibold text-slate-900">{{ group.label }}</h3>
+                            <p class="text-xs text-slate-500">{{ group.description }}</p>
                         </div>
-                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700">{{
-                            field.data_type|upper }}</span>
                     </div>
-                    <div class="mt-3">
-                        <label class="block text-xs text-slate-500">Giá trị hiện tại</label>
-                        {% if field.key == 'AI_PROVIDER' %}
-                        <select name="{{ field.key }}" id="ai_provider_select"
-                            class="mt-1 w-full rounded-md border-slate-200" required
-                            onchange="toggleProviderSettings()">
-                            <option value="gemini" {% if field.value=='gemini' %}selected{% endif %}>Google Gemini
-                            </option>
-                            <option value="huggingface" {% if field.value=='huggingface' %}selected{% endif %}>Hugging
-                                Face</option>
-                        </select>
-                        {% elif field.key == 'GEMINI_MODEL' %}
-                        <div id="gemini_model_container">
-                            <!-- Hidden input storing the actual comma-separated value -->
-                            <input type="hidden" name="{{ field.key }}" id="gemini_model_value"
-                                value="{{ field.value }}">
-
-                            <!-- Visual display of selected models -->
-                            <div class="mb-2">
-                                <div class="text-xs font-semibold text-slate-700 mb-1">Model đã chọn (Ưu tiên từ trái
-                                    qua phải):</div>
-                                <div id="gemini_selected_badges"
-                                    class="flex flex-wrap gap-1 min-h-[2rem] p-2 bg-white border border-slate-200 rounded-md">
-                                    <!-- Badges will be injected here by JS -->
-                                    {% if field.value %}
-                                    {% for m in field.value.split(',') %}
-                                    {% if m.strip() %}
-                                    <span
-                                        class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
-                                        {{ m.strip() }}
-                                    </span>
-                                    {% endif %}
-                                    {% endfor %}
-                                    {% else %}
-                                    <span class="text-slate-400 text-xs italic">Chưa chọn model nào</span>
-                                    {% endif %}
-                                </div>
+                </div>
+                <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for field in group.fields %}
+                    <div class="border border-slate-100 rounded-lg p-4 bg-slate-50/40 hover:bg-slate-50 transition">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-slate-900">{{ field.label }}</p>
+                                <p class="text-xs text-slate-500 mt-0.5">{{ field.description }}</p>
                             </div>
-
-                            <!-- Load Button -->
-                            <button type="button" onclick="fetchGeminiModels()"
-                                class="w-full mb-3 px-4 py-2 bg-slate-100 border border-slate-300 rounded text-slate-700 font-medium hover:bg-slate-200 hover:text-slate-900 transition flex items-center justify-center gap-2">
-                                <i class="fas fa-cloud-download-alt"></i> Tải danh sách Model từ Google
-                            </button>
-
-                            <!-- Checkbox Container -->
-                            <div id="gemini_checkbox_list"
-                                class="hidden space-y-2 max-h-60 overflow-y-auto p-2 border border-slate-200 rounded bg-slate-50/50">
-                                <p class="text-center text-xs text-slate-400 py-2">Nhấn nút phía trên để tải danh
-                                    sách...</p>
-                            </div>
-
-                            <p class="text-xs text-slate-500 mt-2">
-                                <i class="fas fa-info-circle"></i> Chọn nhiều model để kích hoạt <b>Fallback tự
-                                    động</b>. Hệ thống sẽ thử model đầu tiên, nếu hết quota sẽ thử model tiếp theo.
-                            </p>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-600">{{
+                                field.data_type|upper }}</span>
                         </div>
-                        {% elif field.key == 'HUGGINGFACE_MODEL' %}
-                        <div id="hf_model_container" class="hidden">
-                            <div class="flex gap-2">
-                                <select name="{{ field.key }}" id="hf_model_select"
-                                    class="mt-1 w-full rounded-md border-slate-200">
-                                    <optgroup label="Default">
-                                        <option value="{{ field.value }}" selected>{{ field.value }} (Hiện tại)</option>
-                                    </optgroup>
-                                    <optgroup label="Recommended">
-                                        <option value="google/gemma-7b-it">Gemma 7B IT</option>
-                                        <option value="meta-llama/Llama-2-7b-chat-hf">Llama 2 7B Chat</option>
-                                    </optgroup>
-                                    <option value="custom">Khác (Nhập tay)...</option>
-                                </select>
-                                <button type="button" onclick="fetchHFModels()"
-                                    class="mt-1 px-3 py-2 bg-slate-100 border border-slate-300 rounded text-slate-600 hover:bg-slate-200"
-                                    title="Cập nhật từ Hugging Face">
-                                    <i class="fas fa-cloud-download-alt"></i>
-                                </button>
-                            </div>
-                            <input name="{{ field.key }}_custom" id="hf_custom_input"
-                                class="mt-2 w-full rounded-md border-slate-200 text-sm hidden"
-                                placeholder="Nhập tên model Hugging Face...">
-                        </div>
-                        {% elif field.key == 'SYSTEM_TIMEZONE' %}
-                        <select name="{{ field.key }}" class="mt-1 w-full rounded-md border-slate-200">
-                            {% set timezones = [
+                        <div class="mt-3">
+                            {% if field.key == 'SYSTEM_TIMEZONE' %}
+                            <select name="{{ field.key }}" class="w-full rounded-md border-slate-200 text-sm">
+                                {% set timezones = [
                                 ('UTC', 'UTC'),
                                 ('Asia/Ho_Chi_Minh', 'Vietnam (GMT+7)'),
                                 ('Asia/Bangkok', 'Bangkok (GMT+7)'),
@@ -158,24 +92,39 @@
                                 ('America/New_York', 'New York (GMT-5/EST)'),
                                 ('America/Los_Angeles', 'Los Angeles (GMT-8/PST)'),
                                 ('Australia/Sydney', 'Sydney (GMT+10/AEDT)')
-                            ] %}
-                            {% for tz_code, tz_label in timezones %}
-                            <option value="{{ tz_code }}" {% if field.value == tz_code %}selected{% endif %}>{{ tz_label }}</option>
-                            {% endfor %}
-                        </select>
-                        {% elif field.data_type == 'int' %}
-                        <input type="number" name="{{ field.key }}" value="{{ field.value }}"
-                            class="mt-1 w-full rounded-md border-slate-200" placeholder="{{ field.placeholder }}"
-                            required>
-                        {% else %}
-                        <input name="{{ field.key }}" value="{{ field.value }}"
-                            class="mt-1 w-full rounded-md border-slate-200" placeholder="{{ field.placeholder }}"
-                            required>
-                        {% endif %}
+                                ] %}
+                                {% for tz_code, tz_label in timezones %}
+                                <option value="{{ tz_code }}" {% if field.value==tz_code %}selected{% endif %}>{{
+                                    tz_label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% elif field.data_type == 'int' %}
+                            <input type="number" name="{{ field.key }}" value="{{ field.value }}"
+                                class="w-full rounded-md border-slate-200 text-sm" placeholder="{{ field.placeholder }}"
+                                required>
+                            {% elif field.data_type == 'path' %}
+                            <div class="flex gap-2">
+                                <input name="{{ field.key }}" id="input-{{ field.key }}" value="{{ field.value }}"
+                                    class="flex-1 rounded-md border-slate-200 text-sm"
+                                    placeholder="{{ field.placeholder }}" required>
+                                <button type="button" onclick="openFolderBrowser('{{ field.key }}')"
+                                    class="px-3 py-2 bg-slate-100 border border-slate-300 rounded-md text-slate-600 hover:bg-slate-200 hover:text-slate-800 transition"
+                                    title="Duyệt thư mục">
+                                    <i class="fas fa-folder-open"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <input name="{{ field.key }}" value="{{ field.value }}"
+                                class="w-full rounded-md border-slate-200 text-sm" placeholder="{{ field.placeholder }}"
+                                required>
+                            {% endif %}
+                        </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
+
             <div class="flex justify-end pt-2">
                 <button type="submit"
                     class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md shadow hover:bg-blue-700 transition">
@@ -452,328 +401,176 @@
         </div>
         {% endfor %}
     </div>
-    {% endblock %}
 
-    {% block extra_scripts %}
-    <script>
-        function toggleProviderSettings() {
-            const provider = document.getElementById('ai_provider_select').value;
-            const geminiContainer = document.getElementById('gemini_model_container');
-            const hfContainer = document.getElementById('hf_model_container');
+    <!-- Folder Browser Modal -->
+    <div id="folder-browser-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeFolderBrowser()"></div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-xl shadow-2xl overflow-hidden">
+            <div class="px-5 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-folder-tree text-xl"></i>
+                        <div>
+                            <h3 class="font-semibold">Chọn thư mục</h3>
+                            <p id="folder-current-path" class="text-xs text-blue-100 truncate max-w-[300px]"></p>
+                        </div>
+                    </div>
+                    <button onclick="closeFolderBrowser()" class="p-2 hover:bg-white/10 rounded-lg transition">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 border-b border-slate-200 bg-slate-50">
+                <div class="flex gap-2 mb-3">
+                    <button id="folder-parent-btn" onclick="navigateToParent()"
+                        class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center gap-2 text-sm">
+                        <i class="fas fa-arrow-up"></i> Thư mục cha
+                    </button>
+                    <button onclick="navigateToRoot()"
+                        class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center gap-2 text-sm">
+                        <i class="fas fa-home"></i> Gốc
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="new-folder-name" placeholder="Tên thư mục mới..."
+                        class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <button onclick="createNewFolder()"
+                        class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm">
+                        <i class="fas fa-folder-plus"></i> Tạo
+                    </button>
+                </div>
+            </div>
+            <div id="folder-list" class="max-h-[300px] overflow-y-auto p-2">
+                <div class="text-center py-8 text-slate-400">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Đang tải...</p>
+                </div>
+            </div>
+            <div class="px-5 py-4 bg-slate-50 border-t border-slate-200 flex justify-between">
+                <button onclick="closeFolderBrowser()"
+                    class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition">
+                    Hủy
+                </button>
+                <button id="folder-select-btn" onclick="selectCurrentFolder()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                    <i class="fas fa-check"></i> Chọn thư mục này
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-            // Cần tìm thẻ cha chứa field để ẩn hiện cả label (optional, ở đây ta ẩn nội dung field thôi)
-            // Trong loop jinja, mỗi field nằm trong một div riêng biệt, nên việc ẩn hiện div con
-            // có thể để lại label trống.
-            // Tuy nhiên, cách đơn giản nhất là dùng CSS để ẩn hiện container model.
+{% block extra_scripts %}
+<script>
+    // ===== FOLDER BROWSER LOGIC =====
+    let currentBrowsePath = '';
+    let parentBrowsePath = null;
+    let targetInputKey = '';
 
-            // Vì cấu trúc HTML đang render phẳng (các field ngang hàng trong loop), 
-            // ta sẽ dùng JS tìm div cha (parent của geminiContainer) để ẩn hiện nếu muốn đẹp hơn.
-            // Nhưng ở đây ta cứ ẩn hiện container nội dung trước.
+    function openFolderBrowser(fieldKey) {
+        targetInputKey = fieldKey;
+        const currentValue = document.getElementById('input-' + fieldKey)?.value || '';
+        document.getElementById('folder-browser-modal').classList.remove('hidden');
+        loadDirectories(currentValue || '');
+    }
 
-            if (provider === 'gemini') {
-                if (geminiContainer) {
-                    geminiContainer.style.display = 'block';
-                    // Tìm parent của container để hiện
-                    geminiContainer.closest('.border').style.display = 'block';
-                }
-                if (hfContainer) {
-                    hfContainer.style.display = 'none';
-                    // Tìm parent của container để ẩn
-                    hfContainer.closest('.border').style.display = 'none';
+    function closeFolderBrowser() {
+        document.getElementById('folder-browser-modal').classList.add('hidden');
+    }
+
+    async function loadDirectories(path) {
+        const folderList = document.getElementById('folder-list');
+        folderList.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải...</p></div>';
+
+        try {
+            const response = await fetch(`{{ url_for('admin.browse_directories_api') }}?path=${encodeURIComponent(path)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                currentBrowsePath = data.current_path;
+                parentBrowsePath = data.parent_path;
+                document.getElementById('folder-current-path').textContent = currentBrowsePath;
+                document.getElementById('folder-parent-btn').disabled = !parentBrowsePath;
+
+                if (data.directories.length === 0) {
+                    folderList.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fas fa-folder-open text-3xl mb-2"></i><p>Không có thư mục con</p></div>';
+                } else {
+                    folderList.innerHTML = data.directories.map(dir => `
+                            <div onclick="loadDirectories('${dir.path}')" 
+                                class="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 rounded-lg cursor-pointer transition group">
+                                <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                                    <i class="fas fa-folder text-amber-500"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-slate-800 truncate">${dir.name}</p>
+                                    <p class="text-xs text-slate-400 truncate">${dir.path}</p>
+                                </div>
+                                <i class="fas fa-chevron-right text-slate-300 group-hover:text-blue-500 transition"></i>
+                            </div>
+                        `).join('');
                 }
             } else {
-                if (geminiContainer) {
-                    geminiContainer.style.display = 'none';
-                    geminiContainer.closest('.border').style.display = 'none';
-                }
-                if (hfContainer) {
-                    hfContainer.style.display = 'block';
-                    hfContainer.closest('.border').style.display = 'block';
-                }
+                folderList.innerHTML = `<div class="text-center py-8 text-red-400"><i class="fas fa-exclamation-circle text-3xl mb-2"></i><p>${data.message}</p></div>`;
             }
+        } catch (e) {
+            folderList.innerHTML = '<div class="text-center py-8 text-red-400"><i class="fas fa-exclamation-circle text-3xl mb-2"></i><p>Lỗi kết nối</p></div>';
+        }
+    }
+
+    function navigateToParent() {
+        if (parentBrowsePath) {
+            loadDirectories(parentBrowsePath);
+        }
+    }
+
+    function navigateToRoot() {
+        loadDirectories('');
+    }
+
+    async function createNewFolder() {
+        const folderNameInput = document.getElementById('new-folder-name');
+        const folderName = folderNameInput.value.trim();
+
+        if (!folderName) {
+            alert('Vui lòng nhập tên thư mục.');
+            folderNameInput.focus();
+            return;
         }
 
-        function setupCustomInput(selectId, inputId) {
-            const select = document.getElementById(selectId);
-            const input = document.getElementById(inputId);
-            if (!select || !input) return;
-
-            // convention: inputId="xxx_custom_input" -> helpId="xxx_custom_help"
-            const helpId = inputId.replace('input', 'help');
-            const helpText = document.getElementById(helpId);
-
-            select.addEventListener('change', () => {
-                if (select.value === 'custom') {
-                    input.classList.remove('hidden');
-                    input.value = '';
-                    input.required = true;
-                    if (helpText) helpText.classList.remove('hidden');
-                } else {
-                    input.classList.add('hidden');
-                    input.value = select.value;
-                    input.required = false;
-                    if (helpText) helpText.classList.add('hidden');
-                }
+        try {
+            const response = await fetch("{{ url_for('admin.create_directory_api') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    parent_path: currentBrowsePath,
+                    folder_name: folderName
+                })
             });
-        }
+            const data = await response.json();
 
-        // --- DRAG & DROP LOGIC ---
-        let dragSrcEl = null;
-
-        function handleDragStart(e) {
-            this.style.opacity = '0.4';
-            dragSrcEl = this;
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', this.innerHTML);
-        }
-
-        function handleDragOver(e) {
-            if (e.preventDefault) e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            return false;
-        }
-
-        function handleDrop(e) {
-            if (e.stopPropagation) e.stopPropagation();
-            if (dragSrcEl !== this) {
-                // Swap ID and Content
-                const srcId = dragSrcEl.dataset.modelId;
-                const destId = this.dataset.modelId;
-
-                // Swap DOM content for visual
-                const srcHTML = dragSrcEl.innerHTML;
-                dragSrcEl.innerHTML = this.innerHTML;
-                this.innerHTML = srcHTML;
-
-                // Swap dataset
-                dragSrcEl.dataset.modelId = destId;
-                this.dataset.modelId = srcId;
-
-                // Re-sync hidden input
-                syncHiddenInputFromBadges();
+            if (data.success) {
+                folderNameInput.value = '';
+                // Navigate to the new folder
+                loadDirectories(data.new_path);
+            } else {
+                alert(data.message);
             }
-            return false;
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e);
         }
+    }
 
-        function handleDragEnd(e) {
-            this.style.opacity = '1';
-            document.querySelectorAll('#gemini_selected_badges .badge-item').forEach(item => {
-                item.classList.remove('over');
-            });
+    function selectCurrentFolder() {
+        const input = document.getElementById('input-' + targetInputKey);
+        if (input && currentBrowsePath) {
+            input.value = currentBrowsePath;
         }
-
-        function syncHiddenInputFromBadges() {
-            const badgeContainer = document.getElementById('gemini_selected_badges');
-            const badges = badgeContainer.querySelectorAll('.badge-item');
-            const newOrder = Array.from(badges).map(b => b.dataset.modelId);
-
-            const hiddenInput = document.getElementById('gemini_model_value');
-            hiddenInput.value = newOrder.join(',');
-
-            // Also update the checkboxes if the list is open? No, checkboxes just show presence.
-            // Actually, checkboxes showing "checked" is enough, order is determined by hidden input.
-            // But if we toggle a checkbox, we need to respect the *current* visual order + new item.
-        }
-
-        // --- Helper to update badges with DnD ---
-        function updateGeminiBadges(selectedModels) {
-            const badgeContainer = document.getElementById('gemini_selected_badges');
-            if (!badgeContainer) return;
-
-            // If empty
-            if (selectedModels.length === 0) {
-                badgeContainer.innerHTML = '<span class="text-slate-400 text-xs italic">Chưa chọn model nào</span>';
-                return;
-            }
-
-            // We want to preserve existing order if possible when updating from Checkbox
-            // But for "updateGeminiBadges" called from Checkbox change, 
-            // usually we just append/remove.
-            // The simple strategy: Re-render all based on input array order.
-
-            // IMPORTANT: The input `selectedModels` usually comes from checkboxes.
-            // Checkboxes have no order. We must rely on the HIDDEN INPUT for order.
-            // Step 1: Get current ordered list
-            const hiddenInput = document.getElementById('gemini_model_value');
-            let currentOrder = hiddenInput.value.split(',').map(s => s.trim()).filter(s => s);
-
-            // Step 2: Merge with new selection
-            // Keep items in currentOrder IF they are still in selectedModels
-            // Add new items from selectedModels that are NOT in currentOrder
-
-            const newSet = new Set(selectedModels);
-            let finalOrder = currentOrder.filter(m => newSet.has(m));
-
-            selectedModels.forEach(m => {
-                if (!finalOrder.includes(m)) {
-                    finalOrder.push(m);
-                }
-            });
-
-            // Update hidden input immediately to reflect this merge
-            hiddenInput.value = finalOrder.join(',');
-
-            // Clear and Render
-            badgeContainer.innerHTML = '';
-            finalOrder.forEach(m => {
-                const badge = document.createElement('div');
-                badge.className = 'badge-item inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 cursor-move select-none hover:bg-blue-200 transition-colors gap-1';
-                badge.setAttribute('draggable', 'true');
-                badge.dataset.modelId = m;
-                badge.innerHTML = `<span>${m}</span> <i class="fas fa-grip-lines text-blue-400 text-[10px]"></i>`;
-
-                // Add DnD listeners
-                badge.addEventListener('dragstart', handleDragStart);
-                badge.addEventListener('dragover', handleDragOver);
-                badge.addEventListener('drop', handleDrop);
-                badge.addEventListener('dragend', handleDragEnd);
-
-                badgeContainer.appendChild(badge);
-            });
-        }
-
-        async function fetchGeminiModels() {
-            const btn = event.currentTarget;
-            const originalHtml = btn.innerHTML;
-            const checkboxList = document.getElementById('gemini_checkbox_list');
-            const hiddenInput = document.getElementById('gemini_model_value');
-
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
-            btn.disabled = true;
-
-            try {
-                const response = await fetch("{{ url_for('admin.fetch_gemini_models_api') }}");
-                const data = await response.json();
-
-                if (data.success) {
-                    checkboxList.innerHTML = '';
-                    checkboxList.classList.remove('hidden');
-
-                    const currentValues = hiddenInput.value.split(',').map(s => s.trim()).filter(s => s);
-                    // Initial render of badges to ensure DnD is active even before check
-                    updateGeminiBadges(currentValues);
-
-                    data.models.forEach(m => {
-                        const div = document.createElement('div');
-                        div.className = 'flex items-start gap-2 p-1 hover:bg-slate-100 rounded';
-
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.id = `chk_${m.id}`;
-                        checkbox.value = m.id;
-                        checkbox.className = 'mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500';
-                        if (currentValues.includes(m.id)) {
-                            checkbox.checked = true;
-                        }
-
-                        checkbox.addEventListener('change', () => {
-                            // Collect all checked boxes
-                            const allChecked = Array.from(checkboxList.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-                            // Use updateGeminiBadges to merge logic and save order
-                            updateGeminiBadges(allChecked);
-                        });
-
-                        const label = document.createElement('label');
-                        label.htmlFor = `chk_${m.id}`;
-                        label.className = 'text-sm text-slate-700 cursor-pointer flex-1';
-                        label.innerHTML = `<span class="font-medium">${m.display_name}</span> <span class="text-slate-500 text-xs">(${m.id})</span>`;
-
-                        div.appendChild(checkbox);
-                        div.appendChild(label);
-                        checkboxList.appendChild(div);
-                    });
-
-                    // Handle missing models (same as before)
-                    currentValues.forEach(val => {
-                        if (!data.models.find(m => m.id === val)) {
-                            const div = document.createElement('div');
-                            div.className = 'flex items-start gap-2 p-1 bg-amber-50 rounded border border-amber-100';
-                            const checkbox = document.createElement('input');
-                            checkbox.type = 'checkbox';
-                            checkbox.checked = true;
-                            checkbox.value = val;
-                            checkbox.className = 'mt-1 rounded border-amber-300 text-amber-600 focus:ring-amber-500';
-
-                            checkbox.addEventListener('change', () => {
-                                const allChecked = Array.from(checkboxList.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-                                updateGeminiBadges(allChecked);
-                            });
-
-                            const label = document.createElement('label');
-                            label.className = 'text-sm text-amber-800 cursor-pointer flex-1 italic';
-                            label.innerHTML = `${val} (Không có trong danh sách API)`;
-
-                            div.appendChild(checkbox);
-                            div.appendChild(label);
-                            checkboxList.prepend(div);
-                        }
-                    });
-
-                } else {
-                    alert('Lỗi: ' + data.message);
-                }
-            } catch (e) {
-                alert('Lỗi kết nối: ' + e);
-            } finally {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-            }
-        }
-
-        async function fetchHFModels() {
-            const btn = event.currentTarget;
-            const originalHtml = btn.innerHTML;
-            const select = document.getElementById('hf_model_select');
-
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            btn.disabled = true;
-
-            try {
-                const response = await fetch("{{ url_for('admin.fetch_hf_models_api') }}");
-                const data = await response.json();
-
-                if (data.success) {
-                    select.innerHTML = '';
-                    const group = document.createElement('optgroup');
-                    group.label = "Popular Text Generation Models";
-                    data.models.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m.id;
-                        opt.text = `${m.display_name} (${m.description})`;
-                        group.appendChild(opt);
-                    });
-                    select.appendChild(group);
-
-                    const customOpt = document.createElement('option');
-                    customOpt.value = 'custom';
-                    customOpt.text = 'Khác...';
-                    select.appendChild(customOpt);
-
-                    alert(`Đã cập nhật ${data.models.length} model từ Hugging Face.`);
-                } else {
-                    alert('Lỗi: ' + data.message);
-                }
-            } catch (e) {
-                alert('Lỗi kết nối: ' + e);
-            } finally {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            setupCustomInput('gemini_model_select', 'gemini_custom_input');
-            setupCustomInput('hf_model_select', 'hf_custom_input');
-
-            // Initial state
-            toggleProviderSettings();
-
-            // Initialize Draggable Badges for Gemini
-            const geminiHidden = document.getElementById('gemini_model_value');
-            if (geminiHidden && geminiHidden.value) {
-                const initialModels = geminiHidden.value.split(',').map(s => s.trim()).filter(s => s);
-                updateGeminiBadges(initialModels);
-            }
-        });
-    </script>
-    {% endblock %}
+        closeFolderBrowser();
+    }
+</script>
+{% endblock %}

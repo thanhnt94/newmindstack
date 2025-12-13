@@ -166,6 +166,12 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "description": "Model mặc định khi sử dụng Hugging Face.",
             },
             {
+                "key": "DEFAULT_AUDIO_FOLDER",
+                "value": "upload/audio",
+                "data_type": "string",
+                "description": "Thư mục mặc định lưu audio nếu container không có cấu hình riêng.",
+            },
+            {
                 "key": "FLASHCARD_PREVIEW_BONUS",
                 "value": 10,
                 "data_type": "int",
