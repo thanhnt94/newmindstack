@@ -1,56 +1,14 @@
-{# File: mindstack_app/modules/shared/templates/includes/_pagination.html #}
-{# Phiên bản 2.5: Đã gõ lại hoàn toàn để khắc phục lỗi cú pháp Jinja2. #}
-{# ĐÃ SỬA: Cập nhật url_for để chỉ truyền set_id nếu nó có giá trị (không phải None) để tránh lỗi BuildError. #}
-{# ĐÃ SỬA: Sử dụng {% set _ = url_params.update(...) %} để tránh lỗi cú pháp Jinja2 khi cập nhật dictionary. #}
+{% from 'includes/_pagination_mobile.html' import render_pagination_mobile %}
+{% from 'includes/_pagination_desktop.html' import render_pagination_desktop %}
 
 {% macro render_pagination(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
-<div class="flex justify-center items-center space-x-2 mt-6 pagination">
-    {# Nút "Trang trước" #}
-    {% if pagination.has_prev %}
-    {% set url_params = {'page': pagination.prev_num, 'q': search_query, 'search_field': search_field, 'filter': current_filter} %}
-    {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
-    <a href="{{ url_for(request.endpoint, **url_params) }}" 
-       class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">
-        &laquo;
-    </a>
-    {% else %}
-    <span class="px-3 py-1 rounded-md border border-gray-200 text-gray-400 cursor-not-allowed">
-        &laquo;
-    </span>
-    {% endif %}
+{# Mobile Version #}
+<div class="lg:hidden w-full">
+    {{ render_pagination_mobile(pagination, search_query, set_id, search_field, current_filter) }}
+</div>
 
-    {# Các nút số trang #}
-    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-        {% if page_num %}
-            {% if page_num == pagination.page %}
-            <span class="px-3 py-1 rounded-md border border-blue-500 bg-blue-500 text-white">
-                {{ page_num }}
-            </span>
-            {% else %}
-            {% set url_params = {'page': page_num, 'q': search_query, 'search_field': search_field, 'filter': current_filter} %}
-            {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
-            <a href="{{ url_for(request.endpoint, **url_params) }}" 
-               class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">
-                {{ page_num }}
-            </a>
-            {% endif %}
-        {% else %}
-        <span class="px-3 py-1 text-gray-700">...</span>
-        {% endif %}
-    {% endfor %}
-
-    {# Nút "Trang sau" #}
-    {% if pagination.has_next %}
-    {% set url_params = {'page': pagination.next_num, 'q': search_query, 'search_field': search_field, 'filter': current_filter} %}
-    {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
-    <a href="{{ url_for(request.endpoint, **url_params) }}" 
-       class="px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-300">
-        &raquo;
-    </a>
-    {% else %}
-    <span class="px-3 py-1 rounded-md border border-gray-200 text-gray-400 cursor-not-allowed">
-        &raquo;
-    </span>
-    {% endif %}
+{# Desktop Version #}
+<div class="hidden lg:block w-full">
+    {{ render_pagination_desktop(pagination, search_query, set_id, search_field, current_filter) }}
 </div>
 {% endmacro %}

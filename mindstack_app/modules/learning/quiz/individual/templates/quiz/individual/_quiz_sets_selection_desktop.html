@@ -1,4 +1,4 @@
-{% from 'includes/_pagination.html' import render_pagination %}
+{% from 'includes/_pagination_desktop.html' import render_pagination_desktop %}
 
 <div class="w-full space-y-3">
     {% if quiz_sets %}
@@ -53,7 +53,7 @@
         {% endfor %}
     </div>
 
-    {{ render_pagination(pagination=pagination, search_query=search_query, search_field=search_field,
+    {{ render_pagination_desktop(pagination=pagination, search_query=search_query, search_field=search_field,
     current_filter=current_filter) }}
     {% else %}
     <div class="text-center py-12 px-6 text-gray-600">

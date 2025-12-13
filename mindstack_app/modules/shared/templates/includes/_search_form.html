@@ -1,31 +1,15 @@
-{# File: mindstack_app/modules/shared/templates/includes/_search_form.html #}
-{# Phiên bản 3.4: Đã cập nhật để trường tìm kiếm hoàn toàn responsive và tràn viền. #}
-{# ĐÃ SỬA: Cập nhật url_for để chỉ truyền set_id nếu nó có giá trị (không phải None) để tránh lỗi BuildError. #}
+{% from 'includes/_search_form_mobile.html' import render_search_form_mobile %}
+{% from 'includes/_search_form_desktop.html' import render_search_form_desktop %}
 
-{% macro render_search_form(search_query=None, search_field='all', placeholder="Tìm kiếm...", set_id=None, search_options=None) %}
-<form method="GET" action="{{ url_for(request.endpoint, **({'set_id': set_id} if set_id is not none else {})) }}" class="flex items-stretch space-x-2 w-full"> {# THAY ĐỔI: Đảm bảo form chiếm toàn bộ chiều rộng #}
-    
-    {# Ô chọn trường tìm kiếm (hiện được tạo động) #}
-    <select name="search_field" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">
-        {% if search_options %}
-            {% for value, display_text in search_options.items() %}
-                <option value="{{ value }}" {% if search_field == value %}selected{% endif %}>{{ display_text }}</option>
-            {% endfor %}
-        {% else %}
-            {# Fallback nếu không có search_options được cung cấp #}
-            <option value="all" {% if search_field == 'all' %}selected{% endif %}>Tất cả</option>
-        {% endif %}
-    </select>
+{% macro render_search_form(search_query=None, search_field='all', placeholder="Tìm kiếm...", set_id=None,
+search_options=None) %}
+{# Mobile Version #}
+<div class="lg:hidden w-full">
+    {{ render_search_form_mobile(search_query, search_field, placeholder, set_id, search_options) }}
+</div>
 
-    {# Ô nhập liệu #}
-    {# THAY ĐỔI: Thay w-64 bằng flex-grow để nó tự động mở rộng và thêm min-w-0 để tránh tràn #}
-    <input type="text" name="q" value="{{ search_query if search_query else '' }}" 
-           placeholder="{{ placeholder }}" 
-           class="block flex-grow px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0"> {# THÊM: min-w-0 để đảm bảo responsive trên màn hình nhỏ #}
-    
-    {# Nút tìm kiếm #}
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center">
-        <i class="fas fa-search"></i>
-    </button>
-</form>
+{# Desktop Version #}
+<div class="hidden lg:block w-full">
+    {{ render_search_form_desktop(search_query, search_field, placeholder, set_id, search_options) }}
+</div>
 {% endmacro %}

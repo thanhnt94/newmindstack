@@ -1,0 +1,56 @@
+{# File: mindstack_app/modules/shared/templates/includes/_pagination_mobile.html #}
+{# Mobile version of pagination - Compact #}
+
+{% macro render_pagination_mobile(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
+<div class="flex justify-center items-center space-x-1 mt-6 pagination">
+    {# Nút "Trang trước" #}
+    {% if pagination.has_prev %}
+    {% set url_params = {'page': pagination.prev_num, 'q': search_query, 'search_field': search_field, 'filter':
+    current_filter} %}
+    {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
+    <a href="{{ url_for(request.endpoint, **url_params) }}"
+        class="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition duration-300">
+        <i class="fas fa-chevron-left text-xs"></i>
+    </a>
+    {% else %}
+    <span class="px-3 py-2 rounded-lg border border-gray-100 text-gray-300 cursor-not-allowed">
+        <i class="fas fa-chevron-left text-xs"></i>
+    </span>
+    {% endif %}
+
+    {# Các nút số trang - Reduced range for mobile #}
+    {% for page_num in pagination.iter_pages(left_edge=0, right_edge=0, left_current=1, right_current=1) %}
+    {% if page_num %}
+    {% if page_num == pagination.page %}
+    <span class="px-3 py-2 rounded-lg border border-blue-600 bg-blue-600 text-white font-bold text-sm shadow-sm">
+        {{ page_num }}
+    </span>
+    {% else %}
+    {% set url_params = {'page': page_num, 'q': search_query, 'search_field': search_field, 'filter': current_filter} %}
+    {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
+    <a href="{{ url_for(request.endpoint, **url_params) }}"
+        class="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition duration-300 text-sm font-medium">
+        {{ page_num }}
+    </a>
+    {% endif %}
+    {% else %}
+    <span class="px-1 text-gray-400 text-xs">...</span>
+    {% endif %}
+    {% endfor %}
+
+    {# Nút "Trang sau" #}
+    {% if pagination.has_next %}
+    {% set url_params = {'page': pagination.next_num, 'q': search_query, 'search_field': search_field, 'filter':
+    current_filter} %}
+    {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
+    <a href="{{ url_for(request.endpoint, **url_params) }}"
+        class="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition duration-300">
+        <i class="fas fa-chevron-right text-xs"></i>
+    </a>
+    {% else %}
+    <span class="px-3 py-2 rounded-lg border border-gray-100 text-gray-300 cursor-not-allowed">
+        <i class="fas fa-chevron-right text-xs"></i>
+    </span>
+    {% endif %}
+</div>
+{% endmacro %}
