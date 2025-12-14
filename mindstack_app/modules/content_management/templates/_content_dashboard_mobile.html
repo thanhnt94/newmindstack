@@ -54,7 +54,7 @@
 
         {# === COLLAPSIBLE SEARCH BAR === #}
         <div id="mobile-search-bar" class="hidden px-5 pb-3">
-            <div id="mobile-search-form-container" class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div id="mobile-search-form-container">
                 {# Search form will be injected here by JavaScript based on active tab #}
                 <div class="text-sm text-slate-400 text-center py-2">Đang tải form tìm kiếm...</div>
             </div>
@@ -268,18 +268,18 @@
 
             const placeholder = searchPlaceholderMap[tabName] || 'Tìm kiếm...';
             const formHtml = `
-                <form id="mobile-search-form" class="flex items-center gap-2 w-full bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
+                <form id="mobile-search-form" class="flex items-center gap-2 w-full bg-white p-2 rounded-xl border border-slate-200 shadow-sm relative z-20">
                     <div class="relative flex-shrink-0">
                         <select name="search_field" id="mobile-search-field"
-                            class="appearance-none bg-slate-50 border-none text-slate-600 text-xs font-medium rounded-lg py-2 pl-2 pr-6 focus:ring-0 cursor-pointer">
+                            class="appearance-none bg-slate-50 border-none text-slate-600 text-xs font-medium rounded-lg py-2 pl-3 pr-8 focus:ring-0 cursor-pointer">
                             <option value="title">Tiêu đề</option>
                             <option value="description">Mô tả</option>
                             <option value="tags">Thẻ</option>
                         </select>
-                        <i class="fas fa-chevron-down absolute right-1.5 top-1/2 transform -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none"></i>
+                        <i class="fas fa-chevron-down absolute right-2 top-1/2 transform -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none"></i>
                     </div>
                     <input type="text" name="q" id="mobile-search-input" placeholder="${placeholder}" 
-                        class="flex-grow bg-transparent border-none text-slate-800 placeholder-slate-400 text-sm focus:ring-0 focus:outline-none px-2 py-1.5 min-w-0">
+                        class="flex-1 min-w-0 bg-transparent border-none text-slate-800 placeholder-slate-400 text-sm focus:ring-0 focus:outline-none px-2 py-1.5">
                     <button type="submit" class="flex-shrink-0 bg-indigo-500 text-white w-9 h-9 rounded-lg flex items-center justify-center hover:bg-indigo-600 active:scale-95 transition-all shadow-sm">
                         <i class="fa-solid fa-search text-sm"></i>
                     </button>

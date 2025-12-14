@@ -104,7 +104,10 @@ def get_flashcard_options_partial(set_identifier):
     Trả về partial HTML chứa các chế độ học và số nút đánh giá tương ứng.
     """
     selected_mode = request.args.get('selected_mode', None, type=str)
-    user_button_count = current_user.flashcard_button_count if current_user.flashcard_button_count else 3
+    # [UPDATED v3] Use session_state
+    user_button_count = 3
+    if current_user.session_state:
+        user_button_count = current_user.session_state.flashcard_button_count
     
     modes = []
     
@@ -194,7 +197,11 @@ def flashcard_session():
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
         return redirect(url_for('learning.flashcard.dashboard'))
 
-    user_button_count = current_user.flashcard_button_count if current_user.flashcard_button_count else 3
+    # [UPDATED v3] Use session_state
+    user_button_count = 3
+    if current_user.session_state:
+        user_button_count = current_user.session_state.flashcard_button_count
+
     session_data = session.get('flashcard_session', {})
     session_mode = session_data.get('mode')
     is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
@@ -382,7 +389,11 @@ def submit_flashcard_answer():
                 exc_info=True,
             )
                 
-    user_button_count = current_user.flashcard_button_count or 3
+    # [UPDATED v3] Use session_state
+    user_button_count = 3
+    if current_user.session_state:
+        user_button_count = current_user.session_state.flashcard_button_count
+
     normalized_answer = str(user_answer).lower()
 
     if normalized_answer == 'continue':
@@ -452,7 +463,15 @@ def save_flashcard_settings():
     try:
         user = User.query.get(current_user.user_id)
         if user:
-            user.flashcard_button_count = button_count
+            # [UPDATED v3] Use session_state
+            if user.session_state:
+                user.session_state.flashcard_button_count = button_count
+            else:
+                # Fallback: Should not happen if migrated
+                from mindstack_app.models import UserSession
+                new_sess = UserSession(user_id=user.user_id, flashcard_button_count=button_count)
+                db.session.add(new_sess)
+            
             safe_commit(db.session)
             return jsonify({'success': True, 'message': 'Cài đặt số nút đã được lưu.'})
         else:

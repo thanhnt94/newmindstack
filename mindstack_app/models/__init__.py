@@ -21,6 +21,7 @@ from .quiz_battle import (
 from .user import (
     User,
     UserContainerState,
+    UserSession, # Thêm UserSession
     FlashcardProgress,
     QuizProgress,
     CourseProgress,
@@ -30,6 +31,7 @@ from .user import (
     UserNote,
     UserFeedback,
     ContainerContributor,
+    ReviewLog, # Thêm ReviewLog
 )
 from .system import ApiKey, BackgroundTask, BackgroundTaskLog, SystemSetting
 from ..modules.gamification.models import Badge, UserBadge
@@ -52,6 +54,7 @@ __all__ = [
     'QuizBattleRound',
     'User',
     'UserContainerState',
+    'UserSession', # Thêm UserSession
     'FlashcardProgress',
     'QuizProgress',
     'CourseProgress',
@@ -61,6 +64,7 @@ __all__ = [
     'UserNote',
     'UserFeedback',
     'ContainerContributor',
+    'ReviewLog', # Thêm ReviewLog
     'SystemSetting',
     'BackgroundTask',
     'BackgroundTaskLog',

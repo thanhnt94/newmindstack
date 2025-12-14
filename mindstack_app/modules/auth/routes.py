@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request
 from flask_login import login_user, logout_user, current_user
 from . import auth_bp
 from .forms import LoginForm, RegistrationForm
-from ...models import User
+from ...models import User, UserSession
 from datetime import datetime, timezone
 from ...db_instance import db
 
@@ -78,6 +78,12 @@ def register():
         )
         user.set_password(form.password.data)
         db.session.add(user)
+        db.session.flush() # Flush to get user_id
+
+        # Create default session state
+        user_session = UserSession(user_id=user.user_id)
+        db.session.add(user_session)
+
         db.session.commit()
         flash('Chúc mừng, bạn đã đăng ký thành công! Vui lòng đăng nhập.', 'success')
         return redirect(url_for('auth.login'))

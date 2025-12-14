@@ -15,7 +15,10 @@ def _build_dashboard_context(user):
     search_field = request.args.get('search_field', 'all', type=str)
     current_filter = request.args.get('filter', 'doing', type=str)
 
-    user_button_count = user.flashcard_button_count if user.flashcard_button_count else 3
+    # [UPDATED v3] Use session_state
+    user_button_count = 3
+    if user.session_state:
+        user_button_count = user.session_state.flashcard_button_count
 
     flashcard_set_search_options = {
         'title': 'Tiêu đề',

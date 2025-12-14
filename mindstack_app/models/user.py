@@ -36,6 +36,7 @@ class User(UserMixin, db.Model):
     timezone = db.Column(db.String(50), default='UTC')
     telegram_chat_id = db.Column(db.String(100), nullable=True, unique=True)
 
+    # --- DEPRECATED FIELDS (Moved to UserSession) ---
     current_flashcard_container_id = db.Column(
         db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True
     )
@@ -49,6 +50,10 @@ class User(UserMixin, db.Model):
     current_quiz_mode = db.Column(db.String(50), nullable=True)
     current_quiz_batch_size = db.Column(db.Integer, nullable=True)
     flashcard_button_count = db.Column(db.Integer, default=3)
+    # ------------------------------------------------
+
+    # New 1-to-1 relationship with UserSession
+    session_state = db.relationship('UserSession', uselist=False, backref='user', cascade='all, delete-orphan')
 
     contributed_containers = db.relationship('ContainerContributor', backref='user', lazy=True)
     container_states = db.relationship(
@@ -71,6 +76,9 @@ class User(UserMixin, db.Model):
     resolved_feedbacks = db.relationship(
         'UserFeedback', foreign_keys='UserFeedback.resolved_by_id', backref='resolver', lazy=True
     )
+    
+    # Relationship to new ReviewLogs
+    review_logs = db.relationship('ReviewLog', backref='user', lazy='dynamic')
 
     def get_id(self):
         return str(self.user_id)
@@ -113,6 +121,30 @@ class UserContainerState(db.Model):
         }
 
 
+class UserSession(db.Model):
+    """
+    [NEW] Stores transient session state for a user.
+    Separates 'Identity' (User table) from 'State' (This table).
+    """
+    __tablename__ = 'user_sessions'
+
+    # 1-to-1 relationship: user_id is both PK and FK
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key=True)
+
+    # Active Context
+    current_flashcard_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
+    current_quiz_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
+    current_course_container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
+
+    # Preferences / Settings
+    current_flashcard_mode = db.Column(db.String(50), default='basic')
+    current_quiz_mode = db.Column(db.String(50), default='standard')
+    current_quiz_batch_size = db.Column(db.Integer, default=10)
+    flashcard_button_count = db.Column(db.Integer, default=3)
+    
+    last_updated = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class FlashcardProgress(db.Model):
     """Study progress for flashcard items."""
 
@@ -136,6 +168,8 @@ class FlashcardProgress(db.Model):
     incorrect_streak = db.Column(db.Integer, default=0)
     vague_streak = db.Column(db.Integer, default=0)
     first_seen_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    
+    # DEPRECATED: Data moved to ReviewLog table. Kept for legacy compatibility if needed.
     review_history = db.Column(JSON)
 
     __table_args__ = (db.UniqueConstraint('user_id', 'item_id', name='_user_flashcard_uc'),)
@@ -308,3 +342,27 @@ class ContainerContributor(db.Model):
     granted_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (db.UniqueConstraint('container_id', 'user_id', name='_container_user_uc'),)
+
+
+class ReviewLog(db.Model):
+    """
+    [NEW] Normalized table for storing granular review history.
+    Replaces the JSON 'review_history' blob in FlashcardProgress.
+    """
+    __tablename__ = 'review_logs'
+
+    log_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
+    
+    timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    rating = db.Column(db.Integer, nullable=False) # e.g. 0-5 for Flashcards, 1/0 for Quiz
+    duration_ms = db.Column(db.Integer, default=0) # Time spent thinking
+    
+    # Snapshot of SRS state AFTER the review
+    interval = db.Column(db.Integer)
+    easiness_factor = db.Column(db.Float)
+    
+    review_type = db.Column(db.String(20), default='flashcard') # 'flashcard' or 'quiz'
+
+    item = db.relationship('LearningItem', backref='review_logs')

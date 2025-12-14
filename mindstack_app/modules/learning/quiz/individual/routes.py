@@ -148,7 +148,7 @@ def quiz_learning_dashboard():
     current_filter = request.args.get('filter', 'doing', type=str)
     quiz_type = request.args.get('quiz_type', 'individual', type=str) # Receive quiz_type param
 
-    user_default_batch_size = current_user.current_quiz_batch_size if current_user.current_quiz_batch_size is not None else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
+    user_default_batch_size = (current_user.session_state.current_quiz_batch_size if (current_user.session_state and current_user.session_state.current_quiz_batch_size is not None) else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE)
 
     quiz_set_search_options = {
         'title': 'Tiêu đề', 'description': 'Mô tả', 'tags': 'Thẻ'
@@ -171,7 +171,7 @@ def get_quiz_modes_partial_all():
     Trả về partial HTML chứa các chế độ học và số lượng câu hỏi tương ứng cho TẤT CẢ các bộ Quiz.
     """
     selected_mode = request.args.get('selected_mode', None, type=str)
-    user_default_batch_size = current_user.current_quiz_batch_size if current_user.current_quiz_batch_size is not None else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
+    user_default_batch_size = (current_user.session_state.current_quiz_batch_size if (current_user.session_state and current_user.session_state.current_quiz_batch_size is not None) else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE)
 
     modes = get_quiz_mode_counts(current_user.user_id, 'all')
     return render_template('quiz/individual/dashboard/_quiz_modes_selection.html',
@@ -188,7 +188,7 @@ def get_quiz_modes_partial_multi(set_ids_str):
     Trả về partial HTML chứa các chế độ học và số lượng câu hỏi tương ứng cho NHIỀU bộ Quiz.
     """
     selected_mode = request.args.get('selected_mode', None, type=str)
-    user_default_batch_size = current_user.current_quiz_batch_size if current_user.current_quiz_batch_size is not None else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
+    user_default_batch_size = (current_user.session_state.current_quiz_batch_size if (current_user.session_state and current_user.session_state.current_quiz_batch_size is not None) else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE)
 
     try:
         set_ids = [int(s) for s in set_ids_str.split(',') if s]
@@ -210,7 +210,7 @@ def get_quiz_modes_partial_by_id(set_id):
     Trả về partial HTML chứa các chế độ học và số lượng câu hỏi tương ứng cho một bộ Quiz cụ thể.
     """
     selected_mode = request.args.get('selected_mode', None, type=str)
-    user_default_batch_size = current_user.current_quiz_batch_size if current_user.current_quiz_batch_size is not None else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
+    user_default_batch_size = (current_user.session_state.current_quiz_batch_size if (current_user.session_state and current_user.session_state.current_quiz_batch_size is not None) else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE)
 
     modes = get_quiz_mode_counts(current_user.user_id, set_id)
 
@@ -638,7 +638,14 @@ def save_quiz_settings():
     try:
         user = User.query.get(current_user.user_id)
         if user:
-            user.current_quiz_batch_size = batch_size
+            # [UPDATED v3] Use session_state
+            if user.session_state:
+                user.session_state.current_quiz_batch_size = batch_size
+            else:
+                 from mindstack_app.models import UserSession
+                 new_sess = UserSession(user_id=user.user_id, current_quiz_batch_size=batch_size)
+                 db.session.add(new_sess)
+
             db.session.commit()
             flash('Cài đặt số câu hỏi mặc định đã được lưu.', 'success')
             return jsonify({'success': True, 'message': 'Cài đặt số câu hỏi mặc định đã được lưu.'})

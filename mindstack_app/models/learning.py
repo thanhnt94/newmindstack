@@ -267,9 +267,40 @@ class LearningItem(db.Model):
     content = db.Column(JSON, nullable=False)
     order_in_container = db.Column(db.Integer, default=0)
     ai_explanation = db.Column(db.Text, nullable=True)
+    
+    # [NEW] Optimized search column
+    search_text = db.Column(db.Text, nullable=True)
 
     group = db.relationship(
         'LearningGroup',
         backref=db.backref('items', lazy=True),
         lazy=True,
     )
+    
+    __table_args__ = (
+        db.Index('ix_learning_items_search_text', 'search_text'),
+    )
+
+    def update_search_text(self):
+        """Generates plain text for searching from the JSON content."""
+        if not self.content:
+            return
+
+        text_parts = []
+        c = self.content
+        
+        if self.item_type == 'FLASHCARD':
+            # Index front and back
+            if c.get('front'): text_parts.append(str(c['front']))
+            if c.get('back'): text_parts.append(str(c['back']))
+        
+        elif self.item_type == 'QUIZ_MCQ':
+            # Index question, options and explanation
+            if c.get('question'): text_parts.append(str(c['question']))
+            if c.get('explanation'): text_parts.append(str(c['explanation']))
+            options = c.get('options')
+            if isinstance(options, dict):
+                text_parts.extend([str(v) for v in options.values() if v])
+        
+        # Join and lowercase for easier searching
+        self.search_text = " ".join(text_parts).lower()

@@ -70,7 +70,11 @@ def create_room():
     try:
         requested_button_count = int(payload.get('button_count'))
     except (TypeError, ValueError):
-        requested_button_count = current_user.flashcard_button_count or 3
+        # [UPDATED v3] Use session_state
+        requested_button_count = 3
+        if current_user.session_state:
+            requested_button_count = current_user.session_state.flashcard_button_count
+
     button_count = requested_button_count if requested_button_count in (3, 4, 6) else 3
     is_public = bool(payload.get('is_public'))
     title = payload.get('title') or 'Học Flashcard chung'
@@ -382,7 +386,12 @@ def submit_collab_answer(room_code: str):
             answer_quality = None
 
     if not isinstance(answer_quality, int):
-        button_count = getattr(room, 'button_count', None) or participant.user.flashcard_button_count
+        # [UPDATED v3] Use session_state
+        user_button_count = 3
+        if participant.user.session_state:
+            user_button_count = participant.user.session_state.flashcard_button_count
+        
+        button_count = getattr(room, 'button_count', None) or user_button_count
         answer_quality = _map_answer_to_quality(answer_label, button_count)
 
     if answer_quality is None:
