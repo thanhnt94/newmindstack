@@ -211,7 +211,6 @@
                     mobileSearchBar.classList.remove('hidden');
                     this.classList.add('bg-gradient-to-br', 'from-indigo-500', 'to-violet-600', 'text-white', 'shadow-md');
                     this.classList.remove('bg-slate-200', 'text-slate-600');
-                    // Focus input
                     setTimeout(() => {
                         const input = mobileSearchBar.querySelector('input[type="text"]');
                         if (input) input.focus();
@@ -220,12 +219,44 @@
             });
         }
 
+        // Search URL Map
         const searchUrlMap = {
             'courses': coursesListUrl,
             'flashcards': flashcardSetsListUrl,
             'quizzes': quizSetsListUrl
         };
 
+        // Helper: Move Pagination to Fixed Bar
+        function movePaginationToFixedBar() {
+            if (!mobileFixedPaginationSlot || !mobileFixedPaginationBar) return;
+
+            // Find existing pagination in content (support varied selectors)
+            const paginationEl = mobileTabContent.querySelector('.pagination, nav[aria-label="Page navigation"], nav ul.pagination');
+
+            mobileFixedPaginationSlot.innerHTML = ''; // Clear old
+
+            if (paginationEl) {
+                // Determine what to move (the container nav/div or clean UL)
+                let target = paginationEl;
+                // If it's a UL inside a Nav, take the Nav
+                if (paginationEl.tagName === 'UL') {
+                    const wrapper = paginationEl.closest('nav');
+                    if (wrapper) target = wrapper;
+                }
+                // If it's the specific mobile pagination div wrapper
+                if (paginationEl.classList.contains('pagination') && paginationEl.tagName === 'DIV') {
+                    // This matches _pagination_mobile.html root
+                    target = paginationEl;
+                }
+
+                mobileFixedPaginationSlot.appendChild(target);
+                mobileFixedPaginationBar.classList.remove('hidden');
+            } else {
+                mobileFixedPaginationBar.classList.add('hidden');
+            }
+        }
+
+        // Update Search Form UI
         function updateSearchForm(tabName) {
             const searchPlaceholderMap = {
                 'courses': 'Tìm kiếm khóa học...',
@@ -233,6 +264,8 @@
                 'quizzes': 'Tìm kiếm quiz...'
             };
             const mobileSearchFormContainer = document.getElementById('mobile-search-form-container');
+            if (!mobileSearchFormContainer) return;
+
             const placeholder = searchPlaceholderMap[tabName] || 'Tìm kiếm...';
             const formHtml = `
                 <form id="mobile-search-form" class="flex items-center gap-2 w-full bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
@@ -254,48 +287,21 @@
             `;
             mobileSearchFormContainer.innerHTML = formHtml;
 
-            // Add submit handler
+            // Re-attach listener
             const form = document.getElementById('mobile-search-form');
-            form.addEventListener('submit', async function (e) {
-                e.preventDefault();
-                const query = document.getElementById('mobile-search-input').value;
-                const searchField = document.getElementById('mobile-search-field').value;
-                if (!query.trim()) return;
+            if (form) {
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    // Basic search submission logic handled here or delegating to fetch
+                    const query = document.getElementById('mobile-search-input').value;
+                    const searchField = document.getElementById('mobile-search-field').value;
 
-                const baseUrl = searchUrlMap[currentTab];
-                const searchUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(query) + '&search_field=' + searchField;
+                    const baseUrl = searchUrlMap[currentTab];
+                    const searchUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(query) + '&search_field=' + searchField;
 
-                // Show loading
-                mobileTabContent.innerHTML = '<div class="flex justify-center py-12"><i class="fa-solid fa-rotate animate-spin text-indigo-400 text-2xl"></i></div>';
-
-                try {
-                    const response = await fetch(searchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                    if (!response.ok) throw new Error('Search failed');
-                    const resultHtml = await response.text();
-
-                    // Add search results banner at top
-                    const searchBanner = `
-                        <div class="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
-                            <div class="flex items-center gap-2 text-sm text-indigo-700">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                                <span>Kết quả cho: <strong>"${query}"</strong></span>
-                            </div>
-                            <button type="button" onclick="clearMobileSearch()" class="text-indigo-500 hover:text-indigo-700 text-sm font-medium flex items-center gap-1">
-                                <i class="fa-solid fa-xmark"></i> Xóa
-                            </button>
-                        </div>
-                    `;
-                    mobileTabContent.innerHTML = searchBanner + resultHtml;
-
-                    // Close search bar after search
-                    mobileSearchBar.classList.add('hidden');
-                    mobileSearchToggleBtn.classList.remove('bg-gradient-to-br', 'from-indigo-500', 'to-violet-600', 'text-white', 'shadow-md');
-                    mobileSearchToggleBtn.classList.add('bg-slate-200', 'text-slate-600');
-                } catch (error) {
-                    console.error('Search error:', error);
-                    mobileTabContent.innerHTML = '<p class="text-red-500 text-center py-8">Lỗi tìm kiếm. Vui lòng thử lại.</p>';
-                }
-            });
+                    fetchAndUpdate(searchUrl);
+                });
+            }
         }
 
         // Global function to clear search and reload
@@ -315,83 +321,114 @@
                 }
             }
 
-            // Update breadcrumb
-            if (currentModeLabel) {
-                currentModeLabel.textContent = modeLabelMap[tabName] || tabName.toUpperCase();
-            }
+            // Update UI
+            if (currentModeLabel) currentModeLabel.textContent = modeLabelMap[tabName] || tabName.toUpperCase();
+            if (mobileAddBtn) mobileAddBtn.setAttribute('data-modal-url', addUrlMap[tabName] || '');
 
-            // Update add button URL
-            if (mobileAddBtn) {
-                mobileAddBtn.setAttribute('data-modal-url', addUrlMap[tabName] || '');
-            }
-
-            // Show loading
-            mobileTabContent.innerHTML = `
-            <div class="flex flex-col items-center justify-center gap-4 text-slate-400 py-12">
-                <div class="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center">
-                    <i class="fa-solid fa-rotate animate-spin text-indigo-400 text-2xl"></i>
-                </div>
-                <p class="text-sm font-medium text-slate-500">Đang tải ${modeLabelMap[tabName] || tabName}...</p>
-            </div>
-        `;
-
-            // Update tab states
+            // Update tabs
             mobileTabButtons.forEach(btn => {
-                btn.setAttribute('aria-selected', 'false');
+                const isSelected = btn.dataset.target === tabName;
+                btn.setAttribute('aria-selected', isSelected.toString());
             });
-            const activeBtn = document.getElementById('mobile-tab-' + tabName);
-            if (activeBtn) {
-                activeBtn.setAttribute('aria-selected', 'true');
-                sessionStorage.setItem(SESSION_KEY, tabName);
-            }
+
+            // Show Loading
+            mobileTabContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center gap-4 text-slate-400 py-12">
+                    <div class="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center">
+                        <i class="fa-solid fa-rotate animate-spin text-indigo-400 text-2xl"></i>
+                    </div>
+                    <p class="text-sm font-medium text-slate-500">Đang tải ${modeLabelMap[tabName] || tabName}...</p>
+                </div>`;
+
+            // Hide Pagination during load
+            if (mobileFixedPaginationBar) mobileFixedPaginationBar.classList.add('hidden');
+
+            // Update Search Form for this tab
+            updateSearchForm(tabName);
 
             // Get URL
             let url;
             if (tabName === 'courses') url = coursesListUrl;
             else if (tabName === 'flashcards') url = flashcardSetsListUrl;
             else if (tabName === 'quizzes') url = quizSetsListUrl;
-            else {
-                mobileTabContent.innerHTML = '<p class="text-red-500 text-center py-8">Tab không hợp lệ.</p>';
-                return;
-            }
 
             try {
-                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                mobileTabContent.innerHTML = await response.text();
+                // Fetch content
+                const response = await fetch(url + window.location.search, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const html = await response.text();
+                mobileTabContent.innerHTML = html;
+
+                // Move Pagination
+                movePaginationToFixedBar();
+
             } catch (error) {
                 console.error('Error loading tab:', error);
-                mobileTabContent.innerHTML = `
-                <div class="flex flex-col items-center justify-center gap-4 text-slate-400 py-12">
-                    <div class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
-                        <i class="fa-solid fa-exclamation-triangle text-red-400 text-2xl"></i>
-                    </div>
-                    <p class="text-sm font-medium text-red-500">Không thể tải nội dung. Thử lại.</p>
-                </div>
-            `;
+                mobileTabContent.innerHTML = '<div class="text-center p-4 text-red-500">Lỗi tải dữ liệu.</div>';
             }
         }
 
-        // Tab click handlers
+        async function fetchAndUpdate(url) {
+            mobileTabContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center gap-4 py-12">
+                    <i class="fa-solid fa-rotate animate-spin text-indigo-400 text-2xl"></i>
+                </div>
+            `;
+            if (mobileFixedPaginationBar) mobileFixedPaginationBar.classList.add('hidden');
+
+            try {
+                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!response.ok) throw new Error('Failed');
+                mobileTabContent.innerHTML = await response.text();
+                movePaginationToFixedBar();
+            } catch (e) {
+                mobileTabContent.innerHTML = '<p class="text-red-500 text-center py-8">Lỗi tải nội dung.</p>';
+            }
+        }
+
+        // Window Refresh Event
+        window.addEventListener('content-management:refresh', (event) => {
+            const targetTab = event?.detail?.targetTab;
+            if (targetTab && validTabs.includes(targetTab)) {
+                loadMobileTabContent(targetTab);
+            } else {
+                loadMobileTabContent(currentTab);
+            }
+        });
+
+        // Event Listeners
         mobileTabButtons.forEach(btn => {
             btn.addEventListener('click', function () {
-                loadMobileTabContent(this.dataset.target);
+                const target = this.dataset.target;
+                if (target !== currentTab) {
+                    sessionStorage.setItem(SESSION_KEY, target);
+                    const url = new URL(window.location);
+                    url.search = '';
+                    history.pushState({}, '', url);
+                    loadMobileTabContent(target);
+                }
             });
         });
 
-        // Handle pagination clicks
-        mobileTabContent.addEventListener('click', function (event) {
+        // Pagination Clicks (Content + Fixed Bar)
+        const handlePaginationClick = function (event) {
             const link = event.target.closest('a');
             if (link && link.href && link.href.includes('page=')) {
                 event.preventDefault();
                 fetchAndUpdate(link.href);
             }
-        });
+        };
 
-        // Handle search form
+        mobileTabContent.addEventListener('click', handlePaginationClick);
+        if (mobileFixedPaginationSlot) {
+            mobileFixedPaginationSlot.addEventListener('click', handlePaginationClick);
+        }
+
+        // Search Form Submit (Delegated listener for safety)
         mobileTabContent.addEventListener('submit', function (event) {
+            // This listener is now redundant as updateSearchForm creates its own form and attaches a submit handler.
+            // Keeping it here for safety if other forms are dynamically added to mobileTabContent.
             const form = event.target.closest('form');
-            if (form && form.querySelector('input[name="q"]')) {
+            if (form && form.id !== 'mobile-search-form' && form.querySelector('input[name="q"]')) {
                 event.preventDefault();
                 const formData = new FormData(form);
                 const url = new URL(form.action);
@@ -400,37 +437,18 @@
             }
         });
 
-        async function fetchAndUpdate(url) {
-            mobileTabContent.innerHTML = `
-            <div class="flex flex-col items-center justify-center gap-4 py-12">
-                <i class="fa-solid fa-rotate animate-spin text-indigo-400 text-2xl"></i>
-            </div>
-        `;
-            try {
-                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!response.ok) throw new Error('Failed');
-                mobileTabContent.innerHTML = await response.text();
-            } catch (e) {
-                mobileTabContent.innerHTML = '<p class="text-red-500 text-center py-8">Lỗi tải nội dung.</p>';
-            }
-        }
-
-        // Expose for external use
+        // Expose
         window.loadMobileTabContent = loadMobileTabContent;
 
-        // Listen for refresh events
-        window.addEventListener('content-management:refresh', (event) => {
-            const targetTab = event?.detail?.targetTab;
-            if (targetTab && validTabs.includes(targetTab)) {
-                loadMobileTabContent(targetTab);
-            }
-        });
-
-        // Initial load
-        let initialTab = sessionStorage.getItem(SESSION_KEY) || new URLSearchParams(window.location.search).get('tab');
-        if (!initialTab || !validTabs.includes(initialTab)) {
-            initialTab = 'courses';
+        // Init
+        const savedTab = sessionStorage.getItem(SESSION_KEY) || new URLSearchParams(window.location.search).get('tab');
+        if (savedTab && validTabs.includes(savedTab)) {
+            currentTab = savedTab;
         }
-        loadMobileTabContent(initialTab);
+        // Re-declare initialTab here safely
+        let startTab = currentTab;
+        if (savedTab && validTabs.includes(savedTab)) startTab = savedTab;
+        loadMobileTabContent(startTab);
+
     })();
 </script>
