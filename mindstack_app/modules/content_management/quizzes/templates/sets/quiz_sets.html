@@ -3,24 +3,25 @@
 {% block title %}Quản Lý Bộ Câu Hỏi - MindStack{% endblock %}
 
 {% block head %}
-    {{ super() }}
-    {% include 'content_management/_shared_styles.html' %}
+{{ super() }}
+{% include 'content_management/_shared_styles.html' %}
 {% endblock %}
 
 {% block content %}
 <div class="cm-shell" data-accent="rose">
     <div class="cm-container space-y-6">
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="cm-card cm-card--padded space-y-2">
-                {% for category, message in messages %}
-                <div class="text-sm font-semibold text-slate-600">{{ message }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
+        {% if messages %}
+        <div class="cm-card cm-card--padded space-y-2">
+            {% for category, message in messages %}
+            <div class="text-sm font-semibold text-slate-600">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% endwith %}
 
-        {% include '_quiz_sets_list.html' %}
+        {% include 'sets/_quiz_sets_list_mobile.html' %}
+        {% include 'sets/_quiz_sets_list_desktop.html' %}
 
         <div class="text-center">
             <a href="{{ url_for('content_management.content_dashboard') }}" class="cm-link">

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from 'includes/_search_form.html' import render_search_form %}
+{% from 'includes/_pagination.html' import render_pagination %}
+
+{% block title %}Câu hỏi trong bộ: {{ quiz_set.title }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% include 'content_management/_shared_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="cm-shell">
+    {% include 'items/_quiz_items_list_mobile.html' %}
+    {% include 'items/_quiz_items_list_desktop.html' %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        window.addEventListener('content-management:refresh', function (event) {
+            const detail = event?.detail || {};
+            if (detail.scope === 'quiz-item' && Number(detail.setId || detail.containerId) === {{ quiz_set.container_id }
+        }) {
+            window.location.reload();
+        }
+    });
+        }) ();
+</script>
+{% endblock %}
