@@ -5,41 +5,8 @@
 {% from 'includes/_search_form.html' import render_search_form %}
 {% from 'includes/_pagination.html' import render_pagination %}
 
-<div class="lg:hidden w-full space-y-8"
+<div class="lg:hidden w-full space-y-4"
     style="--cm-accent:#e11d48; --cm-accent-soft:rgba(244,63,94,0.15); --cm-accent-strong:rgba(225,29,72,0.18);">
-    <div class="cm-section-header">
-        <div class="cm-heading-group">
-            <span class="cm-eyebrow">Đánh giá kiến thức</span>
-            <h2 class="cm-heading text-3xl">Bộ câu hỏi kiểm tra</h2>
-            <p class="cm-subheading">Tạo đề luyện tập và giải thích đáp án trong một bảng điều khiển.</p>
-        </div>
-        <div class="cm-actions">
-            <button type="button"
-                data-modal-url="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}"
-                class="open-modal-btn cm-action cm-action--primary">
-                <i class="fas fa-plus-circle"></i>
-                <span>Tạo bộ câu hỏi</span>
-            </button>
-        </div>
-    </div>
-
-    <div class="cm-card cm-card--padded">
-        {% set display_search_options = {
-        'title': 'Tiêu đề',
-        'description': 'Mô tả',
-        'tags': 'Thẻ'
-        } %}
-        <div class="cm-search-header">
-            <div class="cm-heading-group">
-                <h3 class="text-lg font-semibold text-slate-800">Tìm kiếm nhanh</h3>
-                <p class="cm-subheading text-sm">Lọc theo tiêu đề, mô tả hoặc thẻ để chỉnh sửa đề kiểm tra.</p>
-            </div>
-            <div class="w-full md:w-auto md:min-w-[320px]">
-                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...",
-                search_field=search_field, search_options=display_search_options) }}
-            </div>
-        </div>
-    </div>
 
     {% if quiz_sets %}
     <div class="cm-grid cm-grid--three">

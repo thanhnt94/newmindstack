@@ -303,40 +303,55 @@
         {# Header Group #}
         <div class="mobile-header-section">
 
-            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center justify-between">
-                <span class="h2-title-wrapper">
-                    {# Mobile Back Button (to Step 0) #}
+            {# Top Row: Back, Title, Search, Multi-select #}
+            <div class="flex items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2 min-w-0">
                     <button id="mobile-step-1-back"
-                        class="mr-4 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center">
-                        <i class="fas fa-arrow-left"></i>
+                        class="flex-shrink-0 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-xl w-9 h-9 flex items-center justify-center">
+                        <i class="fas fa-arrow-left text-sm"></i>
                     </button>
-                    <span>Bước 1: Chọn bộ câu hỏi</span>
-                </span>
-                {# Selection Mode Toggle #}
-                <div class="flex items-center flex-shrink-0 ml-auto">
-                    <span class="text-xs font-semibold text-slate-600 mr-2 whitespace-nowrap">Chọn nhiều:</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
+                    <div class="min-w-0">
+                        <h2 class="text-base font-bold text-gray-800 leading-tight truncate">Chọn bộ câu hỏi</h2>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">QUIZ <span
+                                class="text-slate-300 mx-1">›</span> INDIVIDUAL <span
+                                class="text-slate-300 mx-1">›</span> STEP 1</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    {# Search Toggle Button #}
+                    <button type="button" id="quiz-search-toggle-btn"
+                        class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"
+                        title="Tìm kiếm">
+                        <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                    </button>
+
+                    {# Multi-select Toggle #}
+                    <label class="relative inline-flex items-center cursor-pointer" title="Chọn nhiều">
                         <input type="checkbox" id="multi-select-toggle" class="sr-only peer">
                         <div
                             class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600">
                         </div>
                     </label>
                 </div>
-            </h2>
+            </div>
 
-            <div class="flex border-b border-gray-200 mb-4">
+            {# Collapsible Search Form #}
+            <div id="quiz-search-bar" class="hidden mb-3">
+                <div class="p-2 bg-white rounded-xl border border-slate-200 shadow-sm">
+                    {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
+                    {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm...",
+                    search_field=search_field, search_options=display_search_options) }}
+                </div>
+            </div>
+
+            <div class="flex border-b border-gray-200 mb-3">
                 <button id="filter-doing" class="tab-filter-button flex items-center justify-center active"
                     data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang làm</span></button>
                 <button id="filter-explore" class="tab-filter-button flex items-center justify-center"
                     data-filter="explore"><i class="fas fa-globe mr-2"></i><span>Khám phá</span></button>
                 <button id="filter-archive" class="tab-filter-button flex items-center justify-center"
                     data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
-            </div>
-
-            <div class="mb-1" id="quiz-search-form-container">
-                {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
-                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm...",
-                search_field=search_field, search_options=display_search_options) }}
             </div>
 
             {# Selected Sets Display #}
@@ -406,3 +421,29 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Search toggle functionality for mobile
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchToggleBtn = document.getElementById('quiz-search-toggle-btn');
+        const searchBar = document.getElementById('quiz-search-bar');
+
+        if (searchToggleBtn && searchBar) {
+            searchToggleBtn.addEventListener('click', function () {
+                const isOpen = !searchBar.classList.contains('hidden');
+                if (isOpen) {
+                    searchBar.classList.add('hidden');
+                    this.classList.remove('bg-blue-500', 'text-white');
+                    this.classList.add('bg-slate-100', 'text-slate-600');
+                } else {
+                    searchBar.classList.remove('hidden');
+                    this.classList.remove('bg-slate-100', 'text-slate-600');
+                    this.classList.add('bg-blue-500', 'text-white');
+                    // Focus input
+                    const input = searchBar.querySelector('input[name="q"]');
+                    if (input) input.focus();
+                }
+            });
+        }
+    });
+</script>

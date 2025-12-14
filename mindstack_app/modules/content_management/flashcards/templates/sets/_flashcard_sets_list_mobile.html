@@ -5,41 +5,8 @@
 {% from 'includes/_search_form.html' import render_search_form %}
 {% from 'includes/_pagination.html' import render_pagination %}
 
-<div class="lg:hidden w-full space-y-8"
+<div class="lg:hidden w-full space-y-4"
     style="--cm-accent:#0284c7; --cm-accent-soft:rgba(14,165,233,0.15); --cm-accent-strong:rgba(2,132,199,0.18);">
-    <div class="cm-section-header">
-        <div class="cm-heading-group">
-            <span class="cm-eyebrow">Thẻ ghi nhớ</span>
-            <h2 class="cm-heading text-3xl">Bộ thẻ ghi nhớ</h2>
-            <p class="cm-subheading">Tổ chức và chỉnh sửa mọi bộ thẻ ở cùng một nơi.</p>
-        </div>
-        <div class="cm-actions">
-            <button type="button"
-                data-modal-url="{{ url_for('content_management.content_management_flashcards.add_flashcard_set') }}"
-                class="open-modal-btn cm-action cm-action--primary">
-                <i class="fas fa-plus-circle"></i>
-                <span>Thêm bộ thẻ</span>
-            </button>
-        </div>
-    </div>
-
-    <div class="cm-card cm-card--padded">
-        {% set display_search_options = {
-        'title': 'Tiêu đề',
-        'description': 'Mô tả',
-        'tags': 'Thẻ'
-        } %}
-        <div class="cm-search-header">
-            <div class="cm-heading-group">
-                <h3 class="text-lg font-semibold text-slate-800">Tìm kiếm nhanh</h3>
-                <p class="cm-subheading text-sm">Lọc theo tiêu đề, mô tả hoặc thẻ để tìm nội dung cần chỉnh sửa.</p>
-            </div>
-            <div class="w-full md:w-auto md:min-w-[320px]">
-                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ thẻ...",
-                search_field=search_field, search_options=display_search_options) }}
-            </div>
-        </div>
-    </div>
 
     {% if flashcard_sets %}
     <div class="cm-grid cm-grid--three">

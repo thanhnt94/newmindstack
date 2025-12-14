@@ -122,17 +122,17 @@
         .mobile-header-section .flex.border-b {
             border: none !important;
             background-color: #f8fafc;
-            padding: 0.25rem;
-            border-radius: 0.75rem;
-            gap: 0.25rem;
-            margin-bottom: 1rem !important;
+            padding: 0.15rem;
+            border-radius: 0.5rem;
+            gap: 0.15rem;
+            margin-bottom: 0.5rem !important;
         }
 
         .tab-filter-button {
             border: none !important;
-            border-radius: 0.5rem;
-            padding: 0.5rem;
-            font-size: 0.8rem;
+            border-radius: 0.375rem;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.75rem;
             color: #64748b;
             margin: 0;
             font-weight: 500;
@@ -404,32 +404,38 @@
             <div class="mobile-header-section lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none">
 
                 {# Mobile: Back button + Breadcrumb/Title layout #}
-                <div class="lg:hidden flex items-start mb-3">
-                    {# Back Button #}
-                    <button id="mobile-step-1-back"
-                        class="mr-3 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-full w-9 h-9 flex items-center justify-center flex-shrink-0 mt-1">
-                        <i class="fas fa-arrow-left"></i>
-                    </button>
-                    {# Breadcrumb + Title Stack #}
-                    <div class="flex flex-col flex-grow">
-                        <div class="flex items-center text-xs text-slate-400 font-medium">
-                            <span class="text-blue-500">QUIZ</span>
-                            <i class="fas fa-chevron-right mx-2 text-[10px]"></i>
-                            <span class="text-blue-500">INDIVIDUAL</span>
-                            <i class="fas fa-chevron-right mx-2 text-[10px]"></i>
-                            <span class="text-slate-600 font-semibold">STEP 1</span>
+                <div class="lg:hidden flex items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        {# Back Button #}
+                        <button id="mobile-step-1-back"
+                            class="flex-shrink-0 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-xl w-9 h-9 flex items-center justify-center">
+                            <i class="fas fa-arrow-left text-sm"></i>
+                        </button>
+                        {# Breadcrumb + Title Stack #}
+                        <div class="min-w-0">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">QUIZ <span
+                                    class="text-slate-300 mx-0.5">›</span> INDIVIDUAL <span
+                                    class="text-slate-300 mx-0.5">›</span> STEP 1</p>
+                            <h2 class="text-base font-bold text-gray-800 leading-tight truncate">Chọn bộ câu hỏi</h2>
                         </div>
-                        <h2 class="text-xl font-bold text-gray-800">Chọn bộ câu hỏi</h2>
                     </div>
-                    {# Mobile Toggle #}
-                    <div class="flex items-center flex-shrink-0 ml-auto mt-2">
-                        <span class="text-xs font-semibold text-slate-600 mr-2">Chọn nhiều:</span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="multi-select-toggle" class="sr-only peer">
-                            <div
-                                class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600">
-                            </div>
-                        </label>
+
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        {# Search Toggle Button #}
+                        <button type="button" id="quiz-search-toggle-btn"
+                            class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"
+                            title="Tìm kiếm">
+                            <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                        </button>
+
+                        {# Multi-select Toggle Button (Icon style) #}
+                        <button type="button" id="multi-select-toggle-btn"
+                            class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"
+                            title="Chọn nhiều">
+                            <i id="multi-select-icon" class="fa-solid fa-hand-pointer text-sm"></i>
+                        </button>
+                        {# Hidden checkbox to maintain state for JS #}
+                        <input type="checkbox" id="multi-select-toggle" class="hidden">
                     </div>
                 </div>
 
@@ -452,7 +458,7 @@
                     </div>
                 </h2>
 
-                <div class="flex border-b border-gray-200 mb-4 lg:mb-4">
+                <div class="flex border-b border-gray-200 mb-2 lg:mb-4">
                     <button id="filter-doing" class="tab-filter-button flex items-center justify-center active"
                         data-filter="doing"><i class="fas fa-play-circle mr-2"></i><span>Đang làm</span></button>
                     <button id="filter-explore" class="tab-filter-button flex items-center justify-center"
@@ -461,7 +467,17 @@
                         data-filter="archive"><i class="fas fa-archive mr-2"></i><span>Archive</span></button>
                 </div>
 
-                <div class="mb-1" id="quiz-search-form-container">
+                {# Mobile Collapsible Search Bar #}
+                <div id="quiz-search-bar" class="hidden mb-3 lg:hidden">
+                    <div id="quiz-search-form-container-mobile">
+                        {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
+                        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm...",
+                        search_field=search_field, search_options=display_search_options) }}
+                    </div>
+                </div>
+
+                {# Desktop Search Form (always visible) #}
+                <div class="mb-1 hidden lg:block" id="quiz-search-form-container">
                     {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
                     {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm...",
                     search_field=search_field, search_options=display_search_options) }}
@@ -472,6 +488,22 @@
                     class="flex flex-wrap items-center gap-2 text-xs hidden bg-blue-50 p-2 rounded-lg mb-2 max-h-24 overflow-y-auto">
                 </div>
             </div>
+
+            {# Search Result Banner #}
+            {% if search_query %}
+            <div class="px-4 lg:px-0 mt-2 mb-3">
+                <div class="py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-xs text-blue-700">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Kết quả cho: <strong>"{{ search_query }}"</strong></span>
+                    </div>
+                    <a href="{{ url_for(request.endpoint, view='setup') }}"
+                        class="text-blue-500 hover:text-blue-700 text-xs font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-xmark"></i> Xóa
+                    </a>
+                </div>
+            </div>
+            {% endif %}
 
             {# Scrollable List #}
             <div id="quiz-sets-container" class="flex-grow overflow-y-auto max-h-[500px] lg:p-0 space-y-3">
@@ -602,6 +634,38 @@
     const quizSearchForm = document.querySelector('#quiz-search-form-container form');
     const mobileNextBtn = document.getElementById('mobile-step-1-next');
     const mobileBackBtn = document.getElementById('mobile-step-2-back');
+
+    // === Mobile Search Toggle ===
+    const quizSearchToggleBtn = document.getElementById('quiz-search-toggle-btn');
+    const quizSearchBar = document.getElementById('quiz-search-bar');
+
+    if (quizSearchToggleBtn && quizSearchBar) {
+        quizSearchToggleBtn.addEventListener('click', function () {
+            const isOpen = !quizSearchBar.classList.contains('hidden');
+            if (isOpen) {
+                quizSearchBar.classList.add('hidden');
+                this.classList.remove('bg-blue-500', 'text-white');
+                this.classList.add('bg-slate-100', 'text-slate-600');
+            } else {
+                quizSearchBar.classList.remove('hidden');
+                this.classList.remove('bg-slate-100', 'text-slate-600');
+                this.classList.add('bg-blue-500', 'text-white');
+                // Focus input
+                const input = quizSearchBar.querySelector('input[name="q"]');
+                if (input) input.focus();
+            }
+        });
+
+        // Inject hidden field to preserve mobile state when searching
+        const searchForms = quizSearchBar.querySelectorAll('form');
+        searchForms.forEach(form => {
+            const hiddenViewInput = document.createElement('input');
+            hiddenViewInput.type = 'hidden';
+            hiddenViewInput.name = 'view';
+            hiddenViewInput.value = 'setup';
+            form.appendChild(hiddenViewInput);
+        });
+    }
     const mobileStep0Btn = document.getElementById('btn-mode-individual');
     const mobileStep1BackBtn = document.getElementById('mobile-step-1-back');
     const quizSection = document.getElementById('quiz-solo-section');
@@ -656,13 +720,48 @@
 
 
     // --- START: Toggle References and Syncing ---
-    const multiSelectToggle = document.getElementById('multi-select-toggle'); // Single toggle element
+    const multiSelectToggle = document.getElementById('multi-select-toggle'); // Hidden checkbox
+    const multiSelectBtn = document.getElementById('multi-select-toggle-btn'); // Icon button
+    const multiSelectIcon = document.getElementById('multi-select-icon'); // Icon element
+
+    // Function to update button visual state
+    function updateMultiSelectButtonUI() {
+        if (!multiSelectBtn || !multiSelectIcon) return;
+
+        if (isMultiSelectMode) {
+            // Active state - blue background, check-double icon
+            multiSelectBtn.classList.remove('bg-slate-100', 'text-slate-600');
+            multiSelectBtn.classList.add('bg-blue-500', 'text-white');
+            multiSelectIcon.classList.remove('fa-hand-pointer');
+            multiSelectIcon.classList.add('fa-check-double');
+            multiSelectBtn.title = 'Chế độ chọn nhiều (BẬT)';
+        } else {
+            // Inactive state - gray background, hand-pointer icon
+            multiSelectBtn.classList.remove('bg-blue-500', 'text-white');
+            multiSelectBtn.classList.add('bg-slate-100', 'text-slate-600');
+            multiSelectIcon.classList.remove('fa-check-double');
+            multiSelectIcon.classList.add('fa-hand-pointer');
+            multiSelectBtn.title = 'Chọn nhiều';
+        }
+    }
+
+    // Button click handler
+    if (multiSelectBtn && multiSelectToggle) {
+        multiSelectBtn.addEventListener('click', () => {
+            multiSelectToggle.checked = !multiSelectToggle.checked;
+            isMultiSelectMode = multiSelectToggle.checked;
+            updateMultiSelectButtonUI();
+            handleMultiSelectChange();
+        });
+    }
 
     // Determine initial state based on toggle state
     if (multiSelectToggle) {
         isMultiSelectMode = multiSelectToggle.checked;
+        updateMultiSelectButtonUI();
         multiSelectToggle.addEventListener('change', (e) => {
             isMultiSelectMode = e.target.checked;
+            updateMultiSelectButtonUI();
             handleMultiSelectChange();
         });
     }
