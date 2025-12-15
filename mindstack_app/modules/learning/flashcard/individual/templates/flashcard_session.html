@@ -12,7 +12,7 @@
 {% block head %}
 {{ super() }}
 <style>
-  /* ===== CSS tùy chỉnh mới cho Flashcard Session ===== */
+  /* ===== CSS chung cho Flashcard Session (Core Styles) ===== */
   body {
     font-family: 'Inter', sans-serif;
     background-color: #f9fafb;
@@ -31,35 +31,7 @@
     }
   }
 
-  /* ===== RESPONSIVE VISIBILITY CHO DESKTOP/MOBILE VIEWS ===== */
-  /* Desktop view: hiển thị trên màn hình >= 1024px */
-  .flashcard-desktop-view {
-    display: block;
-    height: 100%;
-    overflow: hidden;
-  }
-
-  /* Mobile view: ẩn trên màn hình >= 1024px */
-  .flashcard-mobile-view {
-    display: none;
-    height: 100%;
-    overflow: hidden;
-  }
-
-  @media (max-width: 1023px) {
-
-    /* Desktop view: ẩn trên màn hình < 1024px */
-    .flashcard-desktop-view {
-      display: none !important;
-    }
-
-    /* Mobile view: hiển thị trên màn hình < 1024px */
-    .flashcard-mobile-view {
-      display: block !important;
-    }
-  }
-
-  /* ===== Layout toàn trang (full height) - ĐÃ CẬP NHẬT ===== */
+  /* ===== Layout toàn trang (full height) ===== */
   html,
   body {
     height: 100%;
@@ -133,134 +105,6 @@
     font-weight: 600;
     text-transform: none;
     letter-spacing: normal;
-  }
-
-  /* ===== Lưới 2 cột cho session layout (chuyển thành 1 cột trên mobile) ===== */
-  .session-layout {
-    height: 100%;
-    display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(400px, 2fr);
-    gap: 2rem;
-    max-width: 1680px;
-    margin: 0 auto;
-    padding: calc(var(--flashcard-shell-gap) * 0.85) clamp(18px, 1.8vw, 28px) calc(var(--flashcard-shell-gap) * 1.4) clamp(18px, 1.8vw, 28px);
-    align-items: stretch;
-    min-height: 0;
-    flex-grow: 1;
-    box-sizing: border-box;
-    /* THAY ĐỔI: Cố định layout */
-    overflow: hidden;
-    min-height: calc(100vh - var(--flashcard-header-height, 0px) - var(--flashcard-footer-height, 0px) - var(--flashcard-shell-gap));
-  }
-
-  @media (max-width: 1024px) {
-
-    /* Bố cục trên màn màn hình di động */
-    .page-shell {
-      top: var(--header-h, 0px);
-      bottom: 0;
-      padding: 0 !important;
-      height: calc(var(--vh, 1vh) * 100);
-      min-height: calc(var(--vh, 1vh) * 100);
-    }
-
-    .session-layout {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      height: 100%;
-      padding: 0 !important;
-      overflow: hidden;
-      /* Quan trọng: Loại bỏ cuộn trên layout chính */
-    }
-
-    .stats-modal-body .statistics-card {
-      display: block !important;
-    }
-
-    .session-layout>.statistics-card {
-      display: none !important;
-    }
-
-    .flashcard-wrapper {
-      flex: 1;
-      /* Chiếm hết không gian còn lại */
-      padding: 0 !important;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #flashcard-content,
-    #flashcard-content-mobile {
-      flex: 1;
-      padding: 0;
-    }
-
-    /* Ẩn note panel trên mobile */
-    .flashcard-mobile-view .note-panel-container,
-    .flashcard-mobile-view [class*="note-panel"] {
-      display: none !important;
-    }
-
-    /* Card surface chiếm toàn bộ không gian */
-    .flashcard-mobile-view .card-surface {
-      flex: 1;
-      height: 100%;
-      border-radius: 0;
-      border: none;
-    }
-
-    .flashcard-mobile-view .flashcard-panel {
-      padding: 0.25rem 0.5rem;
-      height: 100%;
-    }
-
-    /* Padding đều 4 cạnh cho mobile view - top lớn hơn một chút để cân bằng */
-    .flashcard-mobile-view {
-      padding: 0.5rem 0.35rem 0.35rem 0.35rem !important;
-    }
-
-    .flashcard-card-container,
-    .flashcard-card {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      /* Căn trên và dưới */
-    }
-
-    .face {
-      /* Padding cho toolbar và nội dung - giảm padding bottom để sát viền */
-      padding: calc(56px + env(safe-area-inset-top, 0px)) 0.5rem 0.5rem 0.5rem !important;
-    }
-
-    ._card-container {
-      /* THÊM MỚI: Tối ưu layout nội dung trên mobile */
-      padding: 0.05rem !important;
-    }
-
-    .text-area {
-      flex: 1;
-      padding: 0.1rem 0.05rem !important;
-    }
-
-    .actions {
-      margin-top: 0.5rem !important;
-      padding: 0.15rem 0.15rem !important;
-      gap: 0.15rem;
-      justify-content: center;
-      width: 100%;
-    }
-
-    .flashcard-card {
-      padding: 0.05rem !important;
-    }
-
-    .flashcard-panel {
-      padding: 0.25rem 0.5rem 0.5rem;
-      gap: 0.4rem;
-    }
   }
 
   /* ===== Wrapper cho thẻ Flashcard ===== */
@@ -349,7 +193,7 @@
   .face {
     position: absolute;
     inset: 0;
-    /* ĐÃ SỬA: Tăng padding-top để tạo khoảng trống an toàn cho toolbar */
+    /* Padding-top để tạo khoảng trống an toàn cho toolbar */
     padding: 72px 1.25rem 1.25rem 1.25rem;
     display: flex;
     flex-direction: column;
@@ -394,6 +238,7 @@
     pointer-events: auto;
   }
 
+  /* Toolbar Base Styles */
   .card-toolbar {
     display: flex;
     align-items: center;
@@ -461,6 +306,26 @@
     flex-shrink: 0;
   }
 
+  .card-toolbar .icon-btn:hover {
+    background-color: #eef2ff;
+    color: rgba(var(--card-accent-rgb), 1);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(var(--card-accent-rgb), 0.12);
+  }
+
+  .card-toolbar .icon-btn.is-active {
+    color: rgba(var(--card-accent-rgb), 1);
+    background: #eef2ff;
+  }
+
+  .card-toolbar .icon-btn.is-disabled {
+    background-color: #f1f5f9;
+    color: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
   .toolbar-settings {
     position: relative;
     display: inline-flex;
@@ -493,60 +358,6 @@
     transform: translateY(-50%) translateX(0);
   }
 
-  @media (max-width: 640px) {
-    .card-toolbar {
-      padding: 0.4rem 0.55rem;
-      gap: 0.35rem;
-      row-gap: 0.25rem;
-      column-gap: 0.25rem;
-    }
-
-    .toolbar-left,
-    .toolbar-right {
-      gap: 0.2rem;
-      flex: 1 1 0;
-    }
-
-    .card-toolbar .label {
-      font-size: 0.75rem;
-      padding: 0.2rem 0.45rem;
-      min-width: 82px;
-      flex: 0 1 auto;
-    }
-
-    .card-toolbar .icon-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      font-size: 0.9rem;
-    }
-
-    .actions .btn {
-      padding: 0.75rem 0.85rem;
-      font-size: 0.95rem;
-    }
-  }
-
-  .card-toolbar .icon-btn:hover {
-    background-color: #eef2ff;
-    color: rgba(var(--card-accent-rgb), 1);
-    transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(var(--card-accent-rgb), 0.12);
-  }
-
-  .card-toolbar .icon-btn.is-active {
-    color: rgba(var(--card-accent-rgb), 1);
-    background: #eef2ff;
-  }
-
-  .card-toolbar .icon-btn.is-disabled {
-    background-color: #f1f5f9;
-    color: #9ca3af;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
-  }
-
   .card-toolbar .play-audio-btn {
     width: 44px;
     height: 44px;
@@ -575,41 +386,7 @@
     transform: none;
   }
 
-  @media (max-width: 1024px) {
-    .card-toolbar {
-      padding: calc(0.3rem + env(safe-area-inset-top, 0px)) 0.4rem 0.4rem;
-      gap: 0.35rem;
-    }
-
-    .toolbar-left,
-    .toolbar-right {
-      gap: 0.2rem;
-      flex-wrap: nowrap;
-    }
-
-    .card-toolbar .label {
-      font-size: 0.74rem;
-      min-width: 76px;
-      padding: 0.25rem 0.4rem;
-      letter-spacing: 0.04em;
-      flex: 0 1 auto;
-    }
-
-    .card-toolbar .icon-btn {
-      width: 34px;
-      height: 34px;
-      font-size: 0.9rem;
-    }
-
-    .card-toolbar .play-audio-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 11px;
-      padding: 0;
-    }
-  }
-
-  /* Cấu trúc mới cho nội dung thẻ */
+  /* Cấu trúc nội dung thẻ */
   ._card-container {
     justify-content: flex-start;
     align-items: stretch;
@@ -642,12 +419,10 @@
     justify-content: flex-start;
   }
 
-  /* Ghi đè lại text-align cho mặt sau để căn trái khi có nhiều dòng */
   .back .text-area .flashcard-content-text {
     text-align: left;
   }
 
-  /* THÊM MỚI: CSS cho trạng thái có cuộn */
   .text-area.has-scroll {
     justify-content: flex-start;
     align-items: flex-start;
@@ -699,8 +474,7 @@
     margin: auto;
   }
 
-
-  /* Nút đánh giá trong thẻ */
+  /* Nút đánh giá trong thẻ (Base Styles) */
   .actions {
     display: none;
     gap: 1rem;
@@ -809,8 +583,7 @@
     line-height: 1;
   }
 
-  .rating-btn--again,
-  .rating-btn--fail {
+  .rating-btn--again, .rating-btn--fail {
     background: linear-gradient(135deg, #f87171, #dc2626);
     box-shadow: 0 18px 36px rgba(220, 38, 38, 0.32);
   }
@@ -861,40 +634,6 @@
     text-align: center;
   }
 
-  @media (max-width: 1024px) {
-    .actions {
-      padding: 1rem 1.25rem;
-      gap: 0.75rem;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .actions {
-      padding: 0.85rem 1rem;
-      gap: 0.65rem;
-    }
-
-    .actions .btn {
-      padding: 0.55rem 0.75rem;
-      font-size: 0.9rem;
-    }
-
-    .rating-btn {
-      padding: 0.55rem 0.75rem;
-      gap: 0.4rem;
-    }
-
-    .rating-btn .rating-btn__icon {
-      width: 1.6rem;
-      height: 1.6rem;
-      font-size: 0.9rem;
-    }
-
-    .rating-btn .rating-btn__title {
-      font-size: 0.85rem;
-    }
-  }
-
   .btn-continue {
     background: linear-gradient(135deg, #2563eb, #16a34a);
     color: #fff;
@@ -943,41 +682,6 @@
   .flip-card-btn:focus-visible {
     outline: 3px solid rgba(249, 115, 22, 0.5);
     outline-offset: 3px;
-  }
-
-  /* Mobile-specific flip button styling */
-  @media (max-width: 1024px) {
-    .flip-card-btn {
-      padding: 0.65rem 1.5rem;
-      font-size: 0.85rem;
-      border-radius: 0.65rem;
-      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-    }
-
-    /* Container cho nút lật thẻ - padding nhỏ và đều */
-    .flip-btn-container {
-      display: flex;
-      justify-content: center;
-      padding: 0.35rem !important;
-      margin: 0;
-    }
-  }
-
-
-  @media (min-width: 1024px) {
-    .statistics-card {
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      min-height: 0;
-      overflow-y: auto;
-      width: min(100%, 520px);
-    }
   }
 
   .custom-modal-overlay {
@@ -1644,6 +1348,53 @@
     });
   }
 
+  function shouldShowPreviewOnly(initialStats = {}) {
+    const hasRealReviews = Boolean(initialStats.has_real_reviews);
+    if (hasRealReviews) return false;
+
+    const previewCount = initialStats.preview_count ?? 0;
+    const hasPreviewHistory = Boolean(initialStats.has_preview_history);
+
+    if (hasPreviewHistory && previewCount > 0) {
+      return false;
+    }
+
+    return previewCount === 0;
+  }
+
+  function determineCardCategory(cardData) {
+    if (!cardData) return '';
+
+    const stats = cardData.initial_stats || {};
+    const hasPreviewHistory = Boolean(stats.has_preview_history);
+    const hasRealReviews = Boolean(stats.has_real_reviews);
+
+    if (!hasPreviewHistory && !hasRealReviews) {
+      return 'new';
+    }
+
+    if (stats.status === 'hard') {
+      return 'hard';
+    }
+
+    if (stats.has_preview_only) {
+      return 'due';
+    }
+
+    if (stats.next_review) {
+      const dueDate = new Date(stats.next_review);
+      if (!Number.isNaN(dueDate.getTime()) && dueDate <= new Date()) {
+        return 'due';
+      }
+    }
+
+    return '';
+  }
+
+  function getPreviewButtonHtml() {
+    return '<button class="btn btn-continue" data-answer="continue"><i class="fas fa-arrow-right"></i>Tiếp tục</button>';
+  }
+
   function generateDynamicButtons(buttonCount) {
     const buttonSets = {
       3: [
@@ -1673,50 +1424,7 @@
     }).join('');
   }
 
-  function getCardToolbar(isMobile, itemId, setId) {
-    const hasFrontAudio = currentFlashcardBatch[currentFlashcardIndex].content.front_audio_url || currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content;
-    const hasBackAudio = currentFlashcardBatch[currentFlashcardIndex].content.back_audio_url || currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content;
-    const frontTextRaw = currentFlashcardBatch[currentFlashcardIndex].content.front || '';
-    const backTextRaw = currentFlashcardBatch[currentFlashcardIndex].content.back || '';
-    const canEditCurrentCard = Boolean(
-      currentFlashcardBatch[currentFlashcardIndex] &&
-      currentFlashcardBatch[currentFlashcardIndex].can_edit
-    );
-    const menuButtonHtml = isMobile ? `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-bars"></i></button>` : '';
-    const aiButtonHtml = `<button class="icon-btn open-ai-modal-btn" data-item-id="${itemId}"><i class="fas fa-robot"></i></button>`;
-    const noteButtonHtml = `<button class="icon-btn open-note-panel-btn" data-item-id="${itemId}"><i class="fas fa-sticky-note"></i></button>`;
-    const feedbackButtonHtml = `<button class="icon-btn open-feedback-modal-btn" data-item-id="${itemId}"><i class="fas fa-flag"></i></button>`;
-    const editButtonHtml = canEditCurrentCard
-      ? `<button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}'.replace('/0', '/${setId}').replace('/0', '/${itemId}'))"><i class="fas fa-pencil-alt"></i></button>`
-      : '';
-    const imageToggleButtonHtml = `<button class="icon-btn image-toggle-btn ${isMediaHidden ? 'is-active' : ''}" aria-pressed="${isMediaHidden}" title="${isMediaHidden ? 'Bật ảnh' : 'Tắt ảnh'}"><i class="fas ${isMediaHidden ? 'fa-image-slash' : 'fa-image'}"></i></button>`;
-    const audioAutoplayToggleButtonHtml = `<button class="icon-btn audio-autoplay-toggle-btn ${isAudioAutoplayEnabled ? 'is-active' : ''}" aria-pressed="${isAudioAutoplayEnabled}" title="${isAudioAutoplayEnabled ? 'Tắt tự động phát audio' : 'Bật tự động phát audio'}"><i class="fas ${isAudioAutoplayEnabled ? 'fa-volume-up' : 'fa-volume-mute'}"></i></button>`;
-
-    const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.front_audio_content || ''}" ${hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
-    const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${itemId}" data-content-to-read="${currentFlashcardBatch[currentFlashcardIndex].content.back_audio_content || ''}" ${hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
-
-    const flipButtonHtml = `<button id="flip-card-btn" class="flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
-
-    const leftToolbarContent = isMobile
-      ? `${menuButtonHtml}${aiButtonHtml}${noteButtonHtml}`
-      : `${aiButtonHtml}${noteButtonHtml}`;
-
-    const settingsMenuHtml = `
-          <div class="toolbar-settings">
-            <div class="settings-panel">
-              ${feedbackButtonHtml}${editButtonHtml}${imageToggleButtonHtml}${audioAutoplayToggleButtonHtml}
-            </div>
-            <button type="button" class="icon-btn settings-toggle-btn" aria-expanded="false" title="Mở cài đặt"><i class="fas fa-ellipsis-v"></i></button>
-          </div>
-        `;
-
-    return {
-      front: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT TRƯỚC</span><div class="toolbar-right">${audioButtonHtmlFront}${settingsMenuHtml}</div></div>`,
-      back: `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT SAU</span><div class="toolbar-right">${audioButtonHtmlBack}${settingsMenuHtml}</div></div>`,
-      flipButton: flipButtonHtml
-    };
-  }
-
+  // Hàm renderCard đã được làm mới để sử dụng logic tách biệt
   function renderCard(data) {
     if (isAutoplaySession) {
       cancelAutoplaySequence();
@@ -1724,57 +1432,65 @@
     const c = data.content;
     const itemId = data.item_id;
     const setId = data.container_id;
-    const fTxt = c.front || '';
-    const bTxt = c.back || '';
+    const fTxt = formatTextForHtml(c.front || '');
+    const bTxt = formatTextForHtml(c.back || '');
     const initialStats = data.initial_stats || {};
     const cardCategory = determineCardCategory(data);
     const showPreviewOnly = shouldShowPreviewOnly(initialStats);
     const shouldRenderButtons = !isAutoplaySession && !showPreviewOnly;
     const buttonsHtml = showPreviewOnly ? getPreviewButtonHtml() : (shouldRenderButtons ? generateDynamicButtons(userButtonCount) : '');
     const buttonCount = showPreviewOnly ? 1 : (shouldRenderButtons ? userButtonCount : 0);
+    
+    // Check view mode
     const isMobile = window.innerWidth < 1024;
-
-    const toolbars = getCardToolbar(isMobile, itemId, setId);
-
-    const cardClassNames = ['flashcard-card'];
-    if (cardCategory) {
-      cardClassNames.push(`flashcard-card--${cardCategory}`);
+    
+    // Prepare options common for both views
+    const hasFrontAudio = c.front_audio_url || c.front_audio_content;
+    const hasBackAudio = c.back_audio_url || c.back_audio_content;
+    const canEditCurrentCard = Boolean(data.can_edit);
+    
+    // Construct Edit URL
+    let editUrl = "";
+    if (canEditCurrentCard) {
+        const urlTemplate = "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}";
+        editUrl = urlTemplate.replace('/0', '/' + setId).replace('/0', '/' + itemId);
     }
 
-    stopAllFlashcardAudio();
+    const renderOptions = {
+        itemId, setId, fTxt, bTxt, cardCategory,
+        isMediaHidden, isAudioAutoplayEnabled,
+        hasFrontAudio, hasBackAudio,
+        buttonsHtml, buttonCount,
+        frontImg: c.front_img,
+        backImg: c.back_img,
+        frontAudioUrl: c.front_audio_url,
+        backAudioUrl: c.back_audio_url,
+        frontAudioContent: c.front_audio_content,
+        backAudioContent: c.back_audio_content,
+        canEditCurrentCard,
+        editUrl
+    };
 
-    const html = `
-      <div class="flashcard-card-container">
-        <div id="flashcard-card" class="${cardClassNames.join(' ')}" data-card-category="${cardCategory || 'default'}">
-          <div class="face front">
-            ${toolbars.front}
-            <div class="_card-container">
-              <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(fTxt)}</div></div>
-              ${c.front_img ? `<div class="media-container"><img src="${c.front_img}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
-              <audio id="front-audio" class="hidden" src="${c.front_audio_url || ''}"></audio>
-            </div>
-            <div class="flip-btn-container">
-              ${toolbars.flipButton}
-            </div>
-          </div>
-          <div class="face back">
-            ${toolbars.back}
-            <div class="_card-container">
-              <div class="text-area"><div class="flashcard-content-text">${formatTextForHtml(bTxt)}</div></div>
-              ${c.back_img ? `<div class="media-container"><img src="${c.back_img}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
-            </div>
-            <div class="actions" id="internal-actions" data-button-count="${buttonCount}">${buttonsHtml}</div>
-            <audio id="back-audio" class="hidden" src="${c.back_audio_url || ''}"></audio>
-          </div>
-        </div>
-      </div>`;
+    let html = "";
+    if (isMobile && window.renderMobileCardHtml) {
+        html = window.renderMobileCardHtml(data, renderOptions);
+    } else if (!isMobile && window.renderDesktopCardHtml) {
+        html = window.renderDesktopCardHtml(data, renderOptions);
+    } else {
+        // Fallback if partials not loaded for some reason (should not happen)
+        console.error("Render functions not found!");
+        return;
+    }
+
     setFlashcardContent(html);
     updateAudioAutoplayToggleButtons();
     closeAllSettingsMenus();
+    
     if (Array.isArray(currentFlashcardBatch) && currentFlashcardBatch[currentFlashcardIndex]) {
       currentFlashcardBatch[currentFlashcardIndex].card_category = cardCategory;
     }
-    // Tìm element trong visible container thay vì dùng document.getElementById
+    
+    // Tìm element trong visible container
     const visibleContainer = getVisibleFlashcardContentDiv();
     const card = visibleContainer ? visibleContainer.querySelector('#flashcard-card') : document.getElementById('flashcard-card');
     const actions = visibleContainer ? visibleContainer.querySelector('#internal-actions') : document.getElementById('internal-actions');
@@ -1785,7 +1501,7 @@
       window.flashcardViewport.refresh();
     }
 
-    // --- THÊM MỚI: Xử lý tự động tái tạo audio khi lỗi ---
+    // --- Xử lý tự động tái tạo audio khi lỗi ---
     async function handleAudioError(audioEl, itemId, side, contentToRead) {
       if (!audioEl || audioEl.dataset.retried === 'true') return;
       if (!contentToRead) return;
@@ -1803,10 +1519,7 @@
 
         if (result.success && result.audio_url) {
           console.log(`[AudioRecovery] Tái tạo thành công. URL mới: ${result.audio_url}`);
-          // Thêm timestamp để ép trình duyệt tải lại file mới
           audioEl.src = `${result.audio_url}?t=${new Date().getTime()}`;
-          // Không tự động play để tránh xung đột với logic autoplay hiện có, 
-          // nhưng lần bấm play tiếp theo sẽ dùng URL đúng.
         } else {
           console.warn(`[AudioRecovery] Tái tạo thất bại: ${result.message}`);
         }
@@ -1818,31 +1531,19 @@
     function setupAudioErrorHandler(itemId, frontContent, backContent) {
       const frontAudio = document.getElementById('front-audio');
       const backAudio = document.getElementById('back-audio');
-
       if (frontAudio) {
-        frontAudio.addEventListener('error', () => {
-          handleAudioError(frontAudio, itemId, 'front', frontContent);
-        });
+        frontAudio.addEventListener('error', () => handleAudioError(frontAudio, itemId, 'front', frontContent));
       }
-
       if (backAudio) {
-        backAudio.addEventListener('error', () => {
-          handleAudioError(backAudio, itemId, 'back', backContent);
-        });
+        backAudio.addEventListener('error', () => handleAudioError(backAudio, itemId, 'back', backContent));
       }
     }
-    // ----------------------------------------------------
-
+    
     if (card) {
       card.dataset.cardCategory = cardCategory || 'default';
     }
 
-    // Thiết lập xử lý lỗi audio
-    setupAudioErrorHandler(
-      itemId,
-      c.front_audio_content || '',
-      c.back_audio_content || ''
-    );
+    setupAudioErrorHandler(itemId, c.front_audio_content || '', c.back_audio_content || '');
 
     const flipToBack = () => {
       stopAllFlashcardAudio();
@@ -1877,19 +1578,8 @@
     const frontLabel = card?.querySelector('.front .card-toolbar .label');
     const backLabel = card?.querySelector('.back .card-toolbar .label');
 
-    if (frontLabel) {
-      frontLabel.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        flipToBack();
-      });
-    }
-
-    if (backLabel) {
-      backLabel.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        flipToFront();
-      });
-    }
+    if (frontLabel) frontLabel.addEventListener('click', (ev) => { ev.stopPropagation(); flipToBack(); });
+    if (backLabel) backLabel.addEventListener('click', (ev) => { ev.stopPropagation(); flipToFront(); });
 
     document.querySelectorAll('.card-toolbar .icon-btn').forEach(btn => {
       btn.addEventListener('click', ev => {
@@ -1926,31 +1616,24 @@
         playAudioForButton(btn).catch(() => { });
       });
     });
-    document.querySelectorAll('.open-stats-modal-btn').forEach(btn => btn.addEventListener('click', () => {
-      toggleStatsModal(true);
-    }));
+    
+    document.querySelectorAll('.open-stats-modal-btn').forEach(btn => btn.addEventListener('click', () => toggleStatsModal(true)));
+    
     document.querySelectorAll('.open-ai-modal-btn').forEach(btn => btn.addEventListener('click', () => {
-      const itemId = btn.dataset.itemId;
       const currentCard = currentFlashcardBatch[currentFlashcardIndex];
-      const termContent = currentCard.content.front;
-      window.openAiModal(itemId, termContent);
+      window.openAiModal(currentCard.item_id, currentCard.content.front);
     }));
+    
     document.querySelectorAll('.open-note-panel-btn').forEach(btn => btn.addEventListener('click', () => {
-      const itemId = btn.dataset.itemId;
-      openNotePanel(itemId);
+      openNotePanel(btn.dataset.itemId);
+    }));
+    
+    document.querySelectorAll('.open-feedback-modal-btn').forEach(btn => btn.addEventListener('click', () => {
+      const currentCard = currentFlashcardBatch[currentFlashcardIndex];
+      openFeedbackModal(currentCard.item_id, currentCard.content.front);
     }));
 
     applyMediaVisibility();
-
-    // Gắn listener cho nút feedback
-    document.querySelectorAll('.open-feedback-modal-btn').forEach(btn => btn.addEventListener('click', () => {
-      const itemId = btn.dataset.itemId;
-      const currentCard = currentFlashcardBatch[currentFlashcardIndex];
-      const termContent = currentCard.content.front;
-      // Gọi hàm từ _feedback_modal.html
-      openFeedbackModal(itemId, termContent);
-    }));
-
     setTimeout(adjustCardLayout, 0);
 
     if (isAutoplaySession) {
