@@ -163,21 +163,39 @@
 
 {% block content %}
 {# Mobile Version - Navbar and Bottom Nav #}
-{% include 'quiz/_dashboard_mobile.html' %}
+{% include 'quiz/dashboard/_mobile.html' %}
 
 {# Desktop Title and Tabs (Desktop Only) #}
-{# Desktop Title and Tabs (Desktop Only) #}
-{% include 'quiz/_dashboard_desktop.html' %}
+<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 hidden lg:block">
+    <div class="quiz-title-wrapper hidden lg:flex">
+        <div id="quizTitle" class="quiz-title-badge"><i class="fas fa-question-circle"></i>Quiz</div>
+    </div>
+
+    <div class="flex justify-center mb-6">
+        <div class="study-mode-tabs relative z-10" role="tablist" aria-label="Chế độ học quiz" style="pointer-events: auto;">
+            <button type="button" class="study-mode-tab {% if quiz_type == 'individual' %}active{% endif %}"
+                data-study-tab="individual" role="tab"
+                aria-selected="{% if quiz_type == 'individual' %}true{% else %}false{% endif %}">Học 1 mình</button>
+            <button type="button" class="study-mode-tab {% if quiz_type == 'battle' %}active{% endif %}" data-study-tab="battle"
+                role="role" aria-selected="{% if quiz_type == 'battle' %}true{% else %}false{% endif %}">Thi đấu
+                nhóm</button>
+        </div>
+    </div>
+</div>
 
 {# Content - Both Mobile and Desktop #}
 <div class="container mx-auto px-1 sm:px-6 lg:px-8">
-    <div id="quiz-individual-section" {% if quiz_type !='individual' %}class="hidden" {% endif %}>
-        {% include 'quiz/individual/dashboard/_dashboard_individual.html' %}
+    
+    {# --- Chế độ Individual --- #}
+    <div id="quiz-solo-section" class="{% if quiz_type != 'individual' %}hidden{% endif %}">
+        {% include 'quiz/dashboard/_desktop_individual.html' %}
     </div>
 
-    <div id="quiz-battle-section" {% if quiz_type !='battle' %}class="hidden" {% endif %}>
-        {% include 'quiz_battle/_dashboard_battle.html' %}
+    {# --- Chế độ Battle --- #}
+    <div id="quiz-battle-section" class="{% if quiz_type != 'battle' %}hidden{% endif %}">
+        {% include 'quiz/dashboard/_desktop_collab.html' %}
     </div>
+    
 </div>
 
 {% endblock content %}
@@ -186,39 +204,47 @@
 {{ super() }}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('>>> quiz/dashboard.js: init (v2.3)');
+        console.log('>>> quiz/dashboard.js: init (v3.1 Fixes)');
 
         let currentQuizMode = "{{ quiz_type|default('individual') }}";
-        const individualSection = document.getElementById('quiz-individual-section');
+        const individualSection = document.getElementById('quiz-solo-section');
         const battleSection = document.getElementById('quiz-battle-section');
         const studyModeTabs = document.querySelectorAll('[data-study-tab]');
 
         function switchQuizMode(mode) {
-            if (!mode || mode === currentQuizMode) return;
+            if (!mode) return;
+            // if (mode === currentQuizMode) return; // Allow forcing update just in case
 
             currentQuizMode = mode;
 
-            // Update active tab styling
+            // 1. Update Tabs UI
             studyModeTabs.forEach((btn) => {
                 const isActive = btn.dataset.studyTab === mode;
                 btn.classList.toggle('active', isActive);
                 btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
             });
 
-            // Toggle section visibility
-            if (individualSection) individualSection.classList.toggle('hidden', mode !== 'individual');
-            if (battleSection) battleSection.classList.toggle('hidden', mode !== 'battle');
-
-            // Update URL without full page reload
-            try {
-                const newUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard', quiz_type='') }}" + mode;
-                history.pushState({ path: newUrl }, '', newUrl);
-            } catch (e) {
-                console.error("Could not push state to history:", e);
+            // 2. Toggle Sections Visibility
+            // Use explicit add/remove instead of toggle for safety
+            if (mode === 'individual') {
+                if (individualSection) individualSection.classList.remove('hidden');
+                if (battleSection) battleSection.classList.add('hidden');
+            } else {
+                if (individualSection) individualSection.classList.add('hidden');
+                if (battleSection) battleSection.classList.remove('hidden');
             }
 
+            // 3. Update URL (Silent)
+            try {
+                const url = new URL(window.location);
+                url.searchParams.set('quiz_type', mode); // Update backend param name
+                history.replaceState({}, '', url);
+            } catch (e) { console.error(e); }
 
-            // Additional initializations if needed for battle mode
+            // 4. Trigger Layout Recalculation (Fix for some mobile rendering issues)
+            window.dispatchEvent(new Event('resize'));
+            
+            // 5. Init Battle if needed
             if (mode === 'battle') {
                 if (typeof initGroupBattleDeck === 'function' && !window.groupBattleInitialized) {
                     initGroupBattleDeck();
@@ -227,20 +253,15 @@
             }
         }
 
+        // Bind Events
         studyModeTabs.forEach((tab) => {
             tab.addEventListener('click', (event) => {
                 switchQuizMode(event.currentTarget.dataset.studyTab);
             });
         });
 
-        // Ensure correct section is visible on initial load
-        if (individualSection) individualSection.classList.toggle('hidden', currentQuizMode !== 'individual');
-        if (battleSection) battleSection.classList.toggle('hidden', currentQuizMode !== 'battle');
-
-        if (currentQuizMode === 'battle' && typeof initGroupBattleDeck === 'function' && !window.groupBattleInitialized) {
-            initGroupBattleDeck();
-            window.groupBattleInitialized = true;
-        }
+        // Initialize immediately
+        switchQuizMode(currentQuizMode);
     });
 </script>
 {% endblock scripts %}

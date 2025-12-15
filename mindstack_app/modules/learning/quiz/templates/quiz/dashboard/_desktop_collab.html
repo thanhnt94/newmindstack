@@ -398,10 +398,10 @@
 
         /* Adjust content to not be under sticky header on mobile */
         .battle-wrapper {
-            position: fixed;
-            inset: 0;
-            z-index: 1050;
-            /* Cover everything including navbar */
+            position: relative; /* Changed from fixed */
+            width: 100%;
+            min-height: 100%;
+            /* z-index: 1050; REMOVED to avoid overlay issues */
             background: #f8fafc;
             display: flex;
             flex-direction: column;
@@ -433,9 +433,9 @@
 
         .collab-main-header {
             top: 0 !important;
-            /* Tabs stick to top of scrolling container */
             position: sticky;
             z-index: 40;
+            margin-top: 0; /* Ensure no gaps */
         }
 
         /* Mobile Footer converted to Flex Item */
@@ -447,19 +447,6 @@
         }
     }
 </style>
-
-<div id="battle-wrapper" class="battle-wrapper">
-
-    {# === MOBILE HEADER === #}
-    <div class="lg:hidden flex-shrink-0 flex items-center bg-white p-4 border-b border-slate-200 z-50 h-16"> {# Fixed
-        height h-16, flex items-center #}
-        <button onclick="window.location.href='{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}'"
-            class="mr-4 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center">
-            <i class="fas fa-arrow-left text-xl"></i>
-        </button>
-        <h2 class="text-lg font-bold text-gray-800 leading-none mt-0.5">Đấu trường nhóm</h2> {# Adjusted
-        line-height/margin #}
-    </div>
 
     {# === DESKTOP HERO === #}
     <section class="collab-hero hidden lg:block">
@@ -553,8 +540,6 @@
             <i class="fas fa-plus-circle mr-2"></i> Tạo phòng đấu
         </button>
     </div>
-
-</div> {# End of battle-wrapper #}
 
 {# === CREATE BATTLE MODAL === #}
 <div id="create-battle-modal" class="collab-modal-backdrop">
