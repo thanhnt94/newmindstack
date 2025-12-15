@@ -368,7 +368,7 @@
 
 {% block content %}
 {# Mobile Version - Navbar and Bottom Nav #}
-{% include 'flashcard/_dashboard_mobile.html' %}
+{% include 'flashcard/dashboard/_mobile.html' %}
 
 {# Desktop Title and Tabs (Desktop Only) #}
 <div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 hidden lg:block">
@@ -395,10 +395,10 @@
 {# Content - Both Mobile and Desktop #}
 <div class="container mx-auto px-1 sm:px-6 lg:px-8">
     {# --- Chế độ Individual --- #}
-    {% include 'flashcard/_dashboard_individual.html' %}
+    {% include 'flashcard/dashboard/_desktop_individual.html' %}
 
     {# --- Chế độ Collab --- #}
-    {% include 'flashcard/_dashboard_collab.html' %}
+    {% include 'flashcard/dashboard/_desktop_collab.html' %}
 
 </div>
 {% endblock %}

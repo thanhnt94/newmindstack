@@ -24,9 +24,16 @@ from ..individual.config import FlashcardLearningConfig
 from ..individual.flashcard_logic import process_flashcard_answer
 from .flashcard_collab_logic import calculate_room_srs, process_collab_flashcard_answer
 from .services import build_round_payload, ensure_active_round, generate_room_code, serialize_room
+import os
+
+# Calculate absolute path to the templates folder (one level up)
+# Current file: mindstack_app/modules/learning/flashcard/collab/routes.py
+# Target: mindstack_app/modules/learning/flashcard/templates
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+template_dir = os.path.join(base_dir, 'templates')
 
 flashcard_collab_bp = Blueprint(
-    'flashcard_collab', __name__, url_prefix='/flashcard-collab', template_folder='templates'
+    'flashcard_collab', __name__, url_prefix='/flashcard-collab', template_folder=template_dir
 )
 
 
@@ -151,7 +158,7 @@ def view_room(room_code: str):
     room_payload = serialize_room(room)
 
     return render_template(
-        'flashcard_collab/room.html',
+        'flashcard/collab/room/index.html',
         room=room,
         room_payload=room_payload,
         can_edit_flashcards=_user_can_edit_flashcard(room.container_id),

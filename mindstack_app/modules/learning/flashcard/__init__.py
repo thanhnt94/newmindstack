@@ -44,4 +44,4 @@ def dashboard():
 
     template_vars = _build_dashboard_context(current_user)
     # Sử dụng template được namespaced để tránh xung đột với dashboard của admin
-    return render_template('flashcard/dashboard.html', **template_vars)
+    return render_template('flashcard/dashboard/index.html', **template_vars)
