@@ -774,6 +774,7 @@
 {# Include Desktop và Mobile partials - visibility kiểm soát bởi CSS class #}
 {% include 'flashcard/individual/session/_desktop.html' %}
 {% include 'flashcard/individual/session/_mobile.html' %}
+{% include 'flashcard/individual/session/_stats_mobile.html' %}
 
 {# === SHARED MODALS - Dùng chung cho cả Desktop và Mobile === #}
 
@@ -1296,13 +1297,14 @@
     const desktopTotalScore = document.querySelector('.statistics-card #total-score-display span');
     const desktopSessionScore = document.querySelector('.statistics-card #session-score-display');
 
-    const modalTotalScore = document.querySelector('#statsModal #total-score-display span');
-    const modalSessionScore = document.querySelector('#statsModal #session-score-display');
+    const mobileTotalScore = document.getElementById('total-score-display-mobile');
+    const mobileSessionScore = document.getElementById('session-score-display-mobile');
 
     if (desktopTotalScore) desktopTotalScore.textContent = currentUserTotalScore;
     if (desktopSessionScore) desktopSessionScore.textContent = `+${sessionScore}`;
-    if (modalTotalScore) modalTotalScore.textContent = currentUserTotalScore;
-    if (modalSessionScore) modalSessionScore.textContent = `+${sessionScore}`;
+    
+    if (mobileTotalScore) mobileTotalScore.textContent = currentUserTotalScore;
+    if (mobileSessionScore) mobileSessionScore.textContent = `+${sessionScore}`;
   }
 
   /**
@@ -1976,6 +1978,91 @@
     ].join('');
   }
 
+  function renderMobileCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isInitial = false) {
+    if (!stats) return '<div class="p-4 text-center text-slate-400">Chưa có dữ liệu</div>';
+
+    const totalReviews = Number(stats.times_reviewed) || 0;
+    const correctCount = Number(stats.correct_count) || 0;
+    const incorrectCount = Number(stats.incorrect_count) || 0;
+    const correctRate = totalReviews > 0 ? Math.round((correctCount / totalReviews) * 100) : 0;
+    const nextReview = formatDateTime(stats.next_review, 'Sẵn sàng');
+    const statusLabel = (stats.status || 'New').toString().toUpperCase();
+    const streak = stats.current_streak || 0;
+    const ef = Number(stats.easiness_factor || 2.5).toFixed(2);
+    
+    // Status Colors
+    const statusColors = {
+        'new': 'bg-blue-100 text-blue-700',
+        'learning': 'bg-orange-100 text-orange-700',
+        'review': 'bg-emerald-100 text-emerald-700',
+        'relearning': 'bg-purple-100 text-purple-700',
+        'hard': 'bg-red-100 text-red-700'
+    };
+    const statusClass = statusColors[String(stats.status).toLowerCase()] || 'bg-slate-100 text-slate-700';
+
+    return `
+        <div class="mobile-stats-content">
+            <!-- Top Row: Status & Next Review -->
+            <div class="flex items-center justify-between mb-5">
+                <span class="px-3 py-1 rounded-full text-xs font-bold ${statusClass}">${statusLabel}</span>
+                <div class="text-right">
+                    <div class="text-[10px] text-slate-400 uppercase font-bold">Lần ôn tới</div>
+                    <div class="text-xs font-semibold text-slate-700">${nextReview}</div>
+                </div>
+            </div>
+
+            <!-- Accuracy Bar -->
+            <div class="mb-6 bg-white border border-slate-100 p-4 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-sm font-bold text-slate-700">Độ chính xác</span>
+                    <span class="text-2xl font-black text-slate-800">${correctRate}%</span>
+                </div>
+                <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-blue-500 to-emerald-400" style="width: ${correctRate}%"></div>
+                </div>
+                <div class="mt-2 flex justify-between text-xs font-medium text-slate-400">
+                    <span>${correctCount} đúng</span>
+                    <span>${incorrectCount} sai</span>
+                </div>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">Chuỗi</span>
+                    <span class="text-lg font-black text-slate-700">${streak}</span>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">Lượt ôn</span>
+                    <span class="text-lg font-black text-slate-700">${totalReviews}</span>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">Độ khó</span>
+                    <span class="text-lg font-black text-slate-700">${ef}</span>
+                </div>
+            </div>
+
+            <!-- Card Info Toggle (App style) -->
+            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                <button class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.fa-chevron-down').classList.toggle('rotate-180')">
+                    <span class="text-sm font-bold text-slate-700">Chi tiết nội dung thẻ</span>
+                    <i class="fas fa-chevron-down text-slate-400 transition-transform"></i>
+                </button>
+                <div class="hidden p-4 border-t border-slate-200 space-y-3 bg-white">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-slate-400">Mặt trước</span>
+                        <div class="text-sm text-slate-700 mt-1">${formatTextForHtml(cardContent.front)}</div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100">
+                        <span class="text-[10px] uppercase font-bold text-slate-400">Mặt sau</span>
+                        <div class="text-sm text-slate-700 mt-1">${formatTextForHtml(cardContent.back)}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+  }
+
   function initializeStatsToggleListeners(rootElement) {
     if (!rootElement) return;
 
@@ -2098,6 +2185,12 @@
 
       const initialStatsHtml = renderCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
       displayCardStats(currentCardStatsContainer, initialStatsHtml);
+      
+      const mobileCurrent = document.getElementById('current-card-stats-mobile');
+      if (mobileCurrent) {
+          const mobileHtml = renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
+          mobileCurrent.innerHTML = mobileHtml;
+      }
 
       renderCard(currentCardData);
       updateSessionSummary();
@@ -2133,6 +2226,12 @@
       };
       const previousStatsHtml = renderCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
       displayCardStats(previousCardStatsContainer, previousStatsHtml);
+      
+      const mobilePrev = document.getElementById('previous-card-stats-mobile');
+      if (mobilePrev) {
+          const mobileHtml = renderMobileCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
+          mobilePrev.innerHTML = mobileHtml;
+      }
 
       const prevTabButton = document.querySelector('.stats-tab-button[data-target="previous-card-stats-pane"]');
       if (prevTabButton) {
@@ -2178,76 +2277,48 @@
       statsModalContent.classList.add('open');
       document.body.style.overflow = 'hidden';
 
-      const currentCardData = currentFlashcardBatch.length > 0 ? currentFlashcardBatch[currentFlashcardIndex] : null;
-      let initialStatsHtml;
-      if (currentCardData && currentCardData.initial_stats) {
-        initialStatsHtml = renderCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
-      } else {
-        initialStatsHtml = '<div class="empty-state"><i class="fas fa-info-circle"></i> Chưa có thẻ nào.</div>';
+      // Load content from template if not already loaded
+      if (!statsModalContent.querySelector('.mobile-stats-container')) {
+          const template = document.getElementById('mobile-stats-template');
+          if (template) {
+              statsModalContent.innerHTML = '';
+              statsModalContent.appendChild(template.content.cloneNode(true));
+              
+              // Bind Events
+              document.getElementById('close-stats-mobile-btn')?.addEventListener('click', () => toggleStatsModal(false));
+              document.getElementById('end-session-mobile-btn')?.addEventListener('click', () => endSessionBtn.click());
+              
+              document.querySelectorAll('.stats-mobile-tab').forEach(btn => {
+                  btn.addEventListener('click', (e) => {
+                      const targetId = e.currentTarget.dataset.target;
+                      document.querySelectorAll('.stats-mobile-tab').forEach(t => t.classList.toggle('active', t === e.currentTarget));
+                      document.querySelectorAll('.stats-mobile-pane').forEach(p => p.classList.toggle('hidden', p.id !== targetId));
+                  });
+              });
+          }
       }
 
-      const previousStatsHtml = previousCardStats ? renderCardStatsHtml(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent, false) : '<div class="empty-state"><i class="fas fa-info-circle"></i> Chưa trả lời thẻ nào.</div>';
+      // Sync Data
+      updateSessionSummary();
 
-      const tabsHtml = `
-                <div id="current-card-stats-pane" class="stats-tab-pane active">${initialStatsHtml}</div>
-                <div id="previous-card-stats-pane" class="stats-tab-pane">${previousStatsHtml}</div>
-            `;
+      const currentCardData = currentFlashcardBatch.length > 0 ? currentFlashcardBatch[currentFlashcardIndex] : null;
+      const mobileCurrentContainer = document.getElementById('current-card-stats-mobile');
+      
+      if (mobileCurrentContainer) {
+          if (currentCardData && currentCardData.initial_stats) {
+            // Use Mobile Render Function
+            const html = renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
+            mobileCurrentContainer.innerHTML = html;
+          } else {
+            mobileCurrentContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-40 text-slate-400"><p>Chưa có dữ liệu.</p></div>';
+          }
+      }
 
-      const statsHtml = `
-                <div class="mobile-nav-header">
-                    {# Gọi macro navbar để render thanh điều hướng #}
-                    {{ render_navbar(current_user, request) }}
-                    <div class="stats-modal-header">
-                        <h3>Thống kê phiên học</h3>
-                        <button id="closeStatsModalBtn" class="stats-modal-close-btn">&times;</button>
-                    </div>
-                </div>
-                <div class="stats-modal-body">
-                    <div class="statistics-card statistics-card--modal">
-                        <div class="statistics-card__header">
-                            <div>
-                                <span class="statistics-card__subtitle">Phiên học Flashcard</span>
-                                <h3 class="statistics-card__title">Thống kê thời gian thực</h3>
-                            </div>
-                            <span class="statistics-card__badge"><i class="fas fa-bolt"></i> Đang cập nhật</span>
-                        </div>
-                        <div class="session-overview">
-                            <div class="summary-card summary-card--total">
-                                <span class="summary-card__label">Tổng điểm</span>
-                                <div id="total-score-display" class="summary-card__value"><i class="fas fa-star"></i><span>${currentUserTotalScore}</span></div>
-                                <p class="summary-card__hint">Cộng dồn toàn bộ điểm Flashcard</p>
-                            </div>
-                            <div class="summary-card summary-card--session">
-                                <span class="summary-card__label">Điểm phiên này</span>
-                                <div id="session-score-display" class="summary-card__value summary-card__value--accent">+${sessionScore}</div>
-                                <p class="summary-card__hint">Cập nhật sau mỗi câu trả lời</p>
-                            </div>
-                        </div>
-                        <div class="stats-tab-nav">
-                            <button class="stats-tab-button active" data-target="current-card-stats-pane"><i class="fas fa-dot-circle"></i> Thẻ hiện tại</button>
-                            <button class="stats-tab-button" data-target="previous-card-stats-pane"><i class="fas fa-history"></i> Thẻ trước đó</button>
-                        </div>
-                        <div class="stats-tab-content">
-                            ${tabsHtml}
-                        </div>
-                        <div class="statistics-card__footer">
-                            <button id="end-session-modal-btn" class="session-end-btn"><i class="fas fa-flag-checkered"></i> <span>Kết thúc phiên</span></button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-      statsModalContent.innerHTML = statsHtml;
-
-      document.getElementById('closeStatsModalBtn').addEventListener('click', () => toggleStatsModal(false));
-
-      document.querySelectorAll('.stats-tab-button').forEach(btn => btn.addEventListener('click', handleTabClick));
-      document.getElementById('end-session-modal-btn')?.addEventListener('click', () => endSessionBtn.click());
-
-      initializeStatsToggleListeners(statsModalContent);
-
-      if (previousCardStats) {
-        document.querySelector('button[data-target="previous-card-stats-pane"]').click();
+      const mobilePrevContainer = document.getElementById('previous-card-stats-mobile');
+      if (mobilePrevContainer && previousCardStats) {
+          // Use Mobile Render Function
+          const html = renderMobileCardStatsHtml(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent, false);
+          mobilePrevContainer.innerHTML = html;
       }
 
     } else {
