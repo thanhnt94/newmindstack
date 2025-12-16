@@ -539,7 +539,7 @@
     <div class="cm-card rounded-t-none border-t-0 relative min-h-[400px] mt-4">
         
         {# === HEADER SECTION (Mobile & Desktop Unified) === #}
-        <div class="mobile-header-section lg:p-4 lg:bg-transparent lg:border-b lg:border-slate-100 lg:shadow-none">
+        <div class="mobile-header-section lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none">
             
             {# Mobile Top Row: Back, Title, Search Toggle #}
             <div class="lg:hidden flex items-center justify-between gap-2 mb-3">
@@ -560,13 +560,20 @@
                 </button>
             </div>
 
-            {# Tabs #}
-            <div class="flex border-b border-gray-200 mb-0 lg:mb-0 gap-2 collab-tabs">
-                <button type="button" class="tab-filter-button active collab-tab-btn" data-battle-tab="public">
-                    <i class="fas fa-globe mr-2"></i>Phòng công khai
+            {# Desktop Title (ADDED) #}
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between hidden lg:flex">
+                <span class="flex items-center">
+                    <i class="fas fa-gamepad mr-3 text-blue-500"></i> Đấu trường nhóm
+                </span>
+            </h2>
+
+            {# Tabs (UPDATED LAYOUT) #}
+            <div class="flex border-b border-gray-200 mb-2 lg:mb-4 collab-tabs">
+                <button type="button" class="tab-filter-button active collab-tab-btn flex items-center justify-center" data-battle-tab="public">
+                    <i class="fas fa-globe mr-2"></i><span>Phòng công khai</span>
                 </button>
-                <button type="button" class="tab-filter-button collab-tab-btn" data-battle-tab="my">
-                    <i class="fas fa-user-check mr-2"></i>Phòng của tôi
+                <button type="button" class="tab-filter-button collab-tab-btn flex items-center justify-center" data-battle-tab="my">
+                    <i class="fas fa-user-check mr-2"></i><span>Phòng của tôi</span>
                 </button>
             </div>
 
@@ -578,7 +585,7 @@
             </div>
 
             {# Desktop Toolbar (Search) #}
-            <div class="hidden lg:block mt-4 w-full">
+            <div class="hidden lg:block mb-3 w-full">
                 <div class="collab-toolbar w-full">
                     <div class="search-wrapper w-full" id="battle-room-search-wrapper">
                         {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
