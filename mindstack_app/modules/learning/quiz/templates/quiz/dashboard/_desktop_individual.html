@@ -109,6 +109,21 @@
             background-color: #f8fafc !important;
         }
 
+        /* Step 0: Mode Selection */
+        #quiz-mobile-mode-selection {
+            position: relative;
+            height: calc(100dvh - 160px);
+            min-height: unset;
+            overflow: hidden;
+            z-index: 30;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 1.5rem;
+            margin-top: 0 !important;
+        }
+
         /* Full Screen Containers for Steps - EXACTLY LIKE FLASHCARD */
         #step-1-card,
         #step-2-card {
@@ -125,16 +140,20 @@
         }
 
         /* Visibility Logic */
-        #step-1-card {
-            display: flex; /* Default show Step 1 when in this tab */
+        .mobile-mode-individual #step-1-card {
+            display: flex;
         }
 
-        .mobile-step-2-active #step-1-card {
+        .mobile-mode-individual.mobile-step-2-active #step-1-card {
             display: none;
         }
 
-        .mobile-step-2-active #step-2-card {
+        .mobile-mode-individual.mobile-step-2-active #step-2-card {
             display: flex;
+        }
+
+        .mobile-mode-individual #quiz-mobile-mode-selection {
+            display: none;
         }
 
         /* Content Areas - Scrollable */
@@ -246,6 +265,10 @@
 
     /* === DESKTOP STYLES (min-width: 1024px) === */
     @media (min-width: 1024px) {
+        #quiz-mobile-mode-selection {
+            display: none;
+        }
+
         .mobile-only {
             display: none !important;
         }
@@ -292,6 +315,52 @@
 </style>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-full">
+
+    {# === MOBILE STEP 0: MODE SELECTION (APP STYLE) === #}
+    <div id="quiz-mobile-mode-selection" class="lg:hidden space-y-8 w-full max-w-md mx-auto">
+        <div class="text-center mb-4">
+            <div
+                class="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-200 transform -rotate-3">
+                <i class="fas fa-question-circle text-white text-4xl drop-shadow-md"></i>
+            </div>
+            <h1 class="text-3xl font-black text-slate-800 tracking-tight">Học Quiz</h1>
+            <p class="text-slate-500 font-medium mt-2 text-base">Chọn chế độ ôn tập của bạn</p>
+        </div>
+
+        <div class="space-y-4 w-full">
+            <!-- Individual Mode -->
+            <button id="btn-mode-individual"
+                class="w-full bg-white p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-5 active:scale-95 transition-transform group">
+                <div
+                    class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="text-left flex-grow">
+                    <h3 class="font-bold text-slate-800 text-lg mb-0.5">Cá nhân</h3>
+                    <p class="text-xs text-slate-500 font-medium">Ôn tập theo tốc độ riêng</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </button>
+
+            <!-- Group Mode -->
+            <button id="btn-mode-group"
+                class="w-full bg-white p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-5 active:scale-95 transition-transform group">
+                <div
+                    class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl shadow-sm group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="text-left flex-grow">
+                    <h3 class="font-bold text-slate-800 text-lg mb-0.5">Học nhóm</h3>
+                    <p class="text-xs text-slate-500 font-medium">Cùng bạn bè ôn tập</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </button>
+        </div>
+    </div>
 
     {# === STEP 1: SELECT SET === #}
     <div id="step-1-card" class="cm-section-card">
@@ -568,15 +637,43 @@
             form.appendChild(hiddenViewInput);
         });
     }
-    const mobileStep0Btn = document.getElementById('btn-mode-individual');
+    const btnModeIndividual = document.getElementById('btn-mode-individual');
+    const btnModeGroup = document.getElementById('btn-mode-group');
     const mobileStep1BackBtn = document.getElementById('mobile-step-1-back');
     const quizSection = document.getElementById('quiz-solo-section');
 
     // --- START: Mobile Mode Selection Logic ---
+    if (btnModeIndividual) {
+        btnModeIndividual.addEventListener('click', () => {
+            quizSection.classList.add('mobile-mode-individual');
+            // Fix: Update URL
+            const url = new URL(window.location);
+            url.searchParams.set('view', 'setup');
+            history.pushState({}, '', url);
+        });
+    }
+
+    if (btnModeGroup) {
+        btnModeGroup.addEventListener('click', () => {
+             // Switch to Battle Mode by clicking the tab
+             const battleTab = document.querySelector('[data-study-tab="battle"]');
+             if (battleTab) battleTab.click();
+        });
+    }
+
     if (mobileStep1BackBtn) {
         mobileStep1BackBtn.addEventListener('click', () => {
-             window.location.href = "{{ url_for('main.index') }}"; 
+             quizSection.classList.remove('mobile-mode-individual');
+             // Fix: Remove param
+             const url = new URL(window.location);
+             url.searchParams.delete('view');
+             history.pushState({}, '', url);
         });
+    }
+
+    // Fix: Restore state on load
+    if (new URLSearchParams(window.location.search).get('view') === 'setup') {
+        quizSection.classList.add('mobile-mode-individual');
     }
 
     if (mobileStartBtn) {

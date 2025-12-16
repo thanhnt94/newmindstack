@@ -193,7 +193,7 @@
 
     {# --- Chế độ Battle --- #}
     <div id="quiz-battle-section" class="{% if quiz_type != 'battle' %}hidden{% endif %}">
-        {% include 'quiz/dashboard/_desktop_collab.html' %}
+        {% include 'quiz/dashboard/_desktop_battle.html' %}
     </div>
     
 </div>
@@ -210,6 +210,13 @@
         const individualSection = document.getElementById('quiz-solo-section');
         const battleSection = document.getElementById('quiz-battle-section');
         const studyModeTabs = document.querySelectorAll('[data-study-tab]');
+        const mobileNavbar = document.getElementById('quiz-mobile-navbar');
+        const mobileBottomNav = document.getElementById('quiz-mobile-bottom-nav');
+
+        function toggleMobileNav(show) {
+            if (mobileNavbar) mobileNavbar.style.display = show ? '' : 'none';
+            if (mobileBottomNav) mobileBottomNav.style.display = show ? '' : 'none';
+        }
 
         function switchQuizMode(mode) {
             if (!mode) return;
@@ -229,9 +236,11 @@
             if (mode === 'individual') {
                 if (individualSection) individualSection.classList.remove('hidden');
                 if (battleSection) battleSection.classList.add('hidden');
+                toggleMobileNav(true);
             } else {
                 if (individualSection) individualSection.classList.add('hidden');
                 if (battleSection) battleSection.classList.remove('hidden');
+                toggleMobileNav(false);
             }
 
             // 3. Update URL (Silent)

@@ -15,9 +15,70 @@
         overflow: hidden;
     }
 
+    /* === MOBILE INDIVIDUAL STYLE HEADER === */
+    .mobile-header-section {
+        flex-shrink: 0;
+        background: white;
+        padding: 1rem; /* Restored padding */
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        z-index: 10;
+    }
+
+    .tab-filter-button {
+        flex: 1;
+        border: none !important;
+        border-radius: 0.5rem; /* Mobile rounding */
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #64748b;
+        background: transparent;
+        transition: all 0.2s ease;
+        text-align: center;
+        border-bottom: 2px solid transparent !important; /* Desktop style override */
+        border-radius: 0; /* Reset for desktop border-bottom style default */
+    }
+    
+    .tab-filter-button:hover {
+        color: #374151;
+    }
+
+    .tab-filter-button.active {
+        color: #2563eb; /* Blue-600 */
+        border-bottom-color: #2563eb !important;
+        background-color: transparent;
+        font-weight: 700;
+    }
+
+    @media (max-width: 1023px) {
+        .mobile-header-section .flex.border-b {
+            border: none !important;
+            background-color: #f1f5f9;
+            padding: 0.25rem;
+            border-radius: 0.75rem;
+            gap: 0.25rem;
+            margin-bottom: 0.75rem !important;
+        }
+
+        .tab-filter-button {
+            border-radius: 0.5rem; /* Mobile pill style */
+            border-bottom: none !important;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .tab-filter-button.active {
+            background-color: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border-bottom: none !important;
+        }
+    }
+
     .cm-card--padded {
         padding: 1.25rem;
     }
+
 
     .cm-section-header {
         margin-bottom: 1.25rem;
@@ -476,19 +537,52 @@
 
     {# === MAIN CONTENT (TABS & GRID) === #}
     <div class="cm-card rounded-t-none border-t-0 relative min-h-[400px] mt-4">
-        {# Tabs + search #}
-        <div class="collab-main-header">
-            <div class="collab-tabs">
-                <button type="button" class="collab-tab-btn active" data-battle-tab="public">
+        
+        {# === HEADER SECTION (Mobile & Desktop Unified) === #}
+        <div class="mobile-header-section lg:p-4 lg:bg-transparent lg:border-b lg:border-slate-100 lg:shadow-none">
+            
+            {# Mobile Top Row: Back, Title, Search Toggle #}
+            <div class="lg:hidden flex items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <button id="battle-mobile-back"
+                        class="flex-shrink-0 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-xl w-9 h-9 flex items-center justify-center">
+                        <i class="fas fa-arrow-left text-sm"></i>
+                    </button>
+                    <div class="min-w-0">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">QUIZ <span class="text-slate-300 mx-0.5">›</span> BATTLE</p>
+                        <h2 class="text-base font-bold text-gray-800 leading-tight truncate">Đấu trường</h2>
+                    </div>
+                </div>
+                <button type="button" id="battle-search-toggle-btn"
+                    class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"
+                    title="Tìm kiếm">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </button>
+            </div>
+
+            {# Tabs #}
+            <div class="flex border-b border-gray-200 mb-0 lg:mb-0 gap-2 collab-tabs">
+                <button type="button" class="tab-filter-button active collab-tab-btn" data-battle-tab="public">
                     <i class="fas fa-globe mr-2"></i>Phòng công khai
                 </button>
-                <button type="button" class="collab-tab-btn" data-battle-tab="my">
+                <button type="button" class="tab-filter-button collab-tab-btn" data-battle-tab="my">
                     <i class="fas fa-user-check mr-2"></i>Phòng của tôi
                 </button>
             </div>
-            <div class="collab-toolbar w-full"> {# Added w-full #}
-                <div class="search-wrapper w-full" id="battle-room-search-wrapper"> {# Added w-full #}
+
+            {# Mobile Search Bar (Collapsible) #}
+            <div id="battle-mobile-search-bar" class="hidden mb-3 lg:hidden mt-3">
+                 <div id="battle-room-search-wrapper-mobile">
                     {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
+                 </div>
+            </div>
+
+            {# Desktop Toolbar (Search) #}
+            <div class="hidden lg:block mt-4 w-full">
+                <div class="collab-toolbar w-full">
+                    <div class="search-wrapper w-full" id="battle-room-search-wrapper">
+                        {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -922,6 +1016,48 @@
                     history.pushState({}, '', url);
                 });
             });
+
+            // Mobile Search Toggle
+            const battleSearchToggleBtn = document.getElementById('battle-search-toggle-btn');
+            const battleMobileSearchBar = document.getElementById('battle-mobile-search-bar');
+            
+            if (battleSearchToggleBtn && battleMobileSearchBar) {
+                battleSearchToggleBtn.addEventListener('click', function() {
+                    const isOpen = !battleMobileSearchBar.classList.contains('hidden');
+                    if (isOpen) {
+                        battleMobileSearchBar.classList.add('hidden');
+                        this.classList.remove('bg-blue-500', 'text-white');
+                        this.classList.add('bg-slate-100', 'text-slate-600');
+                    } else {
+                        battleMobileSearchBar.classList.remove('hidden');
+                        this.classList.remove('bg-slate-100', 'text-slate-600');
+                        this.classList.add('bg-blue-500', 'text-white');
+                        const input = battleMobileSearchBar.querySelector('input[name="q"]');
+                        if (input) input.focus();
+                    }
+                });
+            }
+
+            // Mobile Search Submit
+            const mobileSearchForm = document.querySelector('#battle-room-search-wrapper-mobile form');
+            if (mobileSearchForm) {
+                mobileSearchForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    battleState.searchQuery = mobileSearchForm.querySelector('input[name="q"]').value.trim();
+                    battleState.pagination.page = 1;
+                    renderMainGrid();
+                });
+            }
+
+            // Mobile Back Button
+            const battleMobileBack = document.getElementById('battle-mobile-back');
+            if (battleMobileBack) {
+                battleMobileBack.addEventListener('click', () => {
+                     const individualTab = document.querySelector('[data-study-tab="individual"]');
+                     if (individualTab) individualTab.click();
+                     else window.history.back();
+                });
+            }
 
             // Search
             const searchForm = document.querySelector('#battle-room-search-wrapper form');
