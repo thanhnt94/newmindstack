@@ -1015,17 +1015,20 @@
 
         loadCollabSets();
 
-        const searchForm = document.querySelector('#collab-room-search-wrapper form');
-        if (searchForm) {
-            searchForm.addEventListener('submit', (e) => {
+        // Handle BOTH Desktop and Mobile Search Forms
+        const searchForms = document.querySelectorAll('#collab-room-search-wrapper form, #collab-room-search-wrapper-mobile form');
+        
+        searchForms.forEach(form => {
+            form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const input = searchForm.querySelector('input[name="q"]');
+                const input = form.querySelector('input[name="q"]');
                 collabState.searchQuery = input.value.trim();
                 collabState.pagination.page = 1;
                 renderMainGrid();
             });
 
-            const input = searchForm.querySelector('input[name="q"]');
+            // Live search input listener
+            const input = form.querySelector('input[name="q"]');
             if (input) {
                 let timeout;
                 input.addEventListener('input', () => {
@@ -1037,7 +1040,7 @@
                     }, 300);
                 });
             }
-        }
+        });
 
         ['collab-quick-join-form', 'collab-quick-join-form-mobile'].forEach(id => {
             document.getElementById(id)?.addEventListener('submit', (e) => {
