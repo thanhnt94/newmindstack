@@ -5,15 +5,27 @@ MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sử
 #}
 
 <style>
-    /* Mobile view: hiển thị trên màn hình < 1024px */
+    /* Mobile view: ẩn mặc định trên desktop */
+    .flashcard-mobile-view {
+        display: none;
+    }
+
+    /* Hiển thị chỉ trên màn hình < 1024px */
     @media (max-width: 1023px) {
+
+        /* Ẩn desktop view */
+        .flashcard-desktop-view {
+            display: none !important;
+        }
+
+        /* Hiện mobile view */
         .flashcard-mobile-view {
             display: block !important;
             padding: 0.5rem 0.35rem 0.35rem 0.35rem !important;
         }
 
-        /* Bố cục trên màn màn hình di động */
-        .page-shell {
+        /* ===== SCOPED: Bố cục mobile - chỉ trong .flashcard-mobile-view ===== */
+        .flashcard-mobile-view .page-shell {
             top: var(--header-h, 0px);
             bottom: 0;
             padding: 0 !important;
@@ -21,7 +33,7 @@ MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sử
             min-height: calc(var(--vh, 1vh) * 100);
         }
 
-        .session-layout {
+        .flashcard-mobile-view .session-layout {
             display: flex;
             flex-direction: column;
             width: 100%;
@@ -34,11 +46,12 @@ MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sử
             display: block !important;
         }
 
-        .session-layout>.statistics-card {
+        .flashcard-mobile-view .session-layout>.statistics-card,
+        .flashcard-mobile-view .desktop-stats-container {
             display: none !important;
         }
 
-        .flashcard-wrapper {
+        .flashcard-mobile-view .flashcard-wrapper {
             flex: 1;
             padding: 0 !important;
             overflow: hidden;
@@ -46,7 +59,7 @@ MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sử
             flex-direction: column;
         }
 
-        #flashcard-content-mobile {
+        .flashcard-mobile-view #flashcard-content-mobile {
             flex: 1;
             padding: 0;
         }
@@ -71,55 +84,55 @@ MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sử
             gap: 0.4rem;
         }
 
-        .flashcard-card-container,
-        .flashcard-card {
+        .flashcard-mobile-view .flashcard-card-container,
+        .flashcard-mobile-view .flashcard-card {
             height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
 
-        .face {
+        .flashcard-mobile-view .face {
             padding: calc(56px + env(safe-area-inset-top, 0px)) 0.5rem 0.5rem 0.5rem !important;
         }
 
-        ._card-container {
+        .flashcard-mobile-view ._card-container {
             padding: 0.05rem !important;
         }
 
-        .text-area {
+        .flashcard-mobile-view .text-area {
             flex: 1;
             padding: 0.1rem 0.05rem !important;
         }
 
-        .actions {
+        .flashcard-mobile-view .actions {
+            padding: 0.85rem 1rem;
+            gap: 0.65rem;
             margin-top: 0.5rem !important;
-            padding: 0.15rem 0.15rem !important;
-            gap: 0.15rem;
             justify-content: center;
             width: 100%;
         }
 
-        .flashcard-card {
+        .flashcard-mobile-view .flashcard-card {
             padding: 0.05rem !important;
         }
 
         /* Toolbar styles specific to Mobile */
-        .card-toolbar {
+        .flashcard-mobile-view .card-toolbar {
             padding: calc(0.3rem + env(safe-area-inset-top, 0px)) 0.4rem 0.4rem;
             gap: 0.35rem;
             row-gap: 0.25rem;
             column-gap: 0.25rem;
         }
 
-        .toolbar-left,
-        .toolbar-right {
+        .flashcard-mobile-view .toolbar-left,
+        .flashcard-mobile-view .toolbar-right {
             gap: 0.2rem;
             flex: 1 1 0;
             flex-wrap: nowrap;
         }
 
-        .card-toolbar .label {
+        .flashcard-mobile-view .card-toolbar .label {
             font-size: 0.74rem;
             min-width: 76px;
             padding: 0.25rem 0.4rem;
@@ -127,53 +140,48 @@ MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sử
             flex: 0 1 auto;
         }
 
-        .card-toolbar .icon-btn {
+        .flashcard-mobile-view .card-toolbar .icon-btn {
             width: 34px;
             height: 34px;
             border-radius: 10px;
             font-size: 0.9rem;
         }
 
-        .card-toolbar .play-audio-btn {
+        .flashcard-mobile-view .card-toolbar .play-audio-btn {
             width: 36px;
             height: 36px;
             border-radius: 11px;
             padding: 0;
         }
 
-        .actions {
-            padding: 0.85rem 1rem;
-            gap: 0.65rem;
-        }
-
-        .actions .btn {
+        .flashcard-mobile-view .actions .btn {
             padding: 0.55rem 0.75rem;
             font-size: 0.9rem;
         }
 
-        .rating-btn {
+        .flashcard-mobile-view .rating-btn {
             padding: 0.55rem 0.75rem;
             gap: 0.4rem;
         }
 
-        .rating-btn .rating-btn__icon {
+        .flashcard-mobile-view .rating-btn .rating-btn__icon {
             width: 1.6rem;
             height: 1.6rem;
             font-size: 0.9rem;
         }
 
-        .rating-btn .rating-btn__title {
+        .flashcard-mobile-view .rating-btn .rating-btn__title {
             font-size: 0.85rem;
         }
 
-        .flip-card-btn {
+        .flashcard-mobile-view .flip-card-btn {
             padding: 0.65rem 1.5rem;
             font-size: 0.85rem;
             border-radius: 0.65rem;
             box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
         }
 
-        .flip-btn-container {
+        .flashcard-mobile-view .flip-btn-container {
             display: flex;
             justify-content: center;
             padding: 0.35rem !important;
@@ -199,7 +207,6 @@ MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sử
                     </div>
                 </div>
             </div>
-            {% include 'notes/_note_panel.html' %}
             {% include 'flashcard/individual/session/_card_mobile.html' %}
         </div>
     </div>
