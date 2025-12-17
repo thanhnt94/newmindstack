@@ -10,7 +10,7 @@ def gamification_points():
     """Hiển thị trang cấu hình điểm số."""
     if current_user.user_role != 'admin':
         flash('Bạn không có quyền truy cập.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
     
     return render_template('admin_gamification/points_settings.html', active_tab='points', config=current_app.config, active_page='badges')
 
@@ -19,7 +19,7 @@ def gamification_points():
 def update_gamification_points():
     """Cập nhật các giá trị cấu hình điểm số."""
     if current_user.user_role != 'admin':
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
     
     try:
         updated_count = 0
@@ -68,7 +68,7 @@ def list_badges():
     """Hiển thị danh sách huy hiệu."""
     if current_user.user_role != 'admin':
         flash('Bạn không có quyền truy cập.', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
         
     badges = Badge.query.order_by(Badge.created_at.desc()).all()
     # Pass active_tab='badges'
@@ -79,7 +79,7 @@ def list_badges():
 def create_badge():
     """Tạo huy hiệu mới."""
     if current_user.user_role != 'admin':
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
 
     if request.method == 'POST':
         try:
@@ -112,7 +112,7 @@ def create_badge():
 def edit_badge(badge_id):
     """Sửa huy hiệu."""
     if current_user.user_role != 'admin':
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
         
     badge = Badge.query.get_or_404(badge_id)
     
@@ -140,7 +140,7 @@ def edit_badge(badge_id):
 def delete_badge(badge_id):
     """Xóa huy hiệu."""
     if current_user.user_role != 'admin':
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
     
     badge = Badge.query.get_or_404(badge_id)
     try:

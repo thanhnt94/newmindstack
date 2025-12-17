@@ -32,7 +32,7 @@ def update_last_seen():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
     
     form = LoginForm()
     if form.validate_on_submit():
@@ -53,8 +53,8 @@ def login():
         flash('Đăng nhập thành công!', 'success')
         
         next_page = request.args.get('next')
-        if not next_page or url_for(next_page.lstrip('/')) == url_for('main.index'):
-            next_page = url_for('main.dashboard')
+        if not next_page or url_for(next_page.lstrip('/')) == url_for('landing.index'):
+            next_page = url_for('dashboard.dashboard')
         return redirect(next_page)
         
     return render_template('auth/login.html', form=form)
@@ -62,12 +62,12 @@ def login():
 @auth_bp.route('/logout', methods=['GET', 'POST'])
 def logout():
     logout_user()
-    return redirect(url_for('main.index'))
+    return redirect(url_for('landing.index'))
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
         
     form = RegistrationForm()
     if form.validate_on_submit():

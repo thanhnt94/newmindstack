@@ -7,13 +7,13 @@
 
 {# === TOP NAVBAR (Mobile Only) === #}
 <div id="quiz-mobile-navbar" class="lg:hidden">
-    {% include 'main/_navbar_mobile.html' %}
+    {% include 'includes/_navbar_mobile.html' %}
 </div>
 
 {# === BOTTOM NAV (Mobile Only) === #}
 <div id="quiz-mobile-bottom-nav" class="lg:hidden fixed bottom-0 left-0 right-0 z-[200]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
     {% set active_page = '' %}
-    {% include 'main/_bottom_nav_mobile.html' %}
+    {% include 'includes/_bottom_nav_mobile.html' %}
 </div>
 
 <style>
