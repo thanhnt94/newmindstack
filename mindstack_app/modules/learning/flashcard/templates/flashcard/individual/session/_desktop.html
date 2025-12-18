@@ -1,28 +1,15 @@
 {#
 File: _flashcard_session_desktop.html
-Phiên bản: 2.1
-MỤC ĐÍCH: Giao diện Desktop cho Flashcard Session (đã tách code và sửa lỗi JS)
+Phiên bản: 2.2
+MỤC ĐÍCH: Giao diện Desktop cho Flashcard Session
+NOTE: Visibility được control bởi critical CSS trong index.html
 #}
 
 <style>
-    /* Desktop view: hiển thị trên màn hình >= 1024px */
+    /* Desktop view layout - visibility control by index.html */
     .flashcard-desktop-view {
-        display: none;
-        /* Ẩn mặc định, chỉ hiện trên desktop */
         height: 100%;
         overflow: hidden;
-    }
-
-    @media (min-width: 1024px) {
-        .flashcard-desktop-view {
-            display: block !important;
-        }
-    }
-
-    @media (max-width: 1023px) {
-        .flashcard-desktop-view {
-            display: none !important;
-        }
     }
 
     /* ===== Desktop Layout Rules ===== */
@@ -79,7 +66,7 @@ MỤC ĐÍCH: Giao diện Desktop cho Flashcard Session (đã tách code và s�
         }
 
         /* Flashcard content fill remaining */
-        .flashcard-desktop-view #flashcard-content {
+        .flashcard-desktop-view .js-flashcard-content {
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -202,13 +189,13 @@ MỤC ĐÍCH: Giao diện Desktop cho Flashcard Session (đã tách code và s�
             <div class="flashcard-wrapper">
                 <div class="card-surface">
                     <div class="flashcard-panel">
-                        <div id="flashcard-content">
+                        <div class="js-flashcard-content">
                             <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
                                 <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
                                 <p>Đang tải thẻ...</p>
                             </div>
                         </div>
-                        <div id="flashcard-buttons" class="mt-3"></div>
+                        <div class="js-flashcard-buttons mt-3"></div>
                     </div>
                 </div>
             </div>
@@ -236,7 +223,7 @@ MỤC ĐÍCH: Giao diện Desktop cho Flashcard Session (đã tách code và s�
             const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${o.hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${o.itemId}" data-content-to-read="${o.frontAudioContent || ''}" ${o.hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
             const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${o.hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${o.itemId}" data-content-to-read="${o.backAudioContent || ''}" ${o.hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
 
-            const flipButtonHtml = `<button id="flip-card-btn" class="flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
+            const flipButtonHtml = `<button class="js-flip-card-btn flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
 
             const leftToolbarContent = `${aiButtonHtml}${noteButtonHtml}`;
 
@@ -255,7 +242,7 @@ MỤC ĐÍCH: Giao diện Desktop cho Flashcard Session (đã tách code và s�
             // Desktop structure
             return `
       <div class="flashcard-card-container">
-        <div id="flashcard-card" class="flashcard-card ${o.cardCategory ? 'flashcard-card--' + o.cardCategory : ''}" data-card-category="${o.cardCategory || 'default'}">
+        <div class="js-flashcard-card flashcard-card ${o.cardCategory ? 'flashcard-card--' + o.cardCategory : ''}" data-card-category="${o.cardCategory || 'default'}">
           <div class="face front">
             ${toolbarFront}
             <div class="_card-container">
@@ -273,7 +260,7 @@ MỤC ĐÍCH: Giao diện Desktop cho Flashcard Session (đã tách code và s�
               <div class="text-area"><div class="flashcard-content-text">${o.bTxt}</div></div>
               ${o.backImg ? `<div class="media-container"><img src="${o.backImg}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
             </div>
-            <div class="actions" id="internal-actions" data-button-count="${o.buttonCount}">${o.buttonsHtml}</div>
+            <div class="actions js-internal-actions" data-button-count="${o.buttonCount}">${o.buttonsHtml}</div>
             <audio id="back-audio" class="hidden" src="${o.backAudioUrl || ''}"></audio>
           </div>
         </div>

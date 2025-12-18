@@ -1,26 +1,17 @@
 {#
 File: _flashcard_session_mobile.html
-Phiên bản: 2.1
-MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sửa lỗi JS)
+Phiên bản: 2.2
+MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session
+NOTE: Visibility được control bởi critical CSS trong index.html
 #}
 
 <style>
-    /* Mobile view: ẩn mặc định trên desktop */
-    .flashcard-mobile-view {
-        display: none;
-    }
-
-    /* Hiển thị chỉ trên màn hình < 1024px */
+    /* ===== SCOPED: Bố cục mobile - chỉ trong .flashcard-mobile-view ===== */
+    /* NOTE: Visibility is controlled by critical CSS in index.html head block */
     @media (max-width: 1023px) {
 
-        /* Ẩn desktop view */
-        .flashcard-desktop-view {
-            display: none !important;
-        }
-
-        /* Hiện mobile view */
+        /* Mobile padding only - visibility handled by index.html */
         .flashcard-mobile-view {
-            display: block !important;
             padding: 0.5rem 0.35rem 0.35rem 0.35rem !important;
         }
 
@@ -59,7 +50,7 @@ MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sử
             flex-direction: column;
         }
 
-        .flashcard-mobile-view #flashcard-content-mobile {
+        .flashcard-mobile-view .js-flashcard-content {
             flex: 1;
             padding: 0;
         }
@@ -197,13 +188,13 @@ MỤC ĐÍCH: Giao diện Mobile cho Flashcard Session (đã tách code và sử
             <div class="flashcard-wrapper">
                 <div class="card-surface">
                     <div class="flashcard-panel">
-                        <div id="flashcard-content-mobile">
+                        <div class="js-flashcard-content">
                             <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
                                 <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
                                 <p>Đang tải thẻ...</p>
                             </div>
                         </div>
-                        <div id="flashcard-buttons-mobile" class="mt-3"></div>
+                        <div class="js-flashcard-buttons mt-3"></div>
                     </div>
                 </div>
             </div>

@@ -9,9 +9,36 @@
 {% from 'includes/_navbar.html' import render_navbar %}
 {% block title %}Học Flashcard{% endblock %}
 
+{# CRITICAL: Add flashcard-session-active class to body to hide header/footer on mobile #}
+{% block body_class %} flashcard-session-active{% endblock %}
+
 {% block head %}
 {{ super() }}
 <style>
+  /* ===== CRITICAL: Đây phải là các rules ĐẦU TIÊN để tránh flash ===== */
+  /* Desktop: hiển thị mặc định */
+  .flashcard-desktop-view {
+    display: block;
+  }
+
+  /* Mobile: ẩn mặc định */
+  .flashcard-mobile-view {
+    display: none;
+  }
+
+  /* Đảo ngược trên màn hình nhỏ */
+  @media (max-width: 1023px) {
+    .flashcard-desktop-view {
+      display: none !important;
+    }
+
+    .flashcard-mobile-view {
+      display: block !important;
+    }
+  }
+
+  /* ===== END CRITICAL ===== */
+
   /* ===== CSS chung cho Flashcard Session (Core Styles) ===== */
   body {
     font-family: 'Inter', sans-serif;
@@ -583,7 +610,8 @@
     line-height: 1;
   }
 
-  .rating-btn--again, .rating-btn--fail {
+  .rating-btn--again,
+  .rating-btn--fail {
     background: linear-gradient(135deg, #f87171, #dc2626);
     box-shadow: 0 18px 36px rgba(220, 38, 38, 0.32);
   }
@@ -843,24 +871,24 @@
   let sessionScore = 0;
   let currentUserTotalScore = {{ current_user.total_score | default (0) }};
 
-  // Desktop và Mobile content elements
-  const flashcardContentDiv = document.getElementById('flashcard-content');
-  const flashcardContentDivMobile = document.getElementById('flashcard-content-mobile');
+  // End session button
   const endSessionBtn = document.getElementById('end-session-btn');
 
-  // Helper function để sync nội dung giữa desktop và mobile
+  // Helper function để sync nội dung giữa desktop và mobile (dùng shared classes)
   function setFlashcardContent(html) {
-    if (flashcardContentDiv) flashcardContentDiv.innerHTML = html;
-    if (flashcardContentDivMobile) flashcardContentDivMobile.innerHTML = html;
+    document.querySelectorAll('.js-flashcard-content').forEach(el => {
+      el.innerHTML = html;
+    });
   }
 
   // Helper function để lấy element hiển thị hiện tại (desktop hoặc mobile)
   function getVisibleFlashcardContentDiv() {
-    // Check if desktop is visible (window width >= 1024px)
-    if (window.innerWidth >= 1024) {
-      return flashcardContentDiv;
+    // Return first visible .js-flashcard-content element
+    const allContentDivs = document.querySelectorAll('.js-flashcard-content');
+    for (const div of allContentDivs) {
+      if (div.offsetParent !== null) return div;
     }
-    return flashcardContentDivMobile || flashcardContentDiv;
+    return allContentDivs[0] || null;
   }
 
   const currentCardStatsContainer = document.getElementById('current-card-stats');
@@ -1305,7 +1333,7 @@
 
     if (desktopTotalScore) desktopTotalScore.textContent = currentUserTotalScore;
     if (desktopSessionScore) desktopSessionScore.textContent = `+${sessionScore}`;
-    
+
     if (mobileTotalScore) mobileTotalScore.textContent = currentUserTotalScore;
     if (mobileSessionScore) mobileSessionScore.textContent = `+${sessionScore}`;
   }
@@ -1315,41 +1343,43 @@
    * Áp dụng căn giữa khi không có cuộn, và căn trên khi có cuộn.
    */
   function adjustCardLayout() {
-    const card = document.getElementById('flashcard-card');
-    if (!card) return;
+    // Điều chỉnh layout cho tất cả card elements (cả desktop và mobile)
+    document.querySelectorAll('.js-flashcard-card').forEach(card => {
+      if (!card) return;
 
-    const textAreas = card.querySelectorAll('.text-area');
+      const textAreas = card.querySelectorAll('.text-area');
 
-    textAreas.forEach(scrollArea => {
-      const txt = scrollArea.querySelector('.flashcard-content-text');
-      if (!txt) return;
+      textAreas.forEach(scrollArea => {
+        const txt = scrollArea.querySelector('.flashcard-content-text');
+        if (!txt) return;
 
-      // Reset style
-      txt.style.fontSize = '';
-      scrollArea.classList.remove('has-scroll');
-      scrollArea.parentElement?.classList?.remove('has-scroll');
+        // Reset style
+        txt.style.fontSize = '';
+        scrollArea.classList.remove('has-scroll');
+        scrollArea.parentElement?.classList?.remove('has-scroll');
 
-      // Đợi DOM render xong rồi đo
-      setTimeout(() => {
-        const hasScroll = scrollArea.scrollHeight > scrollArea.clientHeight;
+        // Đợi DOM render xong rồi đo
+        setTimeout(() => {
+          const hasScroll = scrollArea.scrollHeight > scrollArea.clientHeight;
 
-        if (hasScroll) {
-          // Ghim lên trên: set class cho cả text-area và container
-          scrollArea.classList.add('has-scroll');
-          scrollArea.parentElement?.classList?.add('has-scroll');
+          if (hasScroll) {
+            // Ghim lên trên: set class cho cả text-area và container
+            scrollArea.classList.add('has-scroll');
+            scrollArea.parentElement?.classList?.add('has-scroll');
 
-          // Đảm bảo nhìn thấy từ đầu nội dung
-          scrollArea.scrollTop = 0;
-        }
+            // Đảm bảo nhìn thấy từ đầu nội dung
+            scrollArea.scrollTop = 0;
+          }
 
-        // Thu nhỏ font nếu vẫn tràn
-        let current = parseFloat(getComputedStyle(txt).fontSize) || 22;
-        const min = 18;
-        while (scrollArea.scrollHeight > scrollArea.clientHeight && current > min) {
-          current -= 1;
-          txt.style.fontSize = current + 'px';
-        }
-      }, 0);
+          // Thu nhỏ font nếu vẫn tràn
+          let current = parseFloat(getComputedStyle(txt).fontSize) || 22;
+          const min = 18;
+          while (scrollArea.scrollHeight > scrollArea.clientHeight && current > min) {
+            current -= 1;
+            txt.style.fontSize = current + 'px';
+          }
+        }, 0);
+      });
     });
   }
 
@@ -1445,61 +1475,61 @@
     const shouldRenderButtons = !isAutoplaySession && !showPreviewOnly;
     const buttonsHtml = showPreviewOnly ? getPreviewButtonHtml() : (shouldRenderButtons ? generateDynamicButtons(userButtonCount) : '');
     const buttonCount = showPreviewOnly ? 1 : (shouldRenderButtons ? userButtonCount : 0);
-    
+
     // Check view mode
     const isMobile = window.innerWidth < 1024;
-    
+
     // Prepare options common for both views
     const hasFrontAudio = c.front_audio_url || c.front_audio_content;
     const hasBackAudio = c.back_audio_url || c.back_audio_content;
     const canEditCurrentCard = Boolean(data.can_edit);
-    
+
     // Construct Edit URL
     let editUrl = "";
     if (canEditCurrentCard) {
-        const urlTemplate = "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}";
-        editUrl = urlTemplate.replace('/0', '/' + setId).replace('/0', '/' + itemId);
+      const urlTemplate = "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}";
+      editUrl = urlTemplate.replace('/0', '/' + setId).replace('/0', '/' + itemId);
     }
 
     const renderOptions = {
-        itemId, setId, fTxt, bTxt, cardCategory,
-        isMediaHidden, isAudioAutoplayEnabled,
-        hasFrontAudio, hasBackAudio,
-        buttonsHtml, buttonCount,
-        frontImg: c.front_img,
-        backImg: c.back_img,
-        frontAudioUrl: c.front_audio_url,
-        backAudioUrl: c.back_audio_url,
-        frontAudioContent: c.front_audio_content,
-        backAudioContent: c.back_audio_content,
-        canEditCurrentCard,
-        editUrl
+      itemId, setId, fTxt, bTxt, cardCategory,
+      isMediaHidden, isAudioAutoplayEnabled,
+      hasFrontAudio, hasBackAudio,
+      buttonsHtml, buttonCount,
+      frontImg: c.front_img,
+      backImg: c.back_img,
+      frontAudioUrl: c.front_audio_url,
+      backAudioUrl: c.back_audio_url,
+      frontAudioContent: c.front_audio_content,
+      backAudioContent: c.back_audio_content,
+      canEditCurrentCard,
+      editUrl
     };
 
     let html = "";
     if (isMobile && window.renderMobileCardHtml) {
-        html = window.renderMobileCardHtml(data, renderOptions);
+      html = window.renderMobileCardHtml(data, renderOptions);
     } else if (!isMobile && window.renderDesktopCardHtml) {
-        html = window.renderDesktopCardHtml(data, renderOptions);
+      html = window.renderDesktopCardHtml(data, renderOptions);
     } else {
-        // Fallback if partials not loaded for some reason (should not happen)
-        console.error("Render functions not found!");
-        return;
+      // Fallback if partials not loaded for some reason (should not happen)
+      console.error("Render functions not found!");
+      return;
     }
 
     setFlashcardContent(html);
     updateAudioAutoplayToggleButtons();
     closeAllSettingsMenus();
-    
+
     if (Array.isArray(currentFlashcardBatch) && currentFlashcardBatch[currentFlashcardIndex]) {
       currentFlashcardBatch[currentFlashcardIndex].card_category = cardCategory;
     }
-    
-    // Tìm element trong visible container
+
+    // Tìm elements dùng shared .js- classes
     const visibleContainer = getVisibleFlashcardContentDiv();
-    const card = visibleContainer ? visibleContainer.querySelector('#flashcard-card') : document.getElementById('flashcard-card');
-    const actions = visibleContainer ? visibleContainer.querySelector('#internal-actions') : document.getElementById('internal-actions');
-    const flipBtn = visibleContainer ? visibleContainer.querySelector('#flip-card-btn') : document.getElementById('flip-card-btn');
+    const card = visibleContainer ? visibleContainer.querySelector('.js-flashcard-card') : document.querySelector('.js-flashcard-card');
+    const actions = visibleContainer ? visibleContainer.querySelector('.js-internal-actions') : document.querySelector('.js-internal-actions');
+    const flipBtn = visibleContainer ? visibleContainer.querySelector('.js-flip-card-btn') : document.querySelector('.js-flip-card-btn');
     currentCardElements = { card, actions, flipBtn };
 
     if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
@@ -1543,7 +1573,7 @@
         backAudio.addEventListener('error', () => handleAudioError(backAudio, itemId, 'back', backContent));
       }
     }
-    
+
     if (card) {
       card.dataset.cardCategory = cardCategory || 'default';
     }
@@ -1621,18 +1651,18 @@
         playAudioForButton(btn).catch(() => { });
       });
     });
-    
+
     document.querySelectorAll('.open-stats-modal-btn').forEach(btn => btn.addEventListener('click', () => toggleStatsModal(true)));
-    
+
     document.querySelectorAll('.open-ai-modal-btn').forEach(btn => btn.addEventListener('click', () => {
       const currentCard = currentFlashcardBatch[currentFlashcardIndex];
       window.openAiModal(currentCard.item_id, currentCard.content.front);
     }));
-    
+
     document.querySelectorAll('.open-note-panel-btn').forEach(btn => btn.addEventListener('click', () => {
       openNotePanel(btn.dataset.itemId);
     }));
-    
+
     document.querySelectorAll('.open-feedback-modal-btn').forEach(btn => btn.addEventListener('click', () => {
       const currentCard = currentFlashcardBatch[currentFlashcardIndex];
       openFeedbackModal(currentCard.item_id, currentCard.content.front);
@@ -1992,14 +2022,14 @@
     const statusLabel = (stats.status || 'New').toString().toUpperCase();
     const streak = stats.current_streak || 0;
     const ef = Number(stats.easiness_factor || 2.5).toFixed(2);
-    
+
     // Status Colors
     const statusColors = {
-        'new': 'bg-blue-100 text-blue-700',
-        'learning': 'bg-orange-100 text-orange-700',
-        'review': 'bg-emerald-100 text-emerald-700',
-        'relearning': 'bg-purple-100 text-purple-700',
-        'hard': 'bg-red-100 text-red-700'
+      'new': 'bg-blue-100 text-blue-700',
+      'learning': 'bg-orange-100 text-orange-700',
+      'review': 'bg-emerald-100 text-emerald-700',
+      'relearning': 'bg-purple-100 text-purple-700',
+      'hard': 'bg-red-100 text-red-700'
     };
     const statusClass = statusColors[String(stats.status).toLowerCase()] || 'bg-slate-100 text-slate-700';
 
@@ -2188,11 +2218,11 @@
 
       const initialStatsHtml = renderCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
       displayCardStats(currentCardStatsContainer, initialStatsHtml);
-      
+
       const mobileCurrent = document.getElementById('current-card-stats-mobile');
       if (mobileCurrent) {
-          const mobileHtml = renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
-          mobileCurrent.innerHTML = mobileHtml;
+        const mobileHtml = renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
+        mobileCurrent.innerHTML = mobileHtml;
       }
 
       renderCard(currentCardData);
@@ -2229,11 +2259,11 @@
       };
       const previousStatsHtml = renderCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
       displayCardStats(previousCardStatsContainer, previousStatsHtml);
-      
+
       const mobilePrev = document.getElementById('previous-card-stats-mobile');
       if (mobilePrev) {
-          const mobileHtml = renderMobileCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
-          mobilePrev.innerHTML = mobileHtml;
+        const mobileHtml = renderMobileCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
+        mobilePrev.innerHTML = mobileHtml;
       }
 
       const prevTabButton = document.querySelector('.stats-tab-button[data-target="previous-card-stats-pane"]');
@@ -2282,23 +2312,23 @@
 
       // Load content from template if not already loaded
       if (!statsModalContent.querySelector('.mobile-stats-container')) {
-          const template = document.getElementById('mobile-stats-template');
-          if (template) {
-              statsModalContent.innerHTML = '';
-              statsModalContent.appendChild(template.content.cloneNode(true));
-              
-              // Bind Events
-              document.getElementById('close-stats-mobile-btn')?.addEventListener('click', () => toggleStatsModal(false));
-              document.getElementById('end-session-mobile-btn')?.addEventListener('click', () => endSessionBtn.click());
-              
-              document.querySelectorAll('.stats-mobile-tab').forEach(btn => {
-                  btn.addEventListener('click', (e) => {
-                      const targetId = e.currentTarget.dataset.target;
-                      document.querySelectorAll('.stats-mobile-tab').forEach(t => t.classList.toggle('active', t === e.currentTarget));
-                      document.querySelectorAll('.stats-mobile-pane').forEach(p => p.classList.toggle('hidden', p.id !== targetId));
-                  });
-              });
-          }
+        const template = document.getElementById('mobile-stats-template');
+        if (template) {
+          statsModalContent.innerHTML = '';
+          statsModalContent.appendChild(template.content.cloneNode(true));
+
+          // Bind Events
+          document.getElementById('close-stats-mobile-btn')?.addEventListener('click', () => toggleStatsModal(false));
+          document.getElementById('end-session-mobile-btn')?.addEventListener('click', () => endSessionBtn.click());
+
+          document.querySelectorAll('.stats-mobile-tab').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const targetId = e.currentTarget.dataset.target;
+              document.querySelectorAll('.stats-mobile-tab').forEach(t => t.classList.toggle('active', t === e.currentTarget));
+              document.querySelectorAll('.stats-mobile-pane').forEach(p => p.classList.toggle('hidden', p.id !== targetId));
+            });
+          });
+        }
       }
 
       // Sync Data
@@ -2306,22 +2336,22 @@
 
       const currentCardData = currentFlashcardBatch.length > 0 ? currentFlashcardBatch[currentFlashcardIndex] : null;
       const mobileCurrentContainer = document.getElementById('current-card-stats-mobile');
-      
+
       if (mobileCurrentContainer) {
-          if (currentCardData && currentCardData.initial_stats) {
-            // Use Mobile Render Function
-            const html = renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
-            mobileCurrentContainer.innerHTML = html;
-          } else {
-            mobileCurrentContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-40 text-slate-400"><p>Chưa có dữ liệu.</p></div>';
-          }
+        if (currentCardData && currentCardData.initial_stats) {
+          // Use Mobile Render Function
+          const html = renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
+          mobileCurrentContainer.innerHTML = html;
+        } else {
+          mobileCurrentContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-40 text-slate-400"><p>Chưa có dữ liệu.</p></div>';
+        }
       }
 
       const mobilePrevContainer = document.getElementById('previous-card-stats-mobile');
       if (mobilePrevContainer && previousCardStats) {
-          // Use Mobile Render Function
-          const html = renderMobileCardStatsHtml(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent, false);
-          mobilePrevContainer.innerHTML = html;
+        // Use Mobile Render Function
+        const html = renderMobileCardStatsHtml(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent, false);
+        mobilePrevContainer.innerHTML = html;
       }
 
     } else {

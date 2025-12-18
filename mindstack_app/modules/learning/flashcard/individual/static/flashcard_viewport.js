@@ -97,7 +97,7 @@
       wrapper.style.minHeight = '';
     }
 
-    const content = document.getElementById('flashcard-content');
+    const content = document.querySelector('.flashcard-desktop-view .js-flashcard-content');
     if (content) {
       content.style.maxHeight = '';
     }
@@ -134,7 +134,7 @@
       wrapper.style.minHeight = `${MIN_CONTENT_HEIGHT}px`;
     }
 
-    const content = document.querySelector('.flashcard-desktop-view #flashcard-content');
+    const content = document.querySelector('.flashcard-desktop-view .js-flashcard-content');
     if (content) {
       content.style.height = '100%';
       content.style.maxHeight = 'none';
