@@ -875,9 +875,25 @@
   const endSessionBtn = document.getElementById('end-session-btn');
 
   // Helper function để sync nội dung giữa desktop và mobile (dùng shared classes)
-  function setFlashcardContent(html) {
+  // Nếu chỉ có 1 argument: render cùng HTML cho tất cả
+  // Nếu có 2 arguments: render desktop HTML cho desktop view, mobile HTML cho mobile view
+  function setFlashcardContent(desktopHtml, mobileHtml = null) {
     document.querySelectorAll('.js-flashcard-content').forEach(el => {
-      el.innerHTML = html;
+      // Kiểm tra parent view để quyết định dùng HTML nào
+      const isInDesktopView = el.closest('.flashcard-desktop-view');
+      const isInMobileView = el.closest('.flashcard-mobile-view');
+
+      if (mobileHtml !== null) {
+        // Render khác nhau cho từng view
+        if (isInDesktopView) {
+          el.innerHTML = desktopHtml;
+        } else if (isInMobileView) {
+          el.innerHTML = mobileHtml;
+        }
+      } else {
+        // Render giống nhau cho tất cả (fallback)
+        el.innerHTML = desktopHtml;
+      }
     });
   }
 
@@ -1506,18 +1522,23 @@
       editUrl
     };
 
-    let html = "";
-    if (isMobile && window.renderMobileCardHtml) {
-      html = window.renderMobileCardHtml(data, renderOptions);
-    } else if (!isMobile && window.renderDesktopCardHtml) {
-      html = window.renderDesktopCardHtml(data, renderOptions);
-    } else {
-      // Fallback if partials not loaded for some reason (should not happen)
+    // Render CẢ HAI versions để có thể resize mượt mà
+    let desktopHtml = "";
+    let mobileHtml = "";
+
+    if (window.renderDesktopCardHtml) {
+      desktopHtml = window.renderDesktopCardHtml(data, renderOptions);
+    }
+    if (window.renderMobileCardHtml) {
+      mobileHtml = window.renderMobileCardHtml(data, renderOptions);
+    }
+
+    if (!desktopHtml && !mobileHtml) {
       console.error("Render functions not found!");
       return;
     }
 
-    setFlashcardContent(html);
+    setFlashcardContent(desktopHtml, mobileHtml);
     updateAudioAutoplayToggleButtons();
     closeAllSettingsMenus();
 
