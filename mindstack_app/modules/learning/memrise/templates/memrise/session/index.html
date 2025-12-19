@@ -1,0 +1,41 @@
+{# Memrise Session Template - v3.1 #}
+{% extends "base.html" %}
+{% block title %}Memrise - {{ container.title }}{% endblock %}
+{% block body_class %} memrise-session-active{% endblock %}
+{% block head %}
+{{ super() }}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+html, body { height: 100%; overflow: hidden; }
+body.memrise-session-active>header, body.memrise-session-active>footer { display: none !important; }
+body.memrise-session-active>main { padding: 0 !important; margin: 0 !important; max-width: none !important; height: 100%; }
+.memrise-desktop-view { display: flex; }
+.memrise-mobile-view { display: none; }
+@media (max-width: 1023px) { .memrise-desktop-view { display: none !important; } .memrise-mobile-view { display: flex !important; } }
+</style>
+{% endblock %}
+{% block content %}
+{% include 'memrise/session/_desktop.html' %}
+{% include 'memrise/session/_mobile.html' %}
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+(function(){
+var cid={{ container.container_id }},md='{{ mode }}',qs=[],ci=0,sc=0,cc=0,ic=0,an=false;
+function ge(s){return document.querySelectorAll(s);}
+function gv(s){var e=document.querySelectorAll(s);for(var i=0;i<e.length;i++)if(e[i].offsetParent)return e[i];return e[0];}
+function ld(){fetch('/learn/memrise/api/questions/'+cid+'?mode='+md+'&count=10').then(function(r){return r.json();}).then(function(d){if(d.success){qs=d.questions;ge('.js-loading-state').forEach(function(e){e.style.display='none';});sh();}else{ge('.js-loading-state').forEach(function(e){e.innerHTML='<p>'+d.message+'</p>';});}}).catch(function(){ge('.js-loading-state').forEach(function(e){e.innerHTML='<p>Error</p>';});});}
+function sh(){if(ci>=qs.length){rs();return;}an=false;var q=qs[ci];ge('.js-question-card').forEach(function(e){e.style.display='block';});ge('.js-question-text').forEach(function(e){e.textContent=q.question;});ge('.js-feedback').forEach(function(e){e.className='memrise-feedback js-feedback';e.style.display='none';});ge('.js-next-btn').forEach(function(e){e.classList.remove('show');});ge('.js-progress-fill').forEach(function(e){e.style.width=(ci/qs.length*100)+'%';});if(q.question_type==='mcq'){ge('.js-question-type').forEach(function(e){e.innerHTML='<i class="fas fa-list-ul"></i><span>MCQ</span>';});ge('.js-mcq-options').forEach(function(e){e.style.display='flex';rm(e,q.options);});ge('.js-typing-area').forEach(function(e){e.style.display='none';});}else{ge('.js-question-type').forEach(function(e){e.innerHTML='<i class="fas fa-keyboard"></i><span>Type</span>';});ge('.js-mcq-options').forEach(function(e){e.style.display='none';});ge('.js-typing-area').forEach(function(e){e.style.display='block';});ge('.js-typing-input').forEach(function(e){e.value='';e.className='memrise-typing-input js-typing-input';});var v=gv('.js-typing-input');if(v)v.focus();}}
+function rm(c,o){var h='';for(var i=0;i<o.length;i++)h+='<button class="memrise-option" data-option="'+o[i]+'">'+o[i]+'</button>';c.innerHTML=h;c.querySelectorAll('.memrise-option').forEach(function(b){b.addEventListener('click',function(){mc(b);});});}
+function mc(b){if(an)return;an=true;var ua=b.dataset.option;ck(ua).then(function(r){ge('.js-mcq-options').forEach(function(c){c.querySelectorAll('.memrise-option').forEach(function(o){o.style.pointerEvents='none';if(o.dataset.option===r.correct_answer)o.classList.add('correct');else if(o.dataset.option===ua&&!r.is_correct)o.classList.add('incorrect');});});fb(r);});}
+function ty(){if(an)return;var v=gv('.js-typing-input'),ua=v?v.value.trim():'';if(!ua)return;an=true;ck(ua).then(function(r){ge('.js-typing-input').forEach(function(e){e.classList.add(r.is_correct?'correct':'incorrect');});fb(r);});}
+function ck(a){var q=qs[ci];var csrf=document.querySelector('meta[name="csrf-token"]');var token=csrf?csrf.getAttribute('content'):'';return fetch('/learn/memrise/api/check-answer',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':token},body:JSON.stringify({item_id:q.item_id,question_type:q.question_type,answer:a})}).then(function(r){return r.json();}).catch(function(){return{is_correct:false,correct_answer:''};});}
+function fb(r){if(r.is_correct){cc++;sc+=10;ge('.js-feedback').forEach(function(e){e.className='memrise-feedback js-feedback correct';e.textContent='Correct!';});if(r.progress){up(r.progress);}}else{ic++;ge('.js-feedback').forEach(function(e){e.className='memrise-feedback js-feedback incorrect';e.textContent='Answer: '+r.correct_answer;});}ge('.js-score-display').forEach(function(e){e.textContent=sc;});ge('.js-next-btn').forEach(function(e){e.classList.add('show');});}
+function up(p){ge('.js-memory-level').forEach(function(e){e.textContent='Lv '+p.memory_level;});ge('.js-level-name').forEach(function(e){e.textContent=p.level_name;});ge('.js-level-bar').forEach(function(e){e.style.width=p.level_percentage+'%';});}
+function rs(){ge('.js-question-card').forEach(function(e){e.style.display='none';});ge('.js-results-card').forEach(function(e){e.classList.add('show');});ge('.js-progress-fill').forEach(function(e){e.style.width='100%';});ge('.js-final-score').forEach(function(e){e.textContent=cc+'/'+qs.length;});ge('.js-correct-count').forEach(function(e){e.textContent=cc;});ge('.js-incorrect-count').forEach(function(e){e.textContent=ic;});}
+ge('.js-submit-typing-btn').forEach(function(b){b.addEventListener('click',ty);});ge('.js-typing-input').forEach(function(i){i.addEventListener('keypress',function(e){if(e.key==='Enter')ty();});});ge('.js-next-btn').forEach(function(b){b.addEventListener('click',function(){ci++;sh();});});ge('.js-retry-btn').forEach(function(b){b.addEventListener('click',function(){ci=0;sc=0;cc=0;ic=0;ge('.js-score-display').forEach(function(e){e.textContent='0';});ge('.js-results-card').forEach(function(e){e.classList.remove('show');});ld();});});
+ld();
+})();
+</script>
+{% endblock %}

@@ -268,60 +268,30 @@
                     </div>
                 </div>
 
+                {# MEMRISE FIELDS SECTION #}
                 <div class="border-t border-gray-200 pt-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Kiểu học hỗ trợ</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            {{ form.supports_pronunciation(class="mt-1 h-5 w-5 text-blue-600") }}
-                            <span>
-                                <span class="block text-sm font-medium text-gray-800">Luyện phát âm</span>
-                                <span class="block text-xs text-gray-500 mt-1">Thẻ có âm thanh hoặc nội dung phù hợp để
-                                    luyện nghe - nói.</span>
-                            </span>
-                        </label>
-                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            {{ form.supports_writing(class="mt-1 h-5 w-5 text-blue-600") }}
-                            <span>
-                                <span class="block text-sm font-medium text-gray-800">Luyện viết</span>
-                                <span class="block text-xs text-gray-500 mt-1">Thẻ có thể dùng để luyện viết chính tả
-                                    hoặc mô tả lại.</span>
-                            </span>
-                        </label>
-                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            {{ form.supports_quiz(class="mt-1 h-5 w-5 text-blue-600") }}
-                            <span>
-                                <span class="block text-sm font-medium text-gray-800">Luyện trắc nghiệm</span>
-                                <span class="block text-xs text-gray-500 mt-1">Thẻ phù hợp để chuyển thành câu hỏi dạng
-                                    lựa chọn.</span>
-                            </span>
-                        </label>
-                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            {{ form.supports_essay(class="mt-1 h-5 w-5 text-blue-600") }}
-                            <span>
-                                <span class="block text-sm font-medium text-gray-800">Chế độ tự luận</span>
-                                <span class="block text-xs text-gray-500 mt-1">Đánh dấu nếu thẻ cần người học trả lời
-                                    mở.</span>
-                            </span>
-                        </label>
-                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            {{ form.supports_listening(class="mt-1 h-5 w-5 text-blue-600") }}
-                            <span>
-                                <span class="block text-sm font-medium text-gray-800">Chế độ luyện nghe</span>
-                                <span class="block text-xs text-gray-500 mt-1">Thích hợp cho bài tập tập trung nghe
-                                    hiểu.</span>
-                            </span>
-                        </label>
-                        <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            {{ form.supports_speaking(class="mt-1 h-5 w-5 text-blue-600") }}
-                            <span>
-                                <span class="block text-sm font-medium text-gray-800">Chế độ luyện nói</span>
-                                <span class="block text-xs text-gray-500 mt-1">Bật để khuyến khích luyện phát âm và nói
-                                    lại.</span>
-                            </span>
-                        </label>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-brain text-purple-500 mr-2"></i>Memrise
+                    </h3>
+                    <p class="text-xs text-gray-500 mb-4">
+                        Điền thông tin dưới đây để sử dụng thẻ này trong chế độ học Memrise (MCQ và Typing).
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            {{ form.memrise_prompt.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.memrise_prompt(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md
+                            shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500",
+                            placeholder='Ví dụ: Hello') }}
+                            <p class="text-xs text-gray-500 mt-1">{{ form.memrise_prompt.description }}</p>
+                        </div>
+                        <div>
+                            {{ form.memrise_answers.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.memrise_answers(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md
+                            shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500",
+                            placeholder='Ví dụ: Xin chào, chào') }}
+                            <p class="text-xs text-gray-500 mt-1">{{ form.memrise_answers.description }}</p>
+                        </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-3">Đánh dấu các kiểu học mà thẻ này hỗ trợ để mở thêm chế độ
-                        tương ứng trong khi học.</p>
                 </div>
 
                 <div class="border-t border-gray-200 pt-6">

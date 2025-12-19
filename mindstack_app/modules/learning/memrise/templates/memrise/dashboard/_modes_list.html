@@ -1,0 +1,19 @@
+{# Memrise Modes List Partial - for AJAX loading #}
+<div class="memrise-modes-grid">
+    {% for mode in modes %}
+    <div class="memrise-mode-card js-mode-card" data-mode-id="{{ mode.id }}" {% if mode.is_flashcard
+        %}data-is-flashcard="true" {% endif %}>
+        <div class="mode-card-icon mode-card-icon-{{ mode.color }}">
+            <i class="{{ mode.icon }}"></i>
+        </div>
+        <div class="mode-card-info">
+            <h3 class="mode-card-name">{{ mode.name }}</h3>
+            <p class="mode-card-count">{{ mode.count }} từ</p>
+        </div>
+        <div class="mode-card-check">
+            <i class="fas fa-check-circle"></i>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<input type="hidden" id="selected-set-ids" value="{{ selected_set_ids | join(',') }}">

@@ -1480,15 +1480,13 @@ def add_flashcard_item(set_id):
             'back_audio_url': _process_relative_url(form.back_audio_url.data, audio_folder),
             'front_img': _process_relative_url(form.front_img.data, image_folder),
             'back_img': _process_relative_url(form.back_img.data, image_folder),
-            'supports_pronunciation': bool(form.supports_pronunciation.data),
-            'supports_writing': bool(form.supports_writing.data),
-            'supports_quiz': bool(form.supports_quiz.data),
-            'supports_essay': bool(form.supports_essay.data),
-            'supports_listening': bool(form.supports_listening.data),
-            'supports_speaking': bool(form.supports_speaking.data),
         }
         if form.ai_prompt.data:
             content_dict['ai_prompt'] = form.ai_prompt.data
+        if form.memrise_prompt.data:
+            content_dict['memrise_prompt'] = form.memrise_prompt.data
+        if form.memrise_answers.data:
+            content_dict['memrise_answers'] = form.memrise_answers.data
 
         new_item = LearningItem(
             container_id=set_id,
@@ -1622,17 +1620,22 @@ def edit_flashcard_item(set_id, item_id):
         flashcard_item.content['back_audio_url'] = _process_relative_url(form.back_audio_url.data, audio_folder)
         flashcard_item.content['front_img'] = _process_relative_url(form.front_img.data, image_folder)
         flashcard_item.content['back_img'] = _process_relative_url(form.back_img.data, image_folder)
-        flashcard_item.content['supports_pronunciation'] = bool(form.supports_pronunciation.data)
-        flashcard_item.content['supports_writing'] = bool(form.supports_writing.data)
-        flashcard_item.content['supports_quiz'] = bool(form.supports_quiz.data)
-        flashcard_item.content['supports_essay'] = bool(form.supports_essay.data)
-        flashcard_item.content['supports_listening'] = bool(form.supports_listening.data)
-        flashcard_item.content['supports_speaking'] = bool(form.supports_speaking.data)
+
         
         if form.ai_prompt.data:
             flashcard_item.content['ai_prompt'] = form.ai_prompt.data
         elif 'ai_prompt' in flashcard_item.content:
             del flashcard_item.content['ai_prompt']
+
+        # Memrise fields
+        if form.memrise_prompt.data:
+            flashcard_item.content['memrise_prompt'] = form.memrise_prompt.data
+        elif 'memrise_prompt' in flashcard_item.content:
+            del flashcard_item.content['memrise_prompt']
+        if form.memrise_answers.data:
+            flashcard_item.content['memrise_answers'] = form.memrise_answers.data
+        elif 'memrise_answers' in flashcard_item.content:
+            del flashcard_item.content['memrise_answers']
 
         # Đánh dấu trường JSON đã thay đổi để SQLAlchemy lưu lại
         flag_modified(flashcard_item, "content")
@@ -1665,15 +1668,13 @@ def edit_flashcard_item(set_id, item_id):
                 return bool(flashcard_item.content.get(flag_name))
             return flag_name in container_capabilities
 
-        form.supports_pronunciation.data = _resolve_flag('supports_pronunciation')
-        form.supports_writing.data = _resolve_flag('supports_writing')
-        form.supports_quiz.data = _resolve_flag('supports_quiz')
-        form.supports_essay.data = _resolve_flag('supports_essay')
-        form.supports_listening.data = _resolve_flag('supports_listening')
-        form.supports_speaking.data = _resolve_flag('supports_speaking')
+
         # Gán giá trị `order_in_container` vào form
         form.order_in_container.data = flashcard_item.order_in_container
         form.ai_explanation.data = flashcard_item.ai_explanation
+        # Memrise fields
+        form.memrise_prompt.data = flashcard_item.content.get('memrise_prompt', '')
+        form.memrise_answers.data = flashcard_item.content.get('memrise_answers', '')
     
     context = {
         'form': form,

@@ -1,0 +1,378 @@
+{# =============================== #}
+{# File: memrise/session/_desktop.html #}
+{# Mục đích: Desktop game session - centered card UI #}
+{# =============================== #}
+
+<div class="memrise-desktop-view memrise-session" data-container-id="{{ container.container_id }}"
+    data-mode="{{ mode }}">
+    <header class="memrise-session-header">
+        <a href="{{ url_for('learning.memrise.dashboard') }}" class="memrise-back-btn">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="memrise-progress-bar">
+            <div class="memrise-progress-fill js-progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="memrise-score">
+            <i class="fas fa-star text-yellow-300"></i>
+            <span class="js-score-display">0</span>
+        </div>
+    </header>
+
+    <div class="memrise-question-area">
+        <div class="memrise-loading js-loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Đang tải câu hỏi...</p>
+        </div>
+
+        <div class="memrise-question-card js-question-card" style="display: none;">
+            <div class="memrise-question-type js-question-type">
+                <i class="fas fa-list-ul"></i>
+                <span>Trắc nghiệm</span>
+            </div>
+            <div class="memrise-question-text js-question-text">Loading...</div>
+
+            {# MCQ Options #}
+            <div class="memrise-options js-mcq-options" style="display: none;"></div>
+
+            {# Typing Input #}
+            <div class="memrise-typing-area js-typing-area" style="display: none;">
+                <input type="text" class="memrise-typing-input js-typing-input" placeholder="Nhập đáp án..."
+                    autocomplete="off">
+                <button class="memrise-submit-btn js-submit-typing-btn">Kiểm tra</button>
+            </div>
+
+            <div class="memrise-feedback js-feedback"></div>
+            <button class="memrise-next-btn js-next-btn">Câu tiếp theo <i class="fas fa-arrow-right"></i></button>
+        </div>
+
+        {# Results #}
+        <div class="memrise-question-card memrise-results js-results-card">
+            <div class="memrise-results-icon">🎉</div>
+            <div class="memrise-results-title">Hoàn thành!</div>
+            <div class="memrise-results-score js-final-score">0/0</div>
+            <div class="memrise-results-stats">
+                <div class="memrise-stat">
+                    <div class="memrise-stat-value text-green-600 js-correct-count">0</div>
+                    <div class="memrise-stat-label">Đúng</div>
+                </div>
+                <div class="memrise-stat">
+                    <div class="memrise-stat-value text-red-500 js-incorrect-count">0</div>
+                    <div class="memrise-stat-label">Sai</div>
+                </div>
+            </div>
+            <a href="{{ url_for('learning.memrise.dashboard') }}" class="memrise-submit-btn">
+                <i class="fas fa-home"></i> Về trang chủ
+            </a>
+            <button class="memrise-next-btn show js-retry-btn" style="background: #667eea;">
+                <i class="fas fa-redo"></i> Học lại
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ===== Desktop Session Styles ===== */
+    .memrise-desktop-view.memrise-session {
+        font-family: 'Inter', sans-serif;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .memrise-desktop-view .memrise-session-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 2rem;
+        color: white;
+    }
+
+    .memrise-desktop-view .memrise-back-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        font-size: 1.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .memrise-desktop-view .memrise-back-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .memrise-desktop-view .memrise-progress-bar {
+        flex: 1;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 999px;
+        margin: 0 2rem;
+        overflow: hidden;
+    }
+
+    .memrise-desktop-view .memrise-progress-fill {
+        height: 100%;
+        background: #10b981;
+        border-radius: 999px;
+        transition: width 0.3s;
+    }
+
+    .memrise-desktop-view .memrise-score {
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: white;
+    }
+
+    .memrise-desktop-view .memrise-question-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .memrise-desktop-view .memrise-question-card {
+        background: white;
+        border-radius: 24px;
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 550px;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25);
+        text-align: center;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .memrise-desktop-view .memrise-question-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+    }
+
+    .memrise-desktop-view .memrise-question-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.25rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 2rem;
+    }
+
+    .memrise-desktop-view .memrise-question-text {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 2rem;
+    }
+
+    .memrise-desktop-view .memrise-options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .memrise-desktop-view .memrise-option {
+        padding: 1.25rem 1.5rem;
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 16px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+    }
+
+    .memrise-desktop-view .memrise-option:hover {
+        border-color: #667eea;
+        background: #f0f4ff;
+        transform: translateX(5px);
+    }
+
+    .memrise-desktop-view .memrise-option.selected {
+        border-color: #667eea;
+        background: #667eea;
+        color: white;
+    }
+
+    .memrise-desktop-view .memrise-option.correct {
+        border-color: #10b981;
+        background: #10b981;
+        color: white;
+    }
+
+    .memrise-desktop-view .memrise-option.incorrect {
+        border-color: #ef4444;
+        background: #ef4444;
+        color: white;
+    }
+
+    .memrise-desktop-view .memrise-typing-input {
+        width: 100%;
+        padding: 1.25rem 1.5rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        border: 2px solid #e2e8f0;
+        border-radius: 16px;
+        text-align: center;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .memrise-desktop-view .memrise-typing-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+    }
+
+    .memrise-desktop-view .memrise-typing-input.correct {
+        border-color: #10b981;
+        background: #ecfdf5;
+    }
+
+    .memrise-desktop-view .memrise-typing-input.incorrect {
+        border-color: #ef4444;
+        background: #fef2f2;
+    }
+
+    .memrise-desktop-view .memrise-submit-btn {
+        width: 100%;
+        padding: 1.15rem;
+        margin-top: 1.25rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .memrise-desktop-view .memrise-submit-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+
+    .memrise-desktop-view .memrise-feedback {
+        margin-top: 1.5rem;
+        padding: 1.15rem;
+        border-radius: 16px;
+        font-weight: 600;
+        font-size: 1.05rem;
+        display: none;
+    }
+
+    .memrise-desktop-view .memrise-feedback.correct {
+        display: block;
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .memrise-desktop-view .memrise-feedback.incorrect {
+        display: block;
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .memrise-desktop-view .memrise-next-btn {
+        width: 100%;
+        padding: 1.15rem;
+        margin-top: 1.25rem;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 16px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: none;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .memrise-desktop-view .memrise-next-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+    }
+
+    .memrise-desktop-view .memrise-next-btn.show {
+        display: block;
+    }
+
+    .memrise-desktop-view .memrise-results {
+        display: none;
+    }
+
+    .memrise-desktop-view .memrise-results.show {
+        display: block;
+    }
+
+    .memrise-desktop-view .memrise-results-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .memrise-desktop-view .memrise-results-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .memrise-desktop-view .memrise-results-score {
+        font-size: 3rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .memrise-desktop-view .memrise-results-stats {
+        display: flex;
+        gap: 3rem;
+        justify-content: center;
+        margin: 2rem 0;
+    }
+
+    .memrise-desktop-view .memrise-stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+    }
+
+    .memrise-desktop-view .memrise-stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .memrise-desktop-view .memrise-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        gap: 1rem;
+    }
+
+    .memrise-desktop-view .memrise-loading i {
+        font-size: 3rem;
+    }
+</style>

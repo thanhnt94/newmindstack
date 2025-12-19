@@ -34,6 +34,7 @@ from .user import (
     ReviewLog, # Thêm ReviewLog
 )
 from .system import ApiKey, BackgroundTask, BackgroundTaskLog, SystemSetting
+from .memrise import MemriseProgress
 from ..modules.gamification.models import Badge, UserBadge
 
 __all__ = [
@@ -71,4 +72,5 @@ __all__ = [
     'ApiKey',
     'Badge',
     'UserBadge',
+    'MemriseProgress',
 ]

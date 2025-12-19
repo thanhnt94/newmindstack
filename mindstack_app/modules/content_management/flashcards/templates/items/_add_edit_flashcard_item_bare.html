@@ -285,60 +285,30 @@ MỤC ĐÍCH: Bổ sung trường order_in_container vào form để cho phép n
                         </div>
                     </div>
 
+                    {# MEMRISE FIELDS SECTION #}
                     <div class="border-t border-gray-200 pt-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Kiểu học hỗ trợ</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                {{ form.supports_pronunciation(class="mt-1 h-5 w-5 text-blue-600") }}
-                                <span>
-                                    <span class="block text-sm font-medium text-gray-800">Luyện phát âm</span>
-                                    <span class="block text-xs text-gray-500 mt-1">Thẻ có âm thanh hoặc nội dung phù hợp
-                                        để luyện nghe - nói.</span>
-                                </span>
-                            </label>
-                            <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                {{ form.supports_writing(class="mt-1 h-5 w-5 text-blue-600") }}
-                                <span>
-                                    <span class="block text-sm font-medium text-gray-800">Luyện viết</span>
-                                    <span class="block text-xs text-gray-500 mt-1">Thẻ có thể dùng để luyện viết chính
-                                        tả hoặc mô tả lại.</span>
-                                </span>
-                            </label>
-                            <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                {{ form.supports_quiz(class="mt-1 h-5 w-5 text-blue-600") }}
-                                <span>
-                                    <span class="block text-sm font-medium text-gray-800">Luyện trắc nghiệm</span>
-                                    <span class="block text-xs text-gray-500 mt-1">Thẻ phù hợp để chuyển thành câu hỏi
-                                        dạng lựa chọn.</span>
-                                </span>
-                            </label>
-                            <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                {{ form.supports_essay(class="mt-1 h-5 w-5 text-blue-600") }}
-                                <span>
-                                    <span class="block text-sm font-medium text-gray-800">Chế độ tự luận</span>
-                                    <span class="block text-xs text-gray-500 mt-1">Đánh dấu nếu thẻ phù hợp với câu hỏi
-                                        mở dài.</span>
-                                </span>
-                            </label>
-                            <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                {{ form.supports_listening(class="mt-1 h-5 w-5 text-blue-600") }}
-                                <span>
-                                    <span class="block text-sm font-medium text-gray-800">Chế độ luyện nghe</span>
-                                    <span class="block text-xs text-gray-500 mt-1">Sử dụng khi thẻ có audio để tập trung
-                                        luyện nghe.</span>
-                                </span>
-                            </label>
-                            <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                {{ form.supports_speaking(class="mt-1 h-5 w-5 text-blue-600") }}
-                                <span>
-                                    <span class="block text-sm font-medium text-gray-800">Chế độ luyện nói</span>
-                                    <span class="block text-xs text-gray-500 mt-1">Khuyến khích học viên nói lại/thu âm
-                                        câu trả lời.</span>
-                                </span>
-                            </label>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-brain text-purple-500 mr-2"></i>Memrise
+                        </h3>
+                        <p class="text-xs text-gray-500 mb-4">
+                            Điền thông tin dưới đây để sử dụng thẻ này trong chế độ học Memrise (MCQ và Typing).
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                {{ form.memrise_prompt.label(class="block text-sm font-medium text-gray-700") }}
+                                {{ form.memrise_prompt(class="mt-1 block w-full px-4 py-2 border border-gray-300
+                                rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500
+                                focus:border-purple-500", placeholder='Ví dụ: Hello') }}
+                                <p class="text-xs text-gray-500 mt-1">{{ form.memrise_prompt.description }}</p>
+                            </div>
+                            <div>
+                                {{ form.memrise_answers.label(class="block text-sm font-medium text-gray-700") }}
+                                {{ form.memrise_answers(class="mt-1 block w-full px-4 py-2 border border-gray-300
+                                rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500
+                                focus:border-purple-500", placeholder='Ví dụ: Xin chào, chào') }}
+                                <p class="text-xs text-gray-500 mt-1">{{ form.memrise_answers.description }}</p>
+                            </div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-3">Các tùy chọn này được bật theo cấu hình của cả bộ thẻ. Chỉ
-                            thay đổi nếu thẻ này cần ngoại lệ so với cấu hình chung.</p>
                     </div>
 
                     <div class="border-t border-gray-200 pt-6">
@@ -471,15 +441,15 @@ MỤC ĐÍCH: Bổ sung trường order_in_container vào form để cho phép n
         if (form) {
             initializeFlashcardImageControls({ form: form });
             initializeFlashcardAudioControls({ form: form });
-            {# Đặt action của form dựa trên URL hiện tại(để xử lý cả add và edit) # }
+            // Dat action cua form dua tren URL hien tai (de xu ly ca add va edit)
             const currentUrl = new URL(window.location.href);
             currentUrl.searchParams.delete('is_modal');
             form.action = currentUrl.toString();
 
             form.addEventListener('submit', async function (event) {
-                event.preventDefault(); {# Ngăn chặn gửi form mặc định # }
+                event.preventDefault(); // Ngan chan gui form mac dinh
 
-                {# Xóa các thông báo lỗi cũ # }
+                // Xoa cac thong bao loi cu
                 document.querySelectorAll('.error-message').forEach(el => el.remove());
                 document.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
 
@@ -491,104 +461,104 @@ MỤC ĐÍCH: Bổ sung trường order_in_container vào form để cho phép n
                         method: 'POST',
                         body: formData,
                         headers: {
-                            'X-Requested-With': 'XMLHttpRequest' {# Đánh dấu đây là yêu cầu AJAX #}
+                            'X-Requested-With': 'XMLHttpRequest' // AJAX request marker
                         }
                     });
 
-            const result = await response.json();
+                    const result = await response.json();
 
-            if (response.ok) {
-                {# HTTP status 200 - 299 # }
-                if (result.success) {
-                    if (typeof result.item_id !== 'undefined' && result.item_id !== null) {
-                        currentItemId = result.item_id;
-                        form.dataset.itemId = String(result.item_id);
-                    }
-                    {# Thông báo thành công qua parent window(base.html) # }
-                    if (window.parent && window.parent.showFlashMessage) {
-                        window.parent.showFlashMessage(result.message, 'success');
-                    }
-                    const resolvedItemId = currentItemId || result.item_id;
-                    if (window.parent && typeof window.parent.updateFlashcardCard === 'function') {
-                        if (resolvedItemId) {
-                            try {
-                                await window.parent.updateFlashcardCard(resolvedItemId, setId);
-                            } catch (updateError) {
-                                console.error('Không thể cập nhật thẻ trong phiên học:', updateError);
+                    if (response.ok) {
+                        // HTTP status 200 - 299
+                        if (result.success) {
+                            if (typeof result.item_id !== 'undefined' && result.item_id !== null) {
+                                currentItemId = result.item_id;
+                                form.dataset.itemId = String(result.item_id);
                             }
-                        } else if (window.parent.showFlashMessage) {
-                            window.parent.showFlashMessage('Không thể xác định thẻ vừa chỉnh sửa để làm mới trong phiên học.', 'warning');
+                            // Thong bao thanh cong qua parent window (base.html)
+                            if (window.parent && window.parent.showFlashMessage) {
+                                window.parent.showFlashMessage(result.message, 'success');
+                            }
+                            const resolvedItemId = currentItemId || result.item_id;
+                            if (window.parent && typeof window.parent.updateFlashcardCard === 'function') {
+                                if (resolvedItemId) {
+                                    try {
+                                        await window.parent.updateFlashcardCard(resolvedItemId, setId);
+                                    } catch (updateError) {
+                                        console.error('Không thể cập nhật thẻ trong phiên học:', updateError);
+                                    }
+                                } else if (window.parent.showFlashMessage) {
+                                    window.parent.showFlashMessage('Không thể xác định thẻ vừa chỉnh sửa để làm mới trong phiên học.', 'warning');
+                                }
+                            }
+                            if (window.parent) {
+                                window.parent.dispatchEvent(new CustomEvent('content-management:refresh', {
+                                    detail: {
+                                        scope: 'flashcard-item',
+                                        setId: setId,
+                                        itemId: currentItemId,
+                                        action: form.dataset.itemId ? 'update' : 'create',
+                                        targetTab: 'flashcards'
+                                    }
+                                }));
+                            }
+                            // Dong modal
+                            if (window.parent && window.parent.closeModal) {
+                                window.parent.closeModal();
+                            }
+                            // THAY DOI: khong tai lai trang
+                            // if (window.parent && window.parent.loadTabContent) {
+                            //     // Neu dang o trang list_flashcard_items, tai lai trang do
+                            //     if (window.parent.location.href.includes('/flashcards/') && window.parent.location.href.includes('/items')) {
+                            //         window.parent.location.reload(); 
+                            //     } else {
+                            //         // Nguoc lai, tai lai tab flashcards tren dashboard
+                            //         window.parent.loadTabContent('flashcards');
+                            //     }
+                            // }
+                        } else {
+                            // Xu ly loi nghiep vu tu backend
+                            if (window.parent && window.parent.showFlashMessage) {
+                                window.parent.showFlashMessage(result.message || 'Có lỗi xảy ra.', 'danger');
+                            }
+                        }
+                    } else {
+                        // HTTP status 4xx, 5xx
+                        if (result.errors) {
+                            // Hien thi loi xac thuc ngay tren form
+                            for (const fieldName in result.errors) {
+                                const fieldErrors = result.errors[fieldName];
+                                const fieldElement = form.querySelector(`[name="${fieldName}"]`);
+                                if (fieldElement) {
+                                    fieldElement.classList.add('border-red-500');
+                                    const errorDiv = document.createElement('div');
+                                    errorDiv.classList.add('text-red-500', 'text-xs', 'mt-1', 'error-message');
+                                    fieldErrors.forEach(error => {
+                                        const p = document.createElement('p');
+                                        p.textContent = error;
+                                        errorDiv.appendChild(p);
+                                    });
+                                    fieldElement.parentNode.insertBefore(errorDiv, fieldElement.nextSibling);
+                                }
+                            }
+                        } else {
+                            // Hien thi loi chung
+                            if (window.parent && window.parent.showFlashMessage) {
+                                window.parent.showFlashMessage(result.message || 'Đã xảy ra lỗi không mong muốn.', 'danger');
+                            }
+                            if (window.parent && window.parent.closeModal) {
+                                window.parent.closeModal();
+                            }
                         }
                     }
-                    if (window.parent) {
-                        window.parent.dispatchEvent(new CustomEvent('content-management:refresh', {
-                            detail: {
-                                scope: 'flashcard-item',
-                                setId: setId,
-                                itemId: currentItemId,
-                                action: form.dataset.itemId ? 'update' : 'create',
-                                targetTab: 'flashcards'
-                            }
-                        }));
+                } catch (error) {
+                    console.error('Lỗi gửi form AJAX:', error);
+                    if (window.parent && window.parent.showFlashMessage) {
+                        window.parent.showFlashMessage('Không thể kết nối đến máy chủ. Vui lòng thử lại.', 'danger');
                     }
-                    {# Đóng modal # }
                     if (window.parent && window.parent.closeModal) {
                         window.parent.closeModal();
                     }
-                    {# THAY ĐỔI: không tải lại trang # }
-                    // if (window.parent && window.parent.loadTabContent) {
-                    //     {# Nếu đang ở trang list_flashcard_items, tải lại trang đó #}
-                    //     if (window.parent.location.href.includes('/flashcards/') && window.parent.location.href.includes('/items')) {
-                    //         window.parent.location.reload(); 
-                    //     } else {
-                    //         {# Ngược lại, tải lại tab flashcards trên dashboard #}
-                    //         window.parent.loadTabContent('flashcards');
-                    //     }
-                    // }
-                } else {
-                    {# Xử lý lỗi nghiệp vụ từ backend # }
-                    if (window.parent && window.parent.showFlashMessage) {
-                        window.parent.showFlashMessage(result.message || 'Có lỗi xảy ra.', 'danger');
-                    }
                 }
-            } else {
-                {# HTTP status 4xx, 5xx # }
-                if (result.errors) {
-                    {# Hiển thị lỗi xác thực ngay trên form # }
-                    for (const fieldName in result.errors) {
-                        const fieldErrors = result.errors[fieldName];
-                        const fieldElement = form.querySelector(`[name="${fieldName}"]`);
-                        if (fieldElement) {
-                            fieldElement.classList.add('border-red-500');
-                            const errorDiv = document.createElement('div');
-                            errorDiv.classList.add('text-red-500', 'text-xs', 'mt-1', 'error-message');
-                            fieldErrors.forEach(error => {
-                                const p = document.createElement('p');
-                                p.textContent = error;
-                                errorDiv.appendChild(p);
-                            });
-                            fieldElement.parentNode.insertBefore(errorDiv, fieldElement.nextSibling);
-                        }
-                    }
-                } else {
-                    {# Hiển thị lỗi chung # }
-                    if (window.parent && window.parent.showFlashMessage) {
-                        window.parent.showFlashMessage(result.message || 'Đã xảy ra lỗi không mong muốn.', 'danger');
-                    }
-                    if (window.parent && window.parent.closeModal) {
-                        window.parent.closeModal();
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Lỗi gửi form AJAX:', error);
-            if (window.parent && window.parent.showFlashMessage) {
-                window.parent.showFlashMessage('Không thể kết nối đến máy chủ. Vui lòng thử lại.', 'danger');
-            }
-            if (window.parent && window.parent.closeModal) {
-                window.parent.closeModal();
-            }
-        }
             });
         }
     });

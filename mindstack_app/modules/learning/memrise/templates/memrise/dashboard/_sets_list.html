@@ -1,0 +1,35 @@
+{# Memrise Sets List Partial - for AJAX loading #}
+{% if containers %}
+<div class="memrise-sets-grid">
+    {% for c in containers %}
+    <div class="memrise-set-card" data-set-id="{{ c.container_id }}">
+        <label class="set-checkbox-label">
+            <input type="checkbox" class="set-checkbox js-set-checkbox" value="{{ c.container_id }}">
+            <div class="set-card-content">
+                {% if c.cover_image %}
+                <div class="set-card-cover"
+                    style="background-image: url('{{ url_for('static', filename=c.cover_image) }}')"></div>
+                {% else %}
+                <div class="set-card-cover set-card-cover-default">
+                    <i class="fas fa-brain"></i>
+                </div>
+                {% endif %}
+                <div class="set-card-info">
+                    <h3 class="set-card-title">{{ c.title }}</h3>
+                    <p class="set-card-meta">{{ c.memrise_card_count }} từ Memrise</p>
+                </div>
+                <div class="set-card-check">
+                    <i class="fas fa-check"></i>
+                </div>
+            </div>
+        </label>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="memrise-empty-state">
+    <i class="fas fa-box-open"></i>
+    <p>Không có bộ thẻ nào đủ điều kiện Memrise</p>
+    <p class="text-sm text-gray-400">Mỗi bộ cần ít nhất {{ min_cards }} thẻ có dữ liệu Memrise</p>
+</div>
+{% endif %}

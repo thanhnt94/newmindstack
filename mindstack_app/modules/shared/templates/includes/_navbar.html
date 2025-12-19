@@ -51,6 +51,14 @@ Mục đích: Cập nhật navbar theo yêu cầu:
                 <span>Course</span>
             </a>
         </li>
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2
+                {% if request.endpoint.startswith('learning.memrise') %}bg-purple-100 text-purple-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}"
+                href="{{ url_for('learning.memrise.dashboard') }}">
+                <i class="fas fa-brain mr-1 md:mr-2"></i>
+                <span>Memrise</span>
+            </a>
+        </li>
         <!-- <li>
             <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2"
                 {% if request.endpoint.startswith('goals.') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}"

@@ -133,12 +133,19 @@ class FlashcardItemForm(FlaskForm):
     ai_prompt = TextAreaField('AI Prompt tùy chỉnh (cho thẻ này)',
                               description='Nhập prompt tùy chỉnh để ghi đè prompt của bộ thẻ hoặc mặc định hệ thống. Nếu để trống, hệ thống sẽ tự động sử dụng prompt cấp trên.',
                               validators=[Optional()])
-    supports_pronunciation = BooleanField('Hỗ trợ luyện phát âm')
-    supports_writing = BooleanField('Hỗ trợ luyện viết')
-    supports_quiz = BooleanField('Hỗ trợ luyện trắc nghiệm')
-    supports_essay = BooleanField('Hỗ trợ tự luận')
-    supports_listening = BooleanField('Hỗ trợ luyện nghe')
-    supports_speaking = BooleanField('Hỗ trợ luyện nói')
+    
+    # Memrise fields
+    memrise_prompt = StringField(
+        'Memrise Prompt (câu hỏi)',
+        validators=[Optional()],
+        description='Câu hỏi hiển thị trong Memrise (ví dụ: "Hello")'
+    )
+    memrise_answers = StringField(
+        'Memrise Answers (đáp án)',
+        validators=[Optional()],
+        description='Các đáp án được chấp nhận, phân tách bằng dấu phẩy (ví dụ: "Xin chào, chào"). Đáp án đầu dùng cho MCQ.'
+    )
+    
     order_in_container = IntegerField('Thứ tự hiển thị', validators=[
         Optional(),
         NumberRange(min=1, message="Thứ tự phải là một số nguyên dương.")

@@ -1,0 +1,239 @@
+{# =============================== #}
+{# File: memrise/dashboard/_desktop.html #}
+{# Mục đích: Desktop dashboard - grid layout #}
+{# =============================== #}
+
+<div class="memrise-desktop-view memrise-dashboard">
+    <header class="memrise-header">
+        <h1 class="memrise-title">
+            <i class="fas fa-brain"></i> Memrise
+        </h1>
+        <p class="memrise-subtitle">Học từ vựng với MCQ và Typing</p>
+    </header>
+
+    {% if containers %}
+    <div class="container-grid">
+        {% for c in containers %}
+        <div class="set-card">
+            <h3 class="set-card-title">{{ c.title }}</h3>
+            <div class="set-card-meta">
+                <span class="set-card-meta-item">
+                    <i class="fas fa-clone"></i>
+                    {{ c.memrise_card_count }}/{{ c.total_card_count }} thẻ
+                </span>
+                <span class="set-card-meta-item">
+                    <i class="fas fa-user"></i>
+                    {{ c.creator_username }}
+                </span>
+            </div>
+            {% if c.description %}
+            <p class="set-card-desc">{{ c.description }}</p>
+            {% endif %}
+            <div class="set-card-actions">
+                <a href="{{ url_for('learning.flashcard_learning.start_flashcard_session_by_id', set_id=c.container_id, mode='mixed_srs') }}"
+                    class="mode-btn mode-btn-flashcard">
+                    <i class="fas fa-clone"></i> Flashcard
+                </a>
+                <a href="{{ url_for('learning.memrise.session', container_id=c.container_id, mode='mixed') }}"
+                    class="mode-btn mode-btn-mixed">
+                    <i class="fas fa-random"></i> Hỗn hợp
+                </a>
+                <a href="{{ url_for('learning.memrise.session', container_id=c.container_id, mode='mcq') }}"
+                    class="mode-btn mode-btn-mcq">
+                    <i class="fas fa-list-ul"></i> MCQ
+                </a>
+                <a href="{{ url_for('learning.memrise.session', container_id=c.container_id, mode='typing') }}"
+                    class="mode-btn mode-btn-typing">
+                    <i class="fas fa-keyboard"></i> Typing
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-box-open"></i>
+        <h2>Chưa có bộ thẻ nào</h2>
+        <p>Các bộ flashcard cần có ít nhất {{ min_cards }} thẻ với dữ liệu Memrise (memrise_prompt và memrise_answers)
+            để hiển thị ở đây.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    /* ===== Desktop Dashboard Styles ===== */
+    .memrise-desktop-view.memrise-dashboard {
+        font-family: 'Inter', sans-serif;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .memrise-header {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: white;
+    }
+
+    .memrise-title {
+        font-size: 2.5rem;
+        font-weight: 900;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .memrise-subtitle {
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+
+    .container-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        padding: 1rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .set-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        transition: transform 0.3s, box-shadow 0.3s;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .set-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    }
+
+    .set-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
+    .set-card-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .set-card-meta {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .set-card-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .set-card-meta-item i {
+        color: #667eea;
+    }
+
+    .set-card-desc {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .set-card-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .mode-btn {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .mode-btn-mcq {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .mode-btn-mcq:hover {
+        transform: scale(1.02);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .mode-btn-typing {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .mode-btn-typing:hover {
+        background: #e2e8f0;
+    }
+
+    .mode-btn-mixed {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+
+    .mode-btn-mixed:hover {
+        transform: scale(1.02);
+        box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .mode-btn-flashcard {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+    }
+
+    .mode-btn-flashcard:hover {
+        transform: scale(1.02);
+        box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: white;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.8;
+    }
+
+    .empty-state h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        opacity: 0.8;
+    }
+</style>
