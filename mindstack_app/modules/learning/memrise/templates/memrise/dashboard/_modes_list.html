@@ -1,19 +1,27 @@
-{# Memrise Modes List Partial - for AJAX loading #}
-<div class="memrise-modes-grid">
+{# Memrise Modes List Partial - Flashcard Style #}
+<div class="space-y-3">
     {% for mode in modes %}
-    <div class="memrise-mode-card js-mode-card" data-mode-id="{{ mode.id }}" {% if mode.is_flashcard
-        %}data-is-flashcard="true" {% endif %}>
-        <div class="mode-card-icon mode-card-icon-{{ mode.color }}">
-            <i class="{{ mode.icon }}"></i>
+    <div class="memrise-mode-item flex items-center gap-4" data-mode-id="{{ mode.id }}">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
+            {% if mode.color == 'purple' %}bg-purple-100 text-purple-600{% endif %}
+            {% if mode.color == 'blue' %}bg-blue-100 text-blue-600{% endif %}
+            {% if mode.color == 'green' %}bg-green-100 text-green-600{% endif %}
+            {% if mode.color == 'indigo' %}bg-indigo-100 text-indigo-600{% endif %}">
+            <i class="{{ mode.icon }} text-xl"></i>
         </div>
-        <div class="mode-card-info">
-            <h3 class="mode-card-name">{{ mode.name }}</h3>
-            <p class="mode-card-count">{{ mode.count }} từ</p>
+        <div class="flex-grow min-w-0">
+            <h3 class="font-semibold text-gray-800">{{ mode.name }}</h3>
+            <p class="text-sm text-gray-500">{{ mode.count }} từ</p>
         </div>
-        <div class="mode-card-check">
-            <i class="fas fa-check-circle"></i>
+        <div class="flex-shrink-0 text-purple-500 opacity-0 transition-opacity mode-check">
+            <i class="fas fa-check-circle text-xl"></i>
         </div>
     </div>
     {% endfor %}
 </div>
-<input type="hidden" id="selected-set-ids" value="{{ selected_set_ids | join(',') }}">
+
+<style>
+    .memrise-mode-item.selected-mode .mode-check {
+        opacity: 1;
+    }
+</style>

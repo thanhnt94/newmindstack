@@ -1,0 +1,391 @@
+{# Listening Session Template #}
+{% extends "base.html" %}
+{% block title %}Luyện nghe - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background: #f8fafc;
+    }
+
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        body>main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+        }
+    }
+
+    .listening-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .listening-header {
+        background: white;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .listening-back {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.75rem;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        text-decoration: none;
+    }
+
+    .listening-title {
+        font-weight: 700;
+        color: #1e293b;
+        flex: 1;
+    }
+
+    .listening-score {
+        font-weight: 700;
+        color: #6366f1;
+    }
+
+    .listening-content {
+        flex: 1;
+        padding: 1.5rem;
+        max-width: 600px;
+        margin: 0 auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .listening-icon {
+        font-size: 3rem;
+        color: #6366f1;
+        margin-bottom: 2rem;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+
+    .listening-icon:active {
+        transform: scale(0.95);
+    }
+
+    .listening-icon.playing {
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    .listening-input-wrap {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .listening-input {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.25rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.75rem;
+        text-align: center;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .listening-input:focus {
+        border-color: #6366f1;
+    }
+
+    .listening-input.correct {
+        border-color: #10b981;
+        background: #d1fae5;
+    }
+
+    .listening-input.wrong {
+        border-color: #ef4444;
+        background: #fee2e2;
+    }
+
+    .listening-feedback {
+        text-align: center;
+        margin-top: 1rem;
+        min-height: 2rem;
+    }
+
+    .listening-correct-answer {
+        color: #10b981;
+        font-weight: 600;
+        font-size: 1.25rem;
+    }
+
+    .listening-wrong-answer {
+        color: #ef4444;
+        font-weight: 600;
+    }
+
+    .listening-meaning {
+        margin-top: 1rem;
+        color: #64748b;
+        font-size: 0.9rem;
+        font-style: italic;
+    }
+
+    .listening-footer {
+        padding: 1rem;
+        background: white;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .listening-btn {
+        width: 100%;
+        padding: 1rem;
+        background: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .listening-complete {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .listening-complete-box {
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        text-align: center;
+        max-width: 300px;
+    }
+
+    .listening-complete-icon {
+        font-size: 4rem;
+        color: #10b981;
+        margin-bottom: 1rem;
+    }
+
+    .listening-complete-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .listening-complete-stats {
+        color: #64748b;
+        margin-bottom: 1rem;
+    }
+
+    .listening-complete-btn {
+        padding: 0.75rem 1.5rem;
+        background: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="listening-container">
+    <div class="listening-header">
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="listening-back"><i
+                class="fas fa-arrow-left"></i></a>
+        <span class="listening-title">{{ container.title }}</span>
+        <span class="listening-score"><span id="score">0</span>/<span id="total">{{ total_items }}</span></span>
+    </div>
+    <div class="listening-content">
+        <div class="listening-icon" id="audio-btn" title="Nghe lại (Ctrl+Space)">
+            <i class="fas fa-volume-up"></i>
+        </div>
+        <div class="listening-input-wrap">
+            <input type="text" class="listening-input" id="answer-input" placeholder="Nghe và gõ lại..."
+                autocomplete="off">
+        </div>
+        <div class="listening-feedback" id="feedback"></div>
+        <div class="listening-meaning" id="meaning-hint"></div>
+        <audio id="audio-player" style="display:none;"></audio>
+    </div>
+    <div class="listening-footer">
+        <button class="listening-btn" id="submit-btn">Kiểm tra</button>
+    </div>
+</div>
+<div class="listening-complete" id="complete-modal" style="display: none;">
+    <div class="listening-complete-box">
+        <div class="listening-complete-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="listening-complete-title">Hoàn thành!</div>
+        <div class="listening-complete-stats">Đúng <span id="final-score">0</span>/<span id="final-total">0</span> câu
+        </div>
+        <button class="listening-complete-btn" onclick="location.reload()">Chơi lại</button>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        var setId = {{ container.container_id }
+    };
+    var items = [];
+    var current = 0;
+    var score = 0;
+    var answered = false;
+    var audioBtn = document.getElementById('audio-btn');
+    var audioPlayer = document.getElementById('audio-player');
+    var inputEl = document.getElementById('answer-input');
+    var feedbackEl = document.getElementById('feedback');
+    var meaningHintEl = document.getElementById('meaning-hint');
+    var submitBtn = document.getElementById('submit-btn');
+    var scoreEl = document.getElementById('score');
+
+    fetch('/learn/vocabulary/listening/api/items/' + setId + '?count=10')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                items = data.items;
+                document.getElementById('total').textContent = items.length;
+                document.getElementById('final-total').textContent = items.length;
+                showItem();
+            }
+        });
+
+    function showItem() {
+        if (current >= items.length) {
+            showComplete();
+            return;
+        }
+        answered = false;
+        inputEl.value = '';
+        inputEl.className = 'listening-input';
+        inputEl.disabled = false;
+        inputEl.focus();
+        feedbackEl.innerHTML = '';
+        meaningHintEl.textContent = ''; // Hide meaning initially? Or show as hint?
+        // Usually Dictation = Hear -> write. Meaning can be helpful context.
+        // Let's hide meaning initially to focus on hearing. Show on fail.
+
+        submitBtn.textContent = 'Kiểm tra';
+        var item = items[current];
+
+        if (item.audio_url) {
+            audioPlayer.src = item.audio_url;
+            playAudio();
+        }
+    }
+
+    function playAudio() {
+        audioBtn.classList.add('playing');
+        audioPlayer.play().catch(e => console.log('Autoplay blocked:', e))
+            .finally(() => {
+                // Remove playing class after end?
+                // audioPlayer.onended handles it.
+            });
+    }
+
+    audioPlayer.onended = function () {
+        audioBtn.classList.remove('playing');
+    };
+
+    audioBtn.onclick = function () {
+        playAudio();
+        inputEl.focus();
+    };
+
+    submitBtn.onclick = function () {
+        if (!answered) {
+            checkAnswer();
+        } else {
+            current++;
+            showItem();
+        }
+    };
+
+    inputEl.onkeydown = function (e) {
+        if (e.key === 'Enter') {
+            if (!answered) checkAnswer();
+            else {
+                current++;
+                showItem();
+            }
+        }
+        // Ctrl+Space to replay audio
+        if (e.code === 'Space' && e.ctrlKey) {
+            playAudio();
+        }
+    };
+
+    function checkAnswer() {
+        var item = items[current];
+        var userAnswer = inputEl.value.trim().toLowerCase();
+
+        // Simple client-side check if backend is overkill? No, use backend api for consistency.
+        fetch('/learn/vocabulary/listening/api/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                correct_answer: item.answer,
+                user_answer: userAnswer
+            })
+        })
+            .then(r => r.json())
+            .then(result => {
+                answered = true;
+                inputEl.disabled = true;
+                meaningHintEl.textContent = item.meaning || '';
+
+                if (result.correct) {
+                    inputEl.classList.add('correct');
+                    feedbackEl.innerHTML = '<span class="listening-correct-answer">✓ ' + item.answer + '</span>';
+                    score++;
+                    scoreEl.textContent = score;
+                } else {
+                    inputEl.classList.add('wrong');
+                    feedbackEl.innerHTML = '<span class="listening-wrong-answer">✗ Đáp án: ' + item.answer + '</span>';
+                }
+                submitBtn.textContent = 'Tiếp theo';
+                submitBtn.focus();
+            });
+    }
+
+    function showComplete() {
+        document.getElementById('final-score').textContent = score;
+        document.getElementById('complete-modal').style.display = 'flex';
+    }
+}) ();
+</script>
+{% endblock %}

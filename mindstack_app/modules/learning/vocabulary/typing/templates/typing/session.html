@@ -1,0 +1,136 @@
+{# Typing Session Template #}
+{% extends "base.html" %}
+{% block title %}Gõ đáp án - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+body { font-family: 'Inter', sans-serif; background: #f8fafc; }
+@media (max-width: 1023px) { body > header, body > footer { display: none !important; } body > main { padding: 0 !important; margin: 0 !important; max-width: none !important; } }
+.typing-container { min-height: 100vh; display: flex; flex-direction: column; }
+.typing-header { background: white; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.75rem; }
+.typing-back { width: 36px; height: 36px; border-radius: 0.75rem; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b; text-decoration: none; }
+.typing-title { font-weight: 700; color: #1e293b; flex: 1; }
+.typing-score { font-weight: 700; color: #6366f1; }
+.typing-content { flex: 1; padding: 1.5rem; max-width: 600px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; justify-content: center; }
+.typing-prompt { font-size: 2rem; font-weight: 800; color: #1e293b; text-align: center; margin-bottom: 2rem; }
+.typing-input-wrap { position: relative; }
+.typing-input { width: 100%; padding: 1rem; font-size: 1.25rem; border: 2px solid #e2e8f0; border-radius: 0.75rem; text-align: center; outline: none; transition: border-color 0.2s; }
+.typing-input:focus { border-color: #6366f1; }
+.typing-input.correct { border-color: #10b981; background: #d1fae5; }
+.typing-input.wrong { border-color: #ef4444; background: #fee2e2; }
+.typing-feedback { text-align: center; margin-top: 1rem; min-height: 2rem; }
+.typing-correct-answer { color: #10b981; font-weight: 600; }
+.typing-wrong-answer { color: #ef4444; font-weight: 600; }
+.typing-footer { padding: 1rem; background: white; border-top: 1px solid #e2e8f0; }
+.typing-btn { width: 100%; padding: 1rem; background: #6366f1; color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; }
+.typing-complete { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+.typing-complete-box { background: white; padding: 2rem; border-radius: 1rem; text-align: center; max-width: 300px; }
+.typing-complete-icon { font-size: 4rem; color: #10b981; margin-bottom: 1rem; }
+.typing-complete-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
+.typing-complete-stats { color: #64748b; margin-bottom: 1rem; }
+.typing-complete-btn { padding: 0.75rem 1.5rem; background: #6366f1; color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="typing-container">
+    <div class="typing-header">
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="typing-back"><i class="fas fa-arrow-left"></i></a>
+        <span class="typing-title">{{ container.title }}</span>
+        <span class="typing-score"><span id="score">0</span>/<span id="total">{{ total_items }}</span></span>
+    </div>
+    <div class="typing-content">
+        <div class="typing-prompt" id="prompt">Đang tải...</div>
+        <div class="typing-input-wrap">
+            <input type="text" class="typing-input" id="answer-input" placeholder="Gõ đáp án..." autocomplete="off">
+        </div>
+        <div class="typing-feedback" id="feedback"></div>
+    </div>
+    <div class="typing-footer">
+        <button class="typing-btn" id="submit-btn">Kiểm tra</button>
+    </div>
+</div>
+<div class="typing-complete" id="complete-modal" style="display: none;">
+    <div class="typing-complete-box">
+        <div class="typing-complete-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="typing-complete-title">Hoàn thành!</div>
+        <div class="typing-complete-stats">Đúng <span id="final-score">0</span>/<span id="final-total">0</span> câu</div>
+        <button class="typing-complete-btn" onclick="location.reload()">Chơi lại</button>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+(function() {
+    var setId = {{ container.container_id }};
+    var items = [];
+    var current = 0;
+    var score = 0;
+    var answered = false;
+    var promptEl = document.getElementById('prompt');
+    var inputEl = document.getElementById('answer-input');
+    var feedbackEl = document.getElementById('feedback');
+    var submitBtn = document.getElementById('submit-btn');
+    var scoreEl = document.getElementById('score');
+    fetch('/learn/vocabulary/typing/api/items/' + setId + '?count=10')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                items = data.items;
+                document.getElementById('total').textContent = items.length;
+                document.getElementById('final-total').textContent = items.length;
+                showItem();
+            }
+        });
+    function showItem() {
+        if (current >= items.length) {
+            showComplete();
+            return;
+        }
+        answered = false;
+        inputEl.value = '';
+        inputEl.className = 'typing-input';
+        inputEl.disabled = false;
+        inputEl.focus();
+        feedbackEl.innerHTML = '';
+        submitBtn.textContent = 'Kiểm tra';
+        var item = items[current];
+        promptEl.textContent = item.prompt;
+    }
+    submitBtn.onclick = function() {
+        if (!answered) {
+            checkAnswer();
+        } else {
+            current++;
+            showItem();
+        }
+    };
+    inputEl.onkeypress = function(e) {
+        if (e.key === 'Enter' && !answered) {
+            checkAnswer();
+        }
+    };
+    function checkAnswer() {
+        var item = items[current];
+        var userAnswer = inputEl.value.trim().toLowerCase();
+        var correctAnswer = item.answer.trim().toLowerCase();
+        answered = true;
+        inputEl.disabled = true;
+        if (userAnswer === correctAnswer) {
+            inputEl.classList.add('correct');
+            feedbackEl.innerHTML = '<span class="typing-correct-answer">✓ Chính xác!</span>';
+            score++;
+            scoreEl.textContent = score;
+        } else {
+            inputEl.classList.add('wrong');
+            feedbackEl.innerHTML = '<span class="typing-wrong-answer">✗ Đáp án: ' + item.answer + '</span>';
+        }
+        submitBtn.textContent = 'Tiếp theo';
+    }
+    function showComplete() {
+        document.getElementById('final-score').textContent = score;
+        document.getElementById('complete-modal').style.display = 'flex';
+    }
+})();
+</script>
+{% endblock %}

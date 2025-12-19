@@ -1,35 +1,35 @@
-{# Memrise Sets List Partial - for AJAX loading #}
+{# Memrise Sets List Partial - Flashcard Style #}
 {% if containers %}
-<div class="memrise-sets-grid">
-    {% for c in containers %}
-    <div class="memrise-set-card" data-set-id="{{ c.container_id }}">
-        <label class="set-checkbox-label">
-            <input type="checkbox" class="set-checkbox js-set-checkbox" value="{{ c.container_id }}">
-            <div class="set-card-content">
-                {% if c.cover_image %}
-                <div class="set-card-cover"
-                    style="background-image: url('{{ url_for('static', filename=c.cover_image) }}')"></div>
-                {% else %}
-                <div class="set-card-cover set-card-cover-default">
-                    <i class="fas fa-brain"></i>
-                </div>
-                {% endif %}
-                <div class="set-card-info">
-                    <h3 class="set-card-title">{{ c.title }}</h3>
-                    <p class="set-card-meta">{{ c.memrise_card_count }} từ Memrise</p>
-                </div>
-                <div class="set-card-check">
-                    <i class="fas fa-check"></i>
-                </div>
-            </div>
-        </label>
+{% for c in containers %}
+<div class="memrise-set-item flex items-center gap-4" data-set-id="{{ c.container_id }}">
+    {% if c.cover_image %}
+    <div class="w-14 h-14 rounded-lg bg-cover bg-center flex-shrink-0"
+        style="background-image: url('{{ url_for('static', filename=c.cover_image) }}')"></div>
+    {% else %}
+    <div
+        class="w-14 h-14 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center flex-shrink-0">
+        <i class="fas fa-brain text-purple-500 text-xl"></i>
     </div>
-    {% endfor %}
+    {% endif %}
+    <div class="flex-grow min-w-0">
+        <h3 class="font-semibold text-gray-800 truncate">{{ c.title }}</h3>
+        <p class="text-sm text-gray-500">{{ c.memrise_card_count }} từ Memrise</p>
+    </div>
+    <div class="flex-shrink-0 text-purple-500 opacity-0 transition-opacity selected-check">
+        <i class="fas fa-check-circle text-xl"></i>
+    </div>
 </div>
+{% endfor %}
+
+<style>
+    .memrise-set-item.selected-item .selected-check {
+        opacity: 1;
+    }
+</style>
 {% else %}
-<div class="memrise-empty-state">
-    <i class="fas fa-box-open"></i>
-    <p>Không có bộ thẻ nào đủ điều kiện Memrise</p>
-    <p class="text-sm text-gray-400">Mỗi bộ cần ít nhất {{ min_cards }} thẻ có dữ liệu Memrise</p>
+<div class="flex flex-col items-center justify-center py-12 text-gray-400">
+    <i class="fas fa-box-open text-5xl mb-4"></i>
+    <p class="font-medium">Không có bộ thẻ nào đủ điều kiện</p>
+    <p class="text-sm">Mỗi bộ cần ít nhất {{ min_cards }} thẻ có dữ liệu Memrise</p>
 </div>
 {% endif %}

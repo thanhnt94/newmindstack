@@ -1,476 +1,319 @@
-{# Memrise Dashboard - Step-based Flow v3.0 #}
+{# Memrise Dashboard - Matching Flashcard Dashboard Style v4.0 #}
 {% extends "base.html" %}
 {% block title %}Memrise - Học từ vựng{% endblock %}
 {% block head %}
 {{ super() }}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-    :root {
-        --memrise-purple: #7c3aed;
-        --memrise-purple-light: #a78bfa;
-        --memrise-purple-dark: #5b21b6;
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f9fafb;
     }
 
-    /* === Container & Layout === */
-    .memrise-dashboard {
-        min-height: 100vh;
-        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #ddd6fe 100%);
-        padding: 1.5rem;
-    }
-
-    .memrise-container {
-        max-width: 900px;
-        margin: 0 auto;
-    }
-
-    .memrise-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    .memrise-logo {
-        width: 80px;
-        height: 80px;
-        background: linear-gradient(135deg, var(--memrise-purple) 0%, var(--memrise-purple-light) 100%);
-        border-radius: 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1rem;
-        box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
-    }
-
-    .memrise-logo i {
-        font-size: 2.5rem;
-        color: white;
-    }
-
-    .memrise-title {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: #1e1b4b;
-        margin-bottom: 0.5rem;
-    }
-
-    .memrise-subtitle {
-        color: #6b7280;
-        font-size: 1rem;
-    }
-
-    /* === Step Indicator === */
-    .step-indicator {
-        display: flex;
-        justify-content: center;
-        gap: 0.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .step-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #d1d5db;
-        transition: all 0.3s ease;
-    }
-
-    .step-dot.active {
-        background: var(--memrise-purple);
-        transform: scale(1.2);
-    }
-
-    .step-dot.done {
-        background: var(--memrise-purple-light);
-    }
-
-    /* === Step Content === */
-    .step-content {
-        display: none;
-        animation: fadeIn 0.3s ease;
-    }
-
-    .step-content.active {
-        display: block;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .step-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #1e1b4b;
-        text-align: center;
-        margin-bottom: 1.5rem;
-    }
-
-    /* === Sets Grid === */
-    .memrise-sets-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 1rem;
-    }
-
-    .memrise-set-card {
-        background: white;
-        border-radius: 1rem;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .memrise-set-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-    }
-
-    .set-checkbox-label {
-        display: block;
-        cursor: pointer;
-    }
-
-    .set-checkbox {
-        display: none;
-    }
-
-    .set-card-content {
-        display: flex;
-        align-items: center;
-        padding: 1rem;
-        gap: 1rem;
-        position: relative;
-    }
-
-    .set-card-cover {
-        width: 60px;
-        height: 60px;
-        border-radius: 0.75rem;
-        background-size: cover;
-        background-position: center;
-        flex-shrink: 0;
-    }
-
-    .set-card-cover-default {
-        background: linear-gradient(135deg, #c7d2fe, #ddd6fe);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .set-card-cover-default i {
-        font-size: 1.5rem;
-        color: var(--memrise-purple);
-    }
-
-    .set-card-info {
-        flex: 1;
-    }
-
-    .set-card-title {
-        font-weight: 600;
-        color: #1e1b4b;
-        font-size: 1rem;
-        margin-bottom: 0.25rem;
-    }
-
-    .set-card-meta {
-        color: #6b7280;
-        font-size: 0.875rem;
-    }
-
-    .set-card-check {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: 2px solid #d1d5db;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-    }
-
-    .set-card-check i {
-        display: none;
-        color: white;
-        font-size: 0.875rem;
-    }
-
-    .set-checkbox:checked+.set-card-content {
-        background: #f5f3ff;
-    }
-
-    .set-checkbox:checked+.set-card-content .set-card-check {
-        background: var(--memrise-purple);
-        border-color: var(--memrise-purple);
-    }
-
-    .set-checkbox:checked+.set-card-content .set-card-check i {
-        display: block;
-    }
-
-    /* === Modes Grid === */
-    .memrise-modes-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-
-    .memrise-mode-card {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.25rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: 3px solid transparent;
-    }
-
-    .memrise-mode-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .memrise-mode-card.selected {
-        border-color: var(--memrise-purple);
-        background: #f5f3ff;
-    }
-
-    .mode-card-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .mode-card-icon i {
-        font-size: 1.5rem;
-        color: white;
-    }
-
-    .mode-card-icon-purple {
-        background: linear-gradient(135deg, #7c3aed, #a78bfa);
-    }
-
-    .mode-card-icon-blue {
-        background: linear-gradient(135deg, #3b82f6, #60a5fa);
-    }
-
-    .mode-card-icon-green {
-        background: linear-gradient(135deg, #10b981, #34d399);
-    }
-
-    .mode-card-icon-indigo {
-        background: linear-gradient(135deg, #6366f1, #818cf8);
-    }
-
-    .mode-card-info {
-        flex: 1;
-    }
-
-    .mode-card-name {
-        font-weight: 600;
-        color: #1e1b4b;
-        font-size: 1rem;
-    }
-
-    .mode-card-count {
-        color: #6b7280;
-        font-size: 0.875rem;
-    }
-
-    .mode-card-check {
-        opacity: 0;
-        color: var(--memrise-purple);
-        font-size: 1.25rem;
-        transition: opacity 0.2s ease;
-    }
-
-    .memrise-mode-card.selected .mode-card-check {
-        opacity: 1;
-    }
-
-    /* === Buttons === */
-    .memrise-btn {
-        display: block;
-        width: 100%;
-        max-width: 400px;
-        margin: 2rem auto 0;
-        padding: 1rem 2rem;
-        border-radius: 9999px;
-        font-weight: 700;
-        font-size: 1rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: none;
-    }
-
-    .memrise-btn-primary {
-        background: linear-gradient(135deg, var(--memrise-purple) 0%, var(--memrise-purple-light) 100%);
-        color: white;
-        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-    }
-
-    .memrise-btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
-    }
-
-    .memrise-btn-primary:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .memrise-btn-secondary {
-        background: white;
-        color: var(--memrise-purple);
-        border: 2px solid var(--memrise-purple);
-    }
-
-    /* === Empty State === */
-    .memrise-empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: #6b7280;
-    }
-
-    .memrise-empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        color: #d1d5db;
-    }
-
-    /* === Loading === */
-    .memrise-loading {
-        text-align: center;
-        padding: 3rem;
-        color: #6b7280;
-    }
-
-    .memrise-loading i {
-        font-size: 2rem;
-        color: var(--memrise-purple);
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
-
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    /* === Back Button === */
-    .step-back-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #6b7280;
-        font-size: 0.875rem;
-        margin-bottom: 1rem;
-        cursor: pointer;
-        transition: color 0.2s;
-    }
-
-    .step-back-btn:hover {
-        color: var(--memrise-purple);
-    }
-
-    /* === Mobile Styles === */
-    @media (max-width: 640px) {
-        .memrise-dashboard {
-            padding: 1rem;
-        }
-
-        .memrise-sets-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .memrise-modes-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .memrise-title {
-            font-size: 1.5rem;
-        }
-    }
-
-    /* Hide base header/footer */
+    /* Mobile Step Logic */
     @media (max-width: 1023px) {
+        body {
+            background-color: #f8fafc !important;
+        }
 
-        body>header,
-        body>footer {
+        /* Step 0: Mode Selection */
+        #memrise-mobile-mode-selection {
+            position: relative;
+            height: calc(100dvh - 160px);
+            min-height: unset;
+            overflow: hidden;
+            z-index: 30;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 1.5rem;
+            margin-top: 0 !important;
+        }
+
+        /* Full Screen Containers for Steps */
+        #step-1-card,
+        #step-2-card {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background-color: #fff;
+            flex-direction: column;
+            height: 100dvh;
+            padding: 0 !important;
+        }
+
+        /* Visibility Toggles */
+        .mobile-mode-memrise #step-1-card {
+            display: flex;
+        }
+
+        .mobile-mode-memrise.mobile-step-2-active #step-1-card {
+            display: none;
+        }
+
+        .mobile-mode-memrise.mobile-step-2-active #step-2-card {
+            display: flex;
+        }
+
+        .mobile-mode-memrise #memrise-mobile-mode-selection {
+            display: none;
+        }
+
+        /* Content Areas */
+        .mobile-scroll-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0.75rem;
+            padding-bottom: 1rem;
+            background-color: #f8fafc;
+        }
+
+        /* Header Sections */
+        .mobile-header-section {
+            flex-shrink: 0;
+            background: white;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            z-index: 10;
+        }
+
+        /* Footer */
+        .mobile-footer-action {
+            flex-shrink: 0;
+            background: white;
+            padding: 1rem 0.75rem;
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+            border-top: 1px solid #f1f5f9;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        #memrise-mobile-mode-selection {
+            display: none;
+        }
+
+        #step-1-card,
+        #step-2-card {
+            display: flex !important;
+            position: static !important;
+            inset: auto !important;
+            height: auto !important;
+            background-color: white !important;
+            z-index: auto !important;
+        }
+
+        .mobile-header-section,
+        .mobile-footer-action {
             display: none !important;
         }
+    }
 
-        body>main {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: none !important;
-        }
+    /* Flashcard Set Items */
+    .memrise-set-item {
+        position: relative;
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+        padding: 1rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .memrise-set-item:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -2px rgba(0, 0, 0, .05);
+        transform: translateY(-2px);
+    }
+
+    .memrise-set-item.selected-item {
+        border-color: #8b5cf6 !important;
+        background-color: #f5f3ff !important;
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.5);
+    }
+
+    /* Mode Items */
+    .memrise-mode-item {
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        padding: 1rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .memrise-mode-item:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1);
+        transform: translateY(-2px);
+    }
+
+    .memrise-mode-item.selected-mode {
+        border-color: #8b5cf6 !important;
+        background-color: #f5f3ff !important;
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.5);
+    }
+
+    .start-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="memrise-dashboard">
-    <div class="memrise-container">
-        <!-- Header -->
-        <div class="memrise-header">
-            <div class="memrise-logo">
-                <i class="fas fa-brain"></i>
+<div class="container mx-auto px-4 py-6 max-w-6xl">
+    <div id="memrise-section" class="space-y-6 h-full lg:h-auto">
+
+        {# === MOBILE STEP 0: MODE SELECTION === #}
+        <div id="memrise-mobile-mode-selection" class="lg:hidden space-y-8 w-full max-w-md mx-auto">
+            <div class="text-center mb-4">
+                <div
+                    class="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-purple-200 transform -rotate-3">
+                    <i class="fas fa-brain text-white text-4xl drop-shadow-md"></i>
+                </div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight">Memrise</h1>
+                <p class="text-slate-500 font-medium mt-2 text-base">Chọn chế độ ôn tập của bạn</p>
             </div>
-            <h1 class="memrise-title">Memrise</h1>
-            <p class="memrise-subtitle js-step-subtitle">Chọn bộ từ vựng để học</p>
+
+            <div class="space-y-4 w-full">
+                <!-- Memrise Mode -->
+                <button id="btn-mode-memrise"
+                    class="w-full bg-white p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-5 active:scale-95 transition-transform group">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl shadow-sm group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="text-left flex-grow">
+                        <h3 class="font-bold text-slate-800 text-lg mb-0.5">Memrise</h3>
+                        <p class="text-xs text-slate-500 font-medium">MCQ, Typing, Mixed với SRS</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </button>
+
+                <!-- Flashcard Mode -->
+                <button id="btn-mode-flashcard"
+                    class="w-full bg-white p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-5 active:scale-95 transition-transform group">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shadow-sm group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                        <i class="fas fa-clone"></i>
+                    </div>
+                    <div class="text-left flex-grow">
+                        <h3 class="font-bold text-slate-800 text-lg mb-0.5">Flashcard</h3>
+                        <p class="text-xs text-slate-500 font-medium">Lật thẻ ôn tập truyền thống</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </button>
+            </div>
         </div>
 
-        <!-- Step Indicator -->
-        <div class="step-indicator">
-            <div class="step-dot active" data-step="0"></div>
-            <div class="step-dot" data-step="1"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto max-w-full">
+            {# === STEP 1: SELECT SET === #}
+            <div id="step-1-card" class="bg-white rounded-xl shadow-lg flex flex-col lg:p-6 h-full lg:h-auto">
+                {# Mobile Header #}
+                <div class="mobile-header-section lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none">
+                    <div class="lg:hidden flex items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <button id="mobile-step-1-back"
+                                class="flex-shrink-0 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-xl w-9 h-9 flex items-center justify-center">
+                                <i class="fas fa-arrow-left text-sm"></i>
+                            </button>
+                            <div class="min-w-0">
+                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">MEMRISE <span
+                                        class="text-slate-300 mx-0.5">›</span> STEP 1</p>
+                                <h2 class="text-base font-bold text-gray-800 leading-tight truncate">Chọn bộ thẻ</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Desktop Title #}
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center hidden lg:flex">
+                        <i class="fas fa-list-alt mr-3 text-purple-500"></i> Bước 1: Chọn bộ thẻ
+                    </h2>
+                </div>
+
+                {# Scrollable List Content #}
+                <div class="mobile-scroll-content flex flex-col flex-grow overflow-y-auto h-full lg:h-auto lg:p-0">
+                    <div id="memrise-sets-container" class="flex-grow space-y-3">
+                        <div class="flex flex-col items-center justify-center h-full text-purple-500 min-h-[300px]">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                            <p>Đang tải danh sách bộ thẻ...</p>
+                        </div>
+                    </div>
+                </div>
+
+                {# Mobile Footer Step 1 #}
+                <div class="mobile-footer-action lg:hidden">
+                    <button id="mobile-step-1-next"
+                        class="w-full bg-slate-100 text-slate-400 font-bold py-3 rounded-lg shadow-sm flex items-center justify-center transition-colors duration-200 cursor-not-allowed"
+                        disabled>
+                        Tiếp tục <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            {# === STEP 2: MODE OPTIONS === #}
+            <div id="step-2-card" class="bg-white rounded-xl shadow-lg flex flex-col lg:p-6 h-full lg:h-auto">
+                {# Mobile Header #}
+                <div class="mobile-header-section p-4 border-b border-slate-200 lg:hidden bg-white flex-shrink-0">
+                    <div class="flex items-start mb-1">
+                        <button id="mobile-step-2-back"
+                            class="mr-3 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-full w-9 h-9 flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <div class="flex flex-col">
+                            <div class="flex items-center text-xs text-slate-400 font-medium">
+                                <span class="text-purple-500">MEMRISE</span>
+                                <i class="fas fa-chevron-right mx-2 text-[10px]"></i>
+                                <span class="text-slate-600 font-semibold">STEP 2</span>
+                            </div>
+                            <h2 class="text-xl font-bold text-gray-800">Chọn chế độ học</h2>
+                        </div>
+                    </div>
+                </div>
+
+                {# Desktop Title #}
+                <h2 id="step-2-title"
+                    class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center hidden lg:flex">
+                    <i class="fas fa-cogs mr-3 text-purple-500"></i> Bước 2: Chọn chế độ học
+                </h2>
+
+                {# Content #}
+                <div class="mobile-scroll-content flex flex-col h-full lg:h-auto lg:p-0">
+                    <div id="memrise-modes-container" class="flex-grow space-y-3">
+                        <div class="flex flex-col items-center justify-center h-full text-gray-500 min-h-[300px]">
+                            <i class="fas fa-info-circle text-4xl mb-3"></i>
+                            <p>Vui lòng chọn một bộ thẻ trước.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {# Mobile Footer Step 2 #}
+                <div class="mobile-footer-action lg:hidden flex gap-3">
+                    <button id="mobile-step-2-start"
+                        class="w-full bg-purple-600 text-white font-bold py-3 rounded-lg shadow-sm flex items-center justify-center"
+                        disabled>
+                        Bắt đầu học <i class="fas fa-play-circle ml-2"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- Step 0: Select Sets -->
-        <div class="step-content active" id="step-0">
-            <h2 class="step-title">Chọn bộ từ vựng</h2>
-            <div id="sets-container" class="memrise-loading">
-                <i class="fas fa-spinner"></i>
-                <p>Đang tải...</p>
-            </div>
-            <button class="memrise-btn memrise-btn-primary js-next-step-btn" disabled>
-                Tiếp tục <i class="fas fa-arrow-right"></i>
-            </button>
-        </div>
-
-        <!-- Step 1: Select Mode -->
-        <div class="step-content" id="step-1">
-            <div class="step-back-btn js-back-step-btn">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </div>
-            <h2 class="step-title">Chọn chế độ học</h2>
-            <div id="modes-container" class="memrise-loading">
-                <i class="fas fa-spinner"></i>
-                <p>Đang tải...</p>
-            </div>
-            <button class="memrise-btn memrise-btn-primary js-start-btn" disabled>
-                <i class="fas fa-play"></i> Bắt đầu học
+        {# Desktop Footer Actions #}
+        <div class="mt-4 text-center hidden lg:block">
+            <button id="start-learning-btn"
+                class="start-button bg-purple-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 transition duration-300 shadow-md flex items-center justify-center mx-auto"
+                style="display: none;" disabled>
+                <i class="fas fa-play-circle mr-3"></i> Bắt đầu học
             </button>
         </div>
     </div>
@@ -481,140 +324,153 @@
 {{ super() }}
 <script>
     (function () {
-        var currentStep = 0;
-        var selectedSetIds = [];
-        var selectedMode = null;
+        // State
+        let selectedSetId = null;
+        let selectedMode = null;
 
-        // DOM elements
-        var setsContainer = document.getElementById('sets-container');
-        var modesContainer = document.getElementById('modes-container');
-        var nextStepBtn = document.querySelector('.js-next-step-btn');
-        var backStepBtn = document.querySelector('.js-back-step-btn');
-        var startBtn = document.querySelector('.js-start-btn');
-        var stepSubtitle = document.querySelector('.js-step-subtitle');
+        // DOM Elements
+        const section = document.getElementById('memrise-section');
+        const setsContainer = document.getElementById('memrise-sets-container');
+        const modesContainer = document.getElementById('memrise-modes-container');
 
-        // Load sets on page load
+        // Mobile buttons
+        const btnModeMemrise = document.getElementById('btn-mode-memrise');
+        const btnModeFlashcard = document.getElementById('btn-mode-flashcard');
+        const mobileStep1Back = document.getElementById('mobile-step-1-back');
+        const mobileStep1Next = document.getElementById('mobile-step-1-next');
+        const mobileStep2Back = document.getElementById('mobile-step-2-back');
+        const mobileStep2Start = document.getElementById('mobile-step-2-start');
+        const startLearningBtn = document.getElementById('start-learning-btn');
+
+        // Load sets on init
         loadSets();
+
+        // Mobile Mode Selection
+        if (btnModeMemrise) {
+            btnModeMemrise.addEventListener('click', function () {
+                section.classList.add('mobile-mode-memrise');
+            });
+        }
+
+        if (btnModeFlashcard) {
+            btnModeFlashcard.addEventListener('click', function () {
+                // Go to flashcard dashboard
+                window.location.href = '/learn/flashcard/dashboard';
+            });
+        }
+
+        // Mobile Step Navigation
+        if (mobileStep1Back) {
+            mobileStep1Back.addEventListener('click', function () {
+                section.classList.remove('mobile-mode-memrise');
+            });
+        }
+
+        if (mobileStep1Next) {
+            mobileStep1Next.addEventListener('click', function () {
+                if (selectedSetId) {
+                    section.classList.add('mobile-step-2-active');
+                    loadModes();
+                }
+            });
+        }
+
+        if (mobileStep2Back) {
+            mobileStep2Back.addEventListener('click', function () {
+                section.classList.remove('mobile-step-2-active');
+            });
+        }
+
+        if (mobileStep2Start) {
+            mobileStep2Start.addEventListener('click', startSession);
+        }
+
+        if (startLearningBtn) {
+            startLearningBtn.addEventListener('click', startSession);
+        }
 
         function loadSets() {
             fetch('/learn/memrise/api/sets-partial')
                 .then(function (r) { return r.text(); })
                 .then(function (html) {
                     setsContainer.innerHTML = html;
-                    bindSetCheckboxes();
+                    bindSetItems();
                 })
                 .catch(function () {
-                    setsContainer.innerHTML = '<p class="text-center text-red-500">Lỗi tải dữ liệu</p>';
+                    setsContainer.innerHTML = '<p class="text-center text-red-500 py-8">Lỗi tải dữ liệu</p>';
                 });
         }
 
         function loadModes() {
-            modesContainer.innerHTML = '<div class="memrise-loading"><i class="fas fa-spinner"></i><p>Đang tải...</p></div>';
+            if (!selectedSetId) return;
 
-            fetch('/learn/memrise/api/modes-partial?set_ids=' + selectedSetIds.join(','))
+            modesContainer.innerHTML = '<div class="flex flex-col items-center justify-center text-purple-500 py-8"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải...</p></div>';
+
+            fetch('/learn/memrise/api/modes-partial?set_ids=' + selectedSetId)
                 .then(function (r) { return r.text(); })
                 .then(function (html) {
                     modesContainer.innerHTML = html;
-                    bindModeCards();
+                    bindModeItems();
                 })
                 .catch(function () {
-                    modesContainer.innerHTML = '<p class="text-center text-red-500">Lỗi tải dữ liệu</p>';
+                    modesContainer.innerHTML = '<p class="text-center text-red-500 py-8">Lỗi tải dữ liệu</p>';
                 });
         }
 
-        function bindSetCheckboxes() {
-            var checkboxes = document.querySelectorAll('.js-set-checkbox');
-            checkboxes.forEach(function (cb) {
-                cb.addEventListener('change', function () {
-                    updateSelectedSets();
-                });
-            });
-        }
-
-        function updateSelectedSets() {
-            selectedSetIds = [];
-            var checkboxes = document.querySelectorAll('.js-set-checkbox:checked');
-            checkboxes.forEach(function (cb) {
-                selectedSetIds.push(parseInt(cb.value));
-            });
-
-            nextStepBtn.disabled = selectedSetIds.length === 0;
-        }
-
-        function bindModeCards() {
-            var cards = document.querySelectorAll('.js-mode-card');
-            cards.forEach(function (card) {
-                card.addEventListener('click', function () {
+        function bindSetItems() {
+            var items = document.querySelectorAll('.memrise-set-item');
+            items.forEach(function (item) {
+                item.addEventListener('click', function () {
                     // Deselect all
-                    cards.forEach(function (c) { c.classList.remove('selected'); });
-                    // Select this
-                    card.classList.add('selected');
-                    selectedMode = card.dataset.modeId;
-                    startBtn.disabled = false;
+                    items.forEach(function (i) { i.classList.remove('selected-item'); });
+                    // Select this one
+                    item.classList.add('selected-item');
+                    selectedSetId = item.dataset.setId;
+
+                    // Enable next button
+                    if (mobileStep1Next) {
+                        mobileStep1Next.disabled = false;
+                        mobileStep1Next.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+                        mobileStep1Next.classList.add('bg-purple-600', 'text-white');
+                    }
+
+                    // Desktop: auto load modes
+                    loadModes();
                 });
             });
         }
 
-        function goToStep(step) {
-            currentStep = step;
+        function bindModeItems() {
+            var items = document.querySelectorAll('.memrise-mode-item');
+            items.forEach(function (item) {
+                item.addEventListener('click', function () {
+                    // Deselect all
+                    items.forEach(function (i) { i.classList.remove('selected-mode'); });
+                    // Select this one
+                    item.classList.add('selected-mode');
+                    selectedMode = item.dataset.modeId;
 
-            // Update step dots
-            var dots = document.querySelectorAll('.step-dot');
-            dots.forEach(function (dot, i) {
-                dot.classList.remove('active', 'done');
-                if (i === step) dot.classList.add('active');
-                else if (i < step) dot.classList.add('done');
+                    // Enable start button
+                    if (mobileStep2Start) {
+                        mobileStep2Start.disabled = false;
+                    }
+                    if (startLearningBtn) {
+                        startLearningBtn.disabled = false;
+                        startLearningBtn.style.display = 'flex';
+                    }
+                });
             });
-
-            // Show current step content
-            var steps = document.querySelectorAll('.step-content');
-            steps.forEach(function (s, i) {
-                s.classList.remove('active');
-                if (i === step) s.classList.add('active');
-            });
-
-            // Update subtitle
-            if (step === 0) {
-                stepSubtitle.textContent = 'Chọn bộ từ vựng để học';
-            } else if (step === 1) {
-                stepSubtitle.textContent = 'Đã chọn ' + selectedSetIds.length + ' bộ thẻ';
-                loadModes();
-            }
         }
 
         function startSession() {
-            if (!selectedMode || selectedSetIds.length === 0) return;
+            if (!selectedSetId || !selectedMode) return;
 
-            var card = document.querySelector('.js-mode-card.selected');
-            var isFlashcard = card && card.dataset.isFlashcard === 'true';
-
-            if (isFlashcard) {
-                // Redirect to Flashcard learning
-                if (selectedSetIds.length === 1) {
-                    window.location.href = '/learn/start_flashcard_session/' + selectedSetIds[0] + '/mixed_srs';
-                } else {
-                    window.location.href = '/learn/start_flashcard_session/multi/mixed_srs?set_ids=' + selectedSetIds.join(',');
-                }
+            if (selectedMode === 'flashcard') {
+                window.location.href = '/learn/start_flashcard_session/' + selectedSetId + '/mixed_srs';
             } else {
-                // Redirect to Memrise session
-                // For multiple sets, we use the first one for now
-                // TODO: Support multi-set Memrise sessions
-                window.location.href = '/learn/memrise/session/' + selectedSetIds[0] + '?mode=' + selectedMode;
+                window.location.href = '/learn/memrise/session/' + selectedSetId + '?mode=' + selectedMode;
             }
         }
-
-        // Event listeners
-        nextStepBtn.addEventListener('click', function () {
-            if (selectedSetIds.length > 0) {
-                goToStep(1);
-            }
-        });
-
-        backStepBtn.addEventListener('click', function () {
-            goToStep(0);
-        });
-
-        startBtn.addEventListener('click', startSession);
     })();
 </script>
 {% endblock %}

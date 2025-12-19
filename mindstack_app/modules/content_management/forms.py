@@ -102,9 +102,17 @@ class FlashcardSetForm(FlaskForm):
         description='Khai báo thư mục con dùng để lưu file âm thanh, ví dụ: flashcard/n5/audio',
     )
     is_public = BooleanField('Công khai (người khác có thể tìm thấy và học)')
+    
+    # Mode Configuration Flags
+    supports_flashcard = BooleanField('Chế độ Flashcard (Lật thẻ)', default="checked")
+    supports_quiz = BooleanField('Chế độ Trắc nghiệm (MCQ)')
+    supports_writing = BooleanField('Chế độ Gõ đáp án (Typing)')
+    supports_matching = BooleanField('Chế độ Ghép đôi (Matching)')
+    supports_speed = BooleanField('Chế độ Ôn nhanh (Speed Review)')
+    supports_listening = BooleanField('Chế độ Luyện nghe (Dictation)')
+    
+    # Legacy/Advanced Capabilities (can be hidden or kept for specific logic)
     supports_pronunciation = BooleanField('Hỗ trợ luyện phát âm')
-    supports_writing = BooleanField('Hỗ trợ luyện viết')
-    supports_quiz = BooleanField('Hỗ trợ luyện trắc nghiệm')
     supports_essay = BooleanField('Hỗ trợ tự luận')
     supports_listening = BooleanField('Hỗ trợ luyện nghe')
     supports_speaking = BooleanField('Hỗ trợ luyện nói')

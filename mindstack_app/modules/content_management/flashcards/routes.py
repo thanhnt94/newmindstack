@@ -113,6 +113,9 @@ CAPABILITY_FLAGS = (
     'supports_essay',
     'supports_listening',
     'supports_speaking',
+    'supports_flashcard',
+    'supports_matching',
+    'supports_speed',
 )
 
 MEDIA_URL_FIELDS = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}

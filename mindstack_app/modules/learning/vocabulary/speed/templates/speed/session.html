@@ -1,0 +1,292 @@
+{# Speed Review Session Template #}
+{% extends "base.html" %}
+{% block title %}Ôn nhanh - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background: #1e293b;
+        color: white;
+    }
+
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        body>main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+        }
+    }
+
+    .speed-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .speed-header {
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .speed-back {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-decoration: none;
+    }
+
+    .speed-progress {
+        flex: 1;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .speed-progress-bar {
+        height: 100%;
+        background: #10b981;
+        transition: width 0.3s;
+    }
+
+    .speed-count {
+        font-weight: 600;
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+
+    .speed-card-area {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .speed-card {
+        text-align: center;
+        max-width: 400px;
+    }
+
+    .speed-word {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+
+    .speed-hint {
+        font-size: 1rem;
+        opacity: 0.6;
+    }
+
+    .speed-answer {
+        font-size: 1.5rem;
+        opacity: 0;
+        transition: opacity 0.3s;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+    }
+
+    .speed-answer.show {
+        opacity: 1;
+    }
+
+    .speed-buttons {
+        display: flex;
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+
+    .speed-btn {
+        flex: 1;
+        padding: 1.25rem;
+        border: none;
+        border-radius: 1rem;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+
+    .speed-btn:active {
+        transform: scale(0.95);
+    }
+
+    .speed-btn-know {
+        background: #10b981;
+        color: white;
+    }
+
+    .speed-btn-forgot {
+        background: #ef4444;
+        color: white;
+    }
+
+    .speed-btn-show {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .speed-complete {
+        position: fixed;
+        inset: 0;
+        background: #1e293b;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .speed-complete-icon {
+        font-size: 5rem;
+        color: #10b981;
+        margin-bottom: 1rem;
+    }
+
+    .speed-complete-title {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+
+    .speed-complete-stats {
+        opacity: 0.7;
+        margin-bottom: 2rem;
+    }
+
+    .speed-complete-btn {
+        padding: 1rem 2rem;
+        background: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="speed-container" id="game">
+    <div class="speed-header">
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="speed-back"><i class="fas fa-times"></i></a>
+        <div class="speed-progress">
+            <div class="speed-progress-bar" id="progress" style="width: 0%"></div>
+        </div>
+        <span class="speed-count"><span id="current">1</span>/{{ total }}</span>
+    </div>
+
+    <div class="speed-card-area">
+        <div class="speed-card">
+            <div class="speed-word" id="word">...</div>
+            <div class="speed-hint">Tap to reveal answer</div>
+            <div class="speed-answer" id="answer">...</div>
+        </div>
+    </div>
+
+    <div class="speed-buttons" id="buttons-initial">
+        <button class="speed-btn speed-btn-show" id="btn-show">Xem đáp án</button>
+    </div>
+
+    <div class="speed-buttons" id="buttons-answer" style="display: none;">
+        <button class="speed-btn speed-btn-forgot" id="btn-forgot">Quên rồi</button>
+        <button class="speed-btn speed-btn-know" id="btn-know">Nhớ rồi!</button>
+    </div>
+</div>
+
+<div class="speed-complete" id="complete" style="display: none;">
+    <div class="speed-complete-icon"><i class="fas fa-bolt"></i></div>
+    <div class="speed-complete-title">Hoàn thành!</div>
+    <div class="speed-complete-stats">
+        <div>✅ Nhớ: <span id="know-count">0</span></div>
+        <div>❌ Quên: <span id="forgot-count">0</span></div>
+    </div>
+    <button class="speed-complete-btn" onclick="location.reload()">Ôn lại</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        var cards = {{ cards| tojson
+    }};
+    var total = cards.length;
+    var current = 0;
+    var knowCount = 0;
+    var forgotCount = 0;
+
+    var wordEl = document.getElementById('word');
+    var answerEl = document.getElementById('answer');
+    var progressEl = document.getElementById('progress');
+    var currentEl = document.getElementById('current');
+    var btnInitial = document.getElementById('buttons-initial');
+    var btnAnswer = document.getElementById('buttons-answer');
+
+    showCard();
+
+    document.getElementById('btn-show').onclick = function () {
+        answerEl.classList.add('show');
+        btnInitial.style.display = 'none';
+        btnAnswer.style.display = 'flex';
+    };
+
+    document.getElementById('btn-know').onclick = function () {
+        knowCount++;
+        nextCard();
+    };
+
+    document.getElementById('btn-forgot').onclick = function () {
+        forgotCount++;
+        nextCard();
+    };
+
+    function showCard() {
+        if (current >= total) {
+            showComplete();
+            return;
+        }
+        var card = cards[current];
+        wordEl.textContent = card.front;
+        answerEl.textContent = card.back;
+        answerEl.classList.remove('show');
+        btnInitial.style.display = 'flex';
+        btnAnswer.style.display = 'none';
+
+        currentEl.textContent = current + 1;
+        progressEl.style.width = ((current / total) * 100) + '%';
+    }
+
+    function nextCard() {
+        current++;
+        showCard();
+    }
+
+    function showComplete() {
+        document.getElementById('game').style.display = 'none';
+        document.getElementById('complete').style.display = 'flex';
+        document.getElementById('know-count').textContent = knowCount;
+        document.getElementById('forgot-count').textContent = forgotCount;
+    }
+}) ();
+</script>
+{% endblock %}

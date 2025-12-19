@@ -1,0 +1,37 @@
+{# File: vocabulary/mcq/setup/_options_list.html #}
+<div class="space-y-3">
+    {# Mode 1: Front -> Back (Default) #}
+    <div class="js-mcq-start bg-white p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 hover:border-blue-300 transition-all duration-200 flex justify-between items-center"
+        data-mode="front_back">
+        <div>
+            <h3 class="font-semibold text-gray-800 text-lg">Thẻ <i
+                    class="fas fa-arrow-right text-sm text-gray-400 mx-2"></i> Nghĩa</h3>
+            <p class="text-sm text-gray-500 mt-1">Hỏi bằng <strong>Tiếng Việt/Mặt trước</strong>, chọn đáp án
+                <strong>Tiếng Nhật/Mặt sau</strong>.</p>
+        </div>
+        <i class="fas fa-chevron-right text-gray-300"></i>
+    </div>
+
+    {# Mode 2: Back -> Front #}
+    <div class="js-mcq-start bg-white p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 hover:border-blue-300 transition-all duration-200 flex justify-between items-center"
+        data-mode="back_front">
+        <div>
+            <h3 class="font-semibold text-gray-800 text-lg">Nghĩa <i
+                    class="fas fa-arrow-right text-sm text-gray-400 mx-2"></i> Thẻ</h3>
+            <p class="text-sm text-gray-500 mt-1">Hỏi bằng <strong>Tiếng Nhật/Mặt sau</strong>, chọn đáp án
+                <strong>Tiếng Việt/Mặt trước</strong>.</p>
+        </div>
+        <i class="fas fa-chevron-right text-gray-300"></i>
+    </div>
+
+    {# Mode 3: Mixed #}
+    <div class="js-mcq-start bg-white p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 hover:border-blue-300 transition-all duration-200 flex justify-between items-center"
+        data-mode="mixed">
+        <div>
+            <h3 class="font-semibold text-gray-800 text-lg"><i class="fas fa-random text-blue-500 mr-2"></i> Trộn lẫn
+                (Random)</h3>
+            <p class="text-sm text-gray-500 mt-1">Hệ thống sẽ ngẫu nhiên đảo chiều câu hỏi và đáp án cho từng câu.</p>
+        </div>
+        <i class="fas fa-chevron-right text-gray-300"></i>
+    </div>
+</div>
