@@ -213,9 +213,8 @@
 {{ super() }}
 <script>
     (function () {
-        var setId = {{ container.container_id }
-    };
-    var mode = '{{ mode }}';
+        var setId = {{ container.container_id }};
+        var mode = '{{ mode }}';
     var questions = [];
     var current = 0;
     var score = 0;
@@ -283,6 +282,6 @@
         document.getElementById('final-score').textContent = score;
         document.getElementById('complete-modal').style.display = 'flex';
     }
-    }) ();
+    })();
 </script>
 {% endblock %}
