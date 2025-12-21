@@ -1021,7 +1021,8 @@ NOTE: Visibility được control bởi critical CSS trong index.html
                     data-num="${num}"
                     data-front="${item.front.replace(/"/g, '&quot;')}"
                     data-answer="${item.answer}"
-                    data-score="${scoreText}">
+                    data-score="${scoreText}"
+                    data-time="${item.timestamp}">
                     <i class="fas ${icon} text-white text-[10px]"></i>
                 </span>`;
             }).join('');
@@ -1047,6 +1048,11 @@ NOTE: Visibility được control bởi critical CSS trong index.html
             const front = iconEl.dataset.front;
             const answer = iconEl.dataset.answer;
             const score = iconEl.dataset.score;
+            const timestamp = parseInt(iconEl.dataset.time);
+            const timeStr = timestamp ? new Date(timestamp).toLocaleString('vi-VN', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            }) : '';
             const scoreClass = score.startsWith('+') ? 'text-emerald-600' : (score.startsWith('-') ? 'text-rose-600' : 'text-slate-500');
 
             const tooltip = document.createElement('div');
@@ -1058,6 +1064,7 @@ NOTE: Visibility được control bởi critical CSS trong index.html
                 </div>
                 <p class="text-sm font-semibold text-slate-800 mb-1">${front}</p>
                 <p class="text-xs text-slate-500">Đáp án: <span class="font-medium">${answer}</span></p>
+                ${timeStr ? `<p class="text-xs text-slate-400 mt-1"><i class="fas fa-clock mr-1"></i>${timeStr}</p>` : ''}
             `;
 
             // Position tooltip

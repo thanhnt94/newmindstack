@@ -798,6 +798,7 @@
     right: 0;
     width: 100%;
     height: 100%;
+    z-index: 1000;
     background-color: #f9fafb;
     transform: translateX(100%);
     transition: transform 0.3s ease-in-out;
@@ -808,6 +809,41 @@
 
   .stats-modal-content.open {
     transform: translateX(0);
+  }
+
+  /* Mobile Style for Stats Modal - Bottom Sheet Style */
+  @media (max-width: 1023px) {
+    .stats-modal-overlay {
+      display: none;
+      /* Controlled by .open class */
+      flex-direction: column;
+      justify-content: flex-end;
+      background-color: rgba(0, 0, 0, 0.5) !important;
+      backdrop-filter: blur(2px);
+    }
+
+    .stats-modal-overlay.open {
+      display: flex !important;
+    }
+
+    .stats-modal-content {
+      position: relative;
+      top: auto;
+      right: auto;
+      bottom: auto;
+      width: 100%;
+      height: calc(100% - 50px);
+      max-height: none;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .stats-modal-content.open {
+      transform: translateY(0);
+    }
   }
 
   .stats-modal-header {
@@ -2100,6 +2136,41 @@
     };
     const statusClass = statusColors[String(stats.status).toLowerCase()] || 'bg-slate-100 text-slate-700';
 
+    // Recent History Section
+    let historyHtml = '';
+    if (stats.recent_reviews && stats.recent_reviews.length > 0) {
+      const icons = stats.recent_reviews.slice().reverse().map((review, idx) => {
+        const isCorrect = review.result === 'correct';
+        const isWrong = review.result === 'incorrect';
+        const colorClass = isCorrect ? 'bg-emerald-500' : (isWrong ? 'bg-rose-500' : 'bg-slate-400');
+        const icon = isCorrect ? 'fa-check' : (isWrong ? 'fa-times' : 'fa-minus');
+
+        const timeDate = review.timestamp ? new Date(review.timestamp) : null;
+        const timeStr = timeDate ? timeDate.toLocaleString('vi-VN', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'Review';
+
+        const typeLabel = review.type === 'preview' ? 'Học lần đầu' : 'Ôn tập';
+        const tooltipTitle = `${typeLabel}\n${timeStr}`;
+
+        return `<span class="w-6 h-6 rounded-full ${colorClass} flex items-center justify-center cursor-help shrink-0 ring-1 ring-white shadow-sm" title="${tooltipTitle}">
+                <i class="fas ${icon} text-white text-[10px]"></i>
+            </span>`;
+      }).join('');
+
+      historyHtml = `
+            <div class="mb-3 bg-white border border-slate-100 p-3 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                 <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-history text-xs text-slate-400"></i>
+                    <span class="text-xs uppercase font-bold text-slate-400">Lịch sử thẻ này</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5 direction-rtl">
+                    ${icons}
+                </div>
+            </div>`;
+    }
+
     return `
         <div class="mobile-stats-content">
             <!-- Top Row: Status & Next Review -->
@@ -2141,6 +2212,8 @@
                     <span class="text-lg font-black text-slate-700">${ef}</span>
                 </div>
             </div>
+
+            ${historyHtml}
 
             <!-- Card Info Toggle (App style) -->
             <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
