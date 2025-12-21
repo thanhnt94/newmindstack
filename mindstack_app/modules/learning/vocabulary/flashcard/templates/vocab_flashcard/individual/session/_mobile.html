@@ -446,50 +446,67 @@ NOTE: Visibility được control bởi critical CSS trong index.html
 
         .flashcard-mobile-view .fc-rating-btn {
             flex: 1;
-            padding: 0.75rem 0.5rem;
-            border-radius: 0.625rem;
-            font-size: 0.75rem;
-            font-weight: 700;
+            padding: 0.5rem 0.25rem;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
             border: none;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.25rem;
-            transition: all 0.2s;
+            gap: 2px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
 
         .flashcard-mobile-view .fc-rating-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.92);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
         }
 
         .flashcard-mobile-view .fc-rating-btn i {
-            font-size: 1rem;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
         }
 
-        /* Rating button colors */
+        /* Rating button colors - vibrant gradients */
         .flashcard-mobile-view .fc-rating-btn.again {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
+            background: linear-gradient(135deg, #ff6b6b 0%, #e53935 100%);
+            color: white;
+            box-shadow: 0 3px 10px rgba(229, 57, 53, 0.35);
         }
 
         .flashcard-mobile-view .fc-rating-btn.hard {
-            background: #fff7ed;
-            color: #ea580c;
-            border: 1px solid #fed7aa;
+            background: linear-gradient(135deg, #ffa726 0%, #f57c00 100%);
+            color: white;
+            box-shadow: 0 3px 10px rgba(245, 124, 0, 0.35);
+        }
+
+        .flashcard-mobile-view .fc-rating-btn.medium {
+            background: linear-gradient(135deg, #ffd54f 0%, #ffb300 100%);
+            color: #4a4a4a;
+            box-shadow: 0 3px 10px rgba(255, 179, 0, 0.35);
         }
 
         .flashcard-mobile-view .fc-rating-btn.good {
-            background: #ecfdf5;
-            color: #059669;
-            border: 1px solid #a7f3d0;
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+            box-shadow: 0 3px 10px rgba(67, 160, 71, 0.35);
         }
 
         .flashcard-mobile-view .fc-rating-btn.easy {
-            background: #eff6ff;
-            color: #2563eb;
-            border: 1px solid #bfdbfe;
+            background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+            color: white;
+            box-shadow: 0 3px 10px rgba(30, 136, 229, 0.35);
+        }
+
+        .flashcard-mobile-view .fc-rating-btn.veryeasy {
+            background: linear-gradient(135deg, #7c4dff 0%, #651fff 100%);
+            color: white;
+            box-shadow: 0 3px 10px rgba(101, 31, 255, 0.35);
         }
     }
 </style>
@@ -606,34 +623,66 @@ NOTE: Visibility được control bởi critical CSS trong index.html
             <span>Lật thẻ</span>
         </button>
 
-        <!-- Rating Buttons (shown on back) -->
-        <div class="fc-rating-btns js-fc-rating-btns">
-            <button class="fc-rating-btn again js-rating-btn" data-rating="1">
-                <i class="fas fa-times"></i>
-                <span>Quên</span>
-            </button>
-            <button class="fc-rating-btn hard js-rating-btn" data-rating="2">
-                <i class="fas fa-minus"></i>
-                <span>Khó</span>
-            </button>
-            <button class="fc-rating-btn good js-rating-btn" data-rating="3">
-                <i class="fas fa-check"></i>
-                <span>Ổn</span>
-            </button>
-            <button class="fc-rating-btn easy js-rating-btn" data-rating="4">
-                <i class="fas fa-star"></i>
-                <span>Dễ</span>
-            </button>
+        <!-- Rating Buttons (shown on back) - dynamically populated by JavaScript -->
+        <div class="fc-rating-btns js-fc-rating-btns" id="mobile-rating-btns">
+            <!-- Buttons will be generated dynamically based on user_button_count -->
         </div>
     </div>
 </div>
 
 <script>
     (function () {
+        // Generate rating buttons dynamically based on user_button_count
+        function generateMobileRatingButtons() {
+            const container = document.getElementById('mobile-rating-btns');
+            if (!container) return;
+
+            const buttonCount = window.userButtonCount || 3;
+
+            const buttonSets = {
+                3: [
+                    { cssClass: 'again', value: '1', label: 'Quên', icon: 'fas fa-times' },
+                    { cssClass: 'hard', value: '2', label: 'Mơ hồ', icon: 'fas fa-question' },
+                    { cssClass: 'good', value: '3', label: 'Nhớ', icon: 'fas fa-check' }
+                ],
+                4: [
+                    { cssClass: 'again', value: '1', label: 'Học lại', icon: 'fas fa-undo' },
+                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire' },
+                    { cssClass: 'good', value: '3', label: 'Ổn', icon: 'fas fa-thumbs-up' },
+                    { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-smile' }
+                ],
+                6: [
+                    { cssClass: 'again', value: '1', label: 'Rất khó', icon: 'fas fa-exclamation-circle' },
+                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire' },
+                    { cssClass: 'medium', value: '3', label: 'TB', icon: 'fas fa-adjust' },
+                    { cssClass: 'good', value: '4', label: 'Dễ', icon: 'fas fa-leaf' },
+                    { cssClass: 'easy', value: '5', label: 'Rất dễ', icon: 'fas fa-thumbs-up' },
+                    { cssClass: 'veryeasy', value: '6', label: 'Dễ dàng', icon: 'fas fa-star' }
+                ]
+            };
+
+            const buttons = buttonSets[buttonCount] || buttonSets[3];
+            container.innerHTML = buttons.map(btn =>
+                `<button class="fc-rating-btn ${btn.cssClass} js-rating-btn" data-rating="${btn.value}">
+                    <i class="${btn.icon}"></i>
+                    <span>${btn.label}</span>
+                </button>`
+            ).join('');
+        }
+
+        // Wait for window.userButtonCount to be set
+        function initMobileRatingButtons() {
+            if (typeof window.userButtonCount !== 'undefined') {
+                generateMobileRatingButtons();
+                setupRatingButtonHandlers();
+            } else {
+                setTimeout(initMobileRatingButtons, 100);
+            }
+        }
+
         // Connect bottom bar buttons to existing flashcard logic
         const flipBtn = document.querySelector('.js-fc-flip-btn');
         const ratingBtnsContainer = document.querySelector('.js-fc-rating-btns');
-        const ratingBtns = document.querySelectorAll('.js-rating-btn');
 
         if (flipBtn) {
             flipBtn.addEventListener('click', function () {
@@ -655,35 +704,41 @@ NOTE: Visibility được control bởi critical CSS trong index.html
             });
         }
 
-        ratingBtns.forEach(btn => {
-            btn.addEventListener('click', function () {
-                const rating = btn.dataset.rating;
-                // Map our rating (1-4) to the answer values used by the card
-                // Check button count to use correct mapping
-                const buttonCount = window.userButtonCount || 3;
-                let answerMap;
-                if (buttonCount === 3) {
-                    answerMap = { '1': 'quên', '2': 'mơ_hồ', '3': 'nhớ', '4': 'nhớ' };
-                } else if (buttonCount === 4) {
-                    answerMap = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
-                } else {
-                    // 6 buttons
-                    answerMap = { '1': 'fail', '2': 'hard', '3': 'good', '4': 'very_easy' };
-                }
-                const answerValue = answerMap[rating] || 'good';
+        // Setup rating button handlers after buttons are generated
+        function setupRatingButtonHandlers() {
+            const ratingBtns = document.querySelectorAll('.js-rating-btn');
+            ratingBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const rating = btn.dataset.rating;
+                    // Map our rating (1-6) to the answer values used by the card
+                    const buttonCount = window.userButtonCount || 3;
+                    let answerMap;
+                    if (buttonCount === 3) {
+                        answerMap = { '1': 'quên', '2': 'mơ_hồ', '3': 'nhớ' };
+                    } else if (buttonCount === 4) {
+                        answerMap = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
+                    } else {
+                        // 6 buttons
+                        answerMap = { '1': 'fail', '2': 'very_hard', '3': 'hard', '4': 'medium', '5': 'good', '6': 'very_easy' };
+                    }
+                    const answerValue = answerMap[rating] || 'good';
 
-                // Trigger existing rating button logic in MOBILE VIEW
-                const mobileView = document.querySelector('.flashcard-mobile-view');
-                const existingBtn = mobileView ? mobileView.querySelector(`.js-internal-actions .btn[data-answer="${answerValue}"]`) : null;
-                if (existingBtn) existingBtn.click();
+                    // Trigger existing rating button logic in MOBILE VIEW
+                    const mobileView = document.querySelector('.flashcard-mobile-view');
+                    const existingBtn = mobileView ? mobileView.querySelector(`.js-internal-actions .btn[data-answer="${answerValue}"]`) : null;
+                    if (existingBtn) existingBtn.click();
 
-                // Reset for next card
-                setTimeout(() => {
-                    flipBtn.style.display = 'flex';
-                    ratingBtnsContainer.classList.remove('show');
-                }, 100);
+                    // Reset for next card
+                    setTimeout(() => {
+                        flipBtn.style.display = 'flex';
+                        ratingBtnsContainer.classList.remove('show');
+                    }, 100);
+                });
             });
-        });
+        }
+
+        // Initialize rating buttons
+        initMobileRatingButtons();
 
         // Update stats from custom event dispatched by main script
         function updateMobileStats(stats) {
