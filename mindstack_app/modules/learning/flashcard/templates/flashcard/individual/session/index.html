@@ -2574,5 +2574,30 @@
     setTimeout(adjustCardLayout, 0);
   });
 
+  // Expose functions and state for mobile UI
+  window.setMediaHiddenState = setMediaHiddenState;
+  window.setAudioAutoplayEnabled = setAudioAutoplayEnabled;
+  window.toggleAudioAutoplay = () => setAudioAutoplayEnabled(!isAudioAutoplayEnabled);
+  window.openFeedbackModal = openFeedbackModal;
+  window.openModal = openModal;
+
+  // Getters for current flashcard state (used by mobile UI)
+  Object.defineProperty(window, 'currentFlashcardBatch', {
+    get: () => currentFlashcardBatch,
+    configurable: true
+  });
+  Object.defineProperty(window, 'currentFlashcardIndex', {
+    get: () => currentFlashcardIndex,
+    configurable: true
+  });
+  Object.defineProperty(window, 'isMediaHidden', {
+    get: () => isMediaHidden,
+    configurable: true
+  });
+  Object.defineProperty(window, 'isAudioAutoplayEnabled', {
+    get: () => isAudioAutoplayEnabled,
+    configurable: true
+  });
+
 </script>
 {% endblock %}

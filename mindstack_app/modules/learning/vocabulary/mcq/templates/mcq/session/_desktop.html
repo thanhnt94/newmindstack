@@ -1,0 +1,166 @@
+{#
+MCQ Session - Desktop View
+Phiên bản: 1.0
+MỤC ĐÍCH: Giao diện Desktop cho MCQ Session
+NOTE: Visibility được control bởi critical CSS trong index.html
+#}
+
+<style>
+    /* Desktop view layout - visibility control by index.html */
+    .mcq-desktop-view {
+        height: 100%;
+        overflow: hidden;
+    }
+
+    /* ===== Desktop Layout Rules ===== */
+    @media (min-width: 1024px) {
+        .mcq-desktop-view .mcq-app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #f8fafc;
+        }
+
+        /* Header Desktop */
+        .mcq-desktop-view .mcq-header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+        }
+
+        .mcq-desktop-view .mcq-header-row {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .mcq-desktop-view .mcq-back-btn {
+            width: 40px;
+            height: 40px;
+        }
+
+        .mcq-desktop-view .mcq-breadcrumb {
+            font-size: 0.75rem;
+        }
+
+        .mcq-desktop-view .mcq-page-title {
+            font-size: 1.125rem;
+        }
+
+        /* Main Content Desktop */
+        .mcq-desktop-view .mcq-main {
+            flex: 1;
+            padding: 2rem;
+            padding-bottom: 120px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .mcq-desktop-view .mcq-prompt-card {
+            padding: 3rem 2rem;
+            border-radius: 1.25rem;
+        }
+
+        .mcq-desktop-view .mcq-prompt {
+            font-size: 2.5rem;
+        }
+
+        .mcq-desktop-view .mcq-options {
+            gap: 1rem;
+        }
+
+        .mcq-desktop-view .mcq-option {
+            padding: 1.25rem 1.5rem;
+            border-radius: 1.25rem;
+        }
+
+        .mcq-desktop-view .mcq-option:hover {
+            transform: translateX(4px);
+        }
+
+        .mcq-desktop-view .mcq-option-text {
+            font-size: 1.125rem;
+        }
+
+        /* Bottom Bar Desktop */
+        .mcq-desktop-view .mcq-bottom-bar {
+            max-width: 800px;
+            margin: 0 auto;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 1rem 1rem 0 0;
+            padding: 1.25rem 2rem;
+        }
+
+        .mcq-desktop-view .mcq-submit-btn {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 1.125rem;
+            border-radius: 1.25rem;
+            font-size: 1.0625rem;
+        }
+    }
+</style>
+
+{# Desktop Interface #}
+<div class="mcq-desktop-view">
+    <div class="mcq-app">
+        <!-- Header - 2 Rows -->
+        <div class="mcq-header">
+            <div class="mcq-header-row">
+                <a href="javascript:history.back()" class="mcq-back-btn js-back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div class="mcq-header-content">
+                    <!-- Row 1: Breadcrumb -->
+                    <div class="mcq-breadcrumb">
+                        <span>TỪ VỰNG</span>
+                        <i class="fas fa-chevron-right mcq-breadcrumb-sep"></i>
+                        <span>MCQ</span>
+                        <i class="fas fa-chevron-right mcq-breadcrumb-sep"></i>
+                        <span class="mcq-breadcrumb-active">CÂU <span class="js-current-num">1</span></span>
+                    </div>
+                    <!-- Row 2: Title -->
+                    <h1 class="mcq-page-title">Chọn đáp án đúng</h1>
+                </div>
+                <span class="mcq-progress-badge js-progress-badge">0/0</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="mcq-main">
+            <!-- Question Prompt -->
+            <div class="mcq-prompt-card">
+                <h2 class="mcq-prompt js-prompt">Đang tải...</h2>
+            </div>
+
+            <!-- Options -->
+            <div class="mcq-options js-choices">
+                <!-- Options rendered here -->
+            </div>
+
+            <!-- Result Feedback -->
+            <div class="mcq-result js-result-panel">
+                <div class="mcq-result-header">
+                    <span class="mcq-result-icon js-result-icon">💡</span>
+                    <h3 class="mcq-result-title js-result-title">Kết quả</h3>
+                </div>
+                <div class="mcq-result-answer">
+                    <i class="fas fa-check-circle"></i>
+                    <span class="js-correct-answer">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="mcq-bottom-bar">
+            <button class="mcq-submit-btn js-submit-btn" disabled>
+                <span class="js-btn-text">Tiếp tục</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+</div>

@@ -37,6 +37,7 @@
             z-index: 100;
             background: #f8fafc;
             flex-direction: column;
+            overflow-y: auto;
         }
 
         .vocab-step.active {
@@ -175,54 +176,114 @@
         }
     }
 
-    /* Set Card */
+    /* Set Card - Premium App Style */
     .vocab-set-card {
         background: white;
         border-radius: 1rem;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(0, 0, 0, 0.04);
     }
 
     .vocab-set-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(99, 102, 241, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .vocab-set-card:active {
+        transform: translateY(-2px) scale(0.98);
     }
 
     .vocab-set-cover {
-        height: 100px;
-        background: linear-gradient(135deg, #c7d2fe, #ddd6fe);
+        height: 110px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
         display: flex;
         align-items: center;
         justify-content: center;
         background-size: cover;
         background-position: center;
-    }
-
-    .vocab-set-cover i {
-        font-size: 2rem;
-        color: rgba(99, 102, 241, 0.5);
-    }
-
-    .vocab-set-info {
-        padding: 0.75rem;
-    }
-
-    .vocab-set-title {
-        font-weight: 600;
-        color: #1e293b;
-        font-size: 0.875rem;
-        margin-bottom: 0.25rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
+        position: relative;
         overflow: hidden;
     }
 
+    .vocab-set-cover::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.1) 100%);
+    }
+
+    .vocab-set-cover i {
+        font-size: 2.5rem;
+        color: rgba(255, 255, 255, 0.85);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        position: relative;
+        z-index: 1;
+    }
+
+    .vocab-set-info {
+        padding: 0.875rem;
+    }
+
+    .vocab-set-title {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.3;
+    }
+
     .vocab-set-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: #64748b;
+    }
+
+    .vocab-set-count {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-weight: 600;
+        color: #6366f1;
+        background: #eef2ff;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+    }
+
+    .vocab-set-count i {
+        font-size: 0.65rem;
+    }
+
+    .vocab-set-author {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #64748b;
+        font-size: 0.7rem;
+    }
+
+    .vocab-set-avatar {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.55rem;
+        font-weight: 700;
+        text-transform: uppercase;
     }
 
     /* Detail View */
@@ -362,7 +423,7 @@
         background: white;
         border-radius: 1rem;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.4rem;
         cursor: pointer;
         transition: all 0.2s;
     }
@@ -476,6 +537,413 @@
             border-radius: 1rem;
         }
     }
+
+    /* Step Header (new design) */
+    .step-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .step-back-btn,
+    .step-home-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.75rem;
+        background: #f1f5f9;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .step-back-btn:hover,
+    .step-home-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    /* Breadcrumb - larger text as requested */
+    .step-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .breadcrumb-item {
+        color: #94a3b8;
+    }
+
+    .breadcrumb-item.active {
+        color: #3b82f6;
+    }
+
+    .breadcrumb-sep {
+        color: #cbd5e1;
+        font-size: 0.65rem;
+    }
+
+    /* Simplified Step Header - Centered Breadcrumb */
+    .step-header-simple {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .step-breadcrumb-centered {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Bottom Navigation Bar */
+    .step-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+        z-index: 50;
+        gap: 0.75rem;
+    }
+
+    .step-nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        flex: 1;
+    }
+
+    .step-nav-back {
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+    }
+
+    .step-nav-back:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    .step-nav-home {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .step-nav-home:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        color: white;
+    }
+
+    /* Scroll area with bottom nav padding */
+    .step-scroll-with-nav {
+        padding: 0.75rem !important;
+        padding-bottom: 100px !important;
+    }
+
+    /* Left-Aligned Step Header - 2 Rows */
+    .step-header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .step-header-content {
+        flex: 1;
+    }
+
+    .step-breadcrumb-left {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #94a3b8;
+        margin-bottom: 0.25rem;
+    }
+
+    .step-breadcrumb-left i {
+        font-size: 0.6rem;
+        color: #cbd5e1;
+    }
+
+    .step-breadcrumb-left .active {
+        color: #8b5cf6;
+    }
+
+    .step-header-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+    }
+
+    /* Selected Set Display */
+    .step-set-display {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .step-set-label {
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+
+    .step-set-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .step-set-chip i {
+        color: #8b5cf6;
+        font-size: 0.7rem;
+    }
+
+    /* Selectable Mode Cards */
+    .mode-select-card {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        padding: 1rem;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 0.75rem;
+    }
+
+    .mode-select-card:hover {
+        border-color: #c4b5fd;
+        background: #faf5ff;
+    }
+
+    .mode-select-card.selected {
+        border-color: #8b5cf6;
+        background: linear-gradient(135deg, #faf5ff, #ede9fe);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+    }
+
+    .mode-select-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.125rem;
+        flex-shrink: 0;
+    }
+
+    .mode-select-icon.blue {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    }
+
+    .mode-select-icon.green {
+        background: linear-gradient(135deg, #10b981, #34d399);
+    }
+
+    .mode-select-icon.yellow {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    }
+
+    .mode-select-icon.purple {
+        background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    }
+
+    .mode-select-info {
+        flex: 1;
+    }
+
+    .mode-select-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.125rem;
+    }
+
+    .mode-select-desc {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    .mode-select-check {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.7rem;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .mode-select-check i {
+        display: none;
+    }
+
+    .mode-select-card.selected .mode-select-check {
+        border-color: #8b5cf6;
+        background: #8b5cf6;
+    }
+
+    .mode-select-card.selected .mode-select-check i {
+        display: block;
+    }
+
+    /* Bottom Bar with Single Button */
+    .step-bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+        z-index: 50;
+    }
+
+    .step-continue-btn {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 1rem;
+        font-size: 1rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+        color: white;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+
+    .step-continue-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+    }
+
+    .step-continue-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Title Section */
+    .step-title-section {
+        padding: 1rem;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .step-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .selected-set-display {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .selected-set-label {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .selected-set-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-radius: 9999px;
+        border: 1px solid #bfdbfe;
+    }
+
+    .selected-set-chip i {
+        font-size: 0.7rem;
+    }
+
+    /* Step Content Container */
+    .step-content-container {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
 </style>
 {% endblock %}
 
@@ -555,106 +1023,114 @@
     </div>
 </div>
 
-<!-- STEP 3: Mode Selector -->
+<!-- STEP 3: Mode Selector - Select Then Submit -->
 <div id="step-modes" class="vocab-step">
-    <div class="vocab-header lg:hidden">
-        <button class="vocab-back-btn js-back-to-detail"><i class="fas fa-arrow-left"></i></button>
-        <span class="vocab-title">Chọn chế độ học</span>
+    {# Header - 2 Rows Like MCQ #}
+    <div class="step-header-left">
+        <a href="javascript:void(0)" class="step-back-btn js-back-to-detail">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="step-header-content">
+            {# Row 1: Breadcrumb #}
+            <div class="step-breadcrumb-left">
+                <span>TỪ VỰNG</span>
+                <i class="fas fa-chevron-right"></i>
+                <span class="active">BƯỚC 1</span>
+            </div>
+            {# Row 2: Title #}
+            <h1 class="step-header-title">Chọn chế độ học</h1>
+        </div>
     </div>
 
-    <div class="vocab-scroll" style="padding: 1rem;">
-        <div class="vocab-mode-card js-mode-card" data-mode="flashcard">
-            <div class="vocab-mode-icon blue"><i class="fas fa-clone"></i></div>
-            <div class="vocab-mode-info">
-                <div class="vocab-mode-name">Flashcard</div>
-                <div class="vocab-mode-desc">Lật thẻ ôn tập truyền thống</div>
+    {# Selected Set Display #}
+    <div class="step-set-display">
+        <span class="step-set-label">Bộ đã chọn:</span>
+        <span class="step-set-chip js-selected-set-chip">
+            <i class="fas fa-layer-group"></i>
+            <span class="js-selected-set-name">Chưa chọn</span>
+        </span>
+    </div>
+
+    {# Mode Selection Cards #}
+    <div class="vocab-scroll step-scroll-with-nav" style="padding: 1rem;">
+        <div class="mode-select-card js-mode-select" data-mode="flashcard">
+            <div class="mode-select-icon blue"><i class="fas fa-clone"></i></div>
+            <div class="mode-select-info">
+                <div class="mode-select-name">Flashcard</div>
+                <div class="mode-select-desc">Lật thẻ ôn tập truyền thống</div>
             </div>
-            <i class="fas fa-chevron-right" style="color: #cbd5e1;"></i>
+            <span class="mode-select-check"><i class="fas fa-check"></i></span>
         </div>
 
-        <div class="vocab-mode-card js-mode-card" data-mode="mixed">
-            <div class="vocab-mode-icon purple"><i class="fas fa-brain"></i></div>
-            <div class="vocab-mode-info">
-                <div class="vocab-mode-name">Học thông minh (SRS)</div>
-                <div class="vocab-mode-desc">Ôn tập với spaced repetition (sẽ cập nhật)</div>
+        <div class="mode-select-card js-mode-select" data-mode="mcq">
+            <div class="mode-select-icon green"><i class="fas fa-list-ul"></i></div>
+            <div class="mode-select-info">
+                <div class="mode-select-name">Trắc nghiệm</div>
+                <div class="mode-select-desc">Chọn đáp án đúng từ 4 lựa chọn</div>
             </div>
-            <i class="fas fa-chevron-right" style="color: #cbd5e1;"></i>
+            <span class="mode-select-check"><i class="fas fa-check"></i></span>
         </div>
 
-        <div class="vocab-mode-card js-mode-card" data-mode="mcq">
-            <div class="vocab-mode-icon green"><i class="fas fa-list-ul"></i></div>
-            <div class="vocab-mode-info">
-                <div class="vocab-mode-name">Trắc nghiệm</div>
-                <div class="vocab-mode-desc">Chọn đáp án đúng từ 4 lựa chọn</div>
-            </div>
-            <i class="fas fa-chevron-right" style="color: #cbd5e1;"></i>
-        </div>
-
-        <div class="vocab-mode-card js-mode-card" data-mode="typing">
-            <div class="vocab-mode-icon yellow"><i class="fas fa-keyboard"></i></div>
-            <div class="vocab-mode-info">
-                <div class="vocab-mode-name">Gõ đáp án</div>
-                <div class="vocab-mode-desc">Gõ câu trả lời chính xác</div>
-            </div>
-            <i class="fas fa-chevron-right" style="color: #cbd5e1;"></i>
-        </div>
-
-        <div class="vocab-mode-card js-mode-card" data-mode="matching">
-            <div class="vocab-mode-icon" style="background: linear-gradient(135deg, #ec4899, #f472b6);"><i
-                    class="fas fa-puzzle-piece"></i></div>
-            <div class="vocab-mode-info">
-                <div class="vocab-mode-name">Ghép đôi</div>
-                <div class="vocab-mode-desc">Kéo thả ghép từ với nghĩa</div>
-            </div>
-            <i class="fas fa-chevron-right" style="color: #cbd5e1;"></i>
-        </div>
-
-        <div class="vocab-mode-card js-mode-card" data-mode="speed">
-            <div class="vocab-mode-icon" style="background: linear-gradient(135deg, #f97316, #fb923c);"><i
-                    class="fas fa-bolt"></i></div>
-            <div class="vocab-mode-info">
-                <div class="vocab-mode-name">Ôn nhanh</div>
-                <div class="vocab-mode-desc">Biết / Không biết trong 3 giây</div>
-            </div>
-            <i class="fas fa-chevron-right" style="color: #cbd5e1;"></i>
-        </div>
-
-        <div class="vocab-mode-card js-mode-card" data-mode="listening">
-            <div class="vocab-mode-icon" style="background: linear-gradient(135deg, #6366f1, #818cf8);"><i
+        <div class="mode-select-card js-mode-select" data-mode="listening">
+            <div class="mode-select-icon" style="background: linear-gradient(135deg, #6366f1, #818cf8);"><i
                     class="fas fa-headphones-alt"></i></div>
-            <div class="vocab-mode-info">
-                <div class="vocab-mode-name">Luyện nghe (Dictation)</div>
-                <div class="vocab-mode-desc">Nghe & chép chính tả</div>
+            <div class="mode-select-info">
+                <div class="mode-select-name">Luyện nghe (Dictation)</div>
+                <div class="mode-select-desc">Nghe & chép chính tả</div>
             </div>
-            <i class="fas fa-chevron-right" style="color: #cbd5e1;"></i>
+            <span class="mode-select-check"><i class="fas fa-check"></i></span>
+        </div>
+
+        <div class="mode-select-card js-mode-select" data-mode="typing">
+            <div class="mode-select-icon yellow"><i class="fas fa-keyboard"></i></div>
+            <div class="mode-select-info">
+                <div class="mode-select-name">Gõ đáp án</div>
+                <div class="mode-select-desc">Gõ câu trả lời chính xác</div>
+            </div>
+            <span class="mode-select-check"><i class="fas fa-check"></i></span>
+        </div>
+
+        <div class="mode-select-card js-mode-select" data-mode="matching">
+            <div class="mode-select-icon" style="background: linear-gradient(135deg, #ec4899, #f472b6);"><i
+                    class="fas fa-puzzle-piece"></i></div>
+            <div class="mode-select-info">
+                <div class="mode-select-name">Ghép đôi</div>
+                <div class="mode-select-desc">Kéo thả ghép từ với nghĩa</div>
+            </div>
+            <span class="mode-select-check"><i class="fas fa-check"></i></span>
+        </div>
+
+        <div class="mode-select-card js-mode-select" data-mode="speed">
+            <div class="mode-select-icon" style="background: linear-gradient(135deg, #f97316, #fb923c);"><i
+                    class="fas fa-bolt"></i></div>
+            <div class="mode-select-info">
+                <div class="mode-select-name">Ôn nhanh</div>
+                <div class="mode-select-desc">Biết / Không biết trong 3 giây</div>
+            </div>
+            <span class="mode-select-check"><i class="fas fa-check"></i></span>
         </div>
     </div>
-</div>
+
+    {# Bottom Bar - Single Continue Button #}
+    <div class="step-bottom-bar">
+        <button type="button" class="step-continue-btn js-mode-continue" disabled>
+            <span>Tiếp tục</span>
+            <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
 </div>
 
-{# Step 4: Flashcard Options (Sub-selection) #}
+{# Step 4: Flashcard Options (Sub-selection) - Header in loaded content #}
 <div id="step-flashcard-options" class="vocab-step">
-    <div class="vocab-header lg:hidden">
-        <button class="vocab-back-btn js-back-to-modes"><i class="fas fa-arrow-left"></i></button>
-        <span class="vocab-title">Chọn chế độ Flashcard</span>
-    </div>
-    <div class="vocab-scroll" style="padding: 1rem;">
-        <div id="flashcard-options-container" class="w-full max-w-3xl mx-auto">
-            <!-- Content loaded dynamically -->
-        </div>
+    <div id="flashcard-options-container" class="step-content-container">
+        <!-- Content loaded dynamically with its own header -->
     </div>
 </div>
 
-{# Step 5: MCQ Options #}
+{# Step 5: MCQ Options - Header in loaded content #}
 <div id="step-mcq-options" class="vocab-step">
-    <div class="vocab-header lg:hidden">
-        <button class="vocab-back-btn js-back-to-modes"><i class="fas fa-arrow-left"></i></button>
-        <span class="vocab-title">Tùy chọn Trắc nghiệm</span>
-    </div>
-    <div class="vocab-scroll" style="padding: 1rem;">
-        <div id="mcq-options-container" class="w-full max-w-3xl mx-auto">
-            <!-- Content loaded dynamically -->
-        </div>
+    <div id="mcq-options-container" class="step-content-container">
+        <!-- Content loaded dynamically with its own header -->
     </div>
 </div>
 
@@ -757,13 +1233,22 @@
             var html = '';
             sets.forEach(function (s) {
                 var coverStyle = s.cover_image ? 'background-image: url(/static/' + s.cover_image + ')' : '';
+                var authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
+                var authorName = s.creator_name || 'Unknown';
+
                 html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
                 html += '<div class="vocab-set-cover" style="' + coverStyle + '">';
                 if (!s.cover_image) html += '<i class="fas fa-book-open"></i>';
                 html += '</div>';
                 html += '<div class="vocab-set-info">';
                 html += '<div class="vocab-set-title">' + s.title + '</div>';
-                html += '<div class="vocab-set-meta">' + s.card_count + ' thẻ</div>';
+                html += '<div class="vocab-set-meta">';
+                html += '<div class="vocab-set-author">';
+                html += '<span class="vocab-set-avatar">' + authorInitial + '</span>';
+                html += '<span>' + authorName + '</span>';
+                html += '</div>';
+                html += '<div class="vocab-set-count"><i class="fas fa-clone"></i>' + s.card_count + '</div>';
+                html += '</div>';
                 html += '</div></div>';
             });
             setsGrid.innerHTML = html;
@@ -814,6 +1299,13 @@
         // Start learning button
         document.querySelectorAll('.js-start-learning').forEach(function (btn) {
             btn.addEventListener('click', function () {
+                // Update selected set chip in step-modes
+                if (selectedSetData) {
+                    var setNameEl = document.querySelector('.js-selected-set-name');
+                    if (setNameEl) {
+                        setNameEl.textContent = selectedSetData.title;
+                    }
+                }
                 updateModeVisibility();
                 showStep('modes');
             });
@@ -848,38 +1340,43 @@
             // `supports_matching` and `supports_speed` will be False for old sets.
             // That is acceptable. User asked to "Optionalize" them.
 
-            document.querySelectorAll('.js-mode-card').forEach(card => {
+            document.querySelectorAll('.js-mode-select').forEach(card => {
                 const mode = card.dataset.mode;
                 const flag = mapping[mode];
 
-                // SRS mixed mode always show for now or hide? 
-                if (mode === 'mixed') {
-                    // Start hidden until implemented
-                    card.style.display = 'none';
-                    return;
-                }
-
-                // If set has flag, show.
                 if (flag && caps.has(flag)) {
                     card.style.display = 'flex';
                 } else {
-                    // Allow Flashcard by default if not strictly disabled? 
-                    // No, strict config is better.
-                    // But if I just added the code, all old sets have NO flags for matching/speed.
-                    // So they will disappear.
-                    // That is fine, user can enable them.
                     card.style.display = 'none';
                 }
             });
         }
 
-        // Mode cards
-        document.querySelectorAll('.js-mode-card').forEach(function (card) {
+        // Mode selection (select-then-submit pattern)
+        var selectedMode = null;
+        var continueBtn = document.querySelector('.js-mode-continue');
+
+        document.querySelectorAll('.js-mode-select').forEach(function (card) {
             card.addEventListener('click', function () {
-                var mode = card.dataset.mode;
-                startSession(mode);
+                // Deselect all
+                document.querySelectorAll('.js-mode-select').forEach(function (c) {
+                    c.classList.remove('selected');
+                });
+                // Select this one
+                card.classList.add('selected');
+                selectedMode = card.dataset.mode;
+                // Enable continue button
+                if (continueBtn) continueBtn.disabled = false;
             });
         });
+
+        // Continue button handler
+        if (continueBtn) {
+            continueBtn.addEventListener('click', function () {
+                if (!selectedMode) return;
+                startSession(selectedMode);
+            });
+        }
 
         function startSession(mode) {
             if (!selectedSetId) return;
@@ -918,22 +1415,75 @@
 
         function bindFlashcardModeEvents(setId) {
             if (!flashcardOptionsContainer) return;
-            flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item').forEach(item => {
-                // IMPORTANT: Removed cursor-not-allowed check here to match previous logic logic strictly,
-                // but actually the previous logic DID check it.
-                // Re-adding the check:
-                if (!item.classList.contains('cursor-not-allowed')) {
-                    item.addEventListener('click', function () {
-                        const modeId = this.dataset.modeId;
-                        if (modeId === 'autoplay') {
-                            const scope = document.querySelector('input[name="autoplay-scope"]:checked');
-                            const val = scope ? scope.value : 'autoplay_learned';
-                            window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + val;
-                        } else {
-                            window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + modeId;
-                        }
+            var selectedFlashcardMode = null;
+            var continueBtn = flashcardOptionsContainer.querySelector('.js-flashcard-continue');
+            var autoplaySettings = flashcardOptionsContainer.querySelector('#autoplay-settings-container');
+
+            flashcardOptionsContainer.querySelectorAll('.js-flashcard-mode-select').forEach(function (card) {
+                if (card.classList.contains('disabled')) return;
+
+                card.addEventListener('click', function () {
+                    // Deselect all
+                    flashcardOptionsContainer.querySelectorAll('.js-flashcard-mode-select').forEach(function (c) {
+                        c.classList.remove('selected');
                     });
-                }
+                    // Select this one
+                    card.classList.add('selected');
+                    selectedFlashcardMode = card.dataset.modeId;
+                    // Enable continue button
+                    if (continueBtn) continueBtn.disabled = false;
+
+                    // Show/hide autoplay settings
+                    if (autoplaySettings) {
+                        if (selectedFlashcardMode === 'autoplay') {
+                            autoplaySettings.classList.remove('hidden');
+                        } else {
+                            autoplaySettings.classList.add('hidden');
+                        }
+                    }
+                });
+            });
+
+            if (continueBtn) {
+                continueBtn.addEventListener('click', function () {
+                    if (!selectedFlashcardMode) return;
+
+                    // Button count logic
+                    var buttonCountSelect = flashcardOptionsContainer.querySelector('#button-count-select');
+                    var buttonCount = buttonCountSelect ? parseInt(buttonCountSelect.value) : 3;
+
+                    var finalMode = selectedFlashcardMode;
+                    if (selectedFlashcardMode === 'autoplay') {
+                        var scope = document.querySelector('input[name="autoplay-scope"]:checked');
+                        finalMode = scope ? scope.value : 'autoplay_learned';
+                    }
+
+                    // Save settings first, then redirect
+                    fetch('/learn/vocabulary/flashcard/save_flashcard_settings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}' // Ensure CSRF token if needed, usually flask-wtf handles this but standard fetch might need header or just work if cookies are sent
+                        },
+                        body: JSON.stringify({ button_count: buttonCount })
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            console.log("Settings saved:", data);
+                            // Redirect after saving
+                            window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + finalMode;
+                        })
+                        .catch(err => {
+                            console.error("Error saving settings:", err);
+                            // Fallback redirect even if save fails
+                            window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + finalMode;
+                        });
+                });
+            }
+
+            // Also bind back button
+            flashcardOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
+                btn.addEventListener('click', function () { showStep('modes'); });
             });
         }
 
@@ -945,21 +1495,20 @@
                 .then(r => r.text())
                 .then(html => {
                     mcqOptionsContainer.innerHTML = html;
-                    bindMcqModeEvents(setId);
+                    // Execute scripts from injected HTML
+                    mcqOptionsContainer.querySelectorAll('script').forEach(function (oldScript) {
+                        var newScript = document.createElement('script');
+                        newScript.textContent = oldScript.textContent;
+                        document.body.appendChild(newScript);
+                    });
+                    // Bind back button
+                    mcqOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
+                        btn.addEventListener('click', function () { showStep('modes'); });
+                    });
                 })
                 .catch(err => {
                     mcqOptionsContainer.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải tùy chọn. Vui lòng thử lại.</div>';
                 });
-        }
-
-        function bindMcqModeEvents(setId) {
-            if (!mcqOptionsContainer) return;
-            mcqOptionsContainer.querySelectorAll('.js-mcq-start').forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const mode = this.dataset.mode; // 'front_back', 'back_front', 'mixed'
-                    window.location.href = '/learn/vocabulary/mcq/session/' + setId + '?mode=' + mode;
-                });
-            });
         }
     })();
 </script>

@@ -22,6 +22,7 @@ def get_mcq_eligible_items(container_id):
                 'prompt': content.get('memrise_prompt'),
                 'answers': content.get('memrise_answers', []),
                 'audio_url': content.get('memrise_audio_url'),
+                'content': content,
             })
         elif content.get('front') and content.get('back'):
             # Fallback to flashcard front/back
@@ -30,15 +31,42 @@ def get_mcq_eligible_items(container_id):
                 'prompt': content.get('front'),
                 'answers': [content.get('back')],
                 'audio_url': None,
+                'content': content,
             })
     
     return eligible
 
 
-def generate_mcq_question(item, all_items, num_choices=4, mode='front_back'):
+def get_available_content_keys(container_id):
+    """
+    Scan items in the container to find available keys in the content JSON.
+    Returns a list of keys that are present in at least one item, excluding system keys.
+    """
+    items = LearningItem.query.filter_by(
+        container_id=container_id,
+        item_type='FLASHCARD'
+    ).all()
+    
+    keys = set()
+    system_keys = {'audio_url', 'image_url', 'video_url', 'memrise_audio_url', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'}
+    
+    for item in items:
+        content = item.content or {}
+        for k in content.keys():
+            if k not in system_keys and isinstance(content[k], (str, int, float)):
+                 keys.add(k)
+                 
+    # Ensure standard keys are present if valid
+    return sorted(list(keys))
+
+
+
+def generate_mcq_question(item, all_items, num_choices=4, mode='front_back', question_key=None, answer_key=None, custom_pairs=None):
     """
     Generate an MCQ question with distractors.
-    mode: 'front_back', 'back_front', 'mixed'
+    mode: 'front_back', 'back_front', 'mixed', 'custom'
+    If mode is 'custom', provide either (question_key, answer_key) OR custom_pairs list.
+    custom_pairs: [{'q': 'key1', 'a': 'key2'}, ...]
     """
     
     # Determine direction for this question
@@ -46,50 +74,91 @@ def generate_mcq_question(item, all_items, num_choices=4, mode='front_back'):
     if mode == 'mixed':
         current_mode = random.choice(['front_back', 'back_front'])
     
+    
     # Define primary prompt and answer based on mode
-    # Default: Prompt = 'prompt' (Front), Answer = 'answers'[0] (Back)
-    question_prompt = item['prompt']
-    correct_answer = item['answers'][0] if item['answers'] else ''
+    question_prompt = ''
+    correct_answer = ''
+    
+    # Handle Custom Pairs (Random Selection)
+    if current_mode == 'custom' and custom_pairs:
+        pair = random.choice(custom_pairs)
+        question_key = pair.get('q')
+        answer_key = pair.get('a')
+    
+    if current_mode == 'custom' and question_key and answer_key:
+        # Custom columns logic handled below
+        pass
+        
+    # Standard modes mapping attempt
+    # Default assumptions if standard keys exist in the simplified item dict
+    if 'prompt' in item and 'answers' in item:
+        question_prompt = item['prompt']
+        correct_answer = item['answers'][0] if item['answers'] else ''
     
     if current_mode == 'back_front':
-        # Swap: Prompt = Back (Meaning), Answer = Front (Word)
-        # Note: We need the reverse mapping. 
-        # In `get_mcq_eligible_items`, 'prompt' is Front, 'answers' is Back.
-        # So we swap them here.
         question_prompt = item['answers'][0] if item['answers'] else '???'
         correct_answer = item['prompt']
     
-    # Get distractors from other items
+    elif current_mode == 'custom':
+        # logic for custom keys
+        # We assume 'item' dict now has a 'content' field with raw data
+        content = item.get('content', {})
+        question_prompt = content.get(question_key, '???')
+        # Answers could be list or string in DB but usually string for simple fields
+        raw_answer = content.get(answer_key, '')
+        if isinstance(raw_answer, list):
+             correct_answer = raw_answer[0] if raw_answer else ''
+        else:
+             correct_answer = str(raw_answer)
+
+    # Get distractors with their item IDs
     distractors = []
+    distractor_item_ids = []
     other_items = [i for i in all_items if i['item_id'] != item['item_id']]
     random.shuffle(other_items)
     
     for other in other_items:
-        # Determine distractor value based on mode
         distractor_val = ''
         if current_mode == 'front_back':
-            # Distractors should be Backs (Meanings)
-            distractor_val = other['answers'][0] if other['answers'] else ''
-        else:
-            # Distractors should be Fronts (Words)
-            distractor_val = other['prompt']
+             distractor_val = other['answers'][0] if other['answers'] else ''
+        elif current_mode == 'back_front':
+             distractor_val = other['prompt']
+        elif current_mode == 'custom':
+             content = other.get('content', {})
+             raw_dist = content.get(answer_key, '')
+             if isinstance(raw_dist, list):
+                 distractor_val = raw_dist[0] if raw_dist else ''
+             else:
+                 distractor_val = str(raw_dist)
             
         if distractor_val and distractor_val != correct_answer and distractor_val not in distractors:
             distractors.append(distractor_val)
+            distractor_item_ids.append(other['item_id'])
             if len(distractors) >= num_choices - 1:
                 break
     
-    # Build choices
+    # Build choices with their item IDs
     choices = [correct_answer] + distractors
-    random.shuffle(choices)
+    choice_item_ids = [item['item_id']] + distractor_item_ids
+    
+    # Shuffle together
+    combined = list(zip(choices, choice_item_ids))
+    random.shuffle(combined)
+    choices, choice_item_ids = zip(*combined) if combined else ([], [])
+    choices = list(choices)
+    choice_item_ids = list(choice_item_ids)
     
     return {
         'item_id': item['item_id'],
         'prompt': question_prompt,
-        'audio_url': item['audio_url'] if current_mode == 'front_back' else None, # Only play audio if prompt is Front (Target Language)
+        'audio_url': item.get('audio_url') if current_mode == 'front_back' else None, 
         'choices': choices,
+        'choice_item_ids': choice_item_ids,  # NEW: IDs for each choice
+        'answer': correct_answer,  # Renamed for frontend
         'correct_answer': correct_answer,
-        'correct_index': choices.index(correct_answer),
+        'correct_index': choices.index(correct_answer) if correct_answer in choices else 0,
+        'answer_key': answer_key,
+        'question_key': question_key
     }
 
 
@@ -98,7 +167,7 @@ from mindstack_app.modules.learning.srs.service import SrsService
 from mindstack_app.modules.gamification.services import ScoreService
 from mindstack_app.modules.shared.utils.db_session import safe_commit
 
-def check_mcq_answer(item_id, user_answer, user_id=None):
+def check_mcq_answer(item_id, user_answer, user_id=None, answer_key=None):
     """
     Check if user's MCQ answer is correct.
     If user_id is provided, updates SRS progress and awards points.
@@ -108,10 +177,19 @@ def check_mcq_answer(item_id, user_answer, user_id=None):
         return {'correct': False, 'message': 'Item not found'}
     
     content = item.content or {}
-    correct_answers = content.get('memrise_answers', [])
+    correct_answers = []
     
+    if answer_key:
+        val = content.get(answer_key)
+        if isinstance(val, list):
+            correct_answers = [str(v) for v in val]
+        elif val is not None:
+             correct_answers = [str(val)]
+             
     if not correct_answers:
-        correct_answers = [content.get('back', '')]
+        correct_answers = content.get('memrise_answers', [])
+        if not correct_answers:
+            correct_answers = [content.get('back', '')]
     
     is_correct = user_answer.strip().lower() in [a.strip().lower() for a in correct_answers]
     

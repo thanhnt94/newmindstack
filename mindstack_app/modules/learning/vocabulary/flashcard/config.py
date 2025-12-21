@@ -32,13 +32,7 @@ class FlashcardLearningConfig:
             'capability_flag': 'supports_writing',
             'hide_if_zero': True,
         },
-        {
-            'id': 'quiz_practice',
-            'name': 'Luyện trắc nghiệm',
-            'algorithm_func_name': 'get_quiz_items',
-            'capability_flag': 'supports_quiz',
-            'hide_if_zero': True,
-        },
+
         {
             'id': 'essay_practice',
             'name': 'Chế độ tự luận',
@@ -46,13 +40,7 @@ class FlashcardLearningConfig:
             'capability_flag': 'supports_essay',
             'hide_if_zero': True,
         },
-        {
-            'id': 'listening_practice',
-            'name': 'Chế độ luyện nghe',
-            'algorithm_func_name': 'get_listening_items',
-            'capability_flag': 'supports_listening',
-            'hide_if_zero': True,
-        },
+
         {
             'id': 'speaking_practice',
             'name': 'Chế độ luyện nói',

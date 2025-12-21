@@ -4,9 +4,12 @@
 from flask import Blueprint
 import os
 
-# Template folder is in parent vocabulary templates
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-template_dir = os.path.join(base_dir, 'templates')
+# Template folder points to learning/flashcard/templates 
+# (which contains both session and setup templates)
+module_dir = os.path.dirname(os.path.abspath(__file__))
+# Go up to vocabulary, then up to learning, then to flashcard/templates
+learning_dir = os.path.dirname(os.path.dirname(module_dir))
+template_dir = os.path.join(learning_dir, 'flashcard', 'templates')
 
 # Create blueprint with unique name for vocabulary context
 vocab_flashcard_bp = Blueprint(
