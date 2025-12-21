@@ -1,4 +1,4 @@
-<!-- File: _flashcard_modes_selection_desktop.html - Select Then Submit Pattern -->
+{# File: _flashcard_modes_selection_desktop.html #}
 {% set autoplay_mode = namespace(data=None) %}
 {% for mode in modes %}
 {% if mode.id == 'autoplay' %}
@@ -6,201 +6,108 @@
 {% endif %}
 {% endfor %}
 
-<div class="flashcard-step-container">
-    {# Header - 2 Rows Left-Aligned #}
-    <div class="step-header-left">
-        <a href="javascript:void(0)" class="step-back-btn js-back-to-modes">
-            <i class="fas fa-arrow-left"></i>
-        </a>
-        <div class="step-header-content">
-            <div class="step-breadcrumb-left">
-                <span>TỪ VỰNG</span>
-                <i class="fas fa-chevron-right"></i>
-                <span>FLASHCARD</span>
-                <i class="fas fa-chevron-right"></i>
-                <span class="active">BƯỚC 2</span>
+<div class="w-full space-y-3">
+    {# Dropdown chọn số nút đánh giá #}
+    <div id="button-count-container" class="mb-4 p-4 bg-white rounded-lg border border-gray-200">
+        <label for="button-count-select" class="block text-sm font-medium text-gray-700 mb-2">Số nút đánh giá:</label>
+        <select id="button-count-select"
+            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <option value="3" {% if user_button_count==3 %}selected{% endif %}>3 nút (MindStack: Quên, Mơ hồ, Nhớ)
+            </option>
+            <option value="4" {% if user_button_count==4 %}selected{% endif %}>4 nút (Anki: Again, Hard, Good, Easy)
+            </option>
+            <option value="6" {% if user_button_count==6 %}selected{% endif %}>6 nút (Full SM-2: Rất khó -> Rất dễ)
+            </option>
+        </select>
+    </div>
+
+    {# Tùy chọn cho chế độ AutoPlay (ẩn mặc định, hiển thị khi người dùng chọn) #}
+    <div id="autoplay-settings-container" class="mb-4 p-4 bg-white rounded-lg border border-blue-200 hidden">
+        {% set autoplay_counts = autoplay_mode.data.autoplay_counts if autoplay_mode.data and
+        autoplay_mode.data.autoplay_counts is defined else {} %}
+        {% set autoplay_learned_count = autoplay_counts.autoplay_learned | default(0) %}
+        {% set autoplay_all_count = autoplay_counts.autoplay_all | default(0) %}
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-base font-semibold text-gray-800 flex items-center"><i
+                    class="fas fa-headphones mr-2 text-blue-500"></i>Tuỳ chọn AutoPlay</h3>
+            <span class="text-xs text-gray-500">Âm thanh sẽ phát tự động trước khi lật thẻ.</span>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <p class="text-sm font-medium text-gray-700 mb-2">Phạm vi AutoPlay:</p>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <label
+                        class="autoplay-scope-option flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition">
+                        <input type="radio" name="autoplay-scope" value="autoplay_learned" class="mr-3"
+                            data-count="{{ autoplay_learned_count }}">
+                        <span class="text-sm text-gray-700">Chỉ thẻ đã học <span class="text-xs text-gray-500">({{
+                                autoplay_learned_count }} thẻ)</span></span>
+                    </label>
+                    <label
+                        class="autoplay-scope-option flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition">
+                        <input type="radio" name="autoplay-scope" value="autoplay_all" class="mr-3"
+                            data-count="{{ autoplay_all_count }}">
+                        <span class="text-sm text-gray-700">Toàn bộ thẻ <span class="text-xs text-gray-500">({{
+                                autoplay_all_count }} thẻ)</span></span>
+                    </label>
+                </div>
             </div>
-            <h1 class="step-header-title">Chọn chế độ học</h1>
+            <div>
+                <label for="autoplay-delay-select" class="block text-sm font-medium text-gray-700 mb-2">Thời gian chờ
+                    sau mỗi mặt thẻ (giây):</label>
+                <select id="autoplay-delay-select"
+                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <option value="1">1 giây</option>
+                    <option value="2">2 giây</option>
+                    <option value="3">3 giây</option>
+                    <option value="5">5 giây</option>
+                </select>
+            </div>
         </div>
     </div>
 
-    {# Settings Section #}
-    <div class="step-settings-section">
-        <div class="setting-item">
-            <label for="button-count-select" class="setting-label">Số nút đánh giá:</label>
-            <select id="button-count-select" class="setting-select">
-                <option value="3" {% if user_button_count==3 %}selected{% endif %}>3 nút (MindStack)</option>
-                <option value="4" {% if user_button_count==4 %}selected{% endif %}>4 nút (Anki)</option>
-                <option value="6" {% if user_button_count==6 %}selected{% endif %}>6 nút (SM-2)</option>
-            </select>
-        </div>
-    </div>
-
-    {# Mode Selection Cards #}
-    <div class="step-modes-list step-scroll-with-nav">
+    {# Danh sách các chế độ học #}
+    <div class="space-y-3">
         {% if modes %}
         {% for mode in modes %}
-        {% set is_disabled = (mode.count == 0) %}
-        {% if mode.id != 'autoplay' %}
-        <div class="mode-select-card flashcard-mode-item js-flashcard-mode-select {% if is_disabled %}disabled{% endif %}"
-            data-mode-id="{{ mode.id }}" data-count="{{ mode.count }}">
-            <div class="mode-select-icon blue"><i class="fas fa-clone"></i></div>
-            <div class="mode-select-info">
-                <div class="mode-select-name">{{ mode.name }}</div>
-                <div class="mode-select-desc">{{ mode.count }} thẻ</div>
+        {% set is_disabled_mode = (mode.count == 0) %}
+        {% if mode.id == 'autoplay' %}
+        {% set autoplay_counts = mode.autoplay_counts if mode.autoplay_counts is defined else {} %}
+        {% set autoplay_learned_count = autoplay_counts.autoplay_learned | default(0) %}
+        {% set autoplay_all_count = autoplay_counts.autoplay_all | default(0) %}
+        {% set has_available_autoplay = autoplay_learned_count > 0 or autoplay_all_count > 0 %}
+        <div class="flashcard-mode-item bg-white p-4 rounded-lg border border-gray-200 transition-colors duration-200
+                            {% if not has_available_autoplay %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:bg-gray-100{% endif %}"
+            data-mode-id="autoplay" data-count="{{ mode.count }}" data-autoplay-learned="{{ autoplay_learned_count }}"
+            data-autoplay-all="{{ autoplay_all_count }}" {% if not has_available_autoplay
+            %}title="Không có thẻ phù hợp cho AutoPlay." {% endif %}>
+            <div>
+                <h3 class="font-semibold text-gray-800 flex items-center"><i
+                        class="fas fa-music mr-2 text-blue-500"></i>{{ mode.name }}</h3>
+                <p class="text-sm text-gray-500 mt-1">Lắng nghe và lật thẻ tự động theo tốc độ bạn chọn.</p>
             </div>
-            <span class="mode-select-check"><i class="fas fa-check"></i></span>
+            <div class="text-right text-sm text-gray-600">
+                <div><span class="font-semibold text-gray-700">{{ autoplay_learned_count }}</span> đã học</div>
+                <div><span class="font-semibold text-gray-700">{{ autoplay_all_count }}</span> tổng thẻ</div>
+            </div>
         </div>
         {% else %}
-        {% set autoplay_counts = mode.autoplay_counts if mode.autoplay_counts is defined else {} %}
-        {% set autoplay_learned = autoplay_counts.autoplay_learned | default(0) %}
-        {% set autoplay_all = autoplay_counts.autoplay_all | default(0) %}
-        {% set has_autoplay = autoplay_learned > 0 or autoplay_all > 0 %}
-        <div class="mode-select-card flashcard-mode-item js-flashcard-mode-select {% if not has_autoplay %}disabled{% endif %}"
-            data-mode-id="autoplay" data-count="{{ autoplay_learned }}" data-autoplay-learned="{{ autoplay_learned }}"
-            data-autoplay-all="{{ autoplay_all }}">
-            <div class="mode-select-icon" style="background: linear-gradient(135deg, #8b5cf6, #a78bfa);"><i
-                    class="fas fa-headphones"></i></div>
-            <div class="mode-select-info">
-                <div class="mode-select-name">{{ mode.name }}</div>
-                <div class="mode-select-desc">{{ autoplay_learned }} đã học / {{ autoplay_all }} tổng</div>
+        <div class="flashcard-mode-item bg-white p-4 rounded-lg border border-gray-200 transition-colors duration-200 flex justify-between items-center
+                            {% if is_disabled_mode %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:bg-gray-100{% endif %}"
+            data-mode-id="{{ mode.id }}" data-count="{{ mode.count }}" {% if is_disabled_mode
+            %}title="Chế độ này không có thẻ nào khả dụng." {% endif %}>
+            <h3 class="font-semibold text-gray-800">{{ mode.name }}</h3>
+            <div class="flex items-center">
+                <span class="text-lg font-semibold text-gray-700">{{ mode.count }}</span>
             </div>
-            <span class="mode-select-check"><i class="fas fa-check"></i></span>
         </div>
         {% endif %}
         {% endfor %}
         {% else %}
-        <div class="empty-state">
-            <i class="fas fa-info-circle"></i>
+        <div class="text-center py-12 px-6 text-gray-600">
+            <i class="fas fa-info-circle text-5xl text-gray-300 mb-4"></i>
             <p>Không có chế độ học nào khả dụng.</p>
         </div>
         {% endif %}
     </div>
-
-    {# Autoplay Settings (shown when autoplay selected) #}
-    <div id="autoplay-settings-container" class="autoplay-settings hidden">
-        {% set autoplay_counts = autoplay_mode.data.autoplay_counts if autoplay_mode.data else {} %}
-        {% set autoplay_learned_count = autoplay_counts.autoplay_learned | default(0) %}
-        {% set autoplay_all_count = autoplay_counts.autoplay_all | default(0) %}
-        <div class="autoplay-header">
-            <i class="fas fa-headphones"></i>
-            <span>Tùy chọn AutoPlay</span>
-        </div>
-        <div class="autoplay-options">
-            <label class="autoplay-option">
-                <input type="radio" name="autoplay-scope" value="autoplay_learned"
-                    data-count="{{ autoplay_learned_count }}">
-                <span>Chỉ thẻ đã học ({{ autoplay_learned_count }})</span>
-            </label>
-            <label class="autoplay-option">
-                <input type="radio" name="autoplay-scope" value="autoplay_all" data-count="{{ autoplay_all_count }}">
-                <span>Toàn bộ thẻ ({{ autoplay_all_count }})</span>
-            </label>
-        </div>
-    </div>
-
-    {# Bottom Bar #}
-    <div class="step-bottom-bar">
-        <button type="button" class="step-continue-btn js-flashcard-continue" disabled>
-            <span>Tiếp tục</span>
-            <i class="fas fa-arrow-right"></i>
-        </button>
-    </div>
 </div>
-
-<style>
-    .flashcard-step-container {
-        min-height: 100%;
-        background: #f8fafc;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .step-settings-section {
-        padding: 0.75rem 1rem;
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .setting-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .setting-label {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #334155;
-    }
-
-    .setting-select {
-        padding: 0.5rem 1rem;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        color: #334155;
-        background: white;
-    }
-
-    .step-modes-list {
-        padding: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        padding-bottom: 100px;
-    }
-
-    .mode-select-card.disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .autoplay-settings {
-        padding: 1rem;
-        background: #ede9fe;
-        border-top: 1px solid #c4b5fd;
-    }
-
-    .autoplay-settings.hidden {
-        display: none;
-    }
-
-    .autoplay-header {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-        color: #6d28d9;
-        margin-bottom: 0.75rem;
-    }
-
-    .autoplay-options {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .autoplay-option {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem;
-        background: white;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        font-size: 0.875rem;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: #64748b;
-    }
-
-    .empty-state i {
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-        color: #cbd5e1;
-    }
-</style>
