@@ -62,4 +62,21 @@ def api_check_answer():
     user_answer = data.get('user_answer', '')
     
     result = check_typing_answer(correct_answer, user_answer)
+    
+    # Update SRS
+    item_id = data.get('item_id')
+    if item_id:
+        from mindstack_app.modules.learning.vocabulary.services.srs_service import VocabularySrsService
+        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.models import db
+
+        srs_result = VocabularySrsService.process_interaction(
+            user_id=current_user.user_id,
+            item_id=item_id,
+            mode='typing',
+            result_data=result
+        )
+        safe_commit(db.session)
+        result['srs'] = srs_result
+
     return jsonify(result)

@@ -1013,7 +1013,36 @@
                     <div class="vocab-stat-label">Memrise</div>
                 </div>
             </div>
+
+            <!-- Course Overview Progress -->
+            <div id="course-overview-container" class="mt-6 border-t border-slate-100 pt-6" style="display: none;">
+                <h3 class="font-bold text-slate-700 mb-2">Tiến độ học tập</h3>
+
+                <!-- Overall Progress -->
+                <div class="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden">
+                    <div class="js-course-progress-bar bg-green-500 h-3 rounded-full transition-all duration-500"
+                        style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-slate-500 font-medium mb-4">
+                    <span class="js-course-progress-text">Đã học: 0/0 từ</span>
+                    <span class="js-course-percent">0%</span>
+                </div>
+
+                <!-- Word List Preview -->
+                <h3 class="font-bold text-slate-700 mb-2">Danh sách từ vựng</h3>
+                <div
+                    class="js-word-list divide-y divide-slate-100 bg-white rounded-xl border border-slate-100 overflow-hidden">
+                    <!-- Words injected here -->
+                </div>
+                <div class="text-center mt-2">
+                    <button class="js-load-more-words text-sm text-purple-600 font-semibold" style="display:none;">Xem
+                        thêm</button>
+                </div>
+            </div>
+
+            <div style="height: 100px;"></div> <!-- Spacer for footer -->
         </div>
+
     </div>
 
     <div class="vocab-footer">
@@ -1141,39 +1170,57 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    (function () {
-        // State
-        let currentCategory = 'my';
-        let currentSearch = '';
-        let selectedSetId = null;
-        let selectedSetData = null;
+    document.addEventListener('DOMContentLoaded', function () {
+        (function () {
+            // State
+            let currentCategory = 'my';
+            let currentSearch = '';
+            let selectedSetId = null;
+            let selectedSetData = null;
+            let currentStatsPage = 1; // Moved inside IIFE
 
-        // Elements
-        const stepBrowser = document.getElementById('step-browser');
-        const stepDetail = document.getElementById('step-detail');
-        const stepModes = document.getElementById('step-modes');
-        const stepFlashcardOptions = document.getElementById('step-flashcard-options');
-        const stepMcqOptions = document.getElementById('step-mcq-options');
-        const setsGrid = document.getElementById('sets-grid');
-        const searchInput = document.getElementById('search-input');
-        const flashcardOptionsContainer = document.getElementById('flashcard-options-container');
-        const mcqOptionsContainer = document.getElementById('mcq-options-container');
+            // Elements
+            const stepBrowser = document.getElementById('step-browser');
+            const stepDetail = document.getElementById('step-detail');
+            const stepModes = document.getElementById('step-modes');
+            const stepFlashcardOptions = document.getElementById('step-flashcard-options');
+            const stepMcqOptions = document.getElementById('step-mcq-options');
 
-        // Init
-        loadSets();
+            const setsGrid = document.getElementById('sets-grid');
+            const searchInput = document.getElementById('search-input');
+            const flashcardOptionsContainer = document.getElementById('flashcard-options-container');
+            const mcqOptionsContainer = document.getElementById('mcq-options-container');
 
-        // Category tabs
-        document.querySelectorAll('.vocab-tab').forEach(function (tab) {
-            tab.addEventListener('click', function () {
-                document.querySelectorAll('.vocab-tab').forEach(function (t) { t.classList.remove('active'); });
-                tab.classList.add('active');
-                currentCategory = tab.dataset.category;
-                loadSets();
+            if (!stepBrowser || !stepDetail || !setsGrid) {
+                console.error("Critical elements missing in DOM");
+                return;
+            }
+
+            // Init
+            loadSets();
+
+            // Category tabs
+            document.querySelectorAll('.vocab-tab').forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    document.querySelectorAll('.vocab-tab').forEach(function (t) { t.classList.remove('active'); });
+                    tab.classList.add('active');
+                    currentCategory = tab.dataset.category;
+                    loadSets();
+                });
             });
-        });
 
-        // Search
-        let searchTimeout;
+            // Check for active set ID from server template
+            const activeSetId = {{ active_set_id|default ('null')
+        }};
+    console.log("Deep Link Check:", activeSetId);
+
+    if (activeSetId) {
+        loadSetDetail(activeSetId, false); // false = don't push state initially as it's already there
+    }
+
+    // Search
+    let searchTimeout;
+    if (searchInput) {
         searchInput.addEventListener('input', function () {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(function () {
@@ -1181,335 +1228,459 @@
                 loadSets();
             }, 300);
         });
+    }
 
-        // Back buttons
-        document.querySelectorAll('.js-back-to-browser').forEach(function (btn) {
-            btn.addEventListener('click', function () { showStep('browser'); });
+    // Back buttons
+    document.querySelectorAll('.js-back-to-browser').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            showStep('browser');
+            history.pushState(null, '', '/learn/vocabulary/');
         });
+    });
 
-        document.querySelectorAll('.js-back-to-detail').forEach(function (btn) {
-            btn.addEventListener('click', function () { showStep('detail'); });
+    document.querySelectorAll('.js-back-to-detail').forEach(function (btn) {
+        btn.addEventListener('click', function () { showStep('detail'); });
+    });
+
+    document.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
+        btn.addEventListener('click', function () { showStep('modes'); });
+    });
+
+    // Handle Browser Back Button
+    window.addEventListener('popstate', function (event) {
+        if (window.location.pathname.includes('/set/')) {
+            const parts = window.location.pathname.split('/');
+            const setId = parts[parts.length - 1];
+            if (setId && !isNaN(setId)) {
+                if (selectedSetId != setId) {
+                    loadSetDetail(setId, false);
+                } else {
+                    showStep('detail');
+                }
+            }
+        } else {
+            showStep('browser');
+        }
+    });
+
+    function showStep(step) {
+        if (stepBrowser) stepBrowser.classList.remove('active');
+        if (stepDetail) stepDetail.classList.remove('active');
+        if (stepModes) stepModes.classList.remove('active');
+        if (stepFlashcardOptions) stepFlashcardOptions.classList.remove('active');
+        if (stepMcqOptions) stepMcqOptions.classList.remove('active');
+
+        if (step === 'browser' && stepBrowser) stepBrowser.classList.add('active');
+        else if (step === 'detail' && stepDetail) stepDetail.classList.add('active');
+        else if (step === 'modes' && stepModes) stepModes.classList.add('active');
+        else if (step === 'flashcard-options' && stepFlashcardOptions) stepFlashcardOptions.classList.add('active');
+        else if (step === 'mcq-options' && stepMcqOptions) stepMcqOptions.classList.add('active');
+    }
+
+    function loadSets() {
+        if (!setsGrid) return;
+        setsGrid.innerHTML = '<div class="vocab-loading" style="grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
+
+        var url = '/learn/vocabulary/api/sets?category=' + currentCategory;
+        if (currentSearch) url += '&q=' + encodeURIComponent(currentSearch);
+
+        fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success && data.sets.length > 0) {
+                    renderSets(data.sets);
+                } else {
+                    setsGrid.innerHTML = '<div class="vocab-empty" style="grid-column: 1/-1;"><i class="fas fa-folder-open"></i><p>Không có bộ thẻ nào</p></div>';
+                }
+            })
+            .catch(function () {
+                setsGrid.innerHTML = '<div class="vocab-empty" style="grid-column: 1/-1;"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
+            });
+    }
+
+    function renderSets(sets) {
+        if (!setsGrid) return;
+        var html = '';
+        sets.forEach(function (s) {
+            var coverStyle = s.cover_image ? 'background-image: url(/static/' + s.cover_image + ')' : '';
+            var authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
+            var authorName = s.creator_name || 'Unknown';
+
+            html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
+            html += '<div class="vocab-set-cover" style="' + coverStyle + '">';
+            if (!s.cover_image) html += '<i class="fas fa-book-open"></i>';
+            html += '</div>';
+            html += '<div class="vocab-set-info">';
+            html += '<div class="vocab-set-title">' + s.title + '</div>';
+            html += '<div class="vocab-set-meta">';
+            html += '<div class="vocab-set-author">';
+            html += '<span class="vocab-set-avatar">' + authorInitial + '</span>';
+            html += '<span>' + authorName + '</span>';
+            html += '</div>';
+            html += '<div class="vocab-set-count"><i class="fas fa-clone"></i>' + s.card_count + '</div>';
+            html += '</div>';
+            html += '</div></div>';
         });
+        setsGrid.innerHTML = html;
 
-        document.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
-            btn.addEventListener('click', function () { showStep('modes'); });
+        // Bind click
+        document.querySelectorAll('.vocab-set-card').forEach(function (card) {
+            card.addEventListener('click', function () {
+                selectedSetId = card.dataset.setId;
+                loadSetDetail(selectedSetId, true); // true = push state
+            });
         });
+    }
 
-        function showStep(step) {
-            stepBrowser.classList.remove('active');
-            stepDetail.classList.remove('active');
-            stepModes.classList.remove('active');
-            stepFlashcardOptions.classList.remove('active');
-            stepMcqOptions.classList.remove('active');
+    function loadSetDetail(setId, pushState = true) {
+        showStep('detail');
+        selectedSetId = setId;
+        currentStatsPage = 1;
 
-            if (step === 'browser') stepBrowser.classList.add('active');
-            else if (step === 'detail') stepDetail.classList.add('active');
-            else if (step === 'modes') stepModes.classList.add('active');
-            else if (step === 'flashcard-options') stepFlashcardOptions.classList.add('active');
-            else if (step === 'mcq-options') stepMcqOptions.classList.add('active');
+        if (pushState) {
+            history.pushState({ setId: setId }, '', '/learn/vocabulary/set/' + setId);
         }
 
-        function loadSets() {
-            setsGrid.innerHTML = '<div class="vocab-loading" style="grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
+        console.log("Fetching set detail:", setId);
 
-            var url = '/learn/vocabulary/api/sets?category=' + currentCategory;
-            if (currentSearch) url += '&q=' + encodeURIComponent(currentSearch);
+        fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    selectedSetData = data.set;
+                    renderSetDetail(data.set, data.course_stats, false);
+                } else {
+                    console.error('Failed to load set data:', data.message);
+                    alert('Không thể tải thông tin bộ thẻ: ' + (data.message || 'Lỗi không xác định'));
+                }
+            })
+            .catch(function (err) {
+                console.error('Error loading set detail:', err);
+                alert('Có lỗi xảy ra khi tải dữ liệu.');
+            });
+    }
 
-            fetch(url)
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.success && data.sets.length > 0) {
-                        renderSets(data.sets);
-                    } else {
-                        setsGrid.innerHTML = '<div class="vocab-empty" style="grid-column: 1/-1;"><i class="fas fa-folder-open"></i><p>Không có bộ thẻ nào</p></div>';
+    // Load More Button
+    const loadMoreBtn = document.querySelector('.js-load-more-words');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function () {
+            if (!selectedSetId) return;
+            const nextPage = currentStatsPage + 1;
+
+            const btn = this;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
+            btn.disabled = true;
+
+            fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + nextPage)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.course_stats) {
+                        currentStatsPage = nextPage;
+                        renderSetDetail(selectedSetData, data.course_stats, true);
                     }
                 })
-                .catch(function () {
-                    setsGrid.innerHTML = '<div class="vocab-empty" style="grid-column: 1/-1;"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
+                .catch(err => {
+                    console.error('Load more error:', err);
+                    alert('Lỗi tải thêm từ.');
+                })
+                .finally(() => {
+                    btn.innerHTML = 'Xem thêm';
+                    btn.disabled = false;
                 });
-        }
+        });
+    }
 
-        function renderSets(sets) {
-            var html = '';
-            sets.forEach(function (s) {
-                var coverStyle = s.cover_image ? 'background-image: url(/static/' + s.cover_image + ')' : '';
-                var authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
-                var authorName = s.creator_name || 'Unknown';
-
-                html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
-                html += '<div class="vocab-set-cover" style="' + coverStyle + '">';
-                if (!s.cover_image) html += '<i class="fas fa-book-open"></i>';
-                html += '</div>';
-                html += '<div class="vocab-set-info">';
-                html += '<div class="vocab-set-title">' + s.title + '</div>';
-                html += '<div class="vocab-set-meta">';
-                html += '<div class="vocab-set-author">';
-                html += '<span class="vocab-set-avatar">' + authorInitial + '</span>';
-                html += '<span>' + authorName + '</span>';
-                html += '</div>';
-                html += '<div class="vocab-set-count"><i class="fas fa-clone"></i>' + s.card_count + '</div>';
-                html += '</div>';
-                html += '</div></div>';
-            });
-            setsGrid.innerHTML = html;
-
-            // Bind click
-            document.querySelectorAll('.vocab-set-card').forEach(function (card) {
-                card.addEventListener('click', function () {
-                    selectedSetId = card.dataset.setId;
-                    loadSetDetail(selectedSetId);
-                });
-            });
-        }
-
-        function loadSetDetail(setId) {
-            showStep('detail');
-
-            fetch('/learn/vocabulary/api/set/' + setId)
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.success) {
-                        selectedSetData = data.set;
-                        renderSetDetail(data.set);
-                    }
-                });
-        }
-
-        function renderSetDetail(s) {
-            // Cover
+    function renderSetDetail(s, stats, append = false) {
+        // Cover & Info only update on fresh load
+        if (!append) {
             var coverEl = document.querySelector('.js-detail-cover');
-            if (s.cover_image) {
-                coverEl.style.backgroundImage = 'url(/static/' + s.cover_image + ')';
-                coverEl.innerHTML = '';
-            } else {
-                coverEl.style.backgroundImage = '';
-                coverEl.innerHTML = '<i class="fas fa-book-open"></i>';
+            if (coverEl) {
+                if (s.cover_image) {
+                    coverEl.style.backgroundImage = 'url(/static/' + s.cover_image + ')';
+                    coverEl.innerHTML = '';
+                } else {
+                    coverEl.style.backgroundImage = '';
+                    coverEl.innerHTML = '<i class="fas fa-book-open"></i>';
+                }
             }
 
             // Info
-            document.querySelector('.js-detail-title').textContent = s.title;
-            document.querySelector('.js-detail-title-full').textContent = s.title;
-            document.querySelector('.js-detail-desc').textContent = s.description || 'Không có mô tả';
-            document.querySelector('.js-creator-name').textContent = s.creator_name;
-            document.querySelector('.js-creator-avatar').textContent = s.creator_name.charAt(0).toUpperCase();
-            document.querySelector('.js-card-count').textContent = s.card_count;
-            document.querySelector('.js-memrise-count').textContent = s.memrise_count;
-        }
-
-        // Start learning button
-        document.querySelectorAll('.js-start-learning').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                // Update selected set chip in step-modes
-                if (selectedSetData) {
-                    var setNameEl = document.querySelector('.js-selected-set-name');
-                    if (setNameEl) {
-                        setNameEl.textContent = selectedSetData.title;
-                    }
-                }
-                updateModeVisibility();
-                showStep('modes');
-            });
-        });
-
-        function updateModeVisibility() {
-            if (!selectedSetData || !selectedSetData.capabilities) {
-                // Should not happen, but assume all allowed if missing
-                document.querySelectorAll('.js-mode-card').forEach(el => el.style.display = 'flex');
-                return;
-            }
-            const caps = new Set(selectedSetData.capabilities);
-            const mapping = {
-                'flashcard': 'supports_flashcard',
-                'mcq': 'supports_quiz',
-                'typing': 'supports_writing',
-                'matching': 'supports_matching',
-                'speed': 'supports_speed',
-                'listening': 'supports_listening',
-                'mixed': 'supports_srs' // Not implemented yet
+            const els = {
+                title: document.querySelector('.js-detail-title'),
+                titleFull: document.querySelector('.js-detail-title-full'),
+                desc: document.querySelector('.js-detail-desc'),
+                creator: document.querySelector('.js-creator-name'),
+                avatar: document.querySelector('.js-creator-avatar'),
+                cardCount: document.querySelector('.js-card-count'),
+                memriseCount: document.querySelector('.js-memrise-count')
             };
-
-            // Special handling: if capabilities is empty or missing specific flags, current behavior was "all enabled"
-            // But now we want filtering. If 'supports_flashcard' is missing from DB (old sets), we should probably Default True?
-            // The DB migration didn't happen, so old sets default to False for new flags if column is NULL?
-            // LearningContainer model handles Defaults? No.
-            // But `capability_flags` method returns what is in JSON.
-            // If new flags are stored in JSON, old sets won't have them.
-            // **Correction**: To avoid breaking old sets, if NO new flags are present, we might want to default enable some?
-            // Or just rely on user editing them.
-            // Let's assume user will edit old sets or we rely on 'supports_quiz' which existed.
-            // `supports_matching` and `supports_speed` will be False for old sets.
-            // That is acceptable. User asked to "Optionalize" them.
-
-            document.querySelectorAll('.js-mode-select').forEach(card => {
-                const mode = card.dataset.mode;
-                const flag = mapping[mode];
-
-                if (flag && caps.has(flag)) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+            if (els.title) els.title.textContent = s.title;
+            if (els.titleFull) els.titleFull.textContent = s.title;
+            if (els.desc) els.desc.textContent = s.description || 'Không có mô tả';
+            if (els.creator) els.creator.textContent = s.creator_name;
+            if (els.avatar) els.avatar.textContent = s.creator_name.charAt(0).toUpperCase();
+            if (els.cardCount) els.cardCount.textContent = s.card_count;
+            if (els.memriseCount) els.memriseCount.textContent = s.memrise_count;
         }
 
-        // Mode selection (select-then-submit pattern)
-        var selectedMode = null;
-        var continueBtn = document.querySelector('.js-mode-continue');
+        // Course Overview Stats
+        const overviewContainer = document.getElementById('course-overview-container');
+        if (stats && overviewContainer) {
+            overviewContainer.style.display = 'block';
 
-        document.querySelectorAll('.js-mode-select').forEach(function (card) {
+            // Progress (only on fresh load)
+            if (!append) {
+                const pb = document.querySelector('.js-course-progress-bar');
+                const pp = document.querySelector('.js-course-percent');
+                const pt = document.querySelector('.js-course-progress-text');
+                if (pb) pb.style.width = stats.progress + '%';
+                if (pp) pp.textContent = stats.progress + '%';
+                if (pt) pt.textContent = 'Đã học: ' + stats.learned_count + '/' + stats.total_count + ' từ';
+            }
+
+            // Word List
+            const listContainer = document.querySelector('.js-word-list');
+            if (listContainer) {
+                let listHtml = '';
+
+                if (stats.items && stats.items.length > 0) {
+                    stats.items.forEach(item => {
+                        let barColor = 'bg-red-500';
+                        if (item.retention_rate >= 80) barColor = 'bg-green-500';
+                        else if (item.retention_rate >= 50) barColor = 'bg-yellow-500';
+
+                        let boltColor = item.retention_rate > 50 ? 'text-yellow-400' : 'text-slate-300';
+
+                        listHtml += `
+                        <div class="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-base font-semibold text-slate-800 truncate">${item.term}</span>
+                                    ${item.status === 'new' ? '<span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase rounded">New</span>' : ''}
+                                </div>
+                                <p class="text-sm text-slate-500 truncate">${item.definition}</p>
+                            </div>
+                            <div class="w-24 flex flex-col items-end gap-1">
+                                <div class="flex items-center gap-1 text-xs font-medium text-slate-400">
+                                    <i class="fas fa-bolt ${boltColor}"></i>
+                                    <span>${item.retention_rate}%</span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden relative">
+                                    <div class="${barColor} h-1.5 rounded-full absolute top-0 left-0" style="width: ${item.retention_rate}%"></div>
+                                </div>
+                                ${item.is_due ? '<span class="text-[10px] text-red-500 font-bold">Cần ôn tập</span>' : ''}
+                            </div>
+                        </div>`;
+                    });
+                } else if (!append) {
+                    listHtml = '<div class="p-4 text-center text-slate-400 text-sm">Chưa có từ vựng nào.</div>';
+                }
+
+                if (append) {
+                    listContainer.insertAdjacentHTML('beforeend', listHtml);
+                } else {
+                    listContainer.innerHTML = listHtml;
+                }
+            }
+
+            // Show/Hide Load More
+            const loadMoreBtn = document.querySelector('.js-load-more-words');
+            if (loadMoreBtn) {
+                if (stats.pagination && stats.pagination.has_next) {
+                    loadMoreBtn.style.display = 'inline-block';
+                } else {
+                    loadMoreBtn.style.display = 'none';
+                }
+            }
+
+        } else if (overviewContainer) {
+            overviewContainer.style.display = 'none';
+        }
+    }
+
+    // Start learning button
+    document.querySelectorAll('.js-start-learning').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (selectedSetData) {
+                var setNameEl = document.querySelector('.js-selected-set-name');
+                if (setNameEl) {
+                    setNameEl.textContent = selectedSetData.title;
+                }
+            }
+            updateModeVisibility();
+            showStep('modes');
+        });
+    });
+
+    function updateModeVisibility() {
+        if (!selectedSetData || !selectedSetData.capabilities) {
+            document.querySelectorAll('.js-mode-card').forEach(el => el.style.display = 'flex');
+            return;
+        }
+        const caps = new Set(selectedSetData.capabilities);
+        const mapping = {
+            'flashcard': 'supports_flashcard',
+            'mcq': 'supports_quiz',
+            'typing': 'supports_writing',
+            'matching': 'supports_matching',
+            'speed': 'supports_speed',
+            'listening': 'supports_listening',
+            'mixed': 'supports_srs'
+        };
+
+        document.querySelectorAll('.js-mode-select').forEach(card => {
+            const mode = card.dataset.mode;
+            const flag = mapping[mode];
+
+            if (flag && caps.has(flag)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Continue button handler
+    if (continueBtn) {
+        continueBtn.addEventListener('click', function () {
+            if (!selectedMode) return;
+            startSession(selectedMode);
+        });
+    }
+
+    function startSession(mode) {
+        if (!selectedSetId) return;
+
+        if (mode === 'flashcard') {
+            loadFlashcardOptions(selectedSetId);
+        } else if (mode === 'mcq') {
+            loadMcqOptions(selectedSetId);
+        } else if (mode === 'typing') {
+            window.location.href = '/learn/vocabulary/typing/session/' + selectedSetId;
+        } else if (mode === 'mixed') {
+            alert('Chế độ Học thông minh đang được phát triển');
+        } else if (mode === 'matching') {
+            window.location.href = '/learn/vocabulary/matching/session/' + selectedSetId;
+        } else if (mode === 'speed') {
+            window.location.href = '/learn/vocabulary/speed/session/' + selectedSetId;
+        } else if (mode === 'listening') {
+            window.location.href = '/learn/vocabulary/listening/session/' + selectedSetId;
+        }
+    }
+
+    function loadFlashcardOptions(setId) {
+        showStep('flashcard-options');
+        flashcardOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
+
+        fetch('/learn/vocabulary/flashcard/get_flashcard_options_partial/' + setId)
+            .then(r => r.text())
+            .then(html => {
+                flashcardOptionsContainer.innerHTML = html;
+                bindFlashcardModeEvents(setId);
+            })
+            .catch(err => {
+                flashcardOptionsContainer.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải tùy chọn. Vui lòng thử lại.</div>';
+            });
+    }
+
+    function bindFlashcardModeEvents(setId) {
+        if (!flashcardOptionsContainer) return;
+        var selectedFlashcardMode = null;
+        var continueBtn = flashcardOptionsContainer.querySelector('.js-flashcard-continue');
+        var autoplaySettings = flashcardOptionsContainer.querySelector('#autoplay-settings-container');
+
+        flashcardOptionsContainer.querySelectorAll('.js-flashcard-mode-select').forEach(function (card) {
+            if (card.classList.contains('disabled')) return;
+
             card.addEventListener('click', function () {
                 // Deselect all
-                document.querySelectorAll('.js-mode-select').forEach(function (c) {
+                flashcardOptionsContainer.querySelectorAll('.js-flashcard-mode-select').forEach(function (c) {
                     c.classList.remove('selected');
                 });
                 // Select this one
                 card.classList.add('selected');
-                selectedMode = card.dataset.mode;
+                selectedFlashcardMode = card.dataset.modeId;
                 // Enable continue button
                 if (continueBtn) continueBtn.disabled = false;
+
+                // Show/hide autoplay settings
+                if (autoplaySettings) {
+                    if (selectedFlashcardMode === 'autoplay') {
+                        autoplaySettings.classList.remove('hidden');
+                    } else {
+                        autoplaySettings.classList.add('hidden');
+                    }
+                }
             });
         });
 
-        // Continue button handler
         if (continueBtn) {
             continueBtn.addEventListener('click', function () {
-                if (!selectedMode) return;
-                startSession(selectedMode);
-            });
-        }
+                if (!selectedFlashcardMode) return;
 
-        function startSession(mode) {
-            if (!selectedSetId) return;
+                // Button count logic
+                var buttonCountSelect = flashcardOptionsContainer.querySelector('#button-count-select');
+                var buttonCount = buttonCountSelect ? parseInt(buttonCountSelect.value) : 3;
 
-            if (mode === 'flashcard') {
-                loadFlashcardOptions(selectedSetId);
-            } else if (mode === 'mcq') {
-                loadMcqOptions(selectedSetId);
-            } else if (mode === 'typing') {
-                window.location.href = '/learn/vocabulary/typing/session/' + selectedSetId;
-            } else if (mode === 'mixed') {
-                alert('Chế độ Học thông minh đang được phát triển');
-            } else if (mode === 'matching') {
-                window.location.href = '/learn/vocabulary/matching/session/' + selectedSetId;
-            } else if (mode === 'speed') {
-                window.location.href = '/learn/vocabulary/speed/session/' + selectedSetId;
-            } else if (mode === 'listening') {
-                window.location.href = '/learn/vocabulary/listening/session/' + selectedSetId;
-            }
-        }
+                var finalMode = selectedFlashcardMode;
+                if (selectedFlashcardMode === 'autoplay') {
+                    var scope = document.querySelector('input[name="autoplay-scope"]:checked');
+                    finalMode = scope ? scope.value : 'autoplay_learned';
+                }
 
-        function loadFlashcardOptions(setId) {
-            showStep('flashcard-options');
-            flashcardOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
-
-            fetch('/learn/vocabulary/flashcard/get_flashcard_options_partial/' + setId)
-                .then(r => r.text())
-                .then(html => {
-                    flashcardOptionsContainer.innerHTML = html;
-                    bindFlashcardModeEvents(setId);
+                // Save settings first, then redirect
+                fetch('/learn/vocabulary/flashcard/save_flashcard_settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}' // Ensure CSRF token if needed, usually flask-wtf handles this but standard fetch might need header or just work if cookies are sent
+                    },
+                    body: JSON.stringify({ button_count: buttonCount })
                 })
-                .catch(err => {
-                    flashcardOptionsContainer.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải tùy chọn. Vui lòng thử lại.</div>';
-                });
-        }
-
-        function bindFlashcardModeEvents(setId) {
-            if (!flashcardOptionsContainer) return;
-            var selectedFlashcardMode = null;
-            var continueBtn = flashcardOptionsContainer.querySelector('.js-flashcard-continue');
-            var autoplaySettings = flashcardOptionsContainer.querySelector('#autoplay-settings-container');
-
-            flashcardOptionsContainer.querySelectorAll('.js-flashcard-mode-select').forEach(function (card) {
-                if (card.classList.contains('disabled')) return;
-
-                card.addEventListener('click', function () {
-                    // Deselect all
-                    flashcardOptionsContainer.querySelectorAll('.js-flashcard-mode-select').forEach(function (c) {
-                        c.classList.remove('selected');
-                    });
-                    // Select this one
-                    card.classList.add('selected');
-                    selectedFlashcardMode = card.dataset.modeId;
-                    // Enable continue button
-                    if (continueBtn) continueBtn.disabled = false;
-
-                    // Show/hide autoplay settings
-                    if (autoplaySettings) {
-                        if (selectedFlashcardMode === 'autoplay') {
-                            autoplaySettings.classList.remove('hidden');
-                        } else {
-                            autoplaySettings.classList.add('hidden');
-                        }
-                    }
-                });
-            });
-
-            if (continueBtn) {
-                continueBtn.addEventListener('click', function () {
-                    if (!selectedFlashcardMode) return;
-
-                    // Button count logic
-                    var buttonCountSelect = flashcardOptionsContainer.querySelector('#button-count-select');
-                    var buttonCount = buttonCountSelect ? parseInt(buttonCountSelect.value) : 3;
-
-                    var finalMode = selectedFlashcardMode;
-                    if (selectedFlashcardMode === 'autoplay') {
-                        var scope = document.querySelector('input[name="autoplay-scope"]:checked');
-                        finalMode = scope ? scope.value : 'autoplay_learned';
-                    }
-
-                    // Save settings first, then redirect
-                    fetch('/learn/vocabulary/flashcard/save_flashcard_settings', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ csrf_token() }}' // Ensure CSRF token if needed, usually flask-wtf handles this but standard fetch might need header or just work if cookies are sent
-                        },
-                        body: JSON.stringify({ button_count: buttonCount })
+                    .then(r => r.json())
+                    .then(data => {
+                        console.log("Settings saved:", data);
+                        // Redirect after saving
+                        window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + finalMode;
                     })
-                        .then(r => r.json())
-                        .then(data => {
-                            console.log("Settings saved:", data);
-                            // Redirect after saving
-                            window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + finalMode;
-                        })
-                        .catch(err => {
-                            console.error("Error saving settings:", err);
-                            // Fallback redirect even if save fails
-                            window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + finalMode;
-                        });
-                });
-            }
-
-            // Also bind back button
-            flashcardOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
-                btn.addEventListener('click', function () { showStep('modes'); });
+                    .catch(err => {
+                        console.error("Error saving settings:", err);
+                        // Fallback redirect even if save fails
+                        window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + finalMode;
+                    });
             });
         }
 
-        function loadMcqOptions(setId) {
-            showStep('mcq-options');
-            mcqOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
+        // Also bind back button
+        flashcardOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
+            btn.addEventListener('click', function () { showStep('modes'); });
+        });
+    }
 
-            fetch('/learn/vocabulary/mcq/get_mcq_options_partial/' + setId)
-                .then(r => r.text())
-                .then(html => {
-                    mcqOptionsContainer.innerHTML = html;
-                    // Execute scripts from injected HTML
-                    mcqOptionsContainer.querySelectorAll('script').forEach(function (oldScript) {
-                        var newScript = document.createElement('script');
-                        newScript.textContent = oldScript.textContent;
-                        document.body.appendChild(newScript);
-                    });
-                    // Bind back button
-                    mcqOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
-                        btn.addEventListener('click', function () { showStep('modes'); });
-                    });
-                })
-                .catch(err => {
-                    mcqOptionsContainer.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải tùy chọn. Vui lòng thử lại.</div>';
+    function loadMcqOptions(setId) {
+        showStep('mcq-options');
+        mcqOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
+
+        fetch('/learn/vocabulary/mcq/get_mcq_options_partial/' + setId)
+            .then(r => r.text())
+            .then(html => {
+                mcqOptionsContainer.innerHTML = html;
+                // Execute scripts from injected HTML
+                mcqOptionsContainer.querySelectorAll('script').forEach(function (oldScript) {
+                    var newScript = document.createElement('script');
+                    newScript.textContent = oldScript.textContent;
+                    document.body.appendChild(newScript);
                 });
-        }
-    })();
+                // Bind back button
+                mcqOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
+                    btn.addEventListener('click', function () { showStep('modes'); });
+                });
+            })
+            .catch(err => {
+                mcqOptionsContainer.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải tùy chọn. Vui lòng thử lại.</div>';
+            });
+    }
+    }) ();
+});
 </script>
 {% endblock %}

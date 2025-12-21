@@ -76,6 +76,43 @@ def api_check_match():
     # Check if item_ids match (same item = correct pair)
     is_correct = left_item_id == right_item_id
     
+    # SRS Update
+    from mindstack_app.modules.learning.vocabulary.services.srs_service import VocabularySrsService
+    from mindstack_app.modules.shared.utils.db_session import safe_commit
+    from mindstack_app.models import db
+    
+    srs_results = []
+    
+    if is_correct:
+         # Correct: Update the item (left_item_id is same as right)
+         srs = VocabularySrsService.process_interaction(
+             user_id=current_user.user_id,
+             item_id=left_item_id,
+             mode='matching',
+             result_data={'is_correct': True}
+         )
+         srs_results.append(srs)
+    else:
+        # Incorrect: Penalty for BOTH items involved in confusion
+        # We process them individually
+        if left_item_id:
+             VocabularySrsService.process_interaction(
+                 user_id=current_user.user_id,
+                 item_id=left_item_id,
+                 mode='matching',
+                 result_data={'is_correct': False}
+             )
+        if right_item_id:
+             VocabularySrsService.process_interaction(
+                 user_id=current_user.user_id,
+                 item_id=right_item_id,
+                 mode='matching',
+                 result_data={'is_correct': False}
+             )
+    
+    safe_commit(db.session)
+    
     return jsonify({
-        'correct': is_correct
+        'correct': is_correct,
+        'srs': srs_results
     })

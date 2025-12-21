@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+
+    <!-- Course Header -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex-1">
+                <h1 class="text-2xl font-bold text-slate-800 mb-2">{{ container.title }}</h1>
+                <p class="text-slate-500 text-sm mb-4">{{ container.items|length }} từ vựng</p>
+
+                <!-- Overall Progress -->
+                <div class="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden">
+                    <div class="bg-green-500 h-3 rounded-full transition-all duration-500"
+                        style="width: {{ stats.progress }}%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-slate-500 font-medium">
+                    <span>Đã học: {{ stats.learned_count }}/{{ stats.total_count }} từ</span>
+                    <span>{{ stats.progress }}% hoàn thành</span>
+                </div>
+            </div>
+
+            <div class="flex-shrink-0">
+                <a href="{{ url_for('vocab_memrise.session', container_id=container.container_id) }}"
+                    class="inline-flex items-center justify-center px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                    <i class="fas fa-play mr-2"></i>
+                    Bắt đầu học
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Word List -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+            <h3 class="font-bold text-slate-700">Danh sách từ vựng</h3>
+            <span class="text-xs font-medium px-2 py-1 bg-white border border-slate-200 rounded text-slate-500">
+                Trang {{ stats.pagination.current }}/{{ stats.pagination.pages }}
+            </span>
+        </div>
+
+        <div class="divide-y divide-slate-100">
+            {% for item in stats.items %}
+            <div class="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between gap-4">
+
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-base font-semibold text-slate-800 truncate">{{ item.term }}</span>
+                        {% if item.status == 'new' %}
+                        <span
+                            class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase rounded">New</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-slate-500 truncate">{{ item.definition }}</p>
+                </div>
+
+                <!-- Retention Energy Bar -->
+                <div class="w-32 flex flex-col items-end gap-1">
+                    <div class="flex items-center gap-1 text-xs font-medium text-slate-400">
+                        <i
+                            class="fas fa-bolt {{ 'text-yellow-400' if item.retention_rate > 50 else 'text-slate-300' }}"></i>
+                        <span>{{ item.retention_rate }}%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden relative">
+                        <!-- Energy Bar Color Logic: Green (>80), Yellow (50-80), Red (<50) -->
+                        {% set bar_color = 'bg-red-500' %}
+                        {% if item.retention_rate >= 80 %}
+                        {% set bar_color = 'bg-green-500' %}
+                        {% elif item.retention_rate >= 50 %}
+                        {% set bar_color = 'bg-yellow-500' %}
+                        {% endif %}
+
+                        <div class="{{ bar_color }} h-2 rounded-full absolute top-0 left-0 transition-all duration-500"
+                            style="width: {{ item.retention_rate }}%"></div>
+                    </div>
+                    {% if item.is_due %}
+                    <span class="text-[10px] text-red-500 font-bold">Cần ôn tập</span>
+                    {% endif %}
+                </div>
+
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-slate-400">
+                Chưa có từ vựng nào trong bộ thẻ này.
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination controls -->
+        {% if stats.pagination.pages > 1 %}
+        <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-center gap-2">
+            {% if stats.pagination.has_prev %}
+            <a href="{{ url_for('vocab_memrise.course_overview', container_id=container.container_id, page=stats.pagination.current - 1) }}"
+                class="p-2 w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+
+            <span class="p-2 h-8 flex items-center justify-center text-sm font-medium text-slate-500">
+                {{ stats.pagination.current }} / {{ stats.pagination.pages }}
+            </span>
+
+            {% if stats.pagination.has_next %}
+            <a href="{{ url_for('vocab_memrise.course_overview', container_id=container.container_id, page=stats.pagination.current + 1) }}"
+                class="p-2 w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

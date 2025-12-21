@@ -102,6 +102,22 @@ def api_check_answer():
     answer_key = data.get('answer_column')
     
     result = check_mcq_answer(item_id, user_answer, user_id=current_user.user_id, answer_key=answer_key)
+    
+    # Update SRS
+    if item_id:
+        from mindstack_app.modules.learning.vocabulary.services.srs_service import VocabularySrsService
+        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.models import db
+
+        srs_result = VocabularySrsService.process_interaction(
+            user_id=current_user.user_id,
+            item_id=item_id,
+            mode='mcq',
+            result_data=result
+        )
+        safe_commit(db.session)
+        result['srs'] = srs_result
+        
     return jsonify(result)
 
 

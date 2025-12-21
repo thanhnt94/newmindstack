@@ -102,6 +102,13 @@ def api_get_sets():
     })
 
 
+@vocabulary_bp.route('/set/<int:set_id>')
+@login_required
+def set_detail_page(set_id):
+    """Deep link to specific set detail."""
+    return render_template('vocabulary/dashboard/index.html', active_set_id=set_id)
+
+
 @vocabulary_bp.route('/api/set/<int:set_id>')
 @login_required
 def api_get_set_detail(set_id):
@@ -128,6 +135,17 @@ def api_get_set_detail(set_id):
     # Get creator
     creator = User.query.get(container.creator_user_id)
     
+    # Get SRS Stats for Course Overview
+    course_stats = None
+    page = request.args.get('page', 1, type=int)
+    try:
+        from .memrise.logic import get_course_overview_stats
+        course_stats = get_course_overview_stats(current_user.user_id, set_id, page=page, per_page=12)
+    except Exception as e:
+        print(f"ERROR calculating course stats for set {set_id}: {e}")
+        # Return empty stats or handle gracefully so page doesn't crash
+        course_stats = None
+
     return jsonify({
         'success': True,
         'set': {
@@ -138,8 +156,9 @@ def api_get_set_detail(set_id):
             'card_count': card_count,
             'memrise_count': memrise_count,
             'creator_name': creator.username if creator else 'Unknown',
-            'creator_avatar': None,  # User model doesn't have avatar_url
+            'creator_avatar': None,
             'is_public': container.is_public,
             'capabilities': list(container.capability_flags()),
-        }
+        },
+        'course_stats': course_stats
     })
