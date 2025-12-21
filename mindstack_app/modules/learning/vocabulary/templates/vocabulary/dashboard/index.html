@@ -1034,9 +1034,8 @@
                     class="js-word-list divide-y divide-slate-100 bg-white rounded-xl border border-slate-100 overflow-hidden">
                     <!-- Words injected here -->
                 </div>
-                <div class="text-center mt-2">
-                    <button class="js-load-more-words text-sm text-purple-600 font-semibold" style="display:none;">Xem
-                        thêm</button>
+                <div class="js-pagination-container flex items-center justify-center gap-4 mt-6" style="display:none;">
+                    <!-- Pagination Controls injected via JS -->
                 </div>
             </div>
 
@@ -1177,7 +1176,8 @@
             let currentSearch = '';
             let selectedSetId = null;
             let selectedSetData = null;
-            let currentStatsPage = 1; // Moved inside IIFE
+            let selectedMode = null;
+            let currentStatsPage = 1;
 
             // Elements
             const stepBrowser = document.getElementById('step-browser');
@@ -1191,10 +1191,29 @@
             const flashcardOptionsContainer = document.getElementById('flashcard-options-container');
             const mcqOptionsContainer = document.getElementById('mcq-options-container');
 
+            const continueBtn = document.querySelector('.js-mode-continue');
+
             if (!stepBrowser || !stepDetail || !setsGrid) {
                 console.error("Critical elements missing in DOM");
                 return;
             }
+
+            // Bind Mode Select Events
+            document.querySelectorAll('.js-mode-select').forEach(card => {
+                card.addEventListener('click', function () {
+                    // Reset all
+                    document.querySelectorAll('.js-mode-select').forEach(c => c.classList.remove('selected'));
+                    // Select current
+                    this.classList.add('selected');
+                    selectedMode = this.dataset.mode;
+
+                    // Enable continue button
+                    if (continueBtn) {
+                        continueBtn.disabled = false;
+                        continueBtn.classList.add('active'); // If using specific active style
+                    }
+                });
+            });
 
             // Init
             loadSets();
@@ -1348,7 +1367,7 @@
             .then(function (data) {
                 if (data.success) {
                     selectedSetData = data.set;
-                    renderSetDetail(data.set, data.course_stats, false);
+                    renderSetDetail(data.set, data.course_stats, false, data.pagination_html);
                 } else {
                     console.error('Failed to load set data:', data.message);
                     alert('Không thể tải thông tin bộ thẻ: ' + (data.message || 'Lỗi không xác định'));
@@ -1360,37 +1379,43 @@
             });
     }
 
-    // Load More Button
+    // Load More Button - replaced by pagination
     const loadMoreBtn = document.querySelector('.js-load-more-words');
-    if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', function () {
-            if (!selectedSetId) return;
-            const nextPage = currentStatsPage + 1;
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
 
-            const btn = this;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
-            btn.disabled = true;
+    function fetchCourseStatsPage(page) {
+        if (!selectedSetId) return;
 
-            fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + nextPage)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success && data.course_stats) {
-                        currentStatsPage = nextPage;
-                        renderSetDetail(selectedSetData, data.course_stats, true);
-                    }
-                })
-                .catch(err => {
-                    console.error('Load more error:', err);
-                    alert('Lỗi tải thêm từ.');
-                })
-                .finally(() => {
-                    btn.innerHTML = 'Xem thêm';
-                    btn.disabled = false;
-                });
-        });
+        // Find list container to show loading state
+        const listContainer = document.querySelector('.js-word-list');
+        if (listContainer) {
+            listContainer.innerHTML = '<div class="py-12 flex justify-center"><i class="fas fa-spinner fa-spin text-2xl text-slate-300"></i></div>';
+        }
+
+        fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.course_stats) {
+                    // Pass pagination_html if available
+                    renderSetDetail(selectedSetData, data.course_stats, false, data.pagination_html);
+                    // Scroll to top of list
+                    const overview = document.getElementById('course-overview-container');
+                    if (overview) overview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    console.error("API Error:", data.message);
+                    alert("Lỗi server: " + (data.message || "Không thể tải dữ liệu."));
+                    // Restore/Clear spinner
+                    const listContainer = document.querySelector('.js-word-list');
+                    if (listContainer) listContainer.innerHTML = '<div class="text-center text-red-500 py-4">Thử lại sau.</div>';
+                }
+            })
+            .catch(err => {
+                console.error("Pagination error:", err);
+                alert('Lỗi kết nối.');
+            });
     }
 
-    function renderSetDetail(s, stats, append = false) {
+    function renderSetDetail(s, stats, append = false, paginationHtml = '') {
         // Cover & Info only update on fresh load
         if (!append) {
             var coverEl = document.querySelector('.js-detail-cover');
@@ -1452,50 +1477,93 @@
                         let boltColor = item.retention_rate > 50 ? 'text-yellow-400' : 'text-slate-300';
 
                         listHtml += `
-                        <div class="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between gap-4">
+                        <div class="group p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors flex items-center justify-between gap-4">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-base font-semibold text-slate-800 truncate">${item.term}</span>
-                                    ${item.status === 'new' ? '<span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase rounded">New</span>' : ''}
+                                    <span class="text-base font-bold text-slate-800 truncate">${item.term}</span>
+                                    ${item.status === 'new' ? '<span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase rounded-full tracking-wider border border-blue-100">Mới</span>' : ''}
                                 </div>
-                                <p class="text-sm text-slate-500 truncate">${item.definition}</p>
+                                <p class="text-sm text-slate-500 truncate group-hover:text-slate-700 transition-colors">${item.definition}</p>
                             </div>
-                            <div class="w-24 flex flex-col items-end gap-1">
-                                <div class="flex items-center gap-1 text-xs font-medium text-slate-400">
-                                    <i class="fas fa-bolt ${boltColor}"></i>
-                                    <span>${item.retention_rate}%</span>
+                            <div class="w-20 flex flex-col items-end gap-1.5">
+             
+                                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                    <div class="${barColor} h-1.5 rounded-full transition-all duration-500" style="width: ${item.retention_rate}%"></div>
                                 </div>
-                                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden relative">
-                                    <div class="${barColor} h-1.5 rounded-full absolute top-0 left-0" style="width: ${item.retention_rate}%"></div>
+                                <div class="flex items-center gap-1">
+                                     ${item.is_due ? '<span class="text-[10px] text-red-500 font-bold bg-red-50 px-1.5 rounded">Ôn tập</span>' : ''}
+                                     <div class="flex items-center gap-0.5 text-[10px] font-bold text-slate-400">
+                                        <i class="fas fa-bolt ${boltColor} text-[8px]"></i>
+                                        <span>${item.retention_rate}%</span>
+                                    </div>
                                 </div>
-                                ${item.is_due ? '<span class="text-[10px] text-red-500 font-bold">Cần ôn tập</span>' : ''}
                             </div>
                         </div>`;
                     });
-                } else if (!append) {
-                    listHtml = '<div class="p-4 text-center text-slate-400 text-sm">Chưa có từ vựng nào.</div>';
+                } else {
+                    listHtml = '<div class="py-12 text-center flex flex-col items-center justify-center text-slate-400"><i class="fas fa-inbox text-4xl mb-3 text-slate-200"></i><span class="text-sm">Chưa có từ vựng nào.</span></div>';
                 }
 
-                if (append) {
-                    listContainer.insertAdjacentHTML('beforeend', listHtml);
-                } else {
-                    listContainer.innerHTML = listHtml;
-                }
+                listContainer.innerHTML = listHtml; // Always replace
             }
 
-            // Show/Hide Load More
-            const loadMoreBtn = document.querySelector('.js-load-more-words');
-            if (loadMoreBtn) {
-                if (stats.pagination && stats.pagination.has_next) {
-                    loadMoreBtn.style.display = 'inline-block';
+            // Pagination Controls
+            const paginationContainer = document.querySelector('.js-pagination-container');
+            if (paginationContainer) {
+                if (paginationHtml) {
+                    paginationContainer.style.display = 'flex';
+                    paginationContainer.innerHTML = paginationHtml;
+
+                    // Re-bind events for the new HTML
+                    paginationContainer.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            // DEBUG: Check Link HREF
+
+                            const url = new URL(this.href);
+                            const page = url.searchParams.get('page');
+                            if (page) fetchCourseStatsPage(page);
+                        });
+                    });
+                } else if (stats.pagination.pages > 1) {
+                    // Fallback
+                    if (!paginationContainer.innerHTML.trim()) paginationContainer.style.display = 'none';
                 } else {
-                    loadMoreBtn.style.display = 'none';
+                    paginationContainer.style.display = 'none';
+                    paginationContainer.innerHTML = '';
                 }
             }
 
         } else if (overviewContainer) {
             overviewContainer.style.display = 'none';
         }
+    }
+
+    function fetchCourseStatsPage(page) {
+        if (!selectedSetId) return;
+
+        // Find list container to show loading state
+        const listContainer = document.querySelector('.js-word-list');
+        if (listContainer) {
+            listContainer.innerHTML = '<div class="py-12 flex justify-center"><i class="fas fa-spinner fa-spin text-2xl text-slate-300"></i></div>';
+        }
+
+        const url = '/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page + '&_t=' + new Date().getTime();
+
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.course_stats) {
+                    renderSetDetail(selectedSetData, data.course_stats, false, data.pagination_html); // Pass pagination HTML
+                    // Scroll to top of list
+                    const overview = document.getElementById('course-overview-container');
+                    if (overview) overview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            })
+            .catch(err => {
+                console.error("Pagination error:", err);
+                alert('Lỗi tải trang.');
+            });
     }
 
     // Start learning button

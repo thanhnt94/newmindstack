@@ -4,11 +4,9 @@
 {% macro render_pagination_mobile(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
 <div class="flex justify-center items-center gap-2 mt-4 mb-8 pagination w-full px-4">
     {# Nút "Trang trước" - Circular/Squircle #}
+    {# Nút "Trang trước" #}
     {% if pagination.has_prev %}
-    {% set url_params = {'page': pagination.prev_num, 'q': search_query, 'search_field': search_field, 'filter':
-    current_filter} %}
-    {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
-    <a href="{{ url_for(request.endpoint, **url_params) }}"
+    <a href="{{ url_for(request.endpoint, page=pagination.prev_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id) }}"
         class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 active:scale-95 transition-all">
         <i class="fas fa-chevron-left text-sm"></i>
     </a>
@@ -19,9 +17,9 @@
     </span>
     {% endif %}
 
-    {# Các nút số trang - Reduced range for mobile #}
+    {# Các nút số trang #}
     <div class="flex items-center bg-white rounded-xl border border-slate-200 shadow-sm p-1">
-        {% for page_num in pagination.iter_pages(left_edge=0, right_edge=0, left_current=1, right_current=1) %}
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
         {% if page_num %}
         {% if page_num == pagination.page %}
         <span
@@ -29,10 +27,7 @@
             {{ page_num }}
         </span>
         {% else %}
-        {% set url_params = {'page': page_num, 'q': search_query, 'search_field': search_field, 'filter':
-        current_filter} %}
-        {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
-        <a href="{{ url_for(request.endpoint, **url_params) }}"
+        <a href="{{ url_for(request.endpoint, page=page_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id) }}"
             class="w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm mx-0.5 transition-colors">
             {{ page_num }}
         </a>
@@ -45,10 +40,7 @@
 
     {# Nút "Trang sau" #}
     {% if pagination.has_next %}
-    {% set url_params = {'page': pagination.next_num, 'q': search_query, 'search_field': search_field, 'filter':
-    current_filter} %}
-    {% if set_id is not none %}{% set _ = url_params.update({'set_id': set_id}) %}{% endif %}
-    <a href="{{ url_for(request.endpoint, **url_params) }}"
+    <a href="{{ url_for(request.endpoint, page=pagination.next_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id) }}"
         class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 active:scale-95 transition-all">
         <i class="fas fa-chevron-right text-sm"></i>
     </a>
