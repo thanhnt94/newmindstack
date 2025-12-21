@@ -845,17 +845,26 @@ NOTE: Visibility được control bởi critical CSS trong index.html
             });
         }
 
-        // Edit button - call existing function
+        // Edit button - construct URL and open modal
         const editBtn = document.querySelector('.js-fc-edit-btn');
         if (editBtn) {
+            // Use Jinja2 generated URL template same as index.html
+            const editUrlTemplate = "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}";
             editBtn.addEventListener('click', function () {
                 if (window.currentFlashcardBatch &&
                     typeof window.currentFlashcardIndex !== 'undefined') {
                     const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
-                    if (card && card.edit_url) {
-                        window.parent.openModal(card.edit_url);
-                    } else if (typeof window.openModal === 'function' && card && card.edit_url) {
-                        window.openModal(card.edit_url);
+                    if (card && card.item_id && card.container_id) {
+                        // Replace placeholder IDs with actual values
+                        const editUrl = editUrlTemplate.replace('/0', '/' + card.container_id).replace('/0', '/' + card.item_id) + '?is_modal=true';
+                        if (typeof window.openModal === 'function') {
+                            window.openModal(editUrl);
+                        } else if (window.parent && typeof window.parent.openModal === 'function') {
+                            window.parent.openModal(editUrl);
+                        } else {
+                            // Fallback: navigate directly
+                            window.location.href = editUrl;
+                        }
                     }
                 }
             });
