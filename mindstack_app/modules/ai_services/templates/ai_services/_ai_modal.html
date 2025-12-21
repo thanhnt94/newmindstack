@@ -1,18 +1,91 @@
 {#
-    # File: mindstack_app/modules/ai_services/templates/ai_services/_ai_modal.html
-    # Phiên bản: 2.1
-    # TÍNH NĂNG: Cung cấp modal để hiển thị các chức năng AI (giải thích, ví dụ, v.v.).
-    # ĐÃ SỬA: Sửa lỗi BuildError bằng cách trỏ url_for đến đúng endpoint 'ai_services.get_ai_response'.
+# File: mindstack_app/modules/ai_services/templates/ai_services/_ai_modal.html
+# Phiên bản: 2.2
+# TÍNH NĂNG: Cung cấp modal để hiển thị các chức năng AI (giải thích, ví dụ, v.v.).
+# ĐÃ SỬA: Chuyển thành bottom sheet full height trên mobile.
 #}
+
+<style>
+    /* Mobile bottom sheet styling for AI modal */
+    @media (max-width: 1023px) {
+        #ai-modal.custom-modal-overlay {
+            align-items: flex-end !important;
+            justify-content: center !important;
+            padding: 0 !important;
+        }
+
+        #ai-modal .custom-modal-content {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            border-radius: 20px 20px 0 0 !important;
+            max-height: calc(100vh - 40px) !important;
+            min-height: calc(100vh - 40px) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            animation: slideUpAi 0.3s ease-out !important;
+            padding: 12px 8px !important;
+        }
+
+        #ai-modal .ai-modal-header {
+            flex-shrink: 0;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #ai-modal .ai-modal-header::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        #ai-modal .ai-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        #ai-modal #ai-response-container {
+            max-height: none !important;
+            min-height: calc(100vh - 160px) !important;
+            padding: 8px !important;
+        }
+
+        @keyframes slideUpAi {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    }
+</style>
+
 <div id="ai-modal" class="custom-modal-overlay">
-    <div class="custom-modal-content !max-w-2xl w-full">
-        <div class="flex justify-between items-center mb-4">
+    <div class="custom-modal-content !max-w-2xl w-full relative">
+        <!-- Header -->
+        <div class="ai-modal-header flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">Mindstack AI</h3>
             <button id="close-ai-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
         </div>
-        <div class="text-left space-y-4">
+        <!-- Body -->
+        <div class="ai-modal-body text-left space-y-4">
             <h4 id="ai-modal-term" class="text-sm font-semibold text-purple-600"></h4>
-            <div id="ai-response-container" class="markdown-body bg-gray-50 p-4 rounded-md min-h-[150px] max-h-[40vh] overflow-y-auto">
+            <div id="ai-response-container"
+                class="markdown-body bg-gray-50 p-4 rounded-md min-h-[150px] max-h-[40vh] overflow-y-auto">
                 <div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>
             </div>
         </div>
@@ -20,96 +93,96 @@
 </div>
 
 <script>
-let currentAiItemId = null
+    let currentAiItemId = null
 
-/**
- * Mô tả: Mở modal AI và thiết lập các thông tin cần thiết.
- * @param {string} itemId - ID của học liệu đang được yêu cầu hỗ trợ.
- * @param {string} termContent - Nội dung mặt trước của thẻ.
- */
-function openAiModal(itemId, termContent) {
-    const aiModal = document.getElementById('ai-modal')
-    if (!aiModal || aiModal.style.display === 'flex') return
+    /**
+     * Mô tả: Mở modal AI và thiết lập các thông tin cần thiết.
+     * @param {string} itemId - ID của học liệu đang được yêu cầu hỗ trợ.
+     * @param {string} termContent - Nội dung mặt trước của thẻ.
+     */
+    function openAiModal(itemId, termContent) {
+        const aiModal = document.getElementById('ai-modal')
+        if (!aiModal || aiModal.style.display === 'flex') return
 
-    const aiModalTerm = document.getElementById('ai-modal-term')
-    const aiResponseContainer = document.getElementById('ai-response-container')
+        const aiModalTerm = document.getElementById('ai-modal-term')
+        const aiResponseContainer = document.getElementById('ai-response-container')
 
-    currentAiItemId = itemId
-    if(aiModalTerm) aiModalTerm.textContent = termContent
+        currentAiItemId = itemId
+        if (aiModalTerm) aiModalTerm.textContent = termContent
 
-    aiModal.style.display = 'flex'
-    fetchAiResponse()
-}
-
-/**
- * Mô tả: Đóng modal AI và reset trạng thái.
- */
-function closeAiModal() {
-    const aiModal = document.getElementById('ai-modal')
-    if (aiModal) {
-        aiModal.style.display = 'none'
+        aiModal.style.display = 'flex'
+        fetchAiResponse()
     }
-    currentAiItemId = null
-    const aiResponseContainer = document.getElementById('ai-response-container')
-    if (aiResponseContainer) {
-        aiResponseContainer.innerHTML = `<div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>`
-    }
-}
 
-/**
- * Mô tả: Gửi yêu cầu đến server để nhận phản hồi từ AI.
- */
-async function fetchAiResponse() {
-    const aiResponseContainer = document.getElementById('ai-response-container')
-    if (!currentAiItemId || !aiResponseContainer) return
-
-    aiResponseContainer.innerHTML = `<div class="flex items-center justify-center h-full"><i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i><span class="ml-3 text-gray-600">AI đang suy nghĩ...</span></div>`
-
-    try {
-        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-        const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
-        
-        if (!csrfToken) {
-            console.warn('Mindstack AI: CSRF Token not found in meta tag');
+    /**
+     * Mô tả: Đóng modal AI và reset trạng thái.
+     */
+    function closeAiModal() {
+        const aiModal = document.getElementById('ai-modal')
+        if (aiModal) {
+            aiModal.style.display = 'none'
         }
+        currentAiItemId = null
+        const aiResponseContainer = document.getElementById('ai-response-container')
+        if (aiResponseContainer) {
+            aiResponseContainer.innerHTML = `<div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>`
+        }
+    }
 
-        // SỬA LỖI: Đổi 'get_ai_support' thành 'get_ai_response' cho đúng với tên route
-        const response = await fetch("{{ url_for('ai_services.get_ai_response') }}", {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrfToken
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                item_id: currentAiItemId,
-                prompt_type: 'explanation'
-            })
-        })
-        const result = await response.json()
-        if (response.ok && result.success) {
-            const rawContent = result.html_content || result.response || ''
-            if (window.applyMarkdownToElement) {
-                window.applyMarkdownToElement(aiResponseContainer, rawContent, { treatAsHtml: Boolean(result.html_content) })
-            } else {
-                aiResponseContainer.innerHTML = rawContent
+    /**
+     * Mô tả: Gửi yêu cầu đến server để nhận phản hồi từ AI.
+     */
+    async function fetchAiResponse() {
+        const aiResponseContainer = document.getElementById('ai-response-container')
+        if (!currentAiItemId || !aiResponseContainer) return
+
+        aiResponseContainer.innerHTML = `<div class="flex items-center justify-center h-full"><i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i><span class="ml-3 text-gray-600">AI đang suy nghĩ...</span></div>`
+
+        try {
+            const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+
+            if (!csrfToken) {
+                console.warn('Mindstack AI: CSRF Token not found in meta tag');
             }
-        } else {
-            aiResponseContainer.innerHTML = `<p class="text-red-500">${result.message || 'Có lỗi xảy ra.'}</p>`
+
+            // SỬA LỖI: Đổi 'get_ai_support' thành 'get_ai_response' cho đúng với tên route
+            const response = await fetch("{{ url_for('ai_services.get_ai_response') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    item_id: currentAiItemId,
+                    prompt_type: 'explanation'
+                })
+            })
+            const result = await response.json()
+            if (response.ok && result.success) {
+                const rawContent = result.html_content || result.response || ''
+                if (window.applyMarkdownToElement) {
+                    window.applyMarkdownToElement(aiResponseContainer, rawContent, { treatAsHtml: Boolean(result.html_content) })
+                } else {
+                    aiResponseContainer.innerHTML = rawContent
+                }
+            } else {
+                aiResponseContainer.innerHTML = `<p class="text-red-500">${result.message || 'Có lỗi xảy ra.'}</p>`
+            }
+        } catch (error) {
+            console.error('Lỗi khi gọi AI:', error)
+            aiResponseContainer.innerHTML = `<p class="text-red-500">Lỗi kết nối. Không thể nhận phản hồi từ AI.</p>`
         }
-    } catch (error) {
-        console.error('Lỗi khi gọi AI:', error)
-        aiResponseContainer.innerHTML = `<p class="text-red-500">Lỗi kết nối. Không thể nhận phản hồi từ AI.</p>`
-    }
-}
-
-// Gắn event listener khi DOM sẵn sàng
-document.addEventListener('DOMContentLoaded', function() {
-    const closeBtn = document.getElementById('close-ai-modal-btn')
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeAiModal)
     }
 
-})
+    // Gắn event listener khi DOM sẵn sàng
+    document.addEventListener('DOMContentLoaded', function () {
+        const closeBtn = document.getElementById('close-ai-modal-btn')
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeAiModal)
+        }
+
+    })
 </script>

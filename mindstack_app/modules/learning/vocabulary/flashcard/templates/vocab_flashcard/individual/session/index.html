@@ -981,6 +981,8 @@
   let isMediaHidden = false;
   let isAudioAutoplayEnabled = true;
   let storedAudioAutoplay = null;
+  let sessionAnswerHistory = []; // Store all answered cards in session
+  window.sessionAnswerHistory = sessionAnswerHistory; // Expose for mobile stats
 
   try {
     const storedImageVisibility = localStorage.getItem('flashcardHideImages');
@@ -2334,6 +2336,16 @@
         scoreChange: data.score_change,
         cardContent: previousCardContent
       };
+
+      // Push to session history for full stats display
+      sessionAnswerHistory.push({
+        front: previousCardContent.front,
+        back: previousCardContent.back,
+        answer: answer,
+        scoreChange: data.score_change,
+        stats: data.statistics,
+        timestamp: Date.now()
+      });
       const previousStatsHtml = renderCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
       displayCardStats(previousCardStatsContainer, previousStatsHtml);
 
@@ -2355,6 +2367,9 @@
       showCustomAlert('Có lỗi khi gửi đáp án. Vui lòng thử lại.');
     }
   }
+
+  // Expose submitFlashcardAnswer globally for mobile handlers
+  window.submitFlashcardAnswer = submitFlashcardAnswer;
 
   endSessionBtn.addEventListener('click', () => endSessionModal.style.display = 'flex');
   confirmEndSessionBtn.addEventListener('click', async () => {

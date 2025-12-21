@@ -723,12 +723,17 @@ NOTE: Visibility được control bởi critical CSS trong index.html
                     }
                     const answerValue = answerMap[rating] || 'good';
 
-                    // Trigger existing rating button logic in MOBILE VIEW
-                    const mobileView = document.querySelector('.flashcard-mobile-view');
-                    const existingBtn = mobileView ? mobileView.querySelector(`.js-internal-actions .btn[data-answer="${answerValue}"]`) : null;
-                    if (existingBtn) existingBtn.click();
+                    // Call submitFlashcardAnswer directly instead of simulating button click
+                    if (window.currentFlashcardBatch &&
+                        typeof window.currentFlashcardIndex !== 'undefined' &&
+                        typeof window.submitFlashcardAnswer === 'function') {
+                        const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
+                        if (card && card.item_id) {
+                            window.submitFlashcardAnswer(card.item_id, answerValue);
+                        }
+                    }
 
-                    // Reset for next card
+                    // Reset for next card (will also be done by flashcardStatsUpdated event)
                     setTimeout(() => {
                         flipBtn.style.display = 'flex';
                         ratingBtnsContainer.classList.remove('show');
@@ -757,9 +762,37 @@ NOTE: Visibility được control bởi critical CSS trong index.html
             });
         }
 
-        // Listen for stats update event
+        // Reset mobile card state when new card loads
+        function resetMobileCardState() {
+            const mobileView = document.querySelector('.flashcard-mobile-view');
+            if (!mobileView) return;
+
+            // Remove flipped class from card
+            const card = mobileView.querySelector('.js-flashcard-card');
+            if (card) {
+                card.classList.remove('flipped');
+            }
+
+            // Hide actions
+            const actions = mobileView.querySelector('.js-internal-actions');
+            if (actions) {
+                actions.classList.remove('visible');
+            }
+
+            // Reset bottom bar - show flip button, hide rating buttons
+            if (flipBtn) {
+                flipBtn.style.display = 'flex';
+            }
+            if (ratingBtnsContainer) {
+                ratingBtnsContainer.classList.remove('show');
+            }
+        }
+
+        // Listen for stats update event (fired when new card loads)
         document.addEventListener('flashcardStatsUpdated', function (e) {
             updateMobileStats(e.detail);
+            // Reset card state for new card
+            resetMobileCardState();
         });
 
         // Initial update from window if available
@@ -783,6 +816,21 @@ NOTE: Visibility được control bởi critical CSS trong index.html
                 if (audioEl && audioEl.src) {
                     audioEl.currentTime = 0;
                     audioEl.play();
+                }
+            });
+        }
+
+        // Note button in header - open note panel for current card
+        const noteBtn = document.querySelector('.js-fc-note-btn');
+        if (noteBtn) {
+            noteBtn.addEventListener('click', function () {
+                if (window.currentFlashcardBatch &&
+                    typeof window.currentFlashcardIndex !== 'undefined' &&
+                    typeof window.openNotePanel === 'function') {
+                    const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
+                    if (card && card.item_id) {
+                        window.openNotePanel(card.item_id);
+                    }
                 }
             });
         }
@@ -811,7 +859,10 @@ NOTE: Visibility được control bởi critical CSS trong index.html
         const imageToggleBtn = document.querySelector('.js-fc-image-toggle');
         const imageIcon = document.querySelector('.js-fc-image-icon');
         const imageText = document.querySelector('.js-fc-image-text');
-        let isImageHidden = window.isMediaHidden || false;
+
+        // Get initial state from localStorage
+        const storedImageHidden = localStorage.getItem('flashcardHideImages');
+        let isImageHidden = storedImageHidden === 'true';
 
         function updateImageToggleUI() {
             if (imageIcon) {
@@ -821,27 +872,45 @@ NOTE: Visibility được control bởi critical CSS trong index.html
                 imageText.textContent = isImageHidden ? 'Hiện ảnh' : 'Ẩn ảnh';
             }
         }
+
+        function applyImageVisibility() {
+            const mediaContainers = document.querySelectorAll('.media-container');
+            mediaContainers.forEach(container => {
+                container.style.display = isImageHidden ? 'none' : '';
+            });
+        }
+
+        // Apply initial state
+        applyImageVisibility();
         updateImageToggleUI();
 
         if (imageToggleBtn) {
             imageToggleBtn.addEventListener('click', function () {
-                if (typeof window.setMediaHiddenState === 'function') {
-                    isImageHidden = !isImageHidden;
-                    window.setMediaHiddenState(isImageHidden);
-                    updateImageToggleUI();
-                }
+                isImageHidden = !isImageHidden;
+                localStorage.setItem('flashcardHideImages', isImageHidden);
+                applyImageVisibility();
+                updateImageToggleUI();
             });
         }
+
+        // Re-apply image visibility when new cards load
+        document.addEventListener('flashcardStatsUpdated', function () {
+            setTimeout(applyImageVisibility, 100);
+        });
 
         // Audio autoplay toggle with dynamic text/icon
         const autoplayToggleBtn = document.querySelector('.js-fc-autoplay-toggle');
         const autoplayIcon = document.querySelector('.js-fc-autoplay-icon');
         const autoplayText = document.querySelector('.js-fc-autoplay-text');
-        let isAutoplayOn = window.isAudioAutoplayEnabled || false;
+
+        // Get initial state from localStorage
+        const storedAutoplay = localStorage.getItem('flashcardAutoplayAudio');
+        let isAutoplayOn = storedAutoplay === 'true';
 
         function updateAutoplayToggleUI() {
             if (autoplayIcon) {
-                autoplayIcon.className = isAutoplayOn ? 'fas fa-pause js-fc-autoplay-icon' : 'fas fa-play js-fc-autoplay-icon';
+                // When ON: show volume-up (audio playing), when OFF: show volume-mute (audio off)
+                autoplayIcon.className = isAutoplayOn ? 'fas fa-volume-up js-fc-autoplay-icon' : 'fas fa-volume-mute js-fc-autoplay-icon';
             }
             if (autoplayText) {
                 autoplayText.textContent = isAutoplayOn ? 'Tắt tự động' : 'Tự động phát';
@@ -851,11 +920,13 @@ NOTE: Visibility được control bởi critical CSS trong index.html
 
         if (autoplayToggleBtn) {
             autoplayToggleBtn.addEventListener('click', function () {
+                isAutoplayOn = !isAutoplayOn;
+                localStorage.setItem('flashcardAutoplayAudio', isAutoplayOn);
+                // Try to call global toggle function if exists
                 if (typeof window.toggleAudioAutoplay === 'function') {
                     window.toggleAudioAutoplay();
-                    isAutoplayOn = !isAutoplayOn;
-                    updateAutoplayToggleUI();
                 }
+                updateAutoplayToggleUI();
             });
         }
 
@@ -924,5 +995,53 @@ NOTE: Visibility được control bởi critical CSS trong index.html
                 }
             });
         }
+
+        // Render session answer history list in mobile stats
+        function renderSessionHistoryList() {
+            const container = document.getElementById('session-history-list-mobile');
+            if (!container) return;
+
+            const history = window.sessionAnswerHistory || [];
+
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-40 text-slate-400">
+                        <i class="fas fa-list-alt text-2xl mb-2"></i>
+                        <p class="text-sm">Trả lời thẻ để xem lịch sử.</p>
+                    </div>`;
+                return;
+            }
+
+            // Render history items in reverse order (newest first)
+            const historyHtml = history.slice().reverse().map((item, index) => {
+                const scoreClass = item.scoreChange > 0 ? 'text-emerald-600' : (item.scoreChange < 0 ? 'text-rose-600' : 'text-slate-500');
+                const scoreIcon = item.scoreChange > 0 ? 'fa-plus' : (item.scoreChange < 0 ? 'fa-minus' : 'fa-equals');
+                const scoreText = item.scoreChange > 0 ? `+${item.scoreChange}` : item.scoreChange;
+                const orderNum = history.length - index;
+
+                return `
+                    <div class="bg-white rounded-xl border border-slate-100 p-3 shadow-sm">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs text-slate-400 mb-1">#${orderNum}</div>
+                                <p class="text-sm font-semibold text-slate-800 truncate">${item.front}</p>
+                                <p class="text-xs text-slate-500 mt-1">Đáp án: <span class="font-medium">${item.answer}</span></p>
+                            </div>
+                            <div class="flex-shrink-0 text-right">
+                                <div class="${scoreClass} font-bold text-lg">
+                                    <i class="fas ${scoreIcon} text-xs mr-0.5"></i>${Math.abs(item.scoreChange)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            container.innerHTML = historyHtml;
+        }
+
+        // Update history when new card is answered
+        document.addEventListener('flashcardStatsUpdated', function () {
+            renderSessionHistoryList();
+        });
     })();
 </script>
