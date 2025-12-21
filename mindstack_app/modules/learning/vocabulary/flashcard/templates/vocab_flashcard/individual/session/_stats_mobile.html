@@ -32,6 +32,20 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
             </div>
         </div>
 
+        <!-- Compact History Icons Row -->
+        <div class="px-4 mb-3 flex-shrink-0">
+            <div class="bg-white rounded-xl border border-slate-100 p-2">
+                <div class="flex items-center gap-1 mb-1">
+                    <i class="fas fa-history text-slate-400 text-xs"></i>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Lịch sử phiên</span>
+                </div>
+                <div id="session-history-icons-mobile" class="flex flex-wrap gap-1">
+                    <!-- Icons rendered dynamically: green check = correct, red x = wrong -->
+                    <span class="text-xs text-slate-300">Chưa có dữ liệu</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Tabs (Segmented Control) -->
         <div class="px-4 mb-3 flex-shrink-0">
             <div class="flex p-1 bg-slate-200 rounded-xl">
@@ -43,10 +57,6 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
                 <button class="stats-mobile-tab flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all"
                     data-target="previous-card-stats-pane-mobile">
                     Trước đó
-                </button>
-                <button class="stats-mobile-tab flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all"
-                    data-target="session-history-pane-mobile">
-                    Lịch sử
                 </button>
             </div>
         </div>
@@ -68,15 +78,6 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
                     <div class="flex flex-col items-center justify-center h-40 text-slate-400">
                         <i class="fas fa-history text-2xl mb-2"></i>
                         <p class="text-sm">Chưa có dữ liệu.</p>
-                    </div>
-                </div>
-            </div>
-            <div id="session-history-pane-mobile" class="stats-mobile-pane hidden space-y-2">
-                <div id="session-history-list-mobile" class="space-y-2">
-                    <!-- History items rendered dynamically -->
-                    <div class="flex flex-col items-center justify-center h-40 text-slate-400">
-                        <i class="fas fa-list-alt text-2xl mb-2"></i>
-                        <p class="text-sm">Trả lời thẻ để xem lịch sử.</p>
                     </div>
                 </div>
             </div>

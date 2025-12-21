@@ -996,47 +996,83 @@ NOTE: Visibility được control bởi critical CSS trong index.html
             });
         }
 
-        // Render session answer history list in mobile stats
+        // Render session answer history as compact icons in mobile stats
         function renderSessionHistoryList() {
-            const container = document.getElementById('session-history-list-mobile');
+            const container = document.getElementById('session-history-icons-mobile');
             if (!container) return;
 
             const history = window.sessionAnswerHistory || [];
 
             if (history.length === 0) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-40 text-slate-400">
-                        <i class="fas fa-list-alt text-2xl mb-2"></i>
-                        <p class="text-sm">Trả lời thẻ để xem lịch sử.</p>
-                    </div>`;
+                container.innerHTML = `<span class="text-xs text-slate-300">Chưa có dữ liệu</span>`;
                 return;
             }
 
-            // Render history items in reverse order (newest first)
-            const historyHtml = history.slice().reverse().map((item, index) => {
-                const scoreClass = item.scoreChange > 0 ? 'text-emerald-600' : (item.scoreChange < 0 ? 'text-rose-600' : 'text-slate-500');
-                const scoreIcon = item.scoreChange > 0 ? 'fa-plus' : (item.scoreChange < 0 ? 'fa-minus' : 'fa-equals');
+            // Render compact icons - green check for correct, red x for wrong
+            const iconsHtml = history.map((item, index) => {
+                const isCorrect = item.scoreChange > 0;
+                const isWrong = item.scoreChange < 0;
+                const colorClass = isCorrect ? 'bg-emerald-500' : (isWrong ? 'bg-rose-500' : 'bg-slate-400');
+                const icon = isCorrect ? 'fa-check' : (isWrong ? 'fa-times' : 'fa-minus');
+                const num = index + 1;
                 const scoreText = item.scoreChange > 0 ? `+${item.scoreChange}` : item.scoreChange;
-                const orderNum = history.length - index;
 
-                return `
-                    <div class="bg-white rounded-xl border border-slate-100 p-3 shadow-sm">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-xs text-slate-400 mb-1">#${orderNum}</div>
-                                <p class="text-sm font-semibold text-slate-800 truncate">${item.front}</p>
-                                <p class="text-xs text-slate-500 mt-1">Đáp án: <span class="font-medium">${item.answer}</span></p>
-                            </div>
-                            <div class="flex-shrink-0 text-right">
-                                <div class="${scoreClass} font-bold text-lg">
-                                    <i class="fas ${scoreIcon} text-xs mr-0.5"></i>${Math.abs(item.scoreChange)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
+                return `<span class="history-icon w-6 h-6 rounded-full ${colorClass} flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-slate-300 transition-all"
+                    data-num="${num}"
+                    data-front="${item.front.replace(/"/g, '&quot;')}"
+                    data-answer="${item.answer}"
+                    data-score="${scoreText}">
+                    <i class="fas ${icon} text-white text-[10px]"></i>
+                </span>`;
             }).join('');
 
-            container.innerHTML = historyHtml;
+            container.innerHTML = iconsHtml;
+
+            // Add click handlers for tooltip
+            container.querySelectorAll('.history-icon').forEach(icon => {
+                icon.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    showHistoryTooltip(this);
+                });
+            });
+        }
+
+        // Show tooltip for history icon
+        function showHistoryTooltip(iconEl) {
+            // Remove existing tooltip
+            const existingTooltip = document.querySelector('.history-tooltip');
+            if (existingTooltip) existingTooltip.remove();
+
+            const num = iconEl.dataset.num;
+            const front = iconEl.dataset.front;
+            const answer = iconEl.dataset.answer;
+            const score = iconEl.dataset.score;
+            const scoreClass = score.startsWith('+') ? 'text-emerald-600' : (score.startsWith('-') ? 'text-rose-600' : 'text-slate-500');
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'history-tooltip absolute z-50 bg-white rounded-xl shadow-lg border border-slate-200 p-3 min-w-[200px] max-w-[280px]';
+            tooltip.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-400">#${num}</span>
+                    <span class="${scoreClass} font-bold text-sm">${score} điểm</span>
+                </div>
+                <p class="text-sm font-semibold text-slate-800 mb-1">${front}</p>
+                <p class="text-xs text-slate-500">Đáp án: <span class="font-medium">${answer}</span></p>
+            `;
+
+            // Position tooltip
+            const rect = iconEl.getBoundingClientRect();
+            const container = document.getElementById('session-history-icons-mobile').parentElement;
+            container.style.position = 'relative';
+            container.appendChild(tooltip);
+
+            // Close tooltip when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeTooltip() {
+                    tooltip.remove();
+                    document.removeEventListener('click', closeTooltip);
+                });
+            }, 10);
         }
 
         // Update history when new card is answered
