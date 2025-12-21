@@ -127,8 +127,21 @@ Mục đích: Đã khôi phục trạng thái ban đầu để tránh ảnh hư�
 
         /* THÊM MỚI: CSS để loại bỏ padding trên mobile */
         @media (max-width: 1024px) {
-            body.flashcard-session-active>main {
+
+            body.flashcard-session-active>main,
+            body.flashcard-session-active>main.container {
                 padding: 0 !important;
+                padding-top: 0 !important;
+                padding-bottom: 0 !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                margin: 0 !important;
+            }
+
+            body.flashcard-session-active>header {
+                display: none !important;
+                height: 0 !important;
+                overflow: hidden !important;
             }
         }
 

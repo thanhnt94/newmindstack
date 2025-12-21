@@ -140,10 +140,10 @@ def start_flashcard_session_all(mode):
     set_ids = 'all'
 
     if FlashcardSessionManager.start_new_flashcard_session(set_ids, mode):
-        return redirect(url_for('learning.flashcard_learning.flashcard_session'))
+        return redirect(url_for('learning.vocabulary.vocab_flashcard.flashcard_session'))
     else:
         flash('Không có bộ thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.vocabulary.dashboard'))
 
 
 @vocab_flashcard_bp.route('/start_flashcard_session/multi/<string:mode>', methods=['GET'])
@@ -156,19 +156,19 @@ def start_flashcard_session_multi(mode):
 
     if not set_ids_str:
         flash('Lỗi: Thiếu thông tin bộ thẻ.', 'danger')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.vocabulary.dashboard'))
 
     try:
         set_ids = [int(s) for s in set_ids_str.split(',') if s]
     except ValueError:
         flash('Lỗi: Định dạng ID bộ thẻ không hợp lệ.', 'danger')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.vocabulary.dashboard'))
 
     if FlashcardSessionManager.start_new_flashcard_session(set_ids, mode):
-        return redirect(url_for('learning.flashcard_learning.flashcard_session'))
+        return redirect(url_for('learning.vocabulary.vocab_flashcard.flashcard_session'))
     else:
         flash('Không có bộ thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.vocabulary.dashboard'))
 
 
 @vocab_flashcard_bp.route('/start_flashcard_session/<int:set_id>/<string:mode>', methods=['GET'])
@@ -178,10 +178,10 @@ def start_flashcard_session_by_id(set_id, mode):
     Bắt đầu một phiên học Flashcard cho một bộ thẻ cụ thể.
     """
     if FlashcardSessionManager.start_new_flashcard_session(set_id, mode):
-        return redirect(url_for('learning.flashcard_learning.flashcard_session'))
+        return redirect(url_for('learning.vocabulary.vocab_flashcard.flashcard_session'))
     else:
         flash('Không có bộ thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.vocabulary.dashboard'))
 
 
 @vocab_flashcard_bp.route('/flashcard_session')
@@ -192,7 +192,7 @@ def flashcard_session():
     """
     if 'flashcard_session' not in session:
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.vocabulary.dashboard'))
 
     # [UPDATED v3] Use session_state
     user_button_count = 3
@@ -204,11 +204,29 @@ def flashcard_session():
     is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
     autoplay_mode = session_mode if is_autoplay_session else ''
 
+    # Get container name for display
+    container_name = '--'
+    set_id = session_data.get('set_id')
+    if set_id:
+        # set_id can be int, list of ints, or 'all'
+        if isinstance(set_id, int):
+            container = LearningContainer.query.get(set_id)
+            if container:
+                container_name = container.title
+        elif isinstance(set_id, list) and len(set_id) > 0:
+            # Multiple sets - show first one with "+"
+            container = LearningContainer.query.get(set_id[0])
+            if container:
+                container_name = f"{container.title}" + (f" +{len(set_id)-1}" if len(set_id) > 1 else "")
+        elif set_id == 'all':
+            container_name = 'Tất cả bộ thẻ'
+
     return render_template(
-        'flashcard/individual/session/index.html',
+        'vocab_flashcard/individual/session/index.html',
         user_button_count=user_button_count,
         is_autoplay_session=is_autoplay_session,
-        autoplay_mode=autoplay_mode
+        autoplay_mode=autoplay_mode,
+        container_name=container_name
     )
 
 
@@ -241,6 +259,8 @@ def get_flashcard_batch():
         flashcard_batch['session_incorrect_answers'] = session_manager.incorrect_answers
         flashcard_batch['session_vague_answers'] = session_manager.vague_answers
         flashcard_batch['session_total_answered'] = session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
+        flashcard_batch['session_total_items'] = session_manager.total_items_in_session
+        flashcard_batch['session_processed_count'] = len(session_manager.processed_item_ids)
 
         current_app.logger.debug("--- Kết thúc get_flashcard_batch (Thành công) ---")
         return jsonify(flashcard_batch)
