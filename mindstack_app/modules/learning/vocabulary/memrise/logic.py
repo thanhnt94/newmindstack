@@ -253,8 +253,9 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
     learned_count = sum(1 for p in progress_records if p.status and p.status != 'new')
     progress_percent = int((learned_count / total_items) * 100)
     
-    # 3. Pagination with Sorting (Due Time ASC - Most Urgent First)
-    # Join with FlashcardProgress to sort
+    # 3. Pagination with Sorting (Retention Rate ASC - Worst First, New Last)
+    # Sort: Non-new items by retention ASC, then new items last
+    from sqlalchemy import case
     
     sorted_query = db.session.query(LearningItem, FlashcardProgress).outerjoin(
         FlashcardProgress, 
@@ -262,7 +263,15 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
     ).filter(
         LearningItem.container_id == container_id
     ).order_by(
-        FlashcardProgress.due_time.asc().nulls_last(), # Due soonest first (including overdue), nulls last
+        # New items go last
+        case(
+            (FlashcardProgress.status == 'new', 1),
+            (FlashcardProgress.status == None, 1),
+            else_=0
+        ).asc(),
+        # For non-new items, sort by retention rate (calculated via interval)
+        # Lower interval = needs review sooner = higher priority
+        FlashcardProgress.interval.asc().nulls_last(),
         LearningItem.item_id.asc() # Fallback
     )
     

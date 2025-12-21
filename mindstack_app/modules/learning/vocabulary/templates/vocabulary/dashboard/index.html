@@ -286,97 +286,233 @@
         text-transform: uppercase;
     }
 
-    /* Detail View */
+    /* Detail View - Modern Hero */
     .vocab-detail-hero {
-        height: 200px;
-        background: linear-gradient(135deg, #c7d2fe, #ddd6fe);
+        height: 240px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-        background-size: cover;
+        background-size: 200% 200%;
         background-position: center;
         position: relative;
+        overflow: hidden;
+        animation: gradientShift 8s ease infinite;
+    }
+
+    @keyframes gradientShift {
+
+        0%,
+        100% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+    }
+
+    .vocab-detail-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%);
+        pointer-events: none;
+    }
+
+    .vocab-detail-hero::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+        pointer-events: none;
     }
 
     .vocab-detail-hero i {
-        font-size: 4rem;
-        color: rgba(99, 102, 241, 0.4);
+        font-size: 5rem;
+        color: rgba(255, 255, 255, 0.95);
+        text-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        position: relative;
+        z-index: 1;
+        animation: floatIcon 3s ease-in-out infinite;
+    }
+
+    @keyframes floatIcon {
+
+        0%,
+        100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
     }
 
     .vocab-detail-content {
-        padding: 1.25rem;
+        padding: 1.5rem;
     }
 
     .vocab-detail-title {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: #1e293b;
-        margin-bottom: 0.5rem;
+        font-size: 1.75rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #1e293b 0%, #6366f1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.75rem;
+        line-height: 1.2;
     }
 
     .vocab-detail-desc {
         color: #64748b;
-        font-size: 0.875rem;
-        margin-bottom: 1rem;
-        line-height: 1.5;
+        font-size: 0.9375rem;
+        margin-bottom: 1.25rem;
+        line-height: 1.6;
     }
 
-    .vocab-detail-creator {
+    /* Inline Creator Info */
+    .vocab-creator-inline {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem;
-        background: #f8fafc;
-        border-radius: 0.75rem;
-        margin-bottom: 1rem;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
     }
 
-    .vocab-creator-avatar {
-        width: 40px;
-        height: 40px;
+    .vocab-creator-avatar-small {
+        width: 24px;
+        height: 24px;
         border-radius: 50%;
-        background: var(--vocab-primary);
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
+        font-size: 0.6875rem;
+        flex-shrink: 0;
+    }
+
+    .vocab-creator-name-small {
+        font-size: 0.8125rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .vocab-detail-creator {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: linear-gradient(135deg, #fefefe 0%, #f8fafc 100%);
+        border-radius: 1rem;
+        margin-bottom: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .vocab-detail-creator:hover {
+        border-color: #c4b5fd;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+    }
+
+    .vocab-creator-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.125rem;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     }
 
     .vocab-creator-name {
-        font-weight: 600;
+        font-weight: 700;
         color: #1e293b;
+        font-size: 0.9375rem;
     }
 
     .vocab-creator-role {
-        font-size: 0.75rem;
-        color: #94a3b8;
+        font-size: 0.8125rem;
+        color: #8b5cf6;
+        font-weight: 600;
     }
 
     .vocab-detail-stats {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.875rem;
+        margin-bottom: 1.5rem;
     }
 
     .vocab-stat {
-        flex: 1;
+        position: relative;
         text-align: center;
-        padding: 0.75rem;
-        background: #f1f5f9;
-        border-radius: 0.75rem;
+        padding: 1.25rem 1rem;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 1rem;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+
+    .vocab-stat::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        background: linear-gradient(135deg, #818cf8, #a78bfa);
+        border-radius: 1rem;
+        z-index: -1;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .vocab-stat:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+    }
+
+    .vocab-stat:hover::before {
+        opacity: 1;
     }
 
     .vocab-stat-value {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--vocab-primary);
+        font-size: 2rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.25rem;
+        line-height: 1;
     }
 
     .vocab-stat-label {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         color: #64748b;
-        margin-top: 0.25rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Progress Stat Card */
+    .vocab-stat-progress {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .vocab-stat-count {
+        font-size: 1.5rem !important;
     }
 
     /* Fixed Footer */
@@ -694,6 +830,41 @@
         flex: 1;
     }
 
+    /* Header Info - appears on scroll */
+    .step-header-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+        min-width: 0;
+    }
+
+    .step-header-title-compact {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .step-header-meta {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .meta-separator {
+        margin: 0 0.25rem;
+        color: #cbd5e1;
+    }
+
+    .js-header-progress-percent {
+        color: #8b5cf6;
+        font-weight: 700;
+    }
+
     .step-breadcrumb-left {
         display: flex;
         align-items: center;
@@ -944,6 +1115,49 @@
         display: flex;
         flex-direction: column;
     }
+
+    /* Slide In Animation for Word Cards */
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Course Overview Styling */
+    #course-overview-container {
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #f1f5f9;
+    }
+
+    #course-overview-container h3 {
+        font-size: 1.125rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        letter-spacing: -0.01em;
+    }
+
+    /* Modern Progress Bar */
+    .js-course-progress-bar {
+        background: linear-gradient(90deg, #10b981, #059669) !important;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Word List Container */
+    .js-word-list {
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+    }
 </style>
 {% endblock %}
 
@@ -981,9 +1195,21 @@
 
 <!-- STEP 2: Set Detail -->
 <div id="step-detail" class="vocab-step">
-    <div class="vocab-header lg:hidden">
-        <button class="vocab-back-btn js-back-to-browser"><i class="fas fa-arrow-left"></i></button>
-        <span class="vocab-title js-detail-title">Chi tiết bộ thẻ</span>
+    <div class="step-header-left lg:hidden">
+        <a href="/learn/vocabulary/" class="step-back-btn">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="step-header-info" style="opacity: 0; transition: opacity 0.3s;">
+            <div class="step-header-title-compact js-header-title">Tên bộ thẻ</div>
+            <div class="step-header-meta">
+                <span class="js-header-card-count">1258</span> thẻ
+                <span class="meta-separator">•</span>
+                <span class="js-header-progress-percent">3%</span>
+            </div>
+        </div>
+        <a href="{{ url_for('learning.learning_dashboard') }}" class="step-home-btn">
+            <i class="fas fa-home"></i>
+        </a>
     </div>
 
     <div class="vocab-scroll">
@@ -991,53 +1217,38 @@
             <i class="fas fa-book-open"></i>
         </div>
 
-        <div class="vocab-detail-content">
+        <div class="vocab-detail-content" style="opacity: 0; transition: opacity 0.3s;">
             <h1 class="vocab-detail-title js-detail-title-full">Tên bộ thẻ</h1>
-            <p class="vocab-detail-desc js-detail-desc">Mô tả bộ thẻ...</p>
-
-            <div class="vocab-detail-creator">
-                <div class="vocab-creator-avatar js-creator-avatar">A</div>
-                <div>
-                    <div class="vocab-creator-name js-creator-name">Admin</div>
-                    <div class="vocab-creator-role">Người tạo</div>
-                </div>
+            <div class="vocab-creator-inline">
+                <div class="vocab-creator-avatar-small js-creator-avatar">A</div>
+                <span class="vocab-creator-name-small js-creator-name">Admin</span>
             </div>
+            <p class="vocab-detail-desc js-detail-desc">Mô tả bộ thẻ...</p>
 
             <div class="vocab-detail-stats">
                 <div class="vocab-stat">
                     <div class="vocab-stat-value js-card-count">0</div>
                     <div class="vocab-stat-label">Flashcard</div>
                 </div>
-                <div class="vocab-stat">
-                    <div class="vocab-stat-value js-memrise-count">0</div>
-                    <div class="vocab-stat-label">Memrise</div>
+                <div class="vocab-stat vocab-stat-progress">
+                    <div class="vocab-stat-value vocab-stat-count js-progress-count">0/0</div>
+                    <div class="vocab-stat-label">Đã học</div>
                 </div>
             </div>
 
-            <!-- Course Overview Progress -->
-            <div id="course-overview-container" class="mt-6 border-t border-slate-100 pt-6" style="display: none;">
-                <h3 class="font-bold text-slate-700 mb-2">Tiến độ học tập</h3>
-
-                <!-- Overall Progress -->
-                <div class="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden">
-                    <div class="js-course-progress-bar bg-green-500 h-3 rounded-full transition-all duration-500"
-                        style="width: 0%"></div>
-                </div>
-                <div class="flex justify-between text-xs text-slate-500 font-medium mb-4">
-                    <span class="js-course-progress-text">Đã học: 0/0 từ</span>
-                    <span class="js-course-percent">0%</span>
-                </div>
-
-                <!-- Word List Preview -->
-                <h3 class="font-bold text-slate-700 mb-2">Danh sách từ vựng</h3>
-                <div
-                    class="js-word-list divide-y divide-slate-100 bg-white rounded-xl border border-slate-100 overflow-hidden">
-                    <!-- Words injected here -->
-                </div>
-                <div class="js-pagination-container flex items-center justify-center gap-4 mt-6" style="display:none;">
-                    <!-- Pagination Controls injected via JS -->
+            <!-- Word List -->
+            <h3 class="font-bold text-slate-700 mb-3 mt-6">Danh sách từ vựng</h3>
+            <div class="js-word-list">
+                <!-- Loading spinner initially -->
+                <div class="py-12 flex justify-center">
+                    <i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i>
                 </div>
             </div>
+            <div class="js-pagination-container flex items-center justify-center gap-4 mt-6" style="display:none;">
+                <!-- Pagination Controls injected via JS -->
+            </div>
+
+            <div style="height: 100px;"></div> <!-- Spacer for footer -->
 
             <div style="height: 100px;"></div> <!-- Spacer for footer -->
         </div>
@@ -1437,7 +1648,7 @@
                 creator: document.querySelector('.js-creator-name'),
                 avatar: document.querySelector('.js-creator-avatar'),
                 cardCount: document.querySelector('.js-card-count'),
-                memriseCount: document.querySelector('.js-memrise-count')
+                progressCount: document.querySelector('.js-progress-count')
             };
             if (els.title) els.title.textContent = s.title;
             if (els.titleFull) els.titleFull.textContent = s.title;
@@ -1445,56 +1656,121 @@
             if (els.creator) els.creator.textContent = s.creator_name;
             if (els.avatar) els.avatar.textContent = s.creator_name.charAt(0).toUpperCase();
             if (els.cardCount) els.cardCount.textContent = s.card_count;
-            if (els.memriseCount) els.memriseCount.textContent = s.memrise_count;
+
+            // Update progress stat as count
+            const learnedCount = stats && stats.learned_count !== undefined ? stats.learned_count : 0;
+            const totalCount = stats && stats.total_count !== undefined ? stats.total_count : s.card_count;
+            if (els.progressCount) els.progressCount.textContent = learnedCount + '/' + totalCount;
+
+            // Update header info (for sticky header)
+            const headerTitle = document.querySelector('.js-header-title');
+            const headerCardCount = document.querySelector('.js-header-card-count');
+            const headerProgressPercent = document.querySelector('.js-header-progress-percent');
+            if (headerTitle) headerTitle.textContent = s.title;
+            if (headerCardCount) headerCardCount.textContent = s.card_count;
+            const progressPercent = totalCount > 0 ? Math.round((learnedCount / totalCount) * 100) : 0;
+            if (headerProgressPercent) headerProgressPercent.textContent = progressPercent + '%';
+
+            // Show content after data is loaded
+            const detailContent = document.querySelector('.vocab-detail-content');
+            if (detailContent) {
+                detailContent.style.opacity = '1';
+            }
         }
 
-        // Course Overview Stats
+        // Hide Course Overview Stats section completely
         const overviewContainer = document.getElementById('course-overview-container');
-        if (stats && overviewContainer) {
-            overviewContainer.style.display = 'block';
+        if (overviewContainer) {
+            overviewContainer.style.display = 'none';
+        }
 
-            // Progress (only on fresh load)
-            if (!append) {
-                const pb = document.querySelector('.js-course-progress-bar');
-                const pp = document.querySelector('.js-course-percent');
-                const pt = document.querySelector('.js-course-progress-text');
-                if (pb) pb.style.width = stats.progress + '%';
-                if (pp) pp.textContent = stats.progress + '%';
-                if (pt) pt.textContent = 'Đã học: ' + stats.learned_count + '/' + stats.total_count + ' từ';
-            }
+        // Scroll handler for sticky header info
+        const vocabScroll = document.querySelector('#step-detail .vocab-scroll');
+        const headerInfo = document.querySelector('.step-header-info');
+        const detailTitle = document.querySelector('.vocab-detail-title');
+        if (vocabScroll && headerInfo && detailTitle) {
+            vocabScroll.addEventListener('scroll', function () {
+                // Show header when title is scrolled out of view
+                const titleRect = detailTitle.getBoundingClientRect();
+                const headerHeight = document.querySelector('.step-header-left')?.offsetHeight || 60;
 
-            // Word List
+                if (titleRect.bottom < headerHeight) {
+                    headerInfo.style.opacity = '1';
+                } else {
+                    headerInfo.style.opacity = '0';
+                }
+            });
+        }
+
+        // Word List - sort and render if stats available
+        if (stats && stats.items) {
             const listContainer = document.querySelector('.js-word-list');
             if (listContainer) {
                 let listHtml = '';
 
                 if (stats.items && stats.items.length > 0) {
-                    stats.items.forEach(item => {
-                        let barColor = 'bg-red-500';
-                        if (item.retention_rate >= 80) barColor = 'bg-green-500';
-                        else if (item.retention_rate >= 50) barColor = 'bg-yellow-500';
+                    // Sort: Words needing review (low %) first, new words last
+                    const sortedItems = [...stats.items].sort((a, b) => {
+                        // New items go to end
+                        if (a.status === 'new' && b.status !== 'new') return 1;
+                        if (b.status === 'new' && a.status !== 'new') return -1;
+                        // Both new or both not new: sort by retention (ascending - low % first)
+                        return a.retention_rate - b.retention_rate;
+                    });
 
-                        let boltColor = item.retention_rate > 50 ? 'text-yellow-400' : 'text-slate-300';
+                    sortedItems.forEach(item => {
+                        let barColor = 'bg-red-500';
+                        let progressGradient = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                        if (item.retention_rate >= 80) {
+                            barColor = 'bg-green-500';
+                            progressGradient = 'linear-gradient(135deg, #10b981, #059669)';
+                        } else if (item.retention_rate >= 50) {
+                            barColor = 'bg-yellow-500';
+                            progressGradient = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                        }
+
+                        let statusBadge = '';
+                        if (item.status === 'new') {
+                            statusBadge = '<span class="px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm">Mới</span>';
+                        }
+
+                        let dueBadge = '';
+                        if (item.is_due) {
+                            dueBadge = '<span class="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Ôn tập</span>';
+                        }
 
                         listHtml += `
-                        <div class="group p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors flex items-center justify-between gap-4">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-base font-bold text-slate-800 truncate">${item.term}</span>
-                                    ${item.status === 'new' ? '<span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase rounded-full tracking-wider border border-blue-100">Mới</span>' : ''}
+                        <div class="group p-4 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 hover:shadow-lg transition-all duration-300 mb-3 relative overflow-hidden" style="animation: slideIn 0.3s ease-out;">
+                            <div class="absolute inset-0 bg-gradient-to-r from-indigo-50/0 via-indigo-50/50 to-indigo-50/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                            <div class="flex items-start justify-between gap-4 relative z-10">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-base font-bold text-slate-800 truncate">${item.term}</span>
+                                        ${statusBadge}
+                                        ${dueBadge}
+                                    </div>
+                                    <p class="text-sm text-slate-500 leading-relaxed truncate group-hover:text-slate-700 transition-colors">${item.definition}</p>
                                 </div>
-                                <p class="text-sm text-slate-500 truncate group-hover:text-slate-700 transition-colors">${item.definition}</p>
-                            </div>
-                            <div class="w-20 flex flex-col items-end gap-1.5">
-             
-                                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                    <div class="${barColor} h-1.5 rounded-full transition-all duration-500" style="width: ${item.retention_rate}%"></div>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                     ${item.is_due ? '<span class="text-[10px] text-red-500 font-bold bg-red-50 px-1.5 rounded">Ôn tập</span>' : ''}
-                                     <div class="flex items-center gap-0.5 text-[10px] font-bold text-slate-400">
-                                        <i class="fas fa-bolt ${boltColor} text-[8px]"></i>
-                                        <span>${item.retention_rate}%</span>
+                                <div class="flex flex-col items-center gap-2 flex-shrink-0">
+                                    <div class="relative w-14 h-14">
+                                        <svg class="transform -rotate-90 w-14 h-14">
+                                            <circle cx="28" cy="28" r="24" stroke="#e2e8f0" stroke-width="4" fill="none" />
+                                            <circle cx="28" cy="28" r="24" stroke="url(#gradient-${item.retention_rate})" stroke-width="4" fill="none" 
+                                                stroke-dasharray="${2 * Math.PI * 24}" 
+                                                stroke-dashoffset="${2 * Math.PI * 24 * (1 - item.retention_rate / 100)}"
+                                                stroke-linecap="round"
+                                                class="transition-all duration-500" />
+                                            <defs>
+                                                <linearGradient id="gradient-${item.retention_rate}" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    ${item.retention_rate >= 80 ? '<stop offset="0%" style="stop-color:#10b981;stop-opacity:1" /><stop offset="100%" style="stop-color:#059669;stop-opacity:1" />' :
+                                item.retention_rate >= 50 ? '<stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" /><stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />' :
+                                    '<stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" /><stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />'}
+                                                </linearGradient>
+                                            </defs>
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span class="text-xs font-bold ${item.retention_rate >= 80 ? 'text-green-600' : item.retention_rate >= 50 ? 'text-yellow-600' : 'text-red-600'}">${item.retention_rate}%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
