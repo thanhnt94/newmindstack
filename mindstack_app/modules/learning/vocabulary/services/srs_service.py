@@ -1,4 +1,4 @@
-from mindstack_app.modules.learning.srs.service import SrsService as CoreSrsService
+from mindstack_app.modules.learning.core.services.srs_service import SrsService as CoreSrsService
 from mindstack_app.models import LearningItem, FlashcardProgress
 from flask import current_app
 import datetime

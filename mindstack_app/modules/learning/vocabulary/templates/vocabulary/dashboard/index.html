@@ -1916,7 +1916,7 @@
         showStep('flashcard-options');
         flashcardOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
 
-        fetch('/learn/vocabulary/flashcard/get_flashcard_options_partial/' + setId)
+        fetch('/learn/get_flashcard_options_partial/' + setId)
             .then(r => r.text())
             .then(html => {
                 flashcardOptionsContainer.innerHTML = html;
@@ -1933,16 +1933,21 @@
         var continueBtn = flashcardOptionsContainer.querySelector('.js-flashcard-continue');
         var autoplaySettings = flashcardOptionsContainer.querySelector('#autoplay-settings-container');
 
-        flashcardOptionsContainer.querySelectorAll('.js-flashcard-mode-select').forEach(function (card) {
-            if (card.classList.contains('disabled')) return;
+        // FIXED: Use .flashcard-mode-item as selector matching the template
+        flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item').forEach(function (card) {
+            // FIXED: Check opacity-50 because template uses that for disabled state, not 'disabled' class
+            if (card.classList.contains('opacity-50')) return;
 
             card.addEventListener('click', function () {
                 // Deselect all
-                flashcardOptionsContainer.querySelectorAll('.js-flashcard-mode-select').forEach(function (c) {
-                    c.classList.remove('selected');
+                flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item').forEach(function (c) {
+                    c.classList.remove('selected', 'border-indigo-500', 'bg-indigo-50');
+                    c.classList.add('border-gray-200', 'bg-white'); // Restore default
                 });
                 // Select this one
-                card.classList.add('selected');
+                card.classList.remove('border-gray-200', 'bg-white');
+                card.classList.add('selected', 'border-indigo-500', 'bg-indigo-50');
+
                 selectedFlashcardMode = card.dataset.modeId;
                 // Enable continue button
                 if (continueBtn) continueBtn.disabled = false;
@@ -1962,9 +1967,12 @@
             continueBtn.addEventListener('click', function () {
                 if (!selectedFlashcardMode) return;
 
-                // Button count logic
                 var buttonCountSelect = flashcardOptionsContainer.querySelector('#button-count-select');
                 var buttonCount = buttonCountSelect ? parseInt(buttonCountSelect.value) : 3;
+
+                // UI Version logic
+                var uiVersionSelect = flashcardOptionsContainer.querySelector('#ui-version-select');
+                var uiVersion = uiVersionSelect ? uiVersionSelect.value : 'v1';
 
                 var finalMode = selectedFlashcardMode;
                 if (selectedFlashcardMode === 'autoplay') {
@@ -1973,24 +1981,27 @@
                 }
 
                 // Save settings first, then redirect
-                fetch('/learn/vocabulary/flashcard/save_flashcard_settings', {
+                fetch('/learn/save_flashcard_settings', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}' // Ensure CSRF token if needed, usually flask-wtf handles this but standard fetch might need header or just work if cookies are sent
+                        'X-CSRFToken': '{{ csrf_token() }}' // Ensure CSRF token if needed
                     },
-                    body: JSON.stringify({ button_count: buttonCount })
+                    body: JSON.stringify({
+                        button_count: buttonCount,
+                        ui_version: uiVersion
+                    })
                 })
                     .then(r => r.json())
                     .then(data => {
                         console.log("Settings saved:", data);
                         // Redirect after saving
-                        window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + finalMode;
+                        window.location.href = '/learn/start_flashcard_session/' + setId + '/' + finalMode;
                     })
                     .catch(err => {
                         console.error("Error saving settings:", err);
                         // Fallback redirect even if save fails
-                        window.location.href = '/learn/vocabulary/flashcard/start_flashcard_session/' + setId + '/' + finalMode;
+                        window.location.href = '/learn/start_flashcard_session/' + setId + '/' + finalMode;
                     });
             });
         }
@@ -2005,7 +2016,7 @@
         showStep('mcq-options');
         mcqOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
 
-        fetch('/learn/vocabulary/mcq/get_mcq_options_partial/' + setId)
+        fetch('/learn/get_quiz_modes_partial/' + setId)
             .then(r => r.text())
             .then(html => {
                 mcqOptionsContainer.innerHTML = html;
@@ -2015,14 +2026,57 @@
                     newScript.textContent = oldScript.textContent;
                     document.body.appendChild(newScript);
                 });
-                // Bind back button
                 mcqOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
                     btn.addEventListener('click', function () { showStep('modes'); });
                 });
+
+                bindQuizModeEvents(setId);
             })
             .catch(err => {
                 mcqOptionsContainer.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải tùy chọn. Vui lòng thử lại.</div>';
             });
+    }
+
+    function bindQuizModeEvents(setId) {
+        if (!mcqOptionsContainer) return;
+        var selectedQuizMode = null;
+        var continueBtn = mcqOptionsContainer.querySelector('.js-quiz-continue');
+
+        mcqOptionsContainer.querySelectorAll('.quiz-mode-item').forEach(function (card) {
+            if (card.classList.contains('opacity-50')) return; // Check if disabled
+
+            card.addEventListener('click', function () {
+                // Deselect all
+                mcqOptionsContainer.querySelectorAll('.quiz-mode-item').forEach(function (c) {
+                    c.classList.remove('selected', 'border-indigo-500', 'bg-indigo-50');
+                    c.classList.add('border-gray-200', 'bg-white');
+                });
+                // Select this one
+                card.classList.remove('border-gray-200', 'bg-white');
+                card.classList.add('selected', 'border-indigo-500', 'bg-indigo-50');
+
+                selectedQuizMode = card.dataset.modeId;
+                // Enable continue button
+                if (continueBtn) continueBtn.disabled = false;
+            });
+        });
+
+        if (continueBtn) {
+            continueBtn.addEventListener('click', function () {
+                if (!selectedQuizMode) return;
+
+                // Batch size logic
+                var batchSizeSelect = mcqOptionsContainer.querySelector('#session-size-select');
+                var batchSize = batchSizeSelect ? parseInt(batchSizeSelect.value) : 10; // Default 10 if not found (mobile might not have dropdown in partial?)
+
+                // Note: Mobile partial usually doesn't have batch size dropdown in this snippet?
+                // Step 1712: _quiz_modes_selection_mobile.html does NOT have batch size dropdown.
+                // It should probably have one, but let's default or check if it exists in another file. 
+                // Assuming desktop has it. If mobile doesn't, allow default.
+
+                window.location.href = '/learn/start_quiz_session/' + setId + '/' + selectedQuizMode + '?batch_size=' + (batchSize || 10);
+            });
+        }
     }
     }) ();
 });

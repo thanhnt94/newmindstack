@@ -21,6 +21,16 @@
         </select>
     </div>
 
+    {# Dropdown chọn giao diện #}
+    <div id="ui-version-container" class="mb-4 p-4 bg-white rounded-lg border border-gray-200">
+        <label for="ui-version-select" class="block text-sm font-medium text-gray-700 mb-2">Giao diện học:</label>
+        <select id="ui-version-select"
+            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <option value="v1">Giao diện cũ (Mặc định)</option>
+            <option value="v2">Giao diện mới (Custom)</option>
+        </select>
+    </div>
+
     {# Tùy chọn cho chế độ AutoPlay (ẩn mặc định, hiển thị khi người dùng chọn) #}
     <div id="autoplay-settings-container" class="mb-4 p-4 bg-white rounded-lg border border-blue-200 hidden">
         {% set autoplay_counts = autoplay_mode.data.autoplay_counts if autoplay_mode.data and
@@ -107,5 +117,31 @@
             <p>Không có chế độ học nào khả dụng.</p>
         </div>
         {% endif %}
+    </div>
+
+    {# Link to Quiz/MCQ Mode #}
+    {% if selected_set_id and selected_set_id != 'all' and ',' not in selected_set_id %}
+    <div class="mt-4 pt-4 border-t border-gray-100">
+        <h3 class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Chế độ kiểm tra</h3>
+        <a href="{{ url_for('learning.quiz_learning.get_quiz_custom_options', set_id=selected_set_id) }}"
+            class="flashcard-mode-item block bg-white p-4 rounded-lg border border-purple-200 active:bg-purple-50 transition-all duration-200 no-underline">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-semibold text-purple-700 flex items-center text-sm">
+                        <i class="fas fa-question-circle mr-2 text-purple-500"></i>Trắc nghiệm (MCQ)
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-1">Kiểm tra kiến thức.</p>
+                </div>
+                <i class="fas fa-chevron-right text-purple-300"></i>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="step-bottom-bar">
+        <button type="button" class="step-continue-btn js-flashcard-continue" disabled>
+            <span>Bắt đầu phiên học</span>
+            <i class="fas fa-play"></i>
+        </button>
     </div>
 </div>

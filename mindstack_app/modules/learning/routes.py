@@ -10,7 +10,7 @@ from flask_login import login_required, current_user
 from .quiz import quiz_battle_bp, quiz_learning_bp
 from .flashcard import flashcard_bp
 from .flashcard.individual.routes import flashcard_learning_bp
-from .course_learning.routes import course_learning_bp
+from .course.routes import course_bp
 from .flashcard.collab.routes import flashcard_collab_bp
 from .memrise import memrise_bp
 from .vocabulary import vocabulary_bp
@@ -23,7 +23,7 @@ learning_bp = Blueprint('learning', __name__,
 learning_bp.register_blueprint(quiz_learning_bp)
 learning_bp.register_blueprint(flashcard_bp)
 learning_bp.register_blueprint(flashcard_learning_bp)
-learning_bp.register_blueprint(course_learning_bp)
+learning_bp.register_blueprint(course_bp)
 learning_bp.register_blueprint(quiz_battle_bp, url_prefix='/quiz-battle')
 learning_bp.register_blueprint(flashcard_collab_bp)
 learning_bp.register_blueprint(memrise_bp)

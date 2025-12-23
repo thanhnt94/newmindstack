@@ -29,8 +29,7 @@ from .algorithms import (
     get_listening_items,
     get_speaking_items,
 )
-from .flashcard_logic import process_flashcard_answer
-from .flashcard_stats_logic import get_flashcard_item_statistics
+from mindstack_app.modules.learning.engines.flashcard_engine import FlashcardEngine
 from .config import FlashcardLearningConfig
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
@@ -324,7 +323,7 @@ class FlashcardSessionManager:
             return None
 
         # ĐÃ THÊM: Lấy thống kê ban đầu cho thẻ sắp hiển thị
-        initial_stats = get_flashcard_item_statistics(self.user_id, next_item.item_id)
+        initial_stats = FlashcardEngine.get_item_statistics(self.user_id, next_item.item_id)
 
         container_capabilities = set()
         try:
@@ -396,10 +395,10 @@ class FlashcardSessionManager:
             current_user_obj = User.query.get(self.user_id)
             current_user_total_score = current_user_obj.total_score if current_user_obj else 0
 
-            score_change, updated_total_score, answer_result_type, new_progress_status, item_stats = process_flashcard_answer(
+            score_change, updated_total_score, answer_result_type, new_progress_status, item_stats = FlashcardEngine.process_answer(
                 user_id=self.user_id,
                 item_id=item_id,
-                user_answer_quality=user_answer_quality,
+                quality=user_answer_quality,
                 current_user_total_score=current_user_total_score,
                 mode=self.mode
             )

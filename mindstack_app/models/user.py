@@ -161,6 +161,10 @@ class FlashcardProgress(db.Model):
     last_reviewed = db.Column(db.DateTime(timezone=True))
 
     status = db.Column(db.String(50), default='new')
+    
+    # Memory Power System
+    mastery = db.Column(db.Float, default=0.0)  # 0.0 - 1.0
+    
     times_correct = db.Column(db.Integer, default=0)
     times_incorrect = db.Column(db.Integer, default=0)
     times_vague = db.Column(db.Integer, default=0)
@@ -192,6 +196,9 @@ class QuizProgress(db.Model):
     status = db.Column(db.String(50), default='new')
     first_seen_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
     review_history = db.Column(JSON)
+    
+    # Memory Power System
+    mastery = db.Column(db.Float, default=0.0)  # 0.0 - 1.0
 
     __table_args__ = (db.UniqueConstraint('user_id', 'item_id', name='_user_quiz_uc'),)
 

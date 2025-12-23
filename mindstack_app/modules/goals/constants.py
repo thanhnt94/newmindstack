@@ -23,7 +23,7 @@ GOAL_TYPE_CONFIG: dict[str, dict[str, str]] = {
         'description': 'Hoàn thành các bài học trong khóa.',
         'unit': 'bài',
         'icon': 'graduation-cap',
-        'endpoint': 'learning.course_learning.course_learning_dashboard',
+        'endpoint': 'learning.course.course_learning_dashboard',
     },
 }
 

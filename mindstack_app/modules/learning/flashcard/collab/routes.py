@@ -21,8 +21,8 @@ from .....models import (
 )
 from ..individual.algorithms import get_accessible_flashcard_set_ids
 from ..individual.config import FlashcardLearningConfig
-from ..individual.flashcard_logic import process_flashcard_answer
-from .flashcard_collab_logic import calculate_room_srs, process_collab_flashcard_answer
+from mindstack_app.modules.learning.engines.flashcard_engine import FlashcardEngine
+from .flashcard_collab_logic import calculate_room_srs
 from .services import build_round_payload, ensure_active_round, generate_room_code, serialize_room
 import os
 
@@ -404,11 +404,13 @@ def submit_collab_answer(room_code: str):
     if answer_quality is None:
         abort(400, description='Câu trả lời không hợp lệ.')
 
-    # Sử dụng process_collab_flashcard_answer thay vì process_flashcard_answer
-    score_change, updated_total_score, answer_result, progress_status, item_stats = process_collab_flashcard_answer(
-        current_user.user_id,
-        item_id,
-        answer_quality
+    # Sử dụng FlashcardEngine (update_srs=False cho collab)
+    score_change, updated_total_score, answer_result, progress_status, item_stats = FlashcardEngine.process_answer(
+        user_id=current_user.user_id,
+        item_id=item_id,
+        quality=answer_quality,
+        current_user_total_score=current_user.total_score,
+        update_srs=False
     )
 
     existing_answer = FlashcardCollabAnswer.query.filter_by(

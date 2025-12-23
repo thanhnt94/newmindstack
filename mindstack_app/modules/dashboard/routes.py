@@ -80,7 +80,7 @@ def dashboard():
                 'title': 'Hoàn thiện khóa học',
                 'description': f"{course_summary['in_progress']} bài học đang dang dở.",
                 'icon': 'graduation-cap',
-                'url': url_for('learning.course_learning.course_learning_dashboard'),
+                'url': url_for('learning.course.course_learning_dashboard'),
             }
         )
 

@@ -23,7 +23,7 @@ from mindstack_app.models import (
     User,
     db,
 )
-from ..individual.quiz_logic import process_quiz_answer
+from ..individual.logics.quiz_logic import process_quiz_answer
 from .services import (
     auto_advance_round_if_needed,
     complete_round_if_ready,

@@ -19,7 +19,7 @@ from .algorithms import (
     get_accessible_flashcard_set_ids,
 )
 from .session_manager import FlashcardSessionManager
-from .flashcard_stats_logic import get_flashcard_item_statistics
+from mindstack_app.modules.learning.engines.flashcard_engine import FlashcardEngine
 from .config import FlashcardLearningConfig
 from .....models import (
     db,
@@ -207,6 +207,15 @@ def flashcard_session():
     is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
     autoplay_mode = session_mode if is_autoplay_session else ''
 
+    ui_version = session.get('flashcard_ui_pref', 'v1')
+    if ui_version == 'v2':
+        return render_template(
+            'flashcard/individual/session/custom/index.html',
+            user_button_count=user_button_count,
+            is_autoplay_session=is_autoplay_session,
+            autoplay_mode=autoplay_mode
+        )
+
     return render_template(
         'flashcard/individual/session/index.html',
         user_button_count=user_button_count,
@@ -295,7 +304,7 @@ def get_flashcard_item_api(item_id):
             except Exception:
                 return None
 
-        initial_stats = get_flashcard_item_statistics(current_user.user_id, item_id)
+        initial_stats = FlashcardEngine.get_item_statistics(current_user.user_id, item_id)
 
         item_payload = {
             'item_id': item.item_id,
@@ -459,6 +468,9 @@ def save_flashcard_settings():
 
     if button_count is None or not isinstance(button_count, int) or button_count not in [3, 4, 6]:
         return jsonify({'success': False, 'message': 'Số nút đánh giá không hợp lệ.'}), 400
+
+    ui_version = data.get('ui_version', 'v1')
+    session['flashcard_ui_pref'] = ui_version
 
     try:
         user = User.query.get(current_user.user_id)

@@ -1,0 +1,383 @@
+<!-- mindstack_app/modules/learning/course_learning/templates/course_session.html -->
+<!-- Phiên bản: 4.2 -->
+<!-- Mục đích: Sửa lỗi tràn văn bản trong khu vực hiển thị ghi chú. -->
+<!-- ĐÃ SỬA: Thêm 'word-wrap: break-word' vào CSS của .note-content-display. -->
+
+{% extends "base.html" %}
+
+{% block title %}{{ lesson.content.get('title', 'Bài học') }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .lesson-content-wrapper {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    /* CSS để định dạng nội dung HTML từ BBCode */
+    .parsed-content b,
+    .parsed-content strong {
+        font-weight: 600;
+    }
+
+    .parsed-content i,
+    .parsed-content em {
+        font-style: italic;
+    }
+
+    .parsed-content u {
+        text-decoration: underline;
+    }
+
+    .parsed-content ul {
+        list-style-type: disc;
+        padding-left: 1.5rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .parsed-content ol {
+        list-style-type: decimal;
+        padding-left: 1.5rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .parsed-content li {
+        margin-bottom: 0.25rem;
+    }
+
+    .parsed-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .parsed-content pre,
+    .parsed-content code {
+        background-color: #f3f4f6;
+        border-radius: 0.25rem;
+        padding: 0.75rem;
+        font-family: monospace;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .lesson-toolbar {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .toolbar-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        background-color: #f9fafb;
+        color: #374151;
+        font-weight: 500;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .toolbar-btn:hover {
+        background-color: #f3f4f6;
+        border-color: #9ca3af;
+    }
+
+    /* CSS MỚI CHO KHUNG GHI CHÚ */
+    .note-section {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .note-textarea {
+        width: 100%;
+        min-height: 120px;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        resize: vertical;
+    }
+
+    /* CSS cho nội dung ghi chú tĩnh */
+    .note-content-display {
+        padding: 0.75rem;
+        background-color: #f9fafb;
+        border-radius: 0.5rem;
+        min-height: 120px;
+        white-space: pre-wrap;
+        /* Hiển thị xuống dòng */
+        word-wrap: break-word;
+        /* THÊM MỚI: Tự động ngắt dòng dài */
+        color: #374151;
+    }
+
+    @media (max-width: 640px) {
+        .course-session-container {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .course-session-container .lesson-content-wrapper {
+            padding: 0.75rem;
+            border-radius: 0;
+            box-shadow: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container course-session-container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    <div class="max-w-4xl mx-auto">
+        <a href="{{ url_for('learning.course.course_learning_dashboard') }}"
+            class="text-blue-600 hover:text-blue-800 mb-6 inline-block">
+            <i class="fas fa-arrow-left mr-2"></i>Quay lại danh sách khóa học
+        </a>
+
+        <div class="lesson-content-wrapper">
+            <div class="lesson-toolbar">
+                {% if can_edit %}
+                <a href="{{ url_for('content_management.content_management_courses.edit_lesson', set_id=course.container_id, item_id=lesson.item_id) }}"
+                    class="toolbar-btn">
+                    <i class="fas fa-pencil-alt"></i>
+                    <span>Chỉnh sửa bài học</span>
+                </a>
+                {% endif %}
+                <button id="open-feedback-modal-btn" class="toolbar-btn" data-item-id="{{ lesson.item_id }}"
+                    data-item-title="{{ lesson.content.get('title', 'Không có tiêu đề') }}">
+                    <i class="fas fa-flag"></i>
+                    <span>Phản hồi</span>
+                </button>
+            </div>
+
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ lesson.content.get('title', 'Không có tiêu đề') }}</h1>
+            <p class="text-sm text-gray-500 mb-6">Trong khóa học: {{ course.title }}</p>
+
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Nội dung bài học:</h2>
+
+            <div class="prose max-w-none parsed-content">
+                {% set lesson_html = lesson.content.get('content_html') %}
+                {% if lesson_html %}
+                {{ lesson_html | safe }}
+                {% else %}
+                {{ bbcode_to_html(lesson.content.get('bbcode_content', '')) | safe }}
+                {% endif %}
+            </div>
+
+            <div class="note-section">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-semibold text-gray-700">Ghi chú cá nhân</h3>
+                    <div id="note-view-controls">
+                        <button id="edit-note-btn" class="toolbar-btn">
+                            <i class="fas fa-pencil-alt"></i>
+                            <span>Sửa Ghi chú</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="note-display-view">
+                    <div id="note-content-display" class="note-content-display">{% if note and note.content -%}{{
+                        note.content }}{%- else -%}<span class="text-gray-500 italic">Bạn chưa có ghi chú nào cho bài
+                            học này.</span>{%- endif %}</div>
+                </div>
+
+                <div id="note-edit-view" style="display: none;">
+                    <textarea id="note-textarea" class="note-textarea"
+                        placeholder="Nhập ghi chú của bạn cho bài học này..."></textarea>
+                    <div class="flex justify-end mt-3 space-x-2">
+                        <button id="cancel-edit-note-btn"
+                            class="bg-gray-200 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-300 transition duration-300">Hủy</button>
+                        <button id="save-note-btn"
+                            class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition duration-300">Lưu
+                            Ghi chú</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 border-t pt-6">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Đánh giá tiến độ của bạn</h3>
+                <div class="flex items-center space-x-4">
+                    <input id="progress-slider" type="range" min="0" max="100" step="25"
+                        value="{{ current_percentage }}"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span id="progress-value" class="font-bold text-blue-600 text-lg w-12 text-center">{{
+                        current_percentage }}%</span>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button id="update-progress-btn"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300">
+                        Cập nhật tiến độ
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const slider = document.getElementById('progress-slider');
+        const progressValue = document.getElementById('progress-value');
+        const updateBtn = document.getElementById('update-progress-btn');
+        const feedbackBtn = document.getElementById('open-feedback-modal-btn');
+
+        // Logic cho thanh trượt tiến độ (giữ nguyên)
+        if (slider && progressValue) {
+            slider.addEventListener('input', function () {
+                progressValue.textContent = this.value + '%';
+            });
+        }
+        if (updateBtn) {
+            updateBtn.addEventListener('click', function () {
+                const percentage = slider.value;
+                updateBtn.textContent = 'Đang cập nhật...';
+                updateBtn.disabled = true;
+
+                fetch(`{{ url_for('learning.course.update_lesson_progress', lesson_id=lesson.item_id) }}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify({ percentage: percentage })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showFlashMessage('Đã cập nhật tiến độ thành công!', 'success');
+                        } else {
+                            showFlashMessage(data.message || 'Có lỗi xảy ra.', 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Lỗi:', error);
+                        showFlashMessage('Lỗi kết nối. Không thể cập nhật.', 'danger');
+                    })
+                    .finally(() => {
+                        updateBtn.textContent = 'Cập nhật tiến độ';
+                        updateBtn.disabled = false;
+                    });
+            });
+        }
+
+        // ==========================================================
+        // SCRIPT ĐÃ CẬP NHẬT CHO GHI CHÚ
+        // ==========================================================
+        const displayView = document.getElementById('note-display-view');
+        const editView = document.getElementById('note-edit-view');
+        const editBtn = document.getElementById('edit-note-btn');
+        const cancelBtn = document.getElementById('cancel-edit-note-btn');
+        const noteContentDisplay = document.getElementById('note-content-display');
+        const noteTextarea = document.getElementById('note-textarea');
+        const saveNoteBtn = document.getElementById('save-note-btn');
+        const currentLessonId = {{ lesson.item_id }
+    };
+    const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
+
+    function toggleNoteView(isEditing) {
+        if (isEditing) {
+            displayView.style.display = 'none';
+            editBtn.style.display = 'none';
+            editView.style.display = 'block';
+        } else {
+            displayView.style.display = 'block';
+            editBtn.style.display = 'inline-flex';
+            editView.style.display = 'none';
+        }
+    }
+
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            // Lấy nội dung hiện tại và đưa vào textarea trước khi chuyển view
+            let currentNoteText = noteContentDisplay.textContent.trim();
+            const placeholderText = "Bạn chưa có ghi chú nào cho bài học này.";
+            if (currentNoteText === placeholderText) {
+                noteTextarea.value = "";
+            } else {
+                // Sử dụng innerHTML để giữ lại các ký tự xuống dòng
+                noteTextarea.value = `{{ note.content | e if note else '' }}`;
+            }
+            toggleNoteView(true);
+        });
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            toggleNoteView(false);
+        });
+    }
+
+    async function saveNote() {
+        if (!currentLessonId) return;
+
+        const content = noteTextarea.value;
+        saveNoteBtn.disabled = true;
+        saveNoteBtn.textContent = 'Đang lưu...';
+
+        try {
+            const response = await fetch(saveNoteUrl.replace('/0', `/${currentLessonId}`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                showFlashMessage(result.message, 'success');
+                // Cập nhật nội dung hiển thị và chuyển về chế độ xem
+                if (content) {
+                    noteContentDisplay.innerHTML = ''; // Xóa placeholder nếu có
+                    noteContentDisplay.textContent = content;
+                } else {
+                    noteContentDisplay.innerHTML = `<span class="text-gray-500 italic">Bạn chưa có ghi chú nào cho bài học này.</span>`;
+                }
+                toggleNoteView(false);
+            } else {
+                showFlashMessage(result.message || 'Lỗi khi lưu ghi chú.', 'danger');
+            }
+        } catch (error) {
+            console.error('Lỗi khi lưu ghi chú:', error);
+            showFlashMessage('Lỗi kết nối khi lưu ghi chú.', 'danger');
+        } finally {
+            saveNoteBtn.disabled = false;
+            saveNoteBtn.textContent = 'Lưu Ghi chú';
+        }
+    }
+
+    if (saveNoteBtn) {
+        saveNoteBtn.addEventListener('click', saveNote);
+    }
+
+    // ==========================================================
+    // SCRIPT ĐÃ CẬP NHẬT CHO PHẢN HỒI
+    // ==========================================================
+    if (feedbackBtn) {
+        feedbackBtn.addEventListener('click', function () {
+            const itemId = this.dataset.itemId;
+            const itemTitle = this.dataset.itemTitle;
+            // Gọi hàm mở modal từ partial _feedback_modal.html
+            if (window.openFeedbackModal) {
+                window.openFeedbackModal(itemId, itemTitle);
+            }
+        });
+    }
+    });
+</script>
+{% endblock %}
+{% include 'feedback/_feedback_modal.html' %}

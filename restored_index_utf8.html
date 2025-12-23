@@ -1,0 +1,2747 @@
+{#
+# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
+# Phi├¬n bß║ún: 69.1
+# Mß╗ñC ─É├ìCH: Thay ─æß╗òi vß╗ï tr├¡ n├║t Feedback.
+# ─É├â Sß╗¼A: Di chuyß╗ân n├║t Feedback tß╗½ toolbar b├¬n tr├íi sang b├¬n phß║úi, ─æß║╖t cß║ính n├║t Sß╗¡a thß║╗.
+#}
+
+{% extends "base.html" %}
+{% from 'includes/_navbar.html' import render_navbar %}
+{% block title %}Hß╗ìc Flashcard{% endblock %}
+
+{# CRITICAL: Add flashcard-session-active class to body to hide header/footer on mobile #}
+{% block body_class %} flashcard-session-active{% endblock %}
+
+{% block head %}
+{{ super() }}
+<script>
+  // Remove Tailwind padding from main on mobile viewport
+  (function () {
+    if (window.innerWidth <= 1023) {
+      document.addEventListener('DOMContentLoaded', function () {
+        var main = document.querySelector('body > main');
+        if (main) {
+          main.classList.remove('py-4', 'px-2', 'sm:py-2', 'sm:px-3', 'md:py-4');
+          main.style.padding = '0';
+          main.style.margin = '0';
+        }
+        var header = document.querySelector('body > header');
+        if (header) {
+          header.style.display = 'none';
+        }
+      });
+    }
+  })();
+</script>
+<style>
+  /* ===== CRITICAL: ─É├óy phß║úi l├á c├íc rules ─Éß║ªU TI├èN ─æß╗â tr├ính flash ===== */
+  /* Desktop: hiß╗ân thß╗ï mß║╖c ─æß╗ïnh */
+  .flashcard-desktop-view {
+    display: block;
+  }
+
+  /* Mobile: ß║⌐n mß║╖c ─æß╗ïnh */
+  .flashcard-mobile-view {
+    display: none;
+  }
+
+  /* ─Éß║úo ng╞░ß╗úc tr├¬n m├án h├¼nh nhß╗Å */
+  @media (max-width: 1023px) {
+    .flashcard-desktop-view {
+      display: none !important;
+    }
+
+    .flashcard-mobile-view {
+      display: block !important;
+    }
+
+    /* Hide header and footer on mobile flashcard session */
+    body>header,
+    body>nav,
+    body>footer {
+      display: none !important;
+      height: 0 !important;
+      overflow: hidden !important;
+    }
+
+    /* Override Tailwind py-4 px-2 on main.container */
+    body>main,
+    body>main.container,
+    main.container {
+      padding: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      margin: 0 !important;
+    }
+
+    /* Remove all padding on mobile */
+    .page-shell {
+      padding: 0 !important;
+    }
+  }
+
+  /* ===== END CRITICAL ===== */
+
+  /* ===== CSS chung cho Flashcard Session (Core Styles) ===== */
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafb;
+  }
+
+  :root {
+    --flashcard-shell-gap: clamp(16px, 2vw, 24px);
+    --flashcard-header-height: 0px;
+    --flashcard-footer-height: 0px;
+  }
+
+  /* Ghi ─æ├¿ CSS tß╗½ base.html ─æß╗â ß║⌐n footer chß╗ë tr├¬n trang n├áy khi ß╗ƒ m├án h├¼nh nhß╗Å */
+  @media (max-width: 1024px) {
+    body>footer {
+      display: none !important;
+    }
+  }
+
+  /* ===== Layout to├án trang (full height) ===== */
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  body.flashcard-session-active>main {
+    padding: 0 !important;
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .page-shell {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: calc(var(--flashcard-shell-gap) * 0.65) 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    height: 100%;
+    min-height: calc(100vh - var(--flashcard-header-height, 0px) - var(--flashcard-footer-height, 0px));
+  }
+
+  .card-surface {
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 18px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .flashcard-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+  }
+
+  .page-title {
+    color: #1f2937;
+    margin-bottom: 2rem;
+    font-size: 2.25rem;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-title .text-gray-500 {
+    font-size: 1.25rem;
+    margin-left: 0.5rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  /* ===== Wrapper cho thß║╗ Flashcard ===== */
+  .flashcard-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #flashcard-content {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* ===== Thß║╗: Flip 3D (xoay TO├ÇN Bß╗ÿ thß║╗) ===== */
+  .flashcard-card-container {
+    perspective: 1200px;
+    -webkit-perspective: 1200px;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+  }
+
+  .flashcard-card {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 18px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    transition: box-shadow .3s ease, transform .3s ease;
+    --card-accent-bg: linear-gradient(135deg, #6366f1, #2563eb);
+    --card-accent-hover-bg: linear-gradient(135deg, #4f46e5, #1d4ed8);
+    --card-accent-rgb: 37, 99, 235;
+    --card-accent-shadow: 0 16px 32px rgba(var(--card-accent-rgb), 0.22);
+    --card-accent-hover-shadow: 0 20px 40px rgba(var(--card-accent-rgb), 0.3);
+  }
+
+  .flashcard-card::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: transparent;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .flashcard-card:hover {
+    box-shadow: 0 28px 56px rgba(var(--card-accent-rgb), 0.25);
+    transform: translateY(-3px);
+  }
+
+  .flashcard-card[data-card-category="new"] {
+    --card-accent-bg: linear-gradient(135deg, #34d399, #10b981);
+    --card-accent-hover-bg: linear-gradient(135deg, #22c55e, #059669);
+    --card-accent-rgb: 34, 197, 94;
+  }
+
+  .flashcard-card[data-card-category="due"] {
+    --card-accent-bg: linear-gradient(135deg, #facc15, #f97316);
+    --card-accent-hover-bg: linear-gradient(135deg, #f59e0b, #ea580c);
+    --card-accent-rgb: 249, 115, 22;
+  }
+
+  .flashcard-card[data-card-category="hard"] {
+    --card-accent-bg: linear-gradient(135deg, #fb7185, #ef4444);
+    --card-accent-hover-bg: linear-gradient(135deg, #f43f5e, #dc2626);
+    --card-accent-rgb: 239, 68, 68;
+  }
+
+  .flashcard-card[data-card-category="default"] {
+    --card-accent-bg: linear-gradient(135deg, #6366f1, #2563eb);
+    --card-accent-hover-bg: linear-gradient(135deg, #4f46e5, #1d4ed8);
+    --card-accent-rgb: 37, 99, 235;
+  }
+
+  .face {
+    position: absolute;
+    inset: 0;
+    /* Padding-top ─æß╗â tß║ío khoß║úng trß╗æng an to├án cho toolbar */
+    padding: 72px 1.25rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transition: transform .6s ease-in-out, opacity .3s ease-in-out;
+    z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .front {
+    transform: rotateY(0deg);
+  }
+
+  .back {
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-card:not(.flipped) .front {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .flashcard-card:not(.flipped) .back {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .flashcard-card.flipped .front {
+    transform: rotateY(180deg);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .flashcard-card.flipped .back {
+    transform: rotateY(360deg);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Toolbar Base Styles */
+  .card-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    backdrop-filter: blur(8px);
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-right {
+    justify-content: flex-end;
+  }
+
+  .card-toolbar .label {
+    text-transform: uppercase;
+    text-align: center;
+    font-weight: 700;
+    color: #475569;
+    letter-spacing: .08em;
+    font-size: 0.95rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    flex: 1;
+    min-width: 120px;
+    max-width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .card-toolbar .icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background-color: #f8fafc;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    cursor: pointer;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .card-toolbar .icon-btn:hover {
+    background-color: #eef2ff;
+    color: rgba(var(--card-accent-rgb), 1);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(var(--card-accent-rgb), 0.12);
+  }
+
+  .card-toolbar .icon-btn.is-active {
+    color: rgba(var(--card-accent-rgb), 1);
+    background: #eef2ff;
+  }
+
+  .card-toolbar .icon-btn.is-disabled {
+    background-color: #f1f5f9;
+    color: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .toolbar-settings {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .toolbar-settings .settings-panel {
+    position: absolute;
+    right: calc(100% + 0.35rem);
+    top: 50%;
+    transform: translateY(-50%) translateX(8px);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    padding: 0.35rem 0.45rem;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 5;
+  }
+
+  .toolbar-settings.is-open .settings-panel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(-50%) translateX(0);
+  }
+
+  .card-toolbar .play-audio-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: none;
+    background: var(--card-accent-bg);
+    color: #ffffff;
+    font-size: 1rem;
+    box-shadow: var(--card-accent-shadow);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .card-toolbar .play-audio-btn:hover {
+    background: var(--card-accent-hover-bg);
+    color: #ffffff;
+    box-shadow: var(--card-accent-hover-shadow);
+    transform: translateY(-1px);
+  }
+
+  .card-toolbar .play-audio-btn.is-disabled {
+    background-color: rgba(148, 163, 184, 0.35);
+    color: #e5e7eb;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* Cß║Ñu tr├║c nß╗Öi dung thß║╗ */
+  ._card-container {
+    justify-content: flex-start;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 0.85rem;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .text-area {
+    flex-grow: 1;
+    min-height: 0;
+    width: 100%;
+    overflow-y: auto;
+    padding: 1rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  ._card-container.media-hidden .text-area {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .back ._card-container.media-hidden .text-area {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .back .text-area .flashcard-content-text {
+    text-align: left;
+  }
+
+  .text-area.has-scroll {
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .front .text-area .flashcard-content-text {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .back .text-area .flashcard-content-text {
+    font-size: 22px;
+    line-height: 1.5;
+    color: #111827;
+    white-space: pre-wrap;
+  }
+
+  .media-container {
+    flex-shrink: 0;
+    padding: 1rem;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    max-height: 40%;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+
+  .media-container.hidden {
+    display: none;
+  }
+
+  .card-toolbar .image-toggle-btn.is-active {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: rgba(3, 105, 161, 0.4);
+    box-shadow: 0 10px 24px rgba(3, 105, 161, 0.12);
+  }
+
+  .media-container img {
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    margin: auto;
+  }
+
+  /* N├║t ─æ├ính gi├í trong thß║╗ (Base Styles) */
+  .actions {
+    display: none;
+    gap: 1rem;
+    justify-content: center;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%);
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.08);
+    flex-shrink: 0;
+    z-index: 2;
+  }
+
+  .actions.visible {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+  }
+
+  .actions.visible[data-button-count="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .actions.visible[data-button-count="4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .actions.visible[data-button-count="6"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .btn {
+    border: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border-radius: 0.9rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+    text-decoration: none;
+  }
+
+  .btn:focus {
+    outline: none;
+  }
+
+  .actions .btn {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    padding: 0.9rem 1.25rem;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+  }
+
+  .actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+  }
+
+  .actions .btn:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28);
+  }
+
+  .actions .btn:active {
+    transform: translateY(0);
+    filter: saturate(1.08);
+  }
+
+  .rating-btn {
+    color: #fff;
+    border-radius: 0.9rem;
+    padding: 0.75rem 1rem;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    gap: 0.5rem;
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .rating-btn .rating-btn__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 1.1rem;
+  }
+
+  .rating-btn .rating-btn__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+
+  .rating-btn--again,
+  .rating-btn--fail {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    box-shadow: 0 18px 36px rgba(220, 38, 38, 0.32);
+  }
+
+  .rating-btn--very-hard {
+    background: linear-gradient(135deg, #fb923c, #ea580c);
+    box-shadow: 0 18px 36px rgba(234, 88, 12, 0.28);
+  }
+
+  .rating-btn--hard {
+    background: linear-gradient(135deg, #f59e0b, #b45309);
+    color: #1f2937;
+  }
+
+  .rating-btn--hard .rating-btn__icon {
+    background: rgba(15, 23, 42, 0.12);
+    color: #1f2937;
+  }
+
+  .rating-btn--medium {
+    background: linear-gradient(135deg, #38bdf8, #2563eb);
+    box-shadow: 0 18px 36px rgba(37, 99, 235, 0.28);
+  }
+
+  .rating-btn--good {
+    background: linear-gradient(135deg, #34d399, #059669);
+    box-shadow: 0 18px 36px rgba(5, 150, 105, 0.28);
+  }
+
+  .rating-btn--easy {
+    background: linear-gradient(135deg, #4ade80, #16a34a);
+    box-shadow: 0 18px 36px rgba(22, 163, 74, 0.28);
+  }
+
+  .rating-btn--very-easy {
+    background: linear-gradient(135deg, #6ee7b7, #0d9488);
+    box-shadow: 0 18px 36px rgba(13, 148, 136, 0.26);
+  }
+
+  .actions[data-button-count="1"] {
+    display: flex !important;
+    justify-content: center;
+  }
+
+  .actions[data-button-count="1"] .btn {
+    min-width: 200px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .btn-continue {
+    background: linear-gradient(135deg, #2563eb, #16a34a);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+  }
+
+  .btn-continue:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.3);
+  }
+
+  #flashcard-buttons {
+    display: none !important;
+  }
+
+  .flip-card-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1rem 2.5rem;
+    border-radius: 1rem;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: all 0.25s ease-out;
+    background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+    color: white;
+    box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: none;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .flip-card-btn:hover {
+    background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(234, 88, 12, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .flip-card-btn:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 4px 16px rgba(234, 88, 12, 0.3);
+  }
+
+  .flip-card-btn:focus-visible {
+    outline: 3px solid rgba(249, 115, 22, 0.5);
+    outline-offset: 3px;
+  }
+
+  .custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .custom-modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    max-width: 400px;
+  }
+
+  .stats-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
+    z-index: 999;
+    overflow-y: auto;
+  }
+
+  .stats-modal-overlay.open {
+    display: block;
+  }
+
+  .stats-modal-content {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    background-color: #f9fafb;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: -4px 0 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stats-modal-content.open {
+    transform: translateX(0);
+  }
+
+  /* Mobile Style for Stats Modal - Bottom Sheet Style */
+  @media (max-width: 1023px) {
+    .stats-modal-overlay {
+      display: none;
+      /* Controlled by .open class */
+      flex-direction: column;
+      justify-content: flex-end;
+      background-color: rgba(0, 0, 0, 0.5) !important;
+      backdrop-filter: blur(2px);
+    }
+
+    .stats-modal-overlay.open {
+      display: flex !important;
+    }
+
+    .stats-modal-content {
+      position: relative;
+      top: auto;
+      right: auto;
+      bottom: auto;
+      width: 100%;
+      height: calc(100% - 50px);
+      max-height: none;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .stats-modal-content.open {
+      transform: translateY(0);
+    }
+  }
+
+  .stats-modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+  }
+
+  .stats-modal-header h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .stats-modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #6b7280;
+  }
+
+  .stats-modal-body {
+    flex-grow: 1;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Include Desktop v├á Mobile partials - visibility kiß╗âm so├ít bß╗ƒi CSS class #}
+{% include 'vocab_flashcard/individual/session/_desktop.html' %}
+{% include 'vocab_flashcard/individual/session/_mobile.html' %}
+{% include 'vocab_flashcard/individual/session/_stats_mobile.html' %}
+
+{# === SHARED MODALS - D├╣ng chung cho cß║ú Desktop v├á Mobile === #}
+
+<div id="endSessionModal" class="custom-modal-overlay">
+  <div class="custom-modal-content">
+    <p class="text-lg font-semibold text-gray-800 mb-4">Bß║ín c├│ chß║»c chß║»n muß╗æn kß║┐t th├║c phi├¬n hß╗ìc hiß╗çn tß║íi?</p>
+    <p class="text-sm text-gray-600 mb-6">Tiß║┐n ─æß╗Ö cß╗ºa thß║╗ ch╞░a trß║ú lß╗¥i sß║╜ kh├┤ng ─æ╞░ß╗úc l╞░u.</p>
+    <div class="flex justify-center space-x-4">
+      <button id="confirmEndSessionBtn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">Kß║┐t
+        th├║c</button>
+      <button id="cancelEndSessionBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400">Hß╗ºy
+        bß╗Å</button>
+    </div>
+  </div>
+</div>
+
+<div id="statsModal" class="stats-modal-overlay">
+  <div id="statsModalContent" class="stats-modal-content">
+    <header class="bg-white shadow-md">
+      {{ render_navbar(current_user, request) }}
+    </header>
+    <div class="stats-modal-header">
+      <h3>Thß╗æng k├¬ phi├¬n hß╗ìc</h3>
+      <button id="closeStatsModalBtn" class="stats-modal-close-btn">&times;</button>
+    </div>
+    <div id="statsModalBody" class="stats-modal-body">
+      {# Nß╗Öi dung thß╗æng k├¬ sß║╜ ─æ╞░ß╗úc render v├áo ─æ├óy #}
+    </div>
+  </div>
+</div>
+
+{# Nh├║ng modal AI #}
+{% include 'ai_services/_ai_modal.html' %}
+
+{# Nh├║ng modal Ghi ch├║ #}
+{% include 'notes/_note_panel.html' %}
+
+{# Nh├║ng modal Feedback #}
+{% include 'feedback/_feedback_modal.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+<script src="{{ url_for('learning.vocabulary.vocab_flashcard.static', filename='flashcard_viewport.js') }}"></script>
+
+<script>
+  const setVh = () => {
+    if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+      window.flashcardViewport.refresh();
+    }
+
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  };
+
+  if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+    window.flashcardViewport.refresh();
+  }
+
+  let currentFlashcardBatch = [];
+  let currentFlashcardIndex = 0;
+  let previousCardStats = null;
+
+  let sessionScore = 0;
+  let currentUserTotalScore = {{ current_user.total_score | default (0) }};
+
+  // End session button
+  const endSessionBtn = document.getElementById('end-session-btn');
+
+  // Helper function ─æß╗â sync nß╗Öi dung giß╗»a desktop v├á mobile (d├╣ng shared classes)
+  // Nß║┐u chß╗ë c├│ 1 argument: render c├╣ng HTML cho tß║Ñt cß║ú
+  // Nß║┐u c├│ 2 arguments: render desktop HTML cho desktop view, mobile HTML cho mobile view
+  function setFlashcardContent(desktopHtml, mobileHtml = null) {
+    document.querySelectorAll('.js-flashcard-content').forEach(el => {
+      // Kiß╗âm tra parent view ─æß╗â quyß║┐t ─æß╗ïnh d├╣ng HTML n├áo
+      const isInDesktopView = el.closest('.flashcard-desktop-view');
+      const isInMobileView = el.closest('.flashcard-mobile-view');
+
+      if (mobileHtml !== null) {
+        // Render kh├íc nhau cho tß╗½ng view
+        if (isInDesktopView) {
+          el.innerHTML = desktopHtml;
+        } else if (isInMobileView) {
+          el.innerHTML = mobileHtml;
+        }
+      } else {
+        // Render giß╗æng nhau cho tß║Ñt cß║ú (fallback)
+        el.innerHTML = desktopHtml;
+      }
+    });
+  }
+
+  // Helper function ─æß╗â lß║Ñy element hiß╗ân thß╗ï hiß╗çn tß║íi (desktop hoß║╖c mobile)
+  function getVisibleFlashcardContentDiv() {
+    // Return first visible .js-flashcard-content element
+    const allContentDivs = document.querySelectorAll('.js-flashcard-content');
+    for (const div of allContentDivs) {
+      if (div.offsetParent !== null) return div;
+    }
+    return allContentDivs[0] || null;
+  }
+
+  const currentCardStatsContainer = document.getElementById('current-card-stats');
+  const previousCardStatsContainer = document.getElementById('previous-card-stats');
+
+  const endSessionModal = document.getElementById('endSessionModal');
+  const confirmEndSessionBtn = document.getElementById('confirmEndSessionBtn');
+  const cancelEndSessionBtn = document.getElementById('cancelEndSessionBtn');
+
+  const statsModal = document.getElementById('statsModal');
+  const statsModalContent = document.getElementById('statsModalContent');
+  const closeStatsModalBtn = document.getElementById('closeStatsModalBtn');
+  const statsModalBody = document.getElementById('statsModalBody');
+
+  const getFlashcardBatchUrl = "{{ url_for('learning.vocabulary.vocab_flashcard.get_flashcard_batch') }}";
+  const flashcardItemApiUrlTemplate = "{{ url_for('learning.vocabulary.vocab_flashcard.get_flashcard_item_api', item_id=0) }}";
+  const submitAnswerUrl = "{{ url_for('learning.vocabulary.vocab_flashcard.submit_flashcard_answer') }}";
+  const endSessionUrl = "{{ url_for('learning.vocabulary.vocab_flashcard.end_session_flashcard') }}";
+  const regenerateAudioUrl = "{{ url_for('learning.vocabulary.vocab_flashcard.regenerate_audio_from_content') }}";
+  const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+  const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+  const csrfHeaders = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+  const userButtonCount = {{ user_button_count }};
+  window.userButtonCount = userButtonCount; // Expose for mobile handler
+  const isAutoplaySession = {{ 'true' if is_autoplay_session else 'false' }};
+  const autoplayMode = "{{ autoplay_mode }}";
+  let autoplayDelaySeconds = 2;
+  let currentAutoplayToken = 0;
+  let currentAutoplayTimeouts = [];
+  let currentCardElements = { card: null, actions: null, flipBtn: null };
+  let isMediaHidden = false;
+  let isAudioAutoplayEnabled = true;
+  let storedAudioAutoplay = null;
+  let sessionAnswerHistory = []; // Store all answered cards in session
+  window.sessionAnswerHistory = sessionAnswerHistory; // Expose for mobile stats
+
+  try {
+    const storedImageVisibility = localStorage.getItem('flashcardHideImages');
+    if (storedImageVisibility === 'true') {
+      isMediaHidden = true;
+    }
+    storedAudioAutoplay = localStorage.getItem('flashcardAutoPlayAudio');
+  } catch (err) {
+    console.warn('Kh├┤ng thß╗â ─æß╗ìc trß║íng th├íi hiß╗ân thß╗ï ß║únh:', err);
+  }
+
+  if (storedAudioAutoplay === 'false') {
+    isAudioAutoplayEnabled = false;
+  }
+
+  if (isAutoplaySession) {
+    try {
+      const storedSettings = localStorage.getItem('flashcardAutoplaySettings');
+      if (storedSettings) {
+        const parsedSettings = JSON.parse(storedSettings);
+        if (parsedSettings && typeof parsedSettings.delaySeconds === 'number' && parsedSettings.delaySeconds >= 0) {
+          autoplayDelaySeconds = parsedSettings.delaySeconds;
+        }
+      }
+    } catch (err) {
+      console.warn('Kh├┤ng thß╗â ─æß╗ìc cß║Ñu h├¼nh AutoPlay:', err);
+    }
+    document.body.classList.add('flashcard-autoplay-active');
+  }
+
+  const getNoteUrl = "{{ url_for('notes.get_note', item_id=0) }}";
+  const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
+
+  function formatTextForHtml(text) {
+    if (text == null) return '';
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML.replace(/\r?\n/g, '<br>');
+  }
+
+  function extractPlainText(text) {
+    if (text == null) return '';
+    if (typeof text !== 'string') {
+      text = String(text);
+    }
+    const temp = document.createElement('div');
+    temp.innerHTML = text;
+    const plain = temp.textContent || temp.innerText || '';
+    return plain.trim();
+  }
+
+  function applyMediaVisibility() {
+    // Select tß╗½ cß║ú desktop v├á mobile elements
+    const mediaContainers = document.querySelectorAll('#flashcard-content .media-container, #flashcard-content-mobile .media-container');
+    const cardContainers = document.querySelectorAll('#flashcard-content ._card-container, #flashcard-content-mobile ._card-container');
+
+    mediaContainers.forEach(container => {
+      container.classList.toggle('hidden', isMediaHidden);
+    });
+
+    cardContainers.forEach(container => {
+      container.classList.toggle('media-hidden', isMediaHidden);
+    });
+
+    document.querySelectorAll('.image-toggle-btn').forEach(btn => {
+      btn.classList.toggle('is-active', isMediaHidden);
+      btn.setAttribute('aria-pressed', isMediaHidden ? 'true' : 'false');
+      btn.title = isMediaHidden ? 'Bß║¡t ß║únh' : 'Tß║»t ß║únh';
+      const icon = btn.querySelector('i');
+      if (icon) {
+        icon.className = `fas ${isMediaHidden ? 'fa-image-slash' : 'fa-image'}`;
+      }
+    });
+
+    if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+      window.flashcardViewport.refresh();
+    }
+
+    setTimeout(adjustCardLayout, 0);
+  }
+
+  function setMediaHiddenState(hidden) {
+    isMediaHidden = hidden;
+
+    try {
+      localStorage.setItem('flashcardHideImages', hidden ? 'true' : 'false');
+    } catch (err) {
+      console.warn('Kh├┤ng thß╗â l╞░u trß║íng th├íi hiß╗ân thß╗ï ß║únh:', err);
+    }
+
+    applyMediaVisibility();
+  }
+
+  function persistAudioAutoplayPreference(enabled) {
+    try {
+      localStorage.setItem('flashcardAutoPlayAudio', enabled ? 'true' : 'false');
+    } catch (err) {
+      console.warn('Kh├┤ng thß╗â l╞░u cß║Ñu h├¼nh tß╗▒ ─æß╗Öng ph├ít audio:', err);
+    }
+  }
+
+  function updateAudioAutoplayToggleButtons() {
+    document.querySelectorAll('.audio-autoplay-toggle-btn').forEach((btn) => {
+      btn.classList.toggle('is-active', isAudioAutoplayEnabled);
+      btn.setAttribute('aria-pressed', isAudioAutoplayEnabled ? 'true' : 'false');
+      btn.title = isAudioAutoplayEnabled ? 'Tß║»t tß╗▒ ─æß╗Öng ph├ít audio' : 'Bß║¡t tß╗▒ ─æß╗Öng ph├ít audio';
+      const icon = btn.querySelector('i');
+      if (icon) {
+        icon.className = `fas ${isAudioAutoplayEnabled ? 'fa-volume-up' : 'fa-volume-mute'}`;
+      }
+    });
+  }
+
+  function setAudioAutoplayEnabled(enabled) {
+    isAudioAutoplayEnabled = enabled;
+    persistAudioAutoplayPreference(enabled);
+    updateAudioAutoplayToggleButtons();
+    if (!enabled) {
+      stopAllFlashcardAudio();
+    }
+  }
+
+  function closeAllSettingsMenus() {
+    document.querySelectorAll('.toolbar-settings').forEach((menu) => {
+      menu.classList.remove('is-open');
+      const toggleBtn = menu.querySelector('.settings-toggle-btn');
+      if (toggleBtn) {
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  function toggleSettingsMenu(menuEl) {
+    if (!menuEl) return;
+    const isOpen = menuEl.classList.contains('is-open');
+    closeAllSettingsMenus();
+    menuEl.classList.toggle('is-open', !isOpen);
+    const toggleBtn = menuEl.querySelector('.settings-toggle-btn');
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', (!isOpen).toString());
+    }
+  }
+
+  document.addEventListener('click', (evt) => {
+    const settingsToggle = evt.target.closest('.settings-toggle-btn');
+    if (settingsToggle) {
+      evt.stopPropagation();
+      toggleSettingsMenu(settingsToggle.closest('.toolbar-settings'));
+      return;
+    }
+
+    const autoplayToggle = evt.target.closest('.audio-autoplay-toggle-btn');
+    if (autoplayToggle) {
+      evt.stopPropagation();
+      setAudioAutoplayEnabled(!isAudioAutoplayEnabled);
+      return;
+    }
+
+    if (!evt.target.closest('.toolbar-settings')) {
+      closeAllSettingsMenus();
+    }
+  });
+
+  function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = false } = {}) {
+    return new Promise(resolve => {
+      if (!audioPlayer) {
+        resolve();
+        return;
+      }
+
+      const cleanup = () => {
+        audioPlayer.removeEventListener('canplay', onCanPlay);
+        if (awaitCompletion) {
+          audioPlayer.removeEventListener('ended', onEnded);
+          audioPlayer.removeEventListener('error', onError);
+        }
+      };
+
+      const onEnded = () => {
+        cleanup();
+        resolve();
+      };
+
+      const onError = () => {
+        cleanup();
+        resolve();
+      };
+
+      const onCanPlay = () => {
+        audioPlayer.removeEventListener('canplay', onCanPlay);
+        if (restart) {
+          try {
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+          } catch (err) {
+            console.warn('Kh├┤ng thß╗â ─æß║╖t lß║íi audio:', err);
+          }
+        }
+        const playPromise = audioPlayer.play();
+        if (!awaitCompletion) {
+          cleanup();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => { });
+          }
+          resolve();
+        } else if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => {
+            cleanup();
+            resolve();
+          });
+        }
+      };
+
+      if (awaitCompletion) {
+        audioPlayer.addEventListener('ended', onEnded, { once: true });
+        audioPlayer.addEventListener('error', onError, { once: true });
+      }
+
+      if (audioPlayer.readyState >= 2) {
+        onCanPlay();
+      } else {
+        audioPlayer.addEventListener('canplay', onCanPlay);
+        try {
+          audioPlayer.load();
+        } catch (err) {
+          cleanup();
+          resolve();
+        }
+      }
+    });
+  }
+
+  function stopAllFlashcardAudio(exceptAudio = null) {
+    const audioElements = document.querySelectorAll('#flashcard-content audio');
+    audioElements.forEach(audioEl => {
+      if (exceptAudio && audioEl === exceptAudio) {
+        return;
+      }
+      try {
+        if (!audioEl.paused) {
+          audioEl.pause();
+        }
+        audioEl.currentTime = 0;
+      } catch (err) {
+        console.warn('Kh├┤ng thß╗â dß╗½ng audio:', err);
+      }
+    });
+  }
+
+  function playAudioForButton(button, options = {}) {
+    if (!button) return Promise.resolve();
+    const audioPlayer = document.querySelector(button.dataset.audioTarget);
+    if (!audioPlayer || button.classList.contains('is-disabled')) {
+      return Promise.resolve();
+    }
+
+    const awaitCompletion = options.await === true;
+    const restart = options.restart !== false;
+    const suppressLoadingUi = options.suppressLoadingUi === true;
+    const hasAudioSource = audioPlayer.src && audioPlayer.src !== window.location.href;
+
+    if (hasAudioSource) {
+      stopAllFlashcardAudio(audioPlayer);
+      return playAudioAfterLoad(audioPlayer, { restart, awaitCompletion });
+    }
+
+    stopAllFlashcardAudio(audioPlayer);
+    return generateAndPlayAudio(button, audioPlayer, { awaitCompletion, suppressLoadingUi, restart });
+  }
+
+  function autoPlaySide(side) {
+    if (!isAudioAutoplayEnabled) return;
+    const button = document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+    if (!button) return;
+    playAudioForButton(button, { suppressLoadingUi: true }).catch(() => { });
+  }
+
+  function autoPlayFrontSide() {
+    autoPlaySide('front');
+  }
+
+  function autoPlayBackSide() {
+    autoPlaySide('back');
+  }
+
+  function cancelAutoplaySequence() {
+    currentAutoplayToken += 1;
+    currentAutoplayTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+    currentAutoplayTimeouts = [];
+    stopAllFlashcardAudio();
+  }
+
+  function waitForAutoplayDelay(token) {
+    return new Promise(resolve => {
+      const delayMs = Math.max(0, autoplayDelaySeconds) * 1000;
+      if (delayMs === 0) {
+        resolve();
+        return;
+      }
+      const timeoutId = setTimeout(() => {
+        currentAutoplayTimeouts = currentAutoplayTimeouts.filter(id => id !== timeoutId);
+        if (token === currentAutoplayToken) {
+          resolve();
+        }
+      }, delayMs);
+      currentAutoplayTimeouts.push(timeoutId);
+    });
+  }
+
+  async function playAutoplayAudioForSide(side, token) {
+    if (token !== currentAutoplayToken) return;
+    const button = document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+    if (!button) return;
+    try {
+      await playAudioForButton(button, { await: true, suppressLoadingUi: true });
+    } catch (err) {
+      console.warn('Kh├┤ng thß╗â ph├ít audio tß╗▒ ─æß╗Öng:', err);
+    }
+  }
+
+  function revealBackSideForAutoplay(token) {
+    if (token !== currentAutoplayToken) return;
+    const { card, actions, flipBtn } = currentCardElements;
+    if (!card) return;
+    if (!card.classList.contains('flipped')) {
+      stopAllFlashcardAudio();
+      card.classList.add('flipped');
+      actions?.classList.add('visible');
+      if (flipBtn) {
+        flipBtn.style.display = 'none';
+      }
+      setTimeout(adjustCardLayout, 0);
+    } else if (actions) {
+      actions.classList.add('visible');
+    }
+  }
+
+  async function startAutoplaySequence() {
+    cancelAutoplaySequence();
+    const token = currentAutoplayToken;
+    try {
+      await playAutoplayAudioForSide('front', token);
+      if (token !== currentAutoplayToken) return;
+      await waitForAutoplayDelay(token);
+      if (token !== currentAutoplayToken) return;
+      revealBackSideForAutoplay(token);
+      await playAutoplayAudioForSide('back', token);
+      if (token !== currentAutoplayToken) return;
+      await waitForAutoplayDelay(token);
+      if (token !== currentAutoplayToken) return;
+      getNextFlashcardBatch();
+    } catch (err) {
+      console.warn('AutoPlay gß║╖p lß╗ùi:', err);
+    }
+  }
+
+  function shouldShowPreviewOnly(initialStats = {}) {
+    const hasRealReviews = Boolean(initialStats.has_real_reviews);
+    if (hasRealReviews) return false;
+
+    const previewCount = initialStats.preview_count ?? 0;
+    const hasPreviewHistory = Boolean(initialStats.has_preview_history);
+
+    if (hasPreviewHistory && previewCount > 0) {
+      return false;
+    }
+
+    return previewCount === 0;
+  }
+
+  function determineCardCategory(cardData) {
+    if (!cardData) return '';
+
+    const stats = cardData.initial_stats || {};
+    const hasPreviewHistory = Boolean(stats.has_preview_history);
+    const hasRealReviews = Boolean(stats.has_real_reviews);
+
+    if (!hasPreviewHistory && !hasRealReviews) {
+      return 'new';
+    }
+
+    if (stats.status === 'hard') {
+      return 'hard';
+    }
+
+    if (stats.has_preview_only) {
+      return 'due';
+    }
+
+    if (stats.next_review) {
+      const dueDate = new Date(stats.next_review);
+      if (!Number.isNaN(dueDate.getTime()) && dueDate <= new Date()) {
+        return 'due';
+      }
+    }
+
+    return '';
+  }
+
+  function getPreviewButtonHtml() {
+    return '<button class="btn btn-continue" data-answer="continue"><i class="fas fa-arrow-right"></i>Tiß║┐p tß╗Ñc</button>';
+  }
+
+  function updateSessionSummary() {
+    const desktopTotalScore = document.querySelector('.statistics-card #total-score-display span');
+    const desktopSessionScore = document.querySelector('.statistics-card #session-score-display');
+
+    const mobileTotalScore = document.getElementById('total-score-display-mobile');
+    const mobileSessionScore = document.getElementById('session-score-display-mobile');
+
+    if (desktopTotalScore) desktopTotalScore.textContent = currentUserTotalScore;
+    if (desktopSessionScore) desktopSessionScore.textContent = `+${sessionScore}`;
+
+    if (mobileTotalScore) mobileTotalScore.textContent = currentUserTotalScore;
+    if (mobileSessionScore) mobileSessionScore.textContent = `+${sessionScore}`;
+  }
+
+  /**
+   * Tß╗▒ ─æß╗Öng ─æiß╗üu chß╗ënh k├¡ch th╞░ß╗¢c font v├á c─ân chß╗ënh nß╗Öi dung mß║╖t sau thß║╗.
+   * ├üp dß╗Ñng c─ân giß╗»a khi kh├┤ng c├│ cuß╗Ön, v├á c─ân tr├¬n khi c├│ cuß╗Ön.
+   */
+  function adjustCardLayout() {
+    // ─Éiß╗üu chß╗ënh layout cho tß║Ñt cß║ú card elements (cß║ú desktop v├á mobile)
+    document.querySelectorAll('.js-flashcard-card').forEach(card => {
+      if (!card) return;
+
+      const textAreas = card.querySelectorAll('.text-area');
+
+      textAreas.forEach(scrollArea => {
+        const txt = scrollArea.querySelector('.flashcard-content-text');
+        if (!txt) return;
+
+        // Reset style
+        txt.style.fontSize = '';
+        scrollArea.classList.remove('has-scroll');
+        scrollArea.parentElement?.classList?.remove('has-scroll');
+
+        // ─Éß╗úi DOM render xong rß╗ôi ─æo
+        setTimeout(() => {
+          const hasScroll = scrollArea.scrollHeight > scrollArea.clientHeight;
+
+          if (hasScroll) {
+            // Ghim l├¬n tr├¬n: set class cho cß║ú text-area v├á container
+            scrollArea.classList.add('has-scroll');
+            scrollArea.parentElement?.classList?.add('has-scroll');
+
+            // ─Éß║úm bß║úo nh├¼n thß║Ñy tß╗½ ─æß║ºu nß╗Öi dung
+            scrollArea.scrollTop = 0;
+          }
+
+          // Thu nhß╗Å font nß║┐u vß║½n tr├án
+          let current = parseFloat(getComputedStyle(txt).fontSize) || 22;
+          const min = 18;
+          while (scrollArea.scrollHeight > scrollArea.clientHeight && current > min) {
+            current -= 1;
+            txt.style.fontSize = current + 'px';
+          }
+        }, 0);
+      });
+    });
+  }
+
+  function shouldShowPreviewOnly(initialStats = {}) {
+    const hasRealReviews = Boolean(initialStats.has_real_reviews);
+    if (hasRealReviews) return false;
+
+    const previewCount = initialStats.preview_count ?? 0;
+    const hasPreviewHistory = Boolean(initialStats.has_preview_history);
+
+    if (hasPreviewHistory && previewCount > 0) {
+      return false;
+    }
+
+    return previewCount === 0;
+  }
+
+  function determineCardCategory(cardData) {
+    if (!cardData) return '';
+
+    const stats = cardData.initial_stats || {};
+    const hasPreviewHistory = Boolean(stats.has_preview_history);
+    const hasRealReviews = Boolean(stats.has_real_reviews);
+
+    if (!hasPreviewHistory && !hasRealReviews) {
+      return 'new';
+    }
+
+    if (stats.status === 'hard') {
+      return 'hard';
+    }
+
+    if (stats.has_preview_only) {
+      return 'due';
+    }
+
+    if (stats.next_review) {
+      const dueDate = new Date(stats.next_review);
+      if (!Number.isNaN(dueDate.getTime()) && dueDate <= new Date()) {
+        return 'due';
+      }
+    }
+
+    return '';
+  }
+
+  function getPreviewButtonHtml() {
+    return '<button class="btn btn-continue" data-answer="continue"><i class="fas fa-arrow-right"></i>Tiß║┐p tß╗Ñc</button>';
+  }
+
+  function generateDynamicButtons(buttonCount) {
+    const buttonSets = {
+      3: [
+        { variant: 'again', value: 'qu├¬n', title: 'Qu├¬n', icon: 'fas fa-redo-alt' },
+        { variant: 'hard', value: 'm╞í_hß╗ô', title: 'M╞í hß╗ô', icon: 'fas fa-question-circle' },
+        { variant: 'easy', value: 'nhß╗¢', title: 'Nhß╗¢', icon: 'fas fa-check-circle' }
+      ],
+      4: [
+        { variant: 'again', value: 'again', title: 'Hß╗ìc lß║íi', icon: 'fas fa-undo' },
+        { variant: 'very-hard', value: 'hard', title: 'Kh├│', icon: 'fas fa-fire' },
+        { variant: 'good', value: 'good', title: 'B├¼nh th╞░ß╗¥ng', icon: 'fas fa-thumbs-up' },
+        { variant: 'easy', value: 'easy', title: 'Dß╗à', icon: 'fas fa-smile' }
+      ],
+      6: [
+        { variant: 'fail', value: 'fail', title: 'Rß║Ñt kh├│', icon: 'fas fa-exclamation-circle' },
+        { variant: 'very-hard', value: 'very_hard', title: 'Kh├│', icon: 'fas fa-fire' },
+        { variant: 'hard', value: 'hard', title: 'Trung b├¼nh', icon: 'fas fa-adjust' },
+        { variant: 'medium', value: 'medium', title: 'Dß╗à', icon: 'fas fa-leaf' },
+        { variant: 'good', value: 'good', title: 'Rß║Ñt dß╗à', icon: 'fas fa-thumbs-up' },
+        { variant: 'very-easy', value: 'very_easy', title: 'Dß╗à d├áng', icon: 'fas fa-star' }
+      ]
+    };
+    const buttons = buttonSets[buttonCount] || buttonSets[3];
+    return buttons.map(btn => {
+      const iconHtml = btn.icon ? `<span class="rating-btn__icon"><i class="${btn.icon}"></i></span>` : '';
+      return `<button class="btn rating-btn rating-btn--${btn.variant}" data-answer="${btn.value}">${iconHtml}<span class="rating-btn__title">${btn.title}</span></button>`;
+    }).join('');
+  }
+
+  // H├ám renderCard ─æ├ú ─æ╞░ß╗úc l├ám mß╗¢i ─æß╗â sß╗¡ dß╗Ñng logic t├ích biß╗çt
+  function renderCard(data) {
+    if (isAutoplaySession) {
+      cancelAutoplaySequence();
+    }
+    const c = data.content;
+    const itemId = data.item_id;
+    const setId = data.container_id;
+    const fTxt = formatTextForHtml(c.front || '');
+    const bTxt = formatTextForHtml(c.back || '');
+    const initialStats = data.initial_stats || {};
+    const cardCategory = determineCardCategory(data);
+    const showPreviewOnly = shouldShowPreviewOnly(initialStats);
+    const shouldRenderButtons = !isAutoplaySession && !showPreviewOnly;
+    const buttonsHtml = showPreviewOnly ? getPreviewButtonHtml() : (shouldRenderButtons ? generateDynamicButtons(userButtonCount) : '');
+    const buttonCount = showPreviewOnly ? 1 : (shouldRenderButtons ? userButtonCount : 0);
+
+    // Check view mode
+    const isMobile = window.innerWidth < 1024;
+
+    // Prepare options common for both views
+    const hasFrontAudio = c.front_audio_url || c.front_audio_content;
+    const hasBackAudio = c.back_audio_url || c.back_audio_content;
+    const canEditCurrentCard = Boolean(data.can_edit);
+
+    // Construct Edit URL
+    let editUrl = "";
+    if (canEditCurrentCard) {
+      const urlTemplate = "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}";
+      editUrl = urlTemplate.replace('/0', '/' + setId).replace('/0', '/' + itemId);
+    }
+
+    const renderOptions = {
+      itemId, setId, fTxt, bTxt, cardCategory,
+      isMediaHidden, isAudioAutoplayEnabled,
+      hasFrontAudio, hasBackAudio,
+      buttonsHtml, buttonCount,
+      frontImg: c.front_img,
+      backImg: c.back_img,
+      frontAudioUrl: c.front_audio_url,
+      backAudioUrl: c.back_audio_url,
+      frontAudioContent: c.front_audio_content,
+      backAudioContent: c.back_audio_content,
+      canEditCurrentCard,
+      editUrl
+    };
+
+    // Render Cß║ó HAI versions ─æß╗â c├│ thß╗â resize m╞░ß╗út m├á
+    let desktopHtml = "";
+    let mobileHtml = "";
+
+    if (window.renderDesktopCardHtml) {
+      desktopHtml = window.renderDesktopCardHtml(data, renderOptions);
+    }
+    if (window.renderMobileCardHtml) {
+      mobileHtml = window.renderMobileCardHtml(data, renderOptions);
+    }
+
+    if (!desktopHtml && !mobileHtml) {
+      console.error("Render functions not found!");
+      return;
+    }
+
+    setFlashcardContent(desktopHtml, mobileHtml);
+    updateAudioAutoplayToggleButtons();
+    closeAllSettingsMenus();
+
+    if (Array.isArray(currentFlashcardBatch) && currentFlashcardBatch[currentFlashcardIndex]) {
+      currentFlashcardBatch[currentFlashcardIndex].card_category = cardCategory;
+    }
+
+    // T├¼m elements d├╣ng shared .js- classes
+    const visibleContainer = getVisibleFlashcardContentDiv();
+    const card = visibleContainer ? visibleContainer.querySelector('.js-flashcard-card') : document.querySelector('.js-flashcard-card');
+    const actions = visibleContainer ? visibleContainer.querySelector('.js-internal-actions') : document.querySelector('.js-internal-actions');
+    const flipBtn = visibleContainer ? visibleContainer.querySelector('.js-flip-card-btn') : document.querySelector('.js-flip-card-btn');
+    currentCardElements = { card, actions, flipBtn };
+
+    if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+      window.flashcardViewport.refresh();
+    }
+
+    // --- Xß╗¡ l├╜ tß╗▒ ─æß╗Öng t├íi tß║ío audio khi lß╗ùi ---
+    async function handleAudioError(audioEl, itemId, side, contentToRead) {
+      if (!audioEl || audioEl.dataset.retried === 'true') return;
+      if (!contentToRead) return;
+
+      console.log(`[AudioRecovery] Ph├ít hiß╗çn lß╗ùi ß╗ƒ ${side} audio. ─Éang thß╗¡ t├íi tß║ío...`);
+      audioEl.dataset.retried = 'true';
+
+      try {
+        const response = await fetch(regenerateAudioUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+          body: JSON.stringify({ item_id: itemId, side: side, content_to_read: contentToRead })
+        });
+        const result = await response.json();
+
+        if (result.success && result.audio_url) {
+          console.log(`[AudioRecovery] T├íi tß║ío th├ánh c├┤ng. URL mß╗¢i: ${result.audio_url}`);
+          audioEl.src = `${result.audio_url}?t=${new Date().getTime()}`;
+        } else {
+          console.warn(`[AudioRecovery] T├íi tß║ío thß║Ñt bß║íi: ${result.message}`);
+        }
+      } catch (err) {
+        console.error(`[AudioRecovery] Lß╗ùi kß║┐t nß╗æi API:`, err);
+      }
+    }
+
+    function setupAudioErrorHandler(itemId, frontContent, backContent) {
+      const frontAudio = document.getElementById('front-audio');
+      const backAudio = document.getElementById('back-audio');
+      if (frontAudio) {
+        frontAudio.addEventListener('error', () => handleAudioError(frontAudio, itemId, 'front', frontContent));
+      }
+      if (backAudio) {
+        backAudio.addEventListener('error', () => handleAudioError(backAudio, itemId, 'back', backContent));
+      }
+    }
+
+    if (card) {
+      card.dataset.cardCategory = cardCategory || 'default';
+    }
+
+    setupAudioErrorHandler(itemId, c.front_audio_content || '', c.back_audio_content || '');
+
+    const flipToBack = () => {
+      stopAllFlashcardAudio();
+      card.classList.add('flipped');
+      actions?.classList.add('visible');
+      if (flipBtn) {
+        flipBtn.style.display = 'none';
+      }
+      setTimeout(adjustCardLayout, 0);
+      if (!isAutoplaySession) {
+        autoPlayBackSide();
+      }
+    };
+
+    const flipToFront = () => {
+      stopAllFlashcardAudio();
+      card.classList.remove('flipped');
+      actions?.classList.remove('visible');
+      if (flipBtn) {
+        flipBtn.style.display = '';
+      }
+      setTimeout(adjustCardLayout, 0);
+    };
+
+    if (flipBtn) {
+      flipBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        flipToBack();
+      });
+    }
+
+    const frontLabel = card?.querySelector('.front .card-toolbar .label');
+    const backLabel = card?.querySelector('.back .card-toolbar .label');
+
+    if (frontLabel) frontLabel.addEventListener('click', (ev) => { ev.stopPropagation(); flipToBack(); });
+    if (backLabel) backLabel.addEventListener('click', (ev) => { ev.stopPropagation(); flipToFront(); });
+
+    document.querySelectorAll('.card-toolbar .icon-btn').forEach(btn => {
+      btn.addEventListener('click', ev => {
+        if (btn.classList.contains('settings-toggle-btn') || btn.classList.contains('audio-autoplay-toggle-btn')) {
+          return;
+        }
+        ev.stopPropagation();
+      });
+    });
+
+    document.querySelectorAll('.image-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', ev => {
+        ev.stopPropagation();
+        setMediaHiddenState(!isMediaHidden);
+      });
+    });
+
+    if (!isAutoplaySession) {
+      document.querySelectorAll('.actions .btn').forEach(b => b.addEventListener('click', ev => {
+        ev.stopPropagation();
+        submitFlashcardAnswer(data.item_id, b.dataset.answer);
+      }));
+    }
+
+    document.querySelectorAll('.play-audio-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const audioPlayer = document.querySelector(btn.dataset.audioTarget);
+        if (!audioPlayer || btn.classList.contains('is-disabled')) return;
+        if (!audioPlayer.paused && audioPlayer.currentTime > 0) {
+          audioPlayer.pause();
+          audioPlayer.currentTime = 0;
+          return;
+        }
+        playAudioForButton(btn).catch(() => { });
+      });
+    });
+
+    document.querySelectorAll('.open-stats-modal-btn').forEach(btn => btn.addEventListener('click', () => toggleStatsModal(true)));
+
+    document.querySelectorAll('.open-ai-modal-btn').forEach(btn => btn.addEventListener('click', () => {
+      const currentCard = currentFlashcardBatch[currentFlashcardIndex];
+      window.openAiModal(currentCard.item_id, currentCard.content.front);
+    }));
+
+    document.querySelectorAll('.open-note-panel-btn').forEach(btn => btn.addEventListener('click', () => {
+      openNotePanel(btn.dataset.itemId);
+    }));
+
+    document.querySelectorAll('.open-feedback-modal-btn').forEach(btn => btn.addEventListener('click', () => {
+      const currentCard = currentFlashcardBatch[currentFlashcardIndex];
+      openFeedbackModal(currentCard.item_id, currentCard.content.front);
+    }));
+
+    applyMediaVisibility();
+    setTimeout(adjustCardLayout, 0);
+
+    if (isAutoplaySession) {
+      startAutoplaySequence();
+    } else {
+      autoPlayFrontSide();
+    }
+  }
+
+  async function generateAndPlayAudio(button, audioPlayer, options = {}) {
+    const itemId = button.dataset.itemId;
+    const side = button.dataset.side;
+    const contentToRead = button.dataset.contentToRead;
+    const awaitCompletion = options.awaitCompletion === true;
+    const suppressLoadingUi = options.suppressLoadingUi === true;
+    const restart = options.restart !== false;
+
+    const originalHtml = button.dataset.originalHtml || button.innerHTML;
+    if (!button.dataset.originalHtml) {
+      button.dataset.originalHtml = originalHtml;
+    }
+
+    if (!suppressLoadingUi) {
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    button.classList.add('is-disabled');
+    let playbackPromise = Promise.resolve();
+
+    try {
+      const response = await fetch(regenerateAudioUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        body: JSON.stringify({ item_id: itemId, side: side, content_to_read: contentToRead })
+      });
+      const result = await response.json();
+      if (result.success && result.audio_url) {
+        audioPlayer.src = result.audio_url;
+        playbackPromise = playAudioAfterLoad(audioPlayer, { restart, awaitCompletion });
+        if (awaitCompletion) {
+          await playbackPromise;
+        }
+      } else {
+        showCustomAlert(result.message || 'Lß╗ùi khi tß║ío audio.');
+      }
+    } catch (error) {
+      console.error('Lß╗ùi khi tß║ío audio:', error);
+      showCustomAlert('Kh├┤ng thß╗â kß║┐t nß╗æi ─æß║┐n m├íy chß╗º ─æß╗â tß║ío audio.');
+    } finally {
+      button.classList.remove('is-disabled');
+      if (!suppressLoadingUi) {
+        button.innerHTML = button.dataset.originalHtml || '<i class="fas fa-volume-up"></i>';
+      }
+    }
+
+    return playbackPromise;
+  }
+
+  function formatMinutesAsDuration(minutes) {
+    if (minutes <= 0) return 'D╞░ß╗¢i 1 ph├║t';
+    const M_IN_H = 60, M_IN_D = 1440, M_IN_W = 10080, M_IN_MO = 43200;
+    let result = [], remainingMinutes = minutes;
+    if (remainingMinutes >= M_IN_MO) { const m = Math.floor(remainingMinutes / M_IN_MO); result.push(`${m} th├íng`); remainingMinutes %= M_IN_MO; }
+    if (remainingMinutes >= M_IN_W) { const w = Math.floor(remainingMinutes / M_IN_W); result.push(`${w} tuß║ºn`); remainingMinutes %= M_IN_W; }
+    if (remainingMinutes >= M_IN_D) { const d = Math.floor(remainingMinutes / M_IN_D); result.push(`${d} ng├áy`); remainingMinutes %= M_IN_D; }
+    if (remainingMinutes >= M_IN_H) { const h = Math.floor(remainingMinutes / M_IN_H); result.push(`${h} giß╗¥`); remainingMinutes %= M_IN_H; }
+    if (remainingMinutes > 0) result.push(`${remainingMinutes} ph├║t`);
+    return result.join(' ');
+  }
+
+  function formatDateTime(value, fallback = 'Ch╞░a c├│') {
+    if (!value) return fallback;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return fallback;
+    }
+    try {
+      return date.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' });
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  function renderCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isInitial = false) {
+    if (!stats) {
+      return `<div class="empty-state"><i class="fas fa-info-circle"></i> ${isInitial ? '─É├óy l├á thß║╗ mß╗¢i.' : 'Kh├┤ng c├│ dß╗» liß╗çu thß╗æng k├¬.'}</div>`;
+    }
+
+    const totalReviews = Number(stats.times_reviewed) || 0;
+    const correctCount = Number(stats.correct_count) || 0;
+    const incorrectCount = Number(stats.incorrect_count) || 0;
+    const vagueCount = Number(stats.vague_count) || 0;
+    const previewCount = Number(stats.preview_count) || 0;
+    const correctWidth = totalReviews > 0 ? (correctCount / totalReviews) * 100 : 0;
+    const vagueWidth = totalReviews > 0 ? (vagueCount / totalReviews) * 100 : 0;
+    const incorrectWidth = totalReviews > 0 ? (incorrectCount / totalReviews) * 100 : 0;
+    const correctPercentDisplay = Math.round(correctWidth);
+    const vaguePercentDisplay = Math.round(vagueWidth);
+    const incorrectPercentDisplay = Math.round(incorrectWidth);
+    const dueTime = formatDateTime(stats.next_review, 'Ch╞░a c├│');
+    const lastReviewed = formatDateTime(stats.last_reviewed, totalReviews > 0 ? 'Ch╞░a c├│' : 'Ch╞░a ├┤n');
+    const firstSeen = formatDateTime(stats.first_seen, 'Ch╞░a mß╗ƒ');
+    const formattedIntervalDisplay = formatMinutesAsDuration(stats.interval);
+    const scoreChangeSign = scoreChange > 0 ? '+' : '';
+    const scoreChangeClass = scoreChange > 0 ? 'positive' : (scoreChange < 0 ? 'negative' : '');
+    const isBrandNew = !stats.has_preview_history && !stats.has_real_reviews;
+    const isPreviewStage = stats.has_preview_history && !stats.has_real_reviews;
+    const statusKeyRaw = (stats.status || 'new').toString();
+    const statusKey = statusKeyRaw.toLowerCase().replace(/\s+/g, '-');
+    const statusLabelMap = {
+      'new': 'Mß╗¢i',
+      'learning': '─Éang hß╗ìc',
+      'review': '├ön tß║¡p',
+      'relearning': '├ön lß║íi',
+      'hard': 'Kh├│',
+      'easy': 'Dß╗à',
+      'suspended': 'Tß║ím dß╗½ng'
+    };
+    const statusLabel = statusLabelMap[statusKeyRaw.toLowerCase()] || statusKeyRaw;
+    const correctRateDisplay = typeof stats.correct_rate === 'number' ? Math.round(stats.correct_rate) : correctPercentDisplay;
+    const repetitions = Number(stats.repetitions) || 0;
+    const easinessFactor = typeof stats.easiness_factor === 'number' ? Number(stats.easiness_factor).toFixed(2) : 'ΓÇö';
+    const currentStreak = Number(stats.current_streak) || 0;
+    const longestStreak = Number(stats.longest_streak) || 0;
+    const formatRecentTimestamp = (value) => {
+      if (!value) return 'Kh├┤ng r├╡';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'Kh├┤ng r├╡';
+      try {
+        const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        return `${timePart} ┬╖ ${datePart}`;
+      } catch (err) {
+        return 'Kh├┤ng r├╡';
+      }
+    };
+    const recentReviews = Array.isArray(stats.recent_reviews) ? [...stats.recent_reviews].slice(-10).reverse() : [];
+    const recentReviewConfig = {
+      'correct': { label: 'Nhß╗¢', icon: 'fas fa-check-circle' },
+      'vague': { label: 'M╞í hß╗ô', icon: 'fas fa-adjust' },
+      'incorrect': { label: 'Qu├¬n', icon: 'fas fa-times-circle' },
+      'preview': { label: 'Xem tr╞░ß╗¢c', icon: 'fas fa-eye' }
+    };
+    const introNotice = isBrandNew
+      ? `<div class="insight-banner"><i class="fas fa-seedling"></i><span>Thß║╗ mß╗¢i - kh├ím ph├í nß╗Öi dung tr╞░ß╗¢c khi chß║Ñm ─æiß╗âm.</span></div>`
+      : (isPreviewStage
+        ? `<div class="insight-banner"><i class="fas fa-hourglass-half"></i><span>Thß║╗ ─æang ß╗ƒ giai ─æoß║ín giß╗¢i thiß╗çu. Nhß║Ñn "Tiß║┐p tß╗Ñc" ─æß╗â b╞░ß╗¢c v├áo phß║ºn ─æ├ính gi├í.</span></div>`
+        : '');
+
+    const hasHistoricData = totalReviews > 0 || previewCount > 0;
+    const progressSection = hasHistoricData
+      ? `
+                <div class="stats-section stats-section--performance">
+                    <div class="stats-section__header">
+                        <div class="icon-bubble"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <h4>Hiß╗çu suß║Ñt trß║ú lß╗¥i</h4>
+                            <p>Tß╗╖ lß╗ç ghi nhß╗¢ dß╗▒a tr├¬n to├án bß╗Ö lß╗ïch sß╗¡ cß╗ºa thß║╗.</p>
+                        </div>
+                    </div>
+                    <div class="progress-stack">
+                        <div class="progress-bar-group">
+                            <div class="progress-bar-label">
+                                <span class="label-title"><span class="progress-dot"></span> Nhß╗¢</span>
+                                <span class="progress-bar-stat">${correctCount} l╞░ß╗út ┬╖ ${correctPercentDisplay}%</span>
+                            </div>
+                            <div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-correct" style="--progress:${correctWidth}%;"></div></div>
+                        </div>
+                        <div class="progress-bar-group">
+                            <div class="progress-bar-label">
+                                <span class="label-title"><span class="progress-dot vague"></span> M╞í hß╗ô</span>
+                                <span class="progress-bar-stat">${vagueCount} l╞░ß╗út ┬╖ ${vaguePercentDisplay}%</span>
+                            </div>
+                            <div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-vague" style="--progress:${vagueWidth}%;"></div></div>
+                        </div>
+                        <div class="progress-bar-group">
+                            <div class="progress-bar-label">
+                                <span class="label-title"><span class="progress-dot incorrect"></span> Qu├¬n</span>
+                                <span class="progress-bar-stat">${incorrectCount} l╞░ß╗út ┬╖ ${incorrectPercentDisplay}%</span>
+                            </div>
+                            <div class="progress-bar-container"><div class="progress-bar-fill progress-bar-fill-incorrect" style="--progress:${incorrectWidth}%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+            `
+      : `
+                <div class="stats-section stats-section--performance">
+                    <div class="stats-section__header">
+                        <div class="icon-bubble"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <h4>Hiß╗çu suß║Ñt trß║ú lß╗¥i</h4>
+                            <p>Thß╗æng k├¬ sß║╜ xuß║Ñt hiß╗çn sau khi bß║ín chß║Ñm ─æiß╗âm thß║╗ n├áy.</p>
+                        </div>
+                    </div>
+                    <div class="empty-state"><i class="fas fa-info-circle"></i> Bß║»t ─æß║ºu trß║ú lß╗¥i ─æß╗â mß╗ƒ kh├│a biß╗âu ─æß╗ô hiß╗çu suß║Ñt.</div>
+                </div>
+            `;
+
+    const insightSection = `
+            <div class="stats-section stats-section--insight">
+                <div class="stats-section__header">
+                    <div class="icon-bubble"><i class="fas fa-bullseye"></i></div>
+                    <div>
+                        <h4>Chß╗ë sß╗æ ghi nhß╗¢</h4>
+                        <p>Tß╗òng hß╗úp theo thuß║¡t to├ín SM-2.</p>
+                    </div>
+                </div>
+                <div class="insight-grid">
+                    ${!isInitial ? `<div class="insight-card insight-card--highlight"><span class="insight-card__label">─Éiß╗âm phi├¬n n├áy</span><span class="insight-card__value ${scoreChangeClass}">${scoreChangeSign}${scoreChange}</span><span class="insight-card__muted">Sau l╞░ß╗út trß║ú lß╗¥i vß╗½a rß╗ôi</span></div>` : ''}
+                    <div class="insight-card">
+                        <span class="insight-card__label">Trß║íng th├íi</span>
+                        <span class="status-chip status-${statusKey}"><i class="fas fa-circle"></i> ${statusLabel}</span>
+                        <span class="insight-card__muted">Theo tiß║┐n tr├¼nh hiß╗çn tß║íi</span>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-card__label">Tß╗╖ lß╗ç ch├¡nh x├íc</span>
+                        <span class="insight-card__value">${correctRateDisplay}%</span>
+                        <span class="insight-card__muted">${totalReviews > 0 ? `${correctCount} ─æ├║ng ┬╖ ${incorrectCount} sai` : 'Ch╞░a c├│ l╞░ß╗út ├┤n'}</span>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-card__label">L╞░ß╗út ├┤n</span>
+                        <span class="insight-card__value">${totalReviews}</span>
+                        <span class="insight-card__muted">${previewCount > 0 ? `${previewCount} lß║ºn xem thß╗¡` : 'Ch╞░a xem tr╞░ß╗¢c'}</span>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-card__label">Chuß╗ùi hiß╗çn tß║íi</span>
+                        <span class="insight-card__value">${currentStreak}</span>
+                        <span class="insight-card__muted">${currentStreak > 0 ? 'L╞░ß╗út ─æ├║ng li├¬n tiß║┐p' : 'Ch╞░a c├│ chuß╗ùi'}</span>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-card__label">Chuß╗ùi d├ái nhß║Ñt</span>
+                        <span class="insight-card__value">${longestStreak}</span>
+                        <span class="insight-card__muted">${longestStreak > 0 ? 'Kß╗╖ lß╗Ñc ghi nhß╗¢' : 'Ch╞░a x├íc ─æß╗ïnh'}</span>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-card__label">Hß╗ç sß╗æ dß╗à (EF)</span>
+                        <span class="insight-card__value">${easinessFactor}</span>
+                        <span class="insight-card__muted">─Éiß╗üu chß╗ënh sau mß╗ùi lß║ºn ├┤n</span>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-card__label">Lß║╖p lß║íi (n)</span>
+                        <span class="insight-card__value">${repetitions}</span>
+                        <span class="insight-card__muted">Sß╗æ lß║ºn ─æ├ú ghi nhß╗¢</span>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-card__label">Khoß║úng c├ích (I)</span>
+                        <span class="insight-card__value">${formattedIntervalDisplay || 'Ch╞░a c├│'}</span>
+                        <span class="insight-card__muted">Thß╗¥i gian ─æß║┐n lß║ºn ├┤n tiß║┐p theo</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+    const recentSection = recentReviews.length
+      ? `
+                <div class="stats-section stats-section--recent">
+                    <div class="stats-section__header">
+                        <div class="icon-bubble"><i class="fas fa-history"></i></div>
+                        <div>
+                            <h4>L╞░ß╗út trß║ú lß╗¥i gß║ºn ─æ├óy</h4>
+                            <p>Theo d├╡i tß╗æi ─æa 10 l╞░ß╗út mß╗¢i nhß║Ñt bß║▒ng biß╗âu t╞░ß╗úng m├áu sß║»c.</p>
+                        </div>
+                    </div>
+                    <div class="recent-answers-track" role="list">
+                        ${recentReviews.map(entry => {
+        const resultKey = (entry.result || '').toLowerCase();
+        const config = recentReviewConfig[resultKey] || recentReviewConfig.preview;
+        const timestampDisplay = formatRecentTimestamp(entry.timestamp);
+        const qualityScore = typeof entry.user_answer_quality === 'number' ? entry.user_answer_quality : 'ΓÇö';
+        const tooltip = `${config.label} ┬╖ ${timestampDisplay} ┬╖ ─Éiß╗âm: ${qualityScore}`;
+        return `
+                                <div class="recent-answer-dot recent-answer-dot--${resultKey || 'preview'}" role="listitem" title="${tooltip}">
+                                    <i class="${config.icon}" aria-hidden="true"></i>
+                                    <span class="sr-only">${tooltip}</span>
+                                </div>
+                            `;
+      }).join('')}
+                    </div>
+                </div>
+            `
+      : '';
+
+    const timelineSection = `
+            <div class="stats-section stats-section--timeline">
+                <div class="stats-section__header">
+                    <div class="icon-bubble"><i class="fas fa-route"></i></div>
+                    <div>
+                        <h4>Mß╗æc thß╗¥i gian hß╗ìc</h4>
+                        <p>Quß║ún l├╜ lß╗ïch sß╗¡ ├┤n tß║¡p cß╗ºa ri├¬ng bß║ín.</p>
+                    </div>
+                </div>
+                <div class="timeline-card">
+                    <div class="timeline-item">
+                        <div class="timeline-icon"><i class="fas fa-flag"></i></div>
+                        <div>
+                            <div class="timeline-label">Lß║ºn ─æß║ºu gß║╖p</div>
+                            <div class="timeline-value">${firstSeen}</div>
+                            <div class="timeline-subtle">Thß╗¥i ─æiß╗âm bß║ín mß╗ƒ thß║╗ lß║ºn ─æß║ºu</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-icon"><i class="fas fa-redo"></i></div>
+                        <div>
+                            <div class="timeline-label">├ön gß║ºn nhß║Ñt</div>
+                            <div class="timeline-value">${lastReviewed}</div>
+                            <div class="timeline-subtle">${totalReviews > 0 ? `${totalReviews} l╞░ß╗út ─æ├ú ghi nhß║¡n` : 'Ch╞░a c├│ l╞░ß╗út ├┤n thß╗▒c tß║┐'}</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div>
+                            <div class="timeline-label">Lß╗ïch ├┤n tiß║┐p theo</div>
+                            <div class="timeline-value">${dueTime}</div>
+                            <div class="timeline-subtle">${stats.has_real_reviews ? 'Theo lß╗ïch SM-2 c├í nh├ón h├│a' : 'Cß║ºn trß║ú lß╗¥i ─æß╗â tß║ío lß╗ïch ├┤n'}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+    const cardDetails = cardContent.front ? `
+            <div class="card-info-section">
+                <div class="card-info-title collapsed" data-toggle="card-details-content">
+                    <i class="fas fa-caret-right"></i><span>Chi tiß║┐t thß║╗</span>
+                </div>
+                <div class="card-info-content">
+                    <p><span class="label">Mß║╖t tr╞░ß╗¢c</span>${formatTextForHtml(cardContent.front)}</p>
+                    <p><span class="label">Mß║╖t sau</span>${formatTextForHtml(cardContent.back)}</p>
+                </div>
+            </div>
+        `.trim() : '';
+
+    return [
+      cardDetails,
+      introNotice,
+      progressSection,
+      insightSection,
+      recentSection,
+      timelineSection
+    ].join('');
+  }
+
+  function renderMobileCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isInitial = false) {
+    if (!stats) return '<div class="p-4 text-center text-slate-400">Ch╞░a c├│ dß╗» liß╗çu</div>';
+
+    const totalReviews = Number(stats.times_reviewed) || 0;
+    const correctCount = Number(stats.correct_count) || 0;
+    const incorrectCount = Number(stats.incorrect_count) || 0;
+    const correctRate = totalReviews > 0 ? Math.round((correctCount / totalReviews) * 100) : 0;
+    const nextReview = formatDateTime(stats.next_review, 'Sß║╡n s├áng');
+    const statusLabel = (stats.status || 'New').toString().toUpperCase();
+    const streak = stats.current_streak || 0;
+    const ef = Number(stats.easiness_factor || 2.5).toFixed(2);
+
+    // Status Colors
+    const statusColors = {
+      'new': 'bg-blue-100 text-blue-700',
+      'learning': 'bg-orange-100 text-orange-700',
+      'review': 'bg-emerald-100 text-emerald-700',
+      'relearning': 'bg-purple-100 text-purple-700',
+      'hard': 'bg-red-100 text-red-700'
+    };
+    const statusClass = statusColors[String(stats.status).toLowerCase()] || 'bg-slate-100 text-slate-700';
+
+    // Recent History Section
+    let historyHtml = '';
+    if (stats.recent_reviews && stats.recent_reviews.length > 0) {
+      const icons = stats.recent_reviews.slice().reverse().map((review, idx) => {
+        const isCorrect = review.result === 'correct';
+        const isWrong = review.result === 'incorrect';
+        const colorClass = isCorrect ? 'bg-emerald-500' : (isWrong ? 'bg-rose-500' : 'bg-slate-400');
+        const icon = isCorrect ? 'fa-check' : (isWrong ? 'fa-times' : 'fa-minus');
+
+        const timeDate = review.timestamp ? new Date(review.timestamp) : null;
+        const timeStr = timeDate ? timeDate.toLocaleString('vi-VN', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'Review';
+
+        const typeLabel = review.type === 'preview' ? 'Hß╗ìc lß║ºn ─æß║ºu' : '├ön tß║¡p';
+        const tooltipTitle = `${typeLabel}\n${timeStr}`;
+
+        return `<span class="w-6 h-6 rounded-full ${colorClass} flex items-center justify-center cursor-help shrink-0 ring-1 ring-white shadow-sm" title="${tooltipTitle}">
+                <i class="fas ${icon} text-white text-[10px]"></i>
+            </span>`;
+      }).join('');
+
+      historyHtml = `
+            <div class="mb-3 bg-white border border-slate-100 p-3 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                 <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-history text-xs text-slate-400"></i>
+                    <span class="text-xs uppercase font-bold text-slate-400">Lß╗ïch sß╗¡ thß║╗ n├áy</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5 direction-rtl">
+                    ${icons}
+                </div>
+            </div>`;
+    }
+
+    return `
+        <div class="mobile-stats-content">
+            <!-- Top Row: Status & Next Review -->
+            <div class="flex items-center justify-between mb-5">
+                <span class="px-3 py-1 rounded-full text-xs font-bold ${statusClass}">${statusLabel}</span>
+                <div class="text-right">
+                    <div class="text-[10px] text-slate-400 uppercase font-bold">Lß║ºn ├┤n tß╗¢i</div>
+                    <div class="text-xs font-semibold text-slate-700">${nextReview}</div>
+                </div>
+            </div>
+
+            <!-- Accuracy Bar -->
+            <div class="mb-6 bg-white border border-slate-100 p-4 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-sm font-bold text-slate-700">─Éß╗Ö ch├¡nh x├íc</span>
+                    <span class="text-2xl font-black text-slate-800">${correctRate}%</span>
+                </div>
+                <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-blue-500 to-emerald-400" style="width: ${correctRate}%"></div>
+                </div>
+                <div class="mt-2 flex justify-between text-xs font-medium text-slate-400">
+                    <span>${correctCount} ─æ├║ng</span>
+                    <span>${incorrectCount} sai</span>
+                </div>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">Chuß╗ùi</span>
+                    <span class="text-lg font-black text-slate-700">${streak}</span>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">L╞░ß╗út ├┤n</span>
+                    <span class="text-lg font-black text-slate-700">${totalReviews}</span>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">─Éß╗Ö kh├│</span>
+                    <span class="text-lg font-black text-slate-700">${ef}</span>
+                </div>
+            </div>
+
+            ${historyHtml}
+
+            <!-- Card Info Toggle (App style) -->
+            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                <button class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.fa-chevron-down').classList.toggle('rotate-180')">
+                    <span class="text-sm font-bold text-slate-700">Chi tiß║┐t nß╗Öi dung thß║╗</span>
+                    <i class="fas fa-chevron-down text-slate-400 transition-transform"></i>
+                </button>
+                <div class="hidden p-4 border-t border-slate-200 space-y-3 bg-white">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-slate-400">Mß║╖t tr╞░ß╗¢c</span>
+                        <div class="text-sm text-slate-700 mt-1">${formatTextForHtml(cardContent.front)}</div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100">
+                        <span class="text-[10px] uppercase font-bold text-slate-400">Mß║╖t sau</span>
+                        <div class="text-sm text-slate-700 mt-1">${formatTextForHtml(cardContent.back)}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+  }
+
+  function initializeStatsToggleListeners(rootElement) {
+    if (!rootElement) return;
+
+    rootElement.querySelectorAll('[data-toggle]').forEach(toggleBtn => {
+      if (toggleBtn.dataset.toggleListenerAttached === 'true') return;
+
+      toggleBtn.addEventListener('click', function () {
+        const content = this.nextElementSibling;
+        this.classList.toggle('collapsed');
+
+        if (!content) return;
+
+        content.classList.toggle('open');
+
+        if (content.classList.contains('open')) {
+          content.style.maxHeight = content.scrollHeight + 'px';
+        } else {
+          content.style.maxHeight = null;
+        }
+      });
+
+      toggleBtn.dataset.toggleListenerAttached = 'true';
+    });
+  }
+
+  function displayCardStats(container, html) {
+    container.innerHTML = html;
+    initializeStatsToggleListeners(container);
+  }
+
+  window.updateFlashcardCard = async function (itemId, setId) {
+    const numericItemId = Number(itemId);
+    const numericSetId = Number(setId);
+
+    if (!Number.isInteger(numericItemId) || numericItemId <= 0) {
+      const message = 'Kh├┤ng thß╗â x├íc ─æß╗ïnh thß║╗ cß║ºn cß║¡p nhß║¡t.';
+      if (window.showFlashMessage) {
+        window.showFlashMessage(message, 'warning');
+      }
+      throw new Error(message);
+    }
+
+    const apiUrl = flashcardItemApiUrlTemplate.replace('/0', `/${numericItemId}`);
+
+    try {
+      const response = await fetch(apiUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      let payload = null;
+
+      try {
+        payload = await response.json();
+      } catch (parseError) {
+        payload = null;
+      }
+
+      if (!response.ok || !payload || !payload.success || !payload.item) {
+        const errorMessage = (payload && payload.message) ? payload.message : 'Kh├┤ng thß╗â tß║úi lß║íi thß║╗ sau khi chß╗ënh sß╗¡a.';
+        throw new Error(errorMessage);
+      }
+
+      const updatedItem = payload.item;
+
+      if (Number.isInteger(numericSetId) && updatedItem.container_id !== numericSetId) {
+        const message = 'Thß║╗ vß╗½a chß╗ënh sß╗¡a kh├┤ng thuß╗Öc bß╗Ö hiß╗çn tß║íi.';
+        if (window.showFlashMessage) {
+          window.showFlashMessage(message, 'warning');
+        }
+        return updatedItem;
+      }
+
+      const targetIndex = currentFlashcardBatch.findIndex(card => Number(card.item_id) === Number(updatedItem.item_id));
+
+      if (targetIndex === -1) {
+        const message = 'Kh├┤ng t├¼m thß║Ñy thß║╗ ─æang hiß╗ân thß╗ï trong phi├¬n ─æß╗â cß║¡p nhß║¡t.';
+        if (window.showFlashMessage) {
+          window.showFlashMessage(message, 'info');
+        }
+        return updatedItem;
+      }
+
+      currentFlashcardBatch[targetIndex] = updatedItem;
+
+      if (targetIndex === currentFlashcardIndex) {
+        stopAllFlashcardAudio();
+        renderCard(updatedItem);
+        const initialStatsHtml = renderCardStatsHtml(updatedItem.initial_stats, 0, updatedItem.content, true);
+        displayCardStats(currentCardStatsContainer, initialStatsHtml);
+      }
+
+      return updatedItem;
+    } catch (error) {
+      console.error('Kh├┤ng thß╗â tß║úi lß║íi thß║╗ sau khi chß╗ënh sß╗¡a:', error);
+      if (window.showFlashMessage) {
+        window.showFlashMessage(error.message || 'Kh├┤ng thß╗â tß║úi lß║íi thß║╗ sau khi chß╗ënh sß╗¡a.', 'danger');
+      }
+      throw error;
+    }
+  };
+
+  async function getNextFlashcardBatch() {
+    stopAllFlashcardAudio();
+    setFlashcardContent(`<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>─Éang tß║úi thß║╗...</p></div>`);
+    try {
+      const res = await fetch(getFlashcardBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!res.ok) {
+        if (res.status === 404) {
+          const end = await res.json();
+          if (isAutoplaySession) {
+            cancelAutoplaySequence();
+          }
+          setFlashcardContent(`<div class="text-center py-12 text-gray-600"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-semibold text-gray-700 mb-2">Ho├án th├ánh phi├¬n hß╗ìc!</h3><p class="text-gray-500">${formatTextForHtml(end.message)}</p><button id="return-to-dashboard-btn" class="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 shadow-sm"><i class="fas fa-home mr-2"></i> Quay lß║íi Dashboard</button></div>`);
+          document.getElementById('return-to-dashboard-btn').addEventListener('click', () => { window.location.href = "{{ url_for('learning.vocabulary.dashboard') }}"; });
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      const batch = await res.json();
+      currentFlashcardBatch = batch.items;
+      currentFlashcardIndex = 0;
+      const currentCardData = currentFlashcardBatch[currentFlashcardIndex];
+
+      const initialStatsHtml = renderCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
+      displayCardStats(currentCardStatsContainer, initialStatsHtml);
+
+      const mobileCurrent = document.getElementById('current-card-stats-mobile');
+      if (mobileCurrent) {
+        const mobileHtml = renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
+        mobileCurrent.innerHTML = mobileHtml;
+      }
+
+      renderCard(currentCardData);
+      updateSessionSummary();
+
+      // Expose stats to window for mobile view
+      window.flashcardSessionStats = {
+        progress: (batch.session_processed_count + 1) + '/' + batch.session_total_items,
+        processed: batch.session_processed_count + 1,
+        total: batch.session_total_items,
+        correct: batch.session_correct_answers || 0,
+        incorrect: batch.session_incorrect_answers || 0,
+        vague: batch.session_vague_answers || 0
+      };
+      // Dispatch custom event for mobile stats update
+      document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
+
+    } catch (e) {
+      console.error('Lß╗ùi khi tß║úi nh├│m thß║╗:', e);
+      setFlashcardContent(`<p class='text-red-500 text-center'>Kh├┤ng thß╗â tß║úi thß║╗. Vui l├▓ng thß╗¡ lß║íi.</p>`);
+    }
+  }
+
+  async function submitFlashcardAnswer(itemId, answer) {
+    stopAllFlashcardAudio();
+    try {
+      const res = await fetch(submitAnswerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        body: JSON.stringify({ item_id: itemId, user_answer: answer })
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`HTTP error! status: ${res.status}, body: ${errorText}`);
+      }
+      const data = await res.json();
+
+      sessionScore += data.score_change;
+      currentUserTotalScore = data.updated_total_score;
+
+      const previousCardContent = currentFlashcardBatch[currentFlashcardIndex].content;
+      previousCardStats = {
+        stats: data.statistics,
+        scoreChange: data.score_change,
+        cardContent: previousCardContent
+      };
+
+      // Push to session history for full stats display
+      sessionAnswerHistory.push({
+        front: previousCardContent.front,
+        back: previousCardContent.back,
+        answer: answer,
+        scoreChange: data.score_change,
+        stats: data.statistics,
+        timestamp: Date.now()
+      });
+      const previousStatsHtml = renderCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
+      displayCardStats(previousCardStatsContainer, previousStatsHtml);
+
+      const mobilePrev = document.getElementById('previous-card-stats-mobile');
+      if (mobilePrev) {
+        const mobileHtml = renderMobileCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
+        mobilePrev.innerHTML = mobileHtml;
+      }
+
+      const prevTabButton = document.querySelector('.stats-tab-button[data-target="previous-card-stats-pane"]');
+      if (prevTabButton) {
+        prevTabButton.click();
+      }
+
+      currentFlashcardIndex++;
+      getNextFlashcardBatch();
+    } catch (e) {
+      console.error('Lß╗ùi khi gß╗¡i ─æ├íp ├ín:', e);
+      showCustomAlert('C├│ lß╗ùi khi gß╗¡i ─æ├íp ├ín. Vui l├▓ng thß╗¡ lß║íi.');
+    }
+  }
+
+  // Expose submitFlashcardAnswer globally for mobile handlers
+  window.submitFlashcardAnswer = submitFlashcardAnswer;
+
+  endSessionBtn.addEventListener('click', () => endSessionModal.style.display = 'flex');
+  confirmEndSessionBtn.addEventListener('click', async () => {
+    if (isAutoplaySession) {
+      cancelAutoplaySequence();
+    }
+    try {
+      const res = await fetch(endSessionUrl, { method: 'POST', headers: csrfHeaders });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const r = await res.json();
+      window.showFlashMessage(r.message || '─É├ú kß║┐t th├║c phi├¬n.', 'info');
+      window.location.href = "{{ url_for('learning.vocabulary.dashboard') }}";
+    } catch (e) {
+      window.showFlashMessage('C├│ lß╗ùi xß║úy ra khi kß║┐t th├║c phi├¬n.', 'danger');
+    } finally {
+      endSessionModal.style.display = 'none';
+    }
+  });
+  cancelEndSessionBtn.addEventListener('click', () => endSessionModal.style.display = 'none');
+
+  function showCustomAlert(message) {
+    const modalHtml = `<div id="custom-alert-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center"><p class="text-lg font-semibold text-gray-800 mb-4">${formatTextForHtml(message)}</p><button id="custom-alert-ok-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">OK</button></div></div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('custom-alert-ok-btn').addEventListener('click', () => document.getElementById('custom-alert-modal').remove());
+  }
+
+  function toggleStatsModal(show) {
+    if (show) {
+      statsModal.classList.add('open');
+      statsModalContent.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      // Load content from template if not already loaded
+      if (!statsModalContent.querySelector('.mobile-stats-container')) {
+        const template = document.getElementById('mobile-stats-template');
+        if (template) {
+          statsModalContent.innerHTML = '';
+          statsModalContent.appendChild(template.content.cloneNode(true));
+
+          // Bind Events
+          document.getElementById('close-stats-mobile-btn')?.addEventListener('click', () => toggleStatsModal(false));
+          document.getElementById('end-session-mobile-btn')?.addEventListener('click', () => endSessionBtn.click());
+
+          document.querySelectorAll('.stats-mobile-tab').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const targetId = e.currentTarget.dataset.target;
+              document.querySelectorAll('.stats-mobile-tab').forEach(t => t.classList.toggle('active', t === e.currentTarget));
+              document.querySelectorAll('.stats-mobile-pane').forEach(p => p.classList.toggle('hidden', p.id !== targetId));
+            });
+          });
+        }
+      }
+
+      // Sync Data
+      updateSessionSummary();
+
+      const currentCardData = currentFlashcardBatch.length > 0 ? currentFlashcardBatch[currentFlashcardIndex] : null;
+      const mobileCurrentContainer = document.getElementById('current-card-stats-mobile');
+
+      if (mobileCurrentContainer) {
+        if (currentCardData && currentCardData.initial_stats) {
+          // Use Mobile Render Function
+          const html = renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
+          mobileCurrentContainer.innerHTML = html;
+        } else {
+          mobileCurrentContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-40 text-slate-400"><p>Ch╞░a c├│ dß╗» liß╗çu.</p></div>';
+        }
+      }
+
+      const mobilePrevContainer = document.getElementById('previous-card-stats-mobile');
+      if (mobilePrevContainer && previousCardStats) {
+        // Use Mobile Render Function
+        const html = renderMobileCardStatsHtml(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent, false);
+        mobilePrevContainer.innerHTML = html;
+      }
+
+    } else {
+      statsModal.classList.remove('open');
+      statsModalContent.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  }
+
+  closeStatsModalBtn.addEventListener('click', () => toggleStatsModal(false));
+  function handleTabClick(event) {
+    const button = event.currentTarget || event.target.closest('.stats-tab-button');
+    if (!button) return;
+
+    const targetPaneId = button.dataset.target;
+    if (!targetPaneId) return;
+
+    const parentContainer = button.closest('.statistics-card');
+    if (!parentContainer) return;
+
+    parentContainer.querySelectorAll('.stats-tab-button').forEach(btn => btn.classList.remove('active'));
+    button.classList.add('active');
+    parentContainer.querySelectorAll('.stats-tab-pane').forEach(pane => {
+      pane.classList.toggle('active', pane.id === targetPaneId);
+    });
+
+    initializeStatsToggleListeners(parentContainer);
+  }
+
+  // ==============================================================================
+  // LOGIC CHO AI MODAL (─É├â Sß╗¼A Lß╗ûI LOGIC)
+  // ==============================================================================
+
+  // Ghi ─æ├¿ h├ám openAiModal v├á closeAiModal ─æ╞░ß╗úc ─æß╗ïnh ngh─⌐a trong _ai_modal.html
+  window.openAiModal = function (itemId, termContent) {
+    const aiModal = document.getElementById('ai-modal');
+    if (aiModal && aiModal.classList.contains('open')) {
+      console.warn("AI modal ─æ├ú ─æ╞░ß╗úc mß╗ƒ, bß╗Å qua lß╗çnh gß╗ìi.");
+      return;
+    }
+
+    const aiModalTerm = document.getElementById('ai-modal-term');
+    const aiResponseContainer = document.getElementById('ai-response-container');
+
+    currentAiItemId = itemId;
+    aiModalTerm.textContent = termContent;
+    aiModal.classList.add('open');
+
+    fetchAiResponse();
+  };
+
+  window.closeAiModal = function () {
+    const aiModal = document.getElementById('ai-modal');
+    const aiResponseContainer = document.getElementById('ai-response-container');
+
+    aiModal.classList.remove('open');
+    currentAiItemId = null;
+    aiResponseContainer.innerHTML = `<div class="text-gray-500">C├óu trß║ú lß╗¥i cß╗ºa AI sß║╜ xuß║Ñt hiß╗çn ß╗ƒ ─æ├óy.</div>`;
+  };
+
+  // C├íc listeners trong _ai_modal.html sß║╜ gß╗ìi c├íc h├ám global tr├¬n
+
+  // ==============================================================================
+  // LOGIC CHO NOTE PANEL
+  // ==============================================================================
+  const notePanel = document.getElementById('note-panel');
+  const noteTextarea = document.getElementById('note-textarea');
+  const saveNoteBtn = document.getElementById('save-note-btn');
+  const cancelNoteBtn = document.getElementById('cancel-note-btn');
+  const noteDisplay = document.getElementById('note-display');
+  const editNoteBtn = document.getElementById('edit-note-btn');
+  const noteViewSection = document.getElementById('note-view-section');
+  const noteEditSection = document.getElementById('note-edit-section');
+  const closeNoteBtn = document.getElementById('close-note-btn');
+  let currentNoteItemId = null;
+  let lastLoadedNoteContent = '';
+
+  function setNoteMode(mode) {
+    if (mode === 'view') {
+      noteViewSection.classList.remove('hidden');
+      noteEditSection.classList.add('hidden');
+      // Show edit button in view mode
+      if (editNoteBtn) editNoteBtn.classList.remove('hidden');
+    } else {
+      noteViewSection.classList.add('hidden');
+      noteEditSection.classList.remove('hidden');
+      // Hide edit button in edit mode
+      if (editNoteBtn) editNoteBtn.classList.add('hidden');
+      noteTextarea.focus();
+    }
+  }
+
+  function updateNoteView(content) {
+    lastLoadedNoteContent = content || '';
+    const hasContent = lastLoadedNoteContent.trim().length > 0;
+
+    // Use formatTextForHtml for display
+    noteDisplay.innerHTML = hasContent ? formatTextForHtml(lastLoadedNoteContent) : '<span class="italic text-gray-500">Ch╞░a c├│ ghi ch├║.</span>';
+    noteTextarea.value = lastLoadedNoteContent;
+
+    // If content exists, default to view mode. If empty, default to edit mode.
+    setNoteMode(hasContent ? 'view' : 'edit');
+  }
+
+  async function openNotePanel(itemId) {
+    if (!itemId) return;
+    currentNoteItemId = itemId;
+    notePanel.classList.add('open');
+
+    noteTextarea.value = '─Éang tß║úi ghi ch├║...';
+    noteTextarea.disabled = true;
+    // Hide edit button while loading
+    if (editNoteBtn) editNoteBtn.classList.add('hidden');
+
+    try {
+      const response = await fetch(getNoteUrl.replace('/0', `/${itemId}`));
+      const result = await response.json();
+      if (response.ok && result.success) {
+        updateNoteView(result.content || '');
+      } else {
+        updateNoteView('');
+      }
+    } catch (error) {
+      console.error('Lß╗ùi khi tß║úi ghi ch├║:', error);
+      updateNoteView('');
+    } finally {
+      noteTextarea.disabled = false;
+    }
+  }
+
+  function closeNotePanel() {
+    notePanel.classList.remove('open');
+    currentNoteItemId = null;
+    lastLoadedNoteContent = '';
+    noteTextarea.value = '';
+    // Reset to default state
+    if (editNoteBtn) editNoteBtn.classList.add('hidden');
+  }
+
+  async function saveNote() {
+    if (!currentNoteItemId) return;
+
+    const content = noteTextarea.value;
+    saveNoteBtn.disabled = true;
+    saveNoteBtn.textContent = '─Éang l╞░u...';
+
+    try {
+      const response = await fetch(saveNoteUrl.replace('/0', `/${currentNoteItemId}`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        body: JSON.stringify({ content: content })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        window.showFlashMessage(result.message, 'success');
+        updateNoteView(content);
+      } else {
+        window.showFlashMessage(result.message || 'Lß╗ùi khi l╞░u ghi ch├║.', 'danger');
+      }
+    } catch (error) {
+      console.error('Lß╗ùi khi l╞░u ghi ch├║:', error);
+      window.showFlashMessage('Lß╗ùi kß║┐t nß╗æi khi l╞░u ghi ch├║.', 'danger');
+    } finally {
+      saveNoteBtn.disabled = false;
+      saveNoteBtn.textContent = 'L╞░u Ghi ch├║';
+    }
+  }
+
+  function handleCancelNote() {
+    if (lastLoadedNoteContent.trim()) {
+      setNoteMode('view');
+    } else {
+      closeNotePanel();
+    }
+  }
+
+  if (saveNoteBtn) saveNoteBtn.addEventListener('click', saveNote);
+  if (cancelNoteBtn) cancelNoteBtn.addEventListener('click', handleCancelNote);
+  if (editNoteBtn) editNoteBtn.addEventListener('click', () => setNoteMode('edit'));
+  if (closeNoteBtn) closeNoteBtn.addEventListener('click', closeNotePanel);
+  if (notePanel) notePanel.addEventListener('click', (event) => {
+    if (event.target === notePanel) {
+      closeNotePanel();
+    }
+  });
+
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setVh();
+    document.body.classList.add('flashcard-session-active');
+
+    document.querySelectorAll('.statistics-card .stats-tab-button').forEach(btn => btn.addEventListener('click', handleTabClick));
+    updateSessionSummary();
+    getNextFlashcardBatch();
+  });
+
+  window.addEventListener('resize', () => {
+    setVh();
+    setTimeout(adjustCardLayout, 0);
+  });
+
+  // Expose functions and state for mobile UI
+  window.setMediaHiddenState = setMediaHiddenState;
+  window.setAudioAutoplayEnabled = setAudioAutoplayEnabled;
+  window.toggleAudioAutoplay = () => setAudioAutoplayEnabled(!isAudioAutoplayEnabled);
+  window.openFeedbackModal = openFeedbackModal;
+  window.openModal = openModal;
+
+  // Getters for current flashcard state (used by mobile UI)
+  Object.defineProperty(window, 'currentFlashcardBatch', {
+    get: () => currentFlashcardBatch,
+    configurable: true
+  });
+  Object.defineProperty(window, 'currentFlashcardIndex', {
+    get: () => currentFlashcardIndex,
+    configurable: true
+  });
+  Object.defineProperty(window, 'isMediaHidden', {
+    get: () => isMediaHidden,
+    configurable: true
+  });
+  Object.defineProperty(window, 'isAudioAutoplayEnabled', {
+    get: () => isAudioAutoplayEnabled,
+    configurable: true
+  });
+
+</script>
+{% endblock %}
