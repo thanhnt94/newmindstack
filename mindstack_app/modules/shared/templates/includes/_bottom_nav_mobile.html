@@ -48,44 +48,44 @@
                 <i class="fa-solid fa-arrow-right text-white/60"></i>
             </a>
 
-            <!-- Flashcard -->
-            <a href="{{ url_for('learning.flashcard.dashboard') }}"
+            <!-- Vocabulary -->
+            <a href="{{ url_for('learning.vocabulary.dashboard') }}"
                 class="flex items-center gap-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-blue-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
                 <div
                     class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <i class="fa-solid fa-clone text-3xl"></i>
-                </div>
-                <div class="flex-grow text-left">
-                    <p class="text-lg font-black">Flashcard</p>
-                    <p class="text-xs opacity-90 font-medium">Ôn tập thẻ nhớ</p>
-                </div>
-                <i class="fa-solid fa-arrow-right text-white/60"></i>
-            </a>
-
-            <!-- Course -->
-            <a href="{{ url_for('learning.course.course_learning_dashboard') }}"
-                class="flex items-center gap-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-amber-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
-                <div
-                    class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <i class="fa-solid fa-graduation-cap text-3xl"></i>
-                </div>
-                <div class="flex-grow text-left">
-                    <p class="text-lg font-black">Course</p>
-                    <p class="text-xs opacity-90 font-medium">Lộ trình học tập</p>
-                </div>
-                <i class="fa-solid fa-arrow-right text-white/60"></i>
-            </a>
-
-            <!-- Vocabulary -->
-            <a href="{{ url_for('learning.vocabulary.dashboard') }}"
-                class="flex items-center gap-4 bg-gradient-to-r from-purple-500 to-violet-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-purple-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
-                <div
-                    class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <i class="fa-solid fa-brain text-3xl"></i>
+                    <i class="fa-solid fa-book-open text-3xl"></i>
                 </div>
                 <div class="flex-grow text-left">
                     <p class="text-lg font-black">Vocabulary</p>
                     <p class="text-xs opacity-90 font-medium">Học từ vựng thông minh</p>
+                </div>
+                <i class="fa-solid fa-arrow-right text-white/60"></i>
+            </a>
+
+            <!-- Practice -->
+            <a href="{{ url_for('learning.practice.flashcard_dashboard') }}"
+                class="flex items-center gap-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-amber-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
+                <div
+                    class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <i class="fa-solid fa-dumbbell text-3xl"></i>
+                </div>
+                <div class="flex-grow text-left">
+                    <p class="text-lg font-black">Practice</p>
+                    <p class="text-xs opacity-90 font-medium">Ôn tập đa bộ thẻ</p>
+                </div>
+                <i class="fa-solid fa-arrow-right text-white/60"></i>
+            </a>
+
+            <!-- Collab -->
+            <a href="{{ url_for('learning.collab.dashboard') }}"
+                class="flex items-center gap-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-pink-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
+                <div
+                    class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <i class="fa-solid fa-users text-3xl"></i>
+                </div>
+                <div class="flex-grow text-left">
+                    <p class="text-lg font-black">Collab</p>
+                    <p class="text-xs opacity-90 font-medium">Học nhóm cùng bạn bè</p>
                 </div>
                 <i class="fa-solid fa-arrow-right text-white/60"></i>
             </a>

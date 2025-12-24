@@ -21,7 +21,7 @@ from .algorithms import (
     get_hard_items,
     get_accessible_quiz_set_ids,
 )
-from mindstack_app.modules.learning.engines.quiz_engine import QuizEngine
+from ...engine import QuizEngine
 from ..config import QuizLearningConfig
 from sqlalchemy.sql import func
 import random

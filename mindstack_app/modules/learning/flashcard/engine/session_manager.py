@@ -1,11 +1,11 @@
-# File: mindstack_app/modules/learning/flashcard_learning/session_manager.py
-# Phiên bản: 3.5
-# MỤC ĐÍCH: Nâng cấp để gửi kèm thống kê của thẻ hiện tại ra frontend.
-# ĐÃ SỬA: Cập nhật hàm get_next_batch để lấy và gửi kèm initial_stats.
+# File: mindstack_app/modules/learning/flashcard/engine/session_manager.py
+# Phiên bản: 4.0 (Engine refactor)
+# MỤC ĐÍCH: Core flashcard session management - pure engine module.
+# Engine này được gọi từ nhiều entry points: vocabulary, practice, collab.
 
 from flask import session, current_app, url_for
 from flask_login import current_user
-from .....models import (
+from mindstack_app.models import (
     db,
     LearningItem,
     FlashcardProgress,
@@ -29,7 +29,7 @@ from .algorithms import (
     get_listening_items,
     get_speaking_items,
 )
-from ..engine import FlashcardEngine
+from .core import FlashcardEngine
 from .config import FlashcardLearningConfig
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
@@ -37,7 +37,7 @@ import random
 import datetime
 import os
 import asyncio
-from .audio_service import AudioService
+from mindstack_app.modules.learning.flashcard.services.audio_service import AudioService
 from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
 
 audio_service = AudioService()

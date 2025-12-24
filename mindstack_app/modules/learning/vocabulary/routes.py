@@ -1,13 +1,21 @@
 # File: mindstack_app/modules/learning/vocabulary/routes.py
 # Vocabulary Learning Hub Routes
+# Updated to use flashcard engine for session management
 
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
 from . import vocabulary_bp
 from mindstack_app.models import (
     LearningContainer, LearningItem, User, UserContainerState
+)
+
+# Import flashcard engine for session management
+from ..flashcard.engine import (
+    FlashcardSessionManager,
+    FlashcardLearningConfig,
+    get_flashcard_mode_counts,
 )
 
 
@@ -26,7 +34,7 @@ def api_get_sets():
     search = request.args.get('q', '').strip()
     category = request.args.get('category', 'my')  # my, learning, explore
     page = request.args.get('page', 1, type=int)
-    per_page = 12
+    per_page = 10
     
     # Base query - only flashcard sets
     query = LearningContainer.query.filter(
@@ -107,6 +115,28 @@ def api_get_sets():
 def set_detail_page(set_id):
     """Deep link to specific set detail."""
     return render_template('vocabulary/dashboard/index.html', active_set_id=set_id)
+
+
+@vocabulary_bp.route('/api/flashcard-modes/<int:set_id>')
+@login_required
+def api_get_flashcard_modes(set_id):
+    """API to get flashcard mode counts for inline rendering."""
+    try:
+        modes = get_flashcard_mode_counts(current_user.user_id, set_id)
+        
+        # Filter to only essential modes for vocabulary learning
+        essential_mode_ids = ['new_only', 'all_review', 'hard_only', 'mixed_srs']
+        filtered_modes = [m for m in modes if m['id'] in essential_mode_ids]
+        
+        return jsonify({
+            'success': True,
+            'modes': filtered_modes
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 
 # Helper for manual pagination object mocking SQLAlchemy pagination
@@ -208,3 +238,19 @@ def api_get_set_detail(set_id):
         'course_stats': course_stats,
         'pagination_html': pagination_html
     })
+
+
+# ============================================
+# Flashcard Session Routes (using engine)
+# ============================================
+
+@vocabulary_bp.route('/flashcard/start/<int:set_id>/<string:mode>')
+@login_required
+def start_flashcard_session(set_id, mode):
+    """Bắt đầu phiên học flashcard cho một bộ từ vựng."""
+    if FlashcardSessionManager.start_new_flashcard_session(set_id, mode):
+        # Redirect đến flashcard session (có thể dùng route cũ hoặc practice mới)
+        return redirect(url_for('learning.flashcard_learning.flashcard_session'))
+    else:
+        flash('Không có thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
+        return redirect(url_for('learning.vocabulary.set_detail_page', set_id=set_id))

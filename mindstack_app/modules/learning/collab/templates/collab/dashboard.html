@@ -1,0 +1,99 @@
+{% extends "shared/base.html" %}
+{% block title %}Học Chung - MindStack{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4 md:p-6">
+    <div class="max-w-4xl mx-auto">
+        {# Header #}
+        <div class="text-center mb-8">
+            <div
+                class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-pink-500 to-rose-600 rounded-3xl shadow-2xl shadow-pink-500/30 mb-4">
+                <i class="fa-solid fa-users text-4xl text-white"></i>
+            </div>
+            <h1 class="text-3xl font-black text-slate-800 mb-2">Học Chung</h1>
+            <p class="text-slate-500">Chọn chế độ học cộng tác bạn muốn tham gia</p>
+        </div>
+
+        {# Collab Mode Cards #}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {# Quiz Battle #}
+            <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}"
+                class="group relative bg-white rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-100 hover:border-emerald-200 overflow-hidden">
+                {# Gradient Overlay #}
+                <div
+                    class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
+
+                <div class="relative flex items-center gap-4">
+                    <div
+                        class="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-bolt text-3xl text-white"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <h2 class="text-xl font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">Quiz
+                            Battle</h2>
+                        <p class="text-sm text-slate-500">Thi đấu trắc nghiệm theo nhóm</p>
+                    </div>
+                    <i
+                        class="fa-solid fa-chevron-right text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all"></i>
+                </div>
+
+                {# Features #}
+                <div class="relative mt-4 pt-4 border-t border-slate-100">
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 text-xs font-medium bg-emerald-50 text-emerald-600 rounded-full">Thời
+                            gian thực</span>
+                        <span class="px-3 py-1 text-xs font-medium bg-slate-50 text-slate-500 rounded-full">Bảng xếp
+                            hạng</span>
+                        <span class="px-3 py-1 text-xs font-medium bg-slate-50 text-slate-500 rounded-full">Nhiều người
+                            chơi</span>
+                    </div>
+                </div>
+            </a>
+
+            {# Flashcard Collab #}
+            <a href="{{ url_for('learning.flashcard.dashboard') }}?tab=collab"
+                class="group relative bg-white rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-100 hover:border-blue-200 overflow-hidden">
+                {# Gradient Overlay #}
+                <div
+                    class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
+
+                <div class="relative flex items-center gap-4">
+                    <div
+                        class="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-clone text-3xl text-white"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <h2 class="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                            Flashcard Collab</h2>
+                        <p class="text-sm text-slate-500">Học thẻ nhớ cùng bạn bè</p>
+                    </div>
+                    <i
+                        class="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all"></i>
+                </div>
+
+                {# Features #}
+                <div class="relative mt-4 pt-4 border-t border-slate-100">
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 text-xs font-medium bg-blue-50 text-blue-600 rounded-full">Học
+                            nhóm</span>
+                        <span class="px-3 py-1 text-xs font-medium bg-slate-50 text-slate-500 rounded-full">Đồng bộ
+                            SRS</span>
+                        <span class="px-3 py-1 text-xs font-medium bg-slate-50 text-slate-500 rounded-full">Chat
+                            realtime</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        {# Coming Soon Notice #}
+        <div class="mt-8 text-center">
+            <p class="text-sm text-slate-400">
+                <i class="fa-solid fa-sparkles mr-1"></i>
+                Thêm nhiều chế độ học cộng tác sẽ được cập nhật sớm
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

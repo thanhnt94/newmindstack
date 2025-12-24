@@ -14,6 +14,8 @@ from .course.routes import course_bp
 from .flashcard.collab.routes import flashcard_collab_bp
 from .memrise import memrise_bp
 from .vocabulary import vocabulary_bp
+from .practice import practice_bp  # NEW: Practice entry point
+from .collab import collab_bp  # NEW: Collab entry point
 
 # Định nghĩa Blueprint chính cho learning
 learning_bp = Blueprint('learning', __name__,
@@ -28,6 +30,8 @@ learning_bp.register_blueprint(quiz_battle_bp, url_prefix='/quiz-battle')
 learning_bp.register_blueprint(flashcard_collab_bp)
 learning_bp.register_blueprint(memrise_bp)
 learning_bp.register_blueprint(vocabulary_bp)
+learning_bp.register_blueprint(practice_bp)  # NEW: Practice module
+learning_bp.register_blueprint(collab_bp)  # NEW: Collab module
 
 
 @learning_bp.route('/')

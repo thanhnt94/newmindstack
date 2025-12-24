@@ -1,15 +1,17 @@
-# File: mindstack_app/modules/learning/flashcard_learning/routes.py
-# Phiên bản: 3.7
-# MỤC ĐÍCH: Cập nhật logic để hỗ trợ chế độ học mới "Học và ôn tập (đan xen)".
-# ĐÃ SỬA: Sửa đổi hàm start_new_flashcard_session để gọi đúng thuật toán mới.
-# ĐÃ SỬA: Sửa lỗi truyền tham số trong get_flashcard_options_partial để tránh lỗi IndexError.
-# ĐÃ SỬA: Bổ sung logic để lấy thuật toán `get_mixed_items`.
+# File: mindstack_app/modules/learning/flashcard/individual/routes.py
+# Phiên bản: 4.0 (Engine refactor)
+# MỤC ĐÍCH: Entry point routes cho chế độ học flashcard cá nhân.
+# Routes này sử dụng engine module như dependency.
 
 from flask import render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from flask_login import login_required, current_user
 import traceback
 from . import flashcard_learning_bp
-from .algorithms import (
+
+# Import từ engine module
+from ..engine import (
+    FlashcardSessionManager,
+    FlashcardLearningConfig,
     get_new_only_items,
     get_due_items,
     get_hard_items,
@@ -18,10 +20,12 @@ from .algorithms import (
     get_flashcard_mode_counts,
     get_accessible_flashcard_set_ids,
 )
-from .session_manager import FlashcardSessionManager
-from mindstack_app.modules.learning.engines.flashcard_engine import FlashcardEngine
-from .config import FlashcardLearningConfig
-from .....models import (
+
+# Import từ services module
+from ..services import AudioService, ImageService
+
+from ..engine import FlashcardEngine
+from mindstack_app.models import (
     db,
     User,
     FlashcardProgress,
@@ -33,8 +37,6 @@ from .....models import (
 from sqlalchemy.sql import func
 from sqlalchemy.exc import OperationalError
 import asyncio
-from .audio_service import AudioService
-from .image_service import ImageService
 from sqlalchemy.orm.attributes import flag_modified
 import os
 import shutil

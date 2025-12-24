@@ -2,14 +2,15 @@
 # MỤC ĐÍCH: Session routes - render HTML templates
 # Refactored from routes.py
 
-from flask import render_template, request, redirect, url_for, flash, session, current_app
+from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from flask_login import login_required, current_user
+from sqlalchemy import or_
 
 from . import quiz_learning_bp
 from ..logics.session_logic import QuizSessionManager
 from ..logics.algorithms import get_quiz_mode_counts, get_filtered_quiz_sets
 from ..config import QuizLearningConfig
-from mindstack_app.models import LearningContainer
+from mindstack_app.models import LearningContainer, LearningItem, User, UserContainerState
 import json
 
 
@@ -124,7 +125,7 @@ def get_quiz_custom_options(set_id):
         # Check if contributor logic needed? For now allow if can view set.
         pass
 
-    from mindstack_app.modules.learning.engines.quiz_engine import QuizEngine
+    from ...engine import QuizEngine
     available_columns = QuizEngine.get_available_content_keys(set_id)
     
     return render_template(
@@ -264,3 +265,124 @@ def get_quiz_sets_partial():
         current_app.logger.error(f"LỖI NGHIÊM TRỌNG khi tải danh sách bộ Quiz qua AJAX: {e}", exc_info=True)
         current_app.logger.debug("<<< Kết thúc thực thi get_quiz_sets_partial (LỖI) >>>")
         return '<p class="text-red-500 text-center py-4">Đã xảy ra lỗi khi tải danh sách bộ câu hỏi. Vui lòng thử lại.</p>', 500
+
+
+# ============================================
+# API Endpoints (JSON - giống Vocabulary)
+# ============================================
+
+@quiz_learning_bp.route('/api/sets')
+@login_required
+def api_get_quiz_sets():
+    """API to get quiz sets with search and category filter (like Vocabulary)."""
+    search = request.args.get('q', '').strip()
+    category = request.args.get('category', 'my')  # my, learning, explore
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
+    # Query quiz sets
+    query = LearningContainer.query.filter(
+        LearningContainer.container_type == 'QUIZ_SET'
+    )
+    
+    # Category filter
+    if category == 'my':
+        # Sets created by user
+        query = query.filter(LearningContainer.creator_user_id == current_user.user_id)
+    elif category == 'learning':
+        # Sets user is currently learning (has UserContainerState)
+        learning_ids = [
+            ucs.container_id for ucs in 
+            UserContainerState.query.filter_by(
+                user_id=current_user.user_id,
+                is_archived=False
+            ).all()
+        ]
+        # Also filter to only QUIZ_SET within those IDs
+        query = query.filter(LearningContainer.container_id.in_(learning_ids))
+    elif category == 'explore':
+        # Public sets not created by user
+        query = query.filter(
+            LearningContainer.is_public == True,
+            LearningContainer.creator_user_id != current_user.user_id
+        )
+    
+    # Search filter
+    if search:
+        query = query.filter(
+            or_(
+                LearningContainer.title.ilike(f'%{search}%'),
+                LearningContainer.description.ilike(f'%{search}%')
+            )
+        )
+    
+    # Order by last accessed or created
+    query = query.order_by(LearningContainer.created_at.desc())
+    
+    # Paginate
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    # Build response
+    sets = []
+    for c in pagination.items:
+        # Count quiz items
+        question_count = LearningItem.query.filter_by(
+            container_id=c.container_id,
+            item_type='QUESTION'
+        ).count()
+        
+        # Get creator info
+        creator = User.query.get(c.creator_user_id)
+        
+        sets.append({
+            'id': c.container_id,
+            'title': c.title,
+            'description': c.description or '',
+            'cover_image': c.cover_image,
+            'question_count': question_count,
+            'creator_name': creator.username if creator else 'Unknown',
+            'is_public': c.is_public,
+        })
+    
+    return jsonify({
+        'success': True,
+        'sets': sets,
+        'has_next': pagination.has_next,
+        'has_prev': pagination.has_prev,
+        'page': page,
+        'total': pagination.total
+    })
+
+
+@quiz_learning_bp.route('/api/set/<int:set_id>')
+@login_required
+def api_get_quiz_set_detail(set_id):
+    """API to get detailed info about a quiz set."""
+    container = LearningContainer.query.get_or_404(set_id)
+    
+    # Count quiz items
+    question_count = LearningItem.query.filter_by(
+        container_id=container.container_id,
+        item_type='QUESTION'
+    ).count()
+    
+    # Get creator
+    creator = User.query.get(container.creator_user_id)
+    
+    # Get modes with counts
+    modes = get_quiz_mode_counts(current_user.user_id, set_id)
+    
+    return jsonify({
+        'success': True,
+        'set': {
+            'id': container.container_id,
+            'title': container.title,
+            'description': container.description or '',
+            'cover_image': container.cover_image,
+            'question_count': question_count,
+            'creator_name': creator.username if creator else 'Unknown',
+            'is_public': container.is_public,
+        },
+        'modes': modes
+    })
+

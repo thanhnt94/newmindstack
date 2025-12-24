@@ -646,6 +646,102 @@
         color: #cbd5e1;
     }
 
+    /* Fixed Pagination Bar */
+    .vocab-pagination-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+        z-index: 200;
+    }
+
+    .vocab-pagination-bar.visible {
+        display: flex;
+    }
+
+    .pagination-nav-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.75rem;
+        background: white;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .pagination-nav-btn:hover:not(:disabled) {
+        background: #f8fafc;
+        color: #1e293b;
+    }
+
+    .pagination-nav-btn:active:not(:disabled) {
+        transform: scale(0.95);
+    }
+
+    .pagination-nav-btn:disabled {
+        background: #f8fafc;
+        border-color: #f1f5f9;
+        color: #cbd5e1;
+        cursor: not-allowed;
+    }
+
+    .pagination-pages {
+        display: flex;
+        align-items: center;
+        background: white;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        padding: 0.25rem;
+    }
+
+    .page-num {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.15s;
+        margin: 0 2px;
+    }
+
+    .page-num:hover:not(.active):not(.dots) {
+        background: #f8fafc;
+        color: #1e293b;
+    }
+
+    .page-num.active {
+        background: var(--vocab-primary);
+        color: white;
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+    }
+
+    .page-num.dots {
+        cursor: default;
+        color: #cbd5e1;
+        font-size: 0.75rem;
+    }
+
     /* Desktop layout */
     @media (min-width: 1024px) {
         .vocab-container {
@@ -1184,12 +1280,25 @@
         <div class="vocab-tab" data-category="explore">Khám phá</div>
     </div>
 
-    <div class="vocab-scroll">
+    <div class="vocab-scroll" style="padding-bottom: 80px;">
         <div id="sets-grid" class="vocab-grid">
             <div class="vocab-loading"><i class="fas fa-spinner fa-spin"></i>
                 <p>Đang tải...</p>
             </div>
         </div>
+    </div>
+
+    <!-- Fixed Pagination - Premium App Style -->
+    <div id="vocab-pagination-bar" class="vocab-pagination-bar">
+        <button class="pagination-nav-btn js-vocab-prev-page" disabled>
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="pagination-pages js-vocab-page-numbers">
+            <span class="page-num active">1</span>
+        </div>
+        <button class="pagination-nav-btn js-vocab-next-page" disabled>
+            <i class="fas fa-chevron-right"></i>
+        </button>
     </div>
 </div>
 
@@ -1359,10 +1468,41 @@
     </div>
 </div>
 
-{# Step 4: Flashcard Options (Sub-selection) - Header in loaded content #}
+{# Step 4: Flashcard Options (Sub-selection) - Inline rendering #}
 <div id="step-flashcard-options" class="vocab-step">
-    <div id="flashcard-options-container" class="step-content-container">
-        <!-- Content loaded dynamically with its own header -->
+    <div class="step-header-left">
+        <button type="button" class="step-back-btn js-back-to-modes">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="step-header-center">
+            <h1 class="step-header-title">Chọn chế độ Flashcard</h1>
+        </div>
+    </div>
+
+    {# Selected Set Display #}
+    <div class="step-set-display">
+        <span class="step-set-label">Bộ đã chọn:</span>
+        <span class="step-set-chip js-selected-set-chip-fc">
+            <i class="fas fa-layer-group"></i>
+            <span class="js-selected-set-name-fc">Chưa chọn</span>
+        </span>
+    </div>
+
+    {# Flashcard Mode Cards - Loaded dynamically #}
+    <div class="vocab-scroll step-scroll-with-nav" style="padding: 1rem;">
+        <div id="flashcard-modes-container" class="js-flashcard-modes-container">
+            <div class="vocab-loading"><i class="fas fa-spinner fa-spin"></i>
+                <p>Đang tải...</p>
+            </div>
+        </div>
+    </div>
+
+    {# Bottom Bar - Continue Button #}
+    <div class="step-bottom-bar">
+        <button type="button" class="step-continue-btn js-flashcard-mode-continue" disabled>
+            <span>Bắt đầu học</span>
+            <i class="fas fa-play"></i>
+        </button>
     </div>
 </div>
 
@@ -1385,6 +1525,7 @@
             // State
             let currentCategory = 'my';
             let currentSearch = '';
+            let currentPage = 1;
             let selectedSetId = null;
             let selectedSetData = null;
             let selectedMode = null;
@@ -1403,6 +1544,9 @@
             const mcqOptionsContainer = document.getElementById('mcq-options-container');
 
             const continueBtn = document.querySelector('.js-mode-continue');
+            const paginationBar = document.getElementById('vocab-pagination-bar');
+            const prevPageBtn = document.querySelector('.js-vocab-prev-page');
+            const nextPageBtn = document.querySelector('.js-vocab-next-page');
 
             if (!stepBrowser || !stepDetail || !setsGrid) {
                 console.error("Critical elements missing in DOM");
@@ -1507,11 +1651,13 @@
         else if (step === 'mcq-options' && stepMcqOptions) stepMcqOptions.classList.add('active');
     }
 
-    function loadSets() {
+    function loadSets(page) {
+        page = page || 1;
+        currentPage = page;
         if (!setsGrid) return;
         setsGrid.innerHTML = '<div class="vocab-loading" style="grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
 
-        var url = '/learn/vocabulary/api/sets?category=' + currentCategory;
+        var url = '/learn/vocabulary/api/sets?category=' + currentCategory + '&page=' + page;
         if (currentSearch) url += '&q=' + encodeURIComponent(currentSearch);
 
         fetch(url)
@@ -1519,12 +1665,15 @@
             .then(function (data) {
                 if (data.success && data.sets.length > 0) {
                     renderSets(data.sets);
+                    updatePagination(data.page, data.has_prev, data.has_next, data.total);
                 } else {
                     setsGrid.innerHTML = '<div class="vocab-empty" style="grid-column: 1/-1;"><i class="fas fa-folder-open"></i><p>Không có bộ thẻ nào</p></div>';
+                    hidePagination();
                 }
             })
             .catch(function () {
                 setsGrid.innerHTML = '<div class="vocab-empty" style="grid-column: 1/-1;"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
+                hidePagination();
             });
     }
 
@@ -1559,6 +1708,59 @@
                 selectedSetId = card.dataset.setId;
                 loadSetDetail(selectedSetId, true); // true = push state
             });
+        });
+    }
+
+    function updatePagination(page, hasPrev, hasNext, total) {
+        if (!paginationBar) return;
+
+        var totalPages = Math.max(1, Math.ceil(total / 10)); // 10 per page, at least 1
+
+        paginationBar.classList.add('visible');
+        if (prevPageBtn) prevPageBtn.disabled = !hasPrev;
+        if (nextPageBtn) nextPageBtn.disabled = !hasNext;
+
+        // Render page numbers
+        var pageContainer = document.querySelector('.js-vocab-page-numbers');
+        if (pageContainer) {
+            var html = '';
+
+            for (var i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages ||
+                    (i >= page - 1 && i <= page + 1)) {
+                    html += '<span class="page-num' + (i === page ? ' active' : '') + '" data-page="' + i + '">' + i + '</span>';
+                } else if (i === 2 && page > 3) {
+                    html += '<span class="page-num dots">...</span>';
+                } else if (i === totalPages - 1 && page < totalPages - 2) {
+                    html += '<span class="page-num dots">...</span>';
+                }
+            }
+
+            pageContainer.innerHTML = html;
+
+            pageContainer.querySelectorAll('.page-num:not(.dots)').forEach(function (el) {
+                el.addEventListener('click', function () {
+                    var p = parseInt(el.dataset.page);
+                    if (p !== currentPage) loadSets(p);
+                });
+            });
+        }
+    }
+
+    function hidePagination() {
+        if (paginationBar) paginationBar.classList.remove('visible');
+    }
+
+    // Pagination button events
+    if (prevPageBtn) {
+        prevPageBtn.addEventListener('click', function () {
+            if (currentPage > 1) loadSets(currentPage - 1);
+        });
+    }
+
+    if (nextPageBtn) {
+        nextPageBtn.addEventListener('click', function () {
+            loadSets(currentPage + 1);
         });
     }
 
@@ -1914,102 +2116,102 @@
 
     function loadFlashcardOptions(setId) {
         showStep('flashcard-options');
-        flashcardOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
 
-        fetch('/learn/get_flashcard_options_partial/' + setId)
-            .then(r => r.text())
-            .then(html => {
-                flashcardOptionsContainer.innerHTML = html;
-                bindFlashcardModeEvents(setId);
+        // Update set name display
+        var setNameEl = document.querySelector('.js-selected-set-name-fc');
+        if (setNameEl && selectedSetData) {
+            setNameEl.textContent = selectedSetData.title || 'Đang tải...';
+        }
+
+        var container = document.getElementById('flashcard-modes-container');
+        if (!container) return;
+
+        container.innerHTML = '<div class="vocab-loading"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
+
+        fetch('/learn/vocabulary/api/flashcard-modes/' + setId)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success && data.modes) {
+                    renderFlashcardModes(data.modes, setId);
+                } else {
+                    container.innerHTML = '<div class="vocab-empty"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải chế độ học</p></div>';
+                }
             })
-            .catch(err => {
-                flashcardOptionsContainer.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải tùy chọn. Vui lòng thử lại.</div>';
+            .catch(function (err) {
+                container.innerHTML = '<div class="vocab-empty"><i class="fas fa-exclamation-triangle"></i><p>Lỗi kết nối</p></div>';
             });
     }
 
-    function bindFlashcardModeEvents(setId) {
-        if (!flashcardOptionsContainer) return;
-        var selectedFlashcardMode = null;
-        var continueBtn = flashcardOptionsContainer.querySelector('.js-flashcard-continue');
-        var autoplaySettings = flashcardOptionsContainer.querySelector('#autoplay-settings-container');
+    function renderFlashcardModes(modes, setId) {
+        var container = document.getElementById('flashcard-modes-container');
+        if (!container) return;
 
-        // FIXED: Use .flashcard-mode-item as selector matching the template
-        flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item').forEach(function (card) {
-            // FIXED: Check opacity-50 because template uses that for disabled state, not 'disabled' class
-            if (card.classList.contains('opacity-50')) return;
+        var modeIcons = {
+            'new_only': { icon: 'fa-star', color: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
+            'all_review': { icon: 'fa-redo', color: 'linear-gradient(135deg, #3b82f6, #60a5fa)' },
+            'hard_only': { icon: 'fa-fire', color: 'linear-gradient(135deg, #ef4444, #f87171)' },
+            'mixed_srs': { icon: 'fa-brain', color: 'linear-gradient(135deg, #8b5cf6, #a78bfa)' }
+        };
+
+        var modeNames = {
+            'new_only': 'Chỉ làm mới',
+            'all_review': 'Ôn tập đã làm',
+            'hard_only': 'Ôn tập câu khó',
+            'mixed_srs': 'Học thông minh (SRS)'
+        };
+
+        var html = '';
+        modes.forEach(function (mode) {
+            var iconInfo = modeIcons[mode.id] || { icon: 'fa-book', color: 'linear-gradient(135deg, #64748b, #94a3b8)' };
+            var displayName = modeNames[mode.id] || mode.name;
+            var isDisabled = mode.count === 0;
+
+            html += '<div class="mode-select-card js-flashcard-mode-select' + (isDisabled ? ' disabled' : '') + '" data-mode-id="' + mode.id + '"' + (isDisabled ? ' style="opacity: 0.5; pointer-events: none;"' : '') + '>';
+            html += '<div class="mode-select-icon" style="background: ' + iconInfo.color + ';"><i class="fas ' + iconInfo.icon + '"></i></div>';
+            html += '<div class="mode-select-info">';
+            html += '<div class="mode-select-name">' + displayName + '</div>';
+            html += '<div class="mode-select-desc">' + mode.count + ' thẻ</div>';
+            html += '</div>';
+            html += '<span class="mode-select-check"><i class="fas fa-check"></i></span>';
+            html += '</div>';
+        });
+
+        container.innerHTML = html;
+        bindFlashcardModeEvents(setId);
+    }
+
+    var selectedFlashcardMode = null;
+
+    function bindFlashcardModeEvents(setId) {
+        var container = document.getElementById('flashcard-modes-container');
+        if (!container) return;
+
+        var continueBtn = document.querySelector('.js-flashcard-mode-continue');
+
+        container.querySelectorAll('.js-flashcard-mode-select').forEach(function (card) {
+            if (card.classList.contains('disabled')) return;
 
             card.addEventListener('click', function () {
                 // Deselect all
-                flashcardOptionsContainer.querySelectorAll('.flashcard-mode-item').forEach(function (c) {
-                    c.classList.remove('selected', 'border-indigo-500', 'bg-indigo-50');
-                    c.classList.add('border-gray-200', 'bg-white'); // Restore default
+                container.querySelectorAll('.js-flashcard-mode-select').forEach(function (c) {
+                    c.classList.remove('selected');
                 });
                 // Select this one
-                card.classList.remove('border-gray-200', 'bg-white');
-                card.classList.add('selected', 'border-indigo-500', 'bg-indigo-50');
-
+                card.classList.add('selected');
                 selectedFlashcardMode = card.dataset.modeId;
+
                 // Enable continue button
                 if (continueBtn) continueBtn.disabled = false;
-
-                // Show/hide autoplay settings
-                if (autoplaySettings) {
-                    if (selectedFlashcardMode === 'autoplay') {
-                        autoplaySettings.classList.remove('hidden');
-                    } else {
-                        autoplaySettings.classList.add('hidden');
-                    }
-                }
             });
         });
 
         if (continueBtn) {
             continueBtn.addEventListener('click', function () {
-                if (!selectedFlashcardMode) return;
-
-                var buttonCountSelect = flashcardOptionsContainer.querySelector('#button-count-select');
-                var buttonCount = buttonCountSelect ? parseInt(buttonCountSelect.value) : 3;
-
-                // UI Version logic
-                var uiVersionSelect = flashcardOptionsContainer.querySelector('#ui-version-select');
-                var uiVersion = uiVersionSelect ? uiVersionSelect.value : 'v1';
-
-                var finalMode = selectedFlashcardMode;
-                if (selectedFlashcardMode === 'autoplay') {
-                    var scope = document.querySelector('input[name="autoplay-scope"]:checked');
-                    finalMode = scope ? scope.value : 'autoplay_learned';
-                }
-
-                // Save settings first, then redirect
-                fetch('/learn/save_flashcard_settings', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}' // Ensure CSRF token if needed
-                    },
-                    body: JSON.stringify({
-                        button_count: buttonCount,
-                        ui_version: uiVersion
-                    })
-                })
-                    .then(r => r.json())
-                    .then(data => {
-                        console.log("Settings saved:", data);
-                        // Redirect after saving
-                        window.location.href = '/learn/start_flashcard_session/' + setId + '/' + finalMode;
-                    })
-                    .catch(err => {
-                        console.error("Error saving settings:", err);
-                        // Fallback redirect even if save fails
-                        window.location.href = '/learn/start_flashcard_session/' + setId + '/' + finalMode;
-                    });
+                if (!selectedFlashcardMode || !selectedSetId) return;
+                // Redirect to flashcard session
+                window.location.href = '/learn/start_flashcard_session/' + selectedSetId + '/' + selectedFlashcardMode;
             });
         }
-
-        // Also bind back button
-        flashcardOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
-            btn.addEventListener('click', function () { showStep('modes'); });
-        });
     }
 
     function loadMcqOptions(setId) {
