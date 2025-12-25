@@ -194,7 +194,7 @@ def start_flashcard_session_by_id(set_id, mode):
 def flashcard_session():
     """
     Hiển thị giao diện học Flashcard.
-    Sử dụng FLASHCARD_UI_VERSION để chuyển đổi giữa v1 và v2.
+    Sử dụng TemplateService để chọn template version từ admin settings.
     """
     if 'flashcard_session' not in session:
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
@@ -210,27 +210,24 @@ def flashcard_session():
     is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
     autoplay_mode = session_mode if is_autoplay_session else ''
 
-    # UI Version Configuration - Change this to switch between templates
-    # Options: 'v1' (cardsession_v1), 'v2' (cardsession_v2)
-    UI_VERSION = 'v2'  # Use v2 template with fixed mobile stats
-    
     # Get container name from session
     container_name = session_data.get('container_name', 'Bộ thẻ')
     
-    if UI_VERSION == 'v2':
-        return render_template(
-            'flashcard/individual/cardsession_v2/index.html',
-            user_button_count=user_button_count,
-            is_autoplay_session=is_autoplay_session,
-            autoplay_mode=autoplay_mode,
-            container_name=container_name
-        )
-
+    # Get active template version and base path from TemplateService
+    from mindstack_app.services.template_service import TemplateService
+    template_context = TemplateService.get_template_context('flashcard.cardsession')
+    template_base_path = template_context['template_base_path']
+    template_path = f'{template_base_path}/index.html'
+    
+    current_app.logger.debug(f"Rendering flashcard session with template: {template_path}")
+    
     return render_template(
-        'flashcard/individual/cardsession_v1/index.html',
+        template_path,
         user_button_count=user_button_count,
         is_autoplay_session=is_autoplay_session,
-        autoplay_mode=autoplay_mode
+        autoplay_mode=autoplay_mode,
+        container_name=container_name,
+        **template_context  # Contains template_base_path and template_version
     )
 
 

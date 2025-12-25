@@ -2234,3 +2234,69 @@ def create_directory_api():
             'success': False,
             'message': f'Lỗi: {str(e)}',
         })
+
+
+# ==================== TEMPLATE MANAGEMENT ====================
+
+@admin_bp.route('/templates')
+@login_required
+def manage_templates():
+    """
+    Trang quản lý giao diện template.
+    Admin có thể chọn version cho từng loại template.
+    """
+    if current_user.user_role != User.ROLE_ADMIN:
+        abort(403)
+    
+    from ...services.template_service import TemplateService
+    
+    # Get all template settings
+    template_settings = TemplateService.get_all_template_settings()
+    
+    return render_template(
+        'manage_templates.html',
+        template_settings=template_settings,
+    )
+
+
+@admin_bp.route('/templates/update', methods=['POST'])
+@login_required
+def update_template_settings():
+    """
+    API endpoint để lưu cài đặt template.
+    """
+    if current_user.user_role != User.ROLE_ADMIN:
+        return jsonify({'success': False, 'message': 'Không có quyền.'}), 403
+    
+    from ...services.template_service import TemplateService
+    from ...models import db
+    
+    try:
+        data = request.get_json() or {}
+        updates = data.get('updates', {})
+        
+        if not updates:
+            return jsonify({'success': False, 'message': 'Không có thay đổi.'})
+        
+        for template_type, version in updates.items():
+            if template_type and version:
+                TemplateService.set_active_template(
+                    template_type,
+                    version,
+                    user_id=current_user.user_id
+                )
+                current_app.logger.info(
+                    f"Template updated by {current_user.username}: {template_type} -> {version}"
+                )
+        
+        return jsonify({
+            'success': True,
+            'message': 'Đã cập nhật cài đặt giao diện.',
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f"Error updating template settings: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}',
+        }), 500

@@ -14,6 +14,25 @@
 
 {% block head %}
 {{ super() }}
+<script>
+  // Remove Tailwind padding from main on mobile viewport
+  (function () {
+    if (window.innerWidth <= 1023) {
+      document.addEventListener('DOMContentLoaded', function () {
+        var main = document.querySelector('body > main');
+        if (main) {
+          main.classList.remove('py-4', 'px-2', 'sm:py-2', 'sm:px-3', 'md:py-4');
+          main.style.padding = '0';
+          main.style.margin = '0';
+        }
+        var header = document.querySelector('body > header');
+        if (header) {
+          header.style.display = 'none';
+        }
+      });
+    }
+  })();
+</script>
 <style>
   /* ===== CRITICAL: Đây phải là các rules ĐẦU TIÊN để tránh flash ===== */
   /* Desktop: hiển thị mặc định */
@@ -34,6 +53,30 @@
 
     .flashcard-mobile-view {
       display: block !important;
+    }
+
+    /* Hide header and footer on mobile flashcard session */
+    body>header,
+    body>nav,
+    body>footer {
+      display: none !important;
+      height: 0 !important;
+      overflow: hidden !important;
+    }
+
+    /* Override Tailwind py-4 px-2 on main.container */
+    body>main,
+    body>main.container,
+    main.container {
+      padding: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      margin: 0 !important;
+    }
+
+    /* Remove all padding on mobile */
+    .page-shell {
+      padding: 0 !important;
     }
   }
 
@@ -755,6 +798,7 @@
     right: 0;
     width: 100%;
     height: 100%;
+    z-index: 1000;
     background-color: #f9fafb;
     transform: translateX(100%);
     transition: transform 0.3s ease-in-out;
@@ -765,6 +809,41 @@
 
   .stats-modal-content.open {
     transform: translateX(0);
+  }
+
+  /* Mobile Style for Stats Modal - Bottom Sheet Style */
+  @media (max-width: 1023px) {
+    .stats-modal-overlay {
+      display: none;
+      /* Controlled by .open class */
+      flex-direction: column;
+      justify-content: flex-end;
+      background-color: rgba(0, 0, 0, 0.5) !important;
+      backdrop-filter: blur(2px);
+    }
+
+    .stats-modal-overlay.open {
+      display: flex !important;
+    }
+
+    .stats-modal-content {
+      position: relative;
+      top: auto;
+      right: auto;
+      bottom: auto;
+      width: 100%;
+      height: calc(100% - 50px);
+      max-height: none;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .stats-modal-content.open {
+      transform: translateY(0);
+    }
   }
 
   .stats-modal-header {
@@ -800,9 +879,9 @@
 
 {% block content %}
 {# Include Desktop và Mobile partials - visibility kiểm soát bởi CSS class #}
-{% include 'flashcard/individual/session/_desktop.html' %}
-{% include 'flashcard/individual/session/_mobile.html' %}
-{% include 'flashcard/individual/session/_stats_mobile.html' %}
+{% include template_base_path ~ '/_desktop.html' %}
+{% include template_base_path ~ '/_mobile.html' %}
+{% include template_base_path ~ '/_stats_mobile.html' %}
 
 {# === SHARED MODALS - Dùng chung cho cả Desktop và Mobile === #}
 
@@ -871,13 +950,38 @@
   let sessionScore = 0;
   let currentUserTotalScore = {{ current_user.total_score | default (0) }};
 
+  // Local session stats tracking for mobile view
+  let sessionStatsLocal = {
+    processed: 0,
+    total: 0,
+    correct: 0,
+    incorrect: 0,
+    vague: 0
+  };
+
   // End session button
   const endSessionBtn = document.getElementById('end-session-btn');
 
   // Helper function để sync nội dung giữa desktop và mobile (dùng shared classes)
-  function setFlashcardContent(html) {
+  // Nếu chỉ có 1 argument: render cùng HTML cho tất cả
+  // Nếu có 2 arguments: render desktop HTML cho desktop view, mobile HTML cho mobile view
+  function setFlashcardContent(desktopHtml, mobileHtml = null) {
     document.querySelectorAll('.js-flashcard-content').forEach(el => {
-      el.innerHTML = html;
+      // Kiểm tra parent view để quyết định dùng HTML nào
+      const isInDesktopView = el.closest('.flashcard-desktop-view');
+      const isInMobileView = el.closest('.flashcard-mobile-view');
+
+      if (mobileHtml !== null) {
+        // Render khác nhau cho từng view
+        if (isInDesktopView) {
+          el.innerHTML = desktopHtml;
+        } else if (isInMobileView) {
+          el.innerHTML = mobileHtml;
+        }
+      } else {
+        // Render giống nhau cho tất cả (fallback)
+        el.innerHTML = desktopHtml;
+      }
     });
   }
 
@@ -912,6 +1016,7 @@
   const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
   const csrfHeaders = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
   const userButtonCount = {{ user_button_count }};
+  window.userButtonCount = userButtonCount; // Expose for mobile handler
   const isAutoplaySession = {{ 'true' if is_autoplay_session else 'false' }};
   const autoplayMode = "{{ autoplay_mode }}";
   let autoplayDelaySeconds = 2;
@@ -921,6 +1026,8 @@
   let isMediaHidden = false;
   let isAudioAutoplayEnabled = true;
   let storedAudioAutoplay = null;
+  let sessionAnswerHistory = []; // Store all answered cards in session
+  window.sessionAnswerHistory = sessionAnswerHistory; // Expose for mobile stats
 
   try {
     const storedImageVisibility = localStorage.getItem('flashcardHideImages');
@@ -1506,18 +1613,23 @@
       editUrl
     };
 
-    let html = "";
-    if (isMobile && window.renderMobileCardHtml) {
-      html = window.renderMobileCardHtml(data, renderOptions);
-    } else if (!isMobile && window.renderDesktopCardHtml) {
-      html = window.renderDesktopCardHtml(data, renderOptions);
-    } else {
-      // Fallback if partials not loaded for some reason (should not happen)
+    // Render CẢ HAI versions để có thể resize mượt mà
+    let desktopHtml = "";
+    let mobileHtml = "";
+
+    if (window.renderDesktopCardHtml) {
+      desktopHtml = window.renderDesktopCardHtml(data, renderOptions);
+    }
+    if (window.renderMobileCardHtml) {
+      mobileHtml = window.renderMobileCardHtml(data, renderOptions);
+    }
+
+    if (!desktopHtml && !mobileHtml) {
       console.error("Render functions not found!");
       return;
     }
 
-    setFlashcardContent(html);
+    setFlashcardContent(desktopHtml, mobileHtml);
     updateAudioAutoplayToggleButtons();
     closeAllSettingsMenus();
 
@@ -2033,6 +2145,41 @@
     };
     const statusClass = statusColors[String(stats.status).toLowerCase()] || 'bg-slate-100 text-slate-700';
 
+    // Recent History Section
+    let historyHtml = '';
+    if (stats.recent_reviews && stats.recent_reviews.length > 0) {
+      const icons = stats.recent_reviews.slice().reverse().map((review, idx) => {
+        const isCorrect = review.result === 'correct';
+        const isWrong = review.result === 'incorrect';
+        const colorClass = isCorrect ? 'bg-emerald-500' : (isWrong ? 'bg-rose-500' : 'bg-slate-400');
+        const icon = isCorrect ? 'fa-check' : (isWrong ? 'fa-times' : 'fa-minus');
+
+        const timeDate = review.timestamp ? new Date(review.timestamp) : null;
+        const timeStr = timeDate ? timeDate.toLocaleString('vi-VN', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'Review';
+
+        const typeLabel = review.type === 'preview' ? 'Học lần đầu' : 'Ôn tập';
+        const tooltipTitle = `${typeLabel}\n${timeStr}`;
+
+        return `<span class="w-6 h-6 rounded-full ${colorClass} flex items-center justify-center cursor-help shrink-0 ring-1 ring-white shadow-sm" title="${tooltipTitle}">
+                <i class="fas ${icon} text-white text-[10px]"></i>
+            </span>`;
+      }).join('');
+
+      historyHtml = `
+            <div class="mb-3 bg-white border border-slate-100 p-3 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                 <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-history text-xs text-slate-400"></i>
+                    <span class="text-xs uppercase font-bold text-slate-400">Lịch sử thẻ này</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5 direction-rtl">
+                    ${icons}
+                </div>
+            </div>`;
+    }
+
     return `
         <div class="mobile-stats-content">
             <!-- Top Row: Status & Next Review -->
@@ -2074,6 +2221,8 @@
                     <span class="text-lg font-black text-slate-700">${ef}</span>
                 </div>
             </div>
+
+            ${historyHtml}
 
             <!-- Card Info Toggle (App style) -->
             <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -2206,7 +2355,7 @@
             cancelAutoplaySequence();
           }
           setFlashcardContent(`<div class="text-center py-12 text-gray-600"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-semibold text-gray-700 mb-2">Hoàn thành phiên học!</h3><p class="text-gray-500">${formatTextForHtml(end.message)}</p><button id="return-to-dashboard-btn" class="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 shadow-sm"><i class="fas fa-home mr-2"></i> Quay lại Dashboard</button></div>`);
-          document.getElementById('return-to-dashboard-btn').addEventListener('click', () => { window.location.href = "{{ url_for('learning.flashcard.dashboard') }}"; });
+          document.getElementById('return-to-dashboard-btn').addEventListener('click', () => { window.location.href = "{{ url_for('learning.vocabulary.dashboard') }}"; });
           return;
         }
         throw new Error('HTTP ' + res.status);
@@ -2227,6 +2376,32 @@
 
       renderCard(currentCardData);
       updateSessionSummary();
+
+      // Update local session stats from batch
+      sessionStatsLocal.processed = batch.session_processed_count || 1;
+      sessionStatsLocal.total = batch.session_total_items || batch.total_items_in_session || 0;
+      sessionStatsLocal.correct = batch.session_correct_answers || sessionStatsLocal.correct || 0;
+      sessionStatsLocal.incorrect = batch.session_incorrect_answers || sessionStatsLocal.incorrect || 0;
+      sessionStatsLocal.vague = batch.session_vague_answers || sessionStatsLocal.vague || 0;
+
+      // Update container name from batch
+      if (batch.container_name) {
+        document.querySelectorAll('.js-fc-title').forEach(el => {
+          el.textContent = batch.container_name;
+        });
+      }
+
+      // Expose stats to window for mobile view
+      window.flashcardSessionStats = {
+        progress: sessionStatsLocal.processed + '/' + sessionStatsLocal.total,
+        processed: sessionStatsLocal.processed,
+        total: sessionStatsLocal.total,
+        correct: sessionStatsLocal.correct,
+        incorrect: sessionStatsLocal.incorrect,
+        vague: sessionStatsLocal.vague
+      };
+      // Dispatch custom event for mobile stats update
+      document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
 
     } catch (e) {
       console.error('Lỗi khi tải nhóm thẻ:', e);
@@ -2257,6 +2432,16 @@
         scoreChange: data.score_change,
         cardContent: previousCardContent
       };
+
+      // Push to session history for full stats display
+      sessionAnswerHistory.push({
+        front: previousCardContent.front,
+        back: previousCardContent.back,
+        answer: answer,
+        scoreChange: data.score_change,
+        stats: data.statistics,
+        timestamp: Date.now()
+      });
       const previousStatsHtml = renderCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
       displayCardStats(previousCardStatsContainer, previousStatsHtml);
 
@@ -2271,6 +2456,28 @@
         prevTabButton.click();
       }
 
+      // Update local stats based on answer
+      const answerResult = data.answer_result || answer;
+      if (['good', 'easy', 'very_easy', 'nhớ', 'medium'].includes(answerResult)) {
+        sessionStatsLocal.correct++;
+      } else if (['fail', 'again', 'quên'].includes(answerResult)) {
+        sessionStatsLocal.incorrect++;
+      } else {
+        sessionStatsLocal.vague++;
+      }
+      sessionStatsLocal.processed++;
+
+      // Update window stats and dispatch event immediately
+      window.flashcardSessionStats = {
+        progress: sessionStatsLocal.processed + '/' + sessionStatsLocal.total,
+        processed: sessionStatsLocal.processed,
+        total: sessionStatsLocal.total,
+        correct: sessionStatsLocal.correct,
+        incorrect: sessionStatsLocal.incorrect,
+        vague: sessionStatsLocal.vague
+      };
+      document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
+
       currentFlashcardIndex++;
       getNextFlashcardBatch();
     } catch (e) {
@@ -2278,6 +2485,9 @@
       showCustomAlert('Có lỗi khi gửi đáp án. Vui lòng thử lại.');
     }
   }
+
+  // Expose submitFlashcardAnswer globally for mobile handlers
+  window.submitFlashcardAnswer = submitFlashcardAnswer;
 
   endSessionBtn.addEventListener('click', () => endSessionModal.style.display = 'flex');
   confirmEndSessionBtn.addEventListener('click', async () => {
@@ -2289,7 +2499,7 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const r = await res.json();
       window.showFlashMessage(r.message || 'Đã kết thúc phiên.', 'info');
-      window.location.href = "{{ url_for('learning.flashcard.dashboard') }}";
+      window.location.href = "{{ url_for('learning.vocabulary.dashboard') }}";
     } catch (e) {
       window.showFlashMessage('Có lỗi xảy ra khi kết thúc phiên.', 'danger');
     } finally {
@@ -2551,6 +2761,31 @@
   window.addEventListener('resize', () => {
     setVh();
     setTimeout(adjustCardLayout, 0);
+  });
+
+  // Expose functions and state for mobile UI
+  window.setMediaHiddenState = setMediaHiddenState;
+  window.setAudioAutoplayEnabled = setAudioAutoplayEnabled;
+  window.toggleAudioAutoplay = () => setAudioAutoplayEnabled(!isAudioAutoplayEnabled);
+  window.openFeedbackModal = openFeedbackModal;
+  window.openModal = openModal;
+
+  // Getters for current flashcard state (used by mobile UI)
+  Object.defineProperty(window, 'currentFlashcardBatch', {
+    get: () => currentFlashcardBatch,
+    configurable: true
+  });
+  Object.defineProperty(window, 'currentFlashcardIndex', {
+    get: () => currentFlashcardIndex,
+    configurable: true
+  });
+  Object.defineProperty(window, 'isMediaHidden', {
+    get: () => isMediaHidden,
+    configurable: true
+  });
+  Object.defineProperty(window, 'isAudioAutoplayEnabled', {
+    get: () => isAudioAutoplayEnabled,
+    configurable: true
   });
 
 </script>

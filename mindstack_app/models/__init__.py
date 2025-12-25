@@ -34,6 +34,7 @@ from .user import (
     ReviewLog, # Thêm ReviewLog
 )
 from .system import ApiKey, BackgroundTask, BackgroundTaskLog, SystemSetting
+from .settings import SiteSettings
 from .memrise import MemriseProgress
 from ..modules.gamification.models import Badge, UserBadge
 
@@ -73,4 +74,5 @@ __all__ = [
     'Badge',
     'UserBadge',
     'MemriseProgress',
+    'SiteSettings',
 ]
