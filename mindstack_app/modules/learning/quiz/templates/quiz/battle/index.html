@@ -1,0 +1,50 @@
+{# =============================== #}
+{# Quiz Battle Dashboard - Wrapper Template #}
+{# Extends base.html and includes the battle partial #}
+{# =============================== #}
+
+{% extends "base.html" %}
+
+{% block title %}Quiz Battle - MindStack{% endblock %}
+
+{% block content %}
+{# Mobile Navigation - same pattern as flashcard dashboard #}
+<div class="lg:hidden">
+    {% include 'includes/_navbar_mobile.html' %}
+</div>
+
+<div class="lg:hidden fixed bottom-0 left-0 right-0 z-[200]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+    {% set active_page = '' %}
+    {% include 'includes/_bottom_nav_mobile.html' %}
+</div>
+
+<style>
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>nav:first-of-type,
+        body>footer:last-of-type {
+            display: none !important;
+        }
+
+        main {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        body {
+            padding-bottom: 90px !important;
+        }
+    }
+</style>
+
+<div class="battle-wrapper">
+    {% include 'quiz/dashboard/_desktop_battle.html' %}
+</div>
+{% endblock %}

@@ -59,7 +59,7 @@ quiz_battle_bp.jinja_loader = ChoiceLoader(
 def quiz_battle_dashboard():
     """Simple landing page that explains the quiz battle feature."""
 
-    return render_template('quiz/dashboard/_desktop_battle.html')
+    return render_template('quiz/battle/index.html')
 
 
 def _get_room_or_404(room_code: str) -> QuizBattleRoom:

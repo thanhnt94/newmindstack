@@ -194,6 +194,7 @@ def start_flashcard_session_by_id(set_id, mode):
 def flashcard_session():
     """
     Hiển thị giao diện học Flashcard.
+    Sử dụng FLASHCARD_UI_VERSION để chuyển đổi giữa v1 và v2.
     """
     if 'flashcard_session' not in session:
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
@@ -209,17 +210,24 @@ def flashcard_session():
     is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
     autoplay_mode = session_mode if is_autoplay_session else ''
 
-    ui_version = session.get('flashcard_ui_pref', 'v1')
-    if ui_version == 'v2':
+    # UI Version Configuration - Change this to switch between templates
+    # Options: 'v1' (cardsession_v1), 'v2' (cardsession_v2)
+    UI_VERSION = 'v2'  # Use v2 template with fixed mobile stats
+    
+    # Get container name from session
+    container_name = session_data.get('container_name', 'Bộ thẻ')
+    
+    if UI_VERSION == 'v2':
         return render_template(
-            'flashcard/individual/session/custom/index.html',
+            'flashcard/individual/cardsession_v2/index.html',
             user_button_count=user_button_count,
             is_autoplay_session=is_autoplay_session,
-            autoplay_mode=autoplay_mode
+            autoplay_mode=autoplay_mode,
+            container_name=container_name
         )
 
     return render_template(
-        'flashcard/individual/session/index.html',
+        'flashcard/individual/cardsession_v1/index.html',
         user_button_count=user_button_count,
         is_autoplay_session=is_autoplay_session,
         autoplay_mode=autoplay_mode
@@ -251,10 +259,56 @@ def get_flashcard_batch():
             current_app.logger.debug("--- Kết thúc get_flashcard_batch (Hết thẻ) ---")
             return jsonify({'message': 'Bạn đã hoàn thành tất cả các thẻ trong phiên học này!'}), 404
         
+        # Add session stats to batch response
         flashcard_batch['session_correct_answers'] = session_manager.correct_answers
         flashcard_batch['session_incorrect_answers'] = session_manager.incorrect_answers
         flashcard_batch['session_vague_answers'] = session_manager.vague_answers
         flashcard_batch['session_total_answered'] = session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
+        
+        # Add additional fields for mobile stats view
+        flashcard_batch['session_total_items'] = session_manager.total_items_in_session
+        # Use answered count (not fetched count) for progress to prevent increment on refresh
+        answered_count = session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
+        flashcard_batch['session_processed_count'] = answered_count + 1  # +1 for current card being shown
+        
+        # Add container name
+        container_name = ''
+        set_id = session_manager.set_id
+        current_app.logger.debug(f"Container name lookup - set_id: {set_id}, type: {type(set_id)}")
+        
+        if set_id:
+            try:
+                from mindstack_app.models import LearningContainer
+                
+                # Handle different set_id types
+                if set_id == 'all':
+                    container_name = 'Tất cả bộ thẻ'
+                elif isinstance(set_id, (int, str)):
+                    # Convert string to int if needed
+                    try:
+                        numeric_id = int(set_id)
+                        container = LearningContainer.query.get(numeric_id)
+                        if container:
+                            container_name = container.title or ''
+                            current_app.logger.debug(f"Found container: {container_name}")
+                    except (ValueError, TypeError):
+                        pass
+                elif isinstance(set_id, list):
+                    if len(set_id) == 1:
+                        try:
+                            numeric_id = int(set_id[0])
+                            container = LearningContainer.query.get(numeric_id)
+                            if container:
+                                container_name = container.title or ''
+                        except (ValueError, TypeError):
+                            pass
+                    elif len(set_id) > 1:
+                        container_name = f'{len(set_id)} bộ thẻ'
+            except Exception as e:
+                current_app.logger.warning(f"Error getting container name: {e}")
+                container_name = ''
+        
+        flashcard_batch['container_name'] = container_name or 'Bộ thẻ'
 
         current_app.logger.debug("--- Kết thúc get_flashcard_batch (Thành công) ---")
         return jsonify(flashcard_batch)

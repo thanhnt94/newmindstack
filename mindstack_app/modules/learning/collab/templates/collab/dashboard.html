@@ -1,99 +1,221 @@
-{% extends "shared/base.html" %}
+{% extends "base.html" %}
 {% block title %}Học Chung - MindStack{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4 md:p-6">
-    <div class="max-w-4xl mx-auto">
-        {# Header #}
-        <div class="text-center mb-8">
-            <div
-                class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-pink-500 to-rose-600 rounded-3xl shadow-2xl shadow-pink-500/30 mb-4">
-                <i class="fa-solid fa-users text-4xl text-white"></i>
+{# === MOBILE NAVIGATION === #}
+{# Top Navbar (Mobile Only) #}
+<div class="lg:hidden">
+    {% include 'includes/_navbar_mobile.html' %}
+</div>
+
+{# Bottom Nav (Mobile Only) #}
+<div class="lg:hidden fixed bottom-0 left-0 right-0 z-[200]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+    {% set active_page = '' %}
+    {% include 'includes/_bottom_nav_mobile.html' %}
+</div>
+
+<style>
+    /* Mobile collab dashboard adjustments */
+    @media (max-width: 1023px) {
+
+        /* Hide ONLY base.html header/footer */
+        body>header,
+        body>nav:first-of-type,
+        body>footer:last-of-type {
+            display: none !important;
+        }
+
+        /* Lock viewport - no scroll */
+        html,
+        body {
+            height: 100dvh !important;
+            overflow: hidden !important;
+        }
+
+        /* Main fills available space */
+        main {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+    }
+
+    .collab-page {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+        padding: 1.5rem;
+        padding-bottom: 100px;
+    }
+
+    @media (min-width: 1024px) {
+        .collab-page {
+            min-height: 60vh;
+            padding-bottom: 2rem;
+        }
+    }
+
+    .collab-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .collab-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .collab-icon i {
+        font-size: 2.5rem;
+        color: white;
+    }
+
+    .collab-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #1a202c;
+        margin-bottom: 0.5rem;
+    }
+
+    .collab-subtitle {
+        color: #718096;
+        font-size: 1rem;
+    }
+
+    .collab-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .collab-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: white;
+        padding: 1.25rem;
+        border-radius: 16px;
+        text-decoration: none;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+        border: 1px solid #e2e8f0;
+    }
+
+    .collab-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        border-color: #cbd5e0;
+    }
+
+    .collab-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .collab-card-icon.emerald {
+        background: #d1fae5;
+    }
+
+    .collab-card-icon.emerald i {
+        color: #10b981;
+        font-size: 1.25rem;
+    }
+
+    .collab-card-icon.blue {
+        background: #dbeafe;
+    }
+
+    .collab-card-icon.blue i {
+        color: #3b82f6;
+        font-size: 1.25rem;
+    }
+
+    .collab-card-content {
+        flex: 1;
+    }
+
+    .collab-card-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 0.125rem;
+    }
+
+    .collab-card-desc {
+        font-size: 0.875rem;
+        color: #718096;
+    }
+
+    .collab-card-arrow {
+        color: #cbd5e0;
+        font-size: 0.875rem;
+    }
+
+    .collab-card:hover .collab-card-arrow {
+        color: #667eea;
+    }
+</style>
+
+<div class="collab-page">
+    <div class="collab-header">
+        <div class="collab-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <h1 class="collab-title">Học Chung</h1>
+        <p class="collab-subtitle">Chọn chế độ học cộng tác của bạn</p>
+    </div>
+
+    <div class="collab-cards">
+        <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}" class="collab-card">
+            <div class="collab-card-icon emerald">
+                <i class="fas fa-bolt"></i>
             </div>
-            <h1 class="text-3xl font-black text-slate-800 mb-2">Học Chung</h1>
-            <p class="text-slate-500">Chọn chế độ học cộng tác bạn muốn tham gia</p>
-        </div>
+            <div class="collab-card-content">
+                <div class="collab-card-title">Quiz Battle</div>
+                <div class="collab-card-desc">Thi đấu trắc nghiệm theo nhóm</div>
+            </div>
+            <i class="fas fa-chevron-right collab-card-arrow"></i>
+        </a>
 
-        {# Collab Mode Cards #}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {# Quiz Battle #}
-            <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}"
-                class="group relative bg-white rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-100 hover:border-emerald-200 overflow-hidden">
-                {# Gradient Overlay #}
-                <div
-                    class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                </div>
-
-                <div class="relative flex items-center gap-4">
-                    <div
-                        class="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-bolt text-3xl text-white"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <h2 class="text-xl font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">Quiz
-                            Battle</h2>
-                        <p class="text-sm text-slate-500">Thi đấu trắc nghiệm theo nhóm</p>
-                    </div>
-                    <i
-                        class="fa-solid fa-chevron-right text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all"></i>
-                </div>
-
-                {# Features #}
-                <div class="relative mt-4 pt-4 border-t border-slate-100">
-                    <div class="flex flex-wrap gap-2">
-                        <span class="px-3 py-1 text-xs font-medium bg-emerald-50 text-emerald-600 rounded-full">Thời
-                            gian thực</span>
-                        <span class="px-3 py-1 text-xs font-medium bg-slate-50 text-slate-500 rounded-full">Bảng xếp
-                            hạng</span>
-                        <span class="px-3 py-1 text-xs font-medium bg-slate-50 text-slate-500 rounded-full">Nhiều người
-                            chơi</span>
-                    </div>
-                </div>
-            </a>
-
-            {# Flashcard Collab #}
-            <a href="{{ url_for('learning.flashcard.dashboard') }}?tab=collab"
-                class="group relative bg-white rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-100 hover:border-blue-200 overflow-hidden">
-                {# Gradient Overlay #}
-                <div
-                    class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                </div>
-
-                <div class="relative flex items-center gap-4">
-                    <div
-                        class="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-clone text-3xl text-white"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <h2 class="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                            Flashcard Collab</h2>
-                        <p class="text-sm text-slate-500">Học thẻ nhớ cùng bạn bè</p>
-                    </div>
-                    <i
-                        class="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all"></i>
-                </div>
-
-                {# Features #}
-                <div class="relative mt-4 pt-4 border-t border-slate-100">
-                    <div class="flex flex-wrap gap-2">
-                        <span class="px-3 py-1 text-xs font-medium bg-blue-50 text-blue-600 rounded-full">Học
-                            nhóm</span>
-                        <span class="px-3 py-1 text-xs font-medium bg-slate-50 text-slate-500 rounded-full">Đồng bộ
-                            SRS</span>
-                        <span class="px-3 py-1 text-xs font-medium bg-slate-50 text-slate-500 rounded-full">Chat
-                            realtime</span>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        {# Coming Soon Notice #}
-        <div class="mt-8 text-center">
-            <p class="text-sm text-slate-400">
-                <i class="fa-solid fa-sparkles mr-1"></i>
-                Thêm nhiều chế độ học cộng tác sẽ được cập nhật sớm
-            </p>
-        </div>
+        <a href="{{ url_for('learning.flashcard.dashboard') }}?mode=group" class="collab-card">
+            <div class="collab-card-icon blue">
+                <i class="fas fa-clone"></i>
+            </div>
+            <div class="collab-card-content">
+                <div class="collab-card-title">Flashcard Collab</div>
+                <div class="collab-card-desc">Học thẻ nhớ cùng bạn bè</div>
+            </div>
+            <i class="fas fa-chevron-right collab-card-arrow"></i>
+        </a>
     </div>
 </div>
 {% endblock %}
