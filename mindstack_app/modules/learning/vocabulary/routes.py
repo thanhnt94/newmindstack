@@ -24,7 +24,7 @@ from ..flashcard.engine import (
 @login_required
 def dashboard():
     """Main vocabulary learning hub dashboard."""
-    return render_template('vocabulary/dashboard/index.html')
+    return render_template('vocabulary/dashboard/default/index.html')
 
 
 @vocabulary_bp.route('/api/sets')
@@ -114,7 +114,7 @@ def api_get_sets():
 @login_required
 def set_detail_page(set_id):
     """Deep link to specific set detail."""
-    return render_template('vocabulary/dashboard/index.html', active_set_id=set_id)
+    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id)
 
 
 @vocabulary_bp.route('/api/flashcard-modes/<int:set_id>')

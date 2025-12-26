@@ -57,7 +57,7 @@ def get_quiz_modes_partial_all():
 
     modes = get_quiz_mode_counts(current_user.user_id, 'all')
     return render_template(
-        'quiz/individual/setup/_modes_list.html',
+        'quiz/individual/setup/default/_modes_list.html',
         modes=modes,
         selected_set_id='all',
         selected_quiz_mode_id=selected_mode,
@@ -83,7 +83,7 @@ def get_quiz_modes_partial_multi(set_ids_str):
         return '<p class="text-red-500 text-center">Lỗi: Định dạng ID bộ quiz không hợp lệ.</p>', 400
 
     return render_template(
-        'quiz/individual/setup/_modes_list.html',
+        'quiz/individual/setup/default/_modes_list.html',
         modes=modes,
         selected_set_id='multi',
         selected_quiz_mode_id=selected_mode,
@@ -105,7 +105,7 @@ def get_quiz_modes_partial_by_id(set_id):
     modes = get_quiz_mode_counts(current_user.user_id, set_id)
 
     return render_template(
-        'quiz/individual/setup/_modes_list.html',
+        'quiz/individual/setup/default/_modes_list.html',
         modes=modes,
         selected_set_id=str(set_id),
         selected_quiz_mode_id=selected_mode,
@@ -129,7 +129,7 @@ def get_quiz_custom_options(set_id):
     available_columns = QuizEngine.get_available_content_keys(set_id)
     
     return render_template(
-        'quiz/individual/setup/_quiz_custom_options.html',
+        'quiz/individual/setup/default/_quiz_custom_options.html',
         container=container,
         available_columns=available_columns
     )
@@ -214,12 +214,12 @@ def quiz_session():
     try:
         session_manager = QuizSessionManager.from_dict(session['quiz_session'])
         if session_manager and session_manager.batch_size == 1:
-            return render_template('quiz/individual/session/_session_single.html')
+            return render_template('quiz/individual/session/default/_session_single.html')
         else:
-            return render_template('quiz/individual/session/_session_batch.html')
+            return render_template('quiz/individual/session/default/_session_batch.html')
     except Exception as e:
         current_app.logger.error(f"Error loading quiz session: {e}")
-        return render_template('quiz/individual/session/_session_batch.html')
+        return render_template('quiz/individual/session/default/_session_batch.html')
 
 
 @quiz_learning_bp.route('/get_quiz_sets_partial', methods=['GET'])
@@ -257,7 +257,7 @@ def get_quiz_sets_partial():
         }
 
         current_app.logger.debug("<<< Kết thúc thực thi get_quiz_sets_partial (Thành công) >>>")
-        return render_template('quiz/individual/setup/_sets_list.html', **template_vars)
+        return render_template('quiz/individual/setup/default/_sets_list.html', **template_vars)
 
     except Exception as e:
         print(f">>> PYTHON LỖI: Đã xảy ra lỗi trong get_quiz_sets_partial: {e}")

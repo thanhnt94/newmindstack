@@ -57,7 +57,7 @@ from datetime import date, time
 
 from ...config import Config
 # Refactored imports: services now in learning/flashcard/individual/ and learning/quiz/individual/services/
-from ..learning.flashcard.individual.audio_service import AudioService
+from ..learning.flashcard.services import AudioService
 from ..learning.flashcard.individual.image_service import ImageService
 from ..learning.quiz.individual.services.audio_service import QuizAudioService
 from ..ai_services.ai_explanation_task_service import (
@@ -935,7 +935,7 @@ def admin_dashboard():
     overview_metrics = build_admin_sidebar_metrics()
 
     return render_template(
-        'dashboard.html',
+        'default/dashboard.html',
         stats_data=stats_data,
         recent_users=recent_users,
         recent_containers=recent_containers,
@@ -1041,7 +1041,7 @@ def media_library():
     total_size = _format_file_size(sum(item['size_bytes'] for item in files)) if files else '0 B'
 
     return render_template(
-        'media_library.html',
+        'default/media_library.html',
         directories=directories,
         files=files,
         current_folder=current_folder,
@@ -1115,7 +1115,7 @@ def voice_service_panel():
     )
     
     return render_template(
-        'voice_service_panel.html',
+        'default/voice_service_panel.html',
         tasks=tasks,
         flashcard_containers=flashcard_containers,
         quiz_containers=quiz_containers
@@ -1157,7 +1157,7 @@ def manage_background_tasks():
     )
 
     return render_template(
-        'background_tasks.html',
+        'default/background_tasks.html',
         tasks=tasks,
         flashcard_containers=flashcard_containers,
         quiz_containers=quiz_containers,
@@ -1289,7 +1289,7 @@ def view_task_logs(task_id: int):
     )
 
     return render_template(
-        'background_task_logs.html',
+        'default/background_task_logs.html',
         task=task,
         logs=logs,
     )
@@ -1352,7 +1352,7 @@ def manage_system_settings():
     )
 
     return render_template(
-        'system_settings.html',
+        'default/system_settings.html',
         maintenance_mode=maintenance_mode,
         telegram_token_setting=telegram_token_setting,
         core_settings=_get_core_settings(),
@@ -1788,7 +1788,7 @@ def manage_backup_restore():
     ]
 
     return render_template(
-        'backup_restore.html',
+        'default/backup_restore.html',
         backup_entries=backup_entries,
         dataset_options=dataset_options,
     )
@@ -2254,7 +2254,7 @@ def manage_templates():
     template_settings = TemplateService.get_all_template_settings()
     
     return render_template(
-        'manage_templates.html',
+        'default/manage_templates.html',
         template_settings=template_settings,
     )
 

@@ -10,11 +10,16 @@ _individual_templates_path = os.path.join(_module_dir, 'templates')
 _shared_quiz_templates_path = os.path.join(os.path.dirname(_module_dir), 'templates')
 _battle_templates_path = os.path.join(os.path.dirname(_module_dir), 'battle', 'templates')
 
+# Get static path
+_static_path = os.path.join(_module_dir, 'static')
+
 # Create blueprint
 quiz_learning_bp = Blueprint(
     'quiz_learning',
     __name__,
     template_folder=_individual_templates_path,
+    static_folder=_static_path,
+    static_url_path='/quiz_learning/static'
 )
 
 # Setup template loader to search multiple directories

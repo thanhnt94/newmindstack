@@ -26,11 +26,28 @@ class TemplateService:
     
     # Template type to folder mapping
     TEMPLATE_MAPPING = {
+        # Learning - Flashcard
         'flashcard.cardsession': 'flashcard/individual/cardsession',
         'flashcard.setup': 'flashcard/individual/setup',
+        # Learning - Quiz
         'quiz.session': 'quiz/individual/session',
+        'quiz.setup': 'quiz/individual/setup',
         'quiz.battle': 'quiz/battle',
+        # Learning - Collab
         'collab.dashboard': 'collab',
+        # Main Pages
+        'dashboard': 'dashboard',
+        'landing': 'landing',
+        # Learning - Vocabulary
+        'vocabulary.dashboard': 'vocabulary',
+        'vocabulary.detail': 'vocabulary/detail',
+        # Learning - Course
+        'course.dashboard': 'course',
+        'course.detail': 'course/detail',
+        # Auth
+        'auth.login': 'auth',
+        # User Profile
+        'user_profile': 'user_profile',
     }
     
     @classmethod
@@ -172,11 +189,28 @@ class TemplateService:
         """
         result = {}
         labels = {
-            'flashcard.cardsession': 'Flashcard - Card Session',
-            'flashcard.setup': 'Flashcard - Setup',
-            'quiz.session': 'Quiz - Session',
-            'quiz.battle': 'Quiz - Battle',
-            'collab.dashboard': 'Collab - Dashboard',
+            # Learning - Flashcard
+            'flashcard.cardsession': 'Flashcard - Phiên học',
+            'flashcard.setup': 'Flashcard - Thiết lập',
+            # Learning - Quiz
+            'quiz.session': 'Quiz - Phiên học',
+            'quiz.setup': 'Quiz - Thiết lập',
+            'quiz.battle': 'Quiz - Đấu trường',
+            # Learning - Collab
+            'collab.dashboard': 'Học nhóm',
+            # Main Pages
+            'dashboard': 'Dashboard chính',
+            'landing': 'Trang chủ (Landing)',
+            # Learning - Vocabulary
+            'vocabulary.dashboard': 'Từ vựng - Dashboard',
+            'vocabulary.detail': 'Từ vựng - Chi tiết',
+            # Learning - Course
+            'course.dashboard': 'Khóa học - Dashboard',
+            'course.detail': 'Khóa học - Chi tiết',
+            # Auth
+            'auth.login': 'Đăng nhập/Đăng ký',
+            # User Profile
+            'user_profile': 'Hồ sơ người dùng',
         }
         
         for template_type in cls.TEMPLATE_MAPPING.keys():

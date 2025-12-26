@@ -129,7 +129,7 @@ def get_flashcard_options_partial(set_identifier):
             return '<p class="text-red-500 text-center">Lỗi: Không tìm thấy ID bộ thẻ.</p>', 400
 
 
-    return render_template('flashcard/individual/setup/_modes_list.html',
+    return render_template('flashcard/individual/setup/default/_modes_list.html',
                            modes=modes,
                            selected_set_id=set_identifier,
                            selected_flashcard_mode_id=selected_mode,
@@ -582,7 +582,7 @@ def get_flashcard_sets_partial():
         }
 
         current_app.logger.debug("<<< Kết thúc thực thi get_flashcard_sets_partial (Thành công) >>>")
-        return render_template('flashcard/individual/setup/_sets_list.html', **template_vars)
+        return render_template('flashcard/individual/setup/default/_sets_list.html', **template_vars)
 
     except Exception as e:
         print(f">>> PYTHON LỖI: Đã xảy ra lỗi trong get_flashcard_sets_partial: {e}")

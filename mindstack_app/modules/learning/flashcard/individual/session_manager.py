@@ -37,7 +37,7 @@ import random
 import datetime
 import os
 import asyncio
-from .audio_service import AudioService
+from ..services import AudioService
 from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
 
 audio_service = AudioService()

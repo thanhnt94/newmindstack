@@ -235,7 +235,7 @@ def dashboard():
         leaderboard.sort(key=lambda item: item['rank'])
 
     return render_template(
-        'dashboard/index.html',
+        'dashboard/default/index.html',
         flashcard_summary=flashcard_summary,
         quiz_summary=quiz_summary,
         course_summary=course_summary,

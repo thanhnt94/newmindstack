@@ -36,7 +36,7 @@ def view_profile():
         telegram_link = '#'
         print(f"Error generating telegram link: {e}")
 
-    return render_template('profile.html', user=current_user, badges=badges, telegram_link=telegram_link)
+    return render_template('default/profile.html', user=current_user, badges=badges, telegram_link=telegram_link)
 
 # Route để chỉnh sửa profile cá nhân
 @user_profile_bp.route('/edit', methods=['GET', 'POST'])
@@ -58,7 +58,7 @@ def edit_profile():
             # Kiểm tra mật khẩu khớp nếu có nhập mật khẩu mới
             if form.password.data != form.password2.data:
                 form.password2.errors.append('Mật khẩu không khớp.')
-                return render_template('edit_profile.html', form=form, title='Sửa Profile', user=user)
+                return render_template('default/edit_profile.html', form=form, title='Sửa Profile', user=user)
             user.set_password(form.password.data)
         
         db.session.commit()
@@ -72,7 +72,7 @@ def edit_profile():
         form.email.data = user.email
         form.timezone.data = user.timezone or 'UTC' # Default to UTC if not set
 
-    return render_template('edit_profile.html', form=form, title='Sửa Profile', user=user)
+    return render_template('default/edit_profile.html', form=form, title='Sửa Profile', user=user)
 
 # Route để đổi mật khẩu (có thể gộp vào edit_profile hoặc tách riêng)
 # Tạm thời gộp vào edit_profile để đơn giản

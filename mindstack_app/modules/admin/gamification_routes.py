@@ -12,7 +12,7 @@ def gamification_points():
         flash('Bạn không có quyền truy cập.', 'error')
         return redirect(url_for('dashboard.dashboard'))
     
-    return render_template('admin_gamification/points_settings.html', active_tab='points', config=current_app.config, active_page='badges')
+    return render_template('default/admin_gamification/points_settings.html', active_tab='points', config=current_app.config, active_page='badges')
 
 @admin_bp.route('/gamification/points/update', methods=['POST'])
 @login_required
@@ -72,7 +72,7 @@ def list_badges():
         
     badges = Badge.query.order_by(Badge.created_at.desc()).all()
     # Pass active_tab='badges'
-    return render_template('admin_gamification/badges_list.html', badges=badges, active_tab='badges', active_page='badges')
+    return render_template('default/admin_gamification/badges_list.html', badges=badges, active_tab='badges', active_page='badges')
 
 @admin_bp.route('/gamification/badges/new', methods=['GET', 'POST'])
 @login_required
@@ -105,7 +105,7 @@ def create_badge():
             db.session.rollback()
             flash(f'Lỗi: {str(e)}', 'error')
 
-    return render_template('admin_gamification/badge_form.html', badge=None)
+    return render_template('default/admin_gamification/badge_form.html', badge=None)
 
 @admin_bp.route('/gamification/badges/<int:badge_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -133,7 +133,7 @@ def edit_badge(badge_id):
             db.session.rollback()
             flash(f'Lỗi: {str(e)}', 'error')
             
-    return render_template('admin_gamification/badge_form.html', badge=badge)
+    return render_template('default/admin_gamification/badge_form.html', badge=badge)
 
 @admin_bp.route('/gamification/badges/<int:badge_id>/delete', methods=['POST'])
 @login_required
