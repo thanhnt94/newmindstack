@@ -4,9 +4,25 @@
 {% block head %}
 {{ super() }}
 <style>
+    :root {
+        --primary: #6366f1;
+        /* Indigo */
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #1e293b;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --error: #ef4444;
+    }
+
     body {
-        font-family: 'Inter', sans-serif;
-        background: #f8fafc;
+        font-family: 'Inter', -apple-system, sans-serif;
+        background: var(--background);
+        margin: 0;
+        color: var(--text-main);
+        overflow: hidden;
+        /* Prevent body scroll */
     }
 
     @media (max-width: 1023px) {
@@ -23,62 +39,190 @@
         }
     }
 
-    .listening-container {
-        min-height: 100vh;
+    .session-layout {
+        height: 100vh;
         display: flex;
         flex-direction: column;
+        background: var(--background);
     }
 
-    .listening-header {
+    /* ===== HEADER - Stats Bar ===== */
+    .fc-header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
         background: white;
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #e2e8f0;
+        border-bottom: 1px solid var(--border);
+        padding: 0;
+    }
+
+    /* Context Bar */
+    .fc-context-bar {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        background: #f8fafc;
+        border-bottom: 1px solid var(--border);
     }
 
-    .listening-back {
-        width: 36px;
-        height: 36px;
-        border-radius: 0.75rem;
-        background: #f1f5f9;
+    .fc-context-pill {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.75rem;
+        background: #e0e7ff;
+        /* Indigo Light */
+        color: #4338ca;
+        /* Indigo Dark */
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .fc-nav-btns {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .fc-nav-btn {
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #64748b;
+        border-radius: 50%;
+        color: var(--text-sub);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: background 0.2s;
         text-decoration: none;
     }
 
-    .listening-title {
-        font-weight: 700;
-        color: #1e293b;
-        flex: 1;
+    .fc-nav-btn:hover {
+        background: #f1f5f9;
+        color: var(--text-main);
     }
 
-    .listening-score {
-        font-weight: 700;
-        color: #6366f1;
+    /* Stats Row */
+    .fc-stats-row {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        gap: 1rem;
+        /* overflow-x: auto; */
+        /* Hide overflow for clean look */
     }
 
-    .listening-content {
-        flex: 1;
-        padding: 1.5rem;
-        max-width: 600px;
-        margin: 0 auto;
-        width: 100%;
+    .fc-stat-item {
         display: flex;
         flex-direction: column;
-        justify-content: center;
         align-items: center;
+        /* Center align for stats */
+    }
+
+    .fc-stat-label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.125rem;
+    }
+
+    .fc-stat-value {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text-main);
+        font-feature-settings: "tnum";
+    }
+
+    .fc-stat-value.learned {
+        color: var(--success);
+    }
+
+    .fc-stat-value.relearn {
+        color: var(--error);
+    }
+
+    .fc-stat-divider {
+        width: 1px;
+        height: 24px;
+        background: var(--border);
+    }
+
+    .fc-title-group {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        flex: 1;
+        /* Take remaining space */
+        align-items: flex-end;
+        /* Align title to right */
+    }
+
+    .fc-title-label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .fc-title-text {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    /* MAIN CONTENT */
+    .session-content {
+        flex: 1;
+        padding: 1rem;
+        padding-bottom: 220px;
+        /* Space for bottom bar */
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        overflow-y: auto;
+    }
+
+    .card-surface {
+        background: var(--surface);
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        padding: 2rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        width: 100%;
+        max-width: 600px;
+        margin: auto;
     }
 
     .listening-icon {
-        font-size: 3rem;
-        color: #6366f1;
+        font-size: 4rem;
+        color: var(--primary);
         margin-bottom: 2rem;
         cursor: pointer;
-        transition: transform 0.1s;
+        transition: transform 0.1s, opacity 0.2s;
+        width: 100px;
+        height: 100px;
+        background: #e0e7ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .listening-icon:active {
@@ -91,167 +235,261 @@
 
     @keyframes pulse {
         0% {
-            opacity: 1;
+            box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
         }
 
-        50% {
-            opacity: 0.5;
+        70% {
+            box-shadow: 0 0 0 20px rgba(99, 102, 241, 0);
         }
 
         100% {
-            opacity: 1;
+            box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
         }
-    }
-
-    .listening-input-wrap {
-        position: relative;
-        width: 100%;
-        max-width: 400px;
     }
 
     .listening-input {
         width: 100%;
-        padding: 1rem;
-        font-size: 1.25rem;
-        border: 2px solid #e2e8f0;
+        padding: 1rem 1.25rem;
+        font-size: 1.1rem;
+        border: 2px solid var(--border);
         border-radius: 0.75rem;
         text-align: center;
         outline: none;
-        transition: border-color 0.2s;
+        transition: all 0.2s;
+        background: #f8fafc;
+        color: var(--text-main);
     }
 
     .listening-input:focus {
-        border-color: #6366f1;
+        border-color: var(--primary);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
 
     .listening-input.correct {
-        border-color: #10b981;
-        background: #d1fae5;
+        border-color: var(--success);
+        background: #ecfdf5;
+        color: #065f46;
     }
 
     .listening-input.wrong {
-        border-color: #ef4444;
-        background: #fee2e2;
+        border-color: var(--error);
+        background: #fef2f2;
+        color: #991b1b;
     }
 
-    .listening-feedback {
+    .feedback-area {
+        min-height: 3rem;
+        margin-top: 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         text-align: center;
-        margin-top: 1rem;
-        min-height: 2rem;
+        width: 100%;
     }
 
-    .listening-correct-answer {
-        color: #10b981;
+    .feedback-msg {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
         font-weight: 600;
-        font-size: 1.25rem;
+        font-size: 0.95rem;
+        animation: fadeIn 0.3s ease;
     }
 
-    .listening-wrong-answer {
-        color: #ef4444;
-        font-weight: 600;
-    }
-
-    .listening-meaning {
-        margin-top: 1rem;
-        color: #64748b;
+    .feedback-meaning {
+        margin-top: 0.5rem;
+        color: var(--text-sub);
         font-size: 0.9rem;
         font-style: italic;
     }
 
-    .listening-footer {
-        padding: 1rem;
-        background: white;
-        border-top: 1px solid #e2e8f0;
+    .feedback-msg.success {
+        background: #ecfdf5;
+        color: var(--success);
     }
 
-    .listening-btn {
-        width: 100%;
-        padding: 1rem;
-        background: #6366f1;
-        color: white;
-        border: none;
-        border-radius: 0.75rem;
-        font-weight: 700;
-        cursor: pointer;
+    .feedback-msg.error {
+        background: #fef2f2;
+        color: var(--error);
     }
 
-    .listening-complete {
+    /* FOOTER - Fixed Bottom Bar like Flashcard */
+    .fc-bottom-bar {
         position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+        background: white;
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .input-wrapper {
+        width: 100%;
+        position: relative;
+    }
+
+    .action-btn {
+        width: 100%;
+        padding: 0.875rem 1.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
+        gap: 0.5rem;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        /* Brand Blue/Indigo */
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+        transition: all 0.2s;
     }
 
-    .listening-complete-box {
+    .action-btn:active {
+        transform: scale(0.98);
+    }
+
+    /* MODAL */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .result-card {
         background: white;
-        padding: 2rem;
-        border-radius: 1rem;
+        padding: 2.5rem 2rem;
+        border-radius: 1.5rem;
         text-align: center;
-        max-width: 300px;
+        width: 90%;
+        max-width: 320px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        transform: scale(0.9);
+        transition: transform 0.3s;
     }
 
-    .listening-complete-icon {
-        font-size: 4rem;
-        color: #10b981;
-        margin-bottom: 1rem;
+    .modal-overlay.active .result-card {
+        transform: scale(1);
     }
 
-    .listening-complete-title {
+    .result-title {
         font-size: 1.5rem;
-        font-weight: 700;
-        color: #1e293b;
+        font-weight: 800;
+        color: var(--text-main);
         margin-bottom: 0.5rem;
     }
 
-    .listening-complete-stats {
-        color: #64748b;
-        margin-bottom: 1rem;
-    }
-
-    .listening-complete-btn {
-        padding: 0.75rem 1.5rem;
-        background: #6366f1;
-        color: white;
-        border: none;
-        border-radius: 0.5rem;
-        font-weight: 600;
-        cursor: pointer;
+    .result-stat {
+        color: var(--text-sub);
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
     }
 </style>
 {% endblock %}
 {% block content %}
-<div class="listening-container">
-    <div class="listening-header">
-        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="listening-back"><i
-                class="fas fa-arrow-left"></i></a>
-        <span class="listening-title">{{ container.title }}</span>
-        <span class="listening-score"><span id="score">0</span>/<span id="total">{{ total_items }}</span></span>
+<div class="session-layout">
+    <div id="session-data" data-set-id="{{ container.container_id }}" style="display:none">
     </div>
-    <div class="listening-content">
-        <div class="listening-icon" id="audio-btn" title="Nghe lại (Ctrl+Space)">
-            <i class="fas fa-volume-up"></i>
+
+    <!-- HEADER (Flashcard Style) -->
+    <div class="fc-header">
+        <!-- Context Bar -->
+        <div class="fc-context-bar">
+            <span class="fc-context-pill">
+                <i class="fas fa-headphones"></i>
+                <span>Luyện nghe</span>
+            </span>
+            <div class="fc-nav-btns">
+                <button class="fc-nav-btn" title="Phát âm thanh" id="header-audio-btn">
+                    <i class="fas fa-volume-up" style="font-size: 0.75rem;"></i>
+                </button>
+                <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="fc-nav-btn" title="Thoát">
+                    <i class="fas fa-times" style="font-size: 0.75rem;"></i>
+                </a>
+            </div>
         </div>
-        <div class="listening-input-wrap">
+
+        <!-- Stats Row -->
+        <div class="fc-stats-row">
+            <div class="fc-stat-item">
+                <span class="fc-stat-label">Tiến độ</span>
+                <span class="fc-stat-value js-fc-progress">0/0</span>
+            </div>
+            <div class="fc-stat-divider"></div>
+            <div class="fc-stat-item">
+                <span class="fc-stat-label">Đúng</span>
+                <span class="fc-stat-value learned js-fc-learned">0</span>
+            </div>
+            <div class="fc-stat-divider"></div>
+            <div class="fc-stat-item">
+                <span class="fc-stat-label">Sai</span>
+                <span class="fc-stat-value relearn js-fc-relearn">0</span>
+            </div>
+            <div class="fc-stat-divider"></div>
+            <div class="fc-title-group">
+                <span class="fc-title-label">Bộ thẻ</span>
+                <span class="fc-title-text">{{ container.title }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="session-content">
+        <div class="card-surface">
+            <div class="listening-icon" id="center-audio-btn">
+                <i class="fas fa-volume-up"></i>
+            </div>
+            <div class="text-sm text-gray-500 mb-2">Nhấn để nghe lại (hoặc Ctrl+Space)</div>
+            <div class="feedback-area" id="feedback"></div>
+            <audio id="audio-player" style="display:none;"></audio>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="fc-bottom-bar">
+        <div class="input-wrapper">
             <input type="text" class="listening-input" id="answer-input" placeholder="Nghe và gõ lại..."
                 autocomplete="off">
         </div>
-        <div class="listening-feedback" id="feedback"></div>
-        <div class="listening-meaning" id="meaning-hint"></div>
-        <audio id="audio-player" style="display:none;"></audio>
-    </div>
-    <div class="listening-footer">
-        <button class="listening-btn" id="submit-btn">Kiểm tra</button>
+        <button class="action-btn" id="submit-btn" style="width: 100%">Kiểm tra</button>
     </div>
 </div>
-<div class="listening-complete" id="complete-modal" style="display: none;">
-    <div class="listening-complete-box">
-        <div class="listening-complete-icon"><i class="fas fa-check-circle"></i></div>
-        <div class="listening-complete-title">Hoàn thành!</div>
-        <div class="listening-complete-stats">Đúng <span id="final-score">0</span>/<span id="final-total">0</span> câu
-        </div>
-        <button class="listening-complete-btn" onclick="location.reload()">Chơi lại</button>
+
+<!-- Complete Modal -->
+<div class="modal-overlay" id="complete-modal">
+    <div class="result-card">
+        <div class="text-green-500 text-5xl mb-4"><i class="fas fa-check-circle"></i></div>
+        <div class="result-title">Hoàn thành!</div>
+        <div class="result-stat">Đúng <span id="final-score">0</span>/<span id="final-total">0</span> câu</div>
+        <button class="action-btn" onclick="location.reload()">Chơi lại</button>
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}"
+            class="block mt-4 text-gray-500 text-sm font-semibold hover:text-gray-700">Quay về Dashboard</a>
     </div>
 </div>
 {% endblock %}
@@ -259,133 +497,164 @@
 {{ super() }}
 <script>
     (function () {
-        var setId = {{ container.container_id }
-    };
-    var items = [];
-    var current = 0;
-    var score = 0;
-    var answered = false;
-    var audioBtn = document.getElementById('audio-btn');
-    var audioPlayer = document.getElementById('audio-player');
-    var inputEl = document.getElementById('answer-input');
-    var feedbackEl = document.getElementById('feedback');
-    var meaningHintEl = document.getElementById('meaning-hint');
-    var submitBtn = document.getElementById('submit-btn');
-    var scoreEl = document.getElementById('score');
+        var dataEl = document.getElementById('session-data');
+        var setId = dataEl.dataset.setId;
 
-    fetch('/learn/vocabulary/listening/api/items/' + setId + '?count=10')
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.success) {
-                items = data.items;
-                document.getElementById('total').textContent = items.length;
-                document.getElementById('final-total').textContent = items.length;
-                showItem();
+        // Parse Count from URL
+        var urlParams = new URLSearchParams(window.location.search);
+        var count = urlParams.get('count') || 10; // Default fallback if not provided
+
+        var items = [];
+        var current = 0;
+        var score = 0;
+        var wrongCount = 0;
+        var answered = false;
+
+        // Elements
+        var headerAudioBtn = document.getElementById('header-audio-btn');
+        var centerAudioBtn = document.getElementById('center-audio-btn');
+        var audioPlayer = document.getElementById('audio-player');
+        var inputEl = document.getElementById('answer-input');
+        var feedbackEl = document.getElementById('feedback');
+        var submitBtn = document.getElementById('submit-btn');
+
+        // Stats Elements
+        var progressEl = document.querySelector('.js-fc-progress');
+        var learnedEl = document.querySelector('.js-fc-learned');
+        var relearnEl = document.querySelector('.js-fc-relearn');
+
+        fetch('/learn/vocabulary/listening/api/items/' + setId + '?count=' + count)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    items = data.items;
+                    updateStats();
+                    showItem();
+                } else {
+                    alert(data.message || 'Không có dữ liệu');
+                }
+            });
+
+        function updateStats() {
+            if (items.length > 0) {
+                progressEl.textContent = (current + 1) + '/' + items.length;
+            } else {
+                progressEl.textContent = '0/0';
+            }
+            learnedEl.textContent = score;
+            relearnEl.textContent = wrongCount;
+        }
+
+        function showItem() {
+            if (current >= items.length) {
+                showComplete();
+                return;
+            }
+            answered = false;
+            updateStats();
+
+            inputEl.value = '';
+            inputEl.className = 'listening-input';
+            inputEl.disabled = false;
+            inputEl.focus();
+            feedbackEl.innerHTML = '';
+
+            submitBtn.textContent = 'Kiểm tra';
+            var item = items[current];
+
+            if (item.audio_url) {
+                audioPlayer.src = item.audio_url;
+                playAudio();
+            }
+        }
+
+        function playAudio() {
+            centerAudioBtn.classList.add('playing');
+            audioPlayer.play().catch(e => console.log('Autoplay blocked:', e))
+                .finally(() => {
+                    // Animation handled by CSS/JS combination usually, 
+                    // onended simpler
+                });
+        }
+
+        audioPlayer.onended = function () {
+            centerAudioBtn.classList.remove('playing');
+        };
+
+        // Bind Audio Buttons
+        [headerAudioBtn, centerAudioBtn].forEach(btn => {
+            if (btn) {
+                btn.onclick = function () {
+                    playAudio();
+                    inputEl.focus();
+                };
             }
         });
 
-    function showItem() {
-        if (current >= items.length) {
-            showComplete();
-            return;
-        }
-        answered = false;
-        inputEl.value = '';
-        inputEl.className = 'listening-input';
-        inputEl.disabled = false;
-        inputEl.focus();
-        feedbackEl.innerHTML = '';
-        meaningHintEl.textContent = ''; // Hide meaning initially? Or show as hint?
-        // Usually Dictation = Hear -> write. Meaning can be helpful context.
-        // Let's hide meaning initially to focus on hearing. Show on fail.
-
-        submitBtn.textContent = 'Kiểm tra';
-        var item = items[current];
-
-        if (item.audio_url) {
-            audioPlayer.src = item.audio_url;
-            playAudio();
-        }
-    }
-
-    function playAudio() {
-        audioBtn.classList.add('playing');
-        audioPlayer.play().catch(e => console.log('Autoplay blocked:', e))
-            .finally(() => {
-                // Remove playing class after end?
-                // audioPlayer.onended handles it.
-            });
-    }
-
-    audioPlayer.onended = function () {
-        audioBtn.classList.remove('playing');
-    };
-
-    audioBtn.onclick = function () {
-        playAudio();
-        inputEl.focus();
-    };
-
-    submitBtn.onclick = function () {
-        if (!answered) {
-            checkAnswer();
-        } else {
-            current++;
-            showItem();
-        }
-    };
-
-    inputEl.onkeydown = function (e) {
-        if (e.key === 'Enter') {
-            if (!answered) checkAnswer();
-            else {
+        submitBtn.onclick = function () {
+            if (!answered) {
+                checkAnswer();
+            } else {
                 current++;
                 showItem();
             }
-        }
-        // Ctrl+Space to replay audio
-        if (e.code === 'Space' && e.ctrlKey) {
-            playAudio();
-        }
-    };
+        };
 
-    function checkAnswer() {
-        var item = items[current];
-        var userAnswer = inputEl.value.trim().toLowerCase();
-
-        // Simple client-side check if backend is overkill? No, use backend api for consistency.
-        fetch('/learn/vocabulary/listening/api/check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                correct_answer: item.answer,
-                user_answer: userAnswer
-            })
-        })
-            .then(r => r.json())
-            .then(result => {
-                answered = true;
-                inputEl.disabled = true;
-                meaningHintEl.textContent = item.meaning || '';
-
-                if (result.correct) {
-                    inputEl.classList.add('correct');
-                    feedbackEl.innerHTML = '<span class="listening-correct-answer">✓ ' + item.answer + '</span>';
-                    score++;
-                    scoreEl.textContent = score;
-                } else {
-                    inputEl.classList.add('wrong');
-                    feedbackEl.innerHTML = '<span class="listening-wrong-answer">✗ Đáp án: ' + item.answer + '</span>';
+        inputEl.onkeydown = function (e) {
+            if (e.key === 'Enter') {
+                if (!answered) checkAnswer();
+                else {
+                    current++;
+                    showItem();
                 }
-                submitBtn.textContent = 'Tiếp theo';
-                submitBtn.focus();
-            });
-    }
+            }
+            // Ctrl+Space to replay audio
+            if (e.code === 'Space' && e.ctrlKey) {
+                e.preventDefault();
+                playAudio();
+            }
+        };
 
-    function showComplete() {
-        document.getElementById('final-score').textContent = score;
-        document.getElementById('complete-modal').style.display = 'flex';
-    }
-}) ();
+        function checkAnswer() {
+            var item = items[current];
+            var userAnswer = inputEl.value.trim().toLowerCase();
+
+            fetch('/learn/vocabulary/listening/api/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    item_id: item.id, // For SRS
+                    correct_answer: item.answer,
+                    user_answer: userAnswer
+                })
+            })
+                .then(r => r.json())
+                .then(result => {
+                    answered = true;
+                    inputEl.disabled = true;
+
+                    var meaningHtml = item.meaning ? '<div class="feedback-meaning">' + item.meaning + '</div>' : '';
+
+                    if (result.correct) {
+                        inputEl.classList.add('correct');
+                        feedbackEl.innerHTML = '<div class="feedback-msg success"><i class="fas fa-check"></i> ' + item.answer + '</div>' + meaningHtml;
+                        score++;
+                    } else {
+                        inputEl.classList.add('wrong');
+                        feedbackEl.innerHTML = '<div class="feedback-msg error"><i class="fas fa-times"></i> Đáp án: ' + item.answer + '</div>' + meaningHtml;
+                        wrongCount++;
+                    }
+                    updateStats();
+                    submitBtn.textContent = 'Tiếp theo';
+                    submitBtn.focus();
+                });
+        }
+
+        function showComplete() {
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-total').textContent = items.length;
+            document.getElementById('complete-modal').classList.add('active');
+        }
+    })();
 </script>
 {% endblock %}

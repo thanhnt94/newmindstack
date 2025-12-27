@@ -6,7 +6,31 @@ from flask_login import login_required, current_user
 
 from . import typing_bp
 from .logic import get_typing_eligible_items, check_typing_answer
+from ..mcq.logic import get_available_content_keys  # Reuse from MCQ
 from mindstack_app.models import LearningContainer
+
+
+@typing_bp.route('/setup/<int:set_id>')
+@login_required
+def setup(set_id):
+    """Typing setup page - choose columns."""
+    container = LearningContainer.query.get_or_404(set_id)
+    
+    if not container.is_public and container.creator_user_id != current_user.user_id:
+        abort(403)
+    
+    items = get_typing_eligible_items(set_id)
+    if len(items) < 1:
+        abort(400, description="Cần ít nhất 1 thẻ để chơi gõ đáp án")
+    
+    available_keys = get_available_content_keys(set_id)
+    
+    return render_template(
+        'typing/setup.html',
+        container=container,
+        total_items=len(items),
+        available_keys=available_keys
+    )
 
 
 @typing_bp.route('/session/<int:set_id>')
@@ -15,19 +39,29 @@ def session(set_id):
     """Typing learning session page."""
     container = LearningContainer.query.get_or_404(set_id)
     
-    # Check access
     if not container.is_public and container.creator_user_id != current_user.user_id:
         abort(403)
     
+    # Get custom_pairs if provided
+    custom_pairs_str = request.args.get('custom_pairs', '')
+    custom_pairs = None
+    if custom_pairs_str:
+        try:
+            import json
+            custom_pairs = json.loads(custom_pairs_str)
+        except:
+            pass
+
     # Get eligible items
-    items = get_typing_eligible_items(set_id)
+    items = get_typing_eligible_items(set_id, custom_pairs=custom_pairs)
     if len(items) < 1:
         abort(400, description="Cần ít nhất 1 thẻ để chơi gõ đáp án")
     
     return render_template(
         'typing/session.html',
         container=container,
-        total_items=len(items)
+        total_items=len(items),
+        custom_pairs=custom_pairs
     )
 
 
@@ -37,7 +71,17 @@ def api_get_items(set_id):
     """API to get items for a typing session."""
     count = request.args.get('count', 10, type=int)
     
-    items = get_typing_eligible_items(set_id)
+    # Get custom_pairs if provided
+    custom_pairs_str = request.args.get('custom_pairs', '')
+    custom_pairs = None
+    if custom_pairs_str:
+        try:
+            import json
+            custom_pairs = json.loads(custom_pairs_str)
+        except:
+            pass
+
+    items = get_typing_eligible_items(set_id, custom_pairs=custom_pairs)
     if len(items) < 1:
         return jsonify({'success': False, 'message': 'No items available'}), 400
     

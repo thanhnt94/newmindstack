@@ -9,6 +9,27 @@ from .logic import get_listening_eligible_items, check_listening_answer
 from mindstack_app.models import LearningContainer
 
 
+
+@listening_bp.route('/setup/<int:set_id>')
+@login_required
+def setup(set_id):
+    """Listening learning setup page."""
+    container = LearningContainer.query.get_or_404(set_id)
+    
+    # Check access
+    if not container.is_public and container.creator_user_id != current_user.user_id:
+        abort(403)
+        
+    # Get total items for count selection
+    items = get_listening_eligible_items(set_id)
+    
+    return render_template(
+        'listening/setup.html',
+        container=container,
+        total_items=len(items)
+    )
+
+
 @listening_bp.route('/session/<int:set_id>')
 @login_required
 def session(set_id):

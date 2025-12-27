@@ -4,7 +4,7 @@
 from mindstack_app.models import LearningItem
 
 
-def get_typing_eligible_items(container_id):
+def get_typing_eligible_items(container_id, custom_pairs=None):
     """Get all items eligible for Typing mode from a container."""
     items = LearningItem.query.filter_by(
         container_id=container_id,
@@ -12,6 +12,36 @@ def get_typing_eligible_items(container_id):
     ).all()
     
     eligible = []
+    
+    # Logic for custom columns
+    if custom_pairs and isinstance(custom_pairs, list):
+        for item in items:
+            content = item.content or {}
+            
+            # Find first valid pair in list
+            valid_q = None
+            valid_a = None
+            
+            for pair in custom_pairs:
+                q_key = pair.get('q')
+                a_key = pair.get('a')
+                
+                # Check directly in content (e.g. 'front', 'back', 'definition')
+                if q_key in content and a_key in content:
+                    valid_q = content[q_key]
+                    valid_a = content[a_key]
+                    break
+            
+            if valid_q and valid_a:
+                 eligible.append({
+                    'item_id': item.item_id,
+                    'prompt': valid_q,
+                    'answer': valid_a,
+                    'audio_url': content.get('front_audio_url') if 'front' in [q_key, a_key] else None, 
+                })
+        return eligible
+
+    # Default logic (Front -> Back)
     for item in items:
         content = item.content or {}
         # Need front and back for typing

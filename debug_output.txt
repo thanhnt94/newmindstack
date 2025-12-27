@@ -1,0 +1,6 @@
+Set ID: 7
+Title: Từ vựng TOEIC (Study4)
+Type: FLASHCARD_SET
+AI Capabilities: ['supports_flashcard', 'supports_quiz', 'supports_listening', 'supports_writing', 'supports_matching', 'supports_speed', 'supports_srs']
+Legacy Settings: None
+Calculated Capability Flags: {'supports_speed', 'supports_flashcard', 'supports_listening', 'supports_quiz', 'supports_writing', 'supports_srs', 'supports_matching'}

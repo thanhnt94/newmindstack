@@ -22,6 +22,8 @@ vocabulary_bp.register_blueprint(mcq_bp, url_prefix='/mcq')
 vocabulary_bp.register_blueprint(typing_bp, url_prefix='/typing')
 vocabulary_bp.register_blueprint(matching_bp, url_prefix='/matching')
 vocabulary_bp.register_blueprint(speed_bp, url_prefix='/speed')
+from .listening import listening_bp
+vocabulary_bp.register_blueprint(listening_bp, url_prefix='/listening')
 
 from . import routes
 

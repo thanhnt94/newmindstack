@@ -662,6 +662,21 @@
         z-index: 190;
     }
 
+    /* Fix: Main browser pagination should be at bottom since there is no footer */
+    #vocab-pagination-bar {
+        bottom: 0;
+        border-top: none;
+        background: transparent;
+        pointer-events: none;
+    }
+
+    #vocab-pagination-bar button,
+    #vocab-pagination-bar .pagination-pages {
+        pointer-events: auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background: white;
+    }
+
     .vocab-pagination-bar.visible {
         display: flex;
     }
@@ -2144,7 +2159,7 @@
             // Redirect to MCQ setup page for options
             window.location.href = '/learn/vocabulary/mcq/setup/' + selectedSetId;
         } else if (mode === 'typing') {
-            window.location.href = '/learn/vocabulary/typing/session/' + selectedSetId;
+            window.location.href = '/learn/vocabulary/typing/setup/' + selectedSetId;
         } else if (mode === 'mixed') {
             alert('Chế độ Học thông minh đang được phát triển');
         } else if (mode === 'matching') {
@@ -2152,7 +2167,7 @@
         } else if (mode === 'speed') {
             window.location.href = '/learn/vocabulary/speed/session/' + selectedSetId;
         } else if (mode === 'listening') {
-            window.location.href = '/learn/vocabulary/listening/session/' + selectedSetId;
+            window.location.href = '/learn/vocabulary/listening/setup/' + selectedSetId;
         }
     }
 
