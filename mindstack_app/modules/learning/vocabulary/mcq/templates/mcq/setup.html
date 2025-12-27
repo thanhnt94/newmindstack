@@ -1,0 +1,418 @@
+﻿{# MCQ Setup Template - Custom column selection only #}
+{% extends "base.html" %}
+{% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary: #6366f1;
+        --primary-light: #eef2ff;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-300: #cbd5e1;
+        --gray-500: #64748b;
+        --gray-700: #334155;
+        --gray-800: #1e293b;
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, sans-serif;
+        background: var(--gray-50);
+        margin: 0;
+    }
+
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        body>main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+        }
+    }
+
+    .setup-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Fixed Header */
+    .setup-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: white;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-200);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .setup-back {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--gray-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-500);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .setup-back:hover {
+        background: var(--gray-200);
+    }
+
+    .setup-title {
+        font-weight: 700;
+        color: var(--gray-800);
+        flex: 1;
+        font-size: 1.1rem;
+    }
+
+    /* Scrollable Content */
+    .setup-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .setup-content {
+        max-width: 500px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    /* Section Styling */
+    .setup-section {
+        margin-bottom: 1.5rem;
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+
+    .setup-label {
+        font-weight: 700;
+        color: var(--gray-800);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .setup-label i {
+        color: var(--primary);
+    }
+
+    /* Pair Row Styling */
+    .pairs-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .pair-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: var(--gray-50);
+        border-radius: 12px;
+        border: 1px solid var(--gray-200);
+    }
+
+    .pair-col {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .pair-col-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--gray-500);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+    }
+
+    .pair-col select {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        background: white;
+        color: var(--gray-700);
+        cursor: pointer;
+    }
+
+    .pair-col select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .pair-arrow {
+        color: var(--gray-300);
+        font-size: 0.9rem;
+        flex-shrink: 0;
+        padding: 0 0.25rem;
+    }
+
+    .pair-delete {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: #fee2e2;
+        color: #ef4444;
+        border-radius: 8px;
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .pair-delete:hover {
+        background: #fecaca;
+    }
+
+    /* Add Button */
+    .add-pair-btn {
+        padding: 0.75rem 1rem;
+        background: var(--primary-light);
+        color: var(--primary);
+        border: 2px dashed var(--primary);
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 0.75rem;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+    }
+
+    .add-pair-btn:hover {
+        background: #e0e7ff;
+    }
+
+    /* Select Styling */
+    .setup-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--gray-200);
+        border-radius: 10px;
+        font-size: 1rem;
+        background: white;
+        color: var(--gray-700);
+        cursor: pointer;
+    }
+
+    .setup-select:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    /* Fixed Footer */
+    .setup-footer {
+        position: sticky;
+        bottom: 0;
+        padding: 1rem 1.25rem;
+        background: white;
+        border-top: 1px solid var(--gray-200);
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .setup-btn {
+        width: 100%;
+        padding: 1rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .setup-btn:hover {
+        background: #4f46e5;
+    }
+
+    .setup-btn:disabled {
+        background: var(--gray-300);
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="setup-container">
+    <div class="setup-header">
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="setup-back">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <span class="setup-title">{{ container.title }}</span>
+    </div>
+
+    <div class="setup-scroll">
+        <div class="setup-content">
+            <!-- Question-Answer Pairs Section -->
+            <div class="setup-section">
+                <span class="setup-label">
+                    <i class="fas fa-exchange-alt"></i>
+                    Thiết lập cặp Câu hỏi → Đáp án
+                </span>
+                <div class="pairs-container" id="pairs-container">
+                    <!-- Pairs added by JS -->
+                </div>
+                <button type="button" class="add-pair-btn" id="add-pair-btn">
+                    <i class="fas fa-plus"></i> Thêm cặp
+                </button>
+            </div>
+
+            <!-- Question Count -->
+            <div class="setup-section">
+                <span class="setup-label">
+                    <i class="fas fa-list-ol"></i>
+                    Số câu hỏi
+                </span>
+                <select class="setup-select" id="count-select">
+                    <option value="5">5 câu</option>
+                    <option value="10" selected>10 câu</option>
+                    <option value="20">20 câu</option>
+                    <option value="{{ total_items }}">Tất cả ({{ total_items }} câu)</option>
+                </select>
+            </div>
+
+            <!-- Number of Choices -->
+            <div class="setup-section">
+                <span class="setup-label">
+                    <i class="fas fa-th-large"></i>
+                    Số đáp án
+                </span>
+                <select class="setup-select" id="choices-select">
+                    <option value="3">3 đáp án</option>
+                    <option value="4" selected>4 đáp án</option>
+                    <option value="5">5 đáp án</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="setup-footer">
+        <button class="setup-btn" id="start-btn">
+            <i class="fas fa-play"></i> Bắt đầu
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        var setId = {{ container.container_id }};
+    var availableKeys = {{ available_keys | tojson }};
+    var customPairs = [];
+
+    // Initialize with default pair (front -> back)
+    addPair('front', 'back');
+
+    // Add pair button
+    document.getElementById('add-pair-btn').addEventListener('click', function () {
+        addPair();
+    });
+
+    function addPair(defaultQ, defaultA) {
+        var container = document.getElementById('pairs-container');
+        var pairIndex = container.children.length;
+
+        var row = document.createElement('div');
+        row.className = 'pair-row';
+        row.dataset.pairIndex = pairIndex;
+
+        var optionsHtml = '<option value="">-- Chọn cột --</option>';
+        availableKeys.forEach(function (key) {
+            optionsHtml += '<option value="' + key + '">' + key + '</option>';
+        });
+
+        row.innerHTML =
+            '<div class="pair-col">' +
+            '<div class="pair-col-label">Câu hỏi</div>' +
+            '<select class="pair-q">' + optionsHtml + '</select>' +
+            '</div>' +
+            '<span class="pair-arrow"><i class="fas fa-arrow-right"></i></span>' +
+            '<div class="pair-col">' +
+            '<div class="pair-col-label">Đáp án</div>' +
+            '<select class="pair-a">' + optionsHtml + '</select>' +
+            '</div>' +
+            '<button type="button" class="pair-delete"><i class="fas fa-times"></i></button>';
+
+        container.appendChild(row);
+
+        // Set default values if provided
+        if (defaultQ) row.querySelector('.pair-q').value = defaultQ;
+        if (defaultA) row.querySelector('.pair-a').value = defaultA;
+
+        // Delete handler
+        row.querySelector('.pair-delete').addEventListener('click', function () {
+            if (container.children.length > 1) {
+                row.remove();
+                updateCustomPairs();
+            }
+        });
+
+        // Change handlers
+        row.querySelector('.pair-q').addEventListener('change', updateCustomPairs);
+        row.querySelector('.pair-a').addEventListener('change', updateCustomPairs);
+
+        updateCustomPairs();
+    }
+
+    function updateCustomPairs() {
+        customPairs = [];
+        document.querySelectorAll('.pair-row').forEach(function (row) {
+            var q = row.querySelector('.pair-q').value;
+            var a = row.querySelector('.pair-a').value;
+            if (q && a) {
+                customPairs.push({ q: q, a: a });
+            }
+        });
+    }
+
+    // Start button
+    document.getElementById('start-btn').addEventListener('click', function () {
+        if (customPairs.length === 0) {
+            alert('Vui lòng chọn ít nhất một cặp câu hỏi - đáp án');
+            return;
+        }
+
+        var count = document.getElementById('count-select').value;
+        var choices = document.getElementById('choices-select').value;
+
+        var url = '/learn/vocabulary/mcq/session/' + setId +
+            '?mode=custom' +
+            '&count=' + count +
+            '&choices=' + choices +
+            '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
+
+        window.location.href = url;
+    });
+}) ();
+</script>
+{% endblock %}

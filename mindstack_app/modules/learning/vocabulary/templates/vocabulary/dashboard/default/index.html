@@ -618,7 +618,7 @@
     .vocab-scroll {
         flex: 1;
         overflow-y: auto;
-        padding-bottom: 100px;
+        padding-bottom: 160px;
     }
 
     /* Loading */
@@ -649,19 +649,17 @@
     /* Fixed Pagination Bar */
     .vocab-pagination-bar {
         position: fixed;
-        bottom: 0;
+        bottom: 89px;
         left: 0;
         right: 0;
         display: none;
         align-items: center;
         justify-content: center;
         gap: 0.5rem;
-        padding: 0.75rem 1rem;
-        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+        padding: 0.5rem 1rem;
         background: white;
         border-top: 1px solid #e2e8f0;
-        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
-        z-index: 200;
+        z-index: 190;
     }
 
     .vocab-pagination-bar.visible {
@@ -1353,15 +1351,22 @@
                     <i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i>
                 </div>
             </div>
-            <div class="js-pagination-container flex items-center justify-center gap-4 mt-6" style="display:none;">
-                <!-- Pagination Controls injected via JS -->
-            </div>
 
-            <div style="height: 100px;"></div> <!-- Spacer for footer -->
-
-            <div style="height: 100px;"></div> <!-- Spacer for footer -->
         </div>
 
+    </div>
+
+    <!-- Fixed Pagination for Detail View -->
+    <div id="detail-pagination-bar" class="vocab-pagination-bar visible">
+        <button class="pagination-nav-btn js-detail-prev-page" disabled>
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="pagination-pages js-detail-page-numbers">
+            <span class="page-num active">1</span>
+        </div>
+        <button class="pagination-nav-btn js-detail-next-page" disabled>
+            <i class="fas fa-chevron-right"></i>
+        </button>
     </div>
 
     <div class="vocab-footer">
@@ -1985,31 +1990,25 @@
                 listContainer.innerHTML = listHtml; // Always replace
             }
 
-            // Pagination Controls
-            const paginationContainer = document.querySelector('.js-pagination-container');
-            if (paginationContainer) {
-                if (paginationHtml) {
-                    paginationContainer.style.display = 'flex';
-                    paginationContainer.innerHTML = paginationHtml;
+            // Pagination Controls - Target fixed pagination bar
+            const detailPaginationBar = document.querySelector('#detail-pagination-bar');
+            if (detailPaginationBar && paginationHtml) {
+                // Inject pagination HTML into fixed bar
+                detailPaginationBar.innerHTML = paginationHtml;
+                detailPaginationBar.classList.add('visible');
 
-                    // Re-bind events for the new HTML
-                    paginationContainer.querySelectorAll('a').forEach(link => {
-                        link.addEventListener('click', function (e) {
-                            e.preventDefault();
-                            // DEBUG: Check Link HREF
-
-                            const url = new URL(this.href);
-                            const page = url.searchParams.get('page');
-                            if (page) fetchCourseStatsPage(page);
-                        });
+                // Re-bind events for the new HTML links
+                detailPaginationBar.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const url = new URL(this.href);
+                        const page = url.searchParams.get('page');
+                        if (page) fetchCourseStatsPage(page);
                     });
-                } else if (stats.pagination.pages > 1) {
-                    // Fallback
-                    if (!paginationContainer.innerHTML.trim()) paginationContainer.style.display = 'none';
-                } else {
-                    paginationContainer.style.display = 'none';
-                    paginationContainer.innerHTML = '';
-                }
+                });
+            } else if (detailPaginationBar && stats.pagination && stats.pagination.pages <= 1) {
+                // Hide if only 1 page
+                detailPaginationBar.classList.remove('visible');
             }
 
         } else if (overviewContainer) {
@@ -2100,7 +2099,8 @@
         if (mode === 'flashcard') {
             loadFlashcardOptions(selectedSetId);
         } else if (mode === 'mcq') {
-            loadMcqOptions(selectedSetId);
+            // Redirect to MCQ setup page for options
+            window.location.href = '/learn/vocabulary/mcq/setup/' + selectedSetId;
         } else if (mode === 'typing') {
             window.location.href = '/learn/vocabulary/typing/session/' + selectedSetId;
         } else if (mode === 'mixed') {

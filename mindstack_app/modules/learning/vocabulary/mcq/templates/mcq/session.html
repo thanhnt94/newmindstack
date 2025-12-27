@@ -1,0 +1,344 @@
+﻿{# MCQ Session Template #}
+{% extends "base.html" %}
+{% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background: #f8fafc;
+    }
+
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        body>main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+        }
+    }
+
+    .mcq-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .mcq-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: white;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .mcq-back {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.75rem;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        text-decoration: none;
+    }
+
+    .mcq-title {
+        font-weight: 700;
+        color: #1e293b;
+        flex: 1;
+    }
+
+    .mcq-score {
+        font-weight: 700;
+        color: #6366f1;
+    }
+
+    .mcq-content {
+        flex: 1;
+        padding: 1.5rem;
+        max-width: 600px;
+        margin: 0 auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .mcq-question {
+        font-size: 1.75rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #6366f1, #818cf8);
+        color: white;
+        border-radius: 1rem;
+    }
+
+    .mcq-choices {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .mcq-choice {
+        padding: 1rem 1.25rem;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.75rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+    }
+
+    .mcq-choice:hover {
+        border-color: #6366f1;
+        background: #f8fafc;
+    }
+
+    .mcq-choice.selected {
+        border-color: #6366f1;
+        background: #eef2ff;
+    }
+
+    .mcq-choice.correct {
+        border-color: #10b981;
+        background: #d1fae5;
+    }
+
+    .mcq-choice.wrong {
+        border-color: #ef4444;
+        background: #fee2e2;
+    }
+
+    .mcq-choice.disabled {
+        pointer-events: none;
+    }
+
+    .mcq-footer {
+        position: sticky;
+        bottom: 0;
+        padding: 1rem;
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .mcq-btn {
+        width: 100%;
+        padding: 1rem;
+        background: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .mcq-btn:disabled {
+        background: #cbd5e1;
+        cursor: not-allowed;
+    }
+
+    .mcq-complete {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+    }
+
+    .mcq-complete-box {
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        text-align: center;
+        max-width: 300px;
+    }
+
+    .mcq-complete-icon {
+        font-size: 4rem;
+        color: #10b981;
+        margin-bottom: 1rem;
+    }
+
+    .mcq-complete-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .mcq-complete-stats {
+        color: #64748b;
+        margin-bottom: 1rem;
+    }
+
+    .mcq-complete-btn {
+        padding: 0.75rem 1.5rem;
+        background: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin: 0.25rem;
+    }
+
+    .mcq-complete-btn.secondary {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="mcq-container">
+    <div class="mcq-header">
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="mcq-back"><i class="fas fa-arrow-left"></i></a>
+        <span class="mcq-title">{{ container.title }}</span>
+        <span class="mcq-score"><span id="score">0</span>/<span id="total">{{ total_items }}</span></span>
+    </div>
+    <div class="mcq-content">
+        <div class="mcq-question" id="question">Đang tải...</div>
+        <div class="mcq-choices" id="choices"></div>
+    </div>
+    <div class="mcq-footer">
+        <button class="mcq-btn" id="next-btn" disabled>Tiếp theo</button>
+    </div>
+</div>
+<div class="mcq-complete" id="complete-modal" style="display: none;">
+    <div class="mcq-complete-box">
+        <div class="mcq-complete-icon"><i class="fas fa-trophy"></i></div>
+        <div class="mcq-complete-title">Hoàn thành!</div>
+        <div class="mcq-complete-stats">Đúng <span id="final-score">0</span>/<span id="final-total">0</span> câu</div>
+        <button class="mcq-complete-btn" onclick="location.reload()">Chơi lại</button>
+        <button class="mcq-complete-btn secondary"
+            onclick="location.href='{{ url_for('learning.vocabulary.dashboard') }}'">Về trang chủ</button>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        var setId = {{ container.container_id }};
+    var mode = '{{ mode }}';
+    var count = {{ count|default (10) }};
+    var numChoices = {{ choices|default (4) }};
+    var customPairs = {{ custom_pairs| tojson if custom_pairs else 'null' }};
+
+    var questions = [];
+    var current = 0;
+    var score = 0;
+    var answered = false;
+
+    var questionEl = document.getElementById('question');
+    var choicesEl = document.getElementById('choices');
+    var nextBtn = document.getElementById('next-btn');
+    var scoreEl = document.getElementById('score');
+
+    var apiUrl = '/learn/vocabulary/mcq/api/items/' + setId +
+        '?count=' + count +
+        '&mode=' + mode +
+        '&choices=' + numChoices;
+    if (customPairs) {
+        apiUrl += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
+    }
+
+    fetch(apiUrl)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                questions = data.questions;
+                document.getElementById('total').textContent = questions.length;
+                document.getElementById('final-total').textContent = questions.length;
+                showQuestion();
+            } else {
+                questionEl.textContent = data.message || 'Loi tai câu hoi';
+            }
+        });
+
+    function showQuestion() {
+        if (current >= questions.length) {
+            showComplete();
+            return;
+        }
+        answered = false;
+        nextBtn.disabled = true;
+
+        var q = questions[current];
+        questionEl.textContent = q.question;
+
+        choicesEl.innerHTML = '';
+        q.choices.forEach(function (choice, idx) {
+            var btn = document.createElement('button');
+            btn.className = 'mcq-choice';
+            btn.textContent = choice;
+            btn.onclick = function () { selectChoice(idx); };
+            choicesEl.appendChild(btn);
+        });
+    }
+
+    function selectChoice(idx) {
+        if (answered) return;
+        answered = true;
+
+        var q = questions[current];
+        var buttons = choicesEl.querySelectorAll('.mcq-choice');
+
+        buttons.forEach(function (btn, i) {
+            btn.classList.add('disabled');
+            if (i === q.correct_index) {
+                btn.classList.add('correct');
+            } else if (i === idx && i !== q.correct_index) {
+                btn.classList.add('wrong');
+            }
+        });
+
+        if (idx === q.correct_index) {
+            score++;
+            scoreEl.textContent = score;
+        }
+
+        fetch('/learn/vocabulary/mcq/api/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                item_id: q.item_id,
+                correct_index: q.correct_index,
+                user_answer_index: idx
+            })
+        });
+
+        nextBtn.disabled = false;
+    }
+
+    nextBtn.onclick = function () {
+        current++;
+        showQuestion();
+    };
+
+    function showComplete() {
+        document.getElementById('final-score').textContent = score;
+        document.getElementById('complete-modal').style.display = 'flex';
+    }
+}) ();
+</script>
+{% endblock %}
