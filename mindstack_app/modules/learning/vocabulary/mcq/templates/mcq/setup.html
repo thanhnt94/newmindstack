@@ -125,7 +125,7 @@
 
     .pair-row {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         gap: 0.5rem;
         padding: 0.75rem;
         background: var(--gray-50);
@@ -257,6 +257,53 @@
         background: var(--gray-300);
         cursor: not-allowed;
     }
+
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .stat-item {
+        background: var(--gray-50);
+        padding: 1rem;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid var(--gray-200);
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .stat-value.new {
+        color: #10b981;
+    }
+
+    .stat-value.due {
+        color: #f59e0b;
+    }
+
+    .stat-value.learned {
+        color: #6366f1;
+    }
+
+    .stat-value.total {
+        color: #64748b;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.25rem;
+        display: block;
+    }
 </style>
 {% endblock %}
 
@@ -271,6 +318,32 @@
 
     <div class="setup-scroll">
         <div class="setup-content">
+            <!-- Learning Statistics -->
+            <div class="setup-section">
+                <span class="setup-label">
+                    <i class="fas fa-chart-bar"></i>
+                    Thống kê học tập
+                </span>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value new">{{ mode_counts.new }}</span>
+                        <span class="stat-label">Từ mới</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value due">{{ mode_counts.due }}</span>
+                        <span class="stat-label">Cần ôn tập</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value learned">{{ mode_counts.learned }}</span>
+                        <span class="stat-label">Đã học</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value total">{{ mode_counts.total }}</span>
+                        <span class="stat-label">Tổng số</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Question-Answer Pairs Section -->
             <div class="setup-section">
                 <span class="setup-label">
@@ -285,36 +358,23 @@
                 </button>
             </div>
 
-            <!-- Question Count -->
-            <div class="setup-section">
-                <span class="setup-label">
-                    <i class="fas fa-list-ol"></i>
-                    Số câu hỏi
-                </span>
-                <select class="setup-select" id="count-select">
-                    <option value="5">5 câu</option>
-                    <option value="10" selected>10 câu</option>
-                    <option value="20">20 câu</option>
-                    <option value="{{ total_items }}">Tất cả ({{ total_items }} câu)</option>
-                </select>
-            </div>
 
-            <!-- Number of Choices -->
-            <div class="setup-section">
-                <span class="setup-label">
-                    <i class="fas fa-th-large"></i>
-                    Số đáp án
-                </span>
-                <select class="setup-select" id="choices-select">
-                    <option value="3">3 đáp án</option>
-                    <option value="4" selected>4 đáp án</option>
-                    <option value="5">5 đáp án</option>
-                </select>
-            </div>
+
+
         </div>
     </div>
 
     <div class="setup-footer">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 0.85rem; font-weight: 600; color: #334155;"><i class="fas fa-th-large"></i> Số đáp
+                án</span>
+            <select id="choices-select"
+                style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;">
+                <option value="3">3 đáp án</option>
+                <option value="4" selected>4 đáp án</option>
+                <option value="5">5 đáp án</option>
+            </select>
+        </div>
         <button class="setup-btn" id="start-btn">
             <i class="fas fa-play"></i> Bắt đầu
         </button>
@@ -398,20 +458,16 @@
     // Start button
     document.getElementById('start-btn').addEventListener('click', function () {
         if (customPairs.length === 0) {
-            alert('Vui lòng chọn ít nhất một cặp câu hỏi - đáp án');
-            return;
-        }
+            alert('Vui lòng chọn ít nhất một cặp câu hỏi - đáp 
+    án');
+            re          }
 
-        var count = document.getElementById('count-select').value;
-        var choices = document.getElementById('choices-select').value;
+        var count = {{ total_items }}; // Use all items     choices = document.getElementById('choices-select').        var url = '/learn        mcq/session/' + setI        '?mode=custom' +
+                count +
+        '&choices=' + choices +
+        '&custom_pairs=' + e    Component(JSON.stringify(customPairs));
 
-        var url = '/learn/vocabulary/mcq/session/' + setId +
-            '?mode=custom' +
-            '&count=' + count +
-            '&choices=' + choices +
-            '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
-
-        window.location.href = url;
+   on.href = url;
     });
 }) ();
 </script>

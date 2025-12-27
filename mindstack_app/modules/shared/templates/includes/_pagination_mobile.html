@@ -2,7 +2,7 @@
 {# Mobile version of pagination - Premium App Style #}
 
 {% macro render_pagination_mobile(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
-<div class="flex justify-center items-center gap-2 mt-4 mb-8 pagination w-full px-4">
+<div class="flex justify-center items-center gap-2 pagination w-full">
     {# Nút "Trang trước" - Circular/Squircle #}
     {# Nút "Trang trước" #}
     {% if pagination.has_prev %}

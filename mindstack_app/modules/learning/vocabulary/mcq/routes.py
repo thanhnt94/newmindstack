@@ -6,7 +6,7 @@ from flask import render_template, request, jsonify, abort
 from flask_login import login_required, current_user
 
 from . import mcq_bp
-from .logic import get_mcq_eligible_items, generate_mcq_question, check_mcq_answer, get_available_content_keys
+from .logic import get_mcq_eligible_items, generate_mcq_question, check_mcq_answer, get_available_content_keys, get_mcq_mode_counts
 from mindstack_app.models import LearningContainer
 
 
@@ -28,11 +28,15 @@ def setup(set_id):
     # Get available content keys for custom column selection
     available_keys = get_available_content_keys(set_id)
     
+    # Get learning statistics
+    mode_counts = get_mcq_mode_counts(current_user.user_id, set_id)
+    
     return render_template(
         'mcq/setup.html',
         container=container,
         total_items=len(items),
-        available_keys=available_keys
+        available_keys=available_keys,
+        mode_counts=mode_counts
     )
 
 

@@ -58,6 +58,15 @@ def get_mcq_eligible_items(container_id: int) -> list:
     return eligible
 
 
+def get_mcq_mode_counts(user_id: int, container_id: int) -> dict:
+    """
+    Get learning statistics for MCQ setup page.
+    Delegated to VocabularyStatsService for centralized stats logic.
+    """
+    from mindstack_app.modules.learning.vocabulary.stats import VocabularyStatsService
+    return VocabularyStatsService.get_mode_counts(user_id, container_id)
+
+
 def generate_mcq_question(item: dict, all_items: list, num_choices: int = 4, 
                           mode: str = 'front_back', question_key: str = None, 
                           answer_key: str = None, custom_pairs: list = None) -> dict:

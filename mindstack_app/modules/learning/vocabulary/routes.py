@@ -114,7 +114,28 @@ def api_get_sets():
 @login_required
 def set_detail_page(set_id):
     """Deep link to specific set detail."""
-    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id)
+    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id, active_step='detail')
+
+
+@vocabulary_bp.route('/set/<int:set_id>/modes')
+@login_required
+def set_modes_page(set_id):
+    """Step 2: Mode selection page."""
+    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id, active_step='modes')
+
+
+@vocabulary_bp.route('/set/<int:set_id>/flashcard')
+@login_required
+def set_flashcard_page(set_id):
+    """Step 3: Flashcard options page."""
+    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id, active_step='flashcard-options')
+
+
+@vocabulary_bp.route('/set/<int:set_id>/mcq')
+@login_required
+def set_mcq_page(set_id):
+    """Step 3: MCQ options page."""
+    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id, active_step='mcq-options')
 
 
 @vocabulary_bp.route('/api/flashcard-modes/<int:set_id>')

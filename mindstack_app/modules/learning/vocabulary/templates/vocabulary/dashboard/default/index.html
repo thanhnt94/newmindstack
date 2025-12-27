@@ -656,7 +656,7 @@
         align-items: center;
         justify-content: center;
         gap: 0.5rem;
-        padding: 0.5rem 1rem;
+        padding: 0.25rem 1rem;
         background: white;
         border-top: 1px solid #e2e8f0;
         z-index: 190;
@@ -1588,13 +1588,28 @@
                 });
             });
 
-            // Check for active set ID from server template
+            // Check for active set ID and step from server template
             const activeSetId = {{ active_set_id|default ('null')
         }};
-    console.log("Deep Link Check:", activeSetId);
+    const activeStep = '{{ active_step|default("browser") }}';
+    console.log("Deep Link Check:", activeSetId, "Step:", activeStep);
 
     if (activeSetId) {
-        loadSetDetail(activeSetId, false); // false = don't push state initially as it's already there
+        // Load set detail data first
+        loadSetDetail(activeSetId, false);
+
+        // Wait for data to load then show appropriate step
+        if (activeStep && activeStep !== 'browser' && activeStep !== 'detail') {
+            setTimeout(function () {
+                showStep(activeStep);
+                // Load mode data if needed
+                if (activeStep === 'flashcard-options') {
+                    loadFlashcardModes();
+                } else if (activeStep === 'mcq-options') {
+                    loadMcqOptions();
+                }
+            }, 500);
+        }
     }
 
     // Search
@@ -1618,19 +1633,45 @@
     });
 
     document.querySelectorAll('.js-back-to-detail').forEach(function (btn) {
-        btn.addEventListener('click', function () { showStep('detail'); });
+        btn.addEventListener('click', function () {
+            showStep('detail');
+            history.pushState({ step: 'detail', setId: selectedSetId }, '', '/learn/vocabulary/set/' + selectedSetId);
+        });
     });
 
     document.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
-        btn.addEventListener('click', function () { showStep('modes'); });
+        btn.addEventListener('click', function () {
+            showStep('modes');
+            history.pushState({ step: 'modes', setId: selectedSetId }, '', '/learn/vocabulary/set/' + selectedSetId + '/modes');
+        });
     });
 
     // Handle Browser Back Button
     window.addEventListener('popstate', function (event) {
-        if (window.location.pathname.includes('/set/')) {
-            const parts = window.location.pathname.split('/');
-            const setId = parts[parts.length - 1];
-            if (setId && !isNaN(setId)) {
+        const pathname = window.location.pathname;
+
+        if (pathname.includes('/set/')) {
+            const parts = pathname.split('/');
+            // Check for step suffix
+            const lastPart = parts[parts.length - 1];
+
+            if (lastPart === 'modes') {
+                const setId = parts[parts.length - 2];
+                if (selectedSetId != setId) loadSetDetail(setId, false);
+                showStep('modes');
+            } else if (lastPart === 'flashcard') {
+                const setId = parts[parts.length - 2];
+                if (selectedSetId != setId) loadSetDetail(setId, false);
+                showStep('flashcard-options');
+                loadFlashcardModes();
+            } else if (lastPart === 'mcq') {
+                const setId = parts[parts.length - 2];
+                if (selectedSetId != setId) loadSetDetail(setId, false);
+                showStep('mcq-options');
+                loadMcqOptions(setId);
+            } else if (!isNaN(lastPart)) {
+                // Just set ID - show detail
+                const setId = lastPart;
                 if (selectedSetId != setId) {
                     loadSetDetail(setId, false);
                 } else {
@@ -2054,6 +2095,7 @@
             }
             updateModeVisibility();
             showStep('modes');
+            history.pushState({ step: 'modes', setId: selectedSetId }, '', '/learn/vocabulary/set/' + selectedSetId + '/modes');
         });
     });
 
@@ -2116,6 +2158,7 @@
 
     function loadFlashcardOptions(setId) {
         showStep('flashcard-options');
+        history.pushState({ step: 'flashcard-options', setId: setId }, '', '/learn/vocabulary/set/' + setId + '/flashcard');
 
         // Update set name display
         var setNameEl = document.querySelector('.js-selected-set-name-fc');
@@ -2216,6 +2259,7 @@
 
     function loadMcqOptions(setId) {
         showStep('mcq-options');
+        history.pushState({ step: 'mcq-options', setId: setId }, '', '/learn/vocabulary/set/' + setId + '/mcq');
         mcqOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
 
         fetch('/learn/get_quiz_modes_partial/' + setId)
