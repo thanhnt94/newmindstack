@@ -6,19 +6,37 @@
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-    /* CRITICAL: Hide global header/footer on mobile */
-    @media (max-width: 1023px) {
+    /* CRITICAL: Reset base template constraints - use html prefix for higher specificity */
+    html body>header,
+    html body>footer {
+        display: none !important;
+    }
 
-        body>header,
-        body>footer {
-            display: none !important;
-        }
+    html body>main,
+    html body>main.container,
+    html body>main.mx-auto,
+    html main.container.mx-auto {
+        padding: 0 !important;
+        margin: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+    }
 
-        body>main {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: none !important;
-        }
+    /* Reset ALL Tailwind container classes with multiply selectors */
+    html .container,
+    html .mx-auto,
+    body .container,
+    body .mx-auto,
+    main.container,
+    main.mx-auto {
+        max-width: 100vw !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        width: 100% !important;
     }
 
     :root {
@@ -51,7 +69,7 @@
         display: flex;
         flex-direction: column;
         height: 100vh;
-        max-width: 800px;
+        max-width: 100%;
         margin: 0 auto;
         background: var(--bg);
         position: relative;
@@ -197,20 +215,42 @@
         display: flex;
         flex-direction: column;
         overflow-y: auto;
+        padding-top: calc(33.33vh + 1rem);
+        /* Space for fixed question area */
     }
 
-    /* Question Card */
-    .question-card {
-        background: var(--card-bg);
-        border-radius: 20px;
-        padding: 3rem 2rem;
-        text-align: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        margin-bottom: 2rem;
+    /* Fixed Question Area - 1/3 viewport height */
+    .question-area {
+        position: fixed;
+        top: 0;
+        /* Will be positioned after sticky header */
+        left: 0;
+        right: 0;
+        height: 33.33vh;
+        background: var(--bg);
+        z-index: 35;
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 200px;
+        padding: 1rem;
+        margin-top: 85px;
+        /* Approximate header height */
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* Question Card - Inside fixed question-area */
+    .question-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 800px;
+        height: 100%;
         border: 1px solid var(--border);
         position: relative;
         overflow: hidden;
@@ -475,6 +515,108 @@
         flex-direction: column;
         gap: 0.75rem;
     }
+
+    /* ===== Skeleton Loading ===== */
+    @keyframes shimmer {
+        0% {
+            background-position: -200% 0;
+        }
+
+        100% {
+            background-position: 200% 0;
+        }
+    }
+
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 8px;
+    }
+
+    .skeleton-text {
+        height: 2rem;
+        width: 60%;
+        margin: 0 auto;
+    }
+
+    .skeleton-choice {
+        height: 60px;
+        width: 100%;
+        border-radius: 16px;
+    }
+
+    .loading-state .question-text {
+        display: none;
+    }
+
+    .loading-state .skeleton-content {
+        display: block;
+    }
+
+    .skeleton-content {
+        display: none;
+        width: 100%;
+    }
+
+    .loaded .skeleton-content {
+        display: none !important;
+    }
+
+    .loaded .question-text {
+        display: block !important;
+    }
+
+    /* ===== Skeleton Loading ===== */
+    @keyframes shimmer {
+        0% {
+            background-position: -200% 0;
+        }
+
+        100% {
+            background-position: 200% 0;
+        }
+    }
+
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 8px;
+    }
+
+    .skeleton-text {
+        height: 2rem;
+        width: 60%;
+        margin: 0 auto;
+    }
+
+    .skeleton-choice {
+        height: 60px;
+        width: 100%;
+        border-radius: 16px;
+    }
+
+    .loading-state .question-text {
+        display: none;
+    }
+
+    .loading-state .skeleton-content {
+        display: block;
+    }
+
+    .skeleton-content {
+        display: none;
+        width: 100%;
+    }
+
+    .loaded .skeleton-content {
+        display: none !important;
+    }
+
+    .loaded .question-text {
+        display: block !important;
+    }
 </style>
 {% endblock %}
 
@@ -523,13 +665,22 @@
         </div>
     </header>
 
-    <main class="session-main">
-        <div class="question-card" id="question-card">
-            <div class="question-text" id="question-text">Đang tải...</div>
+    <!-- Fixed Question Area - 1/3 viewport height below header -->
+    <div class="question-area">
+        <div class="question-card loading-state" id="question-card">
+            <div class="question-text" id="question-text"></div>
+            <div class="skeleton-content">
+                <div class="skeleton skeleton-text"></div>
+            </div>
         </div>
+    </div>
 
-        <div class="choices-grid" id="choices-grid">
-            <!-- Buttons injected by JS -->
+    <main class="session-main">
+        <div class="choices-grid loading-state" id="choices-grid">
+            <div class="skeleton skeleton-choice"></div>
+            <div class="skeleton skeleton-choice"></div>
+            <div class="skeleton skeleton-choice"></div>
+            <div class="skeleton skeleton-choice"></div>
         </div>
     </main>
 
@@ -582,11 +733,12 @@
     (function (
     ) {
         // Config
-        const setId = {{ container.container_id }};
+        const setId = {{ container.container_id }
+    };
     const mode = '{{ mode }}';
-    const count = {{ count|default(10) }};
-    const numChoices = {{ choices|default(4) }};
-    const customPairs = {{ custom_pairs|tojson if custom_pairs else 'null' }};
+    const count = {{ count|default (10) }};
+    const numChoices = {{ choices|default (4) }};
+    const customPairs = {{ custom_pairs| tojson if custom_pairs else 'null' }};
 
     // State
     let questions = [];
@@ -661,6 +813,12 @@
         els.qNum.textContent = currentIndex + 1;
         const percent = Math.round(((currentIndex) / questions.length) * 100);
 
+        // Remove loading state
+        document.getElementById('question-card').classList.remove('loading-state');
+        document.getElementById('question-card').classList.add('loaded');
+        // Remove loading state
+        document.getElementById('question-card').classList.remove('loading-state');
+        document.getElementById('question-card').classList.add('loaded');
         els.qText.textContent = q.question;
         els.nextBtn.disabled = true;
 
