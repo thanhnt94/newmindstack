@@ -1,26 +1,24 @@
 import re
 
-path = r'c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\vocabulary\mcq\templates\mcq\session.html'
-with open(path, 'r', encoding='utf-8') as f:
+filepath = r'c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\vocabulary\mcq\templates\mcq\setup.html'
+
+with open(filepath, 'r', encoding='utf-8') as f:
     content = f.read()
 
-# Find and fix the broken Jinja pattern
-# Look for {{ container.container_id } followed by anything other than }
-pattern = r'\{\{\s*container\.container_id\s*\}'
-replacement = '{{ container.container_id }}'
+# Fix split container_id line
+content = re.sub(r'\{\{\s*container\.container_id\s*\}\s*\n\s*\};', '{{ container.container_id }};', content)
 
-matches = list(re.finditer(pattern, content))
-print(f"Found {len(matches)} matches for pattern")
+# Fix split total_items line
+content = re.sub(r'\{\{\s*total_items\s*\}\s*\n\s*\};', '{{ total_items }};', content)
 
-if matches:
-    content = re.sub(pattern, replacement, content)
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
-    print("Fixed!")
-else:
-    # Check what's around line 472
-    lines = content.split('\n')
-    if len(lines) >= 475:
-        print("Lines 470-475:")
-        for i in range(469, min(475, len(lines))):
-            print(f"{i+1}: {lines[i]}")
+# Also fix if total_items is at end (no semicolon after)
+content = re.sub(r'\{\{\s*total_items\s*\}([^}])', r'{{ total_items }}\1', content)
+
+with open(filepath, 'w', encoding='utf-8') as f:
+    f.write(content)
+
+# Verify changes
+with open(filepath, 'r', encoding='utf-8') as f:
+    for i, line in enumerate(f, 1):
+        if 'total_items' in line or 'container_id' in line:
+            print(f"Line {i}: {line.strip()}")

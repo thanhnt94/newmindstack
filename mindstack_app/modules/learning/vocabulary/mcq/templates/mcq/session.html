@@ -1,344 +1,650 @@
-﻿{# MCQ Session Template #}
+{# MCQ Session Template - Refined UI #}
 {% extends "base.html" %}
 {% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
+
 {% block head %}
 {{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-    body {
-        font-family: 'Inter', sans-serif;
-        background: #f8fafc;
-    }
-
+    /* CRITICAL: Hide global header/footer on mobile */
     @media (max-width: 1023px) {
-
-        body>header,
-        body>footer {
+        body > header,
+        body > footer {
             display: none !important;
         }
-
-        body>main {
+        body > main {
             padding: 0 !important;
             margin: 0 !important;
             max-width: none !important;
         }
     }
 
-    .mcq-container {
-        min-height: 100vh;
+    :root {
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --primary-light: #eef2ff;
+        --success: #10b981;
+        --success-light: #d1fae5;
+        --error: #ef4444;
+        --error-light: #fee2e2;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        height: 100vh;
+        overflow: hidden; /* Prevent scrolling on body, handle in main */
+    }
+
+    /* Layout */
+    .session-container {
         display: flex;
         flex-direction: column;
-    }
-
-    .mcq-header {
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        background: white;
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #e2e8f0;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
-    .mcq-back {
-        width: 36px;
-        height: 36px;
-        border-radius: 0.75rem;
-        background: #f1f5f9;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #64748b;
-        text-decoration: none;
-    }
-
-    .mcq-title {
-        font-weight: 700;
-        color: #1e293b;
-        flex: 1;
-    }
-
-    .mcq-score {
-        font-weight: 700;
-        color: #6366f1;
-    }
-
-    .mcq-content {
-        flex: 1;
-        padding: 1.5rem;
-        max-width: 600px;
+        height: 100vh;
+        max-width: 800px;
         margin: 0 auto;
-        width: 100%;
+        background: var(--bg);
+        position: relative;
+    }
+
+    /* Header */
+    .session-header {
+        background: var(--card-bg);
+        padding: 0.75rem 1rem;
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        border-bottom: 1px solid var(--border);
+        z-index: 10;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .back-btn {
+        width: 36px; /* Slightly smaller */
+        height: 36px;
+        display: flex;
+        align-items: center;
         justify-content: center;
-    }
-
-    .mcq-question {
-        font-size: 1.75rem;
-        font-weight: 800;
-        text-align: center;
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: linear-gradient(135deg, #6366f1, #818cf8);
-        color: white;
-        border-radius: 1rem;
-    }
-
-    .mcq-choices {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .mcq-choice {
-        padding: 1rem 1.25rem;
-        background: white;
-        border: 2px solid #e2e8f0;
-        border-radius: 0.75rem;
-        font-size: 1.1rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-align: left;
-    }
-
-    .mcq-choice:hover {
-        border-color: #6366f1;
-        background: #f8fafc;
-    }
-
-    .mcq-choice.selected {
-        border-color: #6366f1;
-        background: #eef2ff;
-    }
-
-    .mcq-choice.correct {
-        border-color: #10b981;
-        background: #d1fae5;
-    }
-
-    .mcq-choice.wrong {
-        border-color: #ef4444;
-        background: #fee2e2;
-    }
-
-    .mcq-choice.disabled {
-        pointer-events: none;
-    }
-
-    .mcq-footer {
-        position: sticky;
-        bottom: 0;
-        padding: 1rem;
-        background: white;
-        border-top: 1px solid #e2e8f0;
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-    }
-
-    .mcq-btn {
-        width: 100%;
-        padding: 1rem;
-        background: #6366f1;
-        color: white;
-        border: none;
-        border-radius: 0.75rem;
-        font-weight: 700;
-        cursor: pointer;
+        border-radius: 50%; /* Make it round */
+        color: var(--text-sub);
+        background: var(--bg); /* Lighter background */
+        text-decoration: none;
+        transition: background 0.2s, color 0.2s;
         font-size: 1rem;
     }
+    .back-btn:hover {
+        background: var(--border);
+        color: var(--text-main);
+    }
 
-    .mcq-btn:disabled {
-        background: #cbd5e1;
+    /* Progress Bar */
+    .progress-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .progress-track {
+        height: 8px;
+        background: var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary);
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+
+    /* Live Stats in Header */
+    .live-stats {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .stat-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .stat-badge.correct {
+        background: var(--success-light);
+        color: var(--success);
+    }
+
+    .stat-badge.wrong {
+        background: var(--error-light);
+        color: var(--error);
+    }
+
+    /* Main Content */
+    .session-main {
+        flex: 1;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow-y: auto;
+    }
+
+    /* Question Card */
+    .question-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .question-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, var(--primary), #818cf8);
+    }
+
+    .question-text {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-main);
+        line-height: 1.4;
+    }
+
+    /* Choices Grid */
+    .choices-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    @media (max-width: 640px) {
+        .choices-grid {
+            grid-template-columns: 1fr; /* Stack on mobile */
+        }
+        .question-text {
+            font-size: 1.5rem;
+        }
+        .question-card {
+            padding: 2rem 1.5rem;
+            min-height: 150px;
+        }
+    }
+
+    .choice-btn {
+        background: var(--card-bg);
+        border: 2px solid var(--border);
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: var(--text-main);
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: center;
+        position: relative;
+        outline: none;
+    }
+
+    .choice-btn:hover:not(:disabled) {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    }
+
+    .choice-btn:disabled {
+        cursor: default;
+        transform: none;
+        opacity: 0.7;
+    }
+
+    /* States */
+    .choice-btn.correct {
+        border-color: var(--success);
+        background: var(--success);
+        color: white;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .choice-btn.wrong {
+        border-color: var(--error);
+        background: var(--error);
+        color: white;
+        animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    .choice-btn.dimmed {
+        opacity: 0.4;
+        border-color: var(--border);
+        background: var(--bg);
+    }
+
+    @keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+
+    /* Footer / Next Button */
+    .session-footer {
+        padding: 1rem;
+        background: var(--card-bg);
+        border-top: 1px solid var(--border);
+        text-align: center;
+    }
+
+    .next-btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 1rem 3rem;
+        border-radius: 16px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .next-btn:hover:not(:disabled) {
+        background: var(--primary-hover);
+        transform: translateY(-2px);
+    }
+
+    .next-btn:disabled {
+        background: var(--border);
+        color: var(--text-sub);
+        box-shadow: none;
         cursor: not-allowed;
     }
 
-    .mcq-complete {
+    /* Result Modal */
+    .result-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(5px);
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 999;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
     }
 
-    .mcq-complete-box {
+    .result-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .result-card {
         background: white;
-        padding: 2rem;
-        border-radius: 1rem;
+        padding: 3rem 2rem;
+        border-radius: 24px;
         text-align: center;
-        max-width: 300px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border: 1px solid var(--border);
+        max-width: 400px;
+        width: 90%;
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    .mcq-complete-icon {
+    .result-overlay.active .result-card {
+        transform: scale(1);
+    }
+
+    .result-icon {
         font-size: 4rem;
-        color: #10b981;
-        margin-bottom: 1rem;
+        color: #fbbf24;
+        margin-bottom: 1.5rem;
+        display: inline-block;
+        animation: float 3s ease-in-out infinite;
     }
 
-    .mcq-complete-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1e293b;
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .result-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
         margin-bottom: 0.5rem;
     }
 
-    .mcq-complete-stats {
-        color: #64748b;
-        margin-bottom: 1rem;
+    .result-msg {
+        color: var(--text-sub);
+        margin-bottom: 2rem;
     }
 
-    .mcq-complete-btn {
-        padding: 0.75rem 1.5rem;
-        background: #6366f1;
-        color: white;
-        border: none;
-        border-radius: 0.5rem;
+    .stats-row {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-box {
+        text-align: center;
+    }
+
+    .stat-val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        display: block;
+    }
+
+    .stat-lbl {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-sub);
         font-weight: 600;
-        cursor: pointer;
-        margin: 0.25rem;
     }
 
-    .mcq-complete-btn.secondary {
-        background: #f1f5f9;
-        color: #64748b;
+    .action-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
     }
 </style>
 {% endblock %}
+
+{% block body_class %} flashcard-session-active{% endblock %}
+
 {% block content %}
-<div class="mcq-container">
-    <div class="mcq-header">
-        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="mcq-back"><i class="fas fa-arrow-left"></i></a>
-        <span class="mcq-title">{{ container.title }}</span>
-        <span class="mcq-score"><span id="score">0</span>/<span id="total">{{ total_items }}</span></span>
-    </div>
-    <div class="mcq-content">
-        <div class="mcq-question" id="question">Đang tải...</div>
-        <div class="mcq-choices" id="choices"></div>
-    </div>
-    <div class="mcq-footer">
-        <button class="mcq-btn" id="next-btn" disabled>Tiếp theo</button>
-    </div>
+<div class="session-container">
+    <header class="session-header">
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="back-btn">
+            <i class="fas fa-times"></i>
+        </a>
+        
+        <div class="progress-container">
+            <div class="progress-info">
+                <span>Câu <span id="current-q-num">1</span>/<span id="total-q-num">...</span></span>
+                <span id="progress-percent">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="live-stats">
+            <div class="stat-badge correct">
+                <i class="fas fa-check"></i>
+                <span id="live-correct">0</span>
+            </div>
+            <div class="stat-badge wrong">
+                <i class="fas fa-xmark"></i>
+                <span id="live-wrong">0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="session-main">
+        <div class="question-card" id="question-card">
+            <div class="question-text" id="question-text">Đang tải...</div>
+        </div>
+
+        <div class="choices-grid" id="choices-grid">
+            <!-- Buttons injected by JS -->
+        </div>
+    </main>
+
+    <footer class="session-footer">
+        <button class="next-btn" id="next-btn" disabled>
+            Tiếp tục <i class="fas fa-arrow-right ms-2"></i>
+        </button>
+    </footer>
 </div>
-<div class="mcq-complete" id="complete-modal" style="display: none;">
-    <div class="mcq-complete-box">
-        <div class="mcq-complete-icon"><i class="fas fa-trophy"></i></div>
-        <div class="mcq-complete-title">Hoàn thành!</div>
-        <div class="mcq-complete-stats">Đúng <span id="final-score">0</span>/<span id="final-total">0</span> câu</div>
-        <button class="mcq-complete-btn" onclick="location.reload()">Chơi lại</button>
-        <button class="mcq-complete-btn secondary"
-            onclick="location.href='{{ url_for('learning.vocabulary.dashboard') }}'">Về trang chủ</button>
+
+<!-- Result Modal -->
+<div class="result-overlay" id="result-overlay">
+    <div class="result-card">
+        <div class="result-icon">
+            <i class="fas fa-crown"></i>
+        </div>
+        <h2 class="result-title">Hoàn thành!</h2>
+        <p class="result-msg">Bạn đã hoàn thành bài luyện tập.</p>
+
+        <div class="stats-row">
+            <div class="stat-box">
+                <span class="stat-val" style="color: var(--success)" id="final-correct">0</span>
+                <span class="stat-lbl">Đúng</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-val" style="color: var(--error)" id="final-wrong">0</span>
+                <span class="stat-lbl">Sai</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-val" style="color: var(--primary)" id="final-percent">0%</span>
+                <span class="stat-lbl">Kết quả</span>
+            </div>
+        </div>
+
+        <div class="action-group">
+            <button class="next-btn" onclick="location.reload()">Luyện tập lại</button>
+            <button class="next-btn" style="background: var(--bg); color: var(--text-sub); box-shadow: none; border: 1px solid var(--border);" 
+                onclick="location.href='{{ url_for('learning.vocabulary.dashboard') }}'">
+                Về Dashboard
+            </button>
+        </div>
     </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script>
-    (function () {
-        var setId = {{ container.container_id }};
-    var mode = '{{ mode }}';
-    var count = {{ count|default (10) }};
-    var numChoices = {{ choices|default (4) }};
-    var customPairs = {{ custom_pairs| tojson if custom_pairs else 'null' }};
+(function() {
+    // Config
+    const setId = {{ container.container_id }};
+    const mode = '{{ mode }}';
+    const count = {{ count|default(10) }};
+    const numChoices = {{ choices|default(4) }};
+    const customPairs = {{ custom_pairs|tojson if custom_pairs else 'null' }};
 
-    var questions = [];
-    var current = 0;
-    var score = 0;
-    var answered = false;
+    // State
+    let questions = [];
+    let currentIndex = 0;
+    let stats = { correct: 0, wrong: 0 };
+    let isAnswered = false;
 
-    var questionEl = document.getElementById('question');
-    var choicesEl = document.getElementById('choices');
-    var nextBtn = document.getElementById('next-btn');
-    var scoreEl = document.getElementById('score');
+    // Elements
+    const els = {
+        qNum: document.getElementById('current-q-num'),
+        tNum: document.getElementById('total-q-num'),
+        pBar: document.getElementById('progress-bar'),
+        pPer: document.getElementById('progress-percent'),
+        lCorrect: document.getElementById('live-correct'),
+        lWrong: document.getElementById('live-wrong'),
+        qText: document.getElementById('question-text'),
+        cGrid: document.getElementById('choices-grid'),
+        nextBtn: document.getElementById('next-btn'),
+        result: document.getElementById('result-overlay')
+    };
 
-    var apiUrl = '/learn/vocabulary/mcq/api/items/' + setId +
-        '?count=' + count +
-        '&mode=' + mode +
-        '&choices=' + numChoices;
-    if (customPairs) {
-        apiUrl += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
-    }
+    // Init
+    init();
 
-    fetch(apiUrl)
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.success) {
-                questions = data.questions;
-                document.getElementById('total').textContent = questions.length;
-                document.getElementById('final-total').textContent = questions.length;
-                showQuestion();
-            } else {
-                questionEl.textContent = data.message || 'Loi tai câu hoi';
+    function init() {
+        // Build API URL
+        let apiUrl = `/learn/vocabulary/mcq/api/items/${setId}?count=${count}&mode=${mode}&choices=${numChoices}`;
+        if (customPairs) apiUrl += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
+
+        // Fetch Data
+        fetch(apiUrl)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    questions = data.questions;
+                    els.tNum.textContent = questions.length;
+                    renderQuestion();
+                } else {
+                    els.qText.textContent = data.message || 'Lỗi tải dữ liệu';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                els.qText.textContent = 'Lỗi kết nối';
+            });
+
+        // Event Listeners
+        els.nextBtn.addEventListener('click', nextQuestion);
+        
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && isAnswered && !els.nextBtn.disabled) {
+                nextQuestion();
+            }
+            // Number keys 1-4 for choices
+            if (!isAnswered && e.key >= '1' && e.key <= '4') {
+                const idx = parseInt(e.key) - 1;
+                const btn = els.cGrid.children[idx];
+                if (btn) btn.click();
             }
         });
+    }
 
-    function showQuestion() {
-        if (current >= questions.length) {
-            showComplete();
+    function renderQuestion() {
+        if (currentIndex >= questions.length) {
+            showResult();
             return;
         }
-        answered = false;
-        nextBtn.disabled = true;
 
-        var q = questions[current];
-        questionEl.textContent = q.question;
+        const q = questions[currentIndex];
+        isAnswered = false;
+        
+        // Update UI
+        els.qNum.textContent = currentIndex + 1;
+        const percent = Math.round(((currentIndex) / questions.length) * 100);
+        els.pBar.style.width = `${percent}%`;
+        els.pPer.textContent = `${percent}%`;
+        
+        els.qText.textContent = q.question;
+        els.nextBtn.disabled = true;
 
-        choicesEl.innerHTML = '';
-        q.choices.forEach(function (choice, idx) {
-            var btn = document.createElement('button');
-            btn.className = 'mcq-choice';
-            btn.textContent = choice;
-            btn.onclick = function () { selectChoice(idx); };
-            choicesEl.appendChild(btn);
+        // Render Choices
+        els.cGrid.innerHTML = '';
+        q.choices.forEach((choiceText, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.textContent = choiceText;
+            btn.onclick = () => handleAnswer(idx, btn);
+            els.cGrid.appendChild(btn);
         });
     }
 
-    function selectChoice(idx) {
-        if (answered) return;
-        answered = true;
+    function handleAnswer(selectedIndex, selectedBtn) {
+        if (isAnswered) return;
+        isAnswered = true;
 
-        var q = questions[current];
-        var buttons = choicesEl.querySelectorAll('.mcq-choice');
+        const q = questions[currentIndex];
+        const isCorrect = (selectedIndex === q.correct_index);
 
-        buttons.forEach(function (btn, i) {
-            btn.classList.add('disabled');
-            if (i === q.correct_index) {
-                btn.classList.add('correct');
-            } else if (i === idx && i !== q.correct_index) {
-                btn.classList.add('wrong');
-            }
-        });
-
-        if (idx === q.correct_index) {
-            score++;
-            scoreEl.textContent = score;
+        // Update Stats
+        if (isCorrect) {
+            stats.correct++;
+            els.lCorrect.textContent = stats.correct;
+            // Play success sound if available
+        } else {
+            stats.wrong++;
+            els.lWrong.textContent = stats.wrong;
+            // Play error sound if available
         }
 
+        // Visual Feedback
+        const buttons = els.cGrid.children;
+        for (let i = 0; i < buttons.length; i++) {
+            const btn = buttons[i];
+            btn.disabled = true; // Disable all
+            
+            if (i === q.correct_index) {
+                btn.classList.add('correct'); // Always show correct one
+            } else if (i === selectedIndex && !isCorrect) {
+                btn.classList.add('wrong'); // Show error if selected wrong
+            } else {
+                btn.classList.add('dimmed'); // Dim others
+            }
+        }
+
+        // Enable Next
+        els.nextBtn.disabled = false;
+        els.nextBtn.focus(); // Focus for Enter key
+
+        // Send to Backend (Silent)
         fetch('/learn/vocabulary/mcq/api/check', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 item_id: q.item_id,
                 correct_index: q.correct_index,
-                user_answer_index: idx
+                user_answer_index: selectedIndex
             })
         });
-
-        nextBtn.disabled = false;
     }
 
-    nextBtn.onclick = function () {
-        current++;
-        showQuestion();
-    };
-
-    function showComplete() {
-        document.getElementById('final-score').textContent = score;
-        document.getElementById('complete-modal').style.display = 'flex';
+    function nextQuestion() {
+        currentIndex++;
+        renderQuestion();
     }
-}) ();
+
+    function showResult() {
+        els.pBar.style.width = '100%';
+        els.pPer.textContent = '100%';
+        
+        document.getElementById('final-correct').textContent = stats.correct;
+        document.getElementById('final-wrong').textContent = stats.wrong;
+        
+        const total = stats.correct + stats.wrong;
+        const p = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+        document.getElementById('final-percent').textContent = `${p}%`;
+
+        els.result.classList.add('active');
+    }
+})();
 </script>
 {% endblock %}

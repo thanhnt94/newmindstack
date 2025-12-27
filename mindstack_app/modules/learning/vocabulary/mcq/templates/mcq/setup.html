@@ -318,32 +318,6 @@
 
     <div class="setup-scroll">
         <div class="setup-content">
-            <!-- Learning Statistics -->
-            <div class="setup-section">
-                <span class="setup-label">
-                    <i class="fas fa-chart-bar"></i>
-                    Thống kê học tập
-                </span>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-value new">{{ mode_counts.new }}</span>
-                        <span class="stat-label">Từ mới</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value due">{{ mode_counts.due }}</span>
-                        <span class="stat-label">Cần ôn tập</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value learned">{{ mode_counts.learned }}</span>
-                        <span class="stat-label">Đã học</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value total">{{ mode_counts.total }}</span>
-                        <span class="stat-label">Tổng số</span>
-                    </div>
-                </div>
-            </div>
-
             <!-- Question-Answer Pairs Section -->
             <div class="setup-section">
                 <span class="setup-label">
@@ -351,7 +325,7 @@
                     Thiết lập cặp Câu hỏi → Đáp án
                 </span>
                 <div class="pairs-container" id="pairs-container">
-                    <!-- Pairs added by JS -->
+                    <!-- Pairs will be added here via JS -->
                 </div>
                 <button type="button" class="add-pair-btn" id="add-pair-btn">
                     <i class="fas fa-plus"></i> Thêm cặp
@@ -387,88 +361,124 @@
 <script>
     (function () {
         var setId = {{ container.container_id }};
-    var availableKeys = {{ available_keys | tojson }};
-    var customPairs = [];
+        var availableKeys = {{ available_keys | tojson }};
+        var customPairs = [];
 
-    // Initialize with default pair (front -> back)
-    addPair('front', 'back');
+        // Safety check for availableKeys
+        if (!Array.isArray(availableKeys)) {
+            console.error('availableKeys is not an array:', availableKeys);
+            availableKeys = [];
+        }
 
-    // Add pair button
-    document.getElementById('add-pair-btn').addEventListener('click', function () {
-        addPair();
-    });
+        // Initialize with default pair (front -> back)
+        addPair('front', 'back');
 
-    function addPair(defaultQ, defaultA) {
-        var container = document.getElementById('pairs-container');
-        var pairIndex = container.children.length;
+        // Add pair button
+        var addBtn = document.getElementById('add-pair-btn');
+        if (addBtn) {
+            addBtn.addEventListener('click', function () {
+                addPair();
+            });
+        }
 
-        var row = document.createElement('div');
-        row.className = 'pair-row';
-        row.dataset.pairIndex = pairIndex;
+        function addPair(defaultQ, defaultA) {
+            var container = document.getElementById('pairs-container');
+            if (!container) return;
 
-        var optionsHtml = '<option value="">-- Chọn cột --</option>';
-        availableKeys.forEach(function (key) {
-            optionsHtml += '<option value="' + key + '">' + key + '</option>';
-        });
+            var pairIndex = container.children.length;
 
-        row.innerHTML =
-            '<div class="pair-col">' +
-            '<div class="pair-col-label">Câu hỏi</div>' +
-            '<select class="pair-q">' + optionsHtml + '</select>' +
-            '</div>' +
-            '<span class="pair-arrow"><i class="fas fa-arrow-right"></i></span>' +
-            '<div class="pair-col">' +
-            '<div class="pair-col-label">Đáp án</div>' +
-            '<select class="pair-a">' + optionsHtml + '</select>' +
-            '</div>' +
-            '<button type="button" class="pair-delete"><i class="fas fa-times"></i></button>';
+            var row = document.createElement('div');
+            row.className = 'pair-row';
+            row.dataset.pairIndex = pairIndex;
 
-        container.appendChild(row);
+            var optionsHtml = '<option value="">-- Chọn cột --</option>';
+            availableKeys.forEach(function (key) {
+                optionsHtml += '<option value="' + key + '">' + key + '</option>';
+            });
 
-        // Set default values if provided
-        if (defaultQ) row.querySelector('.pair-q').value = defaultQ;
-        if (defaultA) row.querySelector('.pair-a').value = defaultA;
+            row.innerHTML =
+                '<div class="pair-col">' +
+                '<div class="pair-col-label">Câu hỏi</div>' +
+                '<select class="pair-q">' + optionsHtml + '</select>' +
+                '</div>' +
+                '<span class="pair-arrow"><i class="fas fa-arrow-right"></i></span>' +
+                '<div class="pair-col">' +
+                '<div class="pair-col-label">Đáp án</div>' +
+                '<select class="pair-a">' + optionsHtml + '</select>' +
+                '</div>' +
+                '<button type="button" class="pair-delete"><i class="fas fa-times"></i></button>';
 
-        // Delete handler
-        row.querySelector('.pair-delete').addEventListener('click', function () {
-            if (container.children.length > 1) {
-                row.remove();
-                updateCustomPairs();
+            container.appendChild(row);
+
+            // Set default values if provided
+            if (defaultQ) {
+                var qSelect = row.querySelector('.pair-q');
+                if (qSelect) qSelect.value = defaultQ;
             }
-        });
-
-        // Change handlers
-        row.querySelector('.pair-q').addEventListener('change', updateCustomPairs);
-        row.querySelector('.pair-a').addEventListener('change', updateCustomPairs);
-
-        updateCustomPairs();
-    }
-
-    function updateCustomPairs() {
-        customPairs = [];
-        document.querySelectorAll('.pair-row').forEach(function (row) {
-            var q = row.querySelector('.pair-q').value;
-            var a = row.querySelector('.pair-a').value;
-            if (q && a) {
-                customPairs.push({ q: q, a: a });
+            if (defaultA) {
+                var aSelect = row.querySelector('.pair-a');
+                if (aSelect) aSelect.value = defaultA;
             }
-        });
-    }
 
-    // Start button
-    document.getElementById('start-btn').addEventListener('click', function () {
-        if (customPairs.length === 0) {
-            alert('Vui lòng chọn ít nhất một cặp câu hỏi - đáp 
-    án');
-            re          }
+            // Delete handler
+            var deleteBtn = row.querySelector('.pair-delete');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', function () {
+                    if (container.children.length > 1) {
+                        row.remove();
+                        updateCustomPairs();
+                    }
+                });
+            }
 
-        var count = {{ total_items }}; // Use all items     choices = document.getElementById('choices-select').        var url = '/learn        mcq/session/' + setI        '?mode=custom' +
-                count +
-        '&choices=' + choices +
-        '&custom_pairs=' + e    Component(JSON.stringify(customPairs));
+            // Change handlers
+            var qSel = row.querySelector('.pair-q');
+            var aSel = row.querySelector('.pair-a');
+            
+            if (qSel) qSel.addEventListener('change', updateCustomPairs);
+            if (aSel) aSel.addEventListener('change', updateCustomPairs);
 
-   on.href = url;
-    });
-}) ();
+            updateCustomPairs();
+        }
+
+        function updateCustomPairs() {
+            customPairs = [];
+            document.querySelectorAll('.pair-row').forEach(function (row) {
+                var qSel = row.querySelector('.pair-q');
+                var aSel = row.querySelector('.pair-a');
+                if (qSel && aSel) {
+                    var q = qSel.value;
+                    var a = aSel.value;
+                    if (q && a) {
+                        customPairs.push({ q: q, a: a });
+                    }
+                }
+            });
+        }
+
+        // Start button
+        var startBtn = document.getElementById('start-btn');
+        if (startBtn) {
+            startBtn.addEventListener('click', function () {
+                if (customPairs.length === 0) {
+                    alert('Vui lòng chọn ít nhất một cặp câu hỏi - đáp án');
+                    return;
+                }
+
+                var count = {{ total_items }}; 
+                var choicesSelect = document.getElementById('choices-select');
+                var choices = choicesSelect ? choicesSelect.value : 4;
+                
+                var baseUrl = "{{ url_for('learning.vocabulary.mcq.session', set_id=container.container_id) }}";
+                var url = baseUrl + 
+                        '?mode=custom' +
+                        '&count=' + count +
+                        '&choices=' + choices +
+                        '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
+
+                window.location.href = url;
+            });
+        }
+    }) ();
 </script>
 {% endblock %}
