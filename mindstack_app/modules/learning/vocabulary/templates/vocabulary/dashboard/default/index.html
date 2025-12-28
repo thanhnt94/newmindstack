@@ -1640,20 +1640,43 @@
     console.log("Deep Link Check:", activeSetId, "Step:", activeStep);
 
     if (activeSetId) {
-        // Load set detail data first
-        loadSetDetail(activeSetId, false);
+        // Show immediate loading state if possible, or keep hidden until loaded
+        // But better to show *something*.
+        if (setsGrid) setsGrid.innerHTML = '<div class="vocab-loading" style="grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i><p>Đang chuẩn bị...</p></div>';
 
-        // Wait for data to load then show appropriate step
-        if (activeStep && activeStep !== 'browser' && activeStep !== 'detail') {
-            setTimeout(function () {
-                showStep(activeStep);
-                // Load mode data if needed
-                if (activeStep === 'flashcard-options') {
-                    loadFlashcardOptions(activeSetId);
-                } else if (activeStep === 'mcq-options') {
-                    loadMcqOptions();
+        // Load set detail data first
+        loadSetDetail(activeSetId, false)
+            .then(function () {
+                // Wait for data to load then show appropriate step
+                if (activeStep && activeStep !== 'browser' && activeStep !== 'detail') {
+                    showStep(activeStep);
+                    updateModeVisibility();
+
+                    // Load mode data if needed
+                    if (activeStep === 'flashcard-options') {
+                        loadFlashcardOptions(activeSetId);
+                    } else if (activeStep === 'mcq-options') {
+                        loadMcqOptions(activeSetId);
+                    }
+                } else if (activeStep === 'detail') {
+                    // Already handled by loadSetDetail's showStep('detail') but ensure consistency
+                    showStep('detail');
                 }
-            }, 500);
+            })
+            .catch(function (err) {
+                console.error("Init failed:", err);
+                // Fallback to browser or show error
+                alert("Không thể tải dữ liệu bộ thẻ. Vui lòng thử lại.");
+                showStep('browser');
+                loadSets();
+            });
+    } else {
+        // Determine initial step if not deep linked (default browser)
+        // Popstate handler handles this but initial load needs it?
+        // The sets are loaded by loadSets() called above.
+        // Ensure browser step is active
+        if (!activeStep || activeStep === 'browser') {
+            showStep('browser');
         }
     }
 
@@ -1866,20 +1889,23 @@
 
         console.log("Fetching set detail:", setId);
 
-        fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
+        return fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.success) {
                     selectedSetData = data.set;
                     renderSetDetail(data.set, data.course_stats, false, data.pagination_html);
+                    return data.set;
                 } else {
                     console.error('Failed to load set data:', data.message);
                     alert('Không thể tải thông tin bộ thẻ: ' + (data.message || 'Lỗi không xác định'));
+                    throw new Error(data.message);
                 }
             })
             .catch(function (err) {
                 console.error('Error loading set detail:', err);
                 alert('Có lỗi xảy ra khi tải dữ liệu.');
+                throw err;
             });
     }
 
@@ -2145,10 +2171,17 @@
     });
 
     function updateModeVisibility() {
-        if (!selectedSetData || !selectedSetData.capabilities) {
-            document.querySelectorAll('.js-mode-card').forEach(el => el.style.display = 'flex');
+        if (!selectedSetData) return;
+
+        console.log("Updating visibility for set:", selectedSetData);
+
+        // If no capabilities defined or empty, show flashcard and mcq as default or show all?
+        // Let's safe default: SHOW ALL if no capabilities found to avoid "blank" screen
+        if (!selectedSetData.capabilities || selectedSetData.capabilities.length === 0) {
+            document.querySelectorAll('.js-mode-select').forEach(el => el.style.display = 'flex');
             return;
         }
+
         const caps = new Set(selectedSetData.capabilities);
         const mapping = {
             'flashcard': 'supports_flashcard',
@@ -2160,16 +2193,24 @@
             'mixed': 'supports_srs'
         };
 
+        let hasVisible = false;
         document.querySelectorAll('.js-mode-select').forEach(card => {
             const mode = card.dataset.mode;
             const flag = mapping[mode];
 
             if (flag && caps.has(flag)) {
                 card.style.display = 'flex';
+                hasVisible = true;
             } else {
                 card.style.display = 'none';
             }
         });
+
+        if (!hasVisible) {
+            // Fallback: if logic hides everything, show everything to be safe
+            console.warn("All modes hidden by capabilities, forcing show.");
+            document.querySelectorAll('.js-mode-select').forEach(el => el.style.display = 'flex');
+        }
     }
 
     // Continue button handler

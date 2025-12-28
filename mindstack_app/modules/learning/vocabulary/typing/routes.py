@@ -25,11 +25,22 @@ def setup(set_id):
     
     available_keys = get_available_content_keys(set_id)
     
+    # [UPDATED] Load saved settings
+    saved_settings = {}
+    try:
+        from mindstack_app.models import UserContainerState
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if ucs and ucs.settings:
+            saved_settings = ucs.settings.get('typing', {})
+    except Exception as e:
+        pass
+
     return render_template(
         'typing/setup.html',
         container=container,
         total_items=len(items),
-        available_keys=available_keys
+        available_keys=available_keys,
+        saved_settings=saved_settings
     )
 
 
@@ -51,6 +62,38 @@ def session(set_id):
             custom_pairs = json.loads(custom_pairs_str)
         except:
             pass
+
+    # [UPDATED] Save settings to persistence
+    try:
+        count = request.args.get('count', 10, type=int)
+        
+        from mindstack_app.models import UserContainerState
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if not ucs:
+            ucs = UserContainerState(
+                user_id=current_user.user_id, 
+                container_id=set_id,
+                settings={}
+            )
+            from mindstack_app.models import db
+            db.session.add(ucs)
+        
+        # Update settings
+        new_settings = dict(ucs.settings or {})
+        if 'typing' not in new_settings: new_settings['typing'] = {}
+        
+        new_settings['typing']['count'] = count
+        if custom_pairs:
+            new_settings['typing']['custom_pairs'] = custom_pairs
+        
+        ucs.settings = new_settings
+        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.models import db
+        safe_commit(db.session)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        pass
 
     # Get eligible items
     items = get_typing_eligible_items(set_id, custom_pairs=custom_pairs)

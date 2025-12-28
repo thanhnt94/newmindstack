@@ -5,7 +5,7 @@
 # ĐÃ SỬA: Di chuyển nút Feedback từ toolbar bên trái sang bên phải, đặt cạnh nút Sửa thẻ.
 #}
 
-{% extends "flashcard/individual/cardsession/v2/_base.html" %}
+{% extends "flashcard/individual/cardsession/v1/_base.html" %}
 {% from 'includes/_navbar.html' import render_navbar %}
 {% block title %}Học Flashcard{% endblock %}
 
@@ -14,26 +14,7 @@
 
 {% block head %}
 {{ super() }}
-<script>
-  // Remove Tailwind padding from main on mobile viewport
-  (function () {
-    if (window.innerWidth <= 1023) {
-      document.addEventListener('DOMContentLoaded', function () {
-        var main = document.querySelector('body > main');
-        if (main) {
-          main.classList.remove('py-4', 'px-2', 'sm:py-2', 'sm:px-3', 'md:py-4');
-          main.style.padding = '0';
-          main.style.margin = '0';
-        }
-        var header = document.querySelector('body > header');
-        if (header) {
-          header.style.display = 'none';
-        }
-      });
-    }
-  })();
-</script>
-<link rel="stylesheet" href="{{ url_for('learning.flashcard_learning.static', filename='css/session_v2.css') }}">
+<link rel="stylesheet" href="{{ url_for('learning.flashcard_learning.static', filename='css/session_v1.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -108,5 +89,5 @@ window.FC = {
 };
 </script>
 
-<script src="{{ url_for('learning.flashcard_learning.static', filename='js/session_v2.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.static', filename='js/session_v1.js') }}"></script>
 {% endblock %}

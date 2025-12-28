@@ -107,9 +107,28 @@ try {
   console.warn('Không thể đọc trạng thái hiển thị ảnh:', err);
 }
 
+// [UPDATED] Initialize from Server Settings if available
+if (window.FC && window.FC.savedVisualSettings) {
+  const settings = window.FC.savedVisualSettings;
+
+  // Show Image (Logical toggle of hidden)
+  if (typeof settings.show_image === 'boolean') {
+    isMediaHidden = !settings.show_image;
+  }
+
+  // Autoplay Audio
+  if (typeof settings.autoplay === 'boolean') {
+    // storedAudioAutoplay logic below might override if we are not careful
+    // Let's set the flag directly
+    isAudioAutoplayEnabled = settings.autoplay;
+    storedAudioAutoplay = null; // Prevent localStorage override below
+  }
+}
+
 if (storedAudioAutoplay === 'false') {
   isAudioAutoplayEnabled = false;
 }
+// Note: If storedAudioAutoplay was null (because we used server settings), isAudioAutoplayEnabled keeps server value
 
 if (isAutoplaySession) {
   try {
@@ -124,6 +143,32 @@ if (isAutoplaySession) {
     console.warn('Không thể đọc cấu hình AutoPlay:', err);
   }
   document.body.classList.add('flashcard-autoplay-active');
+}
+
+// --- Persistence API Helper ---
+async function saveCurrentSettings() {
+  const settings = {
+    button_count: window.userButtonCount,
+    visual_settings: {
+      show_image: !isMediaHidden,
+      autoplay: isAudioAutoplayEnabled,
+      show_stats: true // Placeholder, not yet togglable
+    }
+  };
+
+  try {
+    await fetch(window.FC.urls.saveSettings, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify(settings)
+    });
+    // Silent success
+  } catch (e) {
+    console.warn('Failed to save settings:', e);
+  }
 }
 
 const getNoteUrl = window.FC.urls.getNote;
@@ -187,6 +232,9 @@ function setMediaHiddenState(hidden) {
   }
 
   applyMediaVisibility();
+
+  // [UPDATED] Save to backend
+  saveCurrentSettings();
 }
 
 function persistAudioAutoplayPreference(enabled) {
@@ -213,6 +261,10 @@ function setAudioAutoplayEnabled(enabled) {
   isAudioAutoplayEnabled = enabled;
   persistAudioAutoplayPreference(enabled);
   updateAudioAutoplayToggleButtons();
+
+  // [UPDATED] Save to backend
+  saveCurrentSettings();
+
   if (!enabled) {
     stopAllFlashcardAudio();
   }

@@ -34,7 +34,6 @@ class LearningContainer(db.Model):
     ai_capabilities = db.Column(JSON, nullable=True)
     media_image_folder = db.Column(db.String(255), nullable=True)
     media_audio_folder = db.Column(db.String(255), nullable=True)
-    legacy_ai_settings = db.Column('ai_settings', JSON, nullable=True)
 
     creator = db.relationship(
         'User',
@@ -124,62 +123,28 @@ class LearningContainer(db.Model):
         if normalized:
             return set(normalized)
 
-        legacy = self.legacy_ai_settings if isinstance(self.legacy_ai_settings, Mapping) else {}
-        legacy_caps = self._normalize_capabilities(legacy.get('capabilities'))
-        return set(legacy_caps or [])
+        normalized = self._normalize_capabilities(self.ai_capabilities)
+        if normalized:
+            return set(normalized)
+
+        return set()
 
     @property
     def ai_settings(self) -> Optional[dict[str, Any]]:
         """Expose a consolidated AI configuration mapping."""
 
         data: dict[str, Any] = {}
-        legacy: Mapping[str, Any] = self.legacy_ai_settings if isinstance(self.legacy_ai_settings, Mapping) else {}
 
-        prompt = self.ai_prompt or legacy.get('custom_prompt')
-        if isinstance(prompt, str) and prompt.strip():
-            data['custom_prompt'] = prompt
+        if self.ai_prompt:
+             data['custom_prompt'] = self.ai_prompt
 
         capabilities = self.ai_capabilities
-        if not capabilities:
-            capabilities = self._normalize_capabilities(legacy.get('capabilities'))
         if capabilities:
             data['capabilities'] = list(capabilities)
 
         media_data = self.media_folders
-        if not media_data:
-            legacy_media = legacy.get('media_folders')
-            if not isinstance(legacy_media, Mapping):
-                legacy_media = {
-                    media_type: legacy.get(f'{media_type}_base_folder')
-                    for media_type in self._MEDIA_TYPES
-                    if legacy.get(f'{media_type}_base_folder')
-                }
-            if isinstance(legacy_media, Mapping):
-                parsed_media = {}
-                for media_type in self._MEDIA_TYPES:
-                    normalized = self._normalize_media_folder(legacy_media.get(media_type))
-                    if normalized:
-                        parsed_media[media_type] = normalized
-                media_data = parsed_media
         if media_data:
             data['media_folders'] = media_data
-
-        extra: dict[str, Any] = {}
-        for key, value in legacy.items():
-            if key in {
-                'custom_prompt',
-                'capabilities',
-                'media_folders',
-                'image_base_folder',
-                'audio_base_folder',
-            }:
-                continue
-            if key == 'extra' and isinstance(value, Mapping):
-                extra.update(value)
-            else:
-                extra[key] = value
-        if extra:
-            data['extra'] = extra
 
         return data or None
 
@@ -190,19 +155,12 @@ class LearningContainer(db.Model):
             self.ai_capabilities = None
             self.media_image_folder = None
             self.media_audio_folder = None
-            self.legacy_ai_settings = None
             return
 
         if not isinstance(value, Mapping):
             raise TypeError('ai_settings must be a mapping or None')
 
         payload: MutableMapping[str, Any] = dict(value)
-
-        extra_payload = payload.pop('extra', None)
-        if isinstance(extra_payload, Mapping):
-            legacy_payload = dict(extra_payload)
-        else:
-            legacy_payload = {}
 
         prompt_candidate = payload.pop('custom_prompt', None)
         if isinstance(prompt_candidate, str):
@@ -221,9 +179,6 @@ class LearningContainer(db.Model):
                     fallback_media[media_type] = payload.pop(fallback_key)
             media_payload = fallback_media
         self.set_media_folders(media_payload)
-
-        legacy_payload.update(payload)
-        self.legacy_ai_settings = legacy_payload or None
 
 
 class LearningGroup(db.Model):

@@ -23,10 +23,21 @@ def setup(set_id):
     # Get total items for count selection
     items = get_listening_eligible_items(set_id)
     
+    # [UPDATED] Load saved settings
+    saved_settings = {}
+    try:
+        from mindstack_app.models import UserContainerState
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if ucs and ucs.settings:
+            saved_settings = ucs.settings.get('listening', {})
+    except Exception as e:
+        pass
+
     return render_template(
         'listening/setup.html',
         container=container,
-        total_items=len(items)
+        total_items=len(items),
+        saved_settings=saved_settings
     )
 
 
@@ -44,6 +55,36 @@ def session(set_id):
     items = get_listening_eligible_items(set_id)
     if len(items) < 1:
         abort(400, description="Cần ít nhất 1 thẻ có Audio để chơi Luyện nghe")
+    
+    # [UPDATED] Save settings to persistence
+    try:
+        count = request.args.get('count', 10, type=int)
+        
+        from mindstack_app.models import UserContainerState
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if not ucs:
+            ucs = UserContainerState(
+                user_id=current_user.user_id, 
+                container_id=set_id,
+                settings={}
+            )
+            from mindstack_app.models import db
+            db.session.add(ucs)
+        
+        # Update settings
+        new_settings = dict(ucs.settings or {})
+        if 'listening' not in new_settings: new_settings['listening'] = {}
+        
+        new_settings['listening']['count'] = count
+        
+        ucs.settings = new_settings
+        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.models import db
+        safe_commit(db.session)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        pass
     
     return render_template(
         'listening/session.html',

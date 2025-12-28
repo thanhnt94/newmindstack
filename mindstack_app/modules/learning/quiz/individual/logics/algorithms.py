@@ -119,7 +119,7 @@ def get_new_only_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_new_only_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
     
-    # MIGRATED: Sử dụng LearningProgress thay vì QuizProgress
+    # Query new items using LearningProgress
     new_items_query = base_items_query.outerjoin(LearningProgress, 
         and_(
             LearningProgress.item_id == LearningItem.item_id, 
@@ -156,7 +156,7 @@ def get_reviewed_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_reviewed_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
     
-    # MIGRATED: Sử dụng LearningProgress thay vì QuizProgress
+    # Query reviewed items using LearningProgress
     reviewed_items_query = base_items_query.join(
         LearningProgress,
         and_(
@@ -194,7 +194,7 @@ def get_hard_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
 
-    # MIGRATED: Sử dụng LearningProgress thay vì QuizProgress
+    # Query hard items using LearningProgress
     hard_items_query = base_items_query.join(
         LearningProgress,
         and_(
@@ -319,7 +319,7 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
             item_type='QUIZ_MCQ'
         ).count()
         
-        # MIGRATED: Truy vấn số lượng câu hỏi đã làm từ bảng LearningProgress
+        # Query item count from LearningProgress
         learned_items = db.session.query(LearningProgress).filter(
             LearningProgress.user_id == user_id,
             LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,

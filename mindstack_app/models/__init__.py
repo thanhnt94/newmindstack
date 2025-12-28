@@ -22,9 +22,6 @@ from .user import (
     User,
     UserContainerState,
     UserSession,
-    FlashcardProgress,
-    QuizProgress,
-    CourseProgress,
     ScoreLog,
     LearningGoal,
     GoalDailyHistory,
@@ -35,7 +32,7 @@ from .user import (
 )
 from .system import ApiKey, BackgroundTask, BackgroundTaskLog
 from .app_settings import AppSettings  # unified settings (replaces SiteSettings + SystemSetting)
-from .memrise import MemriseProgress
+from .memrise import MemriseProgress  # DEPRECATED: Use LearningProgress with learning_mode='memrise'
 from .learning_progress import LearningProgress  # NEW: Unified progress model
 from ..modules.gamification.models import Badge, UserBadge
 
@@ -59,9 +56,6 @@ __all__ = [
     'User',
     'UserContainerState',
     'UserSession',
-    'FlashcardProgress',
-    'QuizProgress',
-    'CourseProgress',
     'ScoreLog',
     'LearningGoal',
     'GoalDailyHistory',

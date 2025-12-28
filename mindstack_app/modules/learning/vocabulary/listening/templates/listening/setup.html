@@ -249,35 +249,56 @@
         var dataEl = document.getElementById('setup-data');
         var setId = dataEl.dataset.setId;
         var totalItems = parseInt(dataEl.dataset.totalItems);
-        var selectedCount = 10; // Default
+        var savedSettings = {{ saved_settings | tojson
+    }};
+    var selectedCount = 10; // Default
 
-        // Count Selection Logic
-        var countOptions = document.querySelectorAll('#count-options .option-card');
-        countOptions.forEach(function (card) {
-            card.addEventListener('click', function () {
-                // Remove selected from all
-                countOptions.forEach(c => c.classList.remove('selected'));
-                // Add to clicked
-                this.classList.add('selected');
-                selectedCount = parseInt(this.dataset.value);
-            });
+    // Load Saved Settings
+    if (savedSettings && savedSettings.count) {
+        selectedCount = parseInt(savedSettings.count);
+    }
+
+    // Count Selection Logic
+    var countOptions = document.querySelectorAll('#count-options .option-card');
+
+    // Update visual selection based on loaded settings
+    countOptions.forEach(c => c.classList.remove('selected'));
+    var matchedOption = Array.from(countOptions).find(c => parseInt(c.dataset.value) === selectedCount);
+    if (!matchedOption) {
+        // Fallback to default logic
+        // If saved count is weird, maybe default to 10?
+        // Or if saved is 'all', match totalItems
+        matchedOption = Array.from(countOptions).find(c => parseInt(c.dataset.value) === totalItems && selectedCount >= totalItems);
+        if (!matchedOption) matchedOption = countOptions[0];
+    }
+    if (matchedOption) {
+        matchedOption.classList.add('selected');
+        selectedCount = parseInt(matchedOption.dataset.value);
+    }
+
+    countOptions.forEach(function (card) {
+        card.addEventListener('click', function () {
+            // Remove selected from all
+            countOptions.forEach(c => c.classList.remove('selected'));
+            // Add to clicked
+            this.classList.add('selected');
+            selectedCount = parseInt(this.dataset.value);
         });
+    });
 
-        // Start Button Logic
-        var startBtn = document.getElementById('start-btn');
-        if (startBtn) {
-            startBtn.addEventListener('click', function () {
-                // Ensure count doesn't exceed total
-                var finalCount = Math.min(selectedCount, totalItems);
+    // Start Button Logic
+    var startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', function () {
+            // Ensure count doesn't exceed total
+            var finalCount = Math.min(selectedCount, totalItems);
 
-                // Construct URL
-                // Note: Listening session route name might be 'learning.vocabulary.listening.session' or similar.
-                // Assuming standard naming convention from other modules.
-                var baseUrl = "/learn/vocabulary/listening/session/" + setId;
-                var url = baseUrl + '?count=' + finalCount;
-                window.location.href = url;
-            });
-        }
-    })();
+            // Construct URL
+            var baseUrl = "{{ url_for('learning.vocabulary.listening.session', set_id=container.container_id) }}";
+            var url = baseUrl + '?count=' + finalCount;
+            window.location.href = url;
+        });
+    }
+    }) ();
 </script>
 {% endblock %}

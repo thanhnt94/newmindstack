@@ -1,7 +1,16 @@
 # File: mindstack_app/models/memrise.py
 # Phiên bản: 1.0
 # Mục đích: Model cho tiến trình học Memrise với SRS
+#
+# ⚠️ DEPRECATED: This model is deprecated in favor of LearningProgress.
+# The MemriseProgress table still exists in the database for backward compatibility,
+# but all new code should use:
+#     LearningProgress with learning_mode='memrise'
+# 
+# Migration script: scripts/migrate_progress_tables.py
+# See: mindstack_app/models/learning_progress.py
 
+import warnings
 from sqlalchemy.sql import func
 from ..db_instance import db
 
@@ -27,8 +36,13 @@ RELEARNING_INTERVAL = 10  # Reset to 10 minutes when wrong
 
 class MemriseProgress(db.Model):
     """
+    DEPRECATED: Use LearningProgress with learning_mode='memrise' instead.
+    
     Tracks SRS progress for Memrise learning.
     Each user-item pair has a memory level (0-7) representing the "memory tree".
+    
+    This model is kept for backward compatibility with existing database records.
+    All new code should use the unified LearningProgress model.
     """
     
     __tablename__ = 'memrise_progress'

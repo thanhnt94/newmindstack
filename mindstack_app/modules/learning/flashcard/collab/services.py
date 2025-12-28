@@ -14,7 +14,7 @@ from .....models import (
     FlashcardCollabParticipant,
     FlashcardCollabRoom,
     FlashcardCollabRound,
-    FlashcardProgress,
+    LearningProgress,
     LearningContainer,
     LearningItem,
     User,
@@ -133,17 +133,17 @@ def _pick_next_item_for_user(user_id: int, container_id: int, mode: str) -> Opti
 
     if normalized == 'due_only':
         query = algorithms.get_due_items(user_id, container_id, None)
-        query = query.order_by(FlashcardProgress.due_time.asc())
+        query = query.order_by(LearningProgress.due_time.asc())
         return _first_item(query)
 
     if normalized == 'hard_only':
         query = algorithms.get_hard_items(user_id, container_id, None)
-        query = query.order_by(FlashcardProgress.due_time.asc(), LearningItem.item_id.asc())
+        query = query.order_by(LearningProgress.due_time.asc(), LearningItem.item_id.asc())
         return _first_item(query)
 
     if normalized == 'all_review':
         query = algorithms.get_all_review_items(user_id, container_id, None)
-        query = query.order_by(FlashcardProgress.due_time.asc(), LearningItem.item_id.asc())
+        query = query.order_by(LearningProgress.due_time.asc(), LearningItem.item_id.asc())
         return _first_item(query)
 
     # Capability-based practice modes fall back to ordered items from their specific query
@@ -169,7 +169,7 @@ def _pick_next_item_for_user(user_id: int, container_id: int, mode: str) -> Opti
         return _first_item(query)
 
     # Default mixed SRS: prioritize due cards then new ones
-    due_query = algorithms.get_due_items(user_id, container_id, None).order_by(FlashcardProgress.due_time.asc())
+    due_query = algorithms.get_due_items(user_id, container_id, None).order_by(LearningProgress.due_time.asc())
     due_item = _first_item(due_query)
     if due_item:
         return due_item

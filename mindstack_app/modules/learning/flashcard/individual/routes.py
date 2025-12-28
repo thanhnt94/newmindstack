@@ -28,7 +28,6 @@ from ..engine import FlashcardEngine
 from mindstack_app.models import (
     db,
     User,
-    FlashcardProgress,
     UserContainerState,
     LearningContainer,
     LearningItem,
@@ -144,6 +143,11 @@ def start_flashcard_session_all(mode):
     """
     set_ids = 'all'
 
+    # [UPDATED] Capture UI Preference
+    ui_pref = request.args.get('flashcard_ui_pref')
+    if ui_pref:
+        session['flashcard_ui_pref'] = ui_pref
+
     if FlashcardSessionManager.start_new_flashcard_session(set_ids, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
@@ -169,6 +173,11 @@ def start_flashcard_session_multi(mode):
         flash('Lỗi: Định dạng ID bộ thẻ không hợp lệ.', 'danger')
         return redirect(url_for('learning.flashcard.dashboard'))
 
+    # [UPDATED] Capture UI Preference
+    ui_pref = request.args.get('flashcard_ui_pref')
+    if ui_pref:
+        session['flashcard_ui_pref'] = ui_pref
+
     if FlashcardSessionManager.start_new_flashcard_session(set_ids, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
@@ -182,21 +191,60 @@ def start_flashcard_session_by_id(set_id, mode):
     """
     Bắt đầu một phiên học Flashcard cho một bộ thẻ cụ thể.
     """
-    # Capture rating_levels from URL param if provided
+    
+    # [UPDATED v5] Persistence Logic: Load Per-Set Settings
+    # 1. Capture overrides from URL (highest priority for this single session)
+    # 2. If not in URL, try to load from UserContainerState.settings
+    # 3. Apply to session (UserSession is transient, this logic prepares the transient state)
+
+    # A. Check for persisted settings
+    persisted_settings = {}
+    try:
+        container_state = UserContainerState.query.filter_by(
+            user_id=current_user.user_id,
+            container_id=set_id
+        ).first()
+        if container_state and container_state.settings:
+            persisted_settings = container_state.settings.get('flashcard', {})
+    except Exception as e:
+        current_app.logger.warning(f"Failed to load container settings: {e}")
+
+    # B. Rating Levels (Button Count)
+    # Priority: URL Param > Content of URL override > UserContainerState > Global Preference
     rating_levels = request.args.get('rating_levels', type=int)
     if rating_levels and rating_levels in [3, 4, 6]:
         session['flashcard_button_count_override'] = rating_levels
-        # Also save to User.last_preferences for persistence
-        try:
-            current_user.set_flashcard_button_count(rating_levels)
-            from sqlalchemy.orm.attributes import flag_modified
-            flag_modified(current_user, 'last_preferences')
-            db.session.commit()
-        except Exception as e:
-            current_app.logger.warning(f"Failed to save flashcard_button_count preference: {e}")
-            db.session.rollback()
+        # Note: We ONLY save to persistence if explicit save action or maybe on session end?
+        # For now, start_session strictly sets up the session. Saving happens via explicit API or side-effect.
+        # But user requested "remember last use".
+        # So if URL param is explicit (user changed dropdown), we should probably UPDATE persistence?
+        # Wait, the dropdown change usually triggers a navigate.
+        # Let's save it here to ensure "sticky" selection from setup screen.
+        # [TODO: This might be redundant if we have a separate save API, but safe for 'Start button' flow]
     else:
-        session.pop('flashcard_button_count_override', None)
+        # No URL override, check persistence
+        saved_count = persisted_settings.get('button_count')
+        if saved_count and saved_count in [3, 4, 6]:
+            session['flashcard_button_count_override'] = saved_count
+        else:
+            session.pop('flashcard_button_count_override', None)
+    
+    # C. UI Preference (v1/v2 - visual theme)
+    # Priority: URL Param > Persistence (if we decide to save this too) > Session (previous)
+    ui_pref = request.args.get('flashcard_ui_pref')
+    if ui_pref:
+        session['flashcard_ui_pref'] = ui_pref
+    # (Optional: Load UI pref from persistence if we want that stickiness too, let's stick to buttons/visuals for now)
+    
+    # D. Visual Settings (Autoplay, Images, Stats)
+    # Load these into a session dict to be consumed by the template
+    visual_settings = {
+        'autoplay': persisted_settings.get('autoplay', False),
+        'show_image': persisted_settings.get('show_image', True),
+        'show_stats': persisted_settings.get('show_stats', True)
+    }
+    session['flashcard_visual_settings'] = visual_settings
+    
     
     if FlashcardSessionManager.start_new_flashcard_session(set_id, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
@@ -233,11 +281,36 @@ def flashcard_session():
     # Get container name from session
     container_name = session_data.get('container_name', 'Bộ thẻ')
     
-    # Get active template version and base path from TemplateService
+    # Get active template version and base path
     from mindstack_app.services.template_service import TemplateService
-    template_context = TemplateService.get_template_context('flashcard.cardsession')
-    template_base_path = template_context['template_base_path']
-    template_path = f'{template_base_path}/index.html'
+    
+    # [UPDATED] Check for user UI preference (v1/v2)
+    ui_pref = session.get('flashcard_ui_pref')
+    
+    # Validation: Check if requested version exists
+    available_versions = TemplateService.list_available_templates('flashcard.cardsession')
+    target_version = None
+    
+    if ui_pref and ui_pref in available_versions:
+        target_version = ui_pref
+    
+    if target_version:
+        # Manually construct path for user preference
+        template_type = 'flashcard.cardsession'
+        folder_path = TemplateService.TEMPLATE_MAPPING.get(template_type)
+        template_base_path = f'{folder_path}/{target_version}'
+        template_path = f'{template_base_path}/index.html'
+        
+        # Override context
+        template_context = {
+            'template_base_path': template_base_path,
+            'template_version': target_version
+        }
+    else:
+        # Fallback to system default
+        template_context = TemplateService.get_template_context('flashcard.cardsession')
+        template_base_path = template_context['template_base_path']
+        template_path = f'{template_base_path}/index.html'
     
     current_app.logger.debug(f"Rendering flashcard session with template: {template_path}")
     
@@ -247,6 +320,7 @@ def flashcard_session():
         is_autoplay_session=is_autoplay_session,
         autoplay_mode=autoplay_mode,
         container_name=container_name,
+        saved_visual_settings=session.get('flashcard_visual_settings', {}),
         **template_context  # Contains template_base_path and template_version
     )
 
@@ -538,33 +612,101 @@ def end_session_flashcard():
 @login_required
 def save_flashcard_settings():
     """
-    Lưu cài đặt số nút đánh giá mặc định trong một phiên học Flashcard của người dùng.
+    Lưu cài đặt số nút đánh giá VÀ visual settings (autoplay, image, stats) cho bộ thẻ HIỆN TẠI.
+    [UPDATED v5] Supports per-set persistence via UserContainerState.
     """
     data = request.get_json()
+    
+    # 1. Button Count
     button_count = data.get('button_count')
-
-    if button_count is None or not isinstance(button_count, int) or button_count not in [3, 4, 6]:
+    
+    # 2. Visual Settings
+    visual_settings = data.get('visual_settings') # { 'autoplay': bool, 'show_image': bool, 'show_stats': bool }
+    
+    # Validation
+    if button_count and (not isinstance(button_count, int) or button_count not in [3, 4, 6]):
         return jsonify({'success': False, 'message': 'Số nút đánh giá không hợp lệ.'}), 400
 
     ui_version = data.get('ui_version', 'v1')
     session['flashcard_ui_pref'] = ui_version
 
+    # Get Current Set ID from Session
+    # Problem: save_flashcard_settings is called from session page, but doesn't strictly send set_id.
+    # We can retrieve it from session['flashcard_session']
+    session_data = session.get('flashcard_session', {})
+    set_ids = session_data.get('set_id') # Could be int, string 'all', or list [1, 2]
+    
+    target_set_ids = []
+    if isinstance(set_ids, int):
+        target_set_ids = [set_ids]
+    elif isinstance(set_ids, list):
+         # If multiple, save to all? OR verify if it's a "Mixed" session.
+         # For mixed session, saving preference to ALL sets might be aggressive but logical if user views it as "My preference".
+         # Let's save to all involved sets.
+         target_set_ids = set_ids
+    
     try:
+        updated = False
+        
+        # Helper inner function to update JSON
+        def update_settings_json(current_json, key, value):
+            if not current_json: current_json = {}
+            if 'flashcard' not in current_json: current_json['flashcard'] = {}
+            # Update specific key
+            current_json['flashcard'][key] = value
+            return current_json
+
+        # A. Update Global/Transient (Legacy fallback + Session sync)
         user = User.query.get(current_user.user_id)
-        if user:
-            # [UPDATED v3] Use session_state
-            if user.session_state:
-                user.session_state.flashcard_button_count = button_count
-            else:
-                # Fallback: Should not happen if migrated
-                from mindstack_app.models import UserSession
-                new_sess = UserSession(user_id=user.user_id, flashcard_button_count=button_count)
-                db.session.add(new_sess)
+        if user and button_count:
+             if user.session_state:
+                 user.session_state.flashcard_button_count = button_count
+             else:
+                 from mindstack_app.models import UserSession
+                 new_sess = UserSession(user_id=user.user_id, flashcard_button_count=button_count)
+                 db.session.add(new_sess)
+             updated = True
+
+        # B. Update Per-Set Persistence
+        for sid in target_set_ids:
+            if not isinstance(sid, int): continue # Skip 'all' or weird values
             
+            uc_state = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=sid).first()
+            if not uc_state:
+                # Create if not exists (should have been created on start, but safety check)
+                uc_state = UserContainerState(
+                    user_id=current_user.user_id, 
+                    container_id=sid,
+                    is_archived=False,
+                    is_favorite=False,
+                    settings={}
+                )
+                db.session.add(uc_state)
+            
+            # Use a copy to ensure SQLAlchemy detects change in JSON
+            new_settings = dict(uc_state.settings or {})
+            
+            # Logic: Update flashcard section
+            if 'flashcard' not in new_settings: new_settings['flashcard'] = {}
+            
+            if button_count:
+                new_settings['flashcard']['button_count'] = button_count
+            
+            if visual_settings and isinstance(visual_settings, dict):
+                for k, v in visual_settings.items():
+                    if k in ['autoplay', 'show_image', 'show_stats']:
+                        new_settings['flashcard'][k] = v
+            
+            uc_state.settings = new_settings
+            # flag_modified(uc_state, 'settings') # Explicitly flag if needed, usually reassigning dict works
+            updated = True
+
+        if updated:
             safe_commit(db.session)
-            return jsonify({'success': True, 'message': 'Cài đặt số nút đã được lưu.'})
+            return jsonify({'success': True, 'message': 'Cài đặt đã được lưu.'})
         else:
-            return jsonify({'success': False, 'message': 'Không tìm thấy người dùng.'}), 404
+             return jsonify({'success': True, 'message': 'Không có thay đổi cần lưu (Không xác định được bộ thẻ).'})
+            
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Lỗi khi lưu cài đặt Flashcard của người dùng: {e}", exc_info=True)

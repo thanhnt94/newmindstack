@@ -30,13 +30,23 @@ def setup(set_id):
     
     # Get learning statistics
     mode_counts = get_mcq_mode_counts(current_user.user_id, set_id)
+
+    # [UPDATED] Load saved settings
+    saved_settings = {}
+    try:
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if ucs and ucs.settings:
+            saved_settings = ucs.settings.get('mcq', {})
+    except Exception as e:
+        pass
     
     return render_template(
         'mcq/setup.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
-        mode_counts=mode_counts
+        mode_counts=mode_counts,
+        saved_settings=saved_settings
     )
 
 
@@ -79,6 +89,43 @@ def session(set_id):
             custom_pairs = json.loads(custom_pairs_str)
         except:
             pass
+            
+    # [UPDATED] Save settings to persistence
+    try:
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if not ucs:
+            ucs = UserContainerState(
+                user_id=current_user.user_id, 
+                container_id=set_id,
+                settings={}
+            )
+            from mindstack_app.models import db
+            db.session.add(ucs)
+        
+        # Update settings (using copy to ensure modification)
+        new_settings = dict(ucs.settings or {})
+        if 'mcq' not in new_settings: new_settings['mcq'] = {}
+        
+        # Update specific fields
+        new_settings['mcq']['count'] = count
+        new_settings['mcq']['choices'] = choices
+        
+        # Only save custom_pairs if explicitly provided (to avoid overwriting complex setup with simple mode?)
+        # Actually mode 'custom' usually implies custom_pairs presence.
+        if custom_pairs:
+            new_settings['mcq']['custom_pairs'] = custom_pairs
+        elif mode == 'custom':
+            # If mode is custom but no pairs? Should not happen.
+            pass
+            
+        ucs.settings = new_settings
+        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.models import db
+        safe_commit(db.session)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        # Non-blocking error
     
     return render_template(
         'mcq/session.html',

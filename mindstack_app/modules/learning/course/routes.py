@@ -99,7 +99,7 @@ def course_session(lesson_id):
         flash('Bạn không có quyền truy cập khóa học này.', 'danger')
         return redirect(url_for('.course_learning_dashboard'))
     
-    # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+    # Get LearningProgress
     progress = LearningProgress.query.filter_by(
         user_id=current_user.user_id,
         item_id=lesson_id,
@@ -159,7 +159,7 @@ def update_lesson_progress(lesson_id):
         db.session.add(user_container_state)
     user_container_state.last_accessed = func.now()
 
-    # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+    # Update LearningProgress
     progress = LearningProgress.query.filter_by(
         user_id=current_user.user_id,
         item_id=lesson_id,
@@ -208,7 +208,7 @@ def update_lesson_progress(lesson_id):
         ]
 
         if lesson_ids:
-            # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+            # Check completion using LearningProgress
             completed_count = LearningProgress.query.filter(
                 LearningProgress.user_id == current_user.user_id,
                 LearningProgress.learning_mode == LearningProgress.MODE_COURSE,

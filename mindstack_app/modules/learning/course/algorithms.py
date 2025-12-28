@@ -108,7 +108,7 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
         if total_lessons > 0:
             lesson_ids = [lesson.item_id for lesson in lessons]
             
-            # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+            # Get progress using LearningProgress
             progress_records = LearningProgress.query.filter(
                 LearningProgress.user_id == user_id,
                 LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
@@ -152,7 +152,7 @@ def get_lessons_for_course(user_id, course_id):
 
     lesson_ids = [lesson.item_id for lesson in lessons]
     
-    # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+    # Get progress using LearningProgress
     progress_map = {}
     for p in LearningProgress.query.filter(
         LearningProgress.user_id == user_id,

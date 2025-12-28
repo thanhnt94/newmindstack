@@ -101,8 +101,6 @@ def get_leaderboard_data_internal(sort_by, timeframe, viewer=None):
 
 def _get_user_container_options(user_id, container_type, learning_mode, timestamp_attr='last_reviewed', item_type=None):
     """Return the list of learning containers (id/title) a user interacted with.
-    
-    MIGRATED: Uses LearningProgress with learning_mode filter instead of specific progress models.
     """
 
     timestamp_column = getattr(LearningProgress, timestamp_attr, None) if timestamp_attr else None
@@ -656,7 +654,6 @@ def _build_course_items_query(user_id):
 
 
 def _apply_course_category_filter(query, status):
-    # MIGRATED: Use LearningProgress.mastery instead of CourseProgress.completion_percentage
     # mastery >= 1.0 means 100% complete
     if not status or status == 'all':
         return query
@@ -1584,22 +1581,22 @@ def dashboard():
     flashcard_sets = _get_user_container_options(
         current_user.user_id,
         'FLASHCARD_SET',
-        FlashcardProgress,
+        LearningProgress.MODE_FLASHCARD,
         'last_reviewed',
         item_type='FLASHCARD',
     )
     quiz_sets = _get_user_container_options(
         current_user.user_id,
         'QUIZ_SET',
-        QuizProgress,
+        LearningProgress.MODE_QUIZ,
         'last_reviewed',
         item_type='QUIZ_MCQ',
     )
     course_sets = _get_user_container_options(
         current_user.user_id,
         'COURSE',
-        CourseProgress,
-        'last_updated',
+        LearningProgress.MODE_COURSE,
+        'last_reviewed',
         item_type='LESSON',
     )
 

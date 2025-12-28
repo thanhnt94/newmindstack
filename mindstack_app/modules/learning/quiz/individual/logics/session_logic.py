@@ -530,7 +530,7 @@ class QuizSessionManager:
             # Calculate User Stats for this question
             # Note: This might cause N+1 query issue if batch is large. For generic batch size (10-20) it's acceptable.
             # Optimization: could query stats for all items in batch in one go, but keeping it simple for now.
-            # MIGRATED: Sử dụng LearningProgress thay vì QuizProgress
+            # Get User Stats for this question using LearningProgress
             progress = LearningProgress.query.filter_by(
                 user_id=self.user_id,
                 item_id=item.item_id,

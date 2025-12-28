@@ -42,7 +42,8 @@
             background-color: #fff;
             flex-direction: column;
             height: 100dvh;
-            padding: 0 !important; /* Ensure no padding on mobile */
+            padding: 0 !important;
+            /* Ensure no padding on mobile */
         }
 
         /* Visibility Toggles */
@@ -1337,6 +1338,13 @@
                     if (selectedFlashcardMode.startsWith('autoplay_')) {
                         saveAutoplaySettingsToStorage();
                     }
+
+                    // [UPDATED] Capture UI Version preference
+                    const uiVersionSelect = document.getElementById('ui-version-select');
+                    if (uiVersionSelect) {
+                        startUrl.searchParams.append('flashcard_ui_pref', uiVersionSelect.value);
+                    }
+
                     window.location.href = startUrl.toString();
                 }
             });

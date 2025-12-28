@@ -7,12 +7,11 @@ Supports both legacy FlashcardProgress and new unified LearningProgress model.
 
 import datetime
 from typing import Optional, Tuple, Union
-from mindstack_app.models import db, FlashcardProgress, LearningItem
+from mindstack_app.models import db, LearningItem
 from mindstack_app.models.learning_progress import LearningProgress
 from sqlalchemy.orm.attributes import flag_modified
 
-# Feature flag for gradual migration
-USE_UNIFIED_PROGRESS = True  # Set to True to use new LearningProgress model
+
 
 # Constants derived from original flashcard_logic.py
 LEARNING_STEPS_MINUTES = [10, 60, 240, 480, 1440, 2880]
@@ -91,50 +90,35 @@ class SrsService:
         return new_status, new_interval, new_ef, new_reps
 
     @staticmethod
-    def update_item_progress(user_id: int, item_id: int, quality: int, source_mode: str = 'flashcard') -> Union[FlashcardProgress, LearningProgress]:
+    def update_item_progress(user_id: int, item_id: int, quality: int, source_mode: str = 'flashcard') -> LearningProgress:
         """
         Main entry point to update progress for an item.
         Handles checking/creating record and applying SRS logic.
         Commit is left to caller safely.
         
-        Uses LearningProgress if USE_UNIFIED_PROGRESS is True.
+        Uses LearningProgress model.
         """
         now = datetime.datetime.now(datetime.timezone.utc)
         
-        if USE_UNIFIED_PROGRESS:
-            # Use new unified model
-            progress = LearningProgress.query.filter_by(
-                user_id=user_id, item_id=item_id, learning_mode=source_mode
-            ).first()
-            
-            if not progress:
-                progress = LearningProgress(
-                    user_id=user_id, item_id=item_id, 
-                    learning_mode=source_mode,
-                    status='new',
-                    easiness_factor=2.5, repetitions=0, interval=0,
-                    first_seen=now
-                )
-                db.session.add(progress)
-            
-            # Ensure timezone aware using first_seen (unified model uses 'first_seen')
-            if progress.first_seen and progress.first_seen.tzinfo is None:
-                progress.first_seen = progress.first_seen.replace(tzinfo=datetime.timezone.utc)
-        else:
-            # Legacy model
-            progress = FlashcardProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
-            
-            if not progress:
-                progress = FlashcardProgress(
-                    user_id=user_id, item_id=item_id, status='new',
-                    easiness_factor=2.5, repetitions=0, interval=0,
-                    first_seen_timestamp=now
-                )
-                db.session.add(progress)
-            
-            # Ensure timezone aware
-            if progress.first_seen_timestamp and progress.first_seen_timestamp.tzinfo is None:
-                progress.first_seen_timestamp = progress.first_seen_timestamp.replace(tzinfo=datetime.timezone.utc)
+        # Use new unified model
+        progress = LearningProgress.query.filter_by(
+            user_id=user_id, item_id=item_id, learning_mode=source_mode
+        ).first()
+        
+        if not progress:
+            progress = LearningProgress(
+                user_id=user_id, item_id=item_id, 
+                learning_mode=source_mode,
+                status='new',
+                easiness_factor=2.5, repetitions=0, interval=0,
+                first_seen=now
+            )
+            db.session.add(progress)
+        
+        # Ensure timezone aware using first_seen (unified model uses 'first_seen')
+        if progress.first_seen and progress.first_seen.tzinfo is None:
+            progress.first_seen = progress.first_seen.replace(tzinfo=datetime.timezone.utc)
+
         
 
         # Update stats
@@ -269,7 +253,7 @@ class SrsService:
         item_id: int,
         quality: int,
         source_mode: str = 'flashcard'
-    ) -> FlashcardProgress:
+    ) -> LearningProgress:
         """
         Update progress using Memory Power system.
         
@@ -286,24 +270,25 @@ class SrsService:
             source_mode: Source of the review ('flashcard', 'quiz', 'typing')
             
         Returns:
-            Updated FlashcardProgress instance
+            Updated LearningProgress instance
         """
         from mindstack_app.modules.learning.core.logics.memory_engine import (
             MemoryEngine, ProgressState
         )
         from mindstack_app.models import ReviewLog
         
-        progress = FlashcardProgress.query.filter_by(
-            user_id=user_id, item_id=item_id
+        progress = LearningProgress.query.filter_by(
+            user_id=user_id, item_id=item_id, learning_mode=source_mode
         ).first()
         now = datetime.datetime.now(datetime.timezone.utc)
         
         is_new = False
         if not progress:
             is_new = True
-            progress = FlashcardProgress(
+            progress = LearningProgress(
                 user_id=user_id,
                 item_id=item_id,
+                learning_mode=source_mode,
                 status='new',
                 easiness_factor=2.5,
                 repetitions=0,
@@ -311,7 +296,7 @@ class SrsService:
                 mastery=0.0,
                 correct_streak=0,
                 incorrect_streak=0,
-                first_seen_timestamp=now
+                first_seen=now
             )
             db.session.add(progress)
         
@@ -366,7 +351,7 @@ class SrsService:
         return progress
 
     @staticmethod
-    def get_memory_power(progress: FlashcardProgress) -> float:
+    def get_memory_power(progress: LearningProgress) -> float:
         """
         Calculate current Memory Power for a progress record.
         

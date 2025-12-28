@@ -88,6 +88,54 @@ INDEXES_TO_ADD = [
         'columns': ['goal_id', 'date'],
         'description': 'Optimizes goal progress lookups'
     },
+    
+    # User Container States (Dashboard)
+    {
+        'name': 'ix_user_container_states_user_access',
+        'table': 'user_container_states',
+        'columns': ['user_id', 'is_archived', 'last_accessed'],
+        'description': 'Optimizes dashboard container queries'
+    },
+    
+    # Containers (Creator lookup)
+    {
+        'name': 'ix_learning_containers_creator_public',
+        'table': 'learning_containers',
+        'columns': ['creator_user_id', 'is_public'],
+        'description': 'Optimizes user container listing'
+    },
+    
+    # Collaborative Flashcard Rooms (Public discovery)
+    {
+        'name': 'ix_flashcard_collab_rooms_status_public',
+        'table': 'flashcard_collab_rooms',
+        'columns': ['status', 'is_public'],
+        'description': 'Optimizes public room discovery'
+    },
+    
+    # Quiz Battle Rooms (Public discovery)
+    {
+        'name': 'ix_quiz_battle_rooms_status_public',
+        'table': 'quiz_battle_rooms',
+        'columns': ['status', 'is_public'],
+        'description': 'Optimizes public battle room discovery'
+    },
+    
+    # User Badges
+    {
+        'name': 'ix_user_badges_user_id',
+        'table': 'user_badges',
+        'columns': ['user_id'],
+        'description': 'Optimizes user badge listing'
+    },
+    
+    # Learning Progress (Item lookup)
+    {
+        'name': 'ix_learning_progress_item_mode',
+        'table': 'learning_progress',
+        'columns': ['item_id', 'learning_mode'],
+        'description': 'Optimizes item statistics lookup'
+    },
 ]
 
 

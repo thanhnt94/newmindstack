@@ -1,6 +1,8 @@
-<div class="lg:hidden">
-    {% include 'flashcard/individual/setup/_modes_list_mobile.html' %}
-</div>
-<div class="hidden lg:block">
-    {% include 'flashcard/individual/setup/_modes_list_desktop.html' %}
+<div class="modes-list-wrapper w-full relative">
+    <div class="lg:hidden w-full">
+        {% include 'flashcard/individual/setup/default/_modes_list_mobile.html' %}
+    </div>
+    <div class="hidden lg:block w-full">
+        {% include 'flashcard/individual/setup/default/_modes_list_desktop.html' %}
+    </div>
 </div>

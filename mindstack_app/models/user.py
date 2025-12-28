@@ -52,16 +52,7 @@ class User(UserMixin, db.Model):
         'UserContainerState', backref='user', lazy=True, cascade='all, delete-orphan'
     )
 
-    # [DEPRECATED] Relationships to legacy progress models - Use LearningProgress instead
-    flashcard_progress = db.relationship(
-        'FlashcardProgress', backref='user', lazy=True, cascade='all, delete-orphan'
-    )
-    quiz_progress = db.relationship(
-        'QuizProgress', backref='user', lazy=True, cascade='all, delete-orphan'
-    )
-    course_progress = db.relationship(
-        'CourseProgress', backref='user', lazy=True, cascade='all, delete-orphan'
-    )
+
 
     feedbacks = db.relationship(
         'UserFeedback', foreign_keys='UserFeedback.user_id', backref='reporter', lazy=True
@@ -125,6 +116,10 @@ class UserContainerState(db.Model):
         backref=db.backref('user_states', cascade='all, delete-orphan'),
         lazy=True,
     )
+    
+    # [NEW] JSON column to store per-container user preferences
+    # Schema: { 'flashcard': {...}, 'mcq': {...}, 'listening': {...}, 'typing': {...} }
+    settings = db.Column(JSON, default=dict)
 
     __table_args__ = (db.UniqueConstraint('user_id', 'container_id', name='_user_container_uc'),)
 
@@ -160,87 +155,7 @@ class UserSession(db.Model):
     last_updated = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
-class FlashcardProgress(db.Model):
-    """
-    [DEPRECATED] Study progress for flashcard items.
-    Use `LearningProgress` with `learning_mode='flashcard'` instead.
-    """
 
-    __tablename__ = 'flashcard_progress'
-
-    progress_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
-
-    due_time = db.Column(db.DateTime(timezone=True))
-    easiness_factor = db.Column(db.Float, default=2.5)
-    repetitions = db.Column(db.Integer, default=0)
-    interval = db.Column(db.Integer, default=0)
-    last_reviewed = db.Column(db.DateTime(timezone=True))
-
-    status = db.Column(db.String(50), default='new')
-    
-    # Memory Power System
-    mastery = db.Column(db.Float, default=0.0)  # 0.0 - 1.0
-    
-    times_correct = db.Column(db.Integer, default=0)
-    times_incorrect = db.Column(db.Integer, default=0)
-    times_vague = db.Column(db.Integer, default=0)
-    correct_streak = db.Column(db.Integer, default=0)
-    incorrect_streak = db.Column(db.Integer, default=0)
-    vague_streak = db.Column(db.Integer, default=0)
-    first_seen_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    
-    # review_history REMOVED: Data now stored in ReviewLog table
-
-    __table_args__ = (db.UniqueConstraint('user_id', 'item_id', name='_user_flashcard_uc'),)
-
-
-class QuizProgress(db.Model):
-    """
-    [DEPRECATED] Study progress for quiz items.
-    Use `LearningProgress` with `learning_mode='quiz'` instead.
-    """
-
-    __tablename__ = 'quiz_progress'
-
-    progress_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
-
-    times_correct = db.Column(db.Integer, default=0)
-    times_incorrect = db.Column(db.Integer, default=0)
-    correct_streak = db.Column(db.Integer, default=0)
-    incorrect_streak = db.Column(db.Integer, default=0)
-    last_reviewed = db.Column(db.DateTime(timezone=True))
-    status = db.Column(db.String(50), default='new')
-    first_seen_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    # review_history REMOVED: Data now stored in ReviewLog table
-    
-    # Memory Power System
-    mastery = db.Column(db.Float, default=0.0)  # 0.0 - 1.0
-
-    __table_args__ = (db.UniqueConstraint('user_id', 'item_id', name='_user_quiz_uc'),)
-
-
-class CourseProgress(db.Model):
-    """
-    [DEPRECATED] Study progress for course items.
-    Use `LearningProgress` with `learning_mode='course'` instead.
-    """
-
-    __tablename__ = 'course_progress'
-
-    progress_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
-
-    completion_percentage = db.Column(db.Integer, default=0, nullable=False)
-    last_updated = db.Column(
-        db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-    __table_args__ = (db.UniqueConstraint('user_id', 'item_id', name='_user_course_uc'),)
 
 
 class ScoreLog(db.Model):
@@ -255,6 +170,11 @@ class ScoreLog(db.Model):
     reason = db.Column(db.String(100))
     timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
     item_type = db.Column(db.String(50), nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_score_logs_user_timestamp', 'user_id', 'timestamp'),
+        db.Index('ix_score_logs_timestamp', 'timestamp'),
+    )
 
     def to_dict(self):
         return {
@@ -403,5 +323,11 @@ class ReviewLog(db.Model):
     # NEW: State snapshots
     mastery_snapshot = db.Column(db.Float)   # Mastery level at time of review
     memory_power_snapshot = db.Column(db.Float)  # Memory power at time of review
+
+    __table_args__ = (
+        db.Index('ix_review_logs_user_item', 'user_id', 'item_id'),
+        db.Index('ix_review_logs_user_timestamp', 'user_id', 'timestamp'),
+        db.Index('ix_review_logs_timestamp', 'timestamp'),
+    )
 
     item = db.relationship('LearningItem', backref='review_logs')
