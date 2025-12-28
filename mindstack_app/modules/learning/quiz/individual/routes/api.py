@@ -18,7 +18,6 @@ from ..services.audio_service import QuizAudioService
 from mindstack_app.models import (
     LearningContainer,
     LearningItem,
-    QuizProgress,
     User,
     UserContainerState,
     UserNote,

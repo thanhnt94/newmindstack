@@ -36,6 +36,7 @@ from .user import (
 from .system import ApiKey, BackgroundTask, BackgroundTaskLog
 from .app_settings import AppSettings  # unified settings (replaces SiteSettings + SystemSetting)
 from .memrise import MemriseProgress
+from .learning_progress import LearningProgress  # NEW: Unified progress model
 from ..modules.gamification.models import Badge, UserBadge
 
 __all__ = [
@@ -43,6 +44,7 @@ __all__ = [
     'LearningContainer',
     'LearningGroup',
     'LearningItem',
+    'LearningProgress',  # NEW
     'FlashcardCollabAnswer',
     'FlashcardCollabMessage',
     'FlashcardCollabParticipant',

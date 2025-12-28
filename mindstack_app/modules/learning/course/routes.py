@@ -10,7 +10,6 @@ from sqlalchemy.sql import func
 from .algorithms import get_filtered_course_sets, get_lessons_for_course
 from ....models import (
     ContainerContributor,
-    CourseProgress,
     LearningContainer,
     LearningItem,
     ScoreLog,
@@ -19,6 +18,7 @@ from ....models import (
     UserNote,
     db,
 )
+from mindstack_app.models.learning_progress import LearningProgress
 from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.modules.gamification.services import ScoreService
 
@@ -99,12 +99,15 @@ def course_session(lesson_id):
         flash('Bạn không có quyền truy cập khóa học này.', 'danger')
         return redirect(url_for('.course_learning_dashboard'))
     
-    progress = CourseProgress.query.filter_by(
+    # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+    progress = LearningProgress.query.filter_by(
         user_id=current_user.user_id,
-        item_id=lesson_id
+        item_id=lesson_id,
+        learning_mode=LearningProgress.MODE_COURSE
     ).first()
     
-    current_percentage = progress.completion_percentage if progress else 0
+    mode_data = progress.mode_data or {} if progress else {}
+    current_percentage = mode_data.get('completion_percentage', 0) if progress else 0
 
     can_edit = (
         current_user.user_role == 'admin' or
@@ -156,24 +159,38 @@ def update_lesson_progress(lesson_id):
         db.session.add(user_container_state)
     user_container_state.last_accessed = func.now()
 
-    progress = CourseProgress.query.filter_by(
+    # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+    progress = LearningProgress.query.filter_by(
         user_id=current_user.user_id,
-        item_id=lesson_id
+        item_id=lesson_id,
+        learning_mode=LearningProgress.MODE_COURSE
     ).first()
 
-    previous_percentage = progress.completion_percentage if progress else 0
+    mode_data = progress.mode_data or {} if progress else {}
+    previous_percentage = mode_data.get('completion_percentage', 0) if progress else 0
 
     if progress:
-        progress.completion_percentage = int(percentage)
+        if not progress.mode_data:
+            progress.mode_data = {}
+        progress.mode_data['completion_percentage'] = int(percentage)
+        # Cập nhật mastery tương ứng
+        progress.mastery = int(percentage) / 100.0
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(progress, 'mode_data')
     else:
-        progress = CourseProgress(
+        progress = LearningProgress(
             user_id=current_user.user_id,
             item_id=lesson_id,
-            completion_percentage=int(percentage)
+            learning_mode=LearningProgress.MODE_COURSE,
+            mastery=int(percentage) / 100.0,
+            mode_data={'completion_percentage': int(percentage)}
         )
         db.session.add(progress)
 
-    lesson_completed = previous_percentage < 100 and progress.completion_percentage >= 100
+    completion_pct = progress.mode_data.get('completion_percentage', 0) if progress.mode_data else 0
+    lesson_completed = previous_percentage < 100 and completion_pct >= 100
+
+    lesson_score = _get_score_value('LESSON_COMPLETION_SCORE', 10)
 
     if lesson_completed:
         if lesson_score:
@@ -191,10 +208,12 @@ def update_lesson_progress(lesson_id):
         ]
 
         if lesson_ids:
-            completed_count = CourseProgress.query.filter(
-                CourseProgress.user_id == current_user.user_id,
-                CourseProgress.item_id.in_(lesson_ids),
-                CourseProgress.completion_percentage >= 100,
+            # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+            completed_count = LearningProgress.query.filter(
+                LearningProgress.user_id == current_user.user_id,
+                LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
+                LearningProgress.item_id.in_(lesson_ids),
+                LearningProgress.mastery >= 1.0,  # 100% = 1.0
             ).count()
 
             if completed_count == len(lesson_ids):

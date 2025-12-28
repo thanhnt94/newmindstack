@@ -52,6 +52,7 @@ class User(UserMixin, db.Model):
         'UserContainerState', backref='user', lazy=True, cascade='all, delete-orphan'
     )
 
+    # [DEPRECATED] Relationships to legacy progress models - Use LearningProgress instead
     flashcard_progress = db.relationship(
         'FlashcardProgress', backref='user', lazy=True, cascade='all, delete-orphan'
     )
@@ -160,7 +161,10 @@ class UserSession(db.Model):
 
 
 class FlashcardProgress(db.Model):
-    """Study progress for flashcard items."""
+    """
+    [DEPRECATED] Study progress for flashcard items.
+    Use `LearningProgress` with `learning_mode='flashcard'` instead.
+    """
 
     __tablename__ = 'flashcard_progress'
 
@@ -193,7 +197,10 @@ class FlashcardProgress(db.Model):
 
 
 class QuizProgress(db.Model):
-    """Study progress for quiz items."""
+    """
+    [DEPRECATED] Study progress for quiz items.
+    Use `LearningProgress` with `learning_mode='quiz'` instead.
+    """
 
     __tablename__ = 'quiz_progress'
 
@@ -217,7 +224,10 @@ class QuizProgress(db.Model):
 
 
 class CourseProgress(db.Model):
-    """Study progress for course items."""
+    """
+    [DEPRECATED] Study progress for course items.
+    Use `LearningProgress` with `learning_mode='course'` instead.
+    """
 
     __tablename__ = 'course_progress'
 

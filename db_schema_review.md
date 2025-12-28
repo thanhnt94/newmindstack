@@ -1,5 +1,6 @@
-# DATABASE SCHEMA REVIEW
-Total: 38 tables
+# Database Schema Review
+# Generated: 2025-12-28
+# Total Tables: 38
 
 ## ai_logs (29 rows)
 | Column | Type | Constraints |
@@ -28,6 +29,17 @@ Total: 38 tables
 | last_used_timestamp | DATETIME | - |
 | notes | TEXT | - |
 | provider | VARCHAR(50) | NOT NULL, DEFAULT 'gemini' |
+
+## app_settings (37 rows)
+| Column | Type | Constraints |
+|--------|------|-------------|
+| key | VARCHAR(100) | PK, NOT NULL |
+| value | JSON | NOT NULL |
+| category | VARCHAR(50) | - |
+| data_type | VARCHAR(50) | - |
+| description | TEXT | - |
+| updated_at | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| updated_by | INTEGER | - |
 
 ## background_task_logs (64 rows)
 | Column | Type | Constraints |
@@ -147,7 +159,7 @@ Total: 38 tables
 ## flashcard_progress (55 rows)
 | Column | Type | Constraints |
 |--------|------|-------------|
-| progress_id | INTEGER | PK, NOT NULL |
+| progress_id | INTEGER | PK |
 | user_id | INTEGER | NOT NULL |
 | item_id | INTEGER | NOT NULL |
 | due_time | DATETIME | - |
@@ -163,7 +175,6 @@ Total: 38 tables
 | incorrect_streak | INTEGER | - |
 | vague_streak | INTEGER | - |
 | first_seen_timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP |
-| review_history | JSON | - |
 | mastery | REAL | DEFAULT 0.0 |
 
 ## flashcard_room_progress (5 rows)
@@ -249,6 +260,29 @@ Total: 38 tables
 | order_in_container | INTEGER | - |
 | ai_explanation | TEXT | - |
 | search_text | TEXT | - |
+
+## learning_progress (335 rows)
+| Column | Type | Constraints |
+|--------|------|-------------|
+| progress_id | INTEGER | PK, NOT NULL |
+| user_id | INTEGER | NOT NULL |
+| item_id | INTEGER | NOT NULL |
+| learning_mode | VARCHAR(20) | NOT NULL |
+| status | VARCHAR(50) | - |
+| due_time | DATETIME | - |
+| easiness_factor | FLOAT | - |
+| interval | INTEGER | - |
+| repetitions | INTEGER | - |
+| last_reviewed | DATETIME | - |
+| first_seen | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| mastery | FLOAT | - |
+| times_correct | INTEGER | - |
+| times_incorrect | INTEGER | - |
+| times_vague | INTEGER | - |
+| correct_streak | INTEGER | - |
+| incorrect_streak | INTEGER | - |
+| vague_streak | INTEGER | - |
+| mode_data | JSON | - |
 
 ## memrise_progress (9 rows)
 | Column | Type | Constraints |
@@ -360,7 +394,7 @@ Total: 38 tables
 ## quiz_progress (271 rows)
 | Column | Type | Constraints |
 |--------|------|-------------|
-| progress_id | INTEGER | PK, NOT NULL |
+| progress_id | INTEGER | PK |
 | user_id | INTEGER | NOT NULL |
 | item_id | INTEGER | NOT NULL |
 | times_correct | INTEGER | - |
@@ -370,10 +404,9 @@ Total: 38 tables
 | last_reviewed | DATETIME | - |
 | status | VARCHAR(50) | - |
 | first_seen_timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP |
-| review_history | JSON | - |
 | mastery | REAL | DEFAULT 0.0 |
 
-## review_logs (97 rows)
+## review_logs (595 rows)
 | Column | Type | Constraints |
 |--------|------|-------------|
 | log_id | INTEGER | PK, NOT NULL |
@@ -385,6 +418,11 @@ Total: 38 tables
 | interval | INTEGER | - |
 | easiness_factor | FLOAT | - |
 | review_type | VARCHAR(20) | - |
+| user_answer | VARCHAR(10) | - |
+| is_correct | BOOLEAN | - |
+| score_change | INTEGER | - |
+| mastery_snapshot | REAL | - |
+| memory_power_snapshot | REAL | - |
 
 ## score_logs (506 rows)
 | Column | Type | Constraints |
@@ -396,24 +434,6 @@ Total: 38 tables
 | reason | VARCHAR(100) | - |
 | timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP |
 | item_type | VARCHAR(50) | - |
-
-## site_settings (14 rows)
-| Column | Type | Constraints |
-|--------|------|-------------|
-| key | VARCHAR(100) | PK, NOT NULL |
-| value | JSON | NOT NULL |
-| description | VARCHAR(255) | - |
-| updated_at | DATETIME | DEFAULT CURRENT_TIMESTAMP |
-| updated_by | INTEGER | - |
-
-## system_settings (23 rows)
-| Column | Type | Constraints |
-|--------|------|-------------|
-| setting_id | INTEGER | PK, NOT NULL |
-| key | VARCHAR(100) | NOT NULL |
-| value | JSON | NOT NULL |
-| data_type | VARCHAR(50) | - |
-| description | TEXT | - |
 
 ## user_badges (5 rows)
 | Column | Type | Constraints |
@@ -471,7 +491,7 @@ Total: 38 tables
 ## users (8 rows)
 | Column | Type | Constraints |
 |--------|------|-------------|
-| user_id | INTEGER | PK, NOT NULL |
+| user_id | INTEGER | PK |
 | username | VARCHAR(80) | NOT NULL |
 | email | VARCHAR(120) | NOT NULL |
 | password_hash | VARCHAR(256) | NOT NULL |
@@ -479,12 +499,5 @@ Total: 38 tables
 | total_score | INTEGER | - |
 | last_seen | DATETIME | - |
 | telegram_chat_id | VARCHAR(100) | - |
-| current_flashcard_container_id | INTEGER | - |
-| current_quiz_container_id | INTEGER | - |
-| current_course_container_id | INTEGER | - |
-| current_flashcard_mode | VARCHAR(50) | - |
-| current_quiz_mode | VARCHAR(50) | - |
-| current_quiz_batch_size | INTEGER | - |
-| flashcard_button_count | INTEGER | - |
 | timezone | VARCHAR(50) | DEFAULT 'UTC' |
 | last_preferences | TEXT | DEFAULT '{}' |

@@ -9,7 +9,8 @@ from flask import url_for
 from sqlalchemy import case, distinct, func
 
 from ...db_instance import db
-from ...models import CourseProgress, FlashcardProgress, LearningGoal, QuizProgress, ScoreLog
+from ...models import LearningGoal, ScoreLog
+from mindstack_app.models.learning_progress import LearningProgress
 from .constants import GOAL_TYPE_CONFIG, PERIOD_LABELS
 
 
@@ -20,41 +21,53 @@ def get_learning_activity(user_id: int) -> dict[str, object]:
     start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
     start_of_week = start_of_today - timedelta(days=6)
 
+    # MIGRATED: Using LearningProgress with MODE_FLASHCARD
     flashcard_row = (
         db.session.query(
-            func.count(FlashcardProgress.progress_id).label('total'),
-            func.sum(case((FlashcardProgress.status == 'mastered', 1), else_=0)).label('mastered'),
-            func.sum(case((FlashcardProgress.status == 'learning', 1), else_=0)).label('learning'),
-            func.sum(case((FlashcardProgress.status == 'new', 1), else_=0)).label('new'),
-            func.sum(case((FlashcardProgress.status == 'hard', 1), else_=0)).label('hard'),
-            func.sum(case((FlashcardProgress.status == 'reviewing', 1), else_=0)).label('reviewing'),
-            func.sum(case((FlashcardProgress.due_time <= func.now(), 1), else_=0)).label('due'),
+            func.count(LearningProgress.progress_id).label('total'),
+            func.sum(case((LearningProgress.status == 'mastered', 1), else_=0)).label('mastered'),
+            func.sum(case((LearningProgress.status == 'learning', 1), else_=0)).label('learning'),
+            func.sum(case((LearningProgress.status == 'new', 1), else_=0)).label('new'),
+            func.sum(case((LearningProgress.status == 'hard', 1), else_=0)).label('hard'),
+            func.sum(case((LearningProgress.status == 'reviewing', 1), else_=0)).label('reviewing'),
+            func.sum(case((LearningProgress.due_time <= func.now(), 1), else_=0)).label('due'),
         )
-        .filter(FlashcardProgress.user_id == user_id)
+        .filter(
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
+        )
         .first()
     )
 
+    # MIGRATED: Using LearningProgress with MODE_QUIZ
     quiz_row = (
         db.session.query(
-            func.count(QuizProgress.progress_id).label('total'),
-            func.sum(case((QuizProgress.status == 'mastered', 1), else_=0)).label('mastered'),
-            func.sum(case((QuizProgress.status == 'learning', 1), else_=0)).label('learning'),
-            func.sum(case((QuizProgress.status == 'new', 1), else_=0)).label('new'),
-            func.sum(case((QuizProgress.status == 'hard', 1), else_=0)).label('hard'),
+            func.count(LearningProgress.progress_id).label('total'),
+            func.sum(case((LearningProgress.status == 'mastered', 1), else_=0)).label('mastered'),
+            func.sum(case((LearningProgress.status == 'learning', 1), else_=0)).label('learning'),
+            func.sum(case((LearningProgress.status == 'new', 1), else_=0)).label('new'),
+            func.sum(case((LearningProgress.status == 'hard', 1), else_=0)).label('hard'),
         )
-        .filter(QuizProgress.user_id == user_id)
+        .filter(
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+        )
         .first()
     )
 
+    # MIGRATED: Using LearningProgress with MODE_COURSE
     course_row = (
         db.session.query(
-            func.count(CourseProgress.progress_id).label('total'),
-            func.sum(case((CourseProgress.completion_percentage >= 100, 1), else_=0)).label('completed'),
-            func.sum(case((CourseProgress.completion_percentage < 100, 1), else_=0)).label('in_progress'),
-            func.avg(CourseProgress.completion_percentage).label('avg_completion'),
-            func.max(CourseProgress.last_updated).label('last_updated'),
+            func.count(LearningProgress.progress_id).label('total'),
+            func.sum(case((LearningProgress.mastery >= 1.0, 1), else_=0)).label('completed'),
+            func.sum(case((LearningProgress.mastery < 1.0, 1), else_=0)).label('in_progress'),
+            func.avg(LearningProgress.mastery * 100).label('avg_completion'),
+            func.max(LearningProgress.last_reviewed).label('last_updated'),
         )
-        .filter(CourseProgress.user_id == user_id)
+        .filter(
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_COURSE
+        )
         .first()
     )
 
@@ -97,67 +110,76 @@ def get_learning_activity(user_id: int) -> dict[str, object]:
         'last_updated': course_row.last_updated if course_row else None,
     }
 
+    # MIGRATED: Using LearningProgress for flashcard reviews
     flashcard_reviews_today = (
-        db.session.query(func.count(FlashcardProgress.progress_id))
+        db.session.query(func.count(LearningProgress.progress_id))
         .filter(
-            FlashcardProgress.user_id == user_id,
-            FlashcardProgress.last_reviewed.isnot(None),
-            FlashcardProgress.last_reviewed >= start_of_today,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
+            LearningProgress.last_reviewed.isnot(None),
+            LearningProgress.last_reviewed >= start_of_today,
         )
         .scalar()
         or 0
     )
 
     flashcard_reviews_week = (
-        db.session.query(func.count(FlashcardProgress.progress_id))
+        db.session.query(func.count(LearningProgress.progress_id))
         .filter(
-            FlashcardProgress.user_id == user_id,
-            FlashcardProgress.last_reviewed.isnot(None),
-            FlashcardProgress.last_reviewed >= start_of_week,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
+            LearningProgress.last_reviewed.isnot(None),
+            LearningProgress.last_reviewed >= start_of_week,
         )
         .scalar()
         or 0
     )
 
+    # MIGRATED: Using LearningProgress for quiz attempts
     quiz_attempts_today = (
-        db.session.query(func.count(QuizProgress.progress_id))
+        db.session.query(func.count(LearningProgress.progress_id))
         .filter(
-            QuizProgress.user_id == user_id,
-            QuizProgress.last_reviewed.isnot(None),
-            QuizProgress.last_reviewed >= start_of_today,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
+            LearningProgress.last_reviewed.isnot(None),
+            LearningProgress.last_reviewed >= start_of_today,
         )
         .scalar()
         or 0
     )
 
     quiz_attempts_week = (
-        db.session.query(func.count(QuizProgress.progress_id))
+        db.session.query(func.count(LearningProgress.progress_id))
         .filter(
-            QuizProgress.user_id == user_id,
-            QuizProgress.last_reviewed.isnot(None),
-            QuizProgress.last_reviewed >= start_of_week,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
+            LearningProgress.last_reviewed.isnot(None),
+            LearningProgress.last_reviewed >= start_of_week,
         )
         .scalar()
         or 0
     )
 
+    # MIGRATED: Using LearningProgress for course updates
     course_updates_today = (
-        db.session.query(func.count(CourseProgress.progress_id))
+        db.session.query(func.count(LearningProgress.progress_id))
         .filter(
-            CourseProgress.user_id == user_id,
-            CourseProgress.last_updated.isnot(None),
-            CourseProgress.last_updated >= start_of_today,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
+            LearningProgress.last_reviewed.isnot(None),
+            LearningProgress.last_reviewed >= start_of_today,
         )
         .scalar()
         or 0
     )
 
     course_updates_week = (
-        db.session.query(func.count(CourseProgress.progress_id))
+        db.session.query(func.count(LearningProgress.progress_id))
         .filter(
-            CourseProgress.user_id == user_id,
-            CourseProgress.last_updated.isnot(None),
-            CourseProgress.last_updated >= start_of_week,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
+            LearningProgress.last_reviewed.isnot(None),
+            LearningProgress.last_reviewed >= start_of_week,
         )
         .scalar()
         or 0
@@ -218,8 +240,11 @@ def get_learning_activity(user_id: int) -> dict[str, object]:
 
 
 def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object]) -> list[dict[str, object]]:
-    """Return a serialisable representation of the user's goals."""
-    from ...models import LearningItem, FlashcardProgress, QuizProgress, GoalDailyHistory
+    """Return a serialisable representation of the user's goals.
+    
+    MIGRATED: Uses LearningProgress instead of FlashcardProgress/QuizProgress.
+    """
+    from ...models import LearningItem, GoalDailyHistory
     
     def _get_metric_value(goal: LearningGoal) -> int:
         # 1. Determine period range
@@ -241,13 +266,19 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 if goal.period == 'total': return metrics['score_total']
             return 0
 
-        # 3. Flashcard Goals
+        # 3. Flashcard Goals (MIGRATED: Use LearningProgress)
         if goal.domain == 'flashcard':
-            query = db.session.query(func.count(FlashcardProgress.progress_id))
+            query = db.session.query(func.count(LearningProgress.progress_id))
             if goal.scope == 'container' and goal.reference_id:
-                query = query.join(LearningItem, FlashcardProgress.item_id == LearningItem.item_id).filter(LearningItem.container_id == goal.reference_id)
+                query = query.join(LearningItem, LearningProgress.item_id == LearningItem.item_id).filter(
+                    LearningItem.container_id == goal.reference_id,
+                    LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
+                )
             else:
-                 query = query.filter(FlashcardProgress.user_id == goal.user_id) # Explicit user filter for global query if not using joins (though metrics dict has global)
+                query = query.filter(
+                    LearningProgress.user_id == goal.user_id,
+                    LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
+                )
 
             # Apply Metric Filter
             if goal.metric == 'items_reviewed':
@@ -257,63 +288,60 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                      if goal.period == 'weekly': return metrics['flashcard_reviews_week']
                  
                  # Otherwise custom query
-                 query = query.filter(FlashcardProgress.last_reviewed.isnot(None))
+                 query = query.filter(LearningProgress.last_reviewed.isnot(None))
                  if start_time:
-                     query = query.filter(FlashcardProgress.last_reviewed >= start_time)
+                     query = query.filter(LearningProgress.last_reviewed >= start_time)
                  return query.scalar() or 0
             
             elif goal.metric == 'new_items':
-                 # "New" usually means status changed from 'new' to something else? 
-                 # Or just "learning/mastered"?
-                 # Actually `first_seen_timestamp` captures when they started.
-                 query = query.filter(FlashcardProgress.first_seen_timestamp.isnot(None))
+                 query = query.filter(LearningProgress.first_seen.isnot(None))
                  if start_time:
-                     query = query.filter(FlashcardProgress.first_seen_timestamp >= start_time)
+                     query = query.filter(LearningProgress.first_seen >= start_time)
                  return query.scalar() or 0
                  
             elif goal.metric == 'mastered':
-                 query = query.filter(FlashcardProgress.status == 'mastered')
-                 # Mastered is a state, accumulated over time. Period might mean "mastered WITHIN this period" or "currently mastered"
-                 # Usually users want "Total Mastered". If daily, maybe "Newly mastered today"? 
-                 # Current schema doesn't track "when mastered". So assume Total.
+                 query = query.filter(LearningProgress.status == 'mastered')
                  return query.scalar() or 0
 
-        # 4. Quiz Goals
+        # 4. Quiz Goals (MIGRATED: Use LearningProgress)
         if goal.domain == 'quiz':
-            # Similar logic for Quiz
-            query = db.session.query(func.count(QuizProgress.progress_id))
+            query = db.session.query(func.count(LearningProgress.progress_id))
             if goal.scope == 'container' and goal.reference_id:
-                query = query.join(LearningItem, QuizProgress.item_id == LearningItem.item_id).filter(LearningItem.container_id == goal.reference_id)
+                query = query.join(LearningItem, LearningProgress.item_id == LearningItem.item_id).filter(
+                    LearningItem.container_id == goal.reference_id,
+                    LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+                )
             else:
-                 query = query.filter(QuizProgress.user_id == goal.user_id)
+                query = query.filter(
+                    LearningProgress.user_id == goal.user_id,
+                    LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+                )
 
             if goal.metric == 'items_answered':
                  if goal.scope == 'global':
                       if goal.period == 'daily': return metrics['quiz_attempts_today']
                       if goal.period == 'weekly': return metrics['quiz_attempts_week']
                  
-                 query = query.filter(QuizProgress.last_reviewed.isnot(None))
+                 query = query.filter(LearningProgress.last_reviewed.isnot(None))
                  if start_time:
-                      query = query.filter(QuizProgress.last_reviewed >= start_time)
+                      query = query.filter(LearningProgress.last_reviewed >= start_time)
                  return query.scalar() or 0
 
             elif goal.metric == 'points':
-                 # Points specific to quiz? Currently stored in ScoreLog, difficult to filter by container without joins.
-                 # Let's skip for MVP or assume global points.
                  return 0
                  
             elif goal.metric == 'items_correct':
-                 # Total correct answers accumulated?
-                 # QuizProgress stores `times_correct`. 
-                 # We can sum `times_correct`.
-                 query = db.session.query(func.sum(QuizProgress.times_correct))
+                 query = db.session.query(func.sum(LearningProgress.times_correct))
                  if goal.scope == 'container' and goal.reference_id:
-                    query = query.join(LearningItem, QuizProgress.item_id == LearningItem.item_id).filter(LearningItem.container_id == goal.reference_id)
+                    query = query.join(LearningItem, LearningProgress.item_id == LearningItem.item_id).filter(
+                        LearningItem.container_id == goal.reference_id,
+                        LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+                    )
                  else:
-                    query = query.filter(QuizProgress.user_id == goal.user_id)
-                 
-                 # Period check is hard for `times_correct` as it's a counter.
-                 # We can only return TOTAL correct.
+                    query = query.filter(
+                        LearningProgress.user_id == goal.user_id,
+                        LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+                    )
                  return query.scalar() or 0
 
         # Fallback to legacy logic

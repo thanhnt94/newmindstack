@@ -4,13 +4,16 @@
 
 from datetime import datetime
 from sqlalchemy import func
-from mindstack_app.models import LearningItem, FlashcardProgress, ReviewLog
+from mindstack_app.models import LearningItem, ReviewLog
+from mindstack_app.models.learning_progress import LearningProgress
 
 
 class VocabularyContainerStats:
     """
     Centralized service for vocabulary container-level statistics.
     Provides comprehensive methods to get progress counts, overview stats, etc.
+    
+    MIGRATED: Uses LearningProgress instead of FlashcardProgress.
     """
     
     @staticmethod
@@ -36,10 +39,11 @@ class VocabularyContainerStats:
         if not item_ids:
             return VocabularyContainerStats._empty_stats()
         
-        # Get progress records
-        progress_records = FlashcardProgress.query.filter(
-            FlashcardProgress.user_id == user_id,
-            FlashcardProgress.item_id.in_(item_ids)
+        # Get progress records - MIGRATED to LearningProgress
+        progress_records = LearningProgress.query.filter(
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
+            LearningProgress.item_id.in_(item_ids)
         ).all()
         
         progress_map = {p.item_id: p for p in progress_records}

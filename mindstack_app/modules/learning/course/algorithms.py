@@ -6,12 +6,12 @@
 from ....models import (
     db,
     LearningItem,
-    CourseProgress,
     LearningContainer,
     ContainerContributor,
     UserContainerState,
     User,
 )
+from mindstack_app.models.learning_progress import LearningProgress
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
@@ -108,14 +108,16 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
         if total_lessons > 0:
             lesson_ids = [lesson.item_id for lesson in lessons]
             
-            # Tính tổng % hoàn thành
-            progress_records = CourseProgress.query.filter(
-                CourseProgress.user_id == user_id,
-                CourseProgress.item_id.in_(lesson_ids)
+            # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+            progress_records = LearningProgress.query.filter(
+                LearningProgress.user_id == user_id,
+                LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
+                LearningProgress.item_id.in_(lesson_ids)
             ).all()
             
             for progress in progress_records:
-                total_completion_percentage += progress.completion_percentage
+                mode_data = progress.mode_data or {}
+                total_completion_percentage += mode_data.get('completion_percentage', 0)
             
             # Tính tổng thời gian dự tính
             for lesson in lessons:
@@ -150,13 +152,15 @@ def get_lessons_for_course(user_id, course_id):
 
     lesson_ids = [lesson.item_id for lesson in lessons]
     
-    progress_map = {
-        p.item_id: p.completion_percentage 
-        for p in CourseProgress.query.filter(
-            CourseProgress.user_id == user_id,
-            CourseProgress.item_id.in_(lesson_ids)
-        )
-    }
+    # MIGRATED: Sử dụng LearningProgress thay vì CourseProgress
+    progress_map = {}
+    for p in LearningProgress.query.filter(
+        LearningProgress.user_id == user_id,
+        LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
+        LearningProgress.item_id.in_(lesson_ids)
+    ):
+        mode_data = p.mode_data or {}
+        progress_map[p.item_id] = mode_data.get('completion_percentage', 0)
 
     for lesson in lessons:
         lesson.completion_percentage = progress_map.get(lesson.item_id, 0)

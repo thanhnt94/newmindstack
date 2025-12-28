@@ -2,7 +2,8 @@
 # Phiên bản: 3.0
 # MỤC ĐÍCH: Cập nhật để đọc từ ReviewLog table thay vì JSON review_history.
 
-from mindstack_app.models import QuizProgress, ReviewLog
+from mindstack_app.models import ReviewLog
+from mindstack_app.models.learning_progress import LearningProgress
 import datetime
 
 def get_quiz_item_statistics(user_id, item_id):
@@ -17,7 +18,11 @@ def get_quiz_item_statistics(user_id, item_id):
     Returns:
         dict: Một dictionary chứa các thống kê, hoặc None nếu không tìm thấy QuizProgress.
     """
-    progress = QuizProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
+    progress = LearningProgress.query.filter_by(
+        user_id=user_id, 
+        item_id=item_id,
+        learning_mode=LearningProgress.MODE_QUIZ
+    ).first()
 
     if not progress:
         return None
@@ -49,7 +54,7 @@ def get_quiz_item_statistics(user_id, item_id):
         'correct_streak': progress.correct_streak or 0,
         'incorrect_streak': progress.incorrect_streak or 0,
         'status': progress.status,
-        'first_seen': progress.first_seen_timestamp.isoformat() if progress.first_seen_timestamp else None,
+        'first_seen': progress.first_seen.isoformat() if progress.first_seen else None,
         'last_reviewed': progress.last_reviewed.isoformat() if progress.last_reviewed else None,
         'review_history': formatted_review_history
     }

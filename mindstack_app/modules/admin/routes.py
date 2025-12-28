@@ -30,9 +30,8 @@ from ...models import (
     BackgroundTaskLog,
     AppSettings,
     UserContainerState,
-    FlashcardProgress,
-    QuizProgress,
-    CourseProgress,
+    UserContainerState,
+    LearningProgress, # MIGRATED: Unified progress model
     ScoreLog,
     LearningGoal,
     UserNote,
@@ -90,9 +89,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
             'description': 'Bao gồm trạng thái container, tiến độ flashcard/quiz/course, điểm số và ghi chú.',
             'models': [
                 UserContainerState,
-                FlashcardProgress,
-                QuizProgress,
-                CourseProgress,
+                LearningProgress, # MIGRATED
                 ScoreLog,
                 LearningGoal,
                 UserNote,
@@ -1620,16 +1617,8 @@ def reset_learning_progress():
             UserContainerState.query.filter_by(user_id=user.user_id)
             .delete(synchronize_session=False)
         )
-        deleted_flashcards = (
-            FlashcardProgress.query.filter_by(user_id=user.user_id)
-            .delete(synchronize_session=False)
-        )
-        deleted_quizzes = (
-            QuizProgress.query.filter_by(user_id=user.user_id)
-            .delete(synchronize_session=False)
-        )
-        deleted_courses = (
-            CourseProgress.query.filter_by(user_id=user.user_id)
+        deleted_progress = (
+            LearningProgress.query.filter_by(user_id=user.user_id)
             .delete(synchronize_session=False)
         )
         deleted_notes = (
@@ -1651,7 +1640,8 @@ def reset_learning_progress():
         flash(
             (
                 f"Đã đặt lại tiến độ của {user.username}. "
-                f"Xóa {deleted_flashcards} flashcard, {deleted_quizzes} quiz, {deleted_courses} khóa học, "
+                f"Đã đặt lại tiến độ của {user.username}. "
+                f"Xóa {deleted_progress} mục tiến độ (flashcard/quiz/course), "
                 f"{deleted_states} trạng thái container, {deleted_notes} ghi chú, {deleted_feedback} phản hồi và {deleted_scores} log điểm."
             ),
             'success',
@@ -1689,18 +1679,11 @@ def reset_learning_progress():
             .subquery()
         )
 
-        deleted_flashcards = (
-            FlashcardProgress.query.filter(FlashcardProgress.item_id.in_(item_subquery))
+        deleted_progress = (
+            LearningProgress.query.filter(LearningProgress.item_id.in_(item_subquery))
             .delete(synchronize_session=False)
         )
-        deleted_quizzes = (
-            QuizProgress.query.filter(QuizProgress.item_id.in_(item_subquery))
-            .delete(synchronize_session=False)
-        )
-        deleted_courses = (
-            CourseProgress.query.filter(CourseProgress.item_id.in_(item_subquery))
-            .delete(synchronize_session=False)
-        )
+
         deleted_notes = (
             UserNote.query.filter(UserNote.item_id.in_(item_subquery))
             .delete(synchronize_session=False)
@@ -1723,7 +1706,8 @@ def reset_learning_progress():
         flash(
             (
                 f"Đã đặt lại tiến độ cho bộ câu hỏi '{container.title}'. "
-                f"Xóa {deleted_flashcards} flashcard, {deleted_quizzes} quiz, {deleted_courses} khóa học, "
+                f"Đã đặt lại tiến độ cho bộ câu hỏi '{container.title}'. "
+                f"Xóa {deleted_progress} mục tiến độ (flashcard/quiz/course), "
                 f"{deleted_states} trạng thái container, {deleted_notes} ghi chú, {deleted_feedback} phản hồi và {deleted_scores} log điểm."
             ),
             'success',

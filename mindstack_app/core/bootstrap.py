@@ -178,6 +178,24 @@ def initialize_database(app: Flask) -> None:
 
     from ..models import BackgroundTask, User
 
+    # === Startup WAL Checkpoint ===
+    # Gộp tất cả thay đổi từ WAL file vào database chính khi khởi động
+    # Sử dụng TRUNCATE để dọn dẹp WAL file hoàn toàn
+    try:
+        with db.engine.connect() as conn:
+            result = conn.execute(db.text('PRAGMA wal_checkpoint(TRUNCATE)'))
+            checkpoint_result = result.fetchone()
+            if checkpoint_result and checkpoint_result[0] == 0:
+                app.logger.info(
+                    f"Startup WAL checkpoint thành công: "
+                    f"{checkpoint_result[1]} pages đã gộp, "
+                    f"{checkpoint_result[2]} pages không thể gộp."
+                )
+            else:
+                app.logger.warning(f"WAL checkpoint kết quả: {checkpoint_result}")
+    except Exception as e:
+        app.logger.warning(f"Startup WAL checkpoint failed (non-critical): {e}")
+
     db.create_all()
 
     inspector = inspect(db.engine)

@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Optional
 from datetime import datetime, timezone
 
-from mindstack_app.models import db, FlashcardProgress, QuizProgress
+from mindstack_app.models import db
 from mindstack_app.modules.gamification.services import ScoreService
 
 from ..logics.scoring_engine import ScoringEngine, ScoreResult, LearningMode

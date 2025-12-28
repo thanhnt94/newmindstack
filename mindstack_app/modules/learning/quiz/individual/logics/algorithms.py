@@ -7,11 +7,11 @@ from mindstack_app.models import (
     ContainerContributor,
     LearningContainer,
     LearningItem,
-    QuizProgress,
     User,
     UserContainerState,
     db,
 )
+from mindstack_app.models.learning_progress import LearningProgress
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
@@ -119,11 +119,15 @@ def get_new_only_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_new_only_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
     
-    # SỬA: Join với QuizProgress thay vì UserProgress
-    new_items_query = base_items_query.outerjoin(QuizProgress, 
-        and_(QuizProgress.item_id == LearningItem.item_id, QuizProgress.user_id == user_id)
+    # MIGRATED: Sử dụng LearningProgress thay vì QuizProgress
+    new_items_query = base_items_query.outerjoin(LearningProgress, 
+        and_(
+            LearningProgress.item_id == LearningItem.item_id, 
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+        )
     ).filter(
-        QuizProgress.item_id == None
+        LearningProgress.item_id == None
     )
 
     # THÊM MỚI: Loại trừ các bộ quiz đã được archive
@@ -152,10 +156,16 @@ def get_reviewed_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_reviewed_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
     
-    # SỬA: Join với QuizProgress thay vì UserProgress
-    reviewed_items_query = base_items_query.join(QuizProgress).filter(
-        QuizProgress.user_id == user_id,
-        QuizProgress.first_seen_timestamp != None
+    # MIGRATED: Sử dụng LearningProgress thay vì QuizProgress
+    reviewed_items_query = base_items_query.join(
+        LearningProgress,
+        and_(
+            LearningProgress.item_id == LearningItem.item_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+        )
+    ).filter(
+        LearningProgress.first_seen != None
     )
     
     # THÊM MỚI: Loại trừ các bộ quiz đã được archive
@@ -184,11 +194,17 @@ def get_hard_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
 
-    # SỬA: Join với QuizProgress thay vì UserProgress
-    hard_items_query = base_items_query.join(QuizProgress).filter(
-        QuizProgress.user_id == user_id,
-        (QuizProgress.times_correct + QuizProgress.times_incorrect) >= 10,
-        (QuizProgress.times_correct / (QuizProgress.times_correct + QuizProgress.times_incorrect)) < 0.5
+    # MIGRATED: Sử dụng LearningProgress thay vì QuizProgress
+    hard_items_query = base_items_query.join(
+        LearningProgress,
+        and_(
+            LearningProgress.item_id == LearningItem.item_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+        )
+    ).filter(
+        (LearningProgress.times_correct + LearningProgress.times_incorrect) >= 10,
+        (LearningProgress.times_correct / (LearningProgress.times_correct + LearningProgress.times_incorrect)) < 0.5
     )
     
     # THÊM MỚI: Loại trừ các bộ quiz đã được archive
@@ -303,10 +319,11 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
             item_type='QUIZ_MCQ'
         ).count()
         
-        # SỬA: Truy vấn số lượng câu hỏi đã làm từ bảng QuizProgress
-        learned_items = db.session.query(QuizProgress).filter(
-            QuizProgress.user_id == user_id,
-            QuizProgress.item_id.in_(
+        # MIGRATED: Truy vấn số lượng câu hỏi đã làm từ bảng LearningProgress
+        learned_items = db.session.query(LearningProgress).filter(
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
+            LearningProgress.item_id.in_(
                 db.session.query(LearningItem.item_id).filter(
                     LearningItem.container_id == set_item.container_id,
                     LearningItem.item_type == 'QUIZ_MCQ'

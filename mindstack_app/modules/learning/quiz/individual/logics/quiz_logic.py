@@ -1,11 +1,12 @@
 # File: mindstack_app/modules/learning/quiz_learning/quiz_logic.py
-# Phiên bản: 2.0
-# MỤC ĐÍCH: Cập nhật logic để sử dụng model QuizProgress mới thay cho UserProgress.
-# ĐÃ SỬA: Thay thế import UserProgress bằng QuizProgress.
-# ĐÃ SỬA: Cập nhật logic truy vấn và tạo bản ghi để tương tác với bảng QuizProgress.
+# Phiên bản: 3.0
+# MỤC ĐÍCH: Cập nhật logic để sử dụng model LearningProgress (unified).
+# ĐÃ SỬA: Thay thế import QuizProgress bằng LearningProgress.
+# ĐÃ SỬA: Cập nhật logic truy vấn và tạo bản ghi với learning_mode='quiz'.
 # ĐÃ SỬA: Thêm item_type vào ScoreLog khi tạo bản ghi.
 
-from mindstack_app.models import LearningItem, QuizProgress, User, db
+from mindstack_app.models import LearningItem, User, db
+from mindstack_app.models.learning_progress import LearningProgress
 from mindstack_app.modules.gamification.services import ScoreService
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
@@ -74,13 +75,17 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
 
     is_correct = (user_answer_text == correct_option_char)
 
-    # 1. Lấy hoặc tạo bản ghi QuizProgress
-    progress = QuizProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
+    # 1. Lấy hoặc tạo bản ghi LearningProgress (quiz mode)
+    progress = LearningProgress.query.filter_by(
+        user_id=user_id, item_id=item_id, learning_mode='quiz'
+    ).first()
     if not progress:
         is_first_time = True
-        progress = QuizProgress(user_id=user_id, item_id=item_id)
+        progress = LearningProgress(
+            user_id=user_id, item_id=item_id, learning_mode='quiz'
+        )
         db.session.add(progress)
-        progress.first_seen_timestamp = func.now()
+        progress.first_seen = func.now()
         progress.status = 'learning' # Mặc định là learning khi mới bắt đầu
 
     # 2. Cập nhật các chỉ số thống kê cơ bản

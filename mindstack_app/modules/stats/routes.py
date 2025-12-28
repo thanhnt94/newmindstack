@@ -14,12 +14,10 @@ from ...models import (
     db,
     User,
     ScoreLog,
-    FlashcardProgress,
-    QuizProgress,
     LearningContainer,
     LearningItem,
-    CourseProgress,
 )
+from mindstack_app.models.learning_progress import LearningProgress
 
 
 ITEM_TYPE_LABELS = {
@@ -101,10 +99,13 @@ def get_leaderboard_data_internal(sort_by, timeframe, viewer=None):
     return leaderboard_data
 
 
-def _get_user_container_options(user_id, container_type, progress_model, timestamp_attr, item_type=None):
-    """Return the list of learning containers (id/title) a user interacted with."""
+def _get_user_container_options(user_id, container_type, learning_mode, timestamp_attr='last_reviewed', item_type=None):
+    """Return the list of learning containers (id/title) a user interacted with.
+    
+    MIGRATED: Uses LearningProgress with learning_mode filter instead of specific progress models.
+    """
 
-    timestamp_column = getattr(progress_model, timestamp_attr, None) if timestamp_attr else None
+    timestamp_column = getattr(LearningProgress, timestamp_attr, None) if timestamp_attr else None
 
     columns = [
         LearningContainer.container_id.label('container_id'),
@@ -114,14 +115,15 @@ def _get_user_container_options(user_id, container_type, progress_model, timesta
     if timestamp_column is not None:
         columns.append(func.max(timestamp_column).label('last_activity'))
     else:
-        columns.append(func.max(progress_model.progress_id).label('last_activity'))
+        columns.append(func.max(LearningProgress.progress_id).label('last_activity'))
 
     query = (
         db.session.query(*columns)
         .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(progress_model, progress_model.item_id == LearningItem.item_id)
+        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
         .filter(
-            progress_model.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == learning_mode,
             LearningContainer.container_type == container_type,
         )
     )
@@ -447,21 +449,23 @@ def get_activity_breakdown(user_id, timeframe='30d'):
 
 
 def _build_flashcard_items_query(user_id):
+    # MIGRATED: Use LearningProgress with MODE_FLASHCARD
     return (
         db.session.query(
             LearningItem.container_id.label('container_id'),
             LearningContainer.title.label('container_title'),
             LearningItem.item_id.label('item_id'),
             LearningItem.content.label('content'),
-            FlashcardProgress.status.label('status'),
-            FlashcardProgress.last_reviewed.label('last_reviewed'),
-            FlashcardProgress.first_seen_timestamp.label('first_seen'),
-            FlashcardProgress.due_time.label('due_time'),
+            LearningProgress.status.label('status'),
+            LearningProgress.last_reviewed.label('last_reviewed'),
+            LearningProgress.first_seen.label('first_seen'),
+            LearningProgress.due_time.label('due_time'),
         )
-        .join(LearningItem, LearningItem.item_id == FlashcardProgress.item_id)
+        .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .join(LearningContainer, LearningContainer.container_id == LearningItem.container_id)
         .filter(
-            FlashcardProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
             LearningItem.item_type == 'FLASHCARD',
             LearningContainer.container_type == 'FLASHCARD_SET',
         )
@@ -469,31 +473,33 @@ def _build_flashcard_items_query(user_id):
 
 
 def _apply_flashcard_category_filter(query, status):
+    # MIGRATED: Use LearningProgress instead of FlashcardProgress
     if not status or status == 'all':
         return query
 
     status = status.lower()
     if status in {'new', 'learning', 'mastered', 'hard'}:
-        return query.filter(FlashcardProgress.status == status)
+        return query.filter(LearningProgress.status == status)
 
     if status == 'needs_review':
         now = datetime.utcnow()
         return query.filter(
-            FlashcardProgress.due_time.isnot(None),
-            FlashcardProgress.due_time <= now,
+            LearningProgress.due_time.isnot(None),
+            LearningProgress.due_time <= now,
         )
 
     if status == 'due_soon':
         now = datetime.utcnow()
         return query.filter(
-            FlashcardProgress.due_time.isnot(None),
-            FlashcardProgress.due_time <= now + timedelta(days=1),
+            LearningProgress.due_time.isnot(None),
+            LearningProgress.due_time <= now + timedelta(days=1),
         )
 
     return query
 
 
 def paginate_flashcard_items(user_id, container_id=None, status=None, page=1, per_page=10):
+    # MIGRATED: Use LearningProgress instead of FlashcardProgress
     page, per_page = _sanitize_pagination_args(page, per_page)
     query = _build_flashcard_items_query(user_id)
 
@@ -502,11 +508,11 @@ def paginate_flashcard_items(user_id, container_id=None, status=None, page=1, pe
 
     query = _apply_flashcard_category_filter(query, status)
 
-    total = query.with_entities(func.count(FlashcardProgress.progress_id)).scalar() or 0
+    total = query.with_entities(func.count(LearningProgress.progress_id)).scalar() or 0
 
     rows = (
         query
-        .order_by(func.coalesce(FlashcardProgress.last_reviewed, FlashcardProgress.first_seen_timestamp).desc())
+        .order_by(func.coalesce(LearningProgress.last_reviewed, LearningProgress.first_seen).desc())
         .offset((page - 1) * per_page)
         .limit(per_page)
         .all()
@@ -537,22 +543,24 @@ def paginate_flashcard_items(user_id, container_id=None, status=None, page=1, pe
 
 
 def _build_quiz_items_query(user_id):
+    # MIGRATED: Use LearningProgress with MODE_QUIZ
     return (
         db.session.query(
             LearningItem.container_id.label('container_id'),
             LearningContainer.title.label('container_title'),
             LearningItem.item_id.label('item_id'),
             LearningItem.content.label('content'),
-            QuizProgress.status.label('status'),
-            QuizProgress.last_reviewed.label('last_reviewed'),
-            QuizProgress.first_seen_timestamp.label('first_seen'),
-            QuizProgress.times_correct.label('times_correct'),
-            QuizProgress.times_incorrect.label('times_incorrect'),
+            LearningProgress.status.label('status'),
+            LearningProgress.last_reviewed.label('last_reviewed'),
+            LearningProgress.first_seen.label('first_seen'),
+            LearningProgress.times_correct.label('times_correct'),
+            LearningProgress.times_incorrect.label('times_incorrect'),
         )
-        .join(LearningItem, LearningItem.item_id == QuizProgress.item_id)
+        .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .join(LearningContainer, LearningContainer.container_id == LearningItem.container_id)
         .filter(
-            QuizProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
             LearningItem.item_type == 'QUIZ_MCQ',
             LearningContainer.container_type == 'QUIZ_SET',
         )
@@ -560,18 +568,19 @@ def _build_quiz_items_query(user_id):
 
 
 def _apply_quiz_category_filter(query, status):
+    # MIGRATED: Use LearningProgress instead of QuizProgress
     if not status or status == 'all':
         return query
 
     status = status.lower()
     if status in {'new', 'learning', 'mastered', 'hard'}:
-        return query.filter(QuizProgress.status == status)
+        return query.filter(LearningProgress.status == status)
 
     if status == 'needs_review':
         return query.filter(
             or_(
-                QuizProgress.status.in_({'learning', 'hard'}),
-                QuizProgress.times_incorrect > QuizProgress.times_correct,
+                LearningProgress.status.in_({'learning', 'hard'}),
+                LearningProgress.times_incorrect > LearningProgress.times_correct,
             )
         )
 
@@ -579,6 +588,7 @@ def _apply_quiz_category_filter(query, status):
 
 
 def paginate_quiz_items(user_id, container_id=None, status=None, page=1, per_page=10):
+    # MIGRATED: Use LearningProgress instead of QuizProgress
     page, per_page = _sanitize_pagination_args(page, per_page)
     query = _build_quiz_items_query(user_id)
 
@@ -587,11 +597,11 @@ def paginate_quiz_items(user_id, container_id=None, status=None, page=1, per_pag
 
     query = _apply_quiz_category_filter(query, status)
 
-    total = query.with_entities(func.count(QuizProgress.progress_id)).scalar() or 0
+    total = query.with_entities(func.count(LearningProgress.progress_id)).scalar() or 0
 
     rows = (
         query
-        .order_by(func.coalesce(QuizProgress.last_reviewed, QuizProgress.first_seen_timestamp).desc())
+        .order_by(func.coalesce(LearningProgress.last_reviewed, LearningProgress.first_seen).desc())
         .offset((page - 1) * per_page)
         .limit(per_page)
         .all()
@@ -622,19 +632,23 @@ def paginate_quiz_items(user_id, container_id=None, status=None, page=1, per_pag
 
 
 def _build_course_items_query(user_id):
+    # MIGRATED: Use LearningProgress with MODE_COURSE
+    # Note: completion_percentage is stored in mode_data or approximated via mastery
     return (
         db.session.query(
             LearningItem.container_id.label('container_id'),
             LearningContainer.title.label('container_title'),
             LearningItem.item_id.label('item_id'),
             LearningItem.content.label('content'),
-            CourseProgress.completion_percentage.label('completion_percentage'),
-            CourseProgress.last_updated.label('last_updated'),
+            LearningProgress.mastery.label('mastery'),  # mastery * 100 = completion_percentage
+            LearningProgress.last_reviewed.label('last_updated'),
+            LearningProgress.mode_data.label('mode_data'),
         )
-        .join(LearningItem, LearningItem.item_id == CourseProgress.item_id)
+        .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .join(LearningContainer, LearningContainer.container_id == LearningItem.container_id)
         .filter(
-            CourseProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
             LearningItem.item_type == 'LESSON',
             LearningContainer.container_type == 'COURSE',
         )
@@ -642,24 +656,27 @@ def _build_course_items_query(user_id):
 
 
 def _apply_course_category_filter(query, status):
+    # MIGRATED: Use LearningProgress.mastery instead of CourseProgress.completion_percentage
+    # mastery >= 1.0 means 100% complete
     if not status or status == 'all':
         return query
 
     status = status.lower()
     if status == 'completed':
-        return query.filter(CourseProgress.completion_percentage >= 100)
+        return query.filter(LearningProgress.mastery >= 1.0)
     if status == 'in_progress':
         return query.filter(
-            CourseProgress.completion_percentage > 0,
-            CourseProgress.completion_percentage < 100,
+            LearningProgress.mastery > 0,
+            LearningProgress.mastery < 1.0,
         )
     if status == 'not_started':
-        return query.filter(CourseProgress.completion_percentage == 0)
+        return query.filter(LearningProgress.mastery == 0)
 
     return query
 
 
 def paginate_course_items(user_id, container_id=None, status=None, page=1, per_page=10):
+    # MIGRATED: Use LearningProgress instead of CourseProgress
     page, per_page = _sanitize_pagination_args(page, per_page)
     query = _build_course_items_query(user_id)
 
@@ -668,11 +685,11 @@ def paginate_course_items(user_id, container_id=None, status=None, page=1, per_p
 
     query = _apply_course_category_filter(query, status)
 
-    total = query.with_entities(func.count(CourseProgress.progress_id)).scalar() or 0
+    total = query.with_entities(func.count(LearningProgress.progress_id)).scalar() or 0
 
     rows = (
         query
-        .order_by(func.coalesce(CourseProgress.last_updated, CourseProgress.progress_id).desc())
+        .order_by(func.coalesce(LearningProgress.last_reviewed, LearningProgress.progress_id).desc())
         .offset((page - 1) * per_page)
         .limit(per_page)
         .all()
@@ -681,15 +698,18 @@ def paginate_course_items(user_id, container_id=None, status=None, page=1, per_p
     records = []
     for row in rows:
         content = row.content or {}
+        # Extract completion_percentage from mode_data or calculate from mastery
+        mode_data = row.mode_data or {}
+        completion_pct = mode_data.get('completion_percentage', int((row.mastery or 0) * 100))
         records.append({
             'container_id': row.container_id,
             'container_title': row.container_title,
             'item_id': row.item_id,
             'title': content.get('title') or content.get('lesson_title'),
-            'status': 'completed' if int(row.completion_percentage or 0) >= 100 else (
-                'in_progress' if int(row.completion_percentage or 0) > 0 else 'not_started'
+            'status': 'completed' if completion_pct >= 100 else (
+                'in_progress' if completion_pct > 0 else 'not_started'
             ),
-            'completion_percentage': int(row.completion_percentage or 0),
+            'completion_percentage': completion_pct,
             'last_updated': row.last_updated.isoformat() if row.last_updated else None,
         })
 
@@ -703,15 +723,17 @@ def paginate_course_items(user_id, container_id=None, status=None, page=1, per_p
 
 
 def get_flashcard_activity_series(user_id, container_id, timeframe='30d'):
+    # MIGRATED: Use LearningProgress with MODE_FLASHCARD
     if not container_id:
         return {'series': []}
 
     timeframe_start, timeframe_end = _resolve_timeframe_dates(timeframe)
     query = (
-        db.session.query(FlashcardProgress.review_history)
-        .join(LearningItem, LearningItem.item_id == FlashcardProgress.item_id)
+        db.session.query(LearningProgress.mode_data)
+        .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .filter(
-            FlashcardProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
             LearningItem.container_id == container_id,
         )
     )
@@ -721,7 +743,9 @@ def get_flashcard_activity_series(user_id, container_id, timeframe='30d'):
     min_date_seen = None
 
     histories = query.all()
-    for (history,) in histories:
+    for (mode_data,) in histories:
+        # Extract review_history from mode_data
+        history = (mode_data or {}).get('review_history', []) if mode_data else []
         if not history or not isinstance(history, list):
             continue
 
@@ -799,15 +823,17 @@ def get_flashcard_activity_series(user_id, container_id, timeframe='30d'):
 
 
 def get_quiz_activity_series(user_id, container_id, timeframe='30d'):
+    # MIGRATED: Use LearningProgress with MODE_QUIZ
     if not container_id:
         return {'series': []}
 
     timeframe_start, timeframe_end = _resolve_timeframe_dates(timeframe)
     query = (
-        db.session.query(QuizProgress.review_history)
-        .join(LearningItem, LearningItem.item_id == QuizProgress.item_id)
+        db.session.query(LearningProgress.mode_data)
+        .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .filter(
-            QuizProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
             LearningItem.container_id == container_id,
         )
     )
@@ -817,7 +843,9 @@ def get_quiz_activity_series(user_id, container_id, timeframe='30d'):
     min_date_seen = None
 
     histories = query.all()
-    for (history,) in histories:
+    for (mode_data,) in histories:
+        # Extract review_history from mode_data
+        history = (mode_data or {}).get('review_history', []) if mode_data else []
         if not history or not isinstance(history, list):
             continue
 
@@ -893,16 +921,18 @@ def get_quiz_activity_series(user_id, container_id, timeframe='30d'):
 
 
 def get_course_activity_series(user_id, container_id, timeframe='30d'):
+    # MIGRATED: Use LearningProgress with MODE_COURSE
     if not container_id:
         return {'series': []}
 
     timeframe_start, timeframe_end = _resolve_timeframe_dates(timeframe)
 
     query = (
-        db.session.query(CourseProgress.last_updated, CourseProgress.completion_percentage)
-        .join(LearningItem, LearningItem.item_id == CourseProgress.item_id)
+        db.session.query(LearningProgress.last_reviewed, LearningProgress.mastery, LearningProgress.mode_data)
+        .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .filter(
-            CourseProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
             LearningItem.container_id == container_id,
         )
     )
@@ -911,7 +941,7 @@ def get_course_activity_series(user_id, container_id, timeframe='30d'):
     review_counts = defaultdict(int)
     min_date_seen = None
 
-    for last_updated, completion_percentage in query.all():
+    for last_updated, mastery, mode_data in query.all():
         dt_value = _parse_history_datetime(last_updated)
         if not dt_value:
             continue
@@ -924,6 +954,9 @@ def get_course_activity_series(user_id, container_id, timeframe='30d'):
         if entry_date > timeframe_end:
             continue
 
+        # Get completion_percentage from mode_data or mastery
+        mode_data_dict = mode_data or {}
+        completion_percentage = mode_data_dict.get('completion_percentage', int((mastery or 0) * 100))
         if completion_percentage and completion_percentage > 0:
             new_counts[entry_date] += 1
         if completion_percentage and completion_percentage >= 100:
@@ -952,7 +985,10 @@ def get_course_activity_series(user_id, container_id, timeframe='30d'):
 
 
 def get_flashcard_set_metrics(user_id, container_id=None, status=None, page=1, per_page=10):
-    """Aggregate flashcard metrics per set for the provided user."""
+    """Aggregate flashcard metrics per set for the provided user.
+    
+    MIGRATED: Uses LearningProgress with MODE_FLASHCARD.
+    """
 
     container_query = (
         db.session.query(
@@ -960,9 +996,10 @@ def get_flashcard_set_metrics(user_id, container_id=None, status=None, page=1, p
             LearningContainer.title,
         )
         .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(FlashcardProgress, FlashcardProgress.item_id == LearningItem.item_id)
+        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
         .filter(
-            FlashcardProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
             LearningContainer.container_type == 'FLASHCARD_SET',
             LearningItem.item_type == 'FLASHCARD',
         )
@@ -999,17 +1036,18 @@ def get_flashcard_set_metrics(user_id, container_id=None, status=None, page=1, p
     progress_rows = (
         db.session.query(
             LearningItem.container_id.label('container_id'),
-            func.count(FlashcardProgress.progress_id).label('studied_cards'),
-            func.sum(case((FlashcardProgress.status == 'mastered', 1), else_=0)).label('learned_cards'),
-            func.sum(FlashcardProgress.times_correct).label('total_correct'),
-            func.sum(FlashcardProgress.times_incorrect).label('total_incorrect'),
-            func.sum(FlashcardProgress.times_vague).label('total_vague'),
-            func.avg(FlashcardProgress.correct_streak).label('avg_correct_streak'),
-            func.max(FlashcardProgress.correct_streak).label('best_correct_streak'),
+            func.count(LearningProgress.progress_id).label('studied_cards'),
+            func.sum(case((LearningProgress.status == 'mastered', 1), else_=0)).label('learned_cards'),
+            func.sum(LearningProgress.times_correct).label('total_correct'),
+            func.sum(LearningProgress.times_incorrect).label('total_incorrect'),
+            func.sum(LearningProgress.times_vague).label('total_vague'),
+            func.avg(LearningProgress.correct_streak).label('avg_correct_streak'),
+            func.max(LearningProgress.correct_streak).label('best_correct_streak'),
         )
-        .join(LearningItem, LearningItem.item_id == FlashcardProgress.item_id)
+        .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .filter(
-            FlashcardProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
             LearningItem.container_id.in_(container_ids),
         )
         .group_by(LearningItem.container_id)
@@ -1070,7 +1108,10 @@ def get_flashcard_set_metrics(user_id, container_id=None, status=None, page=1, p
 
 
 def get_quiz_set_metrics(user_id, container_id=None, status=None, page=1, per_page=10):
-    """Aggregate quiz metrics per set for the provided user."""
+    """Aggregate quiz metrics per set for the provided user.
+    
+    MIGRATED: Uses LearningProgress with MODE_QUIZ.
+    """
 
     container_query = (
         db.session.query(
@@ -1078,9 +1119,10 @@ def get_quiz_set_metrics(user_id, container_id=None, status=None, page=1, per_pa
             LearningContainer.title,
         )
         .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(QuizProgress, QuizProgress.item_id == LearningItem.item_id)
+        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
         .filter(
-            QuizProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
             LearningContainer.container_type == 'QUIZ_SET',
             LearningItem.item_type == 'QUIZ_MCQ',
         )
@@ -1117,15 +1159,16 @@ def get_quiz_set_metrics(user_id, container_id=None, status=None, page=1, per_pa
     progress_rows = (
         db.session.query(
             LearningItem.container_id.label('container_id'),
-            func.count(QuizProgress.progress_id).label('attempted_questions'),
-            func.sum(QuizProgress.times_correct).label('total_correct'),
-            func.sum(QuizProgress.times_incorrect).label('total_incorrect'),
-            func.avg(QuizProgress.correct_streak).label('avg_correct_streak'),
-            func.max(QuizProgress.correct_streak).label('best_correct_streak'),
+            func.count(LearningProgress.progress_id).label('attempted_questions'),
+            func.sum(LearningProgress.times_correct).label('total_correct'),
+            func.sum(LearningProgress.times_incorrect).label('total_incorrect'),
+            func.avg(LearningProgress.correct_streak).label('avg_correct_streak'),
+            func.max(LearningProgress.correct_streak).label('best_correct_streak'),
         )
-        .join(LearningItem, LearningItem.item_id == QuizProgress.item_id)
+        .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .filter(
-            QuizProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
             LearningItem.container_id.in_(container_ids),
         )
         .group_by(LearningItem.container_id)
@@ -1185,7 +1228,10 @@ def get_quiz_set_metrics(user_id, container_id=None, status=None, page=1, per_pa
 
 
 def get_course_metrics(user_id, container_id=None, status=None, page=1, per_page=10):
-    """Aggregate course metrics per set for the provided user."""
+    """Aggregate course metrics per set for the provided user.
+    
+    MIGRATED: Uses LearningProgress with MODE_COURSE.
+    """
 
     container_query = (
         db.session.query(
@@ -1193,9 +1239,10 @@ def get_course_metrics(user_id, container_id=None, status=None, page=1, per_page
             LearningContainer.title,
         )
         .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(CourseProgress, CourseProgress.item_id == LearningItem.item_id)
+        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
         .filter(
-            CourseProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
             LearningContainer.container_type == 'COURSE',
             LearningItem.item_type == 'LESSON',
         )
@@ -1232,14 +1279,15 @@ def get_course_metrics(user_id, container_id=None, status=None, page=1, per_page
     progress_rows = (
         db.session.query(
             LearningItem.container_id.label('container_id'),
-            func.count(CourseProgress.progress_id).label('lessons_started'),
-            func.sum(case((CourseProgress.completion_percentage >= 100, 1), else_=0)).label('lessons_completed'),
-            func.avg(CourseProgress.completion_percentage).label('avg_completion'),
-            func.max(CourseProgress.last_updated).label('last_activity'),
+            func.count(LearningProgress.progress_id).label('lessons_started'),
+            func.sum(case((LearningProgress.mastery >= 1.0, 1), else_=0)).label('lessons_completed'),
+            func.avg(LearningProgress.mastery * 100).label('avg_completion'),
+            func.max(LearningProgress.last_reviewed).label('last_activity'),
         )
-        .join(LearningItem, LearningItem.item_id == CourseProgress.item_id)
+        .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .filter(
-            CourseProgress.user_id == user_id,
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
             LearningItem.container_id.in_(container_ids),
         )
         .group_by(LearningItem.container_id)
@@ -1340,13 +1388,16 @@ def dashboard():
     )
     flashcard_summary = (
         db.session.query(
-            func.sum(FlashcardProgress.times_correct).label('correct'),
-            func.sum(FlashcardProgress.times_incorrect).label('incorrect'),
-            func.sum(FlashcardProgress.times_vague).label('vague'),
-            func.avg(FlashcardProgress.correct_streak).label('avg_streak'),
-            func.max(FlashcardProgress.correct_streak).label('best_streak'),
+            func.sum(LearningProgress.times_correct).label('correct'),
+            func.sum(LearningProgress.times_incorrect).label('incorrect'),
+            func.sum(LearningProgress.times_vague).label('vague'),
+            func.avg(LearningProgress.correct_streak).label('avg_streak'),
+            func.max(LearningProgress.correct_streak).label('best_streak'),
         )
-        .filter(FlashcardProgress.user_id == current_user.user_id)
+        .filter(
+            LearningProgress.user_id == current_user.user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
+        )
         .one()
     )
     flashcard_correct_total = int(flashcard_summary.correct or 0)
@@ -1360,14 +1411,22 @@ def dashboard():
     )
     flashcard_avg_streak = float(flashcard_summary.avg_streak or 0) if flashcard_summary.avg_streak is not None else 0.0
     flashcard_best_streak = int(flashcard_summary.best_streak or 0) if flashcard_summary.best_streak is not None else 0
-    flashcard_mastered_count = FlashcardProgress.query.filter_by(user_id=current_user.user_id, status='mastered').count()
-    flashcard_total_cards = FlashcardProgress.query.filter_by(user_id=current_user.user_id).count()
+    flashcard_mastered_count = LearningProgress.query.filter_by(
+        user_id=current_user.user_id, 
+        learning_mode=LearningProgress.MODE_FLASHCARD,
+        status='mastered'
+    ).count()
+    flashcard_total_cards = LearningProgress.query.filter_by(
+        user_id=current_user.user_id,
+        learning_mode=LearningProgress.MODE_FLASHCARD
+    ).count()
     flashcard_sets_count = (
         db.session.query(func.count(func.distinct(LearningContainer.container_id)))
         .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(FlashcardProgress, FlashcardProgress.item_id == LearningItem.item_id)
+        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
         .filter(
-            FlashcardProgress.user_id == current_user.user_id,
+            LearningProgress.user_id == current_user.user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
             LearningContainer.container_type == 'FLASHCARD_SET',
             LearningItem.item_type == 'FLASHCARD',
         )
@@ -1386,12 +1445,15 @@ def dashboard():
     )
     quiz_summary = (
         db.session.query(
-            func.sum(QuizProgress.times_correct).label('correct'),
-            func.sum(QuizProgress.times_incorrect).label('incorrect'),
-            func.avg(QuizProgress.correct_streak).label('avg_streak'),
-            func.max(QuizProgress.correct_streak).label('best_streak'),
+            func.sum(LearningProgress.times_correct).label('correct'),
+            func.sum(LearningProgress.times_incorrect).label('incorrect'),
+            func.avg(LearningProgress.correct_streak).label('avg_streak'),
+            func.max(LearningProgress.correct_streak).label('best_streak'),
         )
-        .filter(QuizProgress.user_id == current_user.user_id)
+        .filter(
+            LearningProgress.user_id == current_user.user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+        )
         .one()
     )
     quiz_correct_total = int(quiz_summary.correct or 0)
@@ -1404,14 +1466,22 @@ def dashboard():
     )
     quiz_avg_streak = float(quiz_summary.avg_streak or 0) if quiz_summary.avg_streak is not None else 0.0
     quiz_best_streak = int(quiz_summary.best_streak or 0) if quiz_summary.best_streak is not None else 0
-    quiz_questions_answered = QuizProgress.query.filter_by(user_id=current_user.user_id).count()
-    quiz_mastered_count = QuizProgress.query.filter_by(user_id=current_user.user_id, status='mastered').count()
+    quiz_questions_answered = LearningProgress.query.filter_by(
+        user_id=current_user.user_id,
+        learning_mode=LearningProgress.MODE_QUIZ
+    ).count()
+    quiz_mastered_count = LearningProgress.query.filter_by(
+        user_id=current_user.user_id, 
+        learning_mode=LearningProgress.MODE_QUIZ,
+        status='mastered'
+    ).count()
     quiz_sets_started_count = (
         db.session.query(func.count(func.distinct(LearningContainer.container_id)))
         .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(QuizProgress, QuizProgress.item_id == LearningItem.item_id)
+        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
         .filter(
-            QuizProgress.user_id == current_user.user_id,
+            LearningProgress.user_id == current_user.user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
             LearningContainer.container_type == 'QUIZ_SET',
             LearningItem.item_type == 'QUIZ_MCQ',
         )
@@ -1422,27 +1492,36 @@ def dashboard():
     courses_started_count = (
         db.session.query(func.count(func.distinct(LearningContainer.container_id)))
         .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(CourseProgress, CourseProgress.item_id == LearningItem.item_id)
+        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
         .filter(
-            CourseProgress.user_id == current_user.user_id,
+            LearningProgress.user_id == current_user.user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
             LearningContainer.container_type == 'COURSE',
             LearningItem.item_type == 'LESSON',
         )
         .scalar()
         or 0
     )
-    lessons_completed_count = CourseProgress.query.filter_by(user_id=current_user.user_id, completion_percentage=100).count()
-    courses_in_progress_count = CourseProgress.query.filter(
-        CourseProgress.user_id == current_user.user_id,
-        CourseProgress.completion_percentage > 0,
-        CourseProgress.completion_percentage < 100,
+    lessons_completed_count = LearningProgress.query.filter(
+        LearningProgress.user_id == current_user.user_id,
+        LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
+        LearningProgress.mastery >= 1.0
+    ).count()
+    courses_in_progress_count = LearningProgress.query.filter(
+        LearningProgress.user_id == current_user.user_id,
+        LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
+        LearningProgress.mastery > 0.0,
+        LearningProgress.mastery < 1.0,
     ).count()
     course_summary = (
         db.session.query(
-            func.avg(CourseProgress.completion_percentage).label('avg_completion'),
-            func.max(CourseProgress.last_updated).label('last_progress'),
+            func.avg(LearningProgress.mastery * 100).label('avg_completion'),
+            func.max(LearningProgress.last_reviewed).label('last_progress'),
         )
-        .filter(CourseProgress.user_id == current_user.user_id)
+        .filter(
+            LearningProgress.user_id == current_user.user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_COURSE
+        )
         .one()
     )
     course_avg_completion = float(course_summary.avg_completion or 0)

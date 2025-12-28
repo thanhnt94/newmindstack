@@ -2,7 +2,8 @@
 # FlashcardEngine - Core logic for flashcard learning
 
 from datetime import datetime, timezone
-from mindstack_app.models import db, User, LearningItem, FlashcardProgress
+from mindstack_app.models import db, User, LearningItem
+from mindstack_app.models.learning_progress import LearningProgress
 from mindstack_app.modules.gamification.services import ScoreService
 from mindstack_app.modules.shared.utils.db_session import safe_commit
 from mindstack_app.services.config_service import get_runtime_config
@@ -73,10 +74,15 @@ class FlashcardEngine:
                 score_change = 0
         else:
             # No SRS update (Collab or All Review)
-            progress = FlashcardProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
+            progress = LearningProgress.query.filter_by(
+                user_id=user_id, item_id=item_id, learning_mode='flashcard'
+            ).first()
             if not progress:
                 # Temporary progress object for stats (not committed unless needed)
-                progress = FlashcardProgress(user_id=user_id, item_id=item_id, status='new')
+                progress = LearningProgress(
+                    user_id=user_id, item_id=item_id, 
+                    learning_mode='flashcard', status='new'
+                )
                 db.session.add(progress)
 
             # Scoring for Collab/No-SRS
@@ -115,7 +121,9 @@ class FlashcardEngine:
         Get detailed statistics for a flashcard item.
         Mirroring logic from legacy stats_logic.py
         """
-        progress = FlashcardProgress.query.filter_by(user_id=user_id, item_id=item_id).first()
+        progress = LearningProgress.query.filter_by(
+            user_id=user_id, item_id=item_id, learning_mode='flashcard'
+        ).first()
         
         base_stats = {
             'times_reviewed': 0, 'correct_count': 0, 'incorrect_count': 0, 'vague_count': 0,

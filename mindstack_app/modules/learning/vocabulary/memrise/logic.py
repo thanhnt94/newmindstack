@@ -4,7 +4,8 @@ import datetime
 from typing import Optional, List, Dict
 from sqlalchemy import func
 
-from mindstack_app.models import LearningContainer, LearningItem, FlashcardProgress, db
+from mindstack_app.models import LearningContainer, LearningItem, db
+from mindstack_app.models.learning_progress import LearningProgress
 from mindstack_app.modules.learning.vocabulary.services.srs_service import VocabularySrsService
 
 # --- HELPER: Data Strategy ---
@@ -63,7 +64,7 @@ def get_distractors(target_item_id: int, container_id: int, count: int = 3) -> l
 
 # --- LOGIC: Question Generation ---
 
-def generate_question_payload(user_id: int, item: LearningItem, progress: FlashcardProgress = None):
+def generate_question_payload(user_id: int, item: LearningItem, progress: LearningProgress = None):
     """
     Generate the question payload based on item state (New vs Review).
     """
@@ -134,9 +135,10 @@ def get_memrise_session_items(user_id: int, container_id: int, limit: int = 10):
     item_map = {i.item_id: i for i in all_items}
     item_ids = list(item_map.keys())
     
-    progresses = FlashcardProgress.query.filter(
-        FlashcardProgress.user_id == user_id,
-        FlashcardProgress.item_id.in_(item_ids)
+    progresses = LearningProgress.query.filter(
+        LearningProgress.user_id == user_id,
+        LearningProgress.item_id.in_(item_ids),
+        LearningProgress.learning_mode == 'flashcard'
     ).all()
     
     prog_map = {p.item_id: p for p in progresses}
@@ -243,9 +245,10 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
     all_items = query.all()
     item_ids = [i.item_id for i in all_items]
     
-    progress_records = FlashcardProgress.query.filter(
-        FlashcardProgress.user_id == user_id,
-        FlashcardProgress.item_id.in_(item_ids)
+    progress_records = LearningProgress.query.filter(
+        LearningProgress.user_id == user_id,
+        LearningProgress.item_id.in_(item_ids),
+        LearningProgress.learning_mode == 'flashcard'
     ).all()
     
     prog_map = {p.item_id: p for p in progress_records}
@@ -257,21 +260,23 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
     # Sort: Non-new items by retention ASC, then new items last
     from sqlalchemy import case
     
-    sorted_query = db.session.query(LearningItem, FlashcardProgress).outerjoin(
-        FlashcardProgress, 
-        (FlashcardProgress.item_id == LearningItem.item_id) & (FlashcardProgress.user_id == user_id)
+    sorted_query = db.session.query(LearningItem, LearningProgress).outerjoin(
+        LearningProgress, 
+        (LearningProgress.item_id == LearningItem.item_id) & 
+        (LearningProgress.user_id == user_id) &
+        (LearningProgress.learning_mode == 'flashcard')
     ).filter(
         LearningItem.container_id == container_id
     ).order_by(
         # New items go last
         case(
-            (FlashcardProgress.status == 'new', 1),
-            (FlashcardProgress.status == None, 1),
+            (LearningProgress.status == 'new', 1),
+            (LearningProgress.status == None, 1),
             else_=0
         ).asc(),
         # For non-new items, sort by retention rate (calculated via interval)
         # Lower interval = needs review sooner = higher priority
-        FlashcardProgress.interval.asc().nulls_last(),
+        LearningProgress.interval.asc().nulls_last(),
         LearningItem.item_id.asc() # Fallback
     )
     
@@ -282,7 +287,7 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
     now = datetime.datetime.now(datetime.timezone.utc)
     
     for item, p in pagination.items:
-        # p is FlashcardProgress object or None
+        # p is LearningProgress object or None
         
         status = p.status if p else 'new'
         retention = 0
