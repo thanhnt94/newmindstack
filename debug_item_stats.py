@@ -1,6 +1,6 @@
 from mindstack_app import create_app, db
 from mindstack_app.models import LearningItem, ReviewLog, LearningProgress, User
-from mindstack_app.modules.learning.vocabulary.stats.item_stats import VocabularyItemStats
+from mindstack_app.modules.learning.sub_modules.vocabulary.stats.item_stats import VocabularyItemStats
 
 app = create_app()
 
@@ -52,3 +52,4 @@ with app.app_context():
             print(f"[{log['timestamp']}] {log['mode']} - {log['result']} - Ans: {log['user_answer']}")
             
     print("\nTest Complete.")
+

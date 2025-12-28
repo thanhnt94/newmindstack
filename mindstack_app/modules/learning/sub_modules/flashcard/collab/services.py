@@ -1,0 +1,338 @@
+"""Service helpers for collaborative flashcard learning."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import string
+import random
+from typing import Callable, Iterable, Optional, Set
+
+from flask import url_for
+
+from ......models import (
+    FlashcardCollabAnswer,
+    FlashcardCollabParticipant,
+    FlashcardCollabRoom,
+    FlashcardCollabRound,
+    LearningProgress,
+    LearningContainer,
+    LearningItem,
+    User,
+    db,
+)
+from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
+from ..individual import algorithms
+
+
+def generate_room_code(length: int = 6) -> str:
+    """Generate a short alphanumeric room code."""
+
+    alphabet = string.ascii_uppercase + string.digits
+    return ''.join(random.choice(alphabet) for _ in range(length))
+
+
+def _first_item(query) -> Optional[LearningItem]:
+    """Safely fetch the first item from a SQLAlchemy query."""
+
+    try:
+        return query.first()
+    except Exception:
+        return None
+
+
+def _normalize_due_time(value: Optional[datetime]) -> datetime:
+    if not value:
+        return datetime.max.replace(tzinfo=timezone.utc)
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _normalize_capability_flags(raw_flags) -> Set[str]:
+    """Normalize capability flags from container settings."""
+
+    normalized: Set[str] = set()
+    if isinstance(raw_flags, (list, tuple, set)):
+        normalized.update({value for value in raw_flags if isinstance(value, str) and value})
+    elif isinstance(raw_flags, dict):
+        normalized.update({key for key, enabled in raw_flags.items() if enabled and isinstance(key, str) and key})
+    elif isinstance(raw_flags, str) and raw_flags:
+        normalized.add(raw_flags)
+    return normalized
+
+
+def _build_item_payload(item: LearningItem) -> dict[str, object]:
+    """Serialize a flashcard item for API responses using individual-session logic."""
+
+    content = item.content or {}
+    container = getattr(item, 'container', None)
+    media_folders = (getattr(container, 'media_folders', None) or {}) if container else {}
+
+    def _media_url(value: Optional[str], media_type: str) -> Optional[str]:
+        if not value:
+            return None
+
+        relative_path = build_relative_media_path(value, media_folders.get(media_type))
+        if not relative_path:
+            return None
+
+        if relative_path.startswith(('http://', 'https://')):
+            return relative_path
+        if relative_path.startswith('/'):
+            return url_for('static', filename=relative_path.lstrip('/'))
+        return url_for('static', filename=relative_path)
+
+    container_capabilities: Set[str] = set()
+    try:
+        if container:
+            if hasattr(container, 'capability_flags'):
+                container_capabilities = set(container.capability_flags())
+            else:
+                settings_payload = getattr(container, 'ai_settings', None)
+                if isinstance(settings_payload, dict):
+                    container_capabilities = _normalize_capability_flags(settings_payload.get('capabilities'))
+    except Exception:
+        container_capabilities = set()
+
+    def _supports(flag: str) -> bool:
+        return bool(content.get(flag)) or (flag in container_capabilities)
+
+    return {
+        'item_id': item.item_id,
+        'container_id': item.container_id,
+        'content': {
+            'front': content.get('front', ''),
+            'back': content.get('back', ''),
+            'front_audio_content': content.get('front_audio_content', ''),
+            'front_audio_url': _media_url(content.get('front_audio_url'), 'audio'),
+            'back_audio_content': content.get('back_audio_content', ''),
+            'back_audio_url': _media_url(content.get('back_audio_url'), 'audio'),
+            'front_img': _media_url(content.get('front_img'), 'image'),
+            'back_img': _media_url(content.get('back_img'), 'image'),
+            'supports_pronunciation': _supports('supports_pronunciation'),
+            'supports_writing': _supports('supports_writing'),
+            'supports_quiz': _supports('supports_quiz'),
+            'supports_essay': _supports('supports_essay'),
+            'supports_listening': _supports('supports_listening'),
+            'supports_speaking': _supports('supports_speaking'),
+        },
+        'ai_explanation': item.ai_explanation,
+    }
+
+
+def _pick_next_item_for_user(user_id: int, container_id: int, mode: str) -> Optional[LearningItem]:
+    """Return the next flashcard for a single user based on mode."""
+
+    normalized = (mode or '').strip().lower()
+    exclusion = None
+
+    if normalized == 'new_only':
+        query = algorithms.get_new_only_items(user_id, container_id, None)
+        query = query.order_by(LearningItem.order_in_container.asc())
+        return _first_item(query)
+
+    if normalized == 'due_only':
+        query = algorithms.get_due_items(user_id, container_id, None)
+        query = query.order_by(LearningProgress.due_time.asc())
+        return _first_item(query)
+
+    if normalized == 'hard_only':
+        query = algorithms.get_hard_items(user_id, container_id, None)
+        query = query.order_by(LearningProgress.due_time.asc(), LearningItem.item_id.asc())
+        return _first_item(query)
+
+    if normalized == 'all_review':
+        query = algorithms.get_all_review_items(user_id, container_id, None)
+        query = query.order_by(LearningProgress.due_time.asc(), LearningItem.item_id.asc())
+        return _first_item(query)
+
+    # Capability-based practice modes fall back to ordered items from their specific query
+    practice_modes: dict[str, Callable[[int, int, Optional[int]], Iterable[LearningItem]]] = {
+        'pronunciation_practice': algorithms.get_pronunciation_items,
+        'writing_practice': algorithms.get_writing_items,
+        'quiz_practice': algorithms.get_quiz_items,
+        'essay_practice': algorithms.get_essay_items,
+        'listening_practice': algorithms.get_listening_items,
+        'speaking_practice': algorithms.get_speaking_items,
+    }
+
+    practice_func = practice_modes.get(normalized)
+    if practice_func:
+        query = practice_func(user_id, container_id, None)
+        query = query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+        return _first_item(query)
+
+    # Autoplay style modes use the broader selection with deterministic ordering
+    if normalized in {'autoplay_learned', 'autoplay_all'}:
+        query = algorithms.get_all_items_for_autoplay(user_id, container_id, None)
+        query = query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+        return _first_item(query)
+
+    # Default mixed SRS: prioritize due cards then new ones
+    due_query = algorithms.get_due_items(user_id, container_id, None).order_by(LearningProgress.due_time.asc())
+    due_item = _first_item(due_query)
+    if due_item:
+        return due_item
+
+    new_query = algorithms.get_new_only_items(user_id, container_id, None).order_by(
+        LearningItem.order_in_container.asc()
+    )
+    return _first_item(new_query)
+
+
+def _select_next_item(room: FlashcardCollabRoom) -> Optional[tuple[LearningItem, int, datetime]]:
+    """Select the next flashcard item shared across participants (Randomly from Container)."""
+
+    # Lấy danh sách ID của tất cả các thẻ Flashcard trong container
+    item_ids = [
+        item.item_id for item in db.session.query(LearningItem.item_id).filter_by(
+            container_id=room.container_id,
+            item_type='FLASHCARD'
+        ).all()
+    ]
+
+    if not item_ids:
+        return None
+
+    # Chọn ngẫu nhiên một ID
+    random_item_id = random.choice(item_ids)
+    
+    # Lấy đối tượng LearningItem đầy đủ
+    next_item = LearningItem.query.get(random_item_id)
+
+    if not next_item:
+        return None
+
+    # Trong chế độ này, không có user cụ thể nào "sở hữu" lượt due này,
+    # và thời gian due cũng không quan trọng.
+    # Gán tạm host_user_id làm người được schedule (hoặc None nếu model cho phép)
+    # và due_time là hiện tại.
+    scheduled_for_user_id = room.host_user_id
+    due_time = datetime.now(timezone.utc)
+
+    return next_item, scheduled_for_user_id, due_time
+
+
+def get_next_shared_item(room: FlashcardCollabRoom) -> Optional[dict[str, object]]:
+    """Pick the next flashcard that the room should study together."""
+
+    selection = _select_next_item(room)
+    if not selection:
+        return None
+
+    next_item, scheduled_for_user_id, due_time = selection
+    return {
+        'item': _build_item_payload(next_item),
+        'scheduled_for_user_id': scheduled_for_user_id,
+        'scheduled_due_at': due_time.isoformat() if due_time else None,
+    }
+
+
+def ensure_active_round(room: FlashcardCollabRoom) -> Optional[FlashcardCollabRound]:
+    """Return the active round for a room or create one if missing."""
+
+    active_round = (
+        FlashcardCollabRound.query.filter_by(room_id=room.room_id, status=FlashcardCollabRound.STATUS_ACTIVE)
+        .order_by(FlashcardCollabRound.started_at.desc())
+        .first()
+    )
+    if active_round:
+        return active_round
+
+    selection = _select_next_item(room)
+    if not selection:
+        return None
+
+    next_item, scheduled_for_user_id, due_time = selection
+    
+    try:
+        active_round = FlashcardCollabRound(
+            room_id=room.room_id,
+            item_id=next_item.item_id,
+            status=FlashcardCollabRound.STATUS_ACTIVE,
+            scheduled_for_user_id=scheduled_for_user_id,
+            scheduled_due_at=due_time,
+        )
+        db.session.add(active_round)
+        db.session.commit()
+        return active_round
+    except Exception as e:
+        db.session.rollback()
+        # Log the error for debugging (in a real app, use current_app.logger)
+        print(f"Error creating active round: {e}")
+        return None
+
+
+def build_round_payload(round_obj: FlashcardCollabRound, room: FlashcardCollabRoom) -> Optional[dict[str, object]]:
+    """Serialize current round state including who has answered."""
+
+    item = LearningItem.query.get(round_obj.item_id)
+    if not item:
+        return None
+
+    answers_by_user = {answer.user_id: answer for answer in (round_obj.answers or [])}
+    participants_payload: list[dict[str, object]] = []
+    active_participants = [
+        participant for participant in room.participants if participant.status == FlashcardCollabParticipant.STATUS_ACTIVE
+    ]
+
+    for participant in active_participants:
+        answer = answers_by_user.get(participant.user_id)
+        participants_payload.append(
+            {
+                'user_id': participant.user_id,
+                'username': getattr(participant.user, 'username', None),
+                'has_answered': answer is not None,
+                'answered_at': answer.created_at.isoformat() if answer and answer.created_at else None,
+            }
+        )
+
+    all_answered = bool(active_participants) and all(p['has_answered'] for p in participants_payload)
+
+    return {
+        'round_id': round_obj.round_id,
+        'item': _build_item_payload(item),
+        'scheduled_for_user_id': round_obj.scheduled_for_user_id,
+        'scheduled_due_at': round_obj.scheduled_due_at.isoformat() if round_obj.scheduled_due_at else None,
+        'participants': participants_payload,
+        'all_answered': all_answered,
+        'status': round_obj.status,
+        'completed_at': round_obj.completed_at.isoformat() if round_obj.completed_at else None,
+        'button_count': getattr(room, 'button_count', None),
+    }
+
+
+def serialize_participant(participant: FlashcardCollabParticipant) -> dict[str, object]:
+    """Serialize a participant record for API responses."""
+
+    return {
+        'participant_id': participant.participant_id,
+        'user_id': participant.user_id,
+        'username': getattr(participant.user, 'username', None),
+        'is_host': participant.is_host,
+        'status': participant.status,
+        'joined_at': participant.joined_at.isoformat() if participant.joined_at else None,
+        'left_at': participant.left_at.isoformat() if participant.left_at else None,
+    }
+
+
+def serialize_room(room: FlashcardCollabRoom) -> dict[str, object]:
+    """Serialize room details including participants."""
+
+    return {
+        'room_code': room.room_code,
+        'room_id': room.room_id,
+        'title': room.title,
+        'mode': room.mode,
+        'button_count': room.button_count,
+        'container_id': room.container_id,
+        'container_title': getattr(room.container, 'title', None),
+        'host_user_id': room.host_user_id,
+        'host_username': getattr(room.host, 'username', None),
+        'is_public': room.is_public,
+        'status': room.status,
+        'created_at': room.created_at.isoformat() if room.created_at else None,
+        'updated_at': room.updated_at.isoformat() if room.updated_at else None,
+        'participant_count': len(room.participants) if room.participants else 0,
+        'participants': [serialize_participant(p) for p in room.participants],
+    }

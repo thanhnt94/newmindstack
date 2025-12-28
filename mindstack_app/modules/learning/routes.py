@@ -7,14 +7,14 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 
 # Import các blueprint con
-from .quiz import quiz_battle_bp, quiz_learning_bp
-from .flashcard import flashcard_bp
-from .flashcard.individual.routes import flashcard_learning_bp
-from .course.routes import course_bp
-from .flashcard.collab.routes import flashcard_collab_bp
-from .vocabulary import vocabulary_bp
-from .practice import practice_bp  # NEW: Practice entry point
-from .collab import collab_bp  # NEW: Collab entry point
+from .sub_modules.quiz import quiz_battle_bp, quiz_learning_bp
+from .sub_modules.flashcard import flashcard_bp
+from .sub_modules.flashcard.individual.routes import flashcard_learning_bp
+from .sub_modules.course.routes import course_bp
+from .sub_modules.flashcard.collab.routes import flashcard_collab_bp
+from .sub_modules.vocabulary import vocabulary_bp
+from .sub_modules.practice import practice_bp
+from .sub_modules.collab import collab_bp
 
 # Định nghĩa Blueprint chính cho learning
 learning_bp = Blueprint('learning', __name__,

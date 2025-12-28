@@ -27,7 +27,7 @@ if "duckduckgo_search" not in sys.modules:
 from duckduckgo_search.exceptions import DuckDuckGoSearchException
 
 from mindstack_app.config import Config
-from mindstack_app.modules.learning.flashcard_learning.image_service import ImageService
+from mindstack_app.modules.learning.sub_modules.flashcard_learning.image_service import ImageService
 
 
 class _FailingContextManager:
@@ -80,4 +80,5 @@ def test_get_cached_or_download_image_retries_on_duckduckgo_exception(monkeypatc
     finally:
         setattr(Config, "UPLOAD_FOLDER", original_upload)
         setattr(Config, "FLASHCARD_IMAGE_CACHE_DIR", original_cache)
+
 

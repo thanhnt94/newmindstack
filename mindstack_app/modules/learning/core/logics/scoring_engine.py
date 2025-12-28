@@ -321,6 +321,41 @@ class ScoringEngine:
     # === UTILITY METHODS ===
 
     @staticmethod
+    def quality_to_score(quality: int) -> int:
+        """
+        Pure function: Convert SRS quality (0-5) to score points.
+        
+        This is the single source of truth for quality-to-score mapping.
+        Used by SRS service when saving ReviewLog.score_change.
+        
+        Args:
+            quality: SRS quality rating (0-5)
+                0 = Complete fail
+                1 = Again/Failed
+                2 = Hard (vague)
+                3 = Hard
+                4 = Good
+                5 = Perfect/Easy
+        
+        Returns:
+            Score points (0-20)
+        """
+        score_map = {
+            0: 0,    # Complete fail
+            1: 5,    # Failed/Again
+            2: 8,    # Hard (vague)
+            3: 10,   # Hard
+            4: 15,   # Good
+            5: 20    # Perfect/Easy
+        }
+        return score_map.get(quality, 10)  # Default to 10 if unknown
+
+    @staticmethod
+    def quiz_answer_to_quality(is_correct: bool) -> int:
+        """Convert quiz correct/incorrect to quality score."""
+        return 4 if is_correct else 1
+
+    @staticmethod
     def get_mode_from_string(mode_string: str) -> LearningMode:
         """Convert string to LearningMode enum."""
         try:

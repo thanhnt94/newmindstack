@@ -56,9 +56,8 @@ from datetime import date, time
 
 from ...config import Config
 # Refactored imports: services now in learning/flashcard/individual/ and learning/quiz/individual/services/
-from ..learning.flashcard.services import AudioService
-from ..learning.flashcard.individual.image_service import ImageService
-from ..learning.quiz.individual.services.audio_service import QuizAudioService
+from ..learning.sub_modules.flashcard.services import AudioService, ImageService
+from ..learning.sub_modules.quiz.individual.services.audio_service import QuizAudioService
 from ..ai_services.ai_explanation_task_service import (
     DEFAULT_REQUEST_INTERVAL_SECONDS,
     generate_ai_explanations,

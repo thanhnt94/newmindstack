@@ -109,7 +109,7 @@ class NotificationService:
     def check_daily_study_reminder(user_id):
         from sqlalchemy import func
         from datetime import datetime, date, timedelta
-        from ..models.user import ScoreLog
+        from mindstack_app.models import ScoreLog
         
         # 1. Check if user studied today (any ScoreLog)
         today = date.today()

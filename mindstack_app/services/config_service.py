@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
 
 from flask import Flask, current_app, has_app_context
 
 from ..models import AppSettings, db
+from ..logics.config_parser import ConfigParser
 
 # Các khóa nhạy cảm không được ghi đè từ DB
 SENSITIVE_SETTING_KEYS = {"SECRET_KEY", "SQLALCHEMY_DATABASE_URI"}
@@ -47,51 +47,31 @@ class ConfigService:
         if created:
             db.session.commit()
 
-    def _infer_data_type(self, setting: AppSettings) -> str:
-        if getattr(setting, "data_type", None):
-            return str(setting.data_type).lower()
-
-        key = setting.key.upper()
-        if key.startswith(("IS_", "HAS_", "ENABLE_")) or key.endswith(("_ENABLED", "_ENABLE")):
-            return "bool"
-        if key.endswith(("_COUNT", "_LIMIT", "_TIMEOUT", "_TTL", "_SECONDS", "_MINUTES")):
-            return "int"
-        if key.endswith(("_FOLDER", "_PATH", "_DIR", "_DIRECTORY")):
-            return "path"
-        return "string"
-
     def _parse_value(self, setting: AppSettings) -> Any:
-        raw_value = setting.value
-        data_type = self._infer_data_type(setting)
-
+        """Parse setting value using ConfigParser logic."""
+        # Use explicit data_type if available, else infer from key
+        data_type = getattr(setting, "data_type", None)
+        if not data_type:
+            data_type = ConfigParser.infer_data_type(setting.key)
+        else:
+            data_type = str(data_type).lower()
+        
         try:
-            if data_type == "bool":
-                if isinstance(raw_value, bool):
-                    return raw_value
-                if isinstance(raw_value, str):
-                    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
-                return bool(raw_value)
-
-            if data_type == "int":
-                if raw_value == '' or raw_value is None:
-                    return 0
-                return int(raw_value)
-
-            if data_type == "path" and isinstance(raw_value, str):
-                return os.path.abspath(raw_value)
-        except (TypeError, ValueError):
+            return ConfigParser.parse_value(setting.value, data_type)
+        except (TypeError, ValueError) as e:
             current_app.logger.warning(
-                "Không thể chuyển đổi giá trị của %s ('%s') về kiểu %s, dùng giá trị mặc định an toàn.",
+                "Không thể chuyển đổi giá trị của %s ('%s') về kiểu %s: %s. Dùng giá trị mặc định.",
                 setting.key,
-                raw_value,
+                setting.value,
                 data_type,
+                e,
             )
+            # Return safe defaults
             if data_type == 'int':
                 return 0
             if data_type == 'bool':
                 return False
-
-        return raw_value
+            return setting.value
 
     def load_settings(self, force: bool = False) -> None:
         """Nạp toàn bộ AppSettings vào current_app.config."""
