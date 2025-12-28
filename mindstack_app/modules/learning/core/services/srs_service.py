@@ -90,7 +90,7 @@ class SrsService:
         return new_status, new_interval, new_ef, new_reps
 
     @staticmethod
-    def update_item_progress(user_id: int, item_id: int, quality: int, source_mode: str = 'flashcard') -> LearningProgress:
+    def update_item_progress(user_id: int, item_id: int, quality: int, source_mode: str = 'flashcard', duration_ms: int = 0, user_answer: str = None) -> LearningProgress:
         """
         Main entry point to update progress for an item.
         Handles checking/creating record and applying SRS logic.
@@ -239,7 +239,9 @@ class SrsService:
             rating=quality,
             interval=progress.interval,
             easiness_factor=progress.easiness_factor,
-            review_type=source_mode
+            review_type=source_mode,
+            duration_ms=duration_ms,
+            user_answer=user_answer
         )
         db.session.add(log_entry)
 
@@ -248,11 +250,15 @@ class SrsService:
     # === NEW: Memory Power System ===
 
     @staticmethod
+
+    @staticmethod
     def update_with_memory_power(
         user_id: int,
         item_id: int,
         quality: int,
-        source_mode: str = 'flashcard'
+        source_mode: str = 'flashcard',
+        duration_ms: int = 0,
+        user_answer: str = None
     ) -> LearningProgress:
         """
         Update progress using Memory Power system.
@@ -344,7 +350,9 @@ class SrsService:
             easiness_factor=new_state.easiness_factor,
             review_type=source_mode,
             mastery_snapshot=new_state.mastery,
-            memory_power_snapshot=result.memory_power
+            memory_power_snapshot=result.memory_power,
+            duration_ms=duration_ms,
+            user_answer=user_answer
         )
         db.session.add(log_entry)
         

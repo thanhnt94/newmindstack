@@ -157,6 +157,7 @@
         let sessionStats = { total: 0, correct: 0, total_questions: 0 };
         let currentQuestion = null;
         let lastAnswerResult = null; // Holds the result of the last answered question
+        let startTime = 0;
 
         // Helper: Update text/html for ALL matching elements (Mobile & Desktop)
         const setText = (selector, text) => document.querySelectorAll(selector).forEach(el => el.textContent = text);
@@ -391,6 +392,8 @@
             if (mobileEditBtn) mobileEditBtn.classList.add('hidden');
             if (desktopEditBtn) desktopEditBtn.classList.add('hidden');
             if (mobileFeedbackBtn) mobileFeedbackBtn.classList.add('hidden');
+
+            startTime = Date.now();
         }
 
         function selectOption(key) {
@@ -413,11 +416,13 @@
 
             updateActionButtons(true, '<i class="fas fa-circle-notch fa-spin"></i> Đang gửi...');
 
+            const duration_ms = Date.now() - startTime;
+
             try {
                 const res = await fetch(submitAnswerBatchUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                    body: JSON.stringify({ answers: [{ item_id: itemId, user_answer: answer }] })
+                    body: JSON.stringify({ answers: [{ item_id: itemId, user_answer: answer, duration_ms: duration_ms }] })
                 });
                 const data = await res.json();
                 lastAnswerResult = data.results[0]; // Save result

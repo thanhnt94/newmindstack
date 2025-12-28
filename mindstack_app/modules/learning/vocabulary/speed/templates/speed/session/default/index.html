@@ -235,6 +235,9 @@
     var knowCount = 0;
     var forgotCount = 0;
 
+    var sessionResults = []; // Store results for bulk upload
+    var startTime = 0;
+
     var wordEl = document.getElementById('word');
     var answerEl = document.getElementById('answer');
     var progressEl = document.getElementById('progress');
@@ -251,14 +254,27 @@
     };
 
     document.getElementById('btn-know').onclick = function () {
+        recordResult(true, 'Known');
         knowCount++;
         nextCard();
     };
 
     document.getElementById('btn-forgot').onclick = function () {
+        recordResult(false, 'Forgotten');
         forgotCount++;
         nextCard();
     };
+
+    function recordResult(isCorrect, answerText) {
+        var duration = Date.now() - startTime;
+        var card = cards[current];
+        sessionResults.push({
+            item_id: card.item_id,
+            is_correct: isCorrect,
+            duration_ms: duration,
+            user_answer: answerText
+        });
+    }
 
     function showCard() {
         if (current >= total) {
@@ -273,7 +289,10 @@
         btnAnswer.style.display = 'none';
 
         currentEl.textContent = current + 1;
+        currentEl.textContent = current + 1;
         progressEl.style.width = ((current / total) * 100) + '%';
+
+        startTime = Date.now();
     }
 
     function nextCard() {
@@ -285,7 +304,18 @@
         document.getElementById('game').style.display = 'none';
         document.getElementById('complete').style.display = 'flex';
         document.getElementById('know-count').textContent = knowCount;
+        document.getElementById('know-count').textContent = knowCount;
         document.getElementById('forgot-count').textContent = forgotCount;
+
+        // Bulk Upload
+        fetch('/learn/vocabulary/speed/api/log_session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: sessionResults })
+        })
+            .then(r => r.json())
+            .then(data => console.log('Session logged:', data))
+            .catch(err => console.error('Error logging session:', err));
     }
 }) ();
 </script>

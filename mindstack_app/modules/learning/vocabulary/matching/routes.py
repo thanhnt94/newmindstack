@@ -72,6 +72,8 @@ def api_check_match():
     data = request.get_json()
     left_item_id = data.get('left_item_id')
     right_item_id = data.get('right_item_id')
+    duration_ms = data.get('duration_ms', 0)
+    user_answer = data.get('user_answer')
     
     # Check if item_ids match (same item = correct pair)
     is_correct = left_item_id == right_item_id
@@ -89,7 +91,7 @@ def api_check_match():
              user_id=current_user.user_id,
              item_id=left_item_id,
              mode='matching',
-             result_data={'is_correct': True}
+             result_data={'is_correct': True, 'duration_ms': duration_ms, 'user_answer': user_answer}
          )
          srs_results.append(srs)
     else:
@@ -100,14 +102,14 @@ def api_check_match():
                  user_id=current_user.user_id,
                  item_id=left_item_id,
                  mode='matching',
-                 result_data={'is_correct': False}
+                 result_data={'is_correct': False, 'duration_ms': duration_ms, 'user_answer': user_answer}
              )
         if right_item_id:
              VocabularySrsService.process_interaction(
                  user_id=current_user.user_id,
                  item_id=right_item_id,
                  mode='matching',
-                 result_data={'is_correct': False}
+                 result_data={'is_correct': False, 'duration_ms': duration_ms, 'user_answer': user_answer}
              )
     
     safe_commit(db.session)

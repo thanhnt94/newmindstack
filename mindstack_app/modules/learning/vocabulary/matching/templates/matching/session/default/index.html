@@ -4,33 +4,182 @@
 {% block head %}
 {{ super() }}
 <style>
-body { font-family: 'Inter', sans-serif; background: #f8fafc; }
-@media (max-width: 1023px) { body > header, body > footer { display: none !important; } body > main { padding: 0 !important; margin: 0 !important; max-width: none !important; } }
-.match-container { min-height: 100vh; display: flex; flex-direction: column; }
-.match-header { background: white; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.75rem; }
-.match-back { width: 36px; height: 36px; border-radius: 0.75rem; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b; cursor: pointer; text-decoration: none; }
-.match-title { font-weight: 700; color: #1e293b; flex: 1; }
-.match-score { font-weight: 700; color: #6366f1; }
-.match-game { flex: 1; padding: 1rem; display: flex; gap: 1rem; }
-.match-column { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-.match-card { padding: 1rem; background: white; border-radius: 0.75rem; border: 2px solid #e2e8f0; cursor: pointer; transition: all 0.2s; text-align: center; font-weight: 500; color: #1e293b; }
-.match-card:hover { border-color: #6366f1; background: #f5f3ff; }
-.match-card.selected { border-color: #6366f1; background: #ede9fe; box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
-.match-card.matched { border-color: #10b981; background: #d1fae5; color: #059669; pointer-events: none; }
-.match-card.wrong { border-color: #ef4444; background: #fee2e2; animation: shake 0.3s; }
-@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-.match-complete { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.match-complete-box { background: white; padding: 2rem; border-radius: 1rem; text-align: center; max-width: 300px; }
-.match-complete-icon { font-size: 4rem; color: #10b981; margin-bottom: 1rem; }
-.match-complete-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
-.match-complete-stats { color: #64748b; margin-bottom: 1rem; }
-.match-complete-btn { padding: 0.75rem 1.5rem; background: #6366f1; color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; }
+    body {
+        font-family: 'Inter', sans-serif;
+        background: #f8fafc;
+    }
+
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        body>main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+        }
+    }
+
+    .match-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .match-header {
+        background: white;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .match-back {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.75rem;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .match-title {
+        font-weight: 700;
+        color: #1e293b;
+        flex: 1;
+    }
+
+    .match-score {
+        font-weight: 700;
+        color: #6366f1;
+    }
+
+    .match-game {
+        flex: 1;
+        padding: 1rem;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .match-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .match-card {
+        padding: 1rem;
+        background: white;
+        border-radius: 0.75rem;
+        border: 2px solid #e2e8f0;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        font-weight: 500;
+        color: #1e293b;
+    }
+
+    .match-card:hover {
+        border-color: #6366f1;
+        background: #f5f3ff;
+    }
+
+    .match-card.selected {
+        border-color: #6366f1;
+        background: #ede9fe;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    .match-card.matched {
+        border-color: #10b981;
+        background: #d1fae5;
+        color: #059669;
+        pointer-events: none;
+    }
+
+    .match-card.wrong {
+        border-color: #ef4444;
+        background: #fee2e2;
+        animation: shake 0.3s;
+    }
+
+    @keyframes shake {
+
+        0%,
+        100% {
+            transform: translateX(0);
+        }
+
+        25% {
+            transform: translateX(-5px);
+        }
+
+        75% {
+            transform: translateX(5px);
+        }
+    }
+
+    .match-complete {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    .match-complete-box {
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        text-align: center;
+        max-width: 300px;
+    }
+
+    .match-complete-icon {
+        font-size: 4rem;
+        color: #10b981;
+        margin-bottom: 1rem;
+    }
+
+    .match-complete-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .match-complete-stats {
+        color: #64748b;
+        margin-bottom: 1rem;
+    }
+
+    .match-complete-btn {
+        padding: 0.75rem 1.5rem;
+        background: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
 </style>
 {% endblock %}
 {% block content %}
 <div class="match-container">
     <div class="match-header">
-        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="match-back"><i class="fas fa-arrow-left"></i></a>
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="match-back"><i
+                class="fas fa-arrow-left"></i></a>
         <span class="match-title">{{ container.title }}</span>
         <span class="match-score"><span id="score">0</span>/{{ game.total }}</span>
     </div>
@@ -63,14 +212,16 @@ body { font-family: 'Inter', sans-serif; background: #f8fafc; }
 {% block scripts %}
 {{ super() }}
 <script>
-(function() {
-    var score = 0;
-    var total = {{ game.total }};
+    (function () {
+        var score = 0;
+        var total = {{ game.total }
+    };
     var selectedLeft = null;
     var selectedRight = null;
+    var startTime = Date.now();
     var cards = document.querySelectorAll('.match-card');
-    cards.forEach(function(card) {
-        card.addEventListener('click', function() {
+    cards.forEach(function (card) {
+        card.addEventListener('click', function () {
             if (card.classList.contains('matched')) return;
             var side = card.dataset.side;
             if (side === 'left') {
@@ -90,6 +241,25 @@ body { font-family: 'Inter', sans-serif; background: #f8fafc; }
     function checkMatch() {
         var leftItemId = selectedLeft.dataset.itemId;
         var rightItemId = selectedRight.dataset.itemId;
+
+        var duration_ms = Date.now() - startTime;
+        var userAnswer = "Ghép: " + selectedLeft.textContent.trim() + " - " + selectedRight.textContent.trim();
+
+        // Setup next start time immediately
+        startTime = Date.now();
+
+        // Send to API
+        fetch('/learn/vocabulary/matching/api/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                left_item_id: leftItemId,
+                right_item_id: rightItemId,
+                duration_ms: duration_ms,
+                user_answer: userAnswer
+            })
+        });
+
         if (leftItemId === rightItemId) {
             selectedLeft.classList.remove('selected');
             selectedRight.classList.remove('selected');
@@ -100,7 +270,7 @@ body { font-family: 'Inter', sans-serif; background: #f8fafc; }
             selectedLeft = null;
             selectedRight = null;
             if (score === total) {
-                setTimeout(function() {
+                setTimeout(function () {
                     document.getElementById('final-score').textContent = score;
                     document.getElementById('complete-modal').style.display = 'flex';
                 }, 300);
@@ -108,7 +278,7 @@ body { font-family: 'Inter', sans-serif; background: #f8fafc; }
         } else {
             selectedLeft.classList.add('wrong');
             selectedRight.classList.add('wrong');
-            setTimeout(function() {
+            setTimeout(function () {
                 selectedLeft.classList.remove('wrong', 'selected');
                 selectedRight.classList.remove('wrong', 'selected');
                 selectedLeft = null;
@@ -116,6 +286,6 @@ body { font-family: 'Inter', sans-serif; background: #f8fafc; }
             }, 500);
         }
     }
-})();
+}) ();
 </script>
 {% endblock %}

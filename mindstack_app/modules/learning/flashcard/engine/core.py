@@ -27,7 +27,8 @@ class FlashcardEngine:
     @classmethod
     def process_answer(cls, user_id: int, item_id: int, quality: int, 
                       current_user_total_score: int, mode: str = None, 
-                      update_srs: bool = True):
+                      update_srs: bool = True,
+                      duration_ms: int = 0, user_answer_text: str = None):
         """
         Process a flashcard answer.
         
@@ -62,7 +63,8 @@ class FlashcardEngine:
         if update_srs and not is_all_review:
             # Update SRS via Service (which uses MemoryEngine)
             progress = SrsService.update_with_memory_power(
-                user_id, item_id, quality, source_mode='flashcard'
+                user_id, item_id, quality, source_mode='flashcard',
+                duration_ms=duration_ms, user_answer=user_answer_text
             )
             
             # Scoring Logic

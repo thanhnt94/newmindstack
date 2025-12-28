@@ -194,7 +194,12 @@ def api_check_answer():
     if correct_index is None or user_answer_index is None:
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
     
+    user_answer_text = data.get('user_answer_text')
+    duration_ms = data.get('duration_ms', 0)
+
     result = check_mcq_answer(correct_index, user_answer_index)
+    result['user_answer'] = user_answer_text
+    result['duration_ms'] = duration_ms
     
     # Update SRS if item_id provided
     if item_id:

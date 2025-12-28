@@ -509,6 +509,7 @@
         var score = 0;
         var wrongCount = 0;
         var answered = false;
+        var startTime = 0;
 
         // Elements
         var headerAudioBtn = document.getElementById('header-audio-btn');
@@ -566,6 +567,7 @@
                 audioPlayer.src = item.audio_url;
                 playAudio();
             }
+            startTime = Date.now();
         }
 
         function playAudio() {
@@ -618,6 +620,7 @@
         function checkAnswer() {
             var item = items[current];
             var userAnswer = inputEl.value.trim().toLowerCase();
+            const duration_ms = Date.now() - startTime;
 
             fetch('/learn/vocabulary/listening/api/check', {
                 method: 'POST',
@@ -625,7 +628,8 @@
                 body: JSON.stringify({
                     item_id: item.id, // For SRS
                     correct_answer: item.answer,
-                    user_answer: userAnswer
+                    user_answer: userAnswer,
+                    duration_ms: duration_ms
                 })
             })
                 .then(r => r.json())

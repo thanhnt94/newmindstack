@@ -147,8 +147,11 @@ def api_check_answer():
     data = request.get_json()
     correct_answer = data.get('correct_answer', '')
     user_answer = data.get('user_answer', '')
+    duration_ms = data.get('duration_ms', 0)
     
     result = check_typing_answer(correct_answer, user_answer)
+    result['user_answer'] = user_answer
+    result['duration_ms'] = duration_ms
     
     # Update SRS
     item_id = data.get('item_id')

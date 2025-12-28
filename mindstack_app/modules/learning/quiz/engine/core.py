@@ -193,7 +193,7 @@ class QuizEngine:
         }
 
     @staticmethod
-    def check_answer(item_id, user_answer, user_id=None, answer_key=None):
+    def check_answer(item_id, user_answer, user_id=None, answer_key=None, duration_ms=0):
         """
         Check if user's MCQ answer is correct.
         If user_id is provided, updates SRS progress and awards points.
@@ -224,7 +224,10 @@ class QuizEngine:
             quality = 4 if is_correct else 1
             
             # Update SRS
-            SrsService.update_with_memory_power(user_id, item_id, quality, source_mode='quiz')
+            SrsService.update_with_memory_power(
+                user_id, item_id, quality, source_mode='quiz',
+                duration_ms=duration_ms, user_answer=user_answer
+            )
             
             # Award Points
             score_change = 5 if is_correct else 0

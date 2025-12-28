@@ -14,6 +14,7 @@ if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'fun
 let currentFlashcardBatch = [];
 let currentFlashcardIndex = 0;
 let previousCardStats = null;
+let startTime = 0;
 
 let sessionScore = 0;
 let currentUserTotalScore = window.FC.userTotalScore;
@@ -818,6 +819,9 @@ function renderCard(data) {
   applyMediaVisibility();
   setTimeout(adjustCardLayout, 0);
 
+  // Reset timer for new card
+  startTime = Date.now();
+
   if (isAutoplaySession) {
     startAutoplaySequence();
   } else {
@@ -1384,10 +1388,11 @@ async function getNextFlashcardBatch() {
 async function submitFlashcardAnswer(itemId, answer) {
   stopAllFlashcardAudio();
   try {
+    const duration = Date.now() - startTime;
     const res = await fetch(submitAnswerUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-      body: JSON.stringify({ item_id: itemId, user_answer: answer })
+      body: JSON.stringify({ item_id: itemId, user_answer: answer, duration_ms: duration })
     });
     if (!res.ok) {
       const errorText = await res.text();

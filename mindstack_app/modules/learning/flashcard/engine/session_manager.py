@@ -390,7 +390,7 @@ class FlashcardSessionManager:
             'session_total_answered': self.correct_answers + self.incorrect_answers + self.vague_answers
         }
 
-    def process_flashcard_answer(self, item_id, user_answer_quality):
+    def process_flashcard_answer(self, item_id, user_answer_quality, duration_ms=0, user_answer_text=None):
         try:
             current_user_obj = User.query.get(self.user_id)
             current_user_total_score = current_user_obj.total_score if current_user_obj else 0
@@ -400,7 +400,9 @@ class FlashcardSessionManager:
                 item_id=item_id,
                 quality=user_answer_quality,
                 current_user_total_score=current_user_total_score,
-                mode=self.mode
+                mode=self.mode,
+                duration_ms=duration_ms,
+                user_answer_text=user_answer_text
             )
             
             if answer_result_type == 'correct':

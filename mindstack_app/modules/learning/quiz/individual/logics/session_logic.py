@@ -629,6 +629,7 @@ class QuizSessionManager:
         for answer in answers:
             item_id = answer.get('item_id')
             user_answer_text = answer.get('user_answer')
+            duration_ms = answer.get('duration_ms', 0)
 
             # --- INTEGRATION: Use QuizEngine for checking answer ---
             # Try to get existing answer logic from QuizEngine
@@ -674,7 +675,8 @@ class QuizSessionManager:
                 result = QuizEngine.check_answer(
                     item_id=item_id,
                     user_answer=check_val, 
-                    user_id=self.user_id
+                    user_id=self.user_id,
+                    duration_ms=duration_ms
                 )
                 
                 is_correct = result.get('correct', False)

@@ -34,7 +34,9 @@ class VocabularySrsService:
             user_id=user_id, 
             item_id=item_id, 
             quality=quality, 
-            source_mode=mode
+            source_mode=mode,
+            duration_ms=result_data.get('duration_ms', 0),
+            user_answer=result_data.get('user_answer')
         )
 
         return {

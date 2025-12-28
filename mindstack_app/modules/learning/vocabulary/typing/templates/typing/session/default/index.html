@@ -466,6 +466,7 @@
         var scoreCorrect = 0;
         var scoreWrong = 0;
         var answered = false;
+        var startTime = 0;
 
         // UI Elements
         var promptEl = document.getElementById('prompt');
@@ -531,6 +532,7 @@
 
             var item = items[current];
             promptEl.textContent = item.prompt;
+            startTime = Date.now();
         }
 
         function checkAnswer() {
@@ -552,6 +554,18 @@
                 feedbackEl.innerHTML = '<div class="feedback-msg error"><i class="fas fa-times-circle"></i> Đáp án: ' + item.answer + '</div>';
                 scoreWrong++;
             }
+
+            // Report to Backend
+            var duration_ms = Date.now() - startTime;
+            fetch('/learn/vocabulary/typing/api/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    item_id: item.item_id,
+                    user_answer: userAnswer,
+                    duration_ms: duration_ms
+                })
+            });
             // Update stats immediately after answer
             learnedEl.textContent = scoreCorrect;
             relearnEl.textContent = scoreWrong;

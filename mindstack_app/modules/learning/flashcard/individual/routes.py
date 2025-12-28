@@ -571,7 +571,12 @@ def submit_flashcard_answer():
 
         user_answer_quality = quality_map.get(normalized_answer, 0)
 
-    result = session_manager.process_flashcard_answer(item_id, user_answer_quality)
+    duration_ms = data.get('duration_ms', 0)
+    result = session_manager.process_flashcard_answer(
+        item_id, user_answer_quality, 
+        duration_ms=duration_ms, 
+        user_answer_text=user_answer
+    )
     if 'error' in result:
         current_app.logger.error(f"Lỗi trong quá trình process_flashcard_answer: {result.get('error')}")
         return jsonify(result), 400

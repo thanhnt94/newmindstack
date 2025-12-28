@@ -582,17 +582,20 @@
     (function (
     ) {
         // Config
-        const setId = {{ container.container_id }};
+        const setId = {{ container.container_id }
+    };
     const mode = '{{ mode }}';
-    const count = {{ count|default(10) }};
-    const numChoices = {{ choices|default(4) }};
-    const customPairs = {{ custom_pairs|tojson if custom_pairs else 'null' }};
+    const count = {{ count|default (10) }};
+    const numChoices = {{ choices|default (4) }};
+    const customPairs = {{ custom_pairs| tojson if custom_pairs else 'null' }};
 
     // State
     let questions = [];
     let currentIndex = 0;
     let stats = { correct: 0, wrong: 0 };
+    let stats = { correct: 0, wrong: 0 };
     let isAnswered = false;
+    let startTime = 0;
 
     // Elements
     const els = {
@@ -673,6 +676,8 @@
             btn.onclick = () => handleAnswer(idx, btn);
             els.cGrid.appendChild(btn);
         });
+
+        startTime = Date.now();
     }
 
     function handleAnswer(selectedIndex, selectedBtn) {
@@ -721,6 +726,18 @@
                 correct_index: q.correct_index,
                 user_answer_index: selectedIndex
             })
+        // Send to Backend (Silent)
+        const duration_ms = Date.now() - startTime;
+            fetch('/learn/vocabulary/mcq/api/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    item_id: q.item_id,
+                    correct_index: q.correct_index,
+                    user_answer_index: selectedIndex,
+                    user_answer_text: q.choices[selectedIndex],
+                    duration_ms: duration_ms
+                })
         });
     }
 
