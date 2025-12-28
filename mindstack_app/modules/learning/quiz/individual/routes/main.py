@@ -41,7 +41,7 @@ def quiz_learning_dashboard():
         'user_default_batch_size': user_default_batch_size,
         'quiz_type': quiz_type
     }
-    return render_template('quiz/dashboard/index.html', **template_vars)
+    return render_template('quiz/dashboard/default/index.html', **template_vars)
 
 
 @quiz_learning_bp.route('/get_quiz_modes_partial/all', methods=['GET'])
