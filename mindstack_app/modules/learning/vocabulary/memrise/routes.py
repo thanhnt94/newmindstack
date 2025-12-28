@@ -18,7 +18,7 @@ def course_overview(container_id):
     
     stats = get_course_overview_stats(current_user.user_id, container_id, page=page)
     
-    return render_template('memrise/course/overview.html', container=container, stats=stats)
+    return render_template('memrise/course/default/index.html', container=container, stats=stats)
 
 @memrise_bp.route('/session/<int:container_id>')
 @login_required

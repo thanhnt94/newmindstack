@@ -968,6 +968,7 @@
         <div class="session-size-row">
             <label for="session-size-select">Số câu/phiên:</label>
             <select id="session-size-select" class="session-size-select">
+                <option value="1">1 câu</option>
                 <option value="5">5 câu</option>
                 <option value="10" selected>10 câu</option>
                 <option value="15">15 câu</option>
@@ -1122,7 +1123,7 @@
                 html += '<span class="quiz-set-avatar">' + authorInitial + '</span>';
                 html += '<span>' + authorName + '</span>';
                 html += '</div>';
-                html += '<div class="quiz-set-count"><i class="fas fa-question"></i>' + s.question_count + '</div>';
+                html += '<div class="quiz-set-count"><i class="fas fa-list-check"></i>' + s.question_count + '</div>';
                 html += '</div>';
                 html += '</div></div>';
             });

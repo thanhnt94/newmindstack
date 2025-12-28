@@ -42,7 +42,7 @@ def session_page(set_id):
     random.shuffle(cards)
     
     return render_template(
-        'speed/session.html',
+        'speed/session/default/index.html',
         container=container,
         cards=cards,
         total=len(cards)

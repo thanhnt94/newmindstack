@@ -36,7 +36,7 @@ def setup(set_id):
         pass
 
     return render_template(
-        'typing/setup.html',
+        'typing/setup/default/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -101,7 +101,7 @@ def session(set_id):
         abort(400, description="Cần ít nhất 1 thẻ để chơi gõ đáp án")
     
     return render_template(
-        'typing/session.html',
+        'typing/session/default/index.html',
         container=container,
         total_items=len(items),
         custom_pairs=custom_pairs

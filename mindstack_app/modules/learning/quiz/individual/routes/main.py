@@ -213,12 +213,16 @@ def quiz_session():
 
     try:
         session_manager = QuizSessionManager.from_dict(session['quiz_session'])
-        if session_manager and session_manager.batch_size == 1:
+        batch_size = session_manager.batch_size if session_manager else None
+        current_app.logger.debug(f"Quiz session batch_size: {batch_size} (type: {type(batch_size)})")
+        
+        # Handle both int and string comparison
+        if session_manager and int(batch_size) == 1:
             return render_template('quiz/individual/session/default/_session_single.html')
         else:
             return render_template('quiz/individual/session/default/_session_batch.html')
     except Exception as e:
-        current_app.logger.error(f"Error loading quiz session: {e}")
+        current_app.logger.error(f"Error loading quiz session: {e}", exc_info=True)
         return render_template('quiz/individual/session/default/_session_batch.html')
 
 
@@ -325,10 +329,9 @@ def api_get_quiz_sets():
     # Build response
     sets = []
     for c in pagination.items:
-        # Count quiz items
-        question_count = LearningItem.query.filter_by(
-            container_id=c.container_id,
-            item_type='QUESTION'
+        question_count = LearningItem.query.filter(
+            LearningItem.container_id == c.container_id,
+            LearningItem.item_type.in_(['QUESTION', 'FLASHCARD', 'QUIZ_MCQ'])
         ).count()
         
         # Get creator info
@@ -360,10 +363,9 @@ def api_get_quiz_set_detail(set_id):
     """API to get detailed info about a quiz set."""
     container = LearningContainer.query.get_or_404(set_id)
     
-    # Count quiz items
-    question_count = LearningItem.query.filter_by(
-        container_id=container.container_id,
-        item_type='QUESTION'
+    question_count = LearningItem.query.filter(
+        LearningItem.container_id == container.container_id,
+        LearningItem.item_type.in_(['QUESTION', 'FLASHCARD', 'QUIZ_MCQ'])
     ).count()
     
     # Get creator

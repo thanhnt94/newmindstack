@@ -34,7 +34,7 @@ def setup(set_id):
         pass
 
     return render_template(
-        'listening/setup.html',
+        'listening/setup/default/index.html',
         container=container,
         total_items=len(items),
         saved_settings=saved_settings
@@ -87,7 +87,7 @@ def session(set_id):
         pass
     
     return render_template(
-        'listening/session.html',
+        'listening/session/default/index.html',
         container=container,
         total_items=len(items)
     )

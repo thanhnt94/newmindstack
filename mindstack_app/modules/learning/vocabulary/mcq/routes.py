@@ -41,7 +41,7 @@ def setup(set_id):
         pass
     
     return render_template(
-        'mcq/setup.html',
+        'mcq/setup/default/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -128,7 +128,7 @@ def session(set_id):
         # Non-blocking error
     
     return render_template(
-        'mcq/session.html',
+        'mcq/session/default/index.html',
         container=container,
         total_items=len(items),
         mode=mode,

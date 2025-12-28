@@ -32,7 +32,7 @@ def session_page(set_id):
     }
     
     return render_template(
-        'matching/session.html',
+        'matching/session/default/index.html',
         container=container,
         game=game_data
     )
