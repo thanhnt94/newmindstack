@@ -222,9 +222,9 @@
     }
 
     .qb-mobile-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        /* display: flex; REMOVED to allow utility classes (flex-col) to work */
+        /* align-items: center; */
+        /* justify-content: space-between; */
         padding: 10px 16px 4px 16px;
     }
 
@@ -537,6 +537,10 @@
             box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.1) !important;
             z-index: 50 !important;
             animation: slideUp 0.3s ease-out;
+        }
+
+        #mobile-result-panel.hidden {
+            display: none !important;
         }
 
         @keyframes slideUp {

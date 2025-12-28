@@ -14,8 +14,8 @@
 
 {% block content %}
 {# Include BOTH partials, visibility controlled by CSS classes in files (lg:hidden vs hidden lg:block) #}
-{% include "quiz/individual/session/_quiz_session_single_mobile.html" %}
-{% include "quiz/individual/session/_quiz_session_single_desktop.html" %}
+{% include "quiz/individual/session/default/_quiz_session_single_mobile.html" %}
+{% include "quiz/individual/session/default/_quiz_session_single_desktop.html" %}
 
 {# Hub Modal (Shared structure but styled for Desktop via CSS overrides) #}
 <div id="explanation-hub-modal" class="qb-modal-overlay">
@@ -501,6 +501,8 @@
         }
 
         function showFeedback(result) {
+            if (!result || !result.correct_answer) return; // Prevent empty feedback
+
             document.querySelectorAll('.qb-option-label, .option-button').forEach(el => {
                 const elKey = el.dataset.key || el.dataset.option;
                 el.classList.add('disabled');
@@ -643,8 +645,9 @@
             currentIndex++;
 
             // Auto-switch back to Game tab if on mobile
-            const gameTab = document.querySelector('.qb-mobile-tab-item[data-tab="game"]');
-            if (gameTab) gameTab.click();
+            // Auto-close Stats Modal if open
+            const statsModal = document.getElementById('mobile-stats-modal');
+            if (statsModal) statsModal.classList.remove('open');
 
             if (currentIndex < currentBatch.length) {
                 renderQuestion(currentBatch[currentIndex]);
@@ -867,21 +870,19 @@
 
 
         // Mobile Tabs Logic
-        document.querySelectorAll('.qb-mobile-tab-item').forEach(tab => {
-            tab.addEventListener('click', () => {
-                // Deactivate all tabs and panes
-                document.querySelectorAll('.qb-mobile-tab-item').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.remove('active'));
+        // Mobile Stats Modal Logic
+        const statsModal = document.getElementById('mobile-stats-modal');
+        const openStatsBtn = document.getElementById('mobile-stats-btn');
+        const closeStatsBtn = document.getElementById('close-stats-btn');
 
-                // Activate clicked tab
-                tab.classList.add('active');
-
-                // Activate target pane
-                const targetId = `tab-pane-${tab.dataset.tab}`;
-                const targetPane = document.getElementById(targetId);
-                if (targetPane) targetPane.classList.add('active');
+        if (statsModal) {
+            if (openStatsBtn) openStatsBtn.addEventListener('click', () => statsModal.classList.add('open'));
+            if (closeStatsBtn) closeStatsBtn.addEventListener('click', () => statsModal.classList.remove('open'));
+            // Close when clicking overlay (optional)
+            statsModal.addEventListener('click', (e) => {
+                if (e.target === statsModal) statsModal.classList.remove('open');
             });
-        });
+        }
 
         // Hub & Tabs
         if (dom.hubModal) {

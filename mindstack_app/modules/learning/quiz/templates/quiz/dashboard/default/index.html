@@ -1067,6 +1067,11 @@
             const url = startSessionUrl
                 .replace('/0/', '/' + selectedSetId + '/')
                 .replace('/MODE', '/' + selectedMode) + '?batch_size=' + batchSize;
+
+            // Clear potential stale state from previous sessions
+            sessionStorage.removeItem('quiz_session_single_state');
+            sessionStorage.removeItem('quiz_session_batch_state');
+
             window.location.href = url;
         });
 

@@ -216,14 +216,23 @@ def quiz_session():
         batch_size = session_manager.batch_size if session_manager else None
         current_app.logger.debug(f"Quiz session batch_size: {batch_size} (type: {type(batch_size)})")
         
-        # Handle both int and string comparison
-        if session_manager and int(batch_size) == 1:
+        # Robust check for batch size 1
+        is_single_mode = False
+        if session_manager and batch_size is not None:
+            try:
+                if int(batch_size) == 1:
+                    is_single_mode = True
+            except (ValueError, TypeError):
+                pass
+
+        if is_single_mode:
             return render_template('quiz/individual/session/default/_session_single.html')
         else:
             return render_template('quiz/individual/session/default/_session_batch.html')
     except Exception as e:
         current_app.logger.error(f"Error loading quiz session: {e}", exc_info=True)
-        return render_template('quiz/individual/session/default/_session_batch.html')
+        # DEBUG: Return error directly to see what failed
+        return f"<h3>Lỗi tải phiên học:</h3><pre>{str(e)}</pre><p>Vui lòng quay lại Dashboard và thử lại.</p>", 500
 
 
 @quiz_learning_bp.route('/get_quiz_sets_partial', methods=['GET'])

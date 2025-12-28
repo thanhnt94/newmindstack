@@ -12,6 +12,10 @@
                     </span>
                 </div>
                 <div class="flex gap-2">
+                    <button id="mobile-stats-btn" type="button"
+                        class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                        <i class="fa-solid fa-chart-pie text-xs"></i>
+                    </button>
                     <a href="/"
                         class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200"><i
                             class="fa-solid fa-house text-xs"></i></a>
@@ -62,13 +66,7 @@
             </div>
         </div>
 
-        {# === MOBILE TABS === #}
-        <div class="qb-mobile-tabs-container">
-            <div class="qb-mobile-tabs">
-                <div class="qb-mobile-tab-item active" data-tab="game">Câu hỏi</div>
-                <div class="qb-mobile-tab-item" data-tab="stats">Thống kê</div>
-            </div>
-        </div>
+
     </div>
 
 
@@ -76,8 +74,8 @@
 
         <div class="qb-layout-grid">
 
-            {# --- TAB 1: GAMEPLAY --- #}
-            <div id="tab-pane-game" class="qb-tab-pane active space-y-3">
+            {# --- GAMEPLAY AREA --- #}
+            <div id="tab-pane-game" class="space-y-3">
 
                 <div class="cm-card">
                     <div class="cm-card-header flex items-center justify-between">
@@ -143,83 +141,99 @@
 
             </div>
 
-            {# --- TAB 2: STATS --- #}
-            <div id="tab-pane-stats" class="qb-tab-pane space-y-6">
-                <div class="cm-card">
-                    <div class="cm-card-header">
-                        <span class="font-bold text-emerald-600"><i class="fa-solid fa-chart-pie"></i> Thống kê
-                            phiên</span>
+            {# --- STATS MODAL (Replaces Tab) --- #}
+            <div id="mobile-stats-modal" class="qb-modal-overlay">
+                <div class="qb-modal-container bg-slate-50 rounded-t-2xl h-[85vh]">
+                    <!-- Header -->
+                    <div class="qb-hub-header border-b border-slate-200 bg-white rounded-t-2xl">
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center">
+                            <i class="fa-solid fa-chart-pie text-blue-600 mr-2"></i>Thống kê
+                        </h3>
+                        <button id="close-stats-btn"
+                            class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200">
+                            <i class="fa-solid fa-xmark text-slate-500"></i>
+                        </button>
                     </div>
-                    <div class="cm-card-body">
-                        <div class="grid grid-cols-2 gap-4 text-center">
-                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                <div class="text-xs text-slate-500 uppercase">Đã làm</div>
-                                <div class="text-2xl font-bold text-slate-800 js-stat-total">0</div>
+
+                    <div class="qb-hub-content p-4 space-y-6 overflow-y-auto">
+                        <div class="cm-card">
+                            <div class="cm-card-header">
+                                <span class="font-bold text-emerald-600"><i class="fa-solid fa-trophy mr-2"></i>Tổng
+                                    quan phiên</span>
                             </div>
-                            <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-                                <div class="text-xs text-emerald-600 uppercase">Chính xác</div>
-                                <div class="text-2xl font-bold text-emerald-700 js-stat-accuracy">0%</div>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <div class="flex justify-between text-xs text-slate-500 mb-1">
-                                <span>Tiến độ</span>
-                                <span class="js-stat-progress-text">0/0</span>
-                            </div>
-                            <div class="w-full bg-slate-100 rounded-full h-2.5">
-                                <div class="bg-blue-600 h-2.5 rounded-full js-stat-progress-bar" style="width: 0%">
+                            <div class="cm-card-body">
+                                <div class="grid grid-cols-2 gap-4 text-center">
+                                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div class="text-xs text-slate-500 uppercase">Đã làm</div>
+                                        <div class="text-2xl font-bold text-slate-800 js-stat-total">0</div>
+                                    </div>
+                                    <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                                        <div class="text-xs text-emerald-600 uppercase">Chính xác</div>
+                                        <div class="text-2xl font-bold text-emerald-700 js-stat-accuracy">0%</div>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <div class="flex justify-between text-xs text-slate-500 mb-1">
+                                        <span>Tiến độ</span>
+                                        <span class="js-stat-progress-text">0/0</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2.5">
+                                        <div class="bg-blue-600 h-2.5 rounded-full js-stat-progress-bar"
+                                            style="width: 0%">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Question Stats Card -->
-                <div class="cm-card">
-                    <div class="cm-card-header">
-                        <span class="font-bold text-blue-600"><i class="fa-solid fa-list-check"></i> Thống kê câu hỏi
-                            này</span>
-                    </div>
-                    <div class="cm-card-body space-y-4">
-                        <!-- Key Metrics Grid -->
-                        <div class="grid grid-cols-2 gap-3 text-center">
-                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                <div class="text-[10px] text-slate-500 uppercase font-bold">Lần làm</div>
-                                <div class="text-lg font-bold text-slate-800 js-qstat-times">0</div>
+                        <!-- Question Stats Card -->
+                        <div class="cm-card">
+                            <div class="cm-card-header">
+                                <span class="font-bold text-blue-600"><i class="fa-solid fa-list-check mr-2"></i>Câu hỏi
+                                    này</span>
                             </div>
-                            <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                <div class="text-[10px] text-blue-600 uppercase font-bold">Chính xác</div>
-                                <div class="text-lg font-bold text-blue-700 js-qstat-accuracy">0%</div>
-                            </div>
-                            <div class="p-3 bg-orange-50 rounded-lg border border-orange-100">
-                                <div class="text-[10px] text-orange-600 uppercase font-bold">Chuỗi đúng</div>
-                                <div class="text-lg font-bold text-orange-700 js-qstat-streak">0</div>
-                            </div>
-                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                <div class="text-[10px] text-slate-500 uppercase font-bold">Gần nhất</div>
-                                <div class="text-sm font-bold text-slate-700 mt-1 js-qstat-last">--</div>
-                            </div>
-                        </div>
+                            <div class="cm-card-body space-y-4">
+                                <!-- Key Metrics Grid -->
+                                <div class="grid grid-cols-2 gap-3 text-center">
+                                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div class="text-[10px] text-slate-500 uppercase font-bold">Lần làm</div>
+                                        <div class="text-lg font-bold text-slate-800 js-qstat-times">0</div>
+                                    </div>
+                                    <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                        <div class="text-[10px] text-blue-600 uppercase font-bold">Chính xác</div>
+                                        <div class="text-lg font-bold text-blue-700 js-qstat-accuracy">0%</div>
+                                    </div>
+                                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                                        <div class="text-[10px] text-orange-600 uppercase font-bold">Chuỗi đúng</div>
+                                        <div class="text-lg font-bold text-orange-700 js-qstat-streak">0</div>
+                                    </div>
+                                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div class="text-[10px] text-slate-500 uppercase font-bold">Gần nhất</div>
+                                        <div class="text-sm font-bold text-slate-700 mt-1 js-qstat-last">--</div>
+                                    </div>
+                                </div>
 
-                        <!-- Breakdown -->
-                        <div class="flex items-center gap-2 text-xs font-medium">
-                            <div
-                                class="flex-1 bg-emerald-100 text-emerald-700 px-3 py-2 rounded flex justify-between items-center">
-                                <span>Đúng</span>
-                                <span class="font-bold js-qstat-correct">0</span>
-                            </div>
-                            <div
-                                class="flex-1 bg-rose-100 text-rose-700 px-3 py-2 rounded flex justify-between items-center">
-                                <span>Sai</span>
-                                <span class="font-bold js-qstat-incorrect">0</span>
-                            </div>
-                        </div>
+                                <!-- Breakdown -->
+                                <div class="flex items-center gap-2 text-xs font-medium">
+                                    <div
+                                        class="flex-1 bg-emerald-100 text-emerald-700 px-3 py-2 rounded flex justify-between items-center">
+                                        <span>Đúng</span>
+                                        <span class="font-bold js-qstat-correct">0</span>
+                                    </div>
+                                    <div
+                                        class="flex-1 bg-rose-100 text-rose-700 px-3 py-2 rounded flex justify-between items-center">
+                                        <span>Sai</span>
+                                        <span class="font-bold js-qstat-incorrect">0</span>
+                                    </div>
+                                </div>
 
-                        <!-- Mini History -->
-                        <div>
-                            <h5 class="text-xs font-bold text-slate-400 uppercase mb-2">Lịch sử gần đây</h5>
-                            <div class="space-y-2 js-qstat-history text-sm text-slate-600">
-                                <div class="text-center text-xs text-slate-400 italic">Chưa có dữ liệu</div>
+                                <!-- Mini History -->
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-400 uppercase mb-2">Lịch sử gần đây</h5>
+                                    <div class="space-y-2 js-qstat-history text-sm text-slate-600">
+                                        <div class="text-center text-xs text-slate-400 italic">Chưa có dữ liệu</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
