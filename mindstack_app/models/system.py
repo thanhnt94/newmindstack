@@ -9,17 +9,7 @@ from sqlalchemy.types import JSON
 
 from ..db_instance import db
 
-
-class SystemSetting(db.Model):
-    """Key/value configuration stored at application level."""
-
-    __tablename__ = 'system_settings'
-
-    setting_id = db.Column(db.Integer, primary_key=True)
-    key = db.Column(db.String(100), unique=True, nullable=False)
-    value = db.Column(JSON, nullable=False)
-    data_type = db.Column(db.String(50), default='string')
-    description = db.Column(db.Text)
+# SystemSetting class REMOVED - replaced by AppSettings in app_settings.py
 
 
 class BackgroundTask(db.Model):

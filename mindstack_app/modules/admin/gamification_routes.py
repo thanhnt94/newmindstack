@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, current_ap
 from flask_login import login_required, current_user
 from . import admin_bp
 from ...modules.gamification.models import Badge
-from ...models import db, SystemSetting
+from ...models import db, AppSettings
 
 @admin_bp.route('/gamification/points')
 @login_required
@@ -29,7 +29,7 @@ def update_gamification_points():
                 continue
             
             # Tìm setting trong DB
-            setting = SystemSetting.query.filter_by(key=key).first()
+            setting = AppSettings.query.get(key)
             if setting:
                 # Basic type conversion based on inferred type or try int
                 if setting.data_type == 'int':

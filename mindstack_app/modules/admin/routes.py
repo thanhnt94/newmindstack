@@ -28,7 +28,7 @@ from ...models import (
     ApiKey,
     BackgroundTask,
     BackgroundTaskLog,
-    SystemSetting,
+    AppSettings,
     UserContainerState,
     FlashcardProgress,
     QuizProgress,
@@ -107,7 +107,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
         'system_configs': {
             'label': 'Cấu hình hệ thống & API',
             'description': 'Các thiết lập hệ thống, tác vụ nền và khóa API tích hợp.',
-            'models': [SystemSetting, BackgroundTask, ApiKey],
+            'models': [AppSettings, BackgroundTask, ApiKey],
         },
         'feedback_reports': {
             'label': 'Phản hồi & báo cáo từ người dùng',
@@ -351,10 +351,10 @@ def _log_setting_change(action: str, *, key: str, old_value: object, new_value: 
     )
 
 
-def _categorize_settings(settings: list[SystemSetting]) -> dict[str, list[SystemSetting]]:
+def _categorize_settings(settings: list[AppSettings]) -> dict[str, list[AppSettings]]:
     """Nhóm các cấu hình theo danh mục hiển thị trong giao diện."""
 
-    categories: dict[str, list[SystemSetting]] = {
+    categories: dict[str, list[AppSettings]] = {
         "paths": [],
         "flashcard": [],
         "quiz": [],
@@ -1328,14 +1328,14 @@ def manage_system_settings():
     """
     Mô tả: Quản lý các cài đặt hệ thống (ví dụ: chế độ bảo trì).
     """
-    system_status_setting = SystemSetting.query.filter_by(key='system_status').first()
+    system_status = AppSettings.get('system_status')
     maintenance_mode = False
-    if system_status_setting and isinstance(system_status_setting.value, dict):
-        maintenance_mode = system_status_setting.value.get('maintenance_mode', False)
+    if system_status and isinstance(system_status, dict):
+        maintenance_mode = system_status.get('maintenance_mode', False)
         
-    telegram_token_setting = SystemSetting.query.filter_by(key='telegram_bot_token').first()
+    telegram_token_setting = AppSettings.query.get('telegram_bot_token')
 
-    raw_settings = SystemSetting.query.order_by(SystemSetting.key.asc()).all()
+    raw_settings = AppSettings.query.order_by(AppSettings.key.asc()).all()
     settings = [
         setting
         for setting in raw_settings
@@ -1370,15 +1370,16 @@ def save_maintenance_mode():
     """Lưu chế độ bảo trì."""
     maintenance_mode = 'maintenance_mode' in request.form
 
-    setting = SystemSetting.query.filter_by(key='system_status').first()
+    setting = AppSettings.query.get('system_status')
     previous_value = setting.value.copy() if setting and isinstance(setting.value, dict) else setting.value if setting else None
     if setting:
         setting.value['maintenance_mode'] = maintenance_mode
         setting.data_type = 'json' # Changed to JSON to correctly store dict
         flag_modified(setting, 'value')
     else:
-        setting = SystemSetting(
-            key='system_status', value={'maintenance_mode': maintenance_mode}, data_type='json'
+        setting = AppSettings(
+            key='system_status', value={'maintenance_mode': maintenance_mode}, 
+            category='system', data_type='json'
         )
         db.session.add(setting)
 
@@ -1396,7 +1397,7 @@ def save_telegram_token():
     """Lưu Telegram Bot Token."""
     token_value = (request.form.get('value') or '').strip()
     
-    setting = SystemSetting.query.filter_by(key='telegram_bot_token').first()
+    setting = AppSettings.query.get('telegram_bot_token')
     old_value = setting.value if setting else None
 
     if setting:
@@ -1404,9 +1405,10 @@ def save_telegram_token():
         setting.data_type = 'string'
         flag_modified(setting, 'value')
     else:
-        setting = SystemSetting(
+        setting = AppSettings(
             key='telegram_bot_token',
             value=token_value,
+            category='telegram',
             data_type='string',
             description='Telegram Bot API Token để gửi tin nhắn nhắc nhở.'
         )
@@ -1445,7 +1447,7 @@ def update_core_settings():
             flash(str(exc), 'danger')
             return redirect(url_for('admin.manage_system_settings'))
 
-        setting = SystemSetting.query.filter_by(key=key).first()
+        setting = AppSettings.query.get(key)
         old_value = setting.value if setting else None
 
         if setting:
@@ -1454,9 +1456,10 @@ def update_core_settings():
             setting.description = description
             flag_modified(setting, 'value')
         else:
-            setting = SystemSetting(
+            setting = AppSettings(
                 key=key,
                 value=parsed_value,
+                category='system',
                 data_type=data_type,
                 description=description,
             )
@@ -1496,7 +1499,7 @@ def create_system_setting():
         flash('Khóa cấu hình này được bảo vệ và chỉ thiết lập qua biến môi trường.', 'warning')
         return redirect(url_for('admin.manage_system_settings'))
 
-    if SystemSetting.query.filter_by(key=key).first():
+    if AppSettings.query.get(key):
         flash('Khóa cấu hình đã tồn tại. Vui lòng chọn tên khác.', 'warning')
         return redirect(url_for('admin.manage_system_settings'))
 
@@ -1507,7 +1510,7 @@ def create_system_setting():
         flash(str(exc), 'danger')
         return redirect(url_for('admin.manage_system_settings'))
 
-    setting = SystemSetting(key=key, value=parsed_value, data_type=data_type, description=description)
+    setting = AppSettings(key=key, value=parsed_value, category='system', data_type=data_type, description=description)
     db.session.add(setting)
     db.session.commit()
 
@@ -1517,13 +1520,13 @@ def create_system_setting():
     return redirect(url_for('admin.manage_system_settings'))
 
 
-@admin_bp.route('/settings/<int:setting_id>/update', methods=['POST'])
-def update_system_setting(setting_id):
+@admin_bp.route('/settings/<string:setting_key>/update', methods=['POST'])
+def update_system_setting(setting_key):
     """
     Mô tả: Cập nhật giá trị cấu hình hiện có.
     """
 
-    setting = SystemSetting.query.get_or_404(setting_id)
+    setting = AppSettings.query.get_or_404(setting_key)
 
     if _is_sensitive_setting(setting.key):
         flash('Khóa cấu hình này được bảo vệ và không thể chỉnh sửa từ giao diện.', 'danger')
@@ -1555,13 +1558,13 @@ def update_system_setting(setting_id):
     return redirect(url_for('admin.manage_system_settings'))
 
 
-@admin_bp.route('/settings/<int:setting_id>/delete', methods=['POST'])
-def delete_system_setting(setting_id):
+@admin_bp.route('/settings/<string:setting_key>/delete', methods=['POST'])
+def delete_system_setting(setting_key):
     """
     Mô tả: Xóa một cấu hình khỏi hệ thống.
     """
 
-    setting = SystemSetting.query.get_or_404(setting_id)
+    setting = AppSettings.query.get_or_404(setting_key)
 
     if _is_sensitive_setting(setting.key):
         flash('Không thể xóa khóa cấu hình được bảo vệ.', 'danger')

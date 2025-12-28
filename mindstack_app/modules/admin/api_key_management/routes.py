@@ -1,5 +1,5 @@
 # File: mindstack_app/modules/admin/api_key_management/routes.py
-# Phiên bản: 1.0
+# Phiên bản: 1.1
 # Mục đích: Chứa các route và logic cho việc quản lý API keys.
 
 from flask import abort, render_template, redirect, url_for, flash, request, jsonify
@@ -8,8 +8,8 @@ from sqlalchemy import desc, func
 from datetime import datetime, timedelta
 from . import api_key_management_bp
 from .forms import ApiKeyForm
-from ....models import db, ApiKey, BackgroundTask
-from ....models.system import SystemSetting, AILog
+from ....models import db, ApiKey, BackgroundTask, AppSettings
+from ....models.system import AILog
 
 @api_key_management_bp.before_request
 def admin_required():
@@ -105,15 +105,9 @@ def list_api_keys():
     }
 
     # 4. Fetch Current AI Settings
-    def get_setting_value(key, default):
-        setting = SystemSetting.query.filter_by(key=key).first()
-        if not setting:
-            return default
-        return setting.value
-
-    current_provider = get_setting_value('AI_PROVIDER', 'gemini')
-    gemini_model = get_setting_value('GEMINI_MODEL', 'gemini-1.5-flash')
-    hf_model = get_setting_value('HUGGINGFACE_MODEL', 'google/gemma-7b-it')
+    current_provider = AppSettings.get('AI_PROVIDER', 'gemini')
+    gemini_model = AppSettings.get('GEMINI_MODEL', 'gemini-1.5-flash')
+    hf_model = AppSettings.get('HUGGINGFACE_MODEL', 'google/gemma-7b-it')
     
     settings = {
         'provider': current_provider,
@@ -147,17 +141,9 @@ def update_ai_settings():
             hf_model = req_hf_custom
 
     try:
-        def update_or_create(key, value):
-            setting = SystemSetting.query.filter_by(key=key).first()
-            if setting:
-                setting.value = value
-            else:
-                setting = SystemSetting(key=key, value=value, description="AI Coach Setting")
-                db.session.add(setting)
-
-        if provider: update_or_create('AI_PROVIDER', provider)
-        if gemini_model: update_or_create('GEMINI_MODEL', gemini_model)
-        if hf_model: update_or_create('HUGGINGFACE_MODEL', hf_model)
+        if provider: AppSettings.set('AI_PROVIDER', provider, category='ai', description='AI Coach Setting')
+        if gemini_model: AppSettings.set('GEMINI_MODEL', gemini_model, category='ai', description='AI Coach Setting')
+        if hf_model: AppSettings.set('HUGGINGFACE_MODEL', hf_model, category='ai', description='AI Coach Setting')
 
         db.session.commit()
         flash('Đã cập nhật cấu hình AI Coach thành công.', 'success')

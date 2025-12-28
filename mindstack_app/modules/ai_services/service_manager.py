@@ -1,10 +1,10 @@
 # File: mindstack_app/modules/ai_services/service_manager.py
-# Phiên bản: 1.0
+# Phiên bản: 1.1
 # MỤC ĐÍCH: Quản lý và cung cấp instance của AI Service dựa trên cấu hình hệ thống.
 
 import threading
 from flask import current_app
-from ...models import SystemSetting
+from ...models import AppSettings
 from .gemini_client import GeminiClient
 from .huggingface_client import HuggingFaceClient
 from .hybrid_client import HybridAIClient
@@ -25,15 +25,11 @@ class AIServiceManager:
         """
         try:
             # Lấy cấu hình ưu tiên
-            provider_setting = SystemSetting.query.filter_by(key='AI_PROVIDER').first()
-            primary_provider = provider_setting.value if provider_setting else 'gemini'
+            primary_provider = AppSettings.get('AI_PROVIDER', 'gemini')
             
             # Lấy model cho từng loại
-            gemini_model_setting = SystemSetting.query.filter_by(key='GEMINI_MODEL').first()
-            gemini_model = gemini_model_setting.value if gemini_model_setting else 'gemini-2.0-flash-lite-001'
-
-            hf_model_setting = SystemSetting.query.filter_by(key='HUGGINGFACE_MODEL').first()
-            hf_model = hf_model_setting.value if hf_model_setting else 'google/gemma-7b-it'
+            gemini_model = AppSettings.get('GEMINI_MODEL', 'gemini-2.0-flash-lite-001')
+            hf_model = AppSettings.get('HUGGINGFACE_MODEL', 'google/gemma-7b-it')
 
             with cls._lock:
                 # Kiểm tra xem có cần khởi tạo lại không (nếu cấu hình thay đổi)

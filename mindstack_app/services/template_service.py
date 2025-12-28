@@ -13,7 +13,7 @@ class TemplateService:
     """Service for managing template versions and paths.
     
     Provides methods to:
-    - Get active template version from SiteSettings
+    - Get active template version from AppSettings
     - List available template versions by scanning folders
     - Build template paths for rendering
     
@@ -89,9 +89,9 @@ class TemplateService:
             return cached
         
         # Import here to avoid circular imports
-        from mindstack_app.models import SiteSettings
+        from mindstack_app.models import AppSettings
         
-        version = SiteSettings.get_template_version(template_type)
+        version = AppSettings.get_template_version(template_type)
         cls._set_cache(cache_key, version)
         return version
     
@@ -104,9 +104,9 @@ class TemplateService:
             version: Version to set
             user_id: ID of admin making the change
         """
-        from mindstack_app.models import SiteSettings, db
+        from mindstack_app.models import AppSettings, db
         
-        SiteSettings.set_template_version(template_type, version, user_id)
+        AppSettings.set_template_version(template_type, version, user_id)
         db.session.commit()
         
         # Clear cache for this template type

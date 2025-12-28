@@ -21,7 +21,7 @@ from .quiz_battle import (
 from .user import (
     User,
     UserContainerState,
-    UserSession, # Thêm UserSession
+    UserSession,
     FlashcardProgress,
     QuizProgress,
     CourseProgress,
@@ -31,10 +31,10 @@ from .user import (
     UserNote,
     UserFeedback,
     ContainerContributor,
-    ReviewLog, # Thêm ReviewLog
+    ReviewLog,
 )
-from .system import ApiKey, BackgroundTask, BackgroundTaskLog, SystemSetting
-from .settings import SiteSettings
+from .system import ApiKey, BackgroundTask, BackgroundTaskLog
+from .app_settings import AppSettings  # unified settings (replaces SiteSettings + SystemSetting)
 from .memrise import MemriseProgress
 from ..modules.gamification.models import Badge, UserBadge
 
@@ -56,7 +56,7 @@ __all__ = [
     'QuizBattleRound',
     'User',
     'UserContainerState',
-    'UserSession', # Thêm UserSession
+    'UserSession',
     'FlashcardProgress',
     'QuizProgress',
     'CourseProgress',
@@ -66,13 +66,13 @@ __all__ = [
     'UserNote',
     'UserFeedback',
     'ContainerContributor',
-    'ReviewLog', # Thêm ReviewLog
-    'SystemSetting',
+    'ReviewLog',
     'BackgroundTask',
     'BackgroundTaskLog',
     'ApiKey',
     'Badge',
     'UserBadge',
     'MemriseProgress',
-    'SiteSettings',
+    'AppSettings',
 ]
+

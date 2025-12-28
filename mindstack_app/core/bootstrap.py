@@ -47,6 +47,26 @@ def register_extensions(app: Flask) -> None:
             if not scheduler.running:
                 scheduler.start()
             
+            # WAL Checkpoint job - merge WAL to main DB every 30 minutes
+            def checkpoint_wal():
+                """Checkpoint WAL file to merge changes into main database."""
+                try:
+                    with app.app_context():
+                        db.session.execute(db.text('PRAGMA wal_checkpoint(PASSIVE)'))
+                        app.logger.info("WAL checkpoint completed successfully.")
+                except Exception as e:
+                    app.logger.error(f"WAL checkpoint failed: {e}")
+            
+            if not scheduler.get_job('wal_checkpoint'):
+                scheduler.add_job(
+                    id='wal_checkpoint',
+                    func=checkpoint_wal,
+                    trigger='interval',
+                    minutes=30,
+                    replace_existing=True
+                )
+                app.logger.info("Đã đăng ký job WAL Checkpoint (mỗi 30 phút).")
+            
             try:
                 from ..modules.telegram_bot.tasks import send_daily_study_reminder
                 if not scheduler.get_job('telegram_daily_reminder'):
@@ -127,11 +147,7 @@ def register_context_processors(app: Flask) -> None:
         if current_user.is_authenticated and getattr(current_user, 'timezone', None):
             tz_name = current_user.timezone
         else:
-            # Try to get system default from SystemSetting
-            from ..models import SystemSetting
-            # Note: This query might be heavy for a template filter if not cached.
-            # Ideally, config should be loaded in app.config.
-            # Checking app.config first (if loaded by config_service)
+            # Get from app.config (loaded from AppSettings by config_service)
             if app.config.get('SYSTEM_TIMEZONE'):
                 tz_name = app.config.get('SYSTEM_TIMEZONE')
 

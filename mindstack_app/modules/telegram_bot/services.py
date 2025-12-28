@@ -1,14 +1,13 @@
 import requests
-from ...models import SystemSetting, User, db
+from ...models import AppSettings, User, db
 
 def get_bot_token():
-    setting = SystemSetting.query.filter_by(key='telegram_bot_token').first()
-    return setting.value if setting else None
+    return AppSettings.get('telegram_bot_token')
 
 def send_telegram_message(chat_id, text):
     token = get_bot_token()
     if not token:
-        print("Telegram Bot Token not found in SystemSettings.")
+        print("Telegram Bot Token not found in AppSettings.")
         return False
     
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -33,8 +32,7 @@ def get_serializer():
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
 def get_bot_username():
-    setting = SystemSetting.query.filter_by(key='telegram_bot_username').first()
-    return setting.value if setting else 'MindStackBot'
+    return AppSettings.get('telegram_bot_username', 'MindStackBot')
 
 def generate_connect_link(user_id):
     s = get_serializer()

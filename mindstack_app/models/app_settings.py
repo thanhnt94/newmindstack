@@ -1,43 +1,41 @@
-"""Site-wide settings model for admin configuration."""
+"""Unified application settings model for all configuration."""
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from sqlalchemy.sql import func
 
 from ..db_instance import db
 
 
-class SiteSettings(db.Model):
-    """Key-value store for site-wide configuration settings.
+class AppSettings(db.Model):
+    """Unified key-value store for all application settings.
     
-    Used by admin to control global settings like active template versions,
-    feature flags, and other configurable options.
+    Consolidates site_settings and system_settings into one table.
     """
 
-    __tablename__ = 'site_settings'
+    __tablename__ = 'app_settings'
 
     key = db.Column(db.String(100), primary_key=True)
     value = db.Column(db.JSON, nullable=False)
-    description = db.Column(db.String(255), nullable=True)
+    
+    # Categorization
+    category = db.Column(db.String(50), default='system')  # 'system', 'template', 'scoring', 'ai', 'path', 'srs'
+    
+    # Metadata
+    data_type = db.Column(db.String(50), default='string')  # 'string', 'int', 'float', 'json', 'list'
+    description = db.Column(db.Text)
+    
+    # Audit
     updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     updated_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
 
-    # Relationship to track who made the change
-    updater = db.relationship(
-        'User',
-        foreign_keys=[updated_by],
-        lazy=True,
-    )
+    # Relationship for audit
+    updater = db.relationship('User', foreign_keys=[updated_by], lazy=True)
 
-    # Default template settings keys
-    TEMPLATE_FLASHCARD_SESSION = 'template.flashcard.cardsession'
-    TEMPLATE_FLASHCARD_SETUP = 'template.flashcard.setup'
-    TEMPLATE_QUIZ_SESSION = 'template.quiz.session'
-    TEMPLATE_QUIZ_BATTLE = 'template.quiz.battle'
-    TEMPLATE_COLLAB_DASHBOARD = 'template.collab.dashboard'
-
+    # --- Helper Methods ---
+    
     @classmethod
     def get(cls, key: str, default: Any = None) -> Any:
         """Get a setting value by key.
@@ -55,30 +53,59 @@ class SiteSettings(db.Model):
         return setting.value
 
     @classmethod
-    def set(cls, key: str, value: Any, description: str = None, user_id: int = None) -> 'SiteSettings':
+    def set(cls, key: str, value: Any, category: str = None, 
+            data_type: str = None, description: str = None, 
+            user_id: int = None) -> 'AppSettings':
         """Set or update a setting.
         
         Args:
             key: The setting key
             value: The value to store (will be JSON serialized)
-            description: Optional description of the setting
+            category: Category for grouping settings
+            data_type: Type hint for parsing
+            description: Optional description
             user_id: ID of user making the change
             
         Returns:
-            The SiteSettings instance
+            The AppSettings instance
         """
         setting = cls.query.get(key)
         if setting is None:
-            setting = cls(key=key, value=value, description=description, updated_by=user_id)
+            setting = cls(
+                key=key, 
+                value=value,
+                category=category or 'system',
+                data_type=data_type or 'string',
+                description=description,
+                updated_by=user_id
+            )
             db.session.add(setting)
         else:
             setting.value = value
+            if category is not None:
+                setting.category = category
+            if data_type is not None:
+                setting.data_type = data_type
             if description is not None:
                 setting.description = description
             if user_id is not None:
                 setting.updated_by = user_id
         return setting
 
+    @classmethod
+    def get_by_category(cls, category: str) -> List['AppSettings']:
+        """Get all settings in a category.
+        
+        Args:
+            category: Category to filter by
+            
+        Returns:
+            List of AppSettings in that category
+        """
+        return cls.query.filter_by(category=category).all()
+
+    # --- Template-specific helpers (backward compatible) ---
+    
     @classmethod
     def get_template_version(cls, template_type: str) -> str:
         """Get active template version for a template type.
@@ -102,7 +129,9 @@ class SiteSettings(db.Model):
             user_id: ID of admin making the change
         """
         key = f'template.{template_type}'
-        cls.set(key, version, f'Active template for {template_type}', user_id)
+        cls.set(key, version, category='template', 
+                description=f'Active template for {template_type}', 
+                user_id=user_id)
 
     def __repr__(self) -> str:
-        return f'<SiteSettings {self.key}={self.value!r}>'
+        return f'<AppSettings {self.key}={self.value!r}>'

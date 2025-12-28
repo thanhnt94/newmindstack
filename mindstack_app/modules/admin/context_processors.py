@@ -13,7 +13,7 @@ from flask import current_app
 from flask_login import current_user
 
 from ...config import Config
-from ...models import ApiKey, BackgroundTask, LearningContainer, SystemSetting, User
+from ...models import ApiKey, BackgroundTask, LearningContainer, AppSettings, User
 from ...services.config_service import get_runtime_config
 
 
@@ -66,10 +66,10 @@ def build_admin_sidebar_metrics() -> dict[str, Any]:
         active_api_keys = ApiKey.query.filter_by(is_active=True, is_exhausted=False).count()
         running_tasks = BackgroundTask.query.filter_by(status="running").count()
 
-        system_setting = SystemSetting.query.filter_by(key="system_status").first()
+        system_status = AppSettings.get('system_status')
         maintenance_mode = False
-        if system_setting and isinstance(system_setting.value, dict):
-            maintenance_mode = bool(system_setting.value.get("maintenance_mode", False))
+        if system_status and isinstance(system_status, dict):
+            maintenance_mode = bool(system_status.get("maintenance_mode", False))
 
         return {
             "total_users": total_users,

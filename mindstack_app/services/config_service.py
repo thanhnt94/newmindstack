@@ -8,7 +8,7 @@ from typing import Any, Iterable
 
 from flask import Flask, current_app, has_app_context
 
-from ..models import SystemSetting, db
+from ..models import AppSettings, db
 
 # Các khóa nhạy cảm không được ghi đè từ DB
 SENSITIVE_SETTING_KEYS = {"SECRET_KEY", "SQLALCHEMY_DATABASE_URI"}
@@ -31,12 +31,13 @@ class ConfigService:
             if not key:
                 continue
 
-            if SystemSetting.query.filter_by(key=key).first():
+            if AppSettings.query.get(key):
                 continue
 
-            setting = SystemSetting(
+            setting = AppSettings(
                 key=key,
                 value=payload.get("value"),
+                category=payload.get("category", "system"),
                 data_type=str(payload.get("data_type") or "string"),
                 description=payload.get("description"),
             )
@@ -46,7 +47,7 @@ class ConfigService:
         if created:
             db.session.commit()
 
-    def _infer_data_type(self, setting: SystemSetting) -> str:
+    def _infer_data_type(self, setting: AppSettings) -> str:
         if getattr(setting, "data_type", None):
             return str(setting.data_type).lower()
 
@@ -59,7 +60,7 @@ class ConfigService:
             return "path"
         return "string"
 
-    def _parse_value(self, setting: SystemSetting) -> Any:
+    def _parse_value(self, setting: AppSettings) -> Any:
         raw_value = setting.value
         data_type = self._infer_data_type(setting)
 
@@ -93,7 +94,7 @@ class ConfigService:
         return raw_value
 
     def load_settings(self, force: bool = False) -> None:
-        """Nạp toàn bộ SystemSetting vào current_app.config."""
+        """Nạp toàn bộ AppSettings vào current_app.config."""
 
         if not has_app_context():
             raise RuntimeError("ConfigService yêu cầu app context để nạp cấu hình.")
@@ -102,7 +103,8 @@ class ConfigService:
         if not force and self._last_loaded and (now - self._last_loaded) < timedelta(seconds=self.ttl_seconds):
             return
 
-        settings = SystemSetting.query.all()
+        # Load all non-template settings (template settings are loaded separately by TemplateService)
+        settings = AppSettings.query.filter(AppSettings.category != 'template').all()
         for setting in settings:
             if setting.key.upper() in SENSITIVE_SETTING_KEYS:
                 current_app.logger.info("Bỏ qua cấu hình nhạy cảm %s từ DB", setting.key)
