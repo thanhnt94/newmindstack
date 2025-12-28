@@ -1515,11 +1515,41 @@
                 <p>Đang tải...</p>
             </div>
         </div>
+
+
     </div>
 
-    {# Bottom Bar - Continue Button #}
-    <div class="step-bottom-bar">
-        <button type="button" class="step-continue-btn js-flashcard-mode-continue" disabled>
+
+
+    {# Bottom Bar - Continue Button & Rating Options #}
+    <div class="step-bottom-bar" style="flex-direction: column; height: auto; padding: 1rem; gap: 1rem;">
+        {# Rating Button Options (Fixed) #}
+        <div class="w-full">
+            <h3 style="font-size: 0.9rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">Số nút đánh giá</h3>
+            <div class="flex gap-2">
+                <label
+                    class="cursor-pointer flex flex-col items-center gap-1 p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all flex-1 justify-center has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 text-sm">
+                    <input type="radio" name="rating_levels" value="3" class="hidden">
+                    <span class="font-bold">3 nút</span>
+                    <span class="text-xs text-slate-500">(Mindstacks)</span>
+                </label>
+                <label
+                    class="cursor-pointer flex flex-col items-center gap-1 p-2 rounded-lg border border-indigo-500 bg-indigo-50 text-indigo-700 hover:bg-slate-50 transition-all flex-1 justify-center has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 text-sm">
+                    <input type="radio" name="rating_levels" value="4" class="hidden" checked>
+                    <span class="font-bold">4 nút</span>
+                    <span class="text-xs text-slate-500">(Anki)</span>
+                </label>
+                <label
+                    class="cursor-pointer flex flex-col items-center gap-1 p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all flex-1 justify-center has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 text-sm">
+                    <input type="radio" name="rating_levels" value="6" class="hidden">
+                    <span class="font-bold">6 nút</span>
+                    <span class="text-xs text-slate-500">(SM2)</span>
+                </label>
+            </div>
+        </div>
+
+        <button type="button" class="step-continue-btn js-flashcard-mode-continue" disabled
+            style="width: 100%; margin: 0; margin-top: 0.5rem;">
             <span>Bắt đầu học</span>
             <i class="fas fa-play"></i>
         </button>
@@ -2263,11 +2293,29 @@
             });
         });
 
+        // Rating button visual logic
+        var ratingInputs = container.parentElement.parentElement.querySelectorAll('input[name="rating_levels"]');
+        ratingInputs.forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                ratingInputs.forEach(function (r) {
+                    var label = r.closest('label');
+                    if (r.checked) {
+                        label.classList.remove('border-slate-200', 'bg-white', 'text-slate-700');
+                        label.classList.add('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+                    } else {
+                        label.classList.add('border-slate-200', 'bg-white', 'text-slate-700');
+                        label.classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+                    }
+                });
+            });
+        });
+
         if (continueBtn) {
             continueBtn.addEventListener('click', function () {
                 if (!selectedFlashcardMode || !selectedSetId) return;
-                // Redirect to flashcard session
-                window.location.href = '/learn/start_flashcard_session/' + selectedSetId + '/' + selectedFlashcardMode;
+                var ratingLevel = document.querySelector('input[name="rating_levels"]:checked').value || 4;
+                // Redirect to flashcard session with rating level
+                window.location.href = '/learn/start_flashcard_session/' + selectedSetId + '/' + selectedFlashcardMode + '?rating_levels=' + ratingLevel;
             });
         }
     }
