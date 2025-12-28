@@ -391,6 +391,9 @@
                 <span>Gõ từ</span>
             </span>
             <div class="fc-nav-btns">
+                <a href="#" class="fc-nav-btn" title="Thống kê từ" id="single-stats-btn" target="_blank">
+                    <i class="fas fa-chart-pie" style="font-size: 0.75rem;"></i>
+                </a>
                 <button class="fc-nav-btn" title="Phát âm thanh" id="audio-btn">
                     <i class="fas fa-volume-up" style="font-size: 0.75rem;"></i>
                 </button>
@@ -531,6 +534,12 @@
             submitBtn.textContent = 'Kiểm tra';
 
             var item = items[current];
+
+            // Link Stats
+            var statsBtn = document.getElementById('single-stats-btn');
+            var statsUrlTemplate = "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}";
+            if (statsBtn) statsBtn.href = statsUrlTemplate.replace('0', item.item_id || item.id);
+
             promptEl.textContent = item.prompt;
             startTime = Date.now();
         }

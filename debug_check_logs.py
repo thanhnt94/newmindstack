@@ -16,4 +16,4 @@ with app.app_context():
             answer = log.user_answer if log.user_answer else "(None)"
             if len(str(answer)) > 20:
                 answer = str(answer)[:17] + "..."
-            print(f"{log.id:<5} | {log.mode:<15} | {log.duration_ms:<15} | {answer:<20} | {log.timestamp}")
+            print(f"{log.log_id:<5} | {log.review_type:<15} | {log.duration_ms:<15} | {answer:<20} | {log.timestamp}")

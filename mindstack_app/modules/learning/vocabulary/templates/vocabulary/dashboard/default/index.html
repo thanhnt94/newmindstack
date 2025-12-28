@@ -1565,6 +1565,106 @@
 
 {# Modal Options Flashcard #}
 
+<!-- Item Stats Modal -->
+<div id="item-stats-modal" class="vocab-modal" style="display: none;">
+    <div class="vocab-modal-overlay js-close-stats-modal"></div>
+    <div class="vocab-modal-content">
+        <button class="vocab-modal-close js-close-stats-modal">
+            <i class="fas fa-times"></i>
+        </button>
+        <div id="item-stats-container" class="vocab-modal-body">
+            <!-- Content loaded here -->
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Stats Modal Styles */
+    .vocab-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .vocab-modal-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .vocab-modal-content {
+        position: relative;
+        width: 100%;
+        max-width: 900px;
+        max-height: 90vh;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .vocab-modal-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+        z-index: 10;
+    }
+
+    .vocab-modal-close:hover {
+        background: #e2e8f0;
+        color: #ef4444;
+    }
+
+    .vocab-modal-body {
+        overflow-y: auto;
+        padding: 0;
+        height: 100%;
+        background: #f8fafc;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes scaleIn {
+        from {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+</style>
+
 {% endblock %}
 
 {% block scripts %}
@@ -2033,17 +2133,17 @@
                         // New items go to end
                         if (a.status === 'new' && b.status !== 'new') return 1;
                         if (b.status === 'new' && a.status !== 'new') return -1;
-                        // Both new or both not new: sort by retention (ascending - low % first)
-                        return a.retention_rate - b.retention_rate;
+                        // Both new or both not new: sort by mastery (ascending - low % first)
+                        return a.mastery - b.mastery;
                     });
 
                     sortedItems.forEach(item => {
                         let barColor = 'bg-red-500';
                         let progressGradient = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                        if (item.retention_rate >= 80) {
+                        if (item.mastery >= 80) {
                             barColor = 'bg-green-500';
                             progressGradient = 'linear-gradient(135deg, #10b981, #059669)';
-                        } else if (item.retention_rate >= 50) {
+                        } else if (item.mastery >= 50) {
                             barColor = 'bg-yellow-500';
                             progressGradient = 'linear-gradient(135deg, #f59e0b, #d97706)';
                         }
@@ -2059,7 +2159,7 @@
                         }
 
                         listHtml += `
-                        <div class="group p-4 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 hover:shadow-lg transition-all duration-300 mb-3 relative overflow-hidden" style="animation: slideIn 0.3s ease-out;">
+                        <div class="group p-4 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 hover:shadow-lg transition-all duration-300 mb-3 relative overflow-hidden js-item-stats-trigger cursor-pointer" data-item-id="${item.item_id || item.id}" style="animation: slideIn 0.3s ease-out;">
                             <div class="absolute inset-0 bg-gradient-to-r from-indigo-50/0 via-indigo-50/50 to-indigo-50/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                             <div class="flex items-start justify-between gap-4 relative z-10">
                                 <div class="flex-1 min-w-0">
@@ -2074,21 +2174,21 @@
                                     <div class="relative w-14 h-14">
                                         <svg class="transform -rotate-90 w-14 h-14">
                                             <circle cx="28" cy="28" r="24" stroke="#e2e8f0" stroke-width="4" fill="none" />
-                                            <circle cx="28" cy="28" r="24" stroke="url(#gradient-${item.retention_rate})" stroke-width="4" fill="none" 
+                                            <circle cx="28" cy="28" r="24" stroke="url(#gradient-${item.item_id})" stroke-width="4" fill="none" 
                                                 stroke-dasharray="${2 * Math.PI * 24}" 
-                                                stroke-dashoffset="${2 * Math.PI * 24 * (1 - item.retention_rate / 100)}"
+                                                stroke-dashoffset="${2 * Math.PI * 24 * (1 - item.mastery / 100)}"
                                                 stroke-linecap="round"
                                                 class="transition-all duration-500" />
                                             <defs>
-                                                <linearGradient id="gradient-${item.retention_rate}" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    ${item.retention_rate >= 80 ? '<stop offset="0%" style="stop-color:#10b981;stop-opacity:1" /><stop offset="100%" style="stop-color:#059669;stop-opacity:1" />' :
-                                item.retention_rate >= 50 ? '<stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" /><stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />' :
+                                                <linearGradient id="gradient-${item.item_id}" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    ${item.mastery >= 80 ? '<stop offset="0%" style="stop-color:#10b981;stop-opacity:1" /><stop offset="100%" style="stop-color:#059669;stop-opacity:1" />' :
+                                item.mastery >= 50 ? '<stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" /><stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />' :
                                     '<stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" /><stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />'}
                                                 </linearGradient>
                                             </defs>
                                         </svg>
                                         <div class="absolute inset-0 flex items-center justify-center">
-                                            <span class="text-xs font-bold ${item.retention_rate >= 80 ? 'text-green-600' : item.retention_rate >= 50 ? 'text-yellow-600' : 'text-red-600'}">${item.retention_rate}%</span>
+                                            <span class="text-xs font-bold ${item.mastery >= 80 ? 'text-green-600' : item.mastery >= 50 ? 'text-yellow-600' : 'text-red-600'}">${item.mastery}%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2100,6 +2200,7 @@
                 }
 
                 listContainer.innerHTML = listHtml; // Always replace
+                bindStatsModalEvents();
             }
 
             // Pagination Controls - Target fixed pagination bar
@@ -2431,20 +2532,110 @@
         if (continueBtn) {
             continueBtn.addEventListener('click', function () {
                 if (!selectedQuizMode) return;
-
-                // Batch size logic
                 var batchSizeSelect = mcqOptionsContainer.querySelector('#session-size-select');
-                var batchSize = batchSizeSelect ? parseInt(batchSizeSelect.value) : 10; // Default 10 if not found (mobile might not have dropdown in partial?)
-
-                // Note: Mobile partial usually doesn't have batch size dropdown in this snippet?
-                // Step 1712: _quiz_modes_selection_mobile.html does NOT have batch size dropdown.
-                // It should probably have one, but let's default or check if it exists in another file. 
-                // Assuming desktop has it. If mobile doesn't, allow default.
-
+                var batchSize = batchSizeSelect ? parseInt(batchSizeSelect.value) : 10;
                 window.location.href = '/learn/start_quiz_session/' + setId + '/' + selectedQuizMode + '?batch_size=' + (batchSize || 10);
             });
         }
     }
+
+    // --- Stats Modal Functions ---
+    function bindStatsModalEvents() {
+        const triggers = document.querySelectorAll('.js-item-stats-trigger');
+        triggers.forEach(trigger => {
+            trigger.removeEventListener('click', handleStatsClick);
+            trigger.addEventListener('click', handleStatsClick);
+        });
+    }
+
+    function handleStatsClick(e) {
+        if (e.target.closest('button') || e.target.closest('a')) return;
+        const itemId = this.dataset.itemId;
+        if (itemId) openStatsModal(itemId);
+    }
+
+    const statsModal = document.getElementById('item-stats-modal');
+    const statsContainer = document.getElementById('item-stats-container');
+    const closeStatsBtns = document.querySelectorAll('.js-close-stats-modal');
+
+    if (closeStatsBtns) {
+        closeStatsBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                if (statsModal) statsModal.style.display = 'none';
+            });
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && statsModal && statsModal.style.display !== 'none') {
+            statsModal.style.display = 'none';
+        }
+    });
+
+    function openStatsModal(itemId) {
+        if (!statsModal || !statsContainer) return;
+
+        statsModal.style.display = 'flex';
+        statsContainer.innerHTML = '<div class="flex items-center justify-center h-64"><i class="fas fa-spinner fa-spin text-3xl text-indigo-500"></i></div>';
+
+        fetch('/learn/vocabulary/item/' + itemId + '/stats?modal=true')
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                statsContainer.innerHTML = html;
+            })
+            .catch(function (err) {
+                console.error("Stats load error:", err);
+                statsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-64 text-slate-400"><i class="fas fa-exclamation-triangle text-3xl mb-2"></i><span>Không thể tải thống kê</span></div>';
+            });
+    }
+    // Global Helper for Item Stats Modal (Ajax Content)
+    window.showLogDetails = function (btn, index) {
+        // Reset active state
+        const container = btn.closest('.history-scroll');
+        if (container) {
+            container.querySelectorAll('.history-btn').forEach(b => {
+                b.style.borderColor = 'transparent';
+                b.style.transform = 'scale(1)';
+                b.style.boxShadow = 'none';
+            });
+        }
+
+        // Set active
+        btn.style.borderColor = '#6366f1';
+        btn.style.transform = 'scale(1.1)';
+        btn.style.boxShadow = '0 4px 6px -1px rgba(99, 102, 241, 0.3)';
+
+        // Update Data using IDs from the partial
+        const timestampEl = document.getElementById('detail-timestamp');
+        if (timestampEl) timestampEl.textContent = btn.dataset.timestamp;
+
+        const modeEl = document.getElementById('detail-mode');
+        if (modeEl) modeEl.textContent = btn.dataset.mode;
+
+        const res = btn.dataset.result;
+        const rEl = document.getElementById('detail-result');
+        if (rEl) {
+            rEl.textContent = res;
+            rEl.style.color = res === 'Correct' ? '#16a34a' : '#dc2626';
+        }
+
+        const answerEl = document.getElementById('detail-answer');
+        if (answerEl) answerEl.textContent = btn.dataset.answer;
+
+        // Duration not strictly shown but logic matches
+        const durEl = document.getElementById('detail-duration'); // If exists
+        if (durEl) durEl.textContent = btn.dataset.duration;
+
+        // Show panel
+        const panel = document.getElementById('log-detail-panel');
+        if (panel) {
+            panel.style.display = 'block';
+            panel.style.animation = 'none';
+            panel.offsetHeight; /* trigger reflow */
+            panel.style.animation = 'fadeIn 0.3s ease';
+        }
+    };
+
     }) ();
 });
 </script>

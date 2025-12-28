@@ -493,6 +493,9 @@
                 <a href="/" class="mcq-nav-btn" title="Trang chủ">
                     <i class="fas fa-house" style="font-size: 0.75rem;"></i>
                 </a>
+                <a href="#" class="mcq-nav-btn" title="Thống kê từ" id="single-stats-btn" target="_blank">
+                    <i class="fas fa-chart-pie" style="font-size: 0.75rem;"></i>
+                </a>
                 <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="mcq-nav-btn" title="Thoát">
                     <i class="fas fa-right-from-bracket" style="font-size: 0.75rem;"></i>
                 </a>
@@ -584,6 +587,7 @@
         // Config
         const setId = {{ container.container_id }
     };
+    };
     const mode = '{{ mode }}';
     const count = {{ count|default (10) }};
     const numChoices = {{ choices|default (4) }};
@@ -665,6 +669,12 @@
         const percent = Math.round(((currentIndex) / questions.length) * 100);
 
         els.qText.textContent = q.question;
+
+        // Update Stats Link
+        const statsBtn = document.getElementById('single-stats-btn');
+        const statsUrlTemplate = "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}";
+        if (statsBtn) statsBtn.href = statsUrlTemplate.replace('0', q.item_id || q.id);
+
         els.nextBtn.disabled = true;
 
         // Render Choices

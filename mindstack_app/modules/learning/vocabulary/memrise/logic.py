@@ -306,6 +306,7 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
             'definition': content.get('back', 'Unknown'),
             'status': status,
             'retention_rate': retention,
+            'mastery': int(p.mastery * 100) if p else 0,
             'is_due': (p.due_time.replace(tzinfo=datetime.timezone.utc) <= now) if (p and p.due_time) else False
         })
         

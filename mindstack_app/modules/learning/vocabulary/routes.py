@@ -275,3 +275,22 @@ def start_flashcard_session(set_id, mode):
     else:
         flash('Không có thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
         return redirect(url_for('learning.vocabulary.set_detail_page', set_id=set_id))
+
+
+@vocabulary_bp.route('/item/<int:item_id>/stats')
+@login_required
+def item_stats_page(item_id):
+    """
+    [NEW] Detailed statistics page for a single vocabulary item.
+    """
+    from .stats.item_stats import VocabularyItemStats
+    
+    stats = VocabularyItemStats.get_item_stats(current_user.user_id, item_id)
+    
+    if not stats:
+        abort(404, description="Item not found")
+
+    if request.args.get('modal') == 'true':
+        return render_template('vocabulary/stats/_item_stats_content.html', stats=stats)
+        
+    return render_template('vocabulary/stats/item_detail.html', stats=stats)
