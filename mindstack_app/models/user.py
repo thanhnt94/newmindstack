@@ -35,22 +35,14 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(timezone=True))
     timezone = db.Column(db.String(50), default='UTC')
     telegram_chat_id = db.Column(db.String(100), nullable=True, unique=True)
+    
+    # JSON column to store user's last preferences/configurations
+    last_preferences = db.Column(JSON, default=dict)
 
-    # --- DEPRECATED FIELDS (Moved to UserSession) ---
-    current_flashcard_container_id = db.Column(
-        db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True
-    )
-    current_quiz_container_id = db.Column(
-        db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True
-    )
-    current_course_container_id = db.Column(
-        db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True
-    )
-    current_flashcard_mode = db.Column(db.String(50), nullable=True)
-    current_quiz_mode = db.Column(db.String(50), nullable=True)
-    current_quiz_batch_size = db.Column(db.Integer, nullable=True)
-    flashcard_button_count = db.Column(db.Integer, default=3)
-    # ------------------------------------------------
+    # DEPRECATED COLUMNS REMOVED: 
+    # - current_flashcard_container_id, current_quiz_container_id, current_course_container_id
+    # - current_flashcard_mode, current_quiz_mode, current_quiz_batch_size, flashcard_button_count
+    # These fields have been moved to UserSession table (see user_sessions)
 
     # New 1-to-1 relationship with UserSession
     session_state = db.relationship('UserSession', uselist=False, backref='user', cascade='all, delete-orphan')
@@ -88,6 +80,28 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
+    
+    # --- Preference Helpers ---
+    def get_preference(self, key: str, default=None):
+        """Get a specific preference value."""
+        if self.last_preferences is None:
+            return default
+        return self.last_preferences.get(key, default)
+    
+    def set_preference(self, key: str, value) -> None:
+        """Set a specific preference value."""
+        if self.last_preferences is None:
+            self.last_preferences = {}
+        self.last_preferences[key] = value
+    
+    def get_flashcard_button_count(self) -> int:
+        """Get the last used flashcard button count (3, 4, or 6)."""
+        return self.get_preference('flashcard_button_count', 4)
+    
+    def set_flashcard_button_count(self, count: int) -> None:
+        """Set the flashcard button count preference."""
+        if count in [3, 4, 6]:
+            self.set_preference('flashcard_button_count', count)
 
 
 class UserContainerState(db.Model):
@@ -173,8 +187,7 @@ class FlashcardProgress(db.Model):
     vague_streak = db.Column(db.Integer, default=0)
     first_seen_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
     
-    # DEPRECATED: Data moved to ReviewLog table. Kept for legacy compatibility if needed.
-    review_history = db.Column(JSON)
+    # review_history REMOVED: Data now stored in ReviewLog table
 
     __table_args__ = (db.UniqueConstraint('user_id', 'item_id', name='_user_flashcard_uc'),)
 
@@ -195,7 +208,7 @@ class QuizProgress(db.Model):
     last_reviewed = db.Column(db.DateTime(timezone=True))
     status = db.Column(db.String(50), default='new')
     first_seen_timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    review_history = db.Column(JSON)
+    # review_history REMOVED: Data now stored in ReviewLog table
     
     # Memory Power System
     mastery = db.Column(db.Float, default=0.0)  # 0.0 - 1.0
@@ -354,7 +367,7 @@ class ContainerContributor(db.Model):
 class ReviewLog(db.Model):
     """
     [NEW] Normalized table for storing granular review history.
-    Replaces the JSON 'review_history' blob in FlashcardProgress.
+    Replaces the JSON 'review_history' blob in FlashcardProgress and QuizProgress.
     """
     __tablename__ = 'review_logs'
 
@@ -363,13 +376,22 @@ class ReviewLog(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
     
     timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    rating = db.Column(db.Integer, nullable=False) # e.g. 0-5 for Flashcards, 1/0 for Quiz
-    duration_ms = db.Column(db.Integer, default=0) # Time spent thinking
+    rating = db.Column(db.Integer, nullable=False)  # 0-5 for Flashcards, 1/0 for Quiz
+    duration_ms = db.Column(db.Integer, default=0)  # Time spent thinking
     
     # Snapshot of SRS state AFTER the review
     interval = db.Column(db.Integer)
     easiness_factor = db.Column(db.Float)
     
-    review_type = db.Column(db.String(20), default='flashcard') # 'flashcard' or 'quiz'
+    review_type = db.Column(db.String(20), default='flashcard')  # 'flashcard', 'quiz', 'typing', etc.
+    
+    # NEW: Quiz-specific fields
+    user_answer = db.Column(db.String(10))   # Quiz answer selection (A, B, C, D, or text)
+    is_correct = db.Column(db.Boolean)       # Was answer correct?
+    score_change = db.Column(db.Integer)     # Points earned/lost
+    
+    # NEW: State snapshots
+    mastery_snapshot = db.Column(db.Float)   # Mastery level at time of review
+    memory_power_snapshot = db.Column(db.Float)  # Memory power at time of review
 
     item = db.relationship('LearningItem', backref='review_logs')

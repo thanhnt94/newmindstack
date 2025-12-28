@@ -186,6 +186,15 @@ def start_flashcard_session_by_id(set_id, mode):
     rating_levels = request.args.get('rating_levels', type=int)
     if rating_levels and rating_levels in [3, 4, 6]:
         session['flashcard_button_count_override'] = rating_levels
+        # Also save to User.last_preferences for persistence
+        try:
+            current_user.set_flashcard_button_count(rating_levels)
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(current_user, 'last_preferences')
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.warning(f"Failed to save flashcard_button_count preference: {e}")
+            db.session.rollback()
     else:
         session.pop('flashcard_button_count_override', None)
     
@@ -207,10 +216,12 @@ def flashcard_session():
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
         return redirect(url_for('learning.flashcard.dashboard'))
 
-    # [UPDATED v3] Use session_state, but prefer session override from URL param if set
-    user_button_count = 3
+    # [UPDATED v4] Priority: session override > User.last_preferences > session_state > default
+    user_button_count = 4  # Default
     if 'flashcard_button_count_override' in session:
         user_button_count = session.get('flashcard_button_count_override')
+    elif current_user.get_flashcard_button_count():
+        user_button_count = current_user.get_flashcard_button_count()
     elif current_user.session_state:
         user_button_count = current_user.session_state.flashcard_button_count
 
@@ -460,10 +471,12 @@ def submit_flashcard_answer():
                 exc_info=True,
             )
                 
-    # [UPDATED v3] Use session_state, but prefer session override from URL param if set
-    user_button_count = 3
+    # [UPDATED v4] Priority: session override > User.last_preferences > session_state > default
+    user_button_count = 4  # Default
     if 'flashcard_button_count_override' in session:
         user_button_count = session.get('flashcard_button_count_override')
+    elif current_user.get_flashcard_button_count():
+        user_button_count = current_user.get_flashcard_button_count()
     elif current_user.session_state:
         user_button_count = current_user.session_state.flashcard_button_count
 

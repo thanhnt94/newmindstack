@@ -112,18 +112,20 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     elif is_first_time: # Nếu là lần đầu tiên, đặt là learning
         progress.status = 'learning'
 
-    # 5. Ghi vào review_history
-    review_entry = {
-        'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        'user_answer': user_answer_text, # Ký tự đáp án người dùng chọn
-        'is_correct': is_correct,
-        'score_change': score_change,
-        'total_score_after': current_user_total_score + score_change # Tính điểm tổng sau khi cập nhật
-    }
-    if progress.review_history is None:
-        progress.review_history = []
-    progress.review_history.append(review_entry)
-    flag_modified(progress, "review_history") # Đánh dấu trường JSON đã thay đổi
+    # 5. Log to ReviewLog table (replaces legacy JSON review_history)
+    from mindstack_app.models import ReviewLog
+    now = datetime.datetime.now(datetime.timezone.utc)
+    log_entry = ReviewLog(
+        user_id=user_id,
+        item_id=item_id,
+        timestamp=now,
+        rating=1 if is_correct else 0,  # 1=correct, 0=incorrect for quiz
+        review_type='quiz',
+        user_answer=user_answer_text,
+        is_correct=is_correct,
+        score_change=score_change
+    )
+    db.session.add(log_entry)
 
     # 6. Cập nhật tổng điểm của người dùng
     # 6. Cập nhật điểm và ghi log thông qua ScoreService

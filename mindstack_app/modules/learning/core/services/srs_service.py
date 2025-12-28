@@ -215,17 +215,18 @@ class SrsService:
                      progress.due_time = now + datetime.timedelta(minutes=progress.interval)
                      progress.repetitions = 1
         
-        # Log History
-        if progress.review_history is None:
-            progress.review_history = []
-        
-        entry = {
-            'timestamp': now.isoformat(),
-            'user_answer_quality': quality,
-            'source': source_mode
-        }
-        progress.review_history.append(entry)
-        flag_modified(progress, "review_history")
+        # Log to ReviewLog table (replaces legacy JSON review_history)
+        from mindstack_app.models import ReviewLog
+        log_entry = ReviewLog(
+            user_id=user_id,
+            item_id=item_id,
+            timestamp=now,
+            rating=quality,
+            interval=progress.interval,
+            easiness_factor=progress.easiness_factor,
+            review_type=source_mode
+        )
+        db.session.add(log_entry)
 
         return progress
 
@@ -317,7 +318,7 @@ class SrsService:
         else:
             progress.times_incorrect = (progress.times_incorrect or 0) + 1
         
-        # Log to ReviewLog table
+        # Log to ReviewLog table with full state snapshots
         log_entry = ReviewLog(
             user_id=user_id,
             item_id=item_id,
@@ -325,23 +326,11 @@ class SrsService:
             rating=quality,
             interval=new_state.interval,
             easiness_factor=new_state.easiness_factor,
-            review_type=source_mode
+            review_type=source_mode,
+            mastery_snapshot=new_state.mastery,
+            memory_power_snapshot=result.memory_power
         )
         db.session.add(log_entry)
-        
-        # Also maintain legacy review_history for backward compatibility
-        if progress.review_history is None:
-            progress.review_history = []
-        
-        history_entry = {
-            'timestamp': now.isoformat(),
-            'user_answer_quality': quality,
-            'source': source_mode,
-            'mastery': new_state.mastery,
-            'memory_power': result.memory_power
-        }
-        progress.review_history.append(history_entry)
-        flag_modified(progress, "review_history")
         
         return progress
 

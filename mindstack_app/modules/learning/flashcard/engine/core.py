@@ -151,53 +151,36 @@ class FlashcardEngine:
             'memory_power': round(SrsService.get_memory_power(progress) * 100, 1),
         })
 
-        # Process History (Legacy JSON + potentially new ReviewLog if we switch completely)
-        # For now, relying on 'review_history' field as per legacy code
-        history = progress.review_history or []
-        if not history:
+        # Query ReviewLog table instead of legacy JSON review_history
+        from mindstack_app.models import ReviewLog
+        logs = ReviewLog.query.filter_by(
+            user_id=user_id, item_id=item_id
+        ).order_by(ReviewLog.timestamp.asc()).all()
+        
+        if not logs:
             return stats
 
-        preview_entries = []
         review_qualities = []
         normalized_entries = []
 
-        for entry in history:
-            if not isinstance(entry, dict): continue
+        for log in logs:
+            quality = log.rating
+            ts_str = log.timestamp.isoformat() if log.timestamp else None
             
-            quality = entry.get('user_answer_quality')
+            norm_entry = {
+                'timestamp': ts_str, 
+                'type': log.review_type or 'review',
+                'user_answer_quality': quality,
+                'result': 'correct' if quality >= 4 else ('vague' if quality >= 2 else 'incorrect')
+            }
             
-            # Normalize timestamp
-            ts_val = entry.get('timestamp')
-            ts_str = None
-            if isinstance(ts_val, datetime):
-                ts_str = _fmt_date(ts_val)
-            elif isinstance(ts_val, str):
-                ts_str = ts_val # Assume already string or fix if needed
-            
-            entry_type = entry.get('type') or ('preview' if quality is None else 'review')
-            
-            norm_entry = {'timestamp': ts_str, 'type': entry_type}
-
-            if quality is None:
-                preview_entries.append(norm_entry)
-                continue
-
-            try:
-                q_val = int(float(quality))
-            except (TypeError, ValueError):
-                continue
-
-            norm_entry['user_answer_quality'] = q_val
-            norm_entry['result'] = 'correct' if q_val >= 4 else ('vague' if q_val >= 2 else 'incorrect')
-            
-            review_qualities.append(q_val)
+            review_qualities.append(quality)
             normalized_entries.append(norm_entry)
 
-        stats['preview_count'] = len(preview_entries)
-        stats['has_preview_history'] = stats['preview_count'] > 0
+        stats['preview_count'] = 0  # No preview tracking in ReviewLog
+        stats['has_preview_history'] = False
 
         if not review_qualities:
-            stats['has_preview_only'] = stats['has_preview_history']
             return stats
 
         # Calculate aggregates
