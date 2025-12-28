@@ -1649,7 +1649,7 @@
                 showStep(activeStep);
                 // Load mode data if needed
                 if (activeStep === 'flashcard-options') {
-                    loadFlashcardModes();
+                    loadFlashcardOptions(activeSetId);
                 } else if (activeStep === 'mcq-options') {
                     loadMcqOptions();
                 }
@@ -1708,7 +1708,7 @@
                 const setId = parts[parts.length - 2];
                 if (selectedSetId != setId) loadSetDetail(setId, false);
                 showStep('flashcard-options');
-                loadFlashcardModes();
+                loadFlashcardOptions(setId);
             } else if (lastPart === 'mcq') {
                 const setId = parts[parts.length - 2];
                 if (selectedSetId != setId) loadSetDetail(setId, false);
@@ -2205,10 +2205,25 @@
         showStep('flashcard-options');
         history.pushState({ step: 'flashcard-options', setId: setId }, '', '/learn/vocabulary/set/' + setId + '/flashcard');
 
-        // Update set name display
+        // Update set name display - fetch if not available
         var setNameEl = document.querySelector('.js-selected-set-name-fc');
-        if (setNameEl && selectedSetData) {
-            setNameEl.textContent = selectedSetData.title || 'Đang tải...';
+        if (setNameEl) {
+            if (selectedSetData && selectedSetData.title) {
+                setNameEl.textContent = selectedSetData.title;
+            } else {
+                setNameEl.textContent = 'Đang tải...';
+                // Fetch set info for display
+                fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.success && data.set) {
+                            setNameEl.textContent = data.set.title;
+                            selectedSetData = data.set;
+                            selectedSetId = setId;
+                        }
+                    })
+                    .catch(function () { });
+            }
         }
 
         var container = document.getElementById('flashcard-modes-container');
@@ -2294,7 +2309,9 @@
         });
 
         // Rating button visual logic
-        var ratingInputs = container.parentElement.parentElement.querySelectorAll('input[name="rating_levels"]');
+        // Rating inputs are now in the bottom bar, query from the whole step container
+        var stepContainer = document.getElementById('step-flashcard-options');
+        var ratingInputs = stepContainer ? stepContainer.querySelectorAll('input[name="rating_levels"]') : [];
         ratingInputs.forEach(function (radio) {
             radio.addEventListener('change', function () {
                 ratingInputs.forEach(function (r) {

@@ -182,6 +182,13 @@ def start_flashcard_session_by_id(set_id, mode):
     """
     Bắt đầu một phiên học Flashcard cho một bộ thẻ cụ thể.
     """
+    # Capture rating_levels from URL param if provided
+    rating_levels = request.args.get('rating_levels', type=int)
+    if rating_levels and rating_levels in [3, 4, 6]:
+        session['flashcard_button_count_override'] = rating_levels
+    else:
+        session.pop('flashcard_button_count_override', None)
+    
     if FlashcardSessionManager.start_new_flashcard_session(set_id, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
@@ -200,9 +207,11 @@ def flashcard_session():
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
         return redirect(url_for('learning.flashcard.dashboard'))
 
-    # [UPDATED v3] Use session_state
+    # [UPDATED v3] Use session_state, but prefer session override from URL param if set
     user_button_count = 3
-    if current_user.session_state:
+    if 'flashcard_button_count_override' in session:
+        user_button_count = session.get('flashcard_button_count_override')
+    elif current_user.session_state:
         user_button_count = current_user.session_state.flashcard_button_count
 
     session_data = session.get('flashcard_session', {})
@@ -451,9 +460,11 @@ def submit_flashcard_answer():
                 exc_info=True,
             )
                 
-    # [UPDATED v3] Use session_state
+    # [UPDATED v3] Use session_state, but prefer session override from URL param if set
     user_button_count = 3
-    if current_user.session_state:
+    if 'flashcard_button_count_override' in session:
+        user_button_count = session.get('flashcard_button_count_override')
+    elif current_user.session_state:
         user_button_count = current_user.session_state.flashcard_button_count
 
     normalized_answer = str(user_answer).lower()
