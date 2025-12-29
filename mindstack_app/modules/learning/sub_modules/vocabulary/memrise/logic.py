@@ -6,7 +6,7 @@ from sqlalchemy import func
 
 from mindstack_app.models import LearningContainer, LearningItem, db
 from mindstack_app.models.learning_progress import LearningProgress
-from mindstack_app.modules.learning.core.services.srs_service import SrsService
+from mindstack_app.modules.learning.services.srs_service import SrsService
 
 # --- HELPER: Data Strategy ---
 

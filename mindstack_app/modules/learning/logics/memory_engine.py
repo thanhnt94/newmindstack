@@ -57,7 +57,7 @@ class AnswerResult:
     """Result of processing an answer."""
     new_state: ProgressState
     memory_power: float
-    score_delta: int
+    # Note: Scoring should be handled by ScoringEngine, not here
 
 
 class MemoryEngine:
@@ -230,18 +230,13 @@ class MemoryEngine:
         incorrect_streak = current_state.incorrect_streak
 
         is_correct = quality >= 3
-        score_delta = 0
 
         if is_correct:
             # === CORRECT ANSWER ===
             incorrect_streak = 0
             correct_streak += 1
             reps += 1
-
-            # Score calculation
-            if status == 'new':
-                score_delta = 5  # First time bonus
-            score_delta += 10 if quality >= 4 else 5
+            # Note: Score calculation removed - use ScoringEngine instead
 
             # Status transitions
             if status == 'new':
@@ -329,8 +324,7 @@ class MemoryEngine:
 
         return AnswerResult(
             new_state=new_state,
-            memory_power=memory_power,
-            score_delta=score_delta
+            memory_power=memory_power
         )
 
     # === UTILITY: Quality Mapping by Mode ===

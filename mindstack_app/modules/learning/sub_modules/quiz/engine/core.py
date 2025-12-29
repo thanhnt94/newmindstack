@@ -4,7 +4,7 @@
 
 import random
 from mindstack_app.models import LearningItem, db
-from mindstack_app.modules.learning.core.services.srs_service import SrsService
+from mindstack_app.modules.learning.services.srs_service import SrsService
 from mindstack_app.modules.gamification.services import ScoreService
 from mindstack_app.modules.shared.utils.db_session import safe_commit
 
@@ -223,14 +223,18 @@ class QuizEngine:
             # Determine quality: 4 (Good) if correct, 1 (Again) if incorrect
             quality = 4 if is_correct else 1
             
-            # Update SRS
-            SrsService.update_with_memory_power(
-                user_id, item_id, quality, source_mode='quiz',
-                duration_ms=duration_ms, user_answer=user_answer
+            # Update SRS using UnifiedSrsSystem
+            progress, srs_result = SrsService.update_unified(
+                user_id=user_id,
+                item_id=item_id,
+                quality=quality,
+                mode='quiz',
+                is_first_time=False,  # TODO: track first-time properly
+                response_time_seconds=duration_ms / 1000.0 if duration_ms else None
             )
             
-            # Award Points
-            score_change = 5 if is_correct else 0
+            # Use score from SrsResult
+            score_change = srs_result.score_points
             
             ScoreService.award_points(
                 user_id=user_id,

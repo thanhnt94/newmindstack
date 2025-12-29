@@ -59,7 +59,7 @@ def log_session():
     if not items:
         return jsonify({'success': False, 'message': 'No items to log'}), 400
         
-    from mindstack_app.modules.learning.core.services.srs_service import SrsService
+    from mindstack_app.modules.learning.services.srs_service import SrsService
     from mindstack_app.modules.shared.utils.db_session import safe_commit
     from mindstack_app.models import db
     

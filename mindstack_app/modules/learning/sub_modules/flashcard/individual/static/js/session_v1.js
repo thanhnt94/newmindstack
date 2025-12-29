@@ -651,7 +651,8 @@ function renderCard(data) {
     frontAudioContent: c.front_audio_content,
     backAudioContent: c.back_audio_content,
     canEditCurrentCard,
-    editUrl
+    editUrl,
+    showStatsBtn: true  // Flag for template to render stats button
   };
 
   let html = "";
@@ -809,6 +810,13 @@ function renderCard(data) {
 
   document.querySelectorAll('.open-note-panel-btn').forEach(btn => btn.addEventListener('click', () => {
     openNotePanel(btn.dataset.itemId);
+  }));
+
+  document.querySelectorAll('.open-item-stats-btn').forEach(btn => btn.addEventListener('click', () => {
+    if (window.showItemDetail && currentFlashcardBatch[currentFlashcardIndex]) {
+      const currentCard = currentFlashcardBatch[currentFlashcardIndex];
+      window.showItemDetail(currentCard.item_id, 'flashcard', currentCard.content);
+    }
   }));
 
   document.querySelectorAll('.open-feedback-modal-btn').forEach(btn => btn.addEventListener('click', () => {
@@ -1399,6 +1407,11 @@ async function submitFlashcardAnswer(itemId, answer) {
       throw new Error(`HTTP error! status: ${res.status}, body: ${errorText}`);
     }
     const data = await res.json();
+
+    // UPDATE MEMORY POWER WIDGET
+    if (window.updateMemoryPowerFromResponse) {
+      updateMemoryPowerFromResponse(data);
+    }
 
     sessionScore += data.score_change;
     currentUserTotalScore = data.updated_total_score;

@@ -1,0 +1,430 @@
+{# Container Stats Modal Component #}
+{# This modal shows aggregate statistics for the entire vocabulary set #}
+
+<!-- Container Stats Modal -->
+<div id="containerStatsModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content-stats">
+        <div class="modal-header-stats">
+            <h3>📊 Thống kê: <span id="container-stats-title">Loading...</span></h3>
+            <button class="modal-close-stats" onclick="closeContainerStatsModal()">&times;</button>
+        </div>
+
+        <div class="modal-body-stats">
+            <!-- Summary Cards -->
+            <div class="stats-summary-cards">
+                <div class="summary-card">
+                    <div class="summary-label">Memory Power</div>
+                    <div class="summary-value" id="container-mp">--%</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Tổng số thẻ</div>
+                    <div class="summary-value" id="container-total">--</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Cần ôn tập</div>
+                    <div class="summary-value" id="container-due">--</div>
+                </div>
+            </div>
+
+            <!-- Distribution Chart -->
+            <div class="chart-section">
+                <h4>📊 Phân bố</h4>
+                <div class="chart-container">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Timeline Chart -->
+            <div class="chart-section">
+                <h4>📈 Tiến độ theo thời gian</h4>
+                <div class="chart-container">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Modal Overlay */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    /* Modal Content */
+    .modal-content-stats {
+        background: white;
+        border-radius: 1rem;
+        max-width: 800px;
+        width: 100%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Modal Header */
+    .modal-header-stats {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.5rem;
+        border-bottom: 2px solid #e2e8f0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 1rem 1rem 0 0;
+    }
+
+    .modal-header-stats h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .modal-close-stats {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .modal-close-stats:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: rotate(90deg);
+    }
+
+    /* Modal Body */
+    .modal-body-stats {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    /* Summary Cards */
+    .stats-summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .summary-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        text-align: center;
+        border: 2px solid transparent;
+        transition: all 0.3s;
+    }
+
+    .summary-card:hover {
+        border-color: #6366f1;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .summary-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-value {
+        font-size: 2rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Chart Sections */
+    .chart-section {
+        margin-bottom: 2rem;
+    }
+
+    .chart-section h4 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chart-container {
+        background: white;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        position: relative;
+        height: 300px;
+    }
+
+    .chart-container canvas {
+        max-height: 100%;
+    }
+
+    /* Mobile Adjustments */
+    @media (max-width: 640px) {
+        .modal-content-stats {
+            max-width: 100%;
+            max-height: 100vh;
+            border-radius: 0;
+        }
+
+        .modal-header-stats {
+            border-radius: 0;
+        }
+
+        .stats-summary-cards {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-container {
+            height: 250px;
+        }
+    }
+</style>
+
+<script>
+    // Container Stats Modal Functions
+    function openContainerStatsModal(containerId, containerName) {
+        const modal = document.getElementById('containerStatsModal');
+        const titleEl = document.getElementById('container-stats-title');
+
+        if (titleEl) titleEl.textContent = containerName || 'Loading...';
+
+        // Show modal
+        modal.style.display = 'flex';
+
+        // Fetch stats data
+        fetch(`/api/learning/stats/container/${containerId}?mode=flashcard`)
+            .then(response => response.json())
+            .then(data => {
+                // Update summary cards
+                document.getElementById('container-mp').textContent = data.average_memory_power + '%';
+                document.getElementById('container-total').textContent = data.total_items;
+                document.getElementById('container-due').textContent = data.due_items;
+
+                // Render charts
+                renderDistributionChart(data.chart_data.distribution);
+                renderTimelineChart(data.chart_data.timeline);
+            })
+            .catch(error => {
+                console.error('Error loading container stats:', error);
+                alert('Không thể tải thống kê. Vui lòng thử lại.');
+                closeContainerStatsModal();
+            });
+    }
+
+    function closeContainerStatsModal() {
+        const modal = document.getElementById('containerStatsModal');
+        modal.style.display = 'none';
+
+        // Destroy existing charts
+        if (window.distributionChartInstance) {
+            window.distributionChartInstance.destroy();
+            window.distributionChartInstance = null;
+        }
+        if (window.timelineChartInstance) {
+            window.timelineChartInstance.destroy();
+            window.timelineChartInstance = null;
+        }
+    }
+
+    // Chart Rendering Functions
+    function renderDistributionChart(distribution) {
+        const ctx = document.getElementById('distributionChart');
+        if (!ctx) return;
+
+        // Destroy existing chart
+        if (window.distributionChartInstance) {
+            window.distributionChartInstance.destroy();
+        }
+
+        window.distributionChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Yếu (0-50%)', 'Trung bình (50-80%)', 'Tốt (80-100%)'],
+                datasets: [{
+                    data: [distribution.weak, distribution.medium, distribution.strong],
+                    backgroundColor: [
+                        '#ef4444',  // Red for weak
+                        '#f59e0b',  // Orange for medium
+                        '#10b981'   // Green for strong
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                size: 12,
+                                family: 'Inter, sans-serif'
+                            },
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                return `${context.label}: ${context.parsed} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderTimelineChart(timeline) {
+        const ctx = document.getElementById('timelineChart');
+        if (!ctx) return;
+
+        // Destroy existing chart
+        if (window.timelineChartInstance) {
+            window.timelineChartInstance.destroy();
+        }
+
+        // Filter out null values and create corresponding dates
+        const validData = [];
+        const validDates = [];
+        timeline.dates.forEach((date, index) => {
+            if (timeline.values[index] !== null) {
+                validDates.push(date);
+                validData.push(timeline.values[index]);
+            }
+        });
+
+        window.timelineChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: validDates,
+                datasets: [{
+                    label: 'Memory Power (%)',
+                    data: validData,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function (value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+    }
+
+    // Close modal on outside click
+    document.addEventListener('click', function (e) {
+        const modal = document.getElementById('containerStatsModal');
+        if (e.target === modal) {
+            closeContainerStatsModal();
+        }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeContainerStatsModal();
+        }
+    });
+</script>

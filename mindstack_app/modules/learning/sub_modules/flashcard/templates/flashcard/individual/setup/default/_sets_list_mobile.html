@@ -38,6 +38,13 @@
                         {% if set.completion_percentage and set.completion_percentage > 0 %}
                         <span class="text-blue-600 font-semibold">{{ set.completion_percentage | int }}%</span>
                         {% endif %}
+                        {% set stats = stats_map.get(set.container_id, {}) %}
+                        {% if stats and stats.memory_power > 0 %}
+                        <span
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 ml-1">
+                            <i class="fas fa-brain mr-1 text-[9px]"></i>{{ stats.memory_power | int }}%
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
 

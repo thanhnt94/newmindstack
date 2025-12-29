@@ -131,7 +131,7 @@ def api_check_answer():
     # Update SRS using new Vocabulary Service
     item_id = data.get('item_id')
     if item_id:
-        from mindstack_app.modules.learning.core.services.srs_service import SrsService
+        from mindstack_app.modules.learning.services.srs_service import SrsService
         from mindstack_app.modules.shared.utils.db_session import safe_commit
         from mindstack_app.models import db
 

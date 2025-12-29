@@ -19,10 +19,8 @@
 
     const flipButtonHtml = `<button class="js-flip-card-btn flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
 
-    const statsUrlTemplate = "{{ url_for('learning.vocabulary.item_stats_page', item_id=999999) }}";
-    const statsUrl = statsUrlTemplate.replace('999999', o.itemId || o.id);
-    const statsButtonHtml = `<a href="${statsUrl}" target="_blank" class="icon-btn" title="Thống kê chi tiết"><i class="fas fa-chart-pie"></i></a>`;
-    const leftToolbarContent = `${statsButtonHtml}${menuButtonHtml}${aiButtonHtml}${noteButtonHtml}`;
+    const statsButtonHtml = `<button class="icon-btn open-item-stats-btn" data-item-id="${o.itemId}" title="Chi tiết thống kê"><i class="fas fa-chart-pie"></i></button>`;
+    const leftToolbarContent = `${menuButtonHtml}${aiButtonHtml}${noteButtonHtml}${statsButtonHtml}`;
 
     const settingsMenuHtml = `
           <div class="toolbar-settings">

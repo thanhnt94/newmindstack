@@ -19,6 +19,7 @@ from mindstack_app.models.learning_progress import LearningProgress
 from ..logics.srs_engine import SrsEngine, SrsConstants
 from ..logics.memory_engine import MemoryEngine, ProgressState
 from ..logics.scoring_engine import ScoringEngine
+from ..logics.unified_srs import UnifiedSrsSystem, SrsResult
 
 
 class SrsService:
@@ -27,7 +28,114 @@ class SrsService:
     Coordinates between database and calculation engines.
     """
 
-    # === Unified Update Method ===
+    # === NEW: Unified Update Method (Hybrid SM-2 + Memory Power) ===
+
+    @staticmethod
+    def update_unified(
+        user_id: int,
+        item_id: int,
+        quality: int,
+        mode: str = 'flashcard',
+        is_first_time: bool = False,
+        response_time_seconds: Optional[float] = None
+    ) -> tuple[LearningProgress, SrsResult]:
+        """
+        NEW: Update progress using UnifiedSrsSystem (Hybrid approach).
+        
+        This method combines SM-2 for scheduling with Memory Power for analytics.
+        Recommended for all new code.
+        
+        Args:
+            user_id: User ID
+            item_id: Learning item ID
+            quality: Answer quality (0-5)
+            mode: Learning mode ('flashcard', 'quiz_mcq', 'typing', etc.)
+            is_first_time: Whether this is first time seeing item
+            response_time_seconds: Time taken to answer
+        
+        Returns:
+            Tuple of (updated_progress, srs_result)
+        """
+        now = datetime.datetime.now(datetime.timezone.utc)
+        
+        # 1. Fetch or create progress
+        progress = LearningProgress.query.filter_by(
+            user_id=user_id,
+            item_id=item_id,
+            learning_mode=mode
+        ).first()
+        
+        if not progress:
+            progress = LearningProgress(
+                user_id=user_id,
+                item_id=item_id,
+                learning_mode=mode,
+                status='new',
+                easiness_factor=SrsConstants.DEFAULT_EASINESS_FACTOR,
+                repetitions=0,
+                interval=0,
+                correct_streak=0,
+                incorrect_streak=0,
+                first_seen=now
+            )
+            db.session.add(progress)
+            db.session.flush()  # Get ID
+        
+        # 2. Process answer through UnifiedSrsSystem
+        result = UnifiedSrsSystem.process_answer(
+            current_status=progress.status or 'new',
+            current_interval=progress.interval or 0,
+            current_ef=progress.easiness_factor or SrsConstants.DEFAULT_EASINESS_FACTOR,
+            current_reps=progress.repetitions or 0,
+            current_correct_streak=progress.correct_streak or 0,
+            current_incorrect_streak=progress.incorrect_streak or 0,
+            last_reviewed=progress.last_reviewed,
+            quality=quality,
+            mode=mode,
+            is_first_time=is_first_time,
+            response_time_seconds=response_time_seconds
+        )
+        
+        # 3. Apply results to progress
+        progress.status = result.status
+        progress.interval = result.interval_minutes
+        progress.easiness_factor = progress.easiness_factor  # Keep from calculation
+        progress.repetitions = progress.repetitions  # Updated inside UnifiedSrsSystem
+        progress.correct_streak = result.correct_streak
+        progress.incorrect_streak = result.incorrect_streak
+        progress.last_reviewed = now
+        progress.due_time = result.next_review
+        
+        # Store mastery for quick access (calculated by UnifiedSrsSystem)
+        progress.mastery = result.mastery
+        
+        # Update legacy counters
+        if quality >= 4:
+            progress.times_correct = (progress.times_correct or 0) + 1
+        elif quality >= 2:
+            progress.times_vague = (progress.times_vague or 0) + 1
+        else:
+            progress.times_incorrect = (progress.times_incorrect or 0) + 1
+        
+        # 4. Log to ReviewLog
+        log_entry = ReviewLog(
+            user_id=user_id,
+            item_id=item_id,
+            timestamp=now,
+            rating=quality,
+            interval=result.interval_minutes,
+            easiness_factor=progress.easiness_factor,
+            review_type=mode,
+            mastery_snapshot=result.mastery,
+            memory_power_snapshot=result.memory_power,
+            score_change=result.score_points,
+            is_correct=(quality >= 3)
+        )
+        db.session.add(log_entry)
+        
+        return progress, result
+    
+    # === LEGACY: Unified Update Method (Deprecated - use update_unified instead) ===
 
     @staticmethod
     def update(
@@ -380,3 +488,158 @@ class SrsService:
             Retention percentage (0-100)
         """
         return SrsEngine.calculate_retention_percentage(last_reviewed, interval_minutes)
+    
+    # === NEW: Batch Statistics Methods (Using UnifiedSrsSystem) ===
+    
+    @staticmethod
+    def get_item_stats(progress: LearningProgress) -> dict:
+        """
+        Get real-time statistics for a single item using UnifiedSrsSystem.
+        
+        Args:
+            progress: LearningProgress record
+        
+        Returns:
+            Dict with mastery, retention, memory_power, is_due
+        """
+        return UnifiedSrsSystem.get_current_stats(
+            status=progress.status,
+            repetitions=progress.repetitions,
+            correct_streak=progress.correct_streak or 0,
+            incorrect_streak=progress.incorrect_streak or 0,
+            last_reviewed=progress.last_reviewed,
+            interval=progress.interval or 0,
+            due_time=progress.due_time
+        )
+    
+    @staticmethod
+    def get_container_stats(user_id: int, container_id: int, mode: Optional[str] = None) -> dict:
+        """
+        Get aggregate statistics for a container (e.g., flashcard set).
+        
+        Uses UnifiedSrsSystem.calculate_batch_stats() for efficiency.
+        
+        Args:
+            user_id: User ID
+            container_id: Container ID
+            mode: Optional filter by learning mode
+        
+        Returns:
+            Dict with aggregate stats: total_items, average_memory_power,
+            strong_items, medium_items, weak_items, due_items
+        """
+        from ..services.progress_service import ProgressService
+        
+        # Fetch all progress records for this container
+        progress_records = ProgressService.get_all_progress_for_user(
+            user_id=user_id,
+            mode=mode,
+            container_id=container_id
+        )
+        
+        # Use UnifiedSrsSystem for efficient batch calculation
+        return UnifiedSrsSystem.calculate_batch_stats(progress_records)
+
+
+    # === Chart Data Methods ===
+
+    @staticmethod
+    def get_container_history(user_id: int, container_id: int, days: int = 30, mode: str = 'flashcard') -> dict:
+        """
+        Get historical memory power data for a container (for charts).
+        
+        Returns daily average memory power for the past N days.
+        
+        Args:
+            user_id: User ID
+            container_id: Container ID
+            days: Number of days to look back
+            mode: Learning mode filter
+            
+        Returns:
+            Dict with 'dates' and 'values' arrays for charting
+        """
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
+        
+        # Calculate start date
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Query ReviewLog for this container's items in the date range
+        from ..services.progress_service import ProgressService
+        
+        # Get all items in this container
+        item_ids_query = db.session.query(LearningItem.item_id).filter(
+            LearningItem.container_id == container_id
+        )
+        
+        # Query review logs grouped by date
+        reviews = db.session.query(
+            func.date(ReviewLog.timestamp).label('review_date'),
+            func.avg(ReviewLog.memory_power_snapshot).label('avg_memory_power')
+        ).filter(
+            ReviewLog.user_id == user_id,
+            ReviewLog.item_id.in_(item_ids_query),
+            ReviewLog.timestamp >= start_date
+        ).group_by(
+            func.date(ReviewLog.timestamp)
+        ).order_by('review_date').all()
+        
+        # Build response
+        dates = []
+        values = []
+        
+        # Fill in missing dates with None or previous value
+        current_date = start_date.date()
+        review_dict = {r.review_date: float(r.avg_memory_power * 100) if r.avg_memory_power else 0 for r in reviews}
+        
+        while current_date <= end_date.date():
+            dates.append(current_date.strftime('%Y-%m-%d'))
+            values.append(review_dict.get(current_date, None))
+            current_date += timedelta(days=1)
+        
+        return {
+            'dates': dates,
+            'values': values
+        }
+
+    @staticmethod
+    def get_item_review_history(item_id: int, user_id: int, limit: int = 50) -> list:
+        """
+        Get review history for an individual item (for charts).
+        
+        Returns list of reviews with timestamp, quality, memory_power.
+        
+        Args:
+            item_id: Learning item ID
+            user_id: User ID
+            limit: Maximum number of reviews to return
+            
+        Returns:
+            List of dicts with review data
+        """
+        # Query ReviewLog for this item
+        reviews = ReviewLog.query.filter_by(
+            item_id=item_id,
+            user_id=user_id
+        ).order_by(
+            ReviewLog.timestamp.desc()
+        ).limit(limit).all()
+        
+        # Reverse to get chronological order
+        reviews = list(reversed(reviews))
+        
+        # Build response
+        history = []
+        for review in reviews:
+            history.append({
+                'timestamp': review.timestamp.isoformat(),
+                'date': review.timestamp.strftime('%Y-%m-%d %H:%M'),
+                'rating': review.rating,  # Fixed: was quality
+                'memory_power': round(review.memory_power_snapshot * 100, 1) if review.memory_power_snapshot else 0,  # Fixed
+                'interval': review.interval,
+                'ease_factor': review.easiness_factor  # Fixed: was ease_factor
+            })
+        
+        return history

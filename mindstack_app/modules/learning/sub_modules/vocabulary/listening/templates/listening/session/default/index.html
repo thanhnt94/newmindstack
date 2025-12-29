@@ -426,9 +426,10 @@
                 <span>Luyện nghe</span>
             </span>
             <div class="fc-nav-btns">
-                <a href="#" class="fc-nav-btn" title="Thống kê từ" id="single-stats-btn" target="_blank">
+                <button class="fc-nav-btn" title="Thống kê từ" id="single-stats-btn"
+                    onclick="openItemStatsModal(window.currentItemId)">
                     <i class="fas fa-chart-pie" style="font-size: 0.75rem;"></i>
-                </a>
+                </button>
                 <button class="fc-nav-btn" title="Phát âm thanh" id="header-audio-btn">
                     <i class="fas fa-volume-up" style="font-size: 0.75rem;"></i>
                 </button>
@@ -566,10 +567,8 @@
             submitBtn.textContent = 'Kiểm tra';
             var item = items[current];
 
-            // Link Stats
-            var statsBtn = document.getElementById('single-stats-btn');
-            var statsUrlTemplate = "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}";
-            if (statsBtn) statsBtn.href = statsUrlTemplate.replace('0', item.item_id || item.id);
+            // Track current item for stats modal
+            window.currentItemId = item.item_id || item.id;
 
             if (item.audio_url) {
                 audioPlayer.src = item.audio_url;
@@ -669,4 +668,8 @@
         }
     })();
 </script>
+{# Include Stats Components from stats module #}
+{% include "stats/components/_chart_lib.html" %}
+{% include "stats/components/_item_charts.html" %}
+
 {% endblock %}

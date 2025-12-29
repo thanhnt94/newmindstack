@@ -81,6 +81,10 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
         version="1.0",
     ),
     ModuleDefinition("mindstack_app.modules.learning.routes", "learning_bp", url_prefix="/learn", version="1.0"),
+    
+    # Learning Stats API (Global - not nested under learning_bp)
+    ModuleDefinition("mindstack_app.modules.learning.sub_modules.stats.api_routes", "stats_api_bp", version="1.0"),
+    
     ModuleDefinition("mindstack_app.modules.goals.routes", "goals_bp", url_prefix="/goals", version="1.0"),
     ModuleDefinition("mindstack_app.modules.ai_services.routes", "ai_services_bp", version="1.0"),
     ModuleDefinition("mindstack_app.modules.notes.routes", "notes_bp", version="1.0"),

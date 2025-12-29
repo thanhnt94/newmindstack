@@ -52,14 +52,14 @@ Mục đích: Cập nhật navbar theo yêu cầu:
             </a>
         </li>
 
-        <!-- <li>
-            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2"
-                {% if request.endpoint.startswith('goals.') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}"
-                href="{{ url_for('goals.manage_goals') }}">
-                <i class="fas fa-bullseye mr-1 md:mr-2"></i>
-                <span>Mục tiêu</span>
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2
+                {% if request.endpoint.startswith('learning.stats') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}"
+                href="{{ url_for('learning.stats.dashboard') }}">
+                <i class="fas fa-chart-line mr-1 md:mr-2"></i>
+                <span>Analytics</span>
             </a>
-        </li> -->
+        </li>
         {% endif %}
     </ul>
 
@@ -102,8 +102,8 @@ Mục đích: Cập nhật navbar theo yêu cầu:
                         <i class="fas fa-sticky-note mr-2 w-4"></i> Ghi chú của tôi
                     </a>
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        href="{{ url_for('stats.dashboard') }}">
-                        <i class="fas fa-chart-line mr-2 w-4"></i> Thống kê
+                        href="{{ url_for('learning.stats.dashboard') }}">
+                        <i class="fas fa-chart-pie mr-2 w-4"></i> Analytics
                     </a>
                     {# THÊM MỚI: Link Mục tiêu học tập #}
                     <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

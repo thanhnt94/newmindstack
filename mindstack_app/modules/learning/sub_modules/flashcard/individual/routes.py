@@ -23,6 +23,7 @@ from ..engine import (
 
 # Import từ services module
 from ..services import AudioService, ImageService
+from mindstack_app.modules.learning.services.srs_service import SrsService
 
 from ..engine import FlashcardEngine
 from mindstack_app.models import (
@@ -741,6 +742,19 @@ def get_flashcard_sets_partial():
         )
         flashcard_sets = pagination.items
 
+        # Calculate stats for each set
+        stats_map = {}
+        for f_set in flashcard_sets:
+            try:
+                # Assuming flashcard mode for now
+                stats = SrsService.get_container_stats(current_user.user_id, f_set.container_id, 'flashcard')
+                # Format memory power as percentage
+                stats['memory_power'] = round((stats.get('average_memory_power') or 0) * 100, 1)
+                stats_map[f_set.container_id] = stats
+            except Exception as e:
+                current_app.logger.warning(f"Failed to calculate stats for set {f_set.container_id}: {e}")
+                stats_map[f_set.container_id] = {'memory_power': 0, 'total_items': 0}
+
         template_vars = {
             'flashcard_sets': flashcard_sets,
             'pagination': pagination,
@@ -749,7 +763,8 @@ def get_flashcard_sets_partial():
             'search_options_display': {
                 'title': 'Tiêu đề', 'description': 'Mô tả', 'tags': 'Thẻ'
             },
-            'current_filter': current_filter
+            'current_filter': current_filter,
+            'stats_map': stats_map
         }
 
         current_app.logger.debug("<<< Kết thúc thực thi get_flashcard_sets_partial (Thành công) >>>")

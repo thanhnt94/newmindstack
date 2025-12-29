@@ -15,6 +15,9 @@ from .sub_modules.flashcard.collab.routes import flashcard_collab_bp
 from .sub_modules.vocabulary import vocabulary_bp
 from .sub_modules.practice import practice_bp
 from .sub_modules.collab import collab_bp
+from .sub_modules.stats import stats_bp
+# Note: stats_api_bp is registered globally in module_registry.py
+
 
 # Định nghĩa Blueprint chính cho learning
 learning_bp = Blueprint('learning', __name__,
@@ -30,6 +33,8 @@ learning_bp.register_blueprint(flashcard_collab_bp)
 learning_bp.register_blueprint(vocabulary_bp)
 learning_bp.register_blueprint(practice_bp)  # NEW: Practice module
 learning_bp.register_blueprint(collab_bp)  # NEW: Collab module
+learning_bp.register_blueprint(stats_bp)  # Stats dashboard (HTML only, API is global)
+
 
 
 @learning_bp.route('/')
@@ -37,7 +42,6 @@ learning_bp.register_blueprint(collab_bp)  # NEW: Collab module
 def learning_dashboard():
     """
     Mô tả: Hiển thị dashboard tổng quan cho các hoạt động học tập.
-    Hiện tại sẽ chuyển hướng đến trang học Flashcard.
+    Chuyển hướng đến trang stats dashboard.
     """
-    # Tạm thời chuyển hướng đến trang học Flashcard
-    return redirect(url_for('learning.flashcard.dashboard'))
+    return redirect(url_for('learning.stats.dashboard'))

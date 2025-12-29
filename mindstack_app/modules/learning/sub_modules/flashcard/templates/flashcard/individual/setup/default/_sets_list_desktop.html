@@ -35,6 +35,16 @@
                 </div>
                 <div class="flex-shrink-0 ml-4 flex items-center space-x-2">
                     {# Nút Archive/Unarchive, chỉ hiển thị khi KHÔNG ở chế độ multi-selection và KHÔNG ở tab Archive #}
+                    {# Memory Power Badge #}
+                    {% set stats = stats_map.get(set.container_id, {}) %}
+                    {% if stats and stats.memory_power > 0 %}
+                    <span
+                        class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-800 mr-2"
+                        title="Sức mạnh trí nhớ trung bình">
+                        <i class="fas fa-brain mr-1"></i> {{ stats.memory_power }}%
+                    </span>
+                    {% endif %}
+
                     {% if current_filter != 'archive' %}
                     <div class="archive-icon" data-set-id="{{ set.container_id }}"
                         title="{{ 'Bỏ lưu trữ' if set_state.is_archived else 'Lưu trữ' }}">

@@ -7,7 +7,7 @@ from mindstack_app.models.learning_progress import LearningProgress
 from mindstack_app.modules.gamification.services import ScoreService
 from mindstack_app.modules.shared.utils.db_session import safe_commit
 from mindstack_app.services.config_service import get_runtime_config
-from mindstack_app.modules.learning.core.services.srs_service import SrsService
+from mindstack_app.modules.learning.services.srs_service import SrsService
 
 
 class FlashcardEngine:
@@ -41,11 +41,11 @@ class FlashcardEngine:
             update_srs: Whether to update SRS progress (False for Collab).
             
         Returns:
-            tuple: (score_change, new_total_score, result_type, new_status, item_stats)
+            tuple: (score_change, new_total_score, result_type, new_status, item_stats, memory_power_data)
         """
         item = LearningItem.query.get(item_id)
         if not item:
-            return 0, current_user_total_score, 'error', "Error: Item not found", None
+            return 0, current_user_total_score, 'error', "Error: Item not found", None, None
 
         is_all_review = (mode == 'all_review')
 
@@ -59,21 +59,32 @@ class FlashcardEngine:
 
         score_change = 0
         progress = None
+        memory_power_data = None  # NEW: Track Memory Power metrics
 
         if update_srs and not is_all_review:
-            # Update SRS via Service (which uses MemoryEngine)
-            progress = SrsService.update_with_memory_power(
-                user_id, item_id, quality, source_mode='flashcard',
-                duration_ms=duration_ms, user_answer=user_answer_text
+            # Update SRS via Service using UnifiedSrsSystem
+            progress, srs_result = SrsService.update_unified(
+                user_id=user_id,
+                item_id=item_id,
+                quality=quality,
+                mode='flashcard',
+                is_first_time=False,  # TODO: detect first time properly
+                response_time_seconds=duration_ms / 1000.0 if duration_ms else None
             )
             
-            # Scoring Logic
-            if quality >= 4:
-                score_change = cls._get_config_score('FLASHCARD_REVIEW_HIGH', 10)
-            elif quality >= 2:
-                score_change = cls._get_config_score('FLASHCARD_REVIEW_MEDIUM', 5)
-            else:
-                score_change = 0
+            # Use score from SrsResult (already calculated by UnifiedSrsSystem)
+            score_change = srs_result.score_points
+            
+            # Extract Memory Power metrics for frontend
+            memory_power_data = {
+                'mastery': round(srs_result.mastery * 100, 1),  # Convert to percentage
+                'retention': round(srs_result.retention * 100, 1),
+                'memory_power': round(srs_result.memory_power * 100, 1),
+                'correct_streak': srs_result.correct_streak,
+                'incorrect_streak': srs_result.incorrect_streak,
+                'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None,
+                'interval_minutes': srs_result.interval_minutes
+            }
         else:
             # No SRS update (Collab or All Review)
             progress = LearningProgress.query.filter_by(
@@ -115,7 +126,7 @@ class FlashcardEngine:
         # distinct statistics retrieval
         item_stats = cls.get_item_statistics(user_id, item_id)
 
-        return score_change, new_total_score, result_type, progress.status, item_stats
+        return score_change, new_total_score, result_type, progress.status, item_stats, memory_power_data
 
     @staticmethod
     def get_item_statistics(user_id: int, item_id: int) -> dict:

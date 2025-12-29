@@ -225,7 +225,7 @@ NOTE: Visibility được control bởi critical CSS trong index.html
 
             const flipButtonHtml = `<button class="js-flip-card-btn flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
 
-            const leftToolbarContent = `${aiButtonHtml}${noteButtonHtml}`;
+            const leftToolbarContent = `${aiButtonHtml}${noteButtonHtml}${o.showStatsBtn ? '<button class="icon-btn open-item-stats-btn" data-item-id="' + o.itemId + '" title="Chi tiết thống kê"><i class="fas fa-chart-bar"></i></button>' : ''}`;
 
             const settingsMenuHtml = `
           <div class="toolbar-settings">

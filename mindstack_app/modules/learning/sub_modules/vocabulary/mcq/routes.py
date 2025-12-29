@@ -204,7 +204,7 @@ def api_check_answer():
     # Update SRS if item_id provided
     if item_id:
         try:
-            from mindstack_app.modules.learning.core.services.srs_service import SrsService
+            from mindstack_app.modules.learning.services.srs_service import SrsService
             from mindstack_app.modules.shared.utils.db_session import safe_commit
             from mindstack_app.models import db
 

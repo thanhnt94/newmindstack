@@ -378,7 +378,8 @@
 {{ super() }}
 <script>
     (function () {
-        var setId = {{ container.container_id }
+        var setId = {{ container.container_id }}
+    };
     };
     var availableKeys = {{ available_keys | tojson }};
     var savedSettings = {{ saved_settings | tojson }};
