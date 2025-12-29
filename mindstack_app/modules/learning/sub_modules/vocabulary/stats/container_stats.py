@@ -152,6 +152,98 @@ class VocabularyContainerStats:
             'total': stats['total']
         }
     
+    
+    @staticmethod
+    def get_chart_data(user_id: int, container_id: int) -> dict:
+        """
+        Generate chart data for container stats modal.
+        
+        Returns:
+            dict with distribution and timeline chart data
+        """
+        from datetime import timedelta
+        from collections import defaultdict
+        
+        items = LearningItem.query.filter(
+            LearningItem.container_id == container_id,
+            LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
+        ).all()
+        
+        item_ids = [item.item_id for item in items]
+        
+        if not item_ids:
+            return {
+                'distribution': {'weak': 0, 'medium': 0, 'strong': 0},
+                'timeline': {'dates': [], 'values': []}
+            }
+        
+        # Get progress records
+        progress_records = LearningProgress.query.filter(
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
+            LearningProgress.item_id.in_(item_ids)
+        ).all()
+        
+        # Distribution: categorize by mastery level
+        weak_count = 0      # 0-50%
+        medium_count = 0    # 50-80%
+        strong_count = 0    # 80-100%
+        
+        for progress in progress_records:
+            mastery = progress.mastery or 0.0
+            if mastery < 0.5:
+                weak_count += 1
+            elif mastery < 0.8:
+                medium_count += 1
+            else:
+                strong_count += 1
+        
+        # Timeline: Get average memory power for last 30 days
+        now = datetime.utcnow()
+        timeline_data = defaultdict(list)  # date -> [mastery values]
+        
+        # Query review logs for the last 30 days
+        start_date = now - timedelta(days=30)
+        logs = ReviewLog.query.filter(
+            ReviewLog.user_id == user_id,
+            ReviewLog.item_id.in_(item_ids),
+            ReviewLog.timestamp >= start_date,
+            ReviewLog.mastery_snapshot.isnot(None)
+        ).order_by(ReviewLog.timestamp).all()
+        
+        # Group by date and calculate average mastery per day
+        for log in logs:
+            date_key = log.timestamp.strftime('%d/%m')
+            if log.mastery_snapshot is not None:
+                timeline_data[date_key].append(log.mastery_snapshot * 100)
+        
+        # Generate date labels and values for past 30 days
+        dates = []
+        values = []
+        
+        for i in range(29, -1, -1):  # Last 30 days
+            date = now - timedelta(days=i)
+            date_key = date.strftime('%d/%m')
+            dates.append(date_key)
+            
+            if date_key in timeline_data and timeline_data[date_key]:
+                avg_mastery = sum(timeline_data[date_key]) / len(timeline_data[date_key])
+                values.append(round(avg_mastery, 1))
+            else:
+                values.append(None)  # No data for this day
+        
+        return {
+            'distribution': {
+                'weak': weak_count,
+                'medium': medium_count,
+                'strong': strong_count
+            },
+            'timeline': {
+                'dates': dates,
+                'values': values
+            }
+        }
+    
     @staticmethod
     def get_hard_count(user_id: int, container_id: int) -> int:
         """Get count of hard items."""

@@ -38,7 +38,7 @@ class AudioService:
         except Exception as e:
             logger.critical(f"Lỗi không mong muốn khi khởi tạo AudioService: {e}", exc_info=True)
         
-        self.voice_engine = VoiceEngine()
+        self.voice_service = VoiceEngine()
 
     def _get_cache_dir(self) -> str:
         return get_runtime_config('FLASHCARD_AUDIO_CACHE_DIR', Config.FLASHCARD_AUDIO_CACHE_DIR)

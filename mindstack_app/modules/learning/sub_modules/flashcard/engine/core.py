@@ -69,7 +69,8 @@ class FlashcardEngine:
                 quality=quality,
                 mode='flashcard',
                 is_first_time=False,  # TODO: detect first time properly
-                response_time_seconds=duration_ms / 1000.0 if duration_ms else None
+                response_time_seconds=duration_ms / 1000.0 if duration_ms else None,
+                duration_ms=duration_ms  # Track response time in ReviewLog
             )
             
             # Use score from SrsResult (already calculated by UnifiedSrsSystem)

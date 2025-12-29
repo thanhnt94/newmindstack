@@ -2,14 +2,15 @@
 # Vocabulary Learning Hub Routes
 # Updated to use flashcard engine for session management
 
-from flask import render_template, request, jsonify, redirect, url_for, flash
+from flask import render_template, request, jsonify, redirect, url_for, flash, abort, current_app, session
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
 from . import vocabulary_bp
 from mindstack_app.models import (
-    LearningContainer, LearningItem, User, UserContainerState
+    LearningContainer, LearningItem, User, UserContainerState, db
 )
+from mindstack_app.modules.shared.utils.db_session import safe_commit
 
 # Import flashcard engine for session management
 from ..flashcard.engine import (
@@ -113,15 +114,44 @@ def api_get_sets():
 @vocabulary_bp.route('/set/<int:set_id>')
 @login_required
 def set_detail_page(set_id):
-    """Deep link to specific set detail."""
-    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id, active_step='detail')
+    """Vocabulary set detail page"""
+    # Check if user can edit this set
+    from mindstack_app.models import LearningContainer, User
+    container = LearningContainer.query.get_or_404(set_id)
+    can_edit_set = (current_user.user_role == User.ROLE_ADMIN or 
+                    container.creator_user_id == current_user.user_id)
+    
+    return render_template('vocabulary/dashboard/default/index.html', 
+                          active_set_id=set_id, 
+                          active_step='detail',
+                          can_edit_set=can_edit_set,
+                          set_id=set_id)
 
 
 @vocabulary_bp.route('/set/<int:set_id>/modes')
 @login_required
 def set_modes_page(set_id):
-    """Step 2: Mode selection page."""
-    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id, active_step='modes')
+    """Step 2: Learning modes selection page."""
+    from mindstack_app.models import LearningContainer
+    container = LearningContainer.query.get_or_404(set_id)
+    
+    # Get container capabilities
+    ai_settings = container.ai_settings if hasattr(container, 'ai_settings') else {}
+    capabilities = ai_settings.get('capabilities', []) if isinstance(ai_settings, dict) else []
+    
+    # Debug logging
+    current_app.logger.info(f"[MODE FILTER] Container {set_id} ai_settings: {ai_settings}")
+    current_app.logger.info(f"[MODE FILTER] Container {set_id} capabilities: {capabilities}")
+    
+    # Default to all modes if no capabilities set
+    if not capabilities:
+        current_app.logger.warning(f"[MODE FILTER] No capabilities set, defaulting to all modes")
+        capabilities = ['supports_flashcard', 'supports_quiz', 'supports_writing', 'supports_listening', 'supports_speaking']
+    
+    return render_template('vocabulary/dashboard/default/index.html', 
+                          active_set_id=set_id, 
+                          active_step='modes',
+                          container_capabilities=capabilities)
 
 
 @vocabulary_bp.route('/set/<int:set_id>/flashcard')
@@ -149,15 +179,59 @@ def api_get_flashcard_modes(set_id):
         essential_mode_ids = ['new_only', 'all_review', 'hard_only', 'mixed_srs']
         filtered_modes = [m for m in modes if m['id'] in essential_mode_ids]
         
+        # [NEW] Get user per-set preferences
+        user_button_count = 4 # Default
+        uc_state = None
+        try:
+            uc_state = UserContainerState.query.filter_by(
+                user_id=current_user.user_id, 
+                container_id=set_id
+            ).first()
+            if uc_state and uc_state.settings:
+                # Safely access nested dict
+                flashcard_settings = uc_state.settings.get('flashcard', {})
+                if 'button_count' in flashcard_settings:
+                    user_button_count = flashcard_settings['button_count']
+        except Exception as e:
+            pass # Fail silently to default
+
         return jsonify({
             'success': True,
-            'modes': filtered_modes
+            'modes': filtered_modes,
+            'user_button_count': user_button_count,
+            'settings': uc_state.settings if (uc_state and uc_state.settings) else {}
         })
     except Exception as e:
         return jsonify({
             'success': False,
             'message': str(e)
         }), 500
+
+
+@vocabulary_bp.route('/api/settings/container/<int:set_id>', methods=['POST', 'DELETE'])
+@login_required
+def api_container_settings(set_id):
+    """
+    API to manage per-container user settings.
+    POST: Update settings (merge).
+    DELETE: Reset settings to default.
+    """
+    from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
+    try:
+        if request.method == 'DELETE':
+            LearningSettingsService.update_container_settings(current_user.user_id, set_id, {
+                'flashcard': {}, 'quiz': {}, 'listening': {}, 'typing': {}
+            })
+            return jsonify({'success': True, 'message': 'Cài đặt đã được reset.'})
+
+        payload = request.get_json() or {}
+        new_settings = LearningSettingsService.update_container_settings(current_user.user_id, set_id, payload)
+        return jsonify({'success': True, 'settings': new_settings})
+    except Exception as e:
+        current_app.logger.error(f"Error managing settings for set {set_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 
 
 # Helper for manual pagination object mocking SQLAlchemy pagination
@@ -255,6 +329,7 @@ def api_get_set_detail(set_id):
             'creator_avatar': None,
             'is_public': container.is_public,
             'capabilities': list(container.capability_flags()),
+            'can_edit': (current_user.user_role == User.ROLE_ADMIN or container.creator_user_id == current_user.user_id),
         },
         'course_stats': course_stats,
         'pagination_html': pagination_html
@@ -269,12 +344,139 @@ def api_get_set_detail(set_id):
 @login_required
 def start_flashcard_session(set_id, mode):
     """Bắt đầu phiên học flashcard cho một bộ từ vựng."""
+    
+    # Pre-fetch user container state
+    uc_state = UserContainerState.query.filter_by(
+        user_id=current_user.user_id,
+        container_id=set_id
+    ).first()
+    
+    # [NEW] Load parameters from URL (or use session defaults)
+    rating_levels = request.args.get('rating_levels', type=int)
+    url_autoplay = request.args.get('autoplay') == 'true' if 'autoplay' in request.args else None
+    url_show_image = request.args.get('show_image') == 'true' if 'show_image' in request.args else None
+    url_show_stats = request.args.get('show_stats') == 'true' if 'show_stats' in request.args else None
+
+    # Sync with Session Overrides
+    if rating_levels and rating_levels in [3, 4, 6]:
+        session['flashcard_button_count_override'] = rating_levels
+        
+    # [ACTION] Persist changes if Auto-Save is ON
+    try:
+        if not uc_state:
+             uc_state = UserContainerState(
+                user_id=current_user.user_id, 
+                container_id=set_id,
+                is_archived=False,
+                is_favorite=False,
+                settings={}
+            )
+             db.session.add(uc_state)
+        
+        # Determine if we should auto-save
+        new_settings = dict(uc_state.settings or {})
+        should_auto_save = new_settings.get('auto_save', True)
+        
+        if 'flashcard' not in new_settings: 
+            new_settings['flashcard'] = {}
+        
+        changed = False
+
+        # 1. Handle Button Count Auto-Save
+        if should_auto_save and rating_levels:
+            if new_settings['flashcard'].get('button_count') != rating_levels:
+                new_settings['flashcard']['button_count'] = rating_levels
+                changed = True
+        
+        # 2. Handle Visual Settings Auto-Save (if passed in URL, e.g. from a quick toggle)
+        if should_auto_save:
+            if url_autoplay is not None and new_settings['flashcard'].get('autoplay') != url_autoplay:
+                new_settings['flashcard']['autoplay'] = url_autoplay
+                changed = True
+            if url_show_image is not None and new_settings['flashcard'].get('show_image') != url_show_image:
+                new_settings['flashcard']['show_image'] = url_show_image
+                changed = True
+            if url_show_stats is not None and new_settings['flashcard'].get('show_stats') != url_show_stats:
+                new_settings['flashcard']['show_stats'] = url_show_stats
+                changed = True
+        
+        if changed:
+            uc_state.settings = new_settings
+            db.session.add(uc_state)
+            safe_commit(db.session)
+            
+    except Exception as e:
+        current_app.logger.warning(f"Failed to persist flashcard settings: {e}")
+            
+    # [FINALIZE] Load final configuration to Session
+    try:
+        flashcard_settings = uc_state.settings.get('flashcard', {}) if uc_state and uc_state.settings else {}
+        
+        # Priority: URL Override > Persisted Setting > Default 4
+        final_button_count = rating_levels or flashcard_settings.get('button_count') or 4
+        session['flashcard_button_count_override'] = final_button_count
+        
+        # Visual settings
+        global_prefs = current_user.last_preferences or {}
+        visual_settings = {
+            'autoplay': flashcard_settings.get('autoplay', global_prefs.get('flashcard_autoplay_audio', False)),
+            'show_image': flashcard_settings.get('show_image', global_prefs.get('flashcard_show_image', True)),
+            'show_stats': flashcard_settings.get('show_stats', global_prefs.get('flashcard_show_stats', True))
+        }
+        
+        # Override with URL params if present (even if not auto-saving)
+        if url_autoplay is not None: visual_settings['autoplay'] = url_autoplay
+        if url_show_image is not None: visual_settings['show_image'] = url_show_image
+        if url_show_stats is not None: visual_settings['show_stats'] = url_show_stats
+        
+        session['flashcard_visual_settings'] = visual_settings
+    except Exception:
+        pass
+
     if FlashcardSessionManager.start_new_flashcard_session(set_id, mode):
         # Redirect đến flashcard session (có thể dùng route cũ hoặc practice mới)
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
         flash('Không có thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
         return redirect(url_for('learning.vocabulary.set_detail_page', set_id=set_id))
+
+
+@vocabulary_bp.route('/api/stats/container/<int:container_id>')
+@login_required
+def api_get_container_stats(container_id):
+    """
+    API endpoint for comprehensive container statistics.
+    Used by the container stats modal on the vocabulary dashboard.
+    """
+    from .stats.container_stats import VocabularyContainerStats
+    
+    try:
+        # Get basic stats
+        stats = VocabularyContainerStats.get_full_stats(current_user.user_id, container_id)
+        
+        # Get chart data
+        chart_data = VocabularyContainerStats.get_chart_data(current_user.user_id, container_id)
+        
+        # Calculate average memory power (mastery avg as percentage)
+        average_memory_power = round(stats['mastery_avg'] * 100, 1) if stats['mastery_avg'] else 0
+        
+        return jsonify({
+            'success': True,
+            'average_memory_power': average_memory_power,
+            'total_items': stats['total'],
+            'due_items': stats['due'],
+            'learned_items': stats['learned'],
+            'mastered_items': stats['mastered'],
+            'chart_data': chart_data
+        })
+    except Exception as e:
+        print(f"Error getting container stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @vocabulary_bp.route('/item/<int:item_id>/stats')
@@ -294,3 +496,4 @@ def item_stats_page(item_id):
         return render_template('vocabulary/stats/_item_stats_content.html', stats=stats)
         
     return render_template('vocabulary/stats/item_detail.html', stats=stats)
+

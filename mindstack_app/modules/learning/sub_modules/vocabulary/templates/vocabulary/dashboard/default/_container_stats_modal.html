@@ -2,7 +2,7 @@
 {# This modal shows aggregate statistics for the entire vocabulary set #}
 
 <!-- Container Stats Modal -->
-<div id="containerStatsModal" class="modal-overlay" style="display: none;">
+<div id="containerStatsModal" class="modal-overlay hidden">
     <div class="modal-content-stats">
         <div class="modal-header-stats">
             <h3>📊 Thống kê: <span id="container-stats-title">Loading...</span></h3>
@@ -46,8 +46,8 @@
 </div>
 
 <style>
-    /* Modal Overlay */
-    .modal-overlay {
+    /* Container Stats Modal Overlay */
+    #containerStatsModal.modal-overlay {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.5);
@@ -57,21 +57,28 @@
         align-items: center;
         justify-content: center;
         padding: 1rem;
-        animation: fadeIn 0.2s ease;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     }
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
+    /* Active State for Visibility */
+    #containerStatsModal.modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
     }
+
+    /* Hidden utility class removal if present, but active handles vis */
+    #containerStatsModal.modal-overlay.hidden {
+        display: none !important;
+    }
+
+    /* ... keyframes removed as transition handles it ... */
 
     /* Modal Content */
     .modal-content-stats {
+        position: relative;
+        z-index: 10000;
         background: white;
         border-radius: 1rem;
         max-width: 800px;
@@ -80,19 +87,8 @@
         display: flex;
         flex-direction: column;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        animation: slideUp 0.3s ease;
-    }
-
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
     }
 
     /* Modal Header */
@@ -229,6 +225,10 @@
             height: 250px;
         }
     }
+
+    #containerStatsModal.modal-overlay.active .modal-content-stats {
+        transform: translateY(0);
+    }
 </style>
 
 <script>
@@ -239,11 +239,15 @@
 
         if (titleEl) titleEl.textContent = containerName || 'Loading...';
 
-        // Show modal
-        modal.style.display = 'flex';
+        // Show modal with animation
+        modal.classList.remove('hidden');
+        // Small delay to allow display:flex to apply before opacity transition
+        requestAnimationFrame(() => {
+            modal.classList.add('active');
+        });
 
         // Fetch stats data
-        fetch(`/api/learning/stats/container/${containerId}?mode=flashcard`)
+        fetch(`/learn/vocabulary/api/stats/container/${containerId}?mode=flashcard`)
             .then(response => response.json())
             .then(data => {
                 // Update summary cards
@@ -264,7 +268,13 @@
 
     function closeContainerStatsModal() {
         const modal = document.getElementById('containerStatsModal');
-        modal.style.display = 'none';
+        modal.classList.remove('active');
+
+        // Wait for transition to finish before hiding display
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+
 
         // Destroy existing charts
         if (window.distributionChartInstance) {

@@ -85,6 +85,15 @@ Mục đích: Cập nhật navbar theo yêu cầu:
             </button>
         </li>
 
+        <!-- Settings Button -->
+        <li class="relative hidden sm:block">
+            <button onclick="window.dispatchEvent(new CustomEvent('open-settings-modal'))"
+                class="text-gray-600 hover:text-blue-500 transition-colors p-1 focus:outline-none"
+                title="Cài đặt học tập">
+                <i class="fas fa-cog text-xl"></i>
+            </button>
+        </li>
+
         <li class="relative group">
             <a class="text-gray-600 font-medium hover:text-blue-500 flex items-center" href="#">
                 <span class="hidden md:inline mr-2">{{ current_user.username }}</span>

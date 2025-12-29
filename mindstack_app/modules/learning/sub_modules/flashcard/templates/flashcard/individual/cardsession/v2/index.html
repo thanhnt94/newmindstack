@@ -1019,29 +1019,66 @@
   window.userButtonCount = userButtonCount; // Expose for mobile handler
   const isAutoplaySession = {{ 'true' if is_autoplay_session else 'false' }};
   const autoplayMode = "{{ autoplay_mode }}";
+  const visualSettings = {{ saved_visual_settings | tojson if saved_visual_settings else '{}' }};
+  const autoSaveOn = {{ 'true' if saved_auto_save else 'false' }};
+  const saveSettingsUrl = "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}";
+
   let autoplayDelaySeconds = 2;
   let currentAutoplayToken = 0;
   let currentAutoplayTimeouts = [];
   let currentCardElements = { card: null, actions: null, flipBtn: null };
+
   let isMediaHidden = false;
   let isAudioAutoplayEnabled = true;
-  let storedAudioAutoplay = null;
+  let showStats = true;
+
+  // 1. Load from Backend Settings (Highest priority)
+  if (visualSettings.show_image !== undefined) {
+    isMediaHidden = (visualSettings.show_image === false);
+  }
+  if (visualSettings.autoplay !== undefined) {
+    isAudioAutoplayEnabled = (visualSettings.autoplay !== false);
+  }
+  if (visualSettings.show_stats !== undefined) {
+    showStats = (visualSettings.show_stats !== false);
+  }
+
+  // 2. Fallback to localStorage
+  try {
+    if (visualSettings.show_image === undefined) {
+      const storedImageVisibility = localStorage.getItem('flashcardHideImages');
+      if (storedImageVisibility === 'true') isMediaHidden = true;
+    }
+
+    if (visualSettings.autoplay === undefined) {
+      const storedAudioAutoplay = localStorage.getItem('flashcardAutoPlayAudio');
+      if (storedAudioAutoplay === 'false') isAudioAutoplayEnabled = false;
+    }
+  } catch (err) {
+    console.warn('Không thể đọc localStorage:', err);
+  }
+
+  function syncSettingsToServer() {
+    if (!autoSaveOn || !saveSettingsUrl) return;
+    const payload = {
+      visual_settings: {
+        autoplay: isAudioAutoplayEnabled,
+        show_image: !isMediaHidden,
+        show_stats: showStats
+      }
+    };
+    fetch(saveSettingsUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+      body: JSON.stringify(payload)
+    }).catch(err => console.warn('Failed to sync settings:', err));
+  }
+
+  // Initial sync
+  syncSettingsToServer();
+
   let sessionAnswerHistory = []; // Store all answered cards in session
   window.sessionAnswerHistory = sessionAnswerHistory; // Expose for mobile stats
-
-  try {
-    const storedImageVisibility = localStorage.getItem('flashcardHideImages');
-    if (storedImageVisibility === 'true') {
-      isMediaHidden = true;
-    }
-    storedAudioAutoplay = localStorage.getItem('flashcardAutoPlayAudio');
-  } catch (err) {
-    console.warn('Không thể đọc trạng thái hiển thị ảnh:', err);
-  }
-
-  if (storedAudioAutoplay === 'false') {
-    isAudioAutoplayEnabled = false;
-  }
 
   if (isAutoplaySession) {
     try {
@@ -1056,6 +1093,15 @@
       console.warn('Không thể đọc cấu hình AutoPlay:', err);
     }
     document.body.classList.add('flashcard-autoplay-active');
+  }
+
+  // Hide stats if disabled in settings
+  if (!showStats) {
+    if (currentCardStatsContainer) currentCardStatsContainer.style.display = 'none';
+    if (previousCardStatsContainer) previousCardStatsContainer.style.display = 'none';
+    // Also hide mobile version if it exists
+    const mobileStats = document.getElementById('current-card-stats-mobile');
+    if (mobileStats) mobileStats.style.display = 'none';
   }
 
   const getNoteUrl = "{{ url_for('notes.get_note', item_id=0) }}";
@@ -1081,8 +1127,8 @@
 
   function applyMediaVisibility() {
     // Select từ cả desktop và mobile elements
-    const mediaContainers = document.querySelectorAll('#flashcard-content .media-container, #flashcard-content-mobile .media-container');
-    const cardContainers = document.querySelectorAll('#flashcard-content ._card-container, #flashcard-content-mobile ._card-container');
+    const mediaContainers = document.querySelectorAll('.media-container');
+    const cardContainers = document.querySelectorAll('._card-container');
 
     mediaContainers.forEach(container => {
       container.classList.toggle('hidden', isMediaHidden);
@@ -1111,14 +1157,11 @@
 
   function setMediaHiddenState(hidden) {
     isMediaHidden = hidden;
-
     try {
       localStorage.setItem('flashcardHideImages', hidden ? 'true' : 'false');
-    } catch (err) {
-      console.warn('Không thể lưu trạng thái hiển thị ảnh:', err);
-    }
-
+    } catch (err) { }
     applyMediaVisibility();
+    syncSettingsToServer();
   }
 
   function persistAudioAutoplayPreference(enabled) {
@@ -1148,6 +1191,7 @@
     if (!enabled) {
       stopAllFlashcardAudio();
     }
+    syncSettingsToServer();
   }
 
   function closeAllSettingsMenus() {
@@ -1183,6 +1227,13 @@
     if (autoplayToggle) {
       evt.stopPropagation();
       setAudioAutoplayEnabled(!isAudioAutoplayEnabled);
+      return;
+    }
+
+    const imageToggle = evt.target.closest('.image-toggle-btn');
+    if (imageToggle) {
+      evt.stopPropagation();
+      setMediaHiddenState(!isMediaHidden);
       return;
     }
 
@@ -1653,7 +1704,9 @@
       if (!audioEl || audioEl.dataset.retried === 'true') return;
       if (!contentToRead) return;
 
-      console.log(`[AudioRecovery] Phát hiện lỗi ở ${side} audio. Đang thử tái tạo...`);
+      const sideLabel = side === 'front' ? '🔵 MẶT TRƯỚC' : '🔴 MẶT SAU';
+      console.log(`[AudioRecovery] ${sideLabel} - Phát hiện lỗi audio, đang tái tạo...`);
+      console.log(`[AudioRecovery] ${sideLabel} - Nội dung: "${contentToRead.substring(0, 50)}${contentToRead.length > 50 ? '...' : ''}"`);
       audioEl.dataset.retried = 'true';
 
       try {
@@ -1665,13 +1718,19 @@
         const result = await response.json();
 
         if (result.success && result.audio_url) {
-          console.log(`[AudioRecovery] Tái tạo thành công. URL mới: ${result.audio_url}`);
+          console.log(`[AudioRecovery] ${sideLabel} - ✅ Tái tạo thành công!`);
+          console.log(`[AudioRecovery] ${sideLabel} - URL: ${result.audio_url}`);
+
+          // CRITICAL: Set new src AND reload the audio element
           audioEl.src = `${result.audio_url}?t=${new Date().getTime()}`;
+          audioEl.load(); // ⭐ Force browser to reload the audio source
+
+          console.log(`[AudioRecovery] ${sideLabel} - Audio element reloaded, ready to play`);
         } else {
-          console.warn(`[AudioRecovery] Tái tạo thất bại: ${result.message}`);
+          console.warn(`[AudioRecovery] ${sideLabel} - ❌ Tái tạo thất bại: ${result.message}`);
         }
       } catch (err) {
-        console.error(`[AudioRecovery] Lỗi kết nối API:`, err);
+        console.error(`[AudioRecovery] ${sideLabel} - ❌ Lỗi kết nối API:`, err);
       }
     }
 

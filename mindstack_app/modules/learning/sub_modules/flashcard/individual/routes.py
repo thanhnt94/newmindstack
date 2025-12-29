@@ -108,8 +108,25 @@ def get_flashcard_options_partial(set_identifier):
     selected_mode = request.args.get('selected_mode', None, type=str)
     # [UPDATED v3] Use session_state
     user_button_count = 3
+    
+    # 1. Start with Global/Session Preference
     if current_user.session_state:
         user_button_count = current_user.session_state.flashcard_button_count
+        
+    # 2. Override with Per-Set Persistence (if available for single set)
+    if set_identifier != 'all' and ',' not in set_identifier:
+        try:
+            set_id = int(set_identifier)
+            uc_state = UserContainerState.query.filter_by(
+                user_id=current_user.user_id, 
+                container_id=set_id
+            ).first()
+            if uc_state and uc_state.settings:
+                flashcard_settings = uc_state.settings.get('flashcard', {})
+                if 'button_count' in flashcard_settings:
+                    user_button_count = flashcard_settings['button_count']
+        except (ValueError, TypeError):
+            pass
     
     modes = []
     
@@ -193,60 +210,14 @@ def start_flashcard_session_by_id(set_id, mode):
     Bắt đầu một phiên học Flashcard cho một bộ thẻ cụ thể.
     """
     
-    # [UPDATED v5] Persistence Logic: Load Per-Set Settings
-    # 1. Capture overrides from URL (highest priority for this single session)
-    # 2. If not in URL, try to load from UserContainerState.settings
-    # 3. Apply to session (UserSession is transient, this logic prepares the transient state)
+    # [UPDATED v6] Use centralized Settings Service
+    from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
+    config = LearningSettingsService.resolve_flashcard_session_config(current_user, set_id, request.args)
+    
+    session['flashcard_button_count_override'] = config['button_count']
+    session['flashcard_visual_settings'] = config['visual_settings']
 
-    # A. Check for persisted settings
-    persisted_settings = {}
-    try:
-        container_state = UserContainerState.query.filter_by(
-            user_id=current_user.user_id,
-            container_id=set_id
-        ).first()
-        if container_state and container_state.settings:
-            persisted_settings = container_state.settings.get('flashcard', {})
-    except Exception as e:
-        current_app.logger.warning(f"Failed to load container settings: {e}")
-
-    # B. Rating Levels (Button Count)
-    # Priority: URL Param > Content of URL override > UserContainerState > Global Preference
-    rating_levels = request.args.get('rating_levels', type=int)
-    if rating_levels and rating_levels in [3, 4, 6]:
-        session['flashcard_button_count_override'] = rating_levels
-        # Note: We ONLY save to persistence if explicit save action or maybe on session end?
-        # For now, start_session strictly sets up the session. Saving happens via explicit API or side-effect.
-        # But user requested "remember last use".
-        # So if URL param is explicit (user changed dropdown), we should probably UPDATE persistence?
-        # Wait, the dropdown change usually triggers a navigate.
-        # Let's save it here to ensure "sticky" selection from setup screen.
-        # [TODO: This might be redundant if we have a separate save API, but safe for 'Start button' flow]
-    else:
-        # No URL override, check persistence
-        saved_count = persisted_settings.get('button_count')
-        if saved_count and saved_count in [3, 4, 6]:
-            session['flashcard_button_count_override'] = saved_count
-        else:
-            session.pop('flashcard_button_count_override', None)
-    
-    # C. UI Preference (v1/v2 - visual theme)
-    # Priority: URL Param > Persistence (if we decide to save this too) > Session (previous)
-    ui_pref = request.args.get('flashcard_ui_pref')
-    if ui_pref:
-        session['flashcard_ui_pref'] = ui_pref
-    # (Optional: Load UI pref from persistence if we want that stickiness too, let's stick to buttons/visuals for now)
-    
-    # D. Visual Settings (Autoplay, Images, Stats)
-    # Load these into a session dict to be consumed by the template
-    visual_settings = {
-        'autoplay': persisted_settings.get('autoplay', False),
-        'show_image': persisted_settings.get('show_image', True),
-        'show_stats': persisted_settings.get('show_stats', True)
-    }
-    session['flashcard_visual_settings'] = visual_settings
-    
-    
+        
     if FlashcardSessionManager.start_new_flashcard_session(set_id, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
@@ -315,6 +286,17 @@ def flashcard_session():
     
     current_app.logger.debug(f"Rendering flashcard session with template: {template_path}")
     
+    # [NEW] Load auto_save flag for this container
+    saved_auto_save = True
+    try:
+        container_id = session_data.get('set_id')
+        if isinstance(container_id, int):
+             uc_state = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=container_id).first()
+             if uc_state and uc_state.settings:
+                 saved_auto_save = uc_state.settings.get('auto_save', True)
+    except Exception:
+        pass
+
     return render_template(
         template_path,
         user_button_count=user_button_count,
@@ -322,6 +304,7 @@ def flashcard_session():
         autoplay_mode=autoplay_mode,
         container_name=container_name,
         saved_visual_settings=session.get('flashcard_visual_settings', {}),
+        saved_auto_save=saved_auto_save,
         **template_context  # Contains template_base_path and template_version
     )
 
@@ -636,87 +619,39 @@ def save_flashcard_settings():
     ui_version = data.get('ui_version', 'v1')
     session['flashcard_ui_pref'] = ui_version
 
-    # Get Current Set ID from Session
-    # Problem: save_flashcard_settings is called from session page, but doesn't strictly send set_id.
-    # We can retrieve it from session['flashcard_session']
+    from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
+    
     session_data = session.get('flashcard_session', {})
-    set_ids = session_data.get('set_id') # Could be int, string 'all', or list [1, 2]
+    set_ids = session_data.get('set_id')
+    target_set_ids = [set_ids] if isinstance(set_ids, int) else (set_ids if isinstance(set_ids, list) else [])
     
-    target_set_ids = []
-    if isinstance(set_ids, int):
-        target_set_ids = [set_ids]
-    elif isinstance(set_ids, list):
-         # If multiple, save to all? OR verify if it's a "Mixed" session.
-         # For mixed session, saving preference to ALL sets might be aggressive but logical if user views it as "My preference".
-         # Let's save to all involved sets.
-         target_set_ids = set_ids
-    
+    update_payload = {'flashcard': {}}
+    if button_count: update_payload['flashcard']['button_count'] = button_count
+    if visual_settings:
+        for k, v in visual_settings.items():
+            if k in ['autoplay', 'show_image', 'show_stats']:
+                update_payload['flashcard'][k] = v
+
     try:
-        updated = False
+        # 1. Update Session and Transient State
+        if button_count:
+            session['flashcard_button_count_override'] = button_count
+            if current_user.session_state:
+                 current_user.session_state.flashcard_button_count = button_count
         
-        # Helper inner function to update JSON
-        def update_settings_json(current_json, key, value):
-            if not current_json: current_json = {}
-            if 'flashcard' not in current_json: current_json['flashcard'] = {}
-            # Update specific key
-            current_json['flashcard'][key] = value
-            return current_json
+        if visual_settings:
+            session['flashcard_visual_settings'] = visual_settings
 
-        # A. Update Global/Transient (Legacy fallback + Session sync)
-        user = User.query.get(current_user.user_id)
-        if user and button_count:
-             if user.session_state:
-                 user.session_state.flashcard_button_count = button_count
-             else:
-                 from mindstack_app.models import UserSession
-                 new_sess = UserSession(user_id=user.user_id, flashcard_button_count=button_count)
-                 db.session.add(new_sess)
-             updated = True
-
-        # B. Update Per-Set Persistence
+        # 2. Update Per-Set Persistence
         for sid in target_set_ids:
-            if not isinstance(sid, int): continue # Skip 'all' or weird values
-            
-            uc_state = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=sid).first()
-            if not uc_state:
-                # Create if not exists (should have been created on start, but safety check)
-                uc_state = UserContainerState(
-                    user_id=current_user.user_id, 
-                    container_id=sid,
-                    is_archived=False,
-                    is_favorite=False,
-                    settings={}
-                )
-                db.session.add(uc_state)
-            
-            # Use a copy to ensure SQLAlchemy detects change in JSON
-            new_settings = dict(uc_state.settings or {})
-            
-            # Logic: Update flashcard section
-            if 'flashcard' not in new_settings: new_settings['flashcard'] = {}
-            
-            if button_count:
-                new_settings['flashcard']['button_count'] = button_count
-            
-            if visual_settings and isinstance(visual_settings, dict):
-                for k, v in visual_settings.items():
-                    if k in ['autoplay', 'show_image', 'show_stats']:
-                        new_settings['flashcard'][k] = v
-            
-            uc_state.settings = new_settings
-            # flag_modified(uc_state, 'settings') # Explicitly flag if needed, usually reassigning dict works
-            updated = True
-
-        if updated:
-            safe_commit(db.session)
-            return jsonify({'success': True, 'message': 'Cài đặt đã được lưu.'})
-        else:
-             return jsonify({'success': True, 'message': 'Không có thay đổi cần lưu (Không xác định được bộ thẻ).'})
-            
+            if isinstance(sid, int):
+                LearningSettingsService.update_container_settings(current_user.user_id, sid, update_payload)
+                
+        return jsonify({'success': True, 'message': 'Cài đặt đã được lưu.'})
     except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Lỗi khi lưu cài đặt Flashcard của người dùng: {e}", exc_info=True)
+        current_app.logger.error(f"Lỗi khi lưu cài đặt Flashcard: {e}")
         return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi lưu cài đặt.'}), 500
+
 
 
 @flashcard_learning_bp.route('/get_flashcard_sets_partial', methods=['GET'])
@@ -959,58 +894,89 @@ def regenerate_audio_from_content():
     asyncio.set_event_loop(loop)
     try:
         path_or_url, success, msg = loop.run_until_complete(audio_service.get_cached_or_generate_audio(content_to_read))
-        if success:
+        if success and path_or_url:
+            # Audio has been generated and saved to cache
+            # Now check if container has a specific audio folder configured
+            
             container = item.container if item else None
             audio_folder = None
+            
+            # Check if container has custom audio folder
             if container:
                 audio_folder = getattr(container, 'media_audio_folder', None)
                 if not audio_folder:
+                    # Try to create one if not exists
                     audio_folder = _ensure_container_media_folder(container, 'audio')
-
-            if not audio_folder:
-                return jsonify({'success': False, 'message': 'Bộ thẻ chưa được cấu hình thư mục audio.'}), 400
-
-            try:
-                os.makedirs(os.path.join(current_app.static_folder, audio_folder), exist_ok=True)
-            except OSError as folder_exc:
-                current_app.logger.error(
-                    "Không thể tạo thư mục audio %s: %s", audio_folder, folder_exc, exc_info=True
-                )
-                return jsonify({'success': False, 'message': 'Không thể chuẩn bị thư mục lưu audio.'}), 500
-
+            
             filename = os.path.basename(path_or_url)
-            destination = os.path.join(current_app.static_folder, audio_folder, filename)
-
+            
+            # CASE 1: Container has specific audio folder → Copy from cache to container folder
+            if audio_folder:
+                try:
+                    # Ensure folder exists
+                    container_audio_dir = os.path.join(current_app.static_folder, audio_folder)
+                    os.makedirs(container_audio_dir, exist_ok=True)
+                    current_app.logger.info(f"[AUDIO COPY] Container folder: {container_audio_dir}")
+                    
+                    # Destination in container folder
+                    destination = os.path.join(container_audio_dir, filename)
+                    current_app.logger.info(f"[AUDIO COPY] Source: {path_or_url}")
+                    current_app.logger.info(f"[AUDIO COPY] Destination: {destination}")
+                    
+                    # Copy from cache to container folder (keep cache for reuse)
+                    if not os.path.exists(destination):
+                        shutil.copy2(path_or_url, destination)
+                        current_app.logger.info(f"[AUDIO COPY] ✅ Copy successful")
+                    else:
+                        current_app.logger.info(f"[AUDIO COPY] File already exists at destination")
+                    
+                    # Verify file exists
+                    if not os.path.exists(destination):
+                        raise Exception(f"File not found after copy: {destination}")
+                    
+                    # Build relative path - simple and direct
+                    relative_path = f"{audio_folder}/{filename}"
+                    current_app.logger.info(f"[AUDIO COPY] Relative path: {relative_path}")
+                    
+                except Exception as copy_exc:
+                    current_app.logger.error(f"[AUDIO COPY] Failed to copy: {copy_exc}", exc_info=True)
+                    # Fallback to cache path
+                    relative_path = f"flashcard/audio/cache/{filename}"
+                    current_app.logger.warning(f"[AUDIO COPY] Using cache fallback: {relative_path}")
+            else:
+                # CASE 2: No container folder → Use global cache directly
+                relative_path = f"flashcard/audio/cache/{filename}"
+                current_app.logger.info(f"[AUDIO COPY] No container folder, using cache: {relative_path}")
+            
+            # ✅ Save audio URL to database
             try:
-                if os.path.abspath(path_or_url) != os.path.abspath(destination):
-                    if os.path.exists(destination):
-                        os.remove(destination)
-                    shutil.move(path_or_url, destination)
-                stored_value = normalize_media_value_for_storage(filename, audio_folder)
-                relative_path = build_relative_media_path(stored_value, audio_folder)
-            except Exception as move_exc:  # pylint: disable=broad-except
-                current_app.logger.error(
-                    "Lỗi khi di chuyển audio vào thư mục %s: %s", audio_folder, move_exc, exc_info=True
-                )
-                return jsonify({'success': False, 'message': 'Không thể lưu file audio.'}), 500
-
-            if not relative_path:
-                return jsonify({'success': False, 'message': 'Không thể xử lý đường dẫn audio.'}), 500
-
-            if side == 'front':
-                item.content['front_audio_url'] = stored_value
-            elif side == 'back':
-                item.content['back_audio_url'] = stored_value
-
-            flag_modified(item, 'content')
-            safe_commit(db.session)
-
+                current_app.logger.info(f"[AUDIO DEBUG] Item {item_id} - Saving {side} audio URL: {relative_path}")
+                current_app.logger.info(f"[AUDIO DEBUG] Content hash: {filename}")
+                
+                if side == 'front':
+                    item.content['front_audio_url'] = relative_path
+                elif side == 'back':
+                    item.content['back_audio_url'] = relative_path
+                else:
+                    current_app.logger.error(f"[AUDIO DEBUG] Invalid side value: {side}")
+                    return jsonify({'success': False, 'message': f'Side không hợp lệ: {side}'}), 400
+                
+                flag_modified(item, 'content')
+                safe_commit(db.session)
+                current_app.logger.info(f"[AUDIO DEBUG] Successfully saved {side}_audio_url to database")
+            except Exception as db_exc:
+                current_app.logger.warning(f"Failed to save audio URL to database: {db_exc}")
+            
+            # Generate final URL
+            final_audio_url = url_for('static', filename=relative_path)
+            current_app.logger.info(f"[AUDIO RESPONSE] Side: {side}")
+            current_app.logger.info(f"[AUDIO RESPONSE] Relative path: {relative_path}")
+            current_app.logger.info(f"[AUDIO RESPONSE] Final URL: {final_audio_url}")
+            
             return jsonify({
                 'success': True,
                 'message': 'Đã tạo audio thành công.',
-                'audio_url': url_for('static', filename=relative_path),
-                'relative_path': relative_path,
-                'stored_value': stored_value,
+                'audio_url': final_audio_url,
             })
         else:
             return jsonify({'success': False, 'message': msg}), 500

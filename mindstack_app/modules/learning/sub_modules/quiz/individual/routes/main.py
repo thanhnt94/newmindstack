@@ -23,11 +23,15 @@ def quiz_learning_dashboard():
     current_filter = request.args.get('filter', 'doing', type=str)
     quiz_type = request.args.get('quiz_type', 'individual', type=str)
 
-    user_default_batch_size = (
-        current_user.session_state.current_quiz_batch_size
-        if (current_user.session_state and current_user.session_state.current_quiz_batch_size is not None)
-        else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
-    )
+    # Logic xác định batch size mặc định: Preference > Session > Config
+    pref_batch = current_user.last_preferences.get('quiz_question_count') if current_user.last_preferences else None
+    
+    if pref_batch:
+        user_default_batch_size = pref_batch
+    elif current_user.session_state and current_user.session_state.current_quiz_batch_size is not None:
+        user_default_batch_size = current_user.session_state.current_quiz_batch_size
+    else:
+        user_default_batch_size = QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
 
     quiz_set_search_options = {
         'title': 'Tiêu đề', 'description': 'Mô tả', 'tags': 'Thẻ'
@@ -49,11 +53,15 @@ def quiz_learning_dashboard():
 def get_quiz_modes_partial_all():
     """Trả về partial HTML chứa các chế độ học và số lượng câu hỏi tương ứng cho TẤT CẢ các bộ Quiz."""
     selected_mode = request.args.get('selected_mode', None, type=str)
-    user_default_batch_size = (
-        current_user.session_state.current_quiz_batch_size
-        if (current_user.session_state and current_user.session_state.current_quiz_batch_size is not None)
-        else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
-    )
+    # Logic xác định batch size mặc định: Preference > Session > Config
+    pref_batch = current_user.last_preferences.get('quiz_question_count') if current_user.last_preferences else None
+    
+    if pref_batch:
+        user_default_batch_size = pref_batch
+    elif current_user.session_state and current_user.session_state.current_quiz_batch_size is not None:
+        user_default_batch_size = current_user.session_state.current_quiz_batch_size
+    else:
+        user_default_batch_size = QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
 
     modes = get_quiz_mode_counts(current_user.user_id, 'all')
     return render_template(
@@ -70,11 +78,15 @@ def get_quiz_modes_partial_all():
 def get_quiz_modes_partial_multi(set_ids_str):
     """Trả về partial HTML chứa các chế độ học và số lượng câu hỏi tương ứng cho NHIỀU bộ Quiz."""
     selected_mode = request.args.get('selected_mode', None, type=str)
-    user_default_batch_size = (
-        current_user.session_state.current_quiz_batch_size
-        if (current_user.session_state and current_user.session_state.current_quiz_batch_size is not None)
-        else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
-    )
+    # Logic xác định batch size mặc định: Preference > Session > Config
+    pref_batch = current_user.last_preferences.get('quiz_question_count') if current_user.last_preferences else None
+    
+    if pref_batch:
+        user_default_batch_size = pref_batch
+    elif current_user.session_state and current_user.session_state.current_quiz_batch_size is not None:
+        user_default_batch_size = current_user.session_state.current_quiz_batch_size
+    else:
+        user_default_batch_size = QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
 
     try:
         set_ids = [int(s) for s in set_ids_str.split(',') if s]
@@ -96,11 +108,15 @@ def get_quiz_modes_partial_multi(set_ids_str):
 def get_quiz_modes_partial_by_id(set_id):
     """Trả về partial HTML chứa các chế độ học và số lượng câu hỏi tương ứng cho một bộ Quiz cụ thể."""
     selected_mode = request.args.get('selected_mode', None, type=str)
-    user_default_batch_size = (
-        current_user.session_state.current_quiz_batch_size
-        if (current_user.session_state and current_user.session_state.current_quiz_batch_size is not None)
-        else QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
-    )
+    # Logic xác định batch size mặc định: Preference > Session > Config
+    pref_batch = current_user.last_preferences.get('quiz_question_count') if current_user.last_preferences else None
+    
+    if pref_batch:
+        user_default_batch_size = pref_batch
+    elif current_user.session_state and current_user.session_state.current_quiz_batch_size is not None:
+        user_default_batch_size = current_user.session_state.current_quiz_batch_size
+    else:
+        user_default_batch_size = QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
 
     modes = get_quiz_mode_counts(current_user.user_id, set_id)
 

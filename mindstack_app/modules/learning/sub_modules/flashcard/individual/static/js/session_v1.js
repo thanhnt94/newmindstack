@@ -66,23 +66,61 @@ let autoplayDelaySeconds = 2;
 let currentAutoplayToken = 0;
 let currentAutoplayTimeouts = [];
 let currentCardElements = { card: null, actions: null, flipBtn: null };
+const visualSettings = window.FC.visualSettings || {};
+
 let isMediaHidden = false;
 let isAudioAutoplayEnabled = true;
-let storedAudioAutoplay = null;
+let showStats = true;
 
+// 1. Load from Backend Settings (Highest priority)
+if (visualSettings.show_image !== undefined) {
+  isMediaHidden = (visualSettings.show_image === false);
+}
+if (visualSettings.autoplay !== undefined) {
+  isAudioAutoplayEnabled = (visualSettings.autoplay !== false);
+}
+if (visualSettings.show_stats !== undefined) {
+  showStats = (visualSettings.show_stats !== false);
+}
+
+// 2. Fallback to localStorage if backend didn't specify
 try {
-  const storedImageVisibility = localStorage.getItem('flashcardHideImages');
-  if (storedImageVisibility === 'true') {
-    isMediaHidden = true;
+  if (visualSettings.show_image === undefined) {
+    const storedImageVisibility = localStorage.getItem('flashcardHideImages');
+    if (storedImageVisibility === 'true') isMediaHidden = true;
   }
-  storedAudioAutoplay = localStorage.getItem('flashcardAutoPlayAudio');
+
+  if (visualSettings.autoplay === undefined) {
+    const storedAudioAutoplay = localStorage.getItem('flashcardAutoPlayAudio');
+    if (storedAudioAutoplay === 'false') isAudioAutoplayEnabled = false;
+  }
 } catch (err) {
-  console.warn('Không thể đọc trạng thái hiển thị ảnh:', err);
+  console.warn('Không thể đọc localStorage:', err);
 }
 
-if (storedAudioAutoplay === 'false') {
-  isAudioAutoplayEnabled = false;
+const autoSaveOn = window.FC.autoSave !== false;
+const saveSettingsUrl = window.FC.saveSettingsUrl;
+
+function syncSettingsToServer() {
+  if (!autoSaveOn || !saveSettingsUrl) return;
+
+  const payload = {
+    visual_settings: {
+      autoplay: isAudioAutoplayEnabled,
+      show_image: !isMediaHidden,
+      show_stats: showStats
+    }
+  };
+
+  fetch(saveSettingsUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+    body: JSON.stringify(payload)
+  }).catch(err => console.warn('Failed to sync settings:', err));
 }
+
+// Initial sync after loading settings
+syncSettingsToServer();
 
 if (isAutoplaySession) {
   try {
@@ -120,15 +158,23 @@ function extractPlainText(text) {
   return plain.trim();
 }
 
+if (!showStats) {
+  if (currentCardStatsContainer) currentCardStatsContainer.style.display = 'none';
+  if (previousCardStatsContainer) previousCardStatsContainer.style.display = 'none';
+}
+
 function applyMediaVisibility() {
   // Select từ cả desktop và mobile elements
-  const mediaContainers = document.querySelectorAll('#flashcard-content .media-container, #flashcard-content-mobile .media-container');
-  const cardContainers = document.querySelectorAll('#flashcard-content ._card-container, #flashcard-content-mobile ._card-container');
-
+  const mediaContainers = document.querySelectorAll('.media-container');
   mediaContainers.forEach(container => {
-    container.classList.toggle('hidden', isMediaHidden);
+    if (isMediaHidden) {
+      container.classList.add('hidden');
+    } else {
+      container.classList.remove('hidden');
+    }
   });
 
+  const cardContainers = document.querySelectorAll('#flashcard-content ._card-container, #flashcard-content-mobile ._card-container');
   cardContainers.forEach(container => {
     container.classList.toggle('media-hidden', isMediaHidden);
   });
@@ -152,14 +198,11 @@ function applyMediaVisibility() {
 
 function setMediaHiddenState(hidden) {
   isMediaHidden = hidden;
-
   try {
     localStorage.setItem('flashcardHideImages', hidden ? 'true' : 'false');
-  } catch (err) {
-    console.warn('Không thể lưu trạng thái hiển thị ảnh:', err);
-  }
-
+  } catch (err) { }
   applyMediaVisibility();
+  syncSettingsToServer();
 }
 
 function persistAudioAutoplayPreference(enabled) {
@@ -189,6 +232,7 @@ function setAudioAutoplayEnabled(enabled) {
   if (!enabled) {
     stopAllFlashcardAudio();
   }
+  syncSettingsToServer();
 }
 
 function closeAllSettingsMenus() {
@@ -224,6 +268,13 @@ document.addEventListener('click', (evt) => {
   if (autoplayToggle) {
     evt.stopPropagation();
     setAudioAutoplayEnabled(!isAudioAutoplayEnabled);
+    return;
+  }
+
+  const imageToggle = evt.target.closest('.image-toggle-btn');
+  if (imageToggle) {
+    evt.stopPropagation();
+    setMediaHiddenState(!isMediaHidden);
     return;
   }
 

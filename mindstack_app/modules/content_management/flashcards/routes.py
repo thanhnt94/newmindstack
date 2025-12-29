@@ -1137,6 +1137,9 @@ def edit_flashcard_set(set_id):
         form.supports_essay.data = 'supports_essay' in container_capabilities
         form.supports_listening.data = 'supports_listening' in container_capabilities
         form.supports_speaking.data = 'supports_speaking' in container_capabilities
+        form.supports_flashcard.data = 'supports_flashcard' in container_capabilities
+        form.supports_matching.data = 'supports_matching' in container_capabilities
+        form.supports_speed.data = 'supports_speed' in container_capabilities
 
     editable_set_ids = [
         cid

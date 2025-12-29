@@ -93,8 +93,11 @@
     userTotalScore: {{ current_user.total_score | default (0) }},
   buttonCount: { { user_button_count } },
   isAutoplay: { { 'true' if is_autoplay_session else 'false' } },
-  autoplayMode: "{{ autoplay_mode }}"
-};
+  autoplayMode: "{{ autoplay_mode }}",
+    visualSettings: { { saved_visual_settings | tojson } },
+  autoSave: { { 'true' if saved_auto_save else 'false' } },
+  saveSettingsUrl: "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}"
+  };
 </script>
 
 <script src="{{ url_for('learning.flashcard_learning.static', filename='js/session_v1.js') }}"></script>

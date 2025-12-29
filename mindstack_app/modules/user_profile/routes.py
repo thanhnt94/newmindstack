@@ -74,5 +74,43 @@ def edit_profile():
 
     return render_template('default/edit_profile.html', form=form, title='Sửa Profile', user=user)
 
-# Route để đổi mật khẩu (có thể gộp vào edit_profile hoặc tách riêng)
-# Tạm thời gộp vào edit_profile để đơn giản
+# Route API để lấy và lưu preferences
+@user_profile_bp.route('/api/preferences', methods=['GET', 'POST'])
+def manage_preferences():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            if not data:
+                return {'success': False, 'message': 'No data provided'}, 400
+            
+            # Cập nhật preferences
+            current_user.last_preferences = data
+            
+            # Nếu có flashcard_button_count, cập nhật luôn vào session state (nếu cần thiết cho tương thích ngược)
+            if 'flashcard_button_count' in data:
+                # Logic này có thể tùy chỉnh tùy theo model
+                pass
+                
+            db.session.commit()
+            return {'success': True, 'message': 'Preferences saved successfully'}
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'message': str(e)}, 500
+            
+    # GET request
+    prefs = current_user.last_preferences or {}
+    
+    # Đảm bảo các giá trị mặc định nếu chưa có
+    default_prefs = {
+        'flashcard_button_count': 4,
+        'flashcard_show_image': True,
+        'flashcard_autoplay_audio': True,
+        'flashcard_show_stats': True,
+        'quiz_question_count': 10,
+        'auto_load_preferences': True
+    }
+    
+    # Merge defaults với existing prefs
+    final_prefs = {**default_prefs, **prefs}
+    
+    return {'success': True, 'data': final_prefs}

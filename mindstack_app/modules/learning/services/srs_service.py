@@ -37,7 +37,8 @@ class SrsService:
         quality: int,
         mode: str = 'flashcard',
         is_first_time: bool = False,
-        response_time_seconds: Optional[float] = None
+        response_time_seconds: Optional[float] = None,
+        duration_ms: int = 0
     ) -> tuple[LearningProgress, SrsResult]:
         """
         NEW: Update progress using UnifiedSrsSystem (Hybrid approach).
@@ -52,6 +53,7 @@ class SrsService:
             mode: Learning mode ('flashcard', 'quiz_mcq', 'typing', etc.)
             is_first_time: Whether this is first time seeing item
             response_time_seconds: Time taken to answer
+            duration_ms: Response time in milliseconds (for stats)
         
         Returns:
             Tuple of (updated_progress, srs_result)
@@ -123,13 +125,14 @@ class SrsService:
             item_id=item_id,
             timestamp=now,
             rating=quality,
+            duration_ms=duration_ms,
             interval=result.interval_minutes,
             easiness_factor=progress.easiness_factor,
             review_type=mode,
             mastery_snapshot=result.mastery,
             memory_power_snapshot=result.memory_power,
             score_change=result.score_points,
-            is_correct=(quality >= 3)
+            is_correct=(quality >= 3)  # quality >= 3 = considered "learned"
         )
         db.session.add(log_entry)
         
