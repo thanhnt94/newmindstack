@@ -1,13 +1,49 @@
 # File: vocabulary/speed/routes.py
 # Speed Review Learning Mode Routes
 
+import json
 from flask import render_template, request, jsonify, abort
 from flask_login import login_required, current_user
 import random
 
 from . import speed_bp
-from mindstack_app.models import LearningContainer, LearningItem
+from mindstack_app.models import LearningContainer, LearningItem, UserContainerState
+from ..mcq.logic import get_mcq_eligible_items, generate_mcq_question, check_mcq_answer, get_available_content_keys
 
+@speed_bp.route('/setup/<int:set_id>')
+@login_required
+def setup(set_id):
+    """Speed review setup page."""
+    container = LearningContainer.query.get_or_404(set_id)
+    
+    # Check access
+    if not container.is_public and container.creator_user_id != current_user.user_id:
+        abort(403)
+    
+    # Get eligible items count
+    items = get_mcq_eligible_items(set_id)
+    if len(items) < 2:
+        abort(400, description="Cần ít nhất 2 thẻ để ôn tập")
+    
+    # Get available keys for custom pairs
+    available_keys = get_available_content_keys(set_id)
+    
+    # Load saved settings
+    saved_settings = {}
+    try:
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if ucs and ucs.settings:
+            saved_settings = ucs.settings.get('speed', {})
+    except:
+        pass
+    
+    return render_template(
+        'speed/setup/default/index.html',
+        container=container,
+        total_items=len(items),
+        available_keys=available_keys,
+        saved_settings=saved_settings
+    )
 
 @speed_bp.route('/session/<int:set_id>')
 @login_required
@@ -19,74 +55,131 @@ def session_page(set_id):
     if not container.is_public and container.creator_user_id != current_user.user_id:
         abort(403)
     
-    # Get items
-    items = LearningItem.query.filter_by(
-        container_id=set_id,
-        item_type='FLASHCARD'
-    ).all()
+    # Get params
+    count = request.args.get('count', 10, type=int)
+    time_limit = request.args.get('time_limit', 5, type=int)
+    lives = request.args.get('lives', 3) # Can be 'inf'
+    choices = request.args.get('choices', 4, type=int)
     
-    if len(items) < 1:
-        abort(400, description="Cần ít nhất 1 thẻ để ôn tập")
-    
-    # Prepare items data
-    cards = []
-    for item in items:
-        content = item.content or {}
-        if content.get('front') and content.get('back'):
-            cards.append({
-                'item_id': item.item_id,
-                'front': content.get('front'),
-                'back': content.get('back'),
-            })
-    
-    random.shuffle(cards)
+    # Custom Pairs
+    custom_pairs_str = request.args.get('custom_pairs', '')
+    custom_pairs = None
+    if custom_pairs_str:
+        try:
+            custom_pairs = json.loads(custom_pairs_str)
+        except:
+            pass
+
+    # Save settings
+    try:
+        from mindstack_app.models import db
+        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if not ucs:
+            ucs = UserContainerState(user_id=current_user.user_id, container_id=set_id, settings={})
+            db.session.add(ucs)
+        
+        new_settings = dict(ucs.settings or {})
+        if 'speed' not in new_settings: new_settings['speed'] = {}
+        
+        new_settings['speed']['count'] = count
+        new_settings['speed']['time_limit'] = time_limit
+        new_settings['speed']['lives'] = lives
+        if custom_pairs:
+            new_settings['speed']['custom_pairs'] = custom_pairs
+            
+        ucs.settings = new_settings
+        safe_commit(db.session)
+    except:
+        pass
     
     return render_template(
         'speed/session/default/index.html',
         container=container,
-        cards=cards,
-        total=len(cards)
+        count=count,
+        time_limit=time_limit,
+        lives=lives,
+        custom_pairs=custom_pairs,
+        choices=choices
     )
 
-
-@speed_bp.route('/api/log_session', methods=['POST'])
+@speed_bp.route('/api/items/<int:set_id>')
 @login_required
-def log_session():
-    """Bulk log speed review session results."""
+def api_get_items(set_id):
+    """API to get items for speed review (MCQ format)."""
+    count = request.args.get('count', 10, type=int)
+    num_choices = request.args.get('choices', 4, type=int)
+    
+    # Custom pairs
+    custom_pairs_str = request.args.get('custom_pairs', '')
+    custom_pairs = None
+    mode = 'front_back' # Default
+    if custom_pairs_str:
+        try:
+            custom_pairs = json.loads(custom_pairs_str)
+            mode = 'custom'
+        except:
+            pass
+            
+    items = get_mcq_eligible_items(set_id)
+    if len(items) < 2:
+        return jsonify({'success': False, 'message': 'Not enough items'}), 400
+        
+    random.shuffle(items)
+    selected_items = items[:min(count, len(items))]
+    
+    questions = []
+    for item in selected_items:
+        # Reuse MCQ generator
+        q = generate_mcq_question(
+            item, items,
+            num_choices=num_choices,
+            mode=mode,
+            custom_pairs=custom_pairs
+        )
+        questions.append(q)
+        
+    return jsonify({
+        'success': True,
+        'questions': questions,
+        'total': len(questions)
+    })
+
+@speed_bp.route('/api/check', methods=['POST'])
+@login_required
+def api_check_answer():
+    """Check answer (delegates to MCQ check)."""
     data = request.get_json()
-    items = data.get('items', [])
+    # Speed check is same as MCQ check (index comparison)
+    # But we might log 'speed_review' mode specifically in logic if needed.
+    # Here we just use the shared function for correctness.
     
-    if not items:
-        return jsonify({'success': False, 'message': 'No items to log'}), 400
-        
-    from mindstack_app.modules.learning.services.srs_service import SrsService
-    from mindstack_app.modules.shared.utils.db_session import safe_commit
-    from mindstack_app.models import db
+    correct_index = data.get('correct_index')
+    user_answer_index = data.get('user_answer_index')
+    item_id = data.get('item_id')
+    user_answer_text = data.get('user_answer_text') # Could be "TIME_OUT"
+    duration_ms = data.get('duration_ms', 0)
     
-    results = []
+    result = check_mcq_answer(correct_index, user_answer_index)
+    result['user_answer'] = user_answer_text
     
-    for item in items:
-        item_id = item.get('item_id')
-        is_correct = item.get('is_correct')
-        duration_ms = item.get('duration_ms', 0)
-        user_answer = item.get('user_answer') # e.g. "Known" or "Forgotten"
-        
-        if item_id is not None and is_correct is not None:
-            res = SrsService.process_interaction(
+    # SRS Update
+    if item_id:
+        try:
+            from mindstack_app.modules.learning.services.srs_service import SrsService
+            from mindstack_app.modules.shared.utils.db_session import safe_commit
+            from mindstack_app.models import db
+
+            srs_result = SrsService.process_interaction(
                 user_id=current_user.user_id,
                 item_id=item_id,
                 mode='speed_review',
-                result_data={
-                    'is_correct': is_correct,
-                    'duration_ms': duration_ms,
-                    'user_answer': user_answer
-                }
+                result_data=result
             )
-            results.append(res)
+            safe_commit(db.session)
+            result['srs'] = srs_result
+        except Exception as e:
+            pass
             
-    safe_commit(db.session)
-    
-    return jsonify({
-        'success': True,
-        'count': len(results)
-    })
+    return jsonify(result)

@@ -183,12 +183,12 @@
     .session-content {
         flex: 1;
         padding: 1rem;
-        padding-bottom: 220px;
-        /* Increased space for taller bottom bar */
+        padding-bottom: 140px;
+        /* Reduced to match actual footer height ~120px + padding */
         display: flex;
         flex-direction: column;
-        justify-content: flex-start;
-        /* Changed from center to prevent clipping */
+        justify-content: center;
+        /* Center card vertically */
         overflow-y: auto;
     }
 
@@ -196,16 +196,17 @@
         background: var(--surface);
         border-radius: 0.75rem;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        padding: 2rem 1.5rem;
+        padding: 1.5rem;
+        /* Reduced padding inside card */
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 300px;
+        min-height: 200px;
+        /* Reduced min-height */
         width: 100%;
         max-width: 600px;
-        margin: auto;
-        /* Handles vertical centering safely */
+        margin: 0 auto;
     }
 
     .prompt-text {
@@ -213,8 +214,37 @@
         font-weight: 700;
         color: var(--text-main);
         text-align: center;
+        /* Center text? Or Left if long? */
+        /* If long text, Left align might be better reading experience. 
+           But keeping center for short prompts. */
         margin-bottom: 2rem;
-        line-height: 1.4;
+        line-height: 1.5;
+
+        /* Scroll Logic */
+        max-height: 50vh;
+        /* Limit height to 50% of viewport */
+        overflow-y: auto;
+        /* Scroll if exceeding */
+        width: 100%;
+        padding: 0 0.5rem;
+        /* Padding for scrollbar */
+
+        /* Scrollbar styling */
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+
+    .prompt-text::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .prompt-text::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .prompt-text::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 20px;
     }
 
     .input-wrapper {

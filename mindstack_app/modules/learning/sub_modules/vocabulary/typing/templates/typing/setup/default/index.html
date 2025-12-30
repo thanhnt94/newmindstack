@@ -1,4 +1,4 @@
-{# Typing Setup Template #}
+{# Typing Setup Template - Redesigned #}
 {% extends "base.html" %}
 {% block title %}Gõ đáp án - {{ container.title }}{% endblock %}
 {% block head %}
@@ -6,19 +6,22 @@
 <style>
     :root {
         --primary: #f59e0b;
+        --primary-dark: #d97706;
         --primary-light: #fffbeb;
-        --gray-50: #f8fafc;
-        --gray-100: #f1f5f9;
-        --gray-200: #e2e8f0;
-        --gray-300: #cbd5e1;
-        --gray-500: #64748b;
-        --gray-700: #334155;
-        --gray-800: #1e293b;
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #0f172a;
+        --text-secondary: #64748b;
+        --border: #e2e8f0;
+        --gray-50: #f9fafb;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
     }
 
     body {
         font-family: 'Inter', -apple-system, sans-serif;
-        background: var(--gray-50);
+        background: var(--background);
+        color: var(--text-main);
         margin: 0;
     }
 
@@ -40,256 +43,431 @@
         min-height: 100vh;
         display: flex;
         flex-direction: column;
+        background: var(--background);
     }
 
+    /* --- New Header Style --- */
     .setup-header {
         position: sticky;
         top: 0;
         z-index: 100;
-        background: white;
-        padding: 1rem 1.25rem;
-        border-bottom: 1px solid var(--gray-200);
+        background: var(--surface);
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        gap: 1rem;
     }
 
-    .setup-back {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        background: var(--gray-100);
+    .header-nav {
+        flex: 1;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--gray-500);
-        text-decoration: none;
-        transition: all 0.2s;
+        flex-direction: column;
+        gap: 0.25rem;
     }
 
-    .setup-back:hover {
-        background: var(--gray-200);
-    }
-
-    .setup-title {
-        font-weight: 700;
-        color: var(--gray-800);
-        flex: 1;
-        font-size: 1.1rem;
-    }
-
-    .setup-scroll {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1.5rem;
-    }
-
-    .setup-content {
-        max-width: 500px;
-        margin: 0 auto;
-        width: 100%;
-    }
-
-    .setup-section {
-        margin-bottom: 1.5rem;
-        background: white;
-        border-radius: 16px;
-        padding: 1.25rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    }
-
-    .setup-label {
-        font-weight: 700;
-        color: var(--gray-800);
-        margin-bottom: 1rem;
+    .breadcrumb {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        font-size: 0.95rem;
     }
 
-    .setup-label i {
+    .breadcrumb i {
+        font-size: 0.6rem;
+        color: var(--gray-300);
+    }
+
+    .breadcrumb-link {
+        color: var(--text-secondary);
+        text-decoration: none;
+    }
+
+    .breadcrumb-active {
         color: var(--primary);
     }
 
-    .pairs-container {
+    .header-title-main {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-main);
+        line-height: 1.2;
+    }
+
+    .setup-back-btn {
+        width: 40px;
+        height: 40px;
+        background: var(--background);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border);
+    }
+
+    .setup-back-btn:hover {
+        background: var(--gray-200);
+    }
+
+    /* "Selected Set" Chip Bar */
+    .selected-set-bar {
+        background: var(--surface);
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .selected-label {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .set-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 0.35rem 0.75rem;
+        border-radius: 100px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-main);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .set-chip i {
+        color: var(--primary);
+    }
+
+    /* Scrollable Content */
+    .setup-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .setup-content {
+        max-width: 600px;
+        margin: 0 auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    /* Cards */
+    .setup-card {
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 1.25rem;
+        border: 1px solid var(--border);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .card-icon {
+        width: 36px;
+        height: 36px;
+        background: var(--primary);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .card-title {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-main);
+    }
+
+    .card-desc {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 400;
+        display: block;
+        margin-top: 0.1rem;
+    }
+
+    /* Question Count Options */
+    .count-options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .count-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .count-option:hover {
+        background: var(--gray-50);
+    }
+
+    .count-option.selected {
+        border-color: var(--primary);
+        background: var(--primary-light);
+    }
+
+    .count-label {
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .check-circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid var(--gray-300);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .count-option.selected .check-circle {
+        border-color: var(--primary);
+        background: var(--primary);
+    }
+
+    .count-option.selected .check-circle::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 50%;
+    }
+
+    /* Pair Rows */
+    .pairs-list {
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
     }
 
     .pair-row {
-        display: flex;
-        align-items: flex-end;
-        gap: 0.5rem;
-        padding: 0.75rem;
         background: var(--gray-50);
+        padding: 1rem;
         border-radius: 12px;
-        border: 1px solid var(--gray-200);
+        border: 1px solid var(--border);
     }
 
-    .pair-col {
-        flex: 1;
-        min-width: 0;
+    .pair-grid {
+        display: grid;
+        grid-template-columns: 1fr 24px 1fr 32px;
+        gap: 0.5rem;
+        align-items: center;
     }
 
-    .pair-col-label {
+    .pair-label {
         font-size: 0.7rem;
-        font-weight: 600;
-        color: var(--gray-500);
+        font-weight: 700;
+        color: var(--text-secondary);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
         margin-bottom: 0.25rem;
     }
 
-    .pair-col select {
+    .pair-select {
         width: 100%;
-        padding: 0.6rem 0.75rem;
-        border: 1px solid var(--gray-200);
+        padding: 0.5rem;
+        border: 1px solid var(--border);
         border-radius: 8px;
         font-size: 0.9rem;
         background: white;
-        color: var(--gray-700);
-        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
     }
 
-    .pair-col select:focus {
+    .pair-select:focus {
         outline: none;
         border-color: var(--primary);
         box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
     }
 
-    .pair-arrow {
-        color: var(--gray-300);
-        font-size: 0.9rem;
-        flex-shrink: 0;
-        padding: 0 0.25rem;
-    }
-
-    .pair-delete {
+    .pair-del-btn {
         width: 32px;
         height: 32px;
-        border: none;
         background: #fee2e2;
         color: #ef4444;
+        border: none;
         border-radius: 8px;
-        cursor: pointer;
-        flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s;
+        cursor: pointer;
     }
 
-    .pair-delete:hover {
-        background: #fecaca;
-    }
-
-    .add-pair-btn {
-        padding: 0.75rem 1rem;
+    .add-new-btn {
+        width: 100%;
+        padding: 0.9rem;
+        margin-top: 1rem;
+        border: 2px dashed var(--primary);
         background: var(--primary-light);
         color: var(--primary);
-        border: 2px dashed var(--primary);
-        border-radius: 12px;
         font-weight: 600;
+        border-radius: 12px;
         cursor: pointer;
-        width: 100%;
-        margin-top: 0.75rem;
         transition: all 0.2s;
-        font-size: 0.9rem;
     }
 
-    .add-pair-btn:hover {
+    .add-new-btn:hover {
         background: #fef3c7;
     }
 
-    .setup-footer {
+    /* Footer */
+    .sticky-footer {
         position: sticky;
         bottom: 0;
-        padding: 1rem 1.25rem;
-        background: white;
-        border-top: 1px solid var(--gray-200);
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
     }
 
-    .setup-btn {
+    .main-btn {
         width: 100%;
         padding: 1rem;
         background: var(--primary);
         color: white;
-        border: none;
-        border-radius: 12px;
         font-weight: 700;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 14px;
         cursor: pointer;
-        font-size: 1rem;
-        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
     }
 
-    .setup-btn:hover {
-        background: #d97706;
+    .main-btn:hover {
+        background: var(--primary-dark);
     }
 </style>
 {% endblock %}
+
 {% block content %}
 <div class="setup-container">
-    <div id="setup-data" data-set-id="{{ container.container_id }}" data-total-items="{{ total_items }}"
-        data-available-keys='{{ available_keys | tojson }}' style="display:none">
+    <header class="setup-header">
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="setup-back-btn">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="header-nav">
+            <div class="breadcrumb">
+                <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="breadcrumb-link">TỪ VỰNG</a>
+                <i class="fas fa-chevron-right"></i>
+                <span class="breadcrumb-active">BƯỚC 1</span>
+            </div>
+            <div class="header-title-main">Chọn chế độ Gõ</div>
+        </div>
+    </header>
+
+    <div class="selected-set-bar">
+        <span class="selected-label">Bộ đã chọn:</span>
+        <div class="set-chip">
+            <i class="fas fa-layer-group"></i>
+            {{ container.title }}
+        </div>
     </div>
 
-    <div class="setup-header">
-        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="setup-back"><i
-                class="fas fa-arrow-left"></i></a>
-        <span class="setup-title">{{ container.title }}</span>
-    </div>
     <div class="setup-scroll">
         <div class="setup-content">
-            <!-- Count Selection Section (similar to Listening) -->
-            <div class="setup-section">
-                <span class="setup-label"><i class="fas fa-list-ol"></i> Số lượng câu hỏi</span>
-                <div class="option-group" id="count-options">
-                    <div class="option-card selected" data-value="10">
-                        <span class="option-text">10 câu</span>
-                        <div class="option-radio"></div>
+            <!-- Question Count -->
+            <div class="setup-card">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-list-ol"></i></div>
+                    <div>
+                        <div class="card-title">Số lượng câu hỏi</div>
+                        <span class="card-desc">Bạn muốn ôn tập bao nhiêu câu?</span>
                     </div>
-                    <div class="option-card" data-value="20">
-                        <span class="option-text">20 câu</span>
-                        <div class="option-radio"></div>
+                </div>
+
+                <div class="count-options" id="count-options">
+                    <div class="count-option selected" data-value="10">
+                        <span class="count-label">10 câu</span>
+                        <div class="check-circle"></div>
                     </div>
-                    <div class="option-card" data-value="{{ total_items }}">
-                        <span class="option-text">Tất cả ({{ total_items }} câu)</span>
-                        <div class="option-radio"></div>
+                    <div class="count-option" data-value="20">
+                        <span class="count-label">20 câu</span>
+                        <div class="check-circle"></div>
+                    </div>
+                    <div class="count-option" data-value="{{ total_items }}">
+                        <span class="count-label">Tất cả ({{ total_items }} câu)</span>
+                        <div class="check-circle"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="setup-section">
-                <span class="setup-label"><i class="fas fa-exchange-alt"></i> Thiết lập cặp Câu hỏi → Đáp án (Gõ)</span>
-                <div class="pairs-container" id="pairs-container"></div>
-                <button type="button" class="add-pair-btn" id="add-pair-btn"><i class="fas fa-plus"></i> Thêm
-                    cặp</button>
+            <!-- Configuration Pairs -->
+            <div class="setup-card">
+                <div class="card-header">
+                    <div class="card-icon" style="background: #10b981;"><i class="fas fa-keyboard"></i></div>
+                    <div>
+                        <div class="card-title">Cấu hình Gõ</div>
+                        <span class="card-desc">Nhìn thấy câu hỏi → Gõ lại đáp án</span>
+                    </div>
+                </div>
+
+                <div class="pairs-list" id="pairs-container"></div>
+
+                <button type="button" class="add-new-btn" id="add-pair-btn">
+                    + Thêm cặp câu hỏi
+                </button>
             </div>
-            <div class="text-xs text-gray-500 px-2 mt-2">
+
+            <div class="text-xs text-gray-500 px-2 mt-2" style="font-size: 0.85rem; color: #64748b;">
                 <i class="fas fa-info-circle mr-1"></i> Lưu ý: Bạn sẽ nhìn thấy <strong>Câu hỏi</strong> và phải gõ
                 chính xác <strong>Đáp án</strong>.
             </div>
+
         </div>
     </div>
-    <div class="setup-footer">
-        <button class="setup-btn" id="start-btn"><i class="fas fa-play"></i> Bắt đầu</button>
-    </div>
+
+    <footer class="sticky-footer">
+        <button class="main-btn" id="start-btn">
+            Tiếp tục <i class="fas fa-arrow-right"></i>
+        </button>
+    </footer>
 </div>
 {% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script>
     (function () {
-        var dataEl = document.getElementById('setup-data');
-        var setId = dataEl.dataset.setId;
-        var totalItems = parseInt(dataEl.dataset.totalItems);
-        var availableKeys = JSON.parse(dataEl.dataset.availableKeys || '[]');
-        var savedSettings = {{ saved_settings | tojson
+        var setId = Number("{{ container.container_id }}");
+        var availableKeys = {{ available_keys | tojson
     }};
+    var savedSettings = {{ saved_settings | tojson }};
+    var totalItems = {{ total_items }};
     var customPairs = [];
     var selectedCount = 10; // Default
 
@@ -301,12 +479,13 @@
     }
 
     // Render Count Selection
-    var countOptions = document.querySelectorAll('#count-options .option-card');
+    var countOptions = document.querySelectorAll('#count-options .count-option');
     countOptions.forEach(function (card) {
         var val = parseInt(card.dataset.value);
         // Auto select
         if (val === selectedCount || (selectedCount > val && val === totalItems && selectedCount >= totalItems)) {
         }
+
         card.addEventListener('click', function () {
             countOptions.forEach(c => c.classList.remove('selected'));
             this.classList.add('selected');
@@ -314,15 +493,14 @@
         });
     });
 
-    // Visual update
+    // Set initial selected
     countOptions.forEach(c => c.classList.remove('selected'));
     var matchedOption = Array.from(countOptions).find(c => parseInt(c.dataset.value) === selectedCount);
     if (!matchedOption) {
         matchedOption = countOptions[0];
         selectedCount = parseInt(matchedOption.dataset.value);
     }
-    matchedOption.classList.add('selected');
-
+    if (matchedOption) matchedOption.classList.add('selected');
 
     // --- 2. Load Saved Settings: Custom Pairs ---
     var hasSavedPairs = false;
@@ -334,35 +512,47 @@
     }
 
     if (!hasSavedPairs) {
-        addPair('back', 'front');
+        // Default: Back (Question) -> Front (Answer) for Typing makes sense? Or Front -> Back?
+        // Usually see Front, Type Back.
+        var defaultQ = availableKeys.includes('back') ? 'back' : (availableKeys.length > 0 ? availableKeys[0] : '');
+        var defaultA = availableKeys.includes('front') ? 'front' : (availableKeys.length > 1 ? availableKeys[1] : '');
+        addPair(defaultQ, defaultA);
     }
 
     var addBtn = document.getElementById('add-pair-btn');
     if (addBtn) addBtn.addEventListener('click', function () { addPair(); });
+
     function addPair(defaultQ, defaultA) {
         var container = document.getElementById('pairs-container');
         if (!container) return;
+
         var row = document.createElement('div');
         row.className = 'pair-row';
-        var optionsHtml = '<option value="">-- Chọn cột --</option>';
+        var optionsHtml = '<option value="">-- Chọn --</option>';
         availableKeys.forEach(function (key) {
             optionsHtml += '<option value="' + key + '">' + key + '</option>';
         });
+
         row.innerHTML =
-            '<div class="pair-col">' +
-            '<div class="pair-col-label">Nhìn thấy (Câu hỏi)</div>' +
-            '<select class="pair-q">' + optionsHtml + '</select>' +
+            '<div class="pair-grid">' +
+            '<div>' +
+            '<div class="pair-label">Nhìn thấy (Câu hỏi)</div>' +
+            '<select class="pair-select pair-q">' + optionsHtml + '</select>' +
             '</div>' +
-            '<span class="pair-arrow"><i class="fas fa-arrow-right"></i></span>' +
-            '<div class="pair-col">' +
-            '<div class="pair-col-label">Gõ lại (Đáp án)</div>' +
-            '<select class="pair-a">' + optionsHtml + '</select>' +
+            '<div style="text-align: center; color: var(--gray-300); padding-top: 1rem;"><i class="fas fa-arrow-right"></i></div>' +
+            '<div>' +
+            '<div class="pair-label">Gõ lại (Đáp án)</div>' +
+            '<select class="pair-select pair-a">' + optionsHtml + '</select>' +
             '</div>' +
-            '<button type="button" class="pair-delete"><i class="fas fa-times"></i></button>';
+            '<button type="button" class="pair-del-btn" style="margin-top: 1.25rem;"><i class="fas fa-times"></i></button>' +
+            '</div>';
+
         container.appendChild(row);
+
         if (defaultQ) row.querySelector('.pair-q').value = defaultQ;
         if (defaultA) row.querySelector('.pair-a').value = defaultA;
-        row.querySelector('.pair-delete').addEventListener('click', function () {
+
+        row.querySelector('.pair-del-btn').addEventListener('click', function () {
             if (container.children.length > 1) {
                 row.remove();
                 updateCustomPairs();
@@ -372,6 +562,7 @@
         row.querySelector('.pair-a').addEventListener('change', updateCustomPairs);
         updateCustomPairs();
     }
+
     function updateCustomPairs() {
         customPairs = [];
         document.querySelectorAll('.pair-row').forEach(function (row) {
@@ -380,6 +571,7 @@
             if (q && a) customPairs.push({ q: q, a: a });
         });
     }
+
     var startBtn = document.getElementById('start-btn');
     if (startBtn) {
         startBtn.addEventListener('click', function () {
@@ -389,6 +581,7 @@
             }
             var count = Math.min(selectedCount, totalItems);
 
+            // Use Typing Session Endpoint
             var baseUrl = "{{ url_for('learning.vocabulary.vocab_typing.session', set_id=container.container_id) }}";
             var url = baseUrl + '?mode=custom' + '&count=' + count + '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
             window.location.href = url;

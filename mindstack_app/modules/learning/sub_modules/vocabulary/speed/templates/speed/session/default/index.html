@@ -3,320 +3,556 @@
 {% block title %}Ôn nhanh - {{ container.title }}{% endblock %}
 {% block head %}
 {{ super() }}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+    :root {
+        --primary: #ef4444;
+        --success: #10b981;
+        --error: #ef4444;
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --text-main: #0f172a;
+        --timer-height: 6px;
+    }
+
     body {
         font-family: 'Inter', sans-serif;
-        background: #1e293b;
-        color: white;
-    }
-
-    @media (max-width: 1023px) {
-
-        body>header,
-        body>footer {
-            display: none !important;
-        }
-
-        body>main {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: none !important;
-        }
-    }
-
-    .speed-container {
+        background: var(--bg);
+        margin: 0;
         min-height: 100vh;
+        /* overflow: hidden; REMOVED to allow native scroll */
+    }
+
+    .speed-layout {
         display: flex;
         flex-direction: column;
+        min-height: 100vh;
+        width: 100%;
+        position: relative;
     }
 
-    .speed-header {
-        padding: 1rem;
+    /* Sticky Wrapper for Header + Timer */
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        width: 100%;
+        background: white;
+        /* Ensure opaque */
+    }
+
+    /* --- Top Bar: Timer & Stats --- */
+    .top-bar {
+        background: white;
+        padding: 0.5rem 1rem;
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 1rem;
+        /* border-bottom: 1px solid #e2e8f0; Moved to timer container or wrapper if needed */
+        height: 60px;
+        box-sizing: border-box;
     }
 
-    .speed-back {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1);
+    .lives-container {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        text-decoration: none;
+        gap: 0.25rem;
     }
 
-    .speed-progress {
+    .life-heart {
+        color: #e2e8f0;
+        font-size: 1.25rem;
+        transition: color 0.3s;
+    }
+
+    .life-heart.active {
+        color: #ef4444;
+        animation: pulse 1s infinite;
+    }
+
+    .score-badge {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--text-main);
+    }
+
+    /* Timer Bar */
+    .timer-container {
+        position: relative;
+        /* Changed from absolute */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: var(--timer-height);
+        background: #e2e8f0;
+        z-index: 50;
+    }
+
+    .timer-bar {
+        height: 100%;
+        width: 100%;
+        background: var(--primary);
+        transform-origin: left;
+        transition: width 0.1s linear;
+    }
+
+    /* Main Content */
+    .main-area {
+        /* Remove fixed height constraints to allow body scroll */
         flex: 1;
-        height: 6px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 3px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+        /* Massive padding to ensure nothing is hidden behind valid UI or edges */
+        padding-bottom: 10rem;
+        overflow-y: scroll;
+        /* Force scrollbar validation */
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .question-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        width: 100%;
+        max-width: 600px;
+        /* margin-bottom: 2rem; REMOVED */
+        margin: 2rem auto;
+        /* Auto margin for vertical centering when possible */
+        margin-top: 1rem;
+        border: 2px solid transparent;
+        transition: border-color 0.2s;
+        /* Scroll internal if long */
+        max-height: 40vh;
+        overflow-y: auto;
+    }
+
+    .q-text {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-main);
+        line-height: 1.4;
+    }
+
+    /* Answer Grid */
+    .answers-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        width: 100%;
+        max-width: 600px;
+    }
+
+    .answer-btn {
+        background: white;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--text-main);
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: center;
+        position: relative;
         overflow: hidden;
     }
 
-    .speed-progress-bar {
-        height: 100%;
-        background: #10b981;
-        transition: width 0.3s;
+    .answer-btn:hover:not(:disabled) {
+        background: #f1f5f9;
+        transform: translateY(-2px);
+        border-color: #94a3b8;
     }
 
-    .speed-count {
-        font-weight: 600;
-        font-size: 0.875rem;
-        opacity: 0.8;
+    .answer-btn.correct {
+        background: #ecfdf5;
+        border-color: var(--success);
+        color: #065f46;
+        font-weight: 700;
     }
 
-    .speed-card-area {
-        flex: 1;
+    .answer-btn.wrong {
+        background: #fef2f2;
+        border-color: var(--error);
+        color: #991b1b;
+        opacity: 0.7;
+    }
+
+    /* Overlay for Feedback */
+    .feedback-overlay {
+        position: absolute;
+        inset: 0;
+        background: transparent;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 2rem;
-    }
-
-    .speed-card {
-        text-align: center;
-        max-width: 400px;
-    }
-
-    .speed-word {
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin-bottom: 1rem;
-    }
-
-    .speed-hint {
-        font-size: 1rem;
-        opacity: 0.6;
-    }
-
-    .speed-answer {
-        font-size: 1.5rem;
+        z-index: 60;
+        pointer-events: none;
         opacity: 0;
-        transition: opacity 0.3s;
-        margin-top: 1rem;
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 0.75rem;
+        transition: opacity 0.2s;
     }
 
-    .speed-answer.show {
+    .feedback-overlay.active {
         opacity: 1;
+        backdrop-filter: blur(1px);
     }
 
-    .speed-buttons {
-        display: flex;
-        gap: 1rem;
-        padding: 1.5rem;
+    .feedback-icon {
+        font-size: 5rem;
+        text-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     }
 
-    .speed-btn {
-        flex: 1;
-        padding: 1.25rem;
-        border: none;
-        border-radius: 1rem;
-        font-size: 1rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: transform 0.1s;
-    }
-
-    .speed-btn:active {
-        transform: scale(0.95);
-    }
-
-    .speed-btn-know {
-        background: #10b981;
-        color: white;
-    }
-
-    .speed-btn-forgot {
-        background: #ef4444;
-        color: white;
-    }
-
-    .speed-btn-show {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-    }
-
-    .speed-complete {
+    /* Modals */
+    .modal-overlay {
         position: fixed;
         inset: 0;
-        background: #1e293b;
-        display: flex;
-        flex-direction: column;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
         align-items: center;
         justify-content: center;
-        padding: 2rem;
+        z-index: 100;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .result-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 1.5rem;
         text-align: center;
+        max-width: 320px;
+        width: 90%;
     }
 
-    .speed-complete-icon {
-        font-size: 5rem;
-        color: #10b981;
-        margin-bottom: 1rem;
-    }
-
-    .speed-complete-title {
+    .result-title {
         font-size: 2rem;
-        font-weight: 800;
+        font-weight: 900;
         margin-bottom: 0.5rem;
     }
 
-    .speed-complete-stats {
-        opacity: 0.7;
+    .result-sub {
+        color: #64748b;
         margin-bottom: 2rem;
     }
 
-    .speed-complete-btn {
-        padding: 1rem 2rem;
-        background: #6366f1;
+    .restart-btn {
+        width: 100%;
+        padding: 1rem;
+        background: var(--primary);
         color: white;
-        border: none;
-        border-radius: 0.75rem;
+        border-radius: 12px;
         font-weight: 700;
-        font-size: 1rem;
         cursor: pointer;
+        border: none;
+        font-size: 1.1rem;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.2);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    @keyframes shrink {
+        from {
+            width: 100%;
+        }
+
+        to {
+            width: 0%;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="speed-container" id="game">
-    <div class="speed-header">
-        <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="speed-back"><i class="fas fa-times"></i></a>
-        <div class="speed-progress">
-            <div class="speed-progress-bar" id="progress" style="width: 0%"></div>
+<div class="speed-layout">
+    <!-- Sticky Header Wrapper -->
+    <div class="sticky-header">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <a href="{{ url_for('learning.vocabulary.dashboard') }}" style="color:#64748b; text-decoration:none;"><i
+                    class="fas fa-times"></i></a>
+            <div class="lives-container" id="lives-display">
+                <!-- Hearts injected by JS -->
+            </div>
+            <div class="score-badge"><span id="curr-q">1</span>/<span id="total-q">--</span></div>
         </div>
-        <span class="speed-count"><span id="current">1</span>/{{ total }}</span>
-    </div>
 
-    <div class="speed-card-area">
-        <div class="speed-card">
-            <div class="speed-word" id="word">...</div>
-            <div class="speed-hint">Tap to reveal answer</div>
-            <div class="speed-answer" id="answer">...</div>
+        <!-- Timer -->
+        <div class="timer-container">
+            <div class="timer-bar" id="timer-bar"></div>
         </div>
     </div>
 
-    <div class="speed-buttons" id="buttons-initial">
-        <button class="speed-btn speed-btn-show" id="btn-show">Xem đáp án</button>
+    <!-- Main -->
+    <div class="main-area">
+        <div class="question-card" id="q-card">
+            <div class="q-text" id="q-text">Đang tải câu hỏi...</div>
+        </div>
+
+        <div class="answers-grid" id="answers-grid">
+            <!-- Buttons injected by JS -->
+        </div>
     </div>
 
-    <div class="speed-buttons" id="buttons-answer" style="display: none;">
-        <button class="speed-btn speed-btn-forgot" id="btn-forgot">Quên rồi</button>
-        <button class="speed-btn speed-btn-know" id="btn-know">Nhớ rồi!</button>
+    <!-- Feedback Overlay -->
+    <div class="feedback-overlay" id="fb-overlay">
+        <div class="feedback-icon" id="fb-icon"></div>
     </div>
 </div>
 
-<div class="speed-complete" id="complete" style="display: none;">
-    <div class="speed-complete-icon"><i class="fas fa-bolt"></i></div>
-    <div class="speed-complete-title">Hoàn thành!</div>
-    <div class="speed-complete-stats">
-        <div>✅ Nhớ: <span id="know-count">0</span></div>
-        <div>❌ Quên: <span id="forgot-count">0</span></div>
+<!-- Game Over Modal -->
+<div class="modal-overlay" id="end-modal">
+    <div class="result-card">
+        <div class="result-title" id="end-title">Game Over</div>
+        <div class="result-sub" id="end-msg">Bạn đã hết mạng!</div>
+        <button class="restart-btn" onclick="location.reload()">Chơi lại</button>
+        <a href="{{ url_for('learning.vocabulary.dashboard') }}"
+            style="display:block; margin-top:1rem; color:#64748b; font-weight:600; text-decoration:none;">Thoát</a>
     </div>
-    <button class="speed-complete-btn" onclick="location.reload()">Ôn lại</button>
 </div>
+
+<div id="session-data" data-set-id="{{ container.container_id }}" data-count="{{ count }}" data-time="{{ time_limit }}"
+    data-lives="{{ lives }}" data-custom-pairs='{{ custom_pairs|tojson if custom_pairs else "null" }}'
+    data-choices="{{ choices }}" style="display:none"></div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
     (function () {
-        var cards = {{ cards| tojson
-    }};
-    var total = cards.length;
-    var current = 0;
-    var knowCount = 0;
-    var forgotCount = 0;
+        // Config
+        var dataEl = document.getElementById('session-data');
+        var setId = dataEl.dataset.setId;
+        var count = parseInt(dataEl.dataset.count);
+        var timeLimit = parseInt(dataEl.dataset.time); // seconds
+        var maxLives = dataEl.dataset.lives; // '3', '5', 'inf'
+        var customPairs = JSON.parse(dataEl.dataset.customPairs || 'null');
+        var choicesNum = parseInt(dataEl.dataset.choices);
 
-    var sessionResults = []; // Store results for bulk upload
-    var startTime = 0;
+        // State
+        var questions = [];
+        var currentIdx = 0;
+        var lives = (maxLives === 'inf') ? 999 : parseInt(maxLives);
+        var isGameOver = false;
+        var timerInterval = null;
+        var timeLeft = 0; // ms
+        var startTime = 0;
 
-    var wordEl = document.getElementById('word');
-    var answerEl = document.getElementById('answer');
-    var progressEl = document.getElementById('progress');
-    var currentEl = document.getElementById('current');
-    var btnInitial = document.getElementById('buttons-initial');
-    var btnAnswer = document.getElementById('buttons-answer');
+        // UI
+        var livesContainer = document.getElementById('lives-display');
+        var timerBar = document.getElementById('timer-bar');
+        var qText = document.getElementById('q-text');
+        var answersGrid = document.getElementById('answers-grid');
+        var fbOverlay = document.getElementById('fb-overlay');
+        var fbIcon = document.getElementById('fb-icon');
+        /** @type {HTMLElement} */
+        var endModal = document.getElementById('end-modal');
 
-    showCard();
+        // Init
+        initLives();
+        fetchQuestions();
 
-    document.getElementById('btn-show').onclick = function () {
-        answerEl.classList.add('show');
-        btnInitial.style.display = 'none';
-        btnAnswer.style.display = 'flex';
-    };
-
-    document.getElementById('btn-know').onclick = function () {
-        recordResult(true, 'Known');
-        knowCount++;
-        nextCard();
-    };
-
-    document.getElementById('btn-forgot').onclick = function () {
-        recordResult(false, 'Forgotten');
-        forgotCount++;
-        nextCard();
-    };
-
-    function recordResult(isCorrect, answerText) {
-        var duration = Date.now() - startTime;
-        var card = cards[current];
-        sessionResults.push({
-            item_id: card.item_id,
-            is_correct: isCorrect,
-            duration_ms: duration,
-            user_answer: answerText
-        });
-    }
-
-    function showCard() {
-        if (current >= total) {
-            showComplete();
-            return;
+        function initLives() {
+            livesContainer.innerHTML = '';
+            if (maxLives === 'inf') {
+                livesContainer.innerHTML = '<i class="fas fa-infinity life-heart active" style="color:#ef4444"></i>';
+                return;
+            }
+            for (var i = 0; i < lives; i++) {
+                var h = document.createElement('i');
+                h.className = 'fas fa-heart life-heart active';
+                livesContainer.appendChild(h);
+            }
         }
-        var card = cards[current];
-        wordEl.textContent = card.front;
-        answerEl.textContent = card.back;
-        answerEl.classList.remove('show');
-        btnInitial.style.display = 'flex';
-        btnAnswer.style.display = 'none';
 
-        currentEl.textContent = current + 1;
-        currentEl.textContent = current + 1;
-        progressEl.style.width = ((current / total) * 100) + '%';
+        function updateLivesUI() {
+            if (maxLives === 'inf') return;
+            var hearts = livesContainer.querySelectorAll('.life-heart');
+            // Update active state
+            hearts.forEach((h, i) => {
+                if (i < lives) h.classList.add('active');
+                else h.classList.remove('active');
+            });
+        }
 
-        startTime = Date.now();
-    }
+        function fetchQuestions() {
+            var url = '/learn/vocabulary/speed/api/items/' + setId + '?count=' + count + '&choices=' + choicesNum;
+            if (customPairs) url += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
 
-    function nextCard() {
-        current++;
-        showCard();
-    }
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.questions.length > 0) {
+                        questions = data.questions;
+                        document.getElementById('total-q').textContent = questions.length;
+                        startQuestion(0);
+                    } else {
+                        qText.textContent = "Không đủ dữ liệu câu hỏi.";
+                    }
+                })
+                .catch(err => { console.error(err); qText.textContent = "Lỗi kết nối."; });
+        }
 
-    function showComplete() {
-        document.getElementById('game').style.display = 'none';
-        document.getElementById('complete').style.display = 'flex';
-        document.getElementById('know-count').textContent = knowCount;
-        document.getElementById('know-count').textContent = knowCount;
-        document.getElementById('forgot-count').textContent = forgotCount;
+        function startQuestion(idx) {
+            if (isGameOver) return;
+            if (idx >= questions.length) {
+                endGame(true);
+                return;
+            }
+            currentIdx = idx;
+            document.getElementById('curr-q').textContent = idx + 1;
 
-        // Bulk Upload
-        fetch('/learn/vocabulary/speed/api/log_session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: sessionResults })
-        })
-            .then(r => r.json())
-            .then(data => console.log('Session logged:', data))
-            .catch(err => console.error('Error logging session:', err));
-    }
-}) ();
+            // Render UI
+            var q = questions[idx];
+            qText.textContent = q.question;
+            answersGrid.innerHTML = '';
+
+            q.choices.forEach((choice, i) => {
+                var btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = choice;
+                btn.onclick = () => handleAnswer(i);
+                answersGrid.appendChild(btn);
+            });
+
+            // Start Timer
+            startTimer();
+            startTime = Date.now();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            var duration = timeLimit * 1000;
+            var end = Date.now() + duration;
+
+            // Reset Animation
+            timerBar.style.transition = 'none';
+            timerBar.style.width = '100%';
+            // Force reflow
+            void timerBar.offsetWidth;
+
+            // Start CSS transition
+            timerBar.style.transition = 'width ' + timeLimit + 's linear';
+            timerBar.style.width = '0%';
+
+            timerInterval = setInterval(() => {
+                var now = Date.now();
+                if (now >= end) {
+                    clearInterval(timerInterval);
+                    handleTimeOut();
+                }
+            }, 100);
+        }
+
+        function handleAnswer(choiceIdx) {
+            clearInterval(timerInterval);
+            timerBar.style.transition = 'none'; // stop anim
+
+            var q = questions[currentIdx];
+            var btns = answersGrid.querySelectorAll('.answer-btn');
+            btns.forEach(b => b.disabled = true); // Lock input
+
+            var isCorrect = (choiceIdx === q.correct_index);
+            var durationMs = Date.now() - startTime;
+
+            // UI Feedback
+            if (isCorrect) {
+                btns[choiceIdx].classList.add('correct');
+                // showFeedback(true);
+                submitResult(q.item_id, true, durationMs, q.choices[choiceIdx]);
+                setTimeout(() => nextQ(), 500); // Fast transition
+            } else {
+                btns[choiceIdx].classList.add('wrong');
+                btns[q.correct_index].classList.add('correct'); // Show correct
+                loseLife();
+                submitResult(q.item_id, false, durationMs, q.choices[choiceIdx]);
+                if (!isGameOver) setTimeout(() => nextQ(), 1500); // Longer delay to see correct
+            }
+        }
+
+        function handleTimeOut() {
+            var q = questions[currentIdx];
+            var btns = answersGrid.querySelectorAll('.answer-btn');
+            btns.forEach(b => b.disabled = true);
+
+            // Show correct
+            btns[q.correct_index].classList.add('correct');
+
+            loseLife();
+            submitResult(q.item_id, false, timeLimit * 1000, "TIME_OUT");
+            if (!isGameOver) setTimeout(() => nextQ(), 1500);
+        }
+
+        function loseLife() {
+            if (maxLives !== 'inf') {
+                lives--;
+                updateLivesUI();
+                if (lives <= 0) {
+                    endGame(false);
+                }
+            }
+        }
+
+        function nextQ() {
+            startQuestion(currentIdx + 1);
+        }
+
+        function endGame(isWin) {
+            isGameOver = true;
+            endModal.classList.add('active');
+            var title = document.getElementById('end-title');
+            var msg = document.getElementById('end-msg');
+
+            if (isWin) {
+                title.textContent = "Hoàn thành!";
+                title.style.color = "var(--success)";
+                msg.textContent = "Bạn đã hoàn thành bài ôn tập!";
+            } else {
+                title.textContent = "Hết mạng!";
+                title.style.color = "var(--error)";
+                msg.textContent = "Bạn đã hết số mạng cho phép.";
+            }
+        }
+
+        function submitResult(itemId, isCorrect, duration, answerText) {
+            fetch('/learn/vocabulary/speed/api/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    item_id: itemId,
+                    correct_index: questions[currentIdx].correct_index, // pass for verification
+                    user_answer_index: -1, // Not strict
+                    user_answer_text: answerText,
+                    duration_ms: duration,
+                    is_correct: isCorrect // Speed logic overrides
+                })
+            });
+        }
+
+        /*
+        function showFeedback(success) {
+            fbIcon.className = success ? 'fas fa-check-circle' : 'fas fa-times-circle';
+            fbIcon.style.color = success ? 'var(--success)' : 'var(--error)';
+            fbOverlay.classList.add('active');
+            setTimeout(() => fbOverlay.classList.remove('active'), 500);
+        }
+        */
+
+    })();
 </script>
 {% endblock %}
