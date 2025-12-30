@@ -14,7 +14,8 @@
 
 {% block head %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('learning.flashcard_learning.static', filename='css/session_v1.css') }}">
+<link rel="stylesheet"
+  href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='v1/static/css/session_v1.css') }}">
 {# Memory Power Widget CSS #}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/memory_power_widget.css') }}">
 {% endblock %}
@@ -75,7 +76,8 @@
 {% block scripts %}
 {{ super() }}
 
-<script src="{{ url_for('learning.flashcard_learning.static', filename='flashcard_viewport.js') }}"></script>
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='v1/static/flashcard_viewport.js') }}"></script>
 
 {# Config injection for static JS #}
 <script>
@@ -100,7 +102,8 @@
   };
 </script>
 
-<script src="{{ url_for('learning.flashcard_learning.static', filename='js/session_v1.js') }}"></script>
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='v1/static/js/session_v1.js') }}"></script>
 {# Memory Power Widget JavaScript #}
 <script src="{{ url_for('static', filename='js/memory_power_widget.js') }}"></script>
 {% endblock %}

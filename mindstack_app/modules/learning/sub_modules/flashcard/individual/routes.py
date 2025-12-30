@@ -99,6 +99,21 @@ def _user_can_edit_flashcard(container_id: int) -> bool:
     )
 
 
+@flashcard_learning_bp.route('/assets/<path:filename>')
+def serve_session_asset(filename):
+    """Serve static assets from the templates directory."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    # Serve from individual/templates/individual/cardsession
+    assets_dir = os.path.join(base_dir, 'templates', 'individual', 'cardsession')
+    try:
+        from flask import send_from_directory
+        return send_from_directory(assets_dir, filename)
+    except Exception as e:
+        current_app.logger.error(f"Error serving asset {filename}: {e}")
+        abort(404)
+
+
+
 @flashcard_learning_bp.route('/get_flashcard_options_partial/<set_identifier>', methods=['GET'])
 @login_required
 def get_flashcard_options_partial(set_identifier):

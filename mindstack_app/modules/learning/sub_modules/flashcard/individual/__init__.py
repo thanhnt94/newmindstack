@@ -13,9 +13,7 @@ template_dir = os.path.join(base_dir, 'templates')
 flashcard_learning_bp = Blueprint(
     'flashcard_learning',
     __name__,
-    template_folder=template_dir,
-    static_folder='static',
-    static_url_path='/flashcard_static'
+    template_folder=template_dir
 )
 
 # Import các routes để chúng được đăng ký với Blueprint

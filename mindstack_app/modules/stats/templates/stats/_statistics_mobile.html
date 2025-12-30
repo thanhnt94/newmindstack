@@ -221,4 +221,26 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
+
+    /* Fix mobile layout issues */
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        /* Reset main padding to prevent double padding */
+        body>main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+        }
+
+        /* Prevent body scroll to let the mobile dashboard handle it */
+        body {
+            height: 100dvh;
+            overflow: hidden;
+        }
+    }
 </style>

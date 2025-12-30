@@ -927,7 +927,8 @@
 {% block scripts %}
 {{ super() }}
 
-<script src="{{ url_for('learning.flashcard_learning.static', filename='flashcard_viewport.js') }}"></script>
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='v2/static/js/flashcard_viewport.js') }}"></script>
 
 <script>
   const setVh = () => {
@@ -2873,4 +2874,6 @@
   });
 
 </script>
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='v2/static/js/flashcard_viewport.js') }}"></script>
 {% endblock %}
