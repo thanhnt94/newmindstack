@@ -18,6 +18,7 @@ Mục đích: Đã khôi phục trạng thái ban đầu để tránh ảnh hư�
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/favicon.png">
 
+    {# TAILWIND & CORE SCRIPTS #}
     <script>
         (function () {
             if (typeof window === 'undefined') return;
@@ -39,296 +40,30 @@ Mục đích: Đã khôi phục trạng thái ban đầu để tránh ảnh hư�
         }
     </script>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.4/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
-
     <!-- Alpine.js for reactive UI components -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            color: #333333;
-        }
+    {# INCLUDES: CORE STYLES & ASSETS #}
+    {% include 'includes/_global_styles.html' %}
+    {% include 'includes/_markdown_assets.html' %}
 
-        .active-link {
-            border-bottom: 3px solid #3b82f6;
-            color: #3b82f6;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-
-        .modal-overlay.open {
-            opacity: 1;
-            visibility: visible !important;
-        }
-
-        .modal-content {
-            background-color: #ffffff;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-            max-height: 90vh;
-            min-height: 300px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            transform: scale(0.95);
-            transition: transform 0.3s ease;
-            border: none;
-            visibility: hidden;
-        }
-
-        .modal-overlay.open .modal-content {
-            transform: scale(1);
-            visibility: visible !important;
-        }
-
-        .modal-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        /* ===== Bổ sung CSS cho layout Flexbox và ẩn trên di động ===== */
-        body.flashcard-session-active {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        body.flashcard-session-active>header,
-        body.flashcard-session-active>footer {
-            display: none;
-        }
-
-        body.flashcard-session-active>main {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: auto;
-            /* Cho phép cuộn trên màn hình di động */
-        }
-
-        /* THÊM MỚI: CSS để loại bỏ padding trên mobile */
-        @media (max-width: 1024px) {
-
-            body.flashcard-session-active>main,
-            body.flashcard-session-active>main.container {
-                padding: 0 !important;
-                padding-top: 0 !important;
-                padding-bottom: 0 !important;
-                padding-left: 0 !important;
-                padding-right: 0 !important;
-                margin: 0 !important;
-            }
-
-            body.flashcard-session-active>header {
-                display: none !important;
-                height: 0 !important;
-                overflow: hidden !important;
-            }
-        }
-
-        @media (min-width: 1024px) {
-
-            body.flashcard-session-active>header,
-            body.flashcard-session-active>footer {
-                display: block;
-                /* Hiển thị lại trên desktop */
-            }
-        }
-
-        .markdown-body {
-            color: #1f2937;
-            font-size: 0.95rem;
-            line-height: 1.65;
-        }
-
-        .markdown-body p {
-            margin-top: 0;
-            margin-bottom: 0.75rem;
-        }
-
-        .markdown-body ul,
-        .markdown-body ol {
-            margin: 0.75rem 0 0.75rem 1.5rem;
-        }
-
-        .markdown-body ul {
-            list-style-type: disc;
-        }
-
-        .markdown-body ol {
-            list-style-type: decimal;
-        }
-
-        .markdown-body li+li {
-            margin-top: 0.35rem;
-        }
-
-        .markdown-body h1,
-        .markdown-body h2,
-        .markdown-body h3,
-        .markdown-body h4,
-        .markdown-body h5,
-        .markdown-body h6 {
-            color: #111827;
-            font-weight: 700;
-            margin-top: 1.25rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .markdown-body h1 {
-            font-size: 1.75rem;
-        }
-
-        .markdown-body h2 {
-            font-size: 1.5rem;
-        }
-
-        .markdown-body h3 {
-            font-size: 1.3rem;
-        }
-
-        .markdown-body h4 {
-            font-size: 1.1rem;
-        }
-
-        .markdown-body h5 {
-            font-size: 1rem;
-        }
-
-        .markdown-body h6 {
-            font-size: 0.95rem;
-        }
-
-        .markdown-body blockquote {
-            border-left: 4px solid #c4c4c4;
-            margin: 1rem 0;
-            padding: 0.75rem 1rem;
-            background-color: #f3f4f6;
-            border-radius: 0.5rem;
-        }
-
-        .markdown-body code {
-            background-color: #f3f4f6;
-            border-radius: 0.25rem;
-            padding: 0.15rem 0.35rem;
-            font-size: 0.9em;
-        }
-
-        .markdown-body pre {
-            background-color: #111827;
-            color: #f9fafb;
-            padding: 1rem;
-            border-radius: 0.75rem;
-            overflow-x: auto;
-            margin: 1rem 0;
-            font-size: 0.9rem;
-        }
-
-        .markdown-body table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-        }
-
-        .markdown-body th,
-        .markdown-body td {
-            border: 1px solid #d1d5db;
-            padding: 0.5rem 0.75rem;
-            text-align: left;
-        }
-
-        .markdown-body th {
-            background-color: #f3f4f6;
-            font-weight: 600;
-        }
-    </style>
-    <script>
-        (function () {
-            const fallbackFormat = (text) => {
-                if (text === null || text === undefined) {
-                    return '';
-                }
-                const div = document.createElement('div');
-                div.textContent = String(text);
-                return div.innerHTML.replace(/\r?\n/g, '<br>');
-            };
-
-            if (window.marked && typeof window.marked.setOptions === 'function') {
-                window.marked.setOptions({
-                    gfm: true,
-                    breaks: true,
-                    mangle: false,
-                    headerIds: false
-                });
-            }
-
-            window.renderMarkdown = function (text, options = {}) {
-                const { treatAsHtml = false } = options;
-                if (text === null || text === undefined) {
-                    return '';
-                }
-
-                const value = String(text);
-
-                try {
-                    if (treatAsHtml) {
-                        return window.DOMPurify ? window.DOMPurify.sanitize(value) : value;
-                    }
-
-                    if (window.marked && typeof window.marked.parse === 'function') {
-                        const rawHtml = window.marked.parse(value);
-                        return window.DOMPurify ? window.DOMPurify.sanitize(rawHtml) : rawHtml;
-                    }
-                } catch (err) {
-                    console.warn('Không thể hiển thị Markdown:', err);
-                }
-
-                return fallbackFormat(value);
-            };
-
-            window.applyMarkdownToElement = function (element, text, options = {}) {
-                if (!element) return;
-                const html = window.renderMarkdown ? window.renderMarkdown(text, options) : fallbackFormat(text);
-                element.innerHTML = html;
-                element.classList.add('markdown-body');
-            };
-
-            window.escapeTextWithBreaks = fallbackFormat;
-        })();
-    </script>
     {% block head %}{% endblock %}
 </head>
 
 <body class="bg-gray-100 flex flex-col min-h-screen{% block body_class %}{% endblock %}">
-    <header class="bg-white shadow-md relative z-50">
-        {# THAY ĐỔI: Gọi macro render_navbar để hiển thị navbar #}
-        {{ render_navbar(current_user, request) }}
-    </header>
+
+    {# IMPORT LAYOUT MODES #}
+    {% import '_base_desktop.html' as desktop %}
+    {% import '_base_mobile.html' as mobile %}
+
+    {# === DESKTOP HEADER === #}
+    {{ desktop.header(current_user, request) }}
 
     <main class="container mx-auto py-4 px-2 flex-grow relative md:py-4 sm:py-2 sm:px-3">
         {# Flash Messages #}
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-        <div id="flash-messages-container" class="absolute top-4 right-4 z-50 flex flex-col space-y-2 max-w-sm">
+        <div id="flash-messages-container" class="absolute top-4 right-4 z-[200] flex flex-col space-y-2 max-w-sm">
             {% for category, message in messages %}
             <div class="flex items-center p-2 rounded-md shadow-lg bg-gray-800 text-white relative text-sm opacity-100 transition-opacity duration-500"
                 data-dismissible>
@@ -355,105 +90,15 @@ Mục đích: Đã khôi phục trạng thái ban đầu để tránh ảnh hư�
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-white text-center py-4 mt-auto shadow-sm">
-        <div class="container mx-auto px-2 sm:px-3 md:px-4">
-            <p class="text-gray-500">&copy; 2025 Mindstack App. All Rights Reserved.</p>
-        </div>
-    </footer>
+    {# === DESKTOP FOOTER === #}
+    {{ desktop.footer() }}
 
-    {% include 'notification/center.html' %}
-    {% include 'includes/_settings_modal.html' %}
+    {# === MOBILE LOGIC === #}
+    {{ mobile.css_reset() }}
 
-    <div id="modalOverlay" class="modal-overlay">
-        <div class="modal-content w-full h-full md:w-2/3 lg:w-1/2">
-            <iframe id="modalIframe" class="modal-iframe"></iframe>
-        </div>
-    </div>
+    {# INCLUDES: APP LOGIC & MODALS #}
+    {% include 'includes/_app_logic.html' %}
 
-    <script>
-        // Các hàm toàn cục để iframe con có thể gọi
-        window.openModal = function (url) {
-            const modalOverlay = document.getElementById('modalOverlay');
-            const modalIframe = document.getElementById('modalIframe');
-            if (modalOverlay && modalIframe) {
-                let finalUrl = url.includes('?') ? `${url}&is_modal=true` : `${url}?is_modal=true`;
-                modalIframe.src = finalUrl;
-                modalOverlay.classList.add('open');
-                document.body.style.overflow = 'hidden';
-            }
-        };
-
-        window.closeModal = function () {
-            const modalOverlay = document.getElementById('modalOverlay');
-            const modalIframe = document.getElementById('modalIframe');
-            if (modalOverlay && modalIframe) {
-                modalOverlay.classList.remove('open');
-                modalIframe.src = '';
-                document.body.style.overflow = '';
-            }
-        };
-
-        window.showFlashMessage = function (message, category) {
-            const container = document.getElementById('flash-messages-container');
-            if (!container) return;
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `flex items-center p-2 rounded-md shadow-lg bg-gray-800 text-white relative text-sm opacity-100 transition-opacity duration-500" data-dismissible`;
-            alertDiv.innerHTML = `<i class="fas fa-info-circle mr-2"></i><span>${message}</span><button class="ml-auto pl-2" onclick="this.parentNode.remove()">&times;</button>`;
-            if (category === 'success') alertDiv.classList.add('bg-green-500');
-            else if (category === 'danger') alertDiv.classList.add('bg-red-500');
-            else if (category === 'info') alertDiv.classList.add('bg-blue-500');
-            else if (category === 'warning') alertDiv.classList.add('bg-yellow-500');
-            else alertDiv.classList.add('bg-gray-500');
-
-            container.appendChild(alertDiv);
-            setTimeout(() => alertDiv.classList.remove('opacity-0'), 10);
-            setTimeout(() => {
-                alertDiv.classList.add('opacity-0');
-                setTimeout(() => alertDiv.remove(), 500);
-            }, 5000);
-        };
-
-        // Hàm loadTabContent này sẽ được cập nhật để tải nội dung AJAX cho các tab trong content_dashboard
-        // Tuy nhiên, ở đây nó đang được sử dụng để reload trang.
-        // Cần lưu ý nếu có xung đột với logic AJAX của content_dashboard
-        window.loadTabContent = function (tabName) {
-            window.location.reload();
-        };
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Tự động đóng flash messages
-            document.querySelectorAll('[data-dismissible]').forEach(notification => {
-                setTimeout(() => {
-                    notification.classList.add('opacity-0');
-                    setTimeout(() => notification.remove(), 500);
-                }, 5000);
-            });
-
-            const modalOverlay = document.getElementById('modalOverlay');
-
-            // Lắng nghe sự kiện click để mở modal
-            document.addEventListener('click', function (event) {
-                const target = event.target.closest('.open-modal-btn');
-                if (target && target.dataset.modalUrl) {
-                    event.preventDefault();
-                    window.openModal(target.dataset.modalUrl);
-                }
-            });
-
-            // Lắng nghe sự kiện click để đóng modal
-            if (modalOverlay) {
-                modalOverlay.addEventListener('click', function (event) {
-                    if (event.target === modalOverlay) {
-                        window.closeModal();
-                    }
-                });
-            }
-        });
-    </script>
-    <script src="{{ url_for('translator.static', filename='js/translator.js') }}"></script>
-    {# Image Viewer Helper #}
-    <link rel="stylesheet" href="{{ url_for('shared.static', filename='css/image_viewer.css') }}">
-    <script src="{{ url_for('shared.static', filename='js/image_viewer.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 
