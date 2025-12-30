@@ -890,6 +890,11 @@ NOTE: Visibility được control bởi critical CSS trong index.html
                 localStorage.setItem('flashcardHideImages', isImageHidden);
                 applyImageVisibility();
                 updateImageToggleUI();
+
+                // [FIX] Sync to server
+                if (window.updateVisualSettings) {
+                    window.updateVisualSettings({ show_image: !isImageHidden });
+                }
             });
         }
 
@@ -927,6 +932,11 @@ NOTE: Visibility được control bởi critical CSS trong index.html
                     window.toggleAudioAutoplay();
                 }
                 updateAutoplayToggleUI();
+
+                // [FIX] Sync to server
+                if (window.updateVisualSettings) {
+                    window.updateVisualSettings({ autoplay: isAutoplayOn });
+                }
             });
         }
 
@@ -953,6 +963,11 @@ NOTE: Visibility được control bởi critical CSS trong index.html
             statsToggleBtn.addEventListener('click', function () {
                 isStatsHidden = !isStatsHidden;
                 updateStatsToggleUI();
+
+                // [FIX] Sync to server
+                if (window.updateVisualSettings) {
+                    window.updateVisualSettings({ show_stats: !isStatsHidden });
+                }
             });
         }
 

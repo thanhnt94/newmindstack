@@ -3095,9 +3095,9 @@
                 </label>
 
                 <label
-                    class="cursor-pointer flex flex-col items-center gap-1 p-2 rounded-lg border border-indigo-500 bg-indigo-50 text-indigo-700 hover:bg-slate-50 transition-all flex-1 justify-center has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 text-sm">
+                    class="cursor-pointer flex flex-col items-center gap-1 p-2 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all flex-1 justify-center has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 text-sm">
 
-                    <input type="radio" name="rating_levels" value="4" class="hidden" checked>
+                    <input type="radio" name="rating_levels" value="4" class="hidden">
 
                     <span class="font-bold">4 nút</span>
 
@@ -5036,6 +5036,11 @@
         let lastMode = settings.last_mode || 'flashcard';
         let fcSettings = settings.flashcard || {};
 
+        // [DEBUG] Log settings
+        console.log('[MODAL DEBUG] data.settings:', data.settings);
+        console.log('[MODAL DEBUG] fcSettings:', fcSettings);
+        console.log('[MODAL DEBUG] isAuto:', isAuto);
+
         // 2. Set UI Initial State
         if (modeSelect) modeSelect.value = lastMode;
         if (autoSaveToggle) autoSaveToggle.checked = isAuto;
@@ -5097,23 +5102,29 @@
                 const currentAuto = autoSaveToggle.checked;
                 const activeMode = modeSelect.value;
 
+                // [DEBUG] Log toggle states before creating payload
+                console.log('[SAVE DEBUG] fcAutoplayToggle element:', fcAutoplayToggle);
+                console.log('[SAVE DEBUG] fcAutoplayToggle.checked:', fcAutoplayToggle ? fcAutoplayToggle.checked : 'N/A');
+                console.log('[SAVE DEBUG] fcShowImageToggle.checked:', fcShowImageToggle ? fcShowImageToggle.checked : 'N/A');
+                console.log('[SAVE DEBUG] fcShowStatsToggle.checked:', fcShowStatsToggle ? fcShowStatsToggle.checked : 'N/A');
+
                 const payload = {
                     ...settings,
                     auto_save: currentAuto,
                     last_mode: activeMode,
                     flashcard: {
-                        // If Auto-save is ON, we don't strictly send new values (server remembers)
-                        // But we send them anyway to ensure sync
+                        // Always include all flashcard settings
                         autoplay: fcAutoplayToggle ? fcAutoplayToggle.checked : true,
                         show_image: fcShowImageToggle ? fcShowImageToggle.checked : true,
-                        show_stats: fcShowStatsToggle ? fcShowStatsToggle.checked : true
+                        show_stats: fcShowStatsToggle ? fcShowStatsToggle.checked : true,
+                        // Always include button_count - from input if Fixed mode, else preserve existing/default
+                        button_count: (!currentAuto && fcFixedBtnInput)
+                            ? parseInt(fcFixedBtnInput.value)
+                            : (fcSettings.button_count || data.user_button_count || 4)
                     }
                 };
 
-                // If Fixed, we strictly overwrite button count
-                if (!currentAuto && fcFixedBtnInput) {
-                    payload.flashcard.button_count = parseInt(fcFixedBtnInput.value);
-                }
+                console.log('[SAVE DEBUG] Payload to send:', payload);
 
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
                 const headers = { 'Content-Type': 'application/json' };
@@ -5241,15 +5252,23 @@
             });
         }
 
-        // [NEW] Apply persisted setting if available
-        if (userButtonCount) {
-            ratingInputs.forEach(function (r) {
-                if (parseInt(r.value) === parseInt(userButtonCount)) {
-                    r.checked = true;
-                }
-            });
-            updateRatingVisuals();
-        }
+        // [DEBUG] Log the values for debugging
+        console.log('[SETTINGS DEBUG] userButtonCount from API:', userButtonCount);
+        console.log('[SETTINGS DEBUG] ratingInputs count:', ratingInputs.length);
+
+        // [FIX] Apply persisted setting or default to 4
+        var selectedButtonCount = userButtonCount || 4;
+        console.log('[SETTINGS DEBUG] selectedButtonCount to apply:', selectedButtonCount);
+
+        ratingInputs.forEach(function (r) {
+            if (parseInt(r.value) === parseInt(selectedButtonCount)) {
+                r.checked = true;
+                console.log('[SETTINGS DEBUG] Setting checked for value:', r.value);
+            } else {
+                r.checked = false;
+            }
+        });
+        updateRatingVisuals();
 
         ratingInputs.forEach(function (radio) {
             radio.addEventListener('change', updateRatingVisuals);

@@ -60,8 +60,18 @@ class LearningSettingsService:
                     current_settings[key][sub_key] = sub_value
         
         uc_state.settings = current_settings
+        
+        # Force SQLAlchemy to detect JSON field change
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(uc_state, 'settings')
+        
         db.session.add(uc_state)
         safe_commit(db.session)
+        
+        # Debug logging
+        import logging
+        logging.getLogger(__name__).info(f"[SETTINGS SERVICE] Saved settings for user {user_id}, container {container_id}: {current_settings}")
+        
         return uc_state.settings
 
     @staticmethod
@@ -72,10 +82,17 @@ class LearningSettingsService:
         
         Priority: URL Param > Persistent Setting > Global Pref > Default
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"[RESOLVE CONFIG] container_id={container_id}, url_params={url_params}")
+        
         uc_state = UserContainerState.query.filter_by(user_id=user.user_id, container_id=container_id).first()
         db_settings = uc_state.settings if uc_state and uc_state.settings else {}
         fc_persisted = db_settings.get('flashcard', {})
         global_prefs = user.last_preferences or {}
+        
+        logger.info(f"[RESOLVE CONFIG] db_settings={db_settings}, fc_persisted={fc_persisted}")
         
         # 1. Extract URL Parameters
         url_rating = url_params.get('rating_levels')
@@ -83,14 +100,25 @@ class LearningSettingsService:
         url_show_image = url_params.get('show_image') == 'true' if 'show_image' in url_params else None
         url_show_stats = url_params.get('show_stats') == 'true' if 'show_stats' in url_params else None
 
+        logger.info(f"[RESOLVE CONFIG] url_rating={url_rating}, type={type(url_rating)}")
+
         # 2. Auto-Save Logic (Update DB if ON)
         auto_save_on = db_settings.get('auto_save', True)
+        logger.info(f"[RESOLVE CONFIG] auto_save_on={auto_save_on}")
+        
         if auto_save_on and (url_rating or url_autoplay is not None or url_show_image is not None or url_show_stats is not None):
             update_payload = {'flashcard': {}}
-            if url_rating: update_payload['flashcard']['button_count'] = url_rating
+            if url_rating: 
+                # Ensure it's an integer
+                try:
+                    update_payload['flashcard']['button_count'] = int(url_rating)
+                except (ValueError, TypeError):
+                    update_payload['flashcard']['button_count'] = url_rating
             if url_autoplay is not None: update_payload['flashcard']['autoplay'] = url_autoplay
             if url_show_image is not None: update_payload['flashcard']['show_image'] = url_show_image
             if url_show_stats is not None: update_payload['flashcard']['show_stats'] = url_show_stats
+            
+            logger.info(f"[RESOLVE CONFIG] Auto-save triggered, update_payload={update_payload}")
             
             # Persist
             LearningSettingsService.update_container_settings(user.user_id, container_id, update_payload)
@@ -105,6 +133,9 @@ class LearningSettingsService:
             'show_image': fc_persisted.get('show_image', global_prefs.get('flashcard_show_image', True)),
             'show_stats': fc_persisted.get('show_stats', global_prefs.get('flashcard_show_stats', True))
         }
+        
+        logger.info(f"[RESOLVE CONFIG] final_button_count={final_button_count}")
+        logger.info(f"[RESOLVE CONFIG] visual_settings from DB={visual_settings}")
         
         # Apply URL transient overrides (if auto-save was OFF)
         if url_autoplay is not None: visual_settings['autoplay'] = url_autoplay

@@ -102,7 +102,8 @@ const autoSaveOn = window.FC.autoSave !== false;
 const saveSettingsUrl = window.FC.saveSettingsUrl;
 
 function syncSettingsToServer() {
-  if (!autoSaveOn || !saveSettingsUrl) return;
+  // [FIX] Always sync in-session toggle changes to server, regardless of auto_save setting
+  if (!saveSettingsUrl) return;
 
   const payload = {
     visual_settings: {
@@ -112,12 +113,34 @@ function syncSettingsToServer() {
     }
   };
 
+  console.log('[SYNC SETTINGS] Sending to server:', payload);
+
   fetch(saveSettingsUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...csrfHeaders },
     body: JSON.stringify(payload)
-  }).catch(err => console.warn('Failed to sync settings:', err));
+  })
+    .then(r => r.json())
+    .then(data => console.log('[SYNC SETTINGS] Server response:', data))
+    .catch(err => console.warn('[SYNC SETTINGS] Failed:', err));
 }
+
+// Expose for mobile handlers to call
+window.syncSettingsToServer = syncSettingsToServer;
+
+// Also expose the current state variables so mobile can update them
+window.updateVisualSettings = function (newSettings) {
+  if (newSettings.show_image !== undefined) {
+    isMediaHidden = !newSettings.show_image;
+  }
+  if (newSettings.autoplay !== undefined) {
+    isAudioAutoplayEnabled = newSettings.autoplay;
+  }
+  if (newSettings.show_stats !== undefined) {
+    showStats = newSettings.show_stats;
+  }
+  syncSettingsToServer();
+};
 
 // Initial sync after loading settings
 syncSettingsToServer();

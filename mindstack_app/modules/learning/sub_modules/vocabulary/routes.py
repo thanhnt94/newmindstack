@@ -363,6 +363,8 @@ def start_flashcard_session(set_id, mode):
         
     # [ACTION] Persist changes if Auto-Save is ON
     try:
+        from sqlalchemy.orm.attributes import flag_modified
+        
         if not uc_state:
              uc_state = UserContainerState(
                 user_id=current_user.user_id, 
@@ -372,10 +374,14 @@ def start_flashcard_session(set_id, mode):
                 settings={}
             )
              db.session.add(uc_state)
+             current_app.logger.info(f"[SETTINGS] Created new UserContainerState for container {set_id}")
         
         # Determine if we should auto-save
         new_settings = dict(uc_state.settings or {})
         should_auto_save = new_settings.get('auto_save', True)
+        
+        current_app.logger.info(f"[SETTINGS] auto_save={should_auto_save}, rating_levels={rating_levels}")
+        current_app.logger.info(f"[SETTINGS] Current settings before: {new_settings}")
         
         if 'flashcard' not in new_settings: 
             new_settings['flashcard'] = {}
@@ -384,9 +390,12 @@ def start_flashcard_session(set_id, mode):
 
         # 1. Handle Button Count Auto-Save
         if should_auto_save and rating_levels:
-            if new_settings['flashcard'].get('button_count') != rating_levels:
+            current_button = new_settings['flashcard'].get('button_count')
+            current_app.logger.info(f"[SETTINGS] Comparing: current={current_button}, new={rating_levels}")
+            if current_button != rating_levels:
                 new_settings['flashcard']['button_count'] = rating_levels
                 changed = True
+                current_app.logger.info(f"[SETTINGS] Updated button_count from {current_button} to {rating_levels}")
         
         # 2. Handle Visual Settings Auto-Save (if passed in URL, e.g. from a quick toggle)
         if should_auto_save:
@@ -402,11 +411,17 @@ def start_flashcard_session(set_id, mode):
         
         if changed:
             uc_state.settings = new_settings
+            flag_modified(uc_state, 'settings')  # Force SQLAlchemy to detect JSON change
             db.session.add(uc_state)
             safe_commit(db.session)
+            current_app.logger.info(f"[SETTINGS] Saved settings to DB: {new_settings}")
+        else:
+            current_app.logger.info(f"[SETTINGS] No changes detected, skipping save")
             
     except Exception as e:
         current_app.logger.warning(f"Failed to persist flashcard settings: {e}")
+        import traceback
+        traceback.print_exc()
             
     # [FINALIZE] Load final configuration to Session
     try:
