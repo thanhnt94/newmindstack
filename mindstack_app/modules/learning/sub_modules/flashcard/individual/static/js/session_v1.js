@@ -1439,7 +1439,7 @@ async function getNextFlashcardBatch() {
           cancelAutoplaySequence();
         }
         setFlashcardContent(`<div class="text-center py-12 text-gray-600"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-semibold text-gray-700 mb-2">Hoàn thành phiên học!</h3><p class="text-gray-500">${formatTextForHtml(end.message)}</p><button id="return-to-dashboard-btn" class="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 shadow-sm"><i class="fas fa-home mr-2"></i> Quay lại Dashboard</button></div>`);
-        document.getElementById('return-to-dashboard-btn').addEventListener('click', () => { window.location.href = "{{ url_for('learning.flashcard.dashboard') }}"; });
+        document.getElementById('return-to-dashboard-btn').addEventListener('click', () => { window.location.href = "{{ url_for('learning.flashcard.flashcard_dashboard.dashboard') }}"; });
         return;
       }
       throw new Error('HTTP ' + res.status);
@@ -1528,7 +1528,7 @@ confirmEndSessionBtn.addEventListener('click', async () => {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const r = await res.json();
     window.showFlashMessage(r.message || 'Đã kết thúc phiên.', 'info');
-    window.location.href = "{{ url_for('learning.flashcard.dashboard') }}";
+    window.location.href = "{{ url_for('learning.flashcard.flashcard_dashboard.dashboard') }}";
   } catch (e) {
     window.showFlashMessage('Có lỗi xảy ra khi kết thúc phiên.', 'danger');
   } finally {

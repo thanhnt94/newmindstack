@@ -146,7 +146,7 @@ def get_flashcard_options_partial(set_identifier):
             return '<p class="text-red-500 text-center">Lỗi: Không tìm thấy ID bộ thẻ.</p>', 400
 
 
-    return render_template('flashcard/individual/setup/default/_modes_list.html',
+    return render_template('individual/setup/default/_modes_list.html',
                            modes=modes,
                            selected_set_id=set_identifier,
                            selected_flashcard_mode_id=selected_mode,
@@ -170,7 +170,7 @@ def start_flashcard_session_all(mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
         flash('Không có bộ thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.flashcard.flashcard_dashboard.dashboard'))
 
 
 @flashcard_learning_bp.route('/start_flashcard_session/multi/<string:mode>', methods=['GET'])
@@ -183,19 +183,19 @@ def start_flashcard_session_multi(mode):
 
     if not set_ids_str:
         flash('Lỗi: Thiếu thông tin bộ thẻ.', 'danger')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.flashcard.flashcard_dashboard.dashboard'))
 
     try:
         set_ids = [int(s) for s in set_ids_str.split(',') if s]
     except ValueError:
         flash('Lỗi: Định dạng ID bộ thẻ không hợp lệ.', 'danger')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.flashcard.flashcard_dashboard.dashboard'))
 
     if FlashcardSessionManager.start_new_flashcard_session(set_ids, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
         flash('Không có bộ thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.flashcard.flashcard_dashboard.dashboard'))
 
 
 @flashcard_learning_bp.route('/start_flashcard_session/<int:set_id>/<string:mode>', methods=['GET'])
@@ -217,7 +217,7 @@ def start_flashcard_session_by_id(set_id, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
         flash('Không có bộ thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.flashcard.flashcard_dashboard.dashboard'))
 
 
 @flashcard_learning_bp.route('/flashcard_session')
@@ -229,7 +229,7 @@ def flashcard_session():
     """
     if 'flashcard_session' not in session:
         flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
-        return redirect(url_for('learning.flashcard.dashboard'))
+        return redirect(url_for('learning.flashcard.flashcard_dashboard.dashboard'))
 
     # [UPDATED v4] Priority: session override > User.last_preferences > session_state > default
     user_button_count = 4  # Default

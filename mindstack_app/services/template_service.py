@@ -27,8 +27,8 @@ class TemplateService:
     # Template type to folder mapping
     TEMPLATE_MAPPING = {
         # Learning - Flashcard
-        'flashcard.cardsession': 'flashcard/individual/cardsession',
-        'flashcard.setup': 'flashcard/individual/setup',
+        'flashcard.cardsession': 'individual/cardsession',
+        'flashcard.setup': 'individual/setup',
         # Learning - Quiz
         'quiz.session': 'quiz/individual/session',
         'quiz.setup': 'quiz/individual/setup',
@@ -140,7 +140,8 @@ class TemplateService:
             # Find the module's template folder
             app = current_app._get_current_object()
             for blueprint_name, blueprint in app.blueprints.items():
-                if module_name in blueprint_name and blueprint.template_folder:
+                # Allow match if module name is in blueprint name OR special mapping for individual -> flashcard_learning
+                if (module_name in blueprint_name or (module_name == 'individual' and 'flashcard_learning' in blueprint_name)) and blueprint.template_folder:
                     base_path = os.path.dirname(blueprint.template_folder)
                     full_path = os.path.join(base_path, 'templates', folder_path)
                     

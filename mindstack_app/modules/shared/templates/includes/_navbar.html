@@ -29,8 +29,8 @@ Mục đích: Cập nhật navbar theo yêu cầu:
         {% if current_user.is_authenticated %}
         <li>
             <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2
-                {% if request.endpoint.startswith('learning.flashcard') or request.endpoint.startswith('learning.flashcard_learning') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}"
-                href="{{ url_for('learning.flashcard.dashboard') }}">
+                {% if request.endpoint.startswith('learning.flashcard') or request.endpoint.startswith('learning.flashcard_learning') or request.endpoint.startswith('learning.flashcard.flashcard_dashboard') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}"
+                href="{{ url_for('learning.flashcard.flashcard_dashboard.dashboard') }}">
                 <i class="fas fa-clone mr-1 md:mr-2"></i>
                 <span>Flashcard</span>
             </a>

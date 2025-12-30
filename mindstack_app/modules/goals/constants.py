@@ -9,7 +9,7 @@ GOAL_TYPE_CONFIG: dict[str, dict[str, str]] = {
         'description': 'Ôn luyện flashcard và giữ chuỗi học.',
         'unit': 'thẻ',
         'icon': 'clone',
-        'endpoint': 'learning.flashcard.dashboard',
+        'endpoint': 'learning.flashcard.flashcard_dashboard.dashboard',
     },
     'quizzes_practiced': {
         'label': 'Quiz',

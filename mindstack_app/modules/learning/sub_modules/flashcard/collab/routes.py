@@ -65,7 +65,7 @@ def _user_can_edit_flashcard(container_id: int) -> bool:
 def dashboard():
     """Chuyển sang dashboard dùng chung của Flashcard."""
 
-    return redirect(url_for('learning.flashcard.dashboard'))
+    return redirect(url_for('learning.flashcard.flashcard_dashboard.dashboard'))
 
 
 @flashcard_collab_bp.route('/rooms', methods=['POST'])

@@ -384,7 +384,7 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
             }
             if goal.domain == 'flashcard': 
                 config['icon'] = 'clone'
-                config['endpoint'] = 'learning.flashcard.dashboard'
+                config['endpoint'] = 'learning.flashcard.flashcard_dashboard.dashboard'
             elif goal.domain == 'quiz': 
                 config['icon'] = 'circle-question'
                 config['endpoint'] = 'learning.quiz_learning.quiz_learning_dashboard'
@@ -462,7 +462,7 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
         final_url = url_for(config['endpoint'])
         if goal.scope == 'container' and goal.reference_id:
             if goal.domain == 'flashcard':
-                final_url = url_for('learning.flashcard.dashboard', preSelect=goal.reference_id, view='setup')
+                final_url = url_for('learning.flashcard.flashcard_dashboard.dashboard', preSelect=goal.reference_id, view='setup')
             elif goal.domain == 'quiz':
                 final_url = url_for('learning.quiz_learning.quiz_learning_dashboard', preSelect=goal.reference_id, view='setup')
 

@@ -62,7 +62,7 @@ def dashboard():
                 'title': 'Ôn flashcard đến hạn',
                 'description': f"{flashcard_summary['due']} thẻ đang chờ bạn.",
                 'icon': 'bolt',
-                'url': url_for('learning.flashcard.dashboard'),
+                'url': url_for('learning.flashcard.flashcard_dashboard.dashboard'),
             }
         )
     if quiz_summary['learning'] > 0:
@@ -90,7 +90,7 @@ def dashboard():
                 'title': 'Khởi động với Flashcard',
                 'description': 'Tạo đà học tập với vài thẻ đầu tiên.',
                 'icon': 'sparkles',
-                'url': url_for('learning.flashcard.dashboard'),
+                'url': url_for('learning.flashcard.flashcard_dashboard.dashboard'),
             }
         )
 

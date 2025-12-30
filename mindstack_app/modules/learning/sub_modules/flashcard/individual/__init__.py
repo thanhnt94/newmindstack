@@ -4,10 +4,9 @@
 from flask import Blueprint
 import os
 
-# Calculate absolute path to the templates folder (one level up)
 # Current file: mindstack_app/modules/learning/flashcard/individual/__init__.py
-# Target: mindstack_app/modules/learning/flashcard/templates
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Target: mindstack_app/modules/learning/flashcard/individual/templates
+base_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(base_dir, 'templates')
 
 # Tạo đối tượng Blueprint cho module học Flashcard cá nhân
