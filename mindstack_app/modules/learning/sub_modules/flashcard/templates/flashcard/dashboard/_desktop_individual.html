@@ -1339,11 +1339,7 @@
                         saveAutoplaySettingsToStorage();
                     }
 
-                    // [UPDATED] Capture UI Version preference
-                    const uiVersionSelect = document.getElementById('ui-version-select');
-                    if (uiVersionSelect) {
-                        startUrl.searchParams.append('flashcard_ui_pref', uiVersionSelect.value);
-                    }
+
 
                     window.location.href = startUrl.toString();
                 }

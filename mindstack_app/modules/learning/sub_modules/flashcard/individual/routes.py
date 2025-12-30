@@ -191,11 +191,6 @@ def start_flashcard_session_multi(mode):
         flash('Lỗi: Định dạng ID bộ thẻ không hợp lệ.', 'danger')
         return redirect(url_for('learning.flashcard.dashboard'))
 
-    # [UPDATED] Capture UI Preference
-    ui_pref = request.args.get('flashcard_ui_pref')
-    if ui_pref:
-        session['flashcard_ui_pref'] = ui_pref
-
     if FlashcardSessionManager.start_new_flashcard_session(set_ids, mode):
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
@@ -256,33 +251,13 @@ def flashcard_session():
     # Get active template version and base path
     from mindstack_app.services.template_service import TemplateService
     
-    # [UPDATED] Check for user UI preference (v1/v2)
-    ui_pref = session.get('flashcard_ui_pref')
-    
     # Validation: Check if requested version exists
-    available_versions = TemplateService.list_available_templates('flashcard.cardsession')
-    target_version = None
+    # available_versions = TemplateService.list_available_templates('flashcard.cardsession') # Kept for reference or future use if needed, but logic removed
     
-    if ui_pref and ui_pref in available_versions:
-        target_version = ui_pref
-    
-    if target_version:
-        # Manually construct path for user preference
-        template_type = 'flashcard.cardsession'
-        folder_path = TemplateService.TEMPLATE_MAPPING.get(template_type)
-        template_base_path = f'{folder_path}/{target_version}'
-        template_path = f'{template_base_path}/index.html'
-        
-        # Override context
-        template_context = {
-            'template_base_path': template_base_path,
-            'template_version': target_version
-        }
-    else:
-        # Fallback to system default
-        template_context = TemplateService.get_template_context('flashcard.cardsession')
-        template_base_path = template_context['template_base_path']
-        template_path = f'{template_base_path}/index.html'
+    # Fallback to system default (Admin settings)
+    template_context = TemplateService.get_template_context('flashcard.cardsession')
+    template_base_path = template_context['template_base_path']
+    template_path = f'{template_base_path}/index.html'
     
     current_app.logger.debug(f"Rendering flashcard session with template: {template_path}")
     
@@ -616,8 +591,7 @@ def save_flashcard_settings():
     if button_count and (not isinstance(button_count, int) or button_count not in [3, 4, 6]):
         return jsonify({'success': False, 'message': 'Số nút đánh giá không hợp lệ.'}), 400
 
-    ui_version = data.get('ui_version', 'v1')
-    session['flashcard_ui_pref'] = ui_version
+
 
     from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
     
