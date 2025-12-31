@@ -9,7 +9,7 @@
 {% block head %}
 {{ super() }}
 {% include 'content_management/_shared_styles.html' %}
-<link rel="stylesheet" href="{{ url_for('learning.quiz_learning.static', filename='css/session_batch.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='quiz/css/session_batch.css') }}">
 {% endblock %}
 
 {% block content %}
