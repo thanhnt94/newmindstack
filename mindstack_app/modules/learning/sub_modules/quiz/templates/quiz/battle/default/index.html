@@ -5,18 +5,37 @@
 
 {% extends "base.html" %}
 
-{% block title %}Quiz Battle - MindStack{% endblock %}
+{% set hide_header = True %}
+{% set hide_footer = True %}
+
+{% block title %}Quiz Battle Dashboard{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    /* Force hide global headers/footers in case variables don't catch everything on mobile */
+    body>header,
+    nav.navbar,
+    footer,
+    .site-footer,
+    .mobile-bottom-nav,
+    .bottom-nav-bar,
+    .global-mobile-navbar,
+    .global-bottom-nav {
+        display: none !important;
+    }
+
+    /* Ensure content takes full height */
+    body {
+        background-color: #f8fafc;
+        padding-bottom: 80px;
+        /* Space for battle bottom nav */
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-{# Mobile Navigation - same pattern as flashcard dashboard #}
-<div class="lg:hidden">
-    {% include 'includes/_navbar_mobile.html' %}
-</div>
-
-<div class="lg:hidden fixed bottom-0 left-0 right-0 z-[200]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
-    {% set active_page = '' %}
-    {% include 'includes/_bottom_nav_mobile.html' %}
-</div>
+{# Mobile Navigation - REMOVED for unified clean battle UI #}
 
 <style>
     @media (max-width: 1023px) {
@@ -39,12 +58,21 @@
         }
 
         body {
-            padding-bottom: 90px !important;
+            padding-bottom: 0 !important;
+            background-color: #ffffff !important;
         }
     }
 </style>
 
 <div class="battle-wrapper">
-    {% include 'quiz/dashboard/_desktop_battle.html' %}
+    {% include 'quiz/dashboard/default/_desktop_battle.html' %}
 </div>
+
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        if (window.initGroupBattleDeck) {
+            window.initGroupBattleDeck();
+        }
+    });
+</script>
 {% endblock %}

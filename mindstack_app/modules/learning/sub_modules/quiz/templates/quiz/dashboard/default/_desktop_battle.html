@@ -19,7 +19,8 @@
     .mobile-header-section {
         flex-shrink: 0;
         background: white;
-        padding: 0.75rem; /* Reduced padding */
+        padding: 0.75rem;
+        /* Reduced padding */
         border-bottom: 1px solid #e2e8f0;
         box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         z-index: 10;
@@ -28,7 +29,8 @@
     .tab-filter-button {
         flex: 1;
         border: none !important;
-        border-radius: 0.5rem; /* Mobile rounding */
+        border-radius: 0.5rem;
+        /* Mobile rounding */
         padding: 0.35rem 0.5rem;
         font-size: 0.8rem;
         font-weight: 500;
@@ -36,16 +38,19 @@
         background: transparent;
         transition: all 0.2s ease;
         text-align: center;
-        border-bottom: 2px solid transparent !important; /* Desktop style override */
-        border-radius: 0; /* Reset for desktop border-bottom style default */
+        border-bottom: 2px solid transparent !important;
+        /* Desktop style override */
+        border-radius: 0;
+        /* Reset for desktop border-bottom style default */
     }
-    
+
     .tab-filter-button:hover {
         color: #374151;
     }
 
     .tab-filter-button.active {
-        color: #2563eb; /* Blue-600 */
+        color: #2563eb;
+        /* Blue-600 */
         border-bottom-color: #2563eb !important;
         background-color: transparent;
         font-weight: 700;
@@ -62,7 +67,8 @@
         }
 
         .tab-filter-button {
-            border-radius: 0.5rem; /* Mobile pill style */
+            border-radius: 0.5rem;
+            /* Mobile pill style */
             border-bottom: none !important;
             padding: 0.5rem;
             font-size: 0.8rem;
@@ -87,12 +93,54 @@
         gap: 0.75rem;
     }
 
-    @media (min-width: 768px) {
-        .cm-section-header {
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
+    @media (max-width: 1023px) {
+        /* ... existing mobile styles ... */
+
+        /* App-like Sheet Modal Styles */
+        #create-battle-modal.collab-modal-backdrop {
+            align-items: flex-end !important;
+            /* Align to bottom */
+            justify-content: center !important;
+            padding: 0 !important;
+            /* Anchored below the header (approx 60-70px) */
+            top: 70px !important;
+            bottom: 0 !important;
+            height: auto !important;
+            background-color: rgba(255, 255, 255, 0.1);
+            /* Very light overlay */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 40 !important;
+            /* Below header (z-50) if header fixed, or just above content */
         }
+
+        #create-battle-modal.collab-modal-backdrop.open .collab-modal-content {
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            border-radius: 0 !important;
+            border-top-left-radius: 1.5rem !important;
+            border-top-right-radius: 1.5rem !important;
+            margin: 0 !important;
+            transform: translateY(100%);
+            animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes sheetSlideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+    }
+
+    .cm-card--padded {
+        padding: 1.25rem;
     }
 
     /* Hero */
@@ -459,11 +507,12 @@
 
         /* Adjust content to not be under sticky header on mobile */
         .battle-wrapper {
-            position: relative; /* Changed from fixed */
+            position: relative;
+            /* Changed from fixed */
             width: 100%;
             min-height: 100%;
             /* z-index: 1050; REMOVED to avoid overlay issues */
-            background: #f8fafc;
+            background: #ffffff;
             display: flex;
             flex-direction: column;
         }
@@ -498,7 +547,8 @@
             top: 0 !important;
             position: sticky;
             z-index: 40;
-            margin-top: 0; /* Ensure no gaps */
+            margin-top: 0;
+            /* Ensure no gaps */
         }
 
         /* Mobile Footer Fixed */
@@ -509,246 +559,527 @@
             right: 0;
             z-index: 50;
             background-color: white;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
             padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
     }
 </style>
 
-    {# === DESKTOP HERO === #}
-    <section class="collab-hero hidden lg:block">
-        <div class="collab-hero__content">
-            <div class="collab-hero__headline">
-                <div class="collab-pill"><i class="fas fa-bolt"></i>Live Quiz Battle</div>
-                <p class="collab-eyebrow">Phòng thi đấu</p>
+{# === DESKTOP HERO === #}
+<section class="collab-hero hidden lg:block">
+    <div class="collab-hero__content">
+        <div class="collab-hero__headline">
+            <div class="collab-pill"><i class="fas fa-bolt"></i>Live Quiz Battle</div>
+            <p class="collab-eyebrow">Phòng thi đấu</p>
 
-            </div>
-            <div class="collab-hero__actions">
-                {# Khung nhập mã nhanh #}
-                <form id="battle-quick-join-form-desktop" class="join-input-group flex-1 min-w-[200px] sm:flex-none">
-                    <i class="fas fa-key text-slate-400 pl-3 text-sm"></i>
-                    <input type="text" id="battle-quick-join-code-desktop" placeholder="Mã phòng..." maxlength="12"
-                        required class="flex-grow !w-auto">
-                    <button type="submit"
-                        class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-r-lg font-bold transition-colors text-sm">VÀO</button>
-                </form>
+        </div>
+        <div class="collab-hero__actions">
+            {# Khung nhập mã nhanh #}
+            <form id="battle-quick-join-form-desktop" class="join-input-group flex-1 min-w-[200px] sm:flex-none">
+                <i class="fas fa-key text-slate-400 pl-3 text-sm"></i>
+                <input type="text" id="battle-quick-join-code-desktop" placeholder="Mã phòng..." maxlength="12" required
+                    class="flex-grow !w-auto">
+                <button type="submit"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-r-lg font-bold transition-colors text-sm">VÀO</button>
+            </form>
 
-                {# Nút tạo phòng #}
-                <button type="button" id="open-battle-modal-desktop" class="cm-action-btn cm-action-btn--primary">
-                    <i class="fas fa-plus"></i><span>Tạo phòng đấu</span>
+            {# Nút tạo phòng #}
+            <button type="button" id="open-battle-modal-desktop" class="cm-action-btn cm-action-btn--primary">
+                <i class="fas fa-plus"></i><span>Tạo phòng đấu</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+{# === MAIN CONTENT (TABS & GRID) === #}
+<div class="cm-card rounded-t-none border-t-0 relative min-h-[400px] mt-0 lg:mt-4">
+
+    {# === HEADER SECTION (Mobile & Desktop Unified) === #}
+    <div class="mobile-header-section lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none">
+
+        {# Mobile Top Row: Back, Title, Search Toggle #}
+        <div class="lg:hidden flex items-center justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2 min-w-0">
+                <button id="battle-mobile-back"
+                    class="flex-shrink-0 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-xl w-9 h-9 flex items-center justify-center">
+                    <i class="fas fa-arrow-left text-sm"></i>
                 </button>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">QUIZ <span
+                            class="text-slate-300 mx-0.5">›</span> BATTLE</p>
+                    <h2 class="text-base font-bold text-gray-800 leading-tight truncate">Đấu trường</h2>
+                </div>
+            </div>
+            <button type="button" id="battle-search-toggle-btn"
+                class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"
+                title="Tìm kiếm">
+                <i class="fa-solid fa-magnifying-glass text-sm"></i>
+            </button>
+        </div>
+
+        {# Desktop Title (ADDED) #}
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between hidden lg:flex">
+            <span class="flex items-center">
+                <i class="fas fa-gamepad mr-3 text-blue-500"></i> Đấu trường nhóm
+            </span>
+        </h2>
+
+        {# Tabs (UPDATED LAYOUT) #}
+        <div class="flex border-b border-gray-200 mb-2 lg:mb-4 collab-tabs">
+            <button type="button" class="tab-filter-button active collab-tab-btn flex items-center justify-center"
+                data-battle-tab="public">
+                <i class="fas fa-globe mr-2"></i><span>Phòng công khai</span>
+            </button>
+            <button type="button" class="tab-filter-button collab-tab-btn flex items-center justify-center"
+                data-battle-tab="my">
+                <i class="fas fa-user-check mr-2"></i><span>Phòng của tôi</span>
+            </button>
+        </div>
+
+        {# Mobile Search Bar (Collapsible) #}
+        <div id="battle-mobile-search-bar" class="hidden mb-3 lg:hidden mt-3">
+            <div id="battle-room-search-wrapper-mobile">
+                {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
             </div>
         </div>
-    </section>
 
-    {# === MAIN CONTENT (TABS & GRID) === #}
-    <div class="cm-card rounded-t-none border-t-0 relative min-h-[400px] mt-4">
-        
-        {# === HEADER SECTION (Mobile & Desktop Unified) === #}
-        <div class="mobile-header-section lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none">
-            
-            {# Mobile Top Row: Back, Title, Search Toggle #}
-            <div class="lg:hidden flex items-center justify-between gap-2 mb-3">
-                <div class="flex items-center gap-2 min-w-0">
-                    <button id="battle-mobile-back"
-                        class="flex-shrink-0 bg-slate-100 text-gray-600 hover:bg-slate-200 rounded-xl w-9 h-9 flex items-center justify-center">
-                        <i class="fas fa-arrow-left text-sm"></i>
-                    </button>
-                    <div class="min-w-0">
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">QUIZ <span class="text-slate-300 mx-0.5">›</span> BATTLE</p>
-                        <h2 class="text-base font-bold text-gray-800 leading-tight truncate">Đấu trường</h2>
-                    </div>
-                </div>
-                <button type="button" id="battle-search-toggle-btn"
-                    class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"
-                    title="Tìm kiếm">
-                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
-                </button>
-            </div>
-
-            {# Desktop Title (ADDED) #}
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between hidden lg:flex">
-                <span class="flex items-center">
-                    <i class="fas fa-gamepad mr-3 text-blue-500"></i> Đấu trường nhóm
-                </span>
-            </h2>
-
-            {# Tabs (UPDATED LAYOUT) #}
-            <div class="flex border-b border-gray-200 mb-2 lg:mb-4 collab-tabs">
-                <button type="button" class="tab-filter-button active collab-tab-btn flex items-center justify-center" data-battle-tab="public">
-                    <i class="fas fa-globe mr-2"></i><span>Phòng công khai</span>
-                </button>
-                <button type="button" class="tab-filter-button collab-tab-btn flex items-center justify-center" data-battle-tab="my">
-                    <i class="fas fa-user-check mr-2"></i><span>Phòng của tôi</span>
-                </button>
-            </div>
-
-            {# Mobile Search Bar (Collapsible) #}
-            <div id="battle-mobile-search-bar" class="hidden mb-3 lg:hidden mt-3">
-                 <div id="battle-room-search-wrapper-mobile">
+        {# Desktop Toolbar (Search) #}
+        <div class="hidden lg:block mb-3 w-full">
+            <div class="collab-toolbar w-full">
+                <div class="search-wrapper w-full" id="battle-room-search-wrapper">
                     {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
-                 </div>
-            </div>
-
-            {# Desktop Toolbar (Search) #}
-            <div class="hidden lg:block mb-3 w-full">
-                <div class="collab-toolbar w-full">
-                    <div class="search-wrapper w-full" id="battle-room-search-wrapper">
-                        {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {# Content #}
-        <div class="p-6 relative collab-content-mobile-offset">
-            {# Loading Overlay #}
-            <div id="battle-loading"
-                class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-b-xl">
-                <div class="text-center text-blue-500">
-                    <i class="fas fa-circle-notch fa-spin text-3xl mb-2"></i>
-                    <p class="font-medium">Đang tải dữ liệu...</p>
-                </div>
-            </div>
-
-            {# Grid hiển thị phòng #}
-            <div id="battle-rooms-grid" class="cm-grid"></div>
-
-            {# Phân trang #}
-            <div id="battle-pagination-container" class="mt-8"></div>
-
-            {# Empty State #}
-            <div id="battle-empty-template" class="hidden">
-                <div
-                    class="col-span-full flex flex-col items-center justify-center p-12 text-slate-400 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                    <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                    <h3 class="text-lg font-semibold text-slate-600">Không tìm thấy phòng nào</h3>
-                    <p class="text-sm">Hãy thử tìm kiếm khác hoặc tạo phòng mới.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    {# === MOBILE FOOTER ACTION === #}
-    <div class="mobile-battle-footer lg:hidden bg-white border-t border-slate-200 py-4 px-3 grid grid-cols-12 gap-2">
-        {# Input Code (Smaller, 4 cols) #}
-        <form id="battle-quick-join-form-mobile"
-            class="col-span-7 flex items-center bg-slate-100 rounded-lg px-2 py-2 border border-slate-200">
-            <input type="text" id="battle-quick-join-code-mobile" placeholder="Mã phòng"
-                class="bg-transparent border-none focus:ring-0 w-full text-xs p-0 text-center font-mono uppercase"
-                required>
-            <button type="submit" class="text-slate-400 hover:text-blue-600 ml-1"><i
-                    class="fas fa-arrow-right"></i></button>
-        </form>
+    {# Content #}
+    <div class="p-6 relative collab-content-mobile-offset">
+        {# Loading Overlay #}
+        <div id="battle-loading"
+            class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-b-xl">
+            <div class="text-center text-blue-500">
+                <i class="fas fa-circle-notch fa-spin text-3xl mb-2"></i>
+                <p class="font-medium">Đang tải dữ liệu...</p>
+            </div>
+        </div>
 
-        {# Create Button (Primary, 8 cols) #}
-        <button type="button" id="open-battle-modal-mobile"
-            class="col-span-5 bg-blue-600 text-white px-2 py-1.5 rounded-lg font-bold shadow-md flex items-center justify-center active:scale-95 transition-transform">
-            <i class="fas fa-plus-circle mr-2"></i> Tạo phòng đấu
-        </button>
+        {# Grid hiển thị phòng #}
+        <div id="battle-rooms-grid" class="cm-grid"></div>
+
+        {# Phân trang #}
+        <div id="battle-pagination-container" class="mt-8"></div>
+
+        {# Empty State #}
+        <div id="battle-empty-template" class="hidden">
+            <div
+                class="col-span-full flex flex-col items-center justify-center p-12 text-slate-400 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                <h3 class="text-lg font-semibold text-slate-600">Không tìm thấy phòng nào</h3>
+                <p class="text-sm">Hãy thử tìm kiếm khác hoặc tạo phòng mới.</p>
+            </div>
+        </div>
     </div>
+</div>
 
-{# === CREATE BATTLE MODAL === #}
-<div id="create-battle-modal" class="collab-modal-backdrop">
-    <div class="collab-modal-content">
-        <div class="p-4 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-20">
-            <h3 class="text-lg font-bold text-slate-800"><i class="fas fa-bolt text-yellow-500 mr-2"></i>Thiết lập trận
-                đấu</h3>
-            <button type="button" id="close-battle-modal"
+{# === MOBILE FLOATING ACTION BUTTON (FAB) === #}
+<button type="button" id="open-battle-modal-mobile"
+    class="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/30 flex items-center justify-center text-xl z-50 active:scale-90 transition-transform hover:bg-blue-700">
+    <i class="fas fa-plus"></i>
+</button>
+
+<!-- Hidden legacy footer -->
+<div class="hidden">
+    <form id="battle-quick-join-form-mobile"><input id="battle-quick-join-code-mobile"></form>
+</div>
+
+{# === CREATE BATTLE MODAL (WIZARD STYLE) === #}
+<div id="create-battle-modal" class="collab-modal-backdrop" x-data="battleWizard()">
+    <div class="collab-modal-content overflow-hidden flex flex-col max-h-[90vh]">
+        <!-- Header -->
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white z-20 shrink-0">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-bolt text-yellow-500"></i>
+                    <span x-text="step === 1 ? 'Chọn bộ đề thi' : (step === 2 ? 'Cấu hình phòng' : 'Xác nhận')"></span>
+                </h3>
+                <div class="flex gap-1 mt-1">
+                    <template x-for="i in 3">
+                        <div class="h-1 rounded-full transition-all duration-300"
+                            :class="i <= step ? 'w-6 bg-blue-500' : 'w-2 bg-slate-200'"></div>
+                    </template>
+                </div>
+            </div>
+            <button type="button" @click="closeModal(); window.closeBattleModal && window.closeBattleModal()"
                 class="text-slate-400 hover:text-rose-500 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
-        <div class="p-6 grid lg:grid-cols-2 gap-8">
-            {# Cột trái: Form #}
-            <div class="space-y-5">
-                <form id="battle-create-form" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Tiêu đề phòng</label>
-                        <input type="text" name="title"
-                            class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                            placeholder="VD: Đấu trường cuối tuần" required>
+        <!-- Body -->
+        <div class="p-0 overflow-y-auto flex-1 relative bg-slate-50">
+
+            <!-- STEP 1: SELECT QUIZ -->
+            <div x-show="step === 1" x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
+                class="h-full flex flex-col">
+
+                <div class="p-4 bg-white border-b border-slate-100 sticky top-0 z-10 space-y-3">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" x-model="searchQuery" @input.debounce.300ms="searchQuizzes()"
+                            class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium"
+                            placeholder="Tìm kiếm bộ đề thi...">
                     </div>
+                </div>
+
+                <div class="p-4 grid gap-3 grid-cols-1 sm:grid-cols-2" id="wizard-quiz-grid">
+                    <!-- Loading State -->
+                    <div x-show="isLoading" class="col-span-full py-12 text-center text-slate-400">
+                        <i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i>
+                        <p class="text-xs font-medium">Đang tải dữ liệu...</p>
+                    </div>
+
+                    <!-- Quizzes List -->
+                    <template x-for="quiz in quizzes" :key="quiz.id">
+                        <div @click="selectQuiz(quiz)"
+                            class="group cursor-pointer p-4 rounded-xl border transition-all duration-200 relative overflow-hidden"
+                            :class="selectedQuiz?.id === quiz.id ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500 shadow-md' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm'">
+
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 transition-colors"
+                                    :class="selectedQuiz?.id === quiz.id ? 'bg-blue-500 text-white' : 'bg-indigo-50 text-indigo-500 group-hover:bg-blue-100'">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="font-bold text-slate-800 text-sm line-clamp-2 mb-1 group-hover:text-blue-700"
+                                        x-text="quiz.title"></h4>
+                                    <div class="flex items-center gap-3 text-xs text-slate-500">
+                                        <span class="flex items-center gap-1"><i class="fas fa-list-ol"></i> <span
+                                                x-text="quiz.question_count || '?'"></span> câu</span>
+                                        <span x-show="quiz.is_public"
+                                            class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase">Public</span>
+                                    </div>
+                                </div>
+                                <div class="shrink-0" x-show="selectedQuiz?.id === quiz.id">
+                                    <i class="fas fa-check-circle text-blue-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Empty State -->
+                    <div x-show="!isLoading && quizzes.length === 0"
+                        class="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                        <i class="fas fa-search text-2xl mb-2 opacity-50"></i>
+                        <p class="text-sm">Không tìm thấy kết quả nào.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: SETTINGS -->
+            <div x-show="step === 2" x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
+                class="p-4 sm:p-6 space-y-6 bg-white min-h-full">
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Tiêu đề
+                            phòng</label>
+                        <input type="text" x-model="form.title"
+                            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all font-medium"
+                            placeholder="Đặt tên cho phòng đấu..." required>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Số câu hỏi</label>
-                            <input type="number" name="question_limit" min="1"
-                                class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500"
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Số
+                                lượng câu</label>
+                            <input type="number" x-model="form.question_limit" min="1"
+                                :max="selectedQuiz?.question_count"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                                 placeholder="Tất cả">
+                            <p class="text-[10px] text-slate-400 mt-1">Tối đa: <span
+                                    x-text="selectedQuiz?.question_count || '∞'"></span></p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Max người</label>
-                            <input type="number" name="max_players" min="1"
-                                class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500"
-                                placeholder="∞">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Chế độ thi</label>
-                        <select name="mode" id="modal-battle-mode"
-                            class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500">
-                            <option value="SLOW">Test chậm (Đồng bộ)</option>
-                            <option value="TIMED">Giới hạn thời gian</option>
-                        </select>
-                    </div>
-                    <div id="modal-timed-config" class="hidden">
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Thời gian (giây/câu)</label>
-                        <input type="number" name="time_per_question_seconds"
-                            class="w-full rounded-lg border-slate-200 px-3 py-2 focus:border-blue-500" placeholder="30">
-                    </div>
-                    <div>
-                        <span class="block text-sm font-medium text-slate-700 mb-2">Quyền riêng tư</span>
-                        <div class="flex gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" name="visibility" value="public"
-                                    class="text-blue-600 focus:ring-blue-500">
-                                <span class="text-sm text-slate-700">Công khai</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" name="visibility" value="private"
-                                    class="text-blue-600 focus:ring-blue-500" checked>
-                                <span class="text-sm text-slate-700">Riêng tư</span>
-                            </label>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Người
+                                chơi tối đa</label>
+                            <input type="number" x-model="form.max_players" min="2" max="100"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                                placeholder="Không giới hạn">
                         </div>
                     </div>
 
-                    <div class="pt-4 border-t border-slate-100">
-                        <input type="hidden" name="container_id" id="modal-selected-quiz-id">
-                        <p class="text-xs text-slate-500 mb-3 flex justify-between items-center">
-                            <span>Bộ Quiz đã chọn:</span>
-                            <span id="modal-quiz-preview" class="font-bold text-rose-600 italic">Chưa chọn</span>
-                        </p>
-                        <button type="submit"
-                            class="w-full cm-action-btn cm-action-btn--primary justify-center py-2.5 shadow-lg shadow-emerald-600/10 bg-emerald-600 hover:bg-emerald-700">
-                            <i class="fas fa-check"></i><span>Tạo phòng đấu</span>
-                        </button>
-                        <p id="battle-create-feedback" class="mt-2 text-sm text-center"></p>
+                    <div class="space-y-3 pt-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Chế độ thi
+                            đấu</label>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div @click="form.mode = 'SLOW'"
+                                class="cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center text-center gap-2"
+                                :class="form.mode === 'SLOW' ? 'border-blue-500 bg-blue-50' : 'border-slate-100 hover:border-slate-200 bg-white'">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                                    :class="form.mode === 'SLOW' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <h5 class="font-bold text-sm"
+                                        :class="form.mode === 'SLOW' ? 'text-blue-700' : 'text-slate-700'">Đồng bộ
+                                        (Host)</h5>
+                                    <p class="text-[10px] text-slate-500 leading-tight mt-1">Host chuyển câu hỏi. Tất cả
+                                        cùng làm.</p>
+                                </div>
+                            </div>
+
+                            <div @click="form.mode = 'TIMED'"
+                                class="cursor-pointer p-3 rounded-xl border-2 transition-all flex flex-col items-center text-center gap-2"
+                                :class="form.mode === 'TIMED' ? 'border-blue-500 bg-blue-50' : 'border-slate-100 hover:border-slate-200 bg-white'">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                                    :class="form.mode === 'TIMED' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'">
+                                    <i class="fas fa-stopwatch"></i>
+                                </div>
+                                <div>
+                                    <h5 class="font-bold text-sm"
+                                        :class="form.mode === 'TIMED' ? 'text-blue-700' : 'text-slate-700'">Tốc độ (Hẹn
+                                        giờ)</h5>
+                                    <p class="text-[10px] text-slate-500 leading-tight mt-1">Tự động chuyển câu theo
+                                        thời gian.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </form>
+
+                    <div x-show="form.mode === 'TIMED'" x-transition
+                        class="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-800 mb-1.5">Thời gian
+                            mỗi câu (giây)</label>
+                        <input type="number" x-model="form.time_per_question_seconds" min="5" max="300"
+                            class="w-full px-4 py-2.5 rounded-xl border border-amber-200 bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all font-bold text-amber-800"
+                            value="30">
+                    </div>
+
+                    <div class="pt-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Quyền riêng
+                            tư</label>
+                        <div class="flex p-1 bg-slate-100 rounded-xl">
+                            <button type="button" @click="form.visibility = 'public'"
+                                class="flex-1 py-2 text-xs font-bold rounded-lg transition-all"
+                                :class="form.visibility === 'public' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+                                Công khai
+                            </button>
+                            <button type="button" @click="form.visibility = 'private'"
+                                class="flex-1 py-2 text-xs font-bold rounded-lg transition-all"
+                                :class="form.visibility === 'private' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+                                Riêng tư
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {# Cột phải: Chọn bộ Quiz #}
-            <div class="flex flex-col h-full min-h-[400px]">
-                <div class="flex items-center justify-between gap-2 mb-3">
-                    <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">Chọn bộ đề thi</h4>
-                    <div class="relative">
-                        <input type="text" id="modal-quiz-search"
-                            class="w-40 rounded-md border-slate-200 pl-7 py-1 text-xs focus:border-blue-500"
-                            placeholder="Tìm quiz...">
-                        <i class="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <!-- STEP 3: REVIEW -->
+            <div x-show="step === 3" x-transition:enter="transition ease-out duration-200"
+                class="p-6 bg-white min-h-full flex flex-col items-center text-center justify-center space-y-6">
+
+                <div
+                    class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mb-2 animate-bounce">
+                    <i class="fas fa-flag-checkered"></i>
+                </div>
+
+                <div class="space-y-1">
+                    <h3 class="text-xl font-bold text-slate-800">Sẵn sàng chiến đấu?</h3>
+                    <p class="text-sm text-slate-500">Kiểm tra lại thông tin trước khi tạo phòng.</p>
+                </div>
+
+                <div class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left space-y-3">
+                    <div class="flex justify-between items-start border-b border-slate-200 pb-3">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Bộ đề</span>
+                        <span class="text-sm font-bold text-slate-800 text-right w-2/3"
+                            x-text="selectedQuiz?.title"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Tên phòng</span>
+                        <span class="text-sm font-bold text-slate-800" x-text="form.title || 'Chưa đặt tên'"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Chế độ</span>
+                        <span class="text-xs font-bold px-2 py-1 rounded bg-blue-100 text-blue-700"
+                            x-text="form.mode === 'TIMED' ? 'Tốc độ (' + form.time_per_question_seconds + 's/câu)' : 'Đồng bộ (Host)'"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Quyền</span>
+                        <span class="text-xs font-bold uppercase"
+                            :class="form.visibility === 'public' ? 'text-emerald-600' : 'text-slate-600'"
+                            x-text="form.visibility === 'public' ? 'Công khai' : 'Riêng tư'"></span>
                     </div>
                 </div>
 
-                <div id="modal-quiz-grid"
-                    class="flex-1 overflow-y-auto pr-2 space-y-2 border border-slate-100 rounded-xl p-2 bg-slate-50/50 max-h-[400px]">
-                    <p class="text-center text-slate-400 py-8 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Đang
-                        tải...</p>
-                </div>
+                <p x-show="errorMessage" class="text-sm text-rose-600 bg-rose-50 px-3 py-2 rounded-lg w-full"
+                    x-text="errorMessage"></p>
             </div>
+
+        </div>
+
+        <!-- Footer Actions -->
+        <div
+            class="p-4 border-t border-slate-100 bg-white shrink-0 flex justify-between items-center shadow-lg shadow-slate-200/50 z-20">
+            <button type="button" @click="step--" x-show="step > 1"
+                class="px-4 py-2.5 text-slate-500 hover:text-slate-800 font-bold text-sm transition-colors flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </button>
+            <div x-show="step === 1" class="ml-auto"></div> <!-- Spacer -->
+
+            <button type="button" @click="nextStep()" x-show="step < 3" :disabled="step === 1 && !selectedQuiz"
+                class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2">
+                Tiếp theo <i class="fas fa-arrow-right"></i>
+            </button>
+
+            <button type="button" @click="createRoom()" x-show="step === 3" :disabled="isSubmitting"
+                class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2 ml-auto">
+                <span x-show="!isSubmitting"><i class="fas fa-rocket mr-1"></i> Tạo phòng ngay</span>
+                <span x-show="isSubmitting"><i class="fas fa-circle-notch fa-spin mr-1"></i> Đang xử lý...</span>
+            </button>
         </div>
     </div>
 </div>
+
+<script>
+    function battleWizard() {
+        return {
+            step: 1,
+            isLoading: false,
+            isSubmitting: false,
+            searchQuery: '',
+            quizzes: [],
+            selectedQuiz: null,
+            errorMessage: '',
+            form: {
+                title: '',
+                question_limit: '',
+                max_players: '',
+                mode: 'SLOW',
+                time_per_question_seconds: 30,
+                visibility: 'private'
+            },
+
+            init() {
+                // Listen for modal open event from external buttons
+                const modal = document.getElementById('create-battle-modal');
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.target.classList.contains('open')) {
+                            this.reset();
+                            this.searchQuizzes();
+                        }
+                    });
+                });
+                observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+            },
+
+            reset() {
+                this.step = 1;
+                this.searchQuery = '';
+                this.selectedQuiz = null;
+                this.errorMessage = '';
+                this.form = {
+                    title: '',
+                    question_limit: '',
+                    max_players: '',
+                    mode: 'SLOW',
+                    time_per_question_seconds: 30,
+                    visibility: 'private'
+                };
+            },
+
+            closeModal() {
+                document.getElementById('create-battle-modal').classList.remove('open');
+            },
+
+            async searchQuizzes() {
+                this.isLoading = true;
+                try {
+                    const url = new URL("{{ url_for('learning.quiz_battle.list_available_quizzes') }}", window.location.origin);
+                    url.searchParams.append('limit', 50);
+                    if (this.searchQuery) url.searchParams.append('q', this.searchQuery);
+
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    this.quizzes = (data.containers || []).map(q => ({
+                        id: q.container_id,
+                        title: q.title,
+                        question_count: q.question_count,
+                        is_public: q.is_public
+                    }));
+                } catch (err) {
+                    console.error('Error fetching quizzes:', err);
+                    this.quizzes = [];
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            selectQuiz(quiz) {
+                this.selectedQuiz = quiz;
+                // Auto fill title if empty
+                if (!this.form.title) {
+                    this.form.title = `Battle: ${quiz.title}`;
+                }
+            },
+
+            nextStep() {
+                if (this.step === 1) {
+                    if (!this.selectedQuiz) return;
+                    this.step = 2;
+                } else if (this.step === 2) {
+                    if (!this.form.title.trim()) {
+                        alert("Vui lòng nhập tên phòng đấu!");
+                        return;
+                    }
+                    this.step = 3;
+                }
+            },
+
+            async createRoom() {
+                if (this.isSubmitting) return;
+                this.isSubmitting = true;
+                this.errorMessage = '';
+
+                const payload = {
+                    container_id: this.selectedQuiz.id,
+                    title: this.form.title,
+                    mode: this.form.mode,
+                    visibility: this.form.visibility,
+                    question_limit: this.form.question_limit ? Number(this.form.question_limit) : null,
+                    max_players: this.form.max_players ? Number(this.form.max_players) : null,
+                    time_per_question_seconds: this.form.mode === 'TIMED' ? Number(this.form.time_per_question_seconds) : null
+                };
+
+                try {
+                    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (csrf) headers['X-CSRFToken'] = csrf;
+
+                    const res = await fetch("{{ url_for('learning.quiz_battle.create_room') }}", {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) throw new Error(await res.text() || 'Có lỗi xảy ra');
+
+                    const data = await res.json();
+                    // Redirect to room
+                    window.location.href = "{{ url_for('learning.quiz_battle.view_room', room_code='__ROOM_CODE__') }}".replace('__ROOM_CODE__', data.room.room_code);
+
+                } catch (err) {
+                    this.errorMessage = err.message || "Tạo phòng thất bại. Vui lòng thử lại.";
+                    this.isSubmitting = false;
+                }
+            }
+        }
+    }
+</script>
 
 <script>
     (function () {
@@ -949,59 +1280,8 @@
             }
         }
 
-        // Modal Logic
-        async function loadBattleQuizzes(query = '') {
-            const grid = document.getElementById('modal-quiz-grid');
-            if (query) grid.innerHTML = '<p class="text-center text-slate-400 py-8 text-xs"><i class="fas fa-spinner fa-spin"></i></p>';
-            try {
-                const url = new URL(battleUrls.quizzes, window.location.origin);
-                url.searchParams.append('limit', 30);
-                if (query) url.searchParams.append('q', query);
-                const res = await fetch(url);
-                const data = await res.json();
-                const containers = data.containers || [];
+        // Modal Logic - Managed by AlpineJS (battleWizard)
 
-                if (!containers.length) {
-                    grid.innerHTML = `<div class="text-center text-slate-400 py-4 text-xs">Không tìm thấy bộ quiz.</div>`;
-                    return;
-                }
-
-                grid.innerHTML = containers.map(c => `
-                <div class="p-3 rounded-lg border border-slate-200 bg-white hover:border-blue-300 cursor-pointer transition-all quiz-select-item"
-                     data-id="${c.container_id}" 
-                     data-title="${escapeHtml(c.title)}"
-                     onclick="window.selectBattleQuizFromEl(this)">
-                    <div class="flex justify-between items-start gap-2">
-                        <h5 class="text-sm font-semibold text-slate-900 line-clamp-1" title="${escapeHtml(c.title)}">${escapeHtml(c.title)}</h5>
-                    </div>
-                    <div class="flex justify-between items-center mt-2 text-xs text-slate-500">
-                        <span><i class="fas fa-layer-group"></i> ${c.question_count || '?'} câu</span>
-                        <span class="uppercase tracking-wider text-[10px]">${c.is_public ? 'Public' : 'Private'}</span>
-                    </div>
-                </div>
-            `).join('');
-            } catch {
-                grid.innerHTML = `<p class="text-center text-rose-400 py-4 text-xs">Lỗi tải dữ liệu.</p>`;
-            }
-        }
-
-        // Helper function for onclick
-        window.selectBattleQuizFromEl = function (el) {
-            const id = el.dataset.id;
-            const title = el.dataset.title;
-
-            battleState.selectedQuizId = id;
-            document.getElementById('modal-selected-quiz-id').value = id;
-            document.getElementById('modal-quiz-preview').innerHTML = `Bộ Quiz: <span class="font-bold text-emerald-600">${title}</span>`;
-
-            document.querySelectorAll('.quiz-select-item').forEach(item => {
-                if (item.dataset.id == id) {
-                    item.className = "p-3 rounded-lg border cursor-pointer transition-all border-blue-500 bg-blue-50 quiz-select-item";
-                } else {
-                    item.className = "p-3 rounded-lg border cursor-pointer transition-all border-slate-200 bg-white hover:border-blue-300 quiz-select-item";
-                }
-            });
-        }
 
         // --- INIT ---
         window.initGroupBattleDeck = function () {
@@ -1033,9 +1313,9 @@
             // Mobile Search Toggle
             const battleSearchToggleBtn = document.getElementById('battle-search-toggle-btn');
             const battleMobileSearchBar = document.getElementById('battle-mobile-search-bar');
-            
+
             if (battleSearchToggleBtn && battleMobileSearchBar) {
-                battleSearchToggleBtn.addEventListener('click', function() {
+                battleSearchToggleBtn.addEventListener('click', function () {
                     const isOpen = !battleMobileSearchBar.classList.contains('hidden');
                     if (isOpen) {
                         battleMobileSearchBar.classList.add('hidden');
@@ -1066,9 +1346,9 @@
             const battleMobileBack = document.getElementById('battle-mobile-back');
             if (battleMobileBack) {
                 battleMobileBack.addEventListener('click', () => {
-                     const individualTab = document.querySelector('[data-study-tab="individual"]');
-                     if (individualTab) individualTab.click();
-                     else window.history.back();
+                    const individualTab = document.querySelector('[data-study-tab="individual"]');
+                    if (individualTab) individualTab.click();
+                    else window.history.back();
                 });
             }
 
@@ -1093,63 +1373,39 @@
                 });
             });
 
-            // Modal (Desktop & Mobile)
+            // Modal (Desktop & Mobile) - Open Logic
             const modal = document.getElementById('create-battle-modal');
+            const fab = document.getElementById('open-battle-modal-mobile');
+
             ['open-battle-modal-desktop', 'open-battle-modal-mobile'].forEach(id => {
-                document.getElementById(id)?.addEventListener('click', () => {
-                    modal.classList.add('open');
-                    loadBattleQuizzes();
-                });
-            });
-            document.getElementById('close-battle-modal')?.addEventListener('click', () => modal.classList.remove('open'));
-
-            // Modal Search
-            document.getElementById('modal-quiz-search')?.addEventListener('input', (e) => {
-                clearTimeout(battleState.searchQuizTimeout);
-                battleState.searchQuizTimeout = setTimeout(() => loadBattleQuizzes(e.target.value.trim()), 300);
-            });
-
-            // Mode Change
-            document.getElementById('modal-battle-mode')?.addEventListener('change', function () {
-                document.getElementById('modal-timed-config').classList.toggle('hidden', this.value !== 'TIMED');
-            });
-
-            // Create Submit
-            document.getElementById('battle-create-form')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const fb = document.getElementById('battle-create-feedback');
-                const fd = new FormData(e.target);
-                const payload = Object.fromEntries(fd.entries());
-
-                if (!payload.container_id) {
-                    fb.textContent = "Chưa chọn bộ quiz!";
-                    fb.className = "mt-2 text-sm text-center text-rose-600";
-                    return;
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        modal.classList.add('open');
+                        if (fab) fab.classList.add('hidden'); // Hide FAB
+                    });
                 }
-                if (!payload.question_limit) delete payload.question_limit;
-                else payload.question_limit = Number(payload.question_limit);
+            });
 
-                if (!payload.max_players) delete payload.max_players;
-                else payload.max_players = Number(payload.max_players);
+            // Close Logic (Global for Alpine & vanilla to call)
+            window.closeBattleModal = function () {
+                modal.classList.remove('open');
+                if (fab) fab.classList.remove('hidden'); // Show FAB
+            }
 
-                if (payload.mode !== 'TIMED') delete payload.time_per_question_seconds;
-                else payload.time_per_question_seconds = Number(payload.time_per_question_seconds);
-
-                fb.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
-                fb.className = "mt-2 text-sm text-center text-blue-600";
-
-                try {
-                    const headers = { 'Content-Type': 'application/json' };
-                    if (battleCsrf) headers['X-CSRFToken'] = battleCsrf;
-                    const res = await fetch(battleUrls.create, { method: 'POST', headers, body: JSON.stringify(payload) });
-                    if (!res.ok) throw new Error((await res.text()) || 'Lỗi tạo phòng');
-                    const data = await res.json();
-                    window.location.href = battleUrls.viewTemplate.replace('__ROOM_CODE__', data.room.room_code);
-                } catch (err) {
-                    fb.textContent = err.message;
-                    fb.className = "mt-2 text-sm text-center text-rose-600";
+            // Bind close logic to all specific close triggers
+            document.addEventListener('click', function (e) {
+                if (e.target.closest('#close-battle-modal')) {
+                    window.closeBattleModal();
                 }
             });
         };
+
+        // Initialize
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', window.initGroupBattleDeck);
+        } else {
+            window.initGroupBattleDeck();
+        }
     })();
 </script>

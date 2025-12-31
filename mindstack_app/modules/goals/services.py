@@ -380,7 +380,7 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 'description': goal.description or '',
                 'unit': 'điểm' if goal.metric == 'points' else 'lượt',
                 'icon': 'star',
-                'endpoint': 'main.dashboard'
+                'endpoint': 'dashboard.dashboard'
             }
             if goal.domain == 'flashcard': 
                 config['icon'] = 'clone'

@@ -1,29 +1,29 @@
 {#
-  Reusable chat controller that handles polling, sending, open/close state,
-  and unread badge tracking for any collaborative room type.
+Reusable chat controller that handles polling, sending, open/close state,
+and unread badge tracking for any collaborative room type.
 
-  Usage example:
+Usage example:
 
-  {% include 'includes/chat_widget.html' %}
-  <script>
-    const chatCtrl = window.sharedChat.initChat({
-      messagesUrl: '{{ url_for('shared.list_chat_messages', room_type='quiz-battle', room_code=room_code) }}',
-      postMessageUrl: '{{ url_for('shared.post_chat_message', room_type='quiz-battle', room_code=room_code) }}',
-      currentUserId: {{ current_user_id }},
-      pollInterval: 5000,
-      csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+{% include 'includes/chat_widget.html' %}
+<script>
+  const chatCtrl = window.sharedChat.initChat({
+    messagesUrl: '{{ url_for('shared.list_chat_messages', room_type='quiz - battle', room_code=room_code) }}',
+    postMessageUrl: '{{ url_for('shared.post_chat_message', room_type='quiz - battle', room_code=room_code) }}',
+    currentUserId: {{ current_user_id }},
+  pollInterval: 5000,
+    csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
       elements: {
-        messages: document.getElementById('chat-messages'),
-        form: document.getElementById('chat-form'),
+    messages: document.getElementById('chat-messages'),
+      form: document.getElementById('chat-form'),
         input: document.getElementById('chat-input'),
-        panel: document.getElementById('chat-panel'),
-        openButton: document.getElementById('open-chat-btn'),
-        closeButton: document.getElementById('close-chat-btn'),
-        unreadBadge: document.getElementById('chat-unread-badge'),
+          panel: document.getElementById('chat-panel'),
+            openButton: document.getElementById('open-chat-btn'),
+              closeButton: document.getElementById('close-chat-btn'),
+                unreadBadge: document.getElementById('chat-unread-badge'),
       },
-      renderMessages: (messages, ctx) => { /* custom rendering */ },
+  renderMessages: (messages, ctx) => { /* custom rendering */ },
     });
-  </script>
+</script>
 #}
 
 <script>
@@ -127,16 +127,34 @@
 
         messagesEl.innerHTML = '';
         if (!messages.length) {
-          messagesEl.innerHTML = '<p class="text-sm text-slate-400">Chưa có tin nhắn.</p>';
+          messagesEl.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Chưa có tin nhắn.</p>';
           return;
         }
 
-        messages.forEach((msg) => {
+        messages.forEach((msg, idx) => {
+          const isMe = msg.user_id === currentUserId;
+          const showAvatar = !isMe && (idx === 0 || messages[idx - 1]?.user_id !== msg.user_id);
+          const showName = !isMe && showAvatar;
+
           const item = document.createElement('div');
-          item.className = 'chat-message-row';
-          item.textContent = `${msg.username || 'User'}: ${msg.content}`;
+          item.className = `chat-message-row ${isMe ? 'chat-me' : 'chat-other'}`;
+
+          // Get initials for avatar
+          const initials = (msg.username || 'U').substring(0, 2).toUpperCase();
+          const avatarColor = `hsl(${(msg.user_id || 0) * 137 % 360}, 60%, 55%)`;
+
+          item.innerHTML = `
+            ${!isMe ? `<div class="chat-avatar ${showAvatar ? '' : 'invisible'}" style="background: ${avatarColor}">${initials}</div>` : ''}
+            <div class="chat-bubble-wrapper">
+              ${showName ? `<div class="chat-sender-name">${msg.username || 'Người chơi'}</div>` : ''}
+              <div class="chat-bubble">${msg.content}</div>
+            </div>
+          `;
           messagesEl.appendChild(item);
         });
+
+        // Scroll to bottom
+        messagesEl.scrollTop = messagesEl.scrollHeight;
       };
 
       const loadMessages = async () => {
