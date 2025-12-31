@@ -116,7 +116,7 @@ def list_api_keys():
         'hf_model': hf_model
     }
 
-    return render_template('admin/api_keys/api_keys.html', keys=keys, logs=logs, pagination=pagination, ai_settings=settings, chart_data=chart_payload)
+    return render_template('pages/admin/api_keys/api_keys.html', keys=keys, logs=logs, pagination=pagination, ai_settings=settings, chart_data=chart_payload)
 
 @api_key_management_bp.route('/update_settings', methods=['POST'])
 def update_ai_settings():
@@ -173,7 +173,7 @@ def add_api_key():
         db.session.commit()
         flash('Đã thêm API key mới thành công!', 'success')
         return redirect(url_for('.list_api_keys'))
-    return render_template('admin/api_keys/add_edit_api_key.html', form=form, title='Thêm API Key mới')
+    return render_template('pages/admin/api_keys/add_edit_api_key.html', form=form, title='Thêm API Key mới')
 
 @api_key_management_bp.route('/edit/<int:key_id>', methods=['GET', 'POST'])
 def edit_api_key(key_id):
@@ -192,7 +192,7 @@ def edit_api_key(key_id):
         db.session.commit()
         flash('Đã cập nhật thông tin API key!', 'success')
         return redirect(url_for('.list_api_keys'))
-    return render_template('admin/api_keys/add_edit_api_key.html', form=form, title='Chỉnh sửa API Key')
+    return render_template('pages/admin/api_keys/add_edit_api_key.html', form=form, title='Chỉnh sửa API Key')
 
 @api_key_management_bp.route('/delete/<int:key_id>', methods=['POST'])
 def delete_api_key(key_id):

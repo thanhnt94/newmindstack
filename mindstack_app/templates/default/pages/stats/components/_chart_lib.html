@@ -1,0 +1,59 @@
+{# Stats Enhancement Script #}
+{# This script adds click handlers to vocab stat cards and includes Chart.js #}
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+    // Make vocabulary stat cards clickable
+    document.addEventListener('DOMContentLoaded', function () {
+        // Get container info from URL or data attributes
+        const pathParts = window.location.pathname.split('/');
+        const containerId = pathParts[pathParts.length - 1];
+
+        // Get container name from page
+        const containerNameEl = document.querySelector('.vocab-detail-title');
+        const containerName = containerNameEl ? containerNameEl.textContent.trim() : 'Vocabulary Set';
+
+        // Add click listeners to vocab stat cards
+        const statCards = document.querySelectorAll('.vocab-stat');
+        statCards.forEach(card => {
+            // Make clickable
+            card.style.cursor = 'pointer';
+
+            // Add visual feedback
+            card.addEventListener('mouseenter', function () {
+                this.style.transform = 'translateY(-4px) scale(1.02)';
+            });
+
+            card.addEventListener('mouseleave', function () {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+
+            // Add click handler
+            card.addEventListener('click', function () {
+                openContainerStatsModal(containerId, containerName);
+            });
+        });
+
+        // Add tooltip hint
+        statCards.forEach(card => {
+            card.title = 'Click để xem thống kê chi tiết';
+        });
+    });
+</script>
+
+<style>
+    /* Make stat cards look more clickable */
+    .vocab-stat {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .vocab-stat:hover {
+        cursor: pointer;
+    }
+
+    .vocab-stat:active {
+        transform: translateY(-2px) scale(0.98) !important;
+    }
+</style>

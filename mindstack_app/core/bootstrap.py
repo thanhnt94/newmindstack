@@ -91,9 +91,15 @@ def configure_static_uploads(app: Flask) -> None:
     """Point Flask's static handling to the uploads directory."""
     from flask import send_from_directory
 
-    app.static_folder = os.path.join(BASE_DIR, "uploads")
-    app.static_url_path = "/static"
-    app.logger.info("Đã cấu hình thư mục tĩnh 'uploads' tại URL: %s", app.static_url_path)
+    # app.static_folder = os.path.join(BASE_DIR, "uploads")
+    # app.static_url_path = "/static"
+    # app.logger.info("Đã cấu hình thư mục tĩnh 'uploads' tại URL: %s", app.static_url_path)
+
+    @app.route('/uploads/<path:filename>')
+    def serve_uploads(filename):
+        return send_from_directory(os.path.join(BASE_DIR, "uploads"), filename)
+    
+    app.logger.info("Đã cấu hình route '/uploads' cho thư mục uploads.")
 
     # Route riêng để serve favicon từ thư mục source (mindstack_app/static)
     @app.route('/favicon.ico')

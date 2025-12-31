@@ -1,0 +1,31 @@
+﻿{% extends "base/layout.html" %}
+{% from 'base/includes/_search_form.html' import render_search_form %}
+{% from 'base/includes/_pagination.html' import render_pagination %}
+
+{% block title %}The trong bo: {{ flashcard_set.title }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% include 'components/shared/styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="cm-shell">
+    {% include 'items/_flashcard_items_list_mobile.html' %}
+    {% include 'items/_flashcard_items_list_desktop.html' %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        window.addEventListener('content-management:refresh', function (event) {
+            var detail = event && event.detail ? event.detail : {};
+            if (detail.scope === 'flashcard-item' && Number(detail.setId || detail.containerId) === {{ flashcard_set.container_id }}) {
+                window.location.reload();
+            }
+        });
+    })();
+</script>
+{% endblock %}

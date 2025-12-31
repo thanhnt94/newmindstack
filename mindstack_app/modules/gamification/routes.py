@@ -8,7 +8,7 @@ from .services import ScoreService
 @login_required
 def score_history():
     """Trang lịch sử điểm thưởng của người dùng."""
-    return render_template('gamification/score_history.html')
+    return render_template('pages/gamification/score_history.html')
 
 @gamification_api_bp.route('/history', methods=['GET'])
 @login_required
@@ -31,7 +31,7 @@ def get_score_history_api():
 @login_required
 def leaderboard_ui():
     """Trang bảng xếp hạng."""
-    return render_template('gamification/leaderboard.html')
+    return render_template('pages/gamification/leaderboard.html')
 
 @gamification_api_bp.route('/leaderboard', methods=['GET'])
 @login_required

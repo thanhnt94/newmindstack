@@ -620,7 +620,7 @@ def list_course_sets():
     }
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('content_management/courses/_courses_list.html', **template_vars)
+        return render_template('pages/content_management/courses/_courses_list.html', **template_vars)
     else:
         return render_template('courses.html', **template_vars)
 
@@ -666,7 +666,7 @@ def add_course_set():
         return jsonify({'success': False, 'errors': form.errors}), 400
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('content_management/courses/_add_edit_course_set_bare.html', form=form, title='Thêm Bộ khóa học mới')
+        return render_template('pages/content_management/courses/_add_edit_course_set_bare.html', form=form, title='Thêm Bộ khóa học mới')
     
     return render_template('add_edit_course_set.html', form=form, title='Thêm Bộ khóa học mới')
 
@@ -715,7 +715,7 @@ def edit_course_set(set_id):
         return jsonify({'success': False, 'errors': form.errors}), 400
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('content_management/courses/_add_edit_course_set_bare.html', form=form, title='Chỉnh sửa Bộ khóa học')
+        return render_template('pages/content_management/courses/_add_edit_course_set_bare.html', form=form, title='Chỉnh sửa Bộ khóa học')
     
     return render_template('add_edit_course_set.html', form=form, title='Chỉnh sửa Bộ khóa học')
 
@@ -771,7 +771,7 @@ def list_lessons(set_id):
         _has_editor_access(set_id)
     )
        
-    return render_template('content_management/courses/lessons.html',
+    return render_template('pages/content_management/courses/lessons.html',
                            course=course,
                            lessons=lessons,
                            can_edit=can_edit,
@@ -885,7 +885,7 @@ def add_lesson(set_id):
         return jsonify({'success': False, 'errors': form.errors}), 400
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('content_management/courses/add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
+        return render_template('pages/content_management/courses/add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
         
     return render_template('add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
 
@@ -954,7 +954,7 @@ def edit_lesson(set_id, item_id):
         form.order_in_container.data = lesson_item.order_in_container
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('content_management/courses/add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
+        return render_template('pages/content_management/courses/add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
         
     return render_template('add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
 

@@ -30,7 +30,7 @@ def dashboard():
     mode = request.args.get('mode', 'flashcard')
     
     return render_template(
-        'stats/dashboard/default/index.html',
+        'pages/stats/dashboard/default/index.html',
         mode=mode
     )
 

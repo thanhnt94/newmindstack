@@ -1,0 +1,106 @@
+{# ================= PROFILE DESKTOP - ORIGINAL ENHANCED ================= #}
+<div class="hidden lg:flex justify-center py-10">
+    <div class="w-full md:w-2/3 lg:w-1/2">
+        <div class="bg-white shadow-lg p-8 border border-gray-200 rounded-xl">
+            <h2 class="text-2xl font-bold text-center mb-6">Profile của tôi</h2>
+
+            <div class="space-y-4 text-gray-700">
+                <div class="flex items-center">
+                    <i class="fas fa-user text-blue-500 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Tên đăng nhập:</p>
+                        <p>{{ user.username }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <i class="fas fa-id-badge text-blue-500 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Vai trò:</p>
+                        <p>{{ user.user_role }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <i class="fas fa-calendar-alt text-blue-500 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Lần cuối hoạt động:</p>
+                        <p>{{ user.last_seen.strftime('%Y-%m-%d %H:%M:%S') if user.last_seen else 'Chưa có' }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <i class="fas fa-star text-blue-500 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Tổng điểm:</p>
+                        <p>{{ user.total_score if user.total_score is not none else '0' }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <i class="fab fa-telegram text-blue-500 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-semibold">Telegram Bot:</p>
+                        {% if user.telegram_chat_id %}
+                        <p class="text-green-600 font-medium text-sm flex items-center mt-1">
+                            <i class="fas fa-check-circle mr-1"></i> Đã kết nối
+                        </p>
+                        {% else %}
+                        <a href="{{ telegram_link }}" target="_blank"
+                            class="inline-flex items-center mt-1 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full hover:bg-blue-200 transition-colors">
+                            <i class="fas fa-link mr-1"></i> Kết nối ngay
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Badges Section -->
+            <div class="mt-8 border-t pt-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-medal text-yellow-500 mr-2"></i> Huy hiệu đã đạt ({{ badges|length }})
+                </h3>
+
+                {% if badges %}
+                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {% for ub in badges %}
+                    <div
+                        class="flex flex-col items-center p-2 bg-gray-50 rounded-lg border hover:shadow-md transition cursor-help group relative">
+                        <i
+                            class="{{ ub.badge.icon_class }} text-2xl text-yellow-500 mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span
+                            class="text-xs font-semibold text-center text-gray-700 leading-tight line-clamp-2 w-full">{{
+                            ub.badge.name }}</span>
+
+                        <!-- Simple Tooltip -->
+                        <div
+                            class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 w-32 text-center z-10 shadow-lg pointer-events-none">
+                            <p class="font-bold mb-1">{{ ub.badge.name }}</p>
+                            <p class="mb-1">{{ ub.badge.description }}</p>
+                            <p class="text-gray-400 text-[10px]">{{ ub.earned_at.strftime('%d/%m/%Y') if ub.earned_at
+                                else '' }}</p>
+                            <!-- Arrow -->
+                            <div
+                                class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800">
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-gray-500 italic py-4 bg-gray-50 rounded-lg border border-dashed">
+                    <i class="fas fa-seedling mb-2 text-green-500 block text-xl"></i>
+                    Chưa có huy hiệu nào. Hãy tích cực học tập để mở khóa!
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="mt-8 text-center">
+                <a href="{{ url_for('user_profile.edit_profile') }}"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-300 inline-flex items-center">
+                    <i class="fas fa-edit mr-2"></i> Chỉnh sửa Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

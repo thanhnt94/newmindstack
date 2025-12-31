@@ -1,0 +1,19 @@
+{% extends "base/layout.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow p-6 text-center">
+        <h1 class="text-2xl font-bold mb-4">Memrise Session</h1>
+        <p class="text-gray-600 mb-4">This session template was missing after migration and has been replaced with this
+            placeholder.</p>
+        <p class="text-sm text-gray-500">Please contact the administrator or check backups for the original content.</p>
+
+        <div class="mt-6">
+            <a href="{{ url_for('learning.vocabulary.memrise.course_overview', container_id=container.id) }}"
+                class="btn btn-primary">
+                Return to Course
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

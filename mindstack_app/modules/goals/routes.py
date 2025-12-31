@@ -89,7 +89,7 @@ def manage_goals():
     quiz_sets = get_user_sets('QUIZ_SET')
 
     return render_template(
-        'goals/manage.html',
+        'pages/goals/manage.html',
         form=form,
         pagination=pagination,
         goal_progress=goal_progress,
@@ -126,7 +126,7 @@ def edit_goal(goal_id: int):
             return redirect(url_for('goals.manage_goals'))
 
     return render_template(
-        'goals/edit.html',
+        'pages/goals/edit.html',
         form=form,
         goal=goal,
         period_labels=PERIOD_LABELS,

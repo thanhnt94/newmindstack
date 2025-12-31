@@ -159,7 +159,7 @@ def view_room(room_code: str):
     room_payload = serialize_room(room)
 
     return render_template(
-        'flashcard/collab/room/index.html',
+        'flashcard/pages/collab/room/index.html',
         room=room,
         room_payload=room_payload,
         can_edit_flashcards=_user_can_edit_flashcard(room.container_id),

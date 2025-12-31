@@ -1,0 +1,54 @@
+{# File: mindstack_app/modules/shared/templates/includes/_pagination_mobile.html #}
+{# Mobile version of pagination - Premium App Style #}
+
+{% macro render_pagination_mobile(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
+<div class="flex justify-center items-center gap-2 pagination w-full">
+    {# Nút "Trang trước" - Circular/Squircle #}
+    {# Nút "Trang trước" #}
+    {% if pagination.has_prev %}
+    <a href="{{ url_for(request.endpoint, page=pagination.prev_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id) }}"
+        class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 active:scale-95 transition-all">
+        <i class="fas fa-chevron-left text-sm"></i>
+    </a>
+    {% else %}
+    <span
+        class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
+        <i class="fas fa-chevron-left text-sm"></i>
+    </span>
+    {% endif %}
+
+    {# Các nút số trang #}
+    <div class="flex items-center bg-white rounded-xl border border-slate-200 shadow-sm p-1">
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+        {% if page_num %}
+        {% if page_num == pagination.page %}
+        <span
+            class="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-sm shadow-sm mx-0.5">
+            {{ page_num }}
+        </span>
+        {% else %}
+        <a href="{{ url_for(request.endpoint, page=page_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id) }}"
+            class="w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm mx-0.5 transition-colors">
+            {{ page_num }}
+        </a>
+        {% endif %}
+        {% else %}
+        <span class="px-2 text-slate-300 text-xs">...</span>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {# Nút "Trang sau" #}
+    {% if pagination.has_next %}
+    <a href="{{ url_for(request.endpoint, page=pagination.next_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id) }}"
+        class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 active:scale-95 transition-all">
+        <i class="fas fa-chevron-right text-sm"></i>
+    </a>
+    {% else %}
+    <span
+        class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
+        <i class="fas fa-chevron-right text-sm"></i>
+    </span>
+    {% endif %}
+</div>
+{% endmacro %}

@@ -58,7 +58,7 @@ def login():
             next_page = url_for('dashboard.dashboard')
         return redirect(next_page)
         
-    return render_template('auth/default/login.html', form=form)
+    return render_template('pages/auth/default/login.html', form=form)
 
 @auth_bp.route('/logout', methods=['GET', 'POST'])
 def logout():
@@ -89,4 +89,4 @@ def register():
         flash('Chúc mừng, bạn đã đăng ký thành công! Vui lòng đăng nhập.', 'success')
         return redirect(url_for('auth.login'))
         
-    return render_template('auth/default/register.html', form=form)
+    return render_template('pages/auth/default/register.html', form=form)

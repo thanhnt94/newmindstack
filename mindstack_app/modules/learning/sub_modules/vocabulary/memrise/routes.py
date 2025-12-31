@@ -19,14 +19,14 @@ def course_overview(container_id):
     
     stats = get_course_overview_stats(current_user.user_id, container_id, page=page)
     
-    return render_template('memrise/course/default/index.html', container=container, stats=stats)
+    return render_template('pages/vocabulary/memrise/memrise/pages/course/default/index.html', container=container, stats=stats)
 
 @memrise_bp.route('/session/<int:container_id>')
 @login_required
 def session(container_id):
     """Memrise Session Page."""
     container = LearningContainer.query.get_or_404(container_id)
-    return render_template('memrise/session/index.html', container=container)
+    return render_template('pages/vocabulary/memrise/memrise/session/index.html', container=container)
 
 @memrise_bp.route('/api/questions/<int:container_id>')
 @login_required

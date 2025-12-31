@@ -138,4 +138,38 @@ class TemplateService:
         
         return ['v1']
 
+    @classmethod
+    def get_template_context(cls, module_name: str) -> Dict[str, Any]:
+        """Get template context for a specific module.
+        
+        Args:
+            module_name: Name of the module (e.g., 'flashcard.cardsession')
+            
+        Returns:
+            Dictionary containing 'template_base_path' and 'template_version'
+        """
+        # Default logic for now
+        version = cls.get_active_global_version()
+        
+        # Map module names to paths
+        # This is a temporary hardcoded map until we have a better registry
+        path_map = {
+            'flashcard.cardsession': 'pages/flashcard/individual/individual/cardsession'
+        }
+        
+        base_path = path_map.get(module_name)
+        if not base_path:
+             # Fallback generic path construction if not in map
+             # e.g. flashcard.cardsession -> pages/flashcard/cardsession/default
+             parts = module_name.split('.')
+             if len(parts) > 1:
+                 base_path = f"pages/{parts[0]}/{parts[1]}/default"
+             else:
+                 base_path = f"pages/{parts[0]}/default"
+
+        return {
+            'template_base_path': base_path,
+            'template_version': version
+        }
+
 

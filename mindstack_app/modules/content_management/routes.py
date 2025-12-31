@@ -96,7 +96,7 @@ def content_dashboard():
     """
     Hiển thị dashboard tổng quan về nội dung.
     """
-    return render_template('content_management/content_dashboard.html')
+    return render_template('pages/content_management/content_dashboard.html')
 
 @content_management_bp.route('/manage_contributors/<int:container_id>', methods=['GET', 'POST'])
 @login_required
@@ -185,7 +185,7 @@ def manage_contributors(container_id):
     )
     username_suggestions = [username for (username,) in eligible_usernames]
 
-    return render_template('content_management/manage_contributors.html',
+    return render_template('pages/content_management/manage_contributors.html',
                            container=container,
                            contributors=contributors,
                            form=form,

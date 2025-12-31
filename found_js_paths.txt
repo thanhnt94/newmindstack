@@ -1,0 +1,1 @@
+mindstack_app/modules/learning/sub_modules/flashcard/individual/templates/individual/cardsession/v2/js/session_engine.js

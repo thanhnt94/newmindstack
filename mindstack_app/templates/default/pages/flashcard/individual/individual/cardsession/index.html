@@ -1,0 +1,163 @@
+{#
+# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
+# Phiên bản: 69.2
+# MỤC ĐÍCH: Template cho flashcard session
+#}
+
+{% extends "base/layout.html" %}
+{% from 'base/includes/_navbar.html' import render_navbar %}
+{% block title %}Học Flashcard{% endblock %}
+
+{# CRITICAL: Add flashcard-session-active class to body to hide header/footer on mobile #}
+{% block body_class %} flashcard-session-active{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='flashcard/css/core.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='flashcard/css/components.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='flashcard/css/card.css') }}">
+{% endblock %}
+
+{% block content %}
+{# Include Desktop và Mobile partials - visibility kiểm soát bởi CSS class #}
+{# TEMPORARILY DISABLED FOR TESTING: {% include template_base_path ~ '/_desktop.html' %} #}
+{% include template_base_path ~ '/_mobile.html' %}
+{% include template_base_path ~ '/_stats_mobile.html' %}
+
+{# === SHARED MODALS - Dùng chung cho cả Desktop và Mobile === #}
+<div id="endSessionModal" class="custom-modal-overlay">
+  <div class="custom-modal-content">
+    <p class="text-lg font-semibold text-gray-800 mb-4">Bạn có chắc chắn muốn kết thúc phiên học hiện tại?</p>
+    <p class="text-sm text-gray-600 mb-6">Tiến độ của thẻ chưa trả lời sẽ không được lưu.</p>
+    <div class="flex justify-center space-x-4">
+      <button id="confirmEndSessionBtn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">Kết
+        thúc</button>
+      <button id="cancelEndSessionBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400">Hủy
+        bỏ</button>
+    </div>
+  </div>
+</div>
+
+<div id="statsModal" class="stats-modal-overlay">
+  <div id="statsModalContent" class="stats-modal-content">
+    <header class="bg-white shadow-md">
+      {{ render_navbar(current_user, request) }}
+    </header>
+    <div class="stats-modal-header">
+      <h3>Thống kê phiên học</h3>
+      <button id="closeStatsModalBtn" class="stats-modal-close-btn">&times;</button>
+    </div>
+    <div id="statsModalBody" class="stats-modal-body">
+      {# Nội dung thống kê sẽ được render vào đây #}
+    </div>
+  </div>
+</div>
+
+{# Nhúng modal AI #}
+{% include 'pages/ai_services/_ai_modal.html' %}
+
+{# Nhúng modal Ghi chú #}
+{% include 'pages/notes/_note_panel.html' %}
+
+{# Nhúng modal Feedback #}
+{% include 'pages/feedback/_feedback_modal.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+<script src="{{ url_for('static', filename='flashcard/js/flashcard_viewport.js') }}"></script>
+
+{# Config injection for static JS - CSRF headers and FC config #}
+<script>
+  // CSRF token and headers - needed by session_engine.js, notes_feedback.js, events.js
+  const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+  const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+  const csrfHeaders = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+
+  // URL endpoints - used by JS modules
+  const getFlashcardBatchUrl = "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}";
+  const flashcardItemApiUrlTemplate = "{{ url_for('learning.flashcard_learning.get_flashcard_item_api', item_id=0) }}";
+  const submitAnswerUrl = "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}";
+  const endSessionUrl = "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}";
+  const regenerateAudioUrl = "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}";
+  const getNoteUrl = "{{ url_for('notes.get_note', item_id=0) }}";
+  const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
+  const editFlashcardUrl = "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}";
+  const editUrlTemplate = editFlashcardUrl.replace('/0/items/0', '/EDIT_SET_ID/items/EDIT_ITEM_ID');
+  const dashboardUrl = "/learn/flashcard/dashboard";
+  const saveSettingsUrl = "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}";
+
+  // Session config
+  const userTotalScore = {{ current_user.total_score | default (0) }};
+  const userButtonCount = {{ user_button_count }};
+  window.userButtonCount = userButtonCount;
+  const isAutoplaySession = {{ 'true' if is_autoplay_session else 'false' }};
+  const autoplayMode = "{{ autoplay_mode }}";
+  const visualSettings = {{ saved_visual_settings | tojson if saved_visual_settings else '{}' }};
+  const autoSaveOn = {{ 'true' if saved_auto_save else 'false' }};
+
+  // State variables - initialized from backend or defaults
+  let autoplayDelaySeconds = 2;
+  let currentAutoplayToken = 0;
+  let currentAutoplayTimeouts = [];
+  let currentCardElements = { card: null, actions: null, flipBtn: null };
+
+  let isMediaHidden = false;
+  let isAudioAutoplayEnabled = true;
+  let showStats = true;
+
+  // Load from backend visual settings
+  if (visualSettings.show_image !== undefined) {
+    isMediaHidden = (visualSettings.show_image === false);
+  }
+  if (visualSettings.autoplay !== undefined) {
+    isAudioAutoplayEnabled = (visualSettings.autoplay !== false);
+  }
+  if (visualSettings.show_stats !== undefined) {
+    showStats = (visualSettings.show_stats !== false);
+  }
+
+  // Session tracking
+  let currentFlashcardBatch = [];
+  let currentFlashcardIndex = 0;
+  let sessionScore = 0;
+  let currentUserTotalScore = userTotalScore;
+  let sessionStatsLocal = { processed: 0, total: 0, correct: 0, incorrect: 0, vague: 0, mastered: 0 };
+  let sessionAnswerHistory = [];
+  let previousCardStats = null;
+
+  // DOM references
+  const statsModal = document.getElementById('statsModal');
+  const statsModalContent = document.getElementById('statsModalContent');
+  const currentCardStatsContainer = document.getElementById('current-card-stats-pane');
+  const previousCardStatsContainer = document.getElementById('previous-card-stats-pane');
+  const endSessionBtn = document.getElementById('end-session-btn');
+
+  // Legacy compatibility - FC object
+  window.FC = {
+    urls: {
+      getFlashcardBatch: getFlashcardBatchUrl,
+      flashcardItemApi: flashcardItemApiUrlTemplate,
+      submitAnswer: submitAnswerUrl,
+      endSession: endSessionUrl,
+      regenerateAudio: regenerateAudioUrl,
+      getNote: getNoteUrl,
+      saveNote: saveNoteUrl,
+      editFlashcard: editFlashcardUrl
+    },
+    userTotalScore: userTotalScore,
+    buttonCount: userButtonCount,
+    isAutoplay: isAutoplaySession,
+    autoplayMode: autoplayMode
+  };
+</script>
+
+<script src="{{ url_for('static', filename='flashcard/js/ui_manager.js') }}"></script>
+<script src="{{ url_for('static', filename='flashcard/js/audio_controller.js') }}"></script>
+<script src="{{ url_for('static', filename='flashcard/js/notes_feedback.js') }}"></script>
+<script src="{{ url_for('static', filename='flashcard/js/render_engine.js') }}"></script>
+<script src="{{ url_for('static', filename='flashcard/js/session_engine.js') }}"></script>
+<script src="{{ url_for('static', filename='flashcard/js/events.js') }}"></script>
+{% endblock %}

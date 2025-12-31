@@ -26,7 +26,7 @@ from ..flashcard.engine import (
 @login_required
 def dashboard():
     """Main vocabulary learning hub dashboard."""
-    return render_template('vocabulary/dashboard/default/index.html')
+    return render_template('pages/vocabulary/dashboard/default/index.html')
 
 
 @vocabulary_bp.route('/api/sets')
@@ -122,7 +122,7 @@ def set_detail_page(set_id):
     can_edit_set = (current_user.user_role == User.ROLE_ADMIN or 
                     container.creator_user_id == current_user.user_id)
     
-    return render_template('vocabulary/dashboard/default/index.html', 
+    return render_template('pages/vocabulary/dashboard/default/index.html', 
                           active_set_id=set_id, 
                           active_step='detail',
                           can_edit_set=can_edit_set,
@@ -149,7 +149,7 @@ def set_modes_page(set_id):
         current_app.logger.warning(f"[MODE FILTER] No capabilities set, defaulting to all modes")
         capabilities = ['supports_flashcard', 'supports_quiz', 'supports_writing', 'supports_listening', 'supports_speaking']
     
-    return render_template('vocabulary/dashboard/default/index.html', 
+    return render_template('pages/vocabulary/dashboard/default/index.html', 
                           active_set_id=set_id, 
                           active_step='modes',
                           container_capabilities=capabilities)
@@ -159,14 +159,16 @@ def set_modes_page(set_id):
 @login_required
 def set_flashcard_page(set_id):
     """Step 3: Flashcard options page."""
-    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id, active_step='flashcard-options')
+    return render_template('pages/vocabulary/dashboard/default/index.html', active_set_id=set_id, active_step='flashcard-options')
 
 
 @vocabulary_bp.route('/set/<int:set_id>/mcq')
 @login_required
 def set_mcq_page(set_id):
     """Step 3: MCQ options page."""
-    return render_template('vocabulary/dashboard/default/index.html', active_set_id=set_id, active_step='mcq-options')
+    return render_template('pages/vocabulary/dashboard/default/index.html', 
+                          active_set_id=set_id, 
+                          active_step='mcq-options')
 
 
 @vocabulary_bp.route('/api/flashcard-modes/<int:set_id>')
@@ -302,7 +304,7 @@ def api_get_set_detail(set_id):
              
              # Render template
              tmpl = """
-             {% from 'includes/_pagination_mobile.html' import render_pagination_mobile %}
+             {% from 'base/includes/_pagination_mobile.html' import render_pagination_mobile %}
              {{ render_pagination_mobile(pagination, set_id=set_id) }}
              """
              pagination_html = render_template_string(tmpl, pagination=pag_obj, set_id=set_id)
@@ -508,7 +510,7 @@ def item_stats_page(item_id):
         abort(404, description="Item not found")
 
     if request.args.get('modal') == 'true':
-        return render_template('vocabulary/stats/_item_stats_content.html', stats=stats)
+        return render_template('pages/vocabulary/stats/_item_stats_content.html', stats=stats)
         
-    return render_template('vocabulary/stats/item_detail.html', stats=stats)
+    return render_template('pages/vocabulary/stats/item_detail.html', stats=stats)
 

@@ -1,0 +1,361 @@
+<!-- Item Detail Modal Component -->
+<!-- Shows detailed Memory Power stats and history for a single item -->
+
+<div id="item-detail-modal" class="modal fade" tabindex="-1" style="display: none;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📊 Item Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Item Content -->
+                <div class="item-content-display">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Front:</strong>
+                            <div id="item-front" class="item-text"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Back:</strong>
+                            <div id="item-back" class="item-text"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Current Stats -->
+                <div class="current-stats">
+                    <h6>Current Memory Power</h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <div class="stat-value" id="detail-mastery">--%</div>
+                                <div class="stat-label">Mastery</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <div class="stat-value" id="detail-retention">--%</div>
+                                <div class="stat-label">Retention</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box">
+                                <div class="stat-value" id="detail-mp">--%</div>
+                                <div class="stat-label">Memory Power</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Progress Info -->
+                <div class="progress-info">
+                    <h6>Learning Progress</h6>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Status:</span>
+                            <span id="detail-status" class="info-value">--</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Correct Streak:</span>
+                            <span id="detail-streak" class="info-value">--</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Next Review:</span>
+                            <span id="detail-next-review" class="info-value">--</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Interval:</span>
+                            <span id="detail-interval" class="info-value">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Review History -->
+                <div class="review-history">
+                    <h6>Recent Reviews</h6>
+                    <div id="review-history-list" class="history-list">
+                        <div class="text-muted">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="review-now-btn">Review Now</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .item-text {
+        padding: 10px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        margin-top: 5px;
+        min-height: 40px;
+    }
+
+    .stat-box {
+        padding: 15px;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin: 5px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .stat-value.strong {
+        color: #10b981;
+    }
+
+    .stat-value.medium {
+        color: #f59e0b;
+    }
+
+    .stat-value.weak {
+        color: #ef4444;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 5px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background: #f9fafb;
+        border-radius: 6px;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #4b5563;
+    }
+
+    .info-value {
+        color: #1f2937;
+    }
+
+    .history-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .history-item {
+        padding: 10px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .history-item:last-child {
+        border-bottom: none;
+    }
+
+    .history-result {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    /* Mobile Responsive Adjustments */
+    @media (max-width: 768px) {
+        .stat-box {
+            padding: 10px;
+            margin: 2px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+            /* Stack vertically on small screens */
+            gap: 10px;
+        }
+
+        .item-text {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .modal-body {
+            padding: 1rem;
+        }
+    }
+
+    .history-result.correct {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .history-result.vague {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .history-result.incorrect {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+</style>
+
+<script>
+    // Item Detail Modal Functions
+    function showItemDetail(itemId, mode = 'flashcard', itemContent = null) {
+        // Prepare fetch promises
+        const promises = [
+            fetch(`/api/learning/stats/item/${itemId}?mode=${mode}`).then(r => r.json())
+        ];
+
+        // Only fetch content if not provided
+        if (!itemContent) {
+            // NOTE: This endpoint might not exist, update if needed
+            promises.push(fetch(`/api/learning/items/${itemId}`).then(r => r.json()));
+        } else {
+            promises.push(Promise.resolve(itemContent)); // Resolve immediately with provided content
+        }
+
+        Promise.all(promises)
+            .then(([stats, content]) => {
+                // Handle different content structures
+                const finalContent = content.content || content;
+                updateItemDetailModal(stats, finalContent);
+
+                // Show modal (Bootstrap 5)
+                const modalEl = document.getElementById('item-detail-modal');
+                // Use existing instance or create new
+                let modal = bootstrap.Modal.getInstance(modalEl);
+                if (!modal) {
+                    modal = new bootstrap.Modal(modalEl);
+                }
+                modal.show();
+            })
+            .catch(err => {
+                console.error('Failed to load item details:', err);
+                alert('Failed to load item details');
+            });
+    }
+
+    function updateItemDetailModal(stats, item) {
+        // Update content
+        document.getElementById('item-front').textContent = item.content?.front || '--';
+        document.getElementById('item-back').textContent = item.content?.back || '--';
+
+        // Update stats
+        const mastery = stats.mastery || 0;
+        const retention = stats.retention || 0;
+        const mp = stats.memory_power || 0;
+
+        updateStatElement('detail-mastery', mastery);
+        updateStatElement('detail-retention', retention);
+        updateStatElement('detail-mp', mp);
+
+        // Update progress info
+        document.getElementById('detail-status').textContent = stats.status || '--';
+        document.getElementById('detail-streak').textContent = `${stats.correct_streak || 0} 🔥`;
+        document.getElementById('detail-next-review').textContent = stats.next_review
+            ? formatDate(stats.next_review)
+            : 'Not scheduled';
+        document.getElementById('detail-interval').textContent = stats.is_due
+            ? 'Due now!'
+            : formatInterval(stats.interval_minutes);
+
+        // Update review history (if available)
+        updateReviewHistory(stats.recent_reviews || []);
+    }
+
+    function updateStatElement(elementId, percentage) {
+        const element = document.getElementById(elementId);
+        element.textContent = percentage.toFixed(1) + '%';
+        element.className = 'stat-value ' + getColorClass(percentage);
+    }
+
+    function updateReviewHistory(reviews) {
+        const container = document.getElementById('review-history-list');
+
+        if (!reviews || reviews.length === 0) {
+            container.innerHTML = '<div class="text-muted">No review history</div>';
+            return;
+        }
+
+        container.innerHTML = reviews.map(review => `
+        <div class="history-item">
+            <span>${formatDate(review.timestamp)}</span>
+            <span class="history-result ${review.result}">${review.result}</span>
+        </div>
+    `).join('');
+    }
+
+    function formatDate(isoString) {
+        const date = new Date(isoString);
+        const now = new Date();
+        const diff = date - now;
+
+        if (diff > 0) {
+            // Future
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            if (days > 0) return `in ${days}d`;
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            if (hours > 0) return `in ${hours}h`;
+            return 'soon';
+        } else {
+            // Past
+            const days = Math.floor(-diff / (1000 * 60 * 60 * 24));
+            if (days > 0) return `${days}d ago`;
+            const hours = Math.floor(-diff / (1000 * 60 * 60));
+            if (hours > 0) return `${hours}h ago`;
+            return 'just now';
+        }
+    }
+
+    function formatInterval(minutes) {
+        if (!minutes) return '--';
+        const days = Math.floor(minutes / (60 * 24));
+        if (days > 0) return `${days} day${days > 1 ? 's' : ''}`;
+        const hours = Math.floor(minutes / 60);
+        if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
+        return `${minutes} minutes`;
+    }
+
+    function getColorClass(percentage) {
+        if (percentage >= 80) return 'strong';
+        if (percentage >= 50) return 'medium';
+        return 'weak';
+    }
+
+    // Review now button handler
+    document.getElementById('review-now-btn')?.addEventListener('click', function () {
+        // TODO: Implement review now functionality
+        alert('Review functionality not yet implemented');
+    });
+</script>

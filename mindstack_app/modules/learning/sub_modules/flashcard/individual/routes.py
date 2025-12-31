@@ -300,7 +300,7 @@ def flashcard_session():
     )
 
 
-@flashcard_learning_bp.route('/get_flashcard_batch', methods=['GET'])
+@flashcard_learning_bp.route('/get_flashcard_batch', methods=['GET', 'POST'])
 @login_required
 def get_flashcard_batch():
     """
@@ -693,7 +693,7 @@ def get_flashcard_sets_partial():
         }
 
         current_app.logger.debug("<<< Kết thúc thực thi get_flashcard_sets_partial (Thành công) >>>")
-        return render_template('flashcard/individual/setup/default/_sets_list.html', **template_vars)
+        return render_template('pages/flashcard/individual/setup/default/_sets_list.html', **template_vars)
 
     except Exception as e:
         print(f">>> PYTHON LỖI: Đã xảy ra lỗi trong get_flashcard_sets_partial: {e}")
