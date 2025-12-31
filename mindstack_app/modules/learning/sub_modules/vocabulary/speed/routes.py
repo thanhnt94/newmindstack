@@ -2,7 +2,8 @@
 # Speed Review Learning Mode Routes
 
 import json
-from flask import render_template, request, jsonify, abort
+from flask import request, jsonify, abort
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 import random
 

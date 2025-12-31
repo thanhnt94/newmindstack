@@ -22,7 +22,9 @@ __all__ = ["create_app", "app", "db"]
 def create_app(config_class: type[Config] = Config) -> Flask:
     """Create and configure a Flask application instance."""
 
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder='templates/default')
+
+
     app.config.from_object(config_class)
 
     configure_logging(app)

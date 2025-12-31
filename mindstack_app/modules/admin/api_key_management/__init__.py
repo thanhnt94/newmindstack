@@ -10,7 +10,6 @@ from ..context_processors import admin_context_processor
 api_key_management_bp = Blueprint(
     'api_key_management',
     __name__,
-    template_folder='templates',
     static_folder='static'
 )
 

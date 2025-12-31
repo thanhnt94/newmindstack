@@ -6,8 +6,7 @@ from flask import Blueprint
 typing_bp = Blueprint(
     'vocab_typing',
     __name__,
-    url_prefix='/typing',
-    template_folder='templates'
+    url_prefix='/typing'
 )
 
 from . import routes

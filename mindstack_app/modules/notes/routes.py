@@ -2,7 +2,8 @@
 # Phiên bản: 1.0
 # Mục đích: Chứa các route và logic cho tính năng ghi chú của người dùng.
 
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import redirect, url_for, flash, request, jsonify
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from . import notes_bp
 from .forms import NoteForm

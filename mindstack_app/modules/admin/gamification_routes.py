@@ -1,4 +1,5 @@
-from flask import render_template, request, redirect, url_for, flash, current_app
+from flask import request, redirect, url_for, flash, current_app
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from . import admin_bp
 from ...modules.gamification.models import Badge

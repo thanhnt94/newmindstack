@@ -2228,20 +2228,21 @@ def create_directory_api():
 @login_required
 def manage_templates():
     """
-    Trang quản lý giao diện template.
-    Admin có thể chọn version cho từng loại template.
+    Trang quản lý giao diện template toàn trang (Global Theme).
     """
     if current_user.user_role != User.ROLE_ADMIN:
         abort(403)
     
     from ...services.template_service import TemplateService
     
-    # Get all template settings
-    template_settings = TemplateService.get_all_template_settings()
+    # Get global template settings
+    active_version = TemplateService.get_active_global_version()
+    available_versions = TemplateService.list_available_versions()
     
     return render_template(
         'default/manage_templates.html',
-        template_settings=template_settings,
+        active_version=active_version,
+        available_versions=available_versions,
     )
 
 
@@ -2249,35 +2250,32 @@ def manage_templates():
 @login_required
 def update_template_settings():
     """
-    API endpoint để lưu cài đặt template.
+    API endpoint để lưu cài đặt template version toàn cục.
     """
     if current_user.user_role != User.ROLE_ADMIN:
         return jsonify({'success': False, 'message': 'Không có quyền.'}), 403
     
     from ...services.template_service import TemplateService
-    from ...models import db
     
     try:
         data = request.get_json() or {}
-        updates = data.get('updates', {})
+        new_version = data.get('global_version')
         
-        if not updates:
-            return jsonify({'success': False, 'message': 'Không có thay đổi.'})
+        if not new_version:
+            return jsonify({'success': False, 'message': 'Không có phiên bản được chọn.'})
         
-        for template_type, version in updates.items():
-            if template_type and version:
-                TemplateService.set_active_template(
-                    template_type,
-                    version,
-                    user_id=current_user.user_id
-                )
-                current_app.logger.info(
-                    f"Template updated by {current_user.username}: {template_type} -> {version}"
-                )
+        TemplateService.set_active_global_version(
+            new_version,
+            user_id=current_user.user_id
+        )
+        
+        current_app.logger.info(
+            f"Global Template updated by {current_user.username}: -> {new_version}"
+        )
         
         return jsonify({
             'success': True,
-            'message': 'Đã cập nhật cài đặt giao diện.',
+            'message': f'Đã cập nhật giao diện thành công sang phiên bản {new_version}.',
         })
     
     except Exception as e:

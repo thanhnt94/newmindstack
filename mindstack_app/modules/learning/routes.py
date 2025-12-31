@@ -3,7 +3,8 @@
 # Mục đích: Đăng ký blueprint cho module học Course.
 # ĐÃ THÊM: Import và đăng ký course_learning_bp.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, request, redirect, url_for, flash, abort
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 
 # Import các blueprint con
@@ -20,8 +21,7 @@ from .sub_modules.stats import stats_bp
 
 
 # Định nghĩa Blueprint chính cho learning
-learning_bp = Blueprint('learning', __name__,
-                        template_folder='templates') # Các template chung cho learning (nếu có)
+learning_bp = Blueprint('learning', __name__) # Các template chung cho learning (nếu có)
 
 # Đăng ký các blueprint con
 learning_bp.register_blueprint(quiz_learning_bp)

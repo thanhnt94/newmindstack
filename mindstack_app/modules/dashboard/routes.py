@@ -1,4 +1,5 @@
-from flask import render_template, url_for
+from flask import url_for
+from mindstack_app.core.templating import render_template
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
@@ -10,6 +11,8 @@ from ...models import db, LearningGoal, User
 @login_required
 def dashboard():
     user_id = current_user.user_id
+
+
 
     metrics = get_learning_activity(user_id)
 

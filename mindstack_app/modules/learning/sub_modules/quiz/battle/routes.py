@@ -5,7 +5,8 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from flask import Blueprint, abort, jsonify, render_template, request
+from flask import Blueprint, abort, jsonify, request
+from mindstack_app.core.templating import render_template
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.sql import func
@@ -35,7 +36,7 @@ from .services import (
     start_round,
 )
 
-quiz_battle_bp = Blueprint('quiz_battle', __name__, template_folder='templates')
+quiz_battle_bp = Blueprint('quiz_battle', __name__)
 
 _battle_templates_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
 _shared_quiz_templates_path = os.path.abspath(

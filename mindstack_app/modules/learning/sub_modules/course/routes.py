@@ -3,7 +3,8 @@
 # MỤC ĐÍCH: Lấy dữ liệu ghi chú của người dùng cho bài học hiện tại.
 # ĐÃ THÊM: Truy vấn model UserNote và truyền đối tượng 'note' ra template.
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, abort
+from flask import Blueprint, request, jsonify, redirect, url_for, flash, abort
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from sqlalchemy.sql import func
 
@@ -22,7 +23,7 @@ from mindstack_app.models.learning_progress import LearningProgress
 from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.modules.gamification.services import ScoreService
 
-course_bp = Blueprint('course', __name__, template_folder='templates')
+course_bp = Blueprint('course', __name__)
 
 
 def _get_score_value(key: str, default: int) -> int:
@@ -42,7 +43,7 @@ def course_learning_dashboard():
     Mô tả: Hiển thị trang dashboard chính cho việc học Course.
     """
     current_filter = request.args.get('filter', 'doing', type=str)
-    return render_template('default/course_learning_dashboard.html', current_filter=current_filter)
+    return render_template('course/course_learning_dashboard.html', current_filter=current_filter)
 
 @course_bp.route('/get_course_sets_partial')
 @login_required
@@ -63,7 +64,7 @@ def get_course_sets_partial():
         page=page
     )
     
-    return render_template('default/_course_sets_selection.html',
+    return render_template('course/_course_sets_selection.html',
                            courses=pagination.items,
                            pagination=pagination,
                            search_query=search_query,
@@ -81,7 +82,7 @@ def get_lesson_list_partial(course_id):
         abort(403)
     lessons = get_lessons_for_course(current_user.user_id, course_id)
     
-    return render_template('default/_lesson_selection.html', lessons=lessons, course=course)
+    return render_template('course/_lesson_selection.html', lessons=lessons, course=course)
 
 @course_bp.route('/course_session/<int:lesson_id>')
 @login_required
@@ -123,7 +124,7 @@ def course_session(lesson_id):
     note = UserNote.query.filter_by(user_id=current_user.user_id, item_id=lesson.item_id).first()
 
     return render_template(
-        'default/course_session.html', 
+        'course/course_session.html', 
         lesson=lesson, 
         course=course, 
         current_percentage=current_percentage,

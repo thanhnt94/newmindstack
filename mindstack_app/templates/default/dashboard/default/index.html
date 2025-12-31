@@ -43,12 +43,12 @@
 {% block content %}
 <div class="bg-transparent">
     {# --- Giao diện Mobile (App-like) --- #}
-    <div class="lg:hidden">
+    <div class="md:hidden">
         {% include 'dashboard/default/_mobile.html' %}
     </div>
 
     {# --- Giao diện Desktop (Grid Complex) --- #}
-    <div class="hidden lg:block">
+    <div class="hidden md:block">
         {% include 'dashboard/default/_desktop.html' %}
     </div>
 </div>

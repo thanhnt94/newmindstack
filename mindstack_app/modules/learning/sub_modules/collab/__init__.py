@@ -7,8 +7,7 @@ from flask import Blueprint
 collab_bp = Blueprint(
     'collab', 
     __name__, 
-    url_prefix='/collab',
-    template_folder='templates'
+    url_prefix='/collab'
 )
 
 # Import routes after blueprint creation to avoid circular imports

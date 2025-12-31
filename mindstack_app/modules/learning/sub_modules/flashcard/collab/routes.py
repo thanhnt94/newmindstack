@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, jsonify, redirect, request, url_for
+from mindstack_app.core.templating import render_template
 from flask_login import current_user, login_required
 from sqlalchemy.sql import func
 

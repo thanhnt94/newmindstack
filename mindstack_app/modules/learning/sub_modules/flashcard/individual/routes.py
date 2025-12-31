@@ -3,7 +3,8 @@
 # MỤC ĐÍCH: Entry point routes cho chế độ học flashcard cá nhân.
 # Routes này sử dụng engine module như dependency.
 
-from flask import render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
+from flask import request, jsonify, abort, current_app, redirect, url_for, flash, session
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 import traceback
 from . import flashcard_learning_bp

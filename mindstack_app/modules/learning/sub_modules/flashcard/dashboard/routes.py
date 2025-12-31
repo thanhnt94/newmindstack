@@ -1,4 +1,5 @@
-from flask import render_template, request
+from flask import request
+from mindstack_app.core.templating import render_template
 from flask_login import current_user, login_required
 from . import dashboard_bp
 from ..individual.config import FlashcardLearningConfig

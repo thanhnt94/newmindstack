@@ -7,8 +7,7 @@ from flask import Blueprint
 # Tạo đối tượng Blueprint cho module stats
 stats_bp = Blueprint(
     'stats', 
-    __name__, 
-    template_folder='templates'
+    __name__
 )
 
 # Import các routes để chúng được đăng ký với Blueprint

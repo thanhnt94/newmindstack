@@ -1,0 +1,322 @@
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\admin\api_key_management\templates
+  Module: admin.api_key_management
+    - default\add_edit_api_key.html
+    - default\api_keys.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\admin\user_management\templates
+  Module: admin.user_management
+    - default\add_edit_user.html
+    - default\users.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\ai_services\templates
+  Module: ai_services
+    - ai_services\_ai_modal.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\auth\templates
+  Module: auth
+    - auth\default\login.html
+    - auth\default\register.html
+    - auth\default\_base.html
+    - auth\default\_login_desktop.html
+    - auth\default\_login_mobile.html
+    - auth\default\_register_desktop.html
+    - auth\default\_register_mobile.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\content_management\templates
+  Module: content_management
+    - content_dashboard.html
+    - manage_contributors.html
+    - _content_dashboard_desktop.html
+    - _content_dashboard_mobile.html
+    - content_management\_cover_preview_script.html
+    - content_management\_shared_styles.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\content_management\courses\templates
+  Module: content_management.courses
+    - add_edit_course_set.html
+    - add_edit_lesson.html
+    - courses.html
+    - lessons.html
+    - manage_course_excel.html
+    - _add_edit_course_set_bare.html
+    - _courses_list.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\content_management\flashcards\templates
+  Module: content_management.flashcards
+    - excel\manage_flashcard_excel.html
+    - items\add_edit_flashcard_item.html
+    - items\flashcard_items.html
+    - items\_add_edit_flashcard_item_bare.html
+    - items\_flashcard_items_list_desktop.html
+    - items\_flashcard_items_list_mobile.html
+    - sets\add_edit_flashcard_set.html
+    - sets\flashcard_sets.html
+    - sets\_add_edit_flashcard_set_bare.html
+    - sets\_flashcard_sets_list.html
+    - sets\_flashcard_sets_list_desktop.html
+    - sets\_flashcard_sets_list_mobile.html
+    - shared\_flashcard_audio_control_scripts.html
+    - shared\_flashcard_image_control_scripts.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\content_management\quizzes\templates
+  Module: content_management.quizzes
+    - excel\manage_quiz_excel.html
+    - items\add_edit_quiz_item.html
+    - items\quiz_items.html
+    - items\_add_edit_quiz_item_bare.html
+    - items\_quiz_items_list_desktop.html
+    - items\_quiz_items_list_mobile.html
+    - sets\add_edit_quiz_set.html
+    - sets\quiz_sets.html
+    - sets\_add_edit_quiz_set_bare.html
+    - sets\_add_edit_quiz_set_desktop.html
+    - sets\_add_edit_quiz_set_mobile.html
+    - sets\_quiz_sets_list.html
+    - sets\_quiz_sets_list_desktop.html
+    - sets\_quiz_sets_list_mobile.html
+    - shared\_quiz_media_scripts.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\dashboard\templates
+  Module: dashboard
+    - dashboard\default\index.html
+    - dashboard\default\_base.html
+    - dashboard\default\_desktop.html
+    - dashboard\default\_mobile.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\feedback\templates
+  Module: feedback
+    - feedback\manage_feedback.html
+    - feedback\_feedback_modal.html
+    - feedback\_feedback_table.html
+    - feedback\_general_feedback_modal.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\gamification\templates
+  Module: gamification
+    - gamification\leaderboard.html
+    - gamification\score_history.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\goals\templates
+  Module: goals
+    - goals\edit.html
+    - goals\manage.html
+    - goals\_goals_desktop.html
+    - goals\_goals_mobile.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\landing\templates
+  Module: landing
+    - landing\default\index.html
+    - landing\default\_base.html
+    - landing\default\_desktop.html
+    - landing\default\_mobile.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\templates
+  Module: learning
+    - learning\components\_item_detail_modal.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\collab\templates
+  Module: learning.sub_modules.collab
+    - collab\default\dashboard.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\course\templates
+  Module: learning.sub_modules.course
+    - default\course_learning_dashboard.html
+    - default\course_session.html
+    - default\_base.html
+    - default\_course_sets_selection.html
+    - default\_lesson_selection.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\flashcard\templates
+  Module: learning.sub_modules.flashcard
+    - flashcard\collab\room\index.html
+    - flashcard\components\_memory_power_widget.html
+    - flashcard\dashboard\index.html
+    - flashcard\dashboard\_desktop_collab.html
+    - flashcard\dashboard\_desktop_individual.html
+    - flashcard\dashboard\_mobile.html
+    - flashcard\setup\_modes_list.html
+    - flashcard\setup\_modes_list_desktop.html
+    - flashcard\setup\_modes_list_mobile.html
+    - flashcard\setup\_sets_list.html
+    - flashcard\setup\_sets_list_desktop.html
+    - flashcard\setup\_sets_list_mobile.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\flashcard\dashboard\templates
+  Module: learning.sub_modules.flashcard.dashboard
+    - dashboard\index.html
+    - dashboard\_desktop_collab.html
+    - dashboard\_desktop_individual.html
+    - dashboard\_mobile.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\flashcard\individual\templates
+  Module: learning.sub_modules.flashcard.individual
+    - individual\_modes_list.html
+    - individual\_modes_list_desktop.html
+    - individual\_modes_list_mobile.html
+    - individual\_sets_list.html
+    - individual\_sets_list_desktop.html
+    - individual\_sets_list_mobile.html
+    - individual\cardsession\default\index.html
+    - individual\cardsession\default\_base.html
+    - individual\cardsession\default\_card_desktop.html
+    - individual\cardsession\default\_card_mobile.html
+    - individual\cardsession\default\_desktop.html
+    - individual\cardsession\default\_mobile.html
+    - individual\cardsession\default\_stats_desktop.html
+    - individual\cardsession\default\_stats_mobile.html
+    - individual\cardsession\v1\index.html
+    - individual\cardsession\v1\_base.html
+    - individual\cardsession\v1\_card_desktop.html
+    - individual\cardsession\v1\_card_mobile.html
+    - individual\cardsession\v1\_desktop.html
+    - individual\cardsession\v1\_mobile.html
+    - individual\cardsession\v1\_stats_desktop.html
+    - individual\cardsession\v1\_stats_mobile.html
+    - individual\cardsession\v1\static\flashcard_viewport.js
+    - individual\cardsession\v1\static\css\session_v1.css
+    - individual\cardsession\v1\static\js\session_v1.js
+    - individual\cardsession\v2\index.html
+    - individual\cardsession\v2\_base.html
+    - individual\cardsession\v2\_card_desktop.html
+    - individual\cardsession\v2\_card_mobile.html
+    - individual\cardsession\v2\_desktop.html
+    - individual\cardsession\v2\_mobile.html
+    - individual\cardsession\v2\_stats_desktop.html
+    - individual\cardsession\v2\_stats_mobile.html
+    - individual\cardsession\v2\css\card.css
+    - individual\cardsession\v2\css\components.css
+    - individual\cardsession\v2\css\core.css
+    - individual\cardsession\v2\js\audio_controller.js
+    - individual\cardsession\v2\js\events.js
+    - individual\cardsession\v2\js\notes_feedback.js
+    - individual\cardsession\v2\js\render_engine.js
+    - individual\cardsession\v2\js\session_engine.js
+    - individual\cardsession\v2\js\ui_manager.js
+    - individual\cardsession\v2\static\js\flashcard_viewport.js
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\practice\templates
+  Module: learning.sub_modules.practice
+    - practice\flashcard\dashboard.html
+    - practice\flashcard\setup.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\quiz\templates
+  Module: learning.sub_modules.quiz
+    - quiz\battle\default\index.html
+    - quiz\battle\default\_base.html
+    - quiz\battle\default\room\index.html
+    - quiz\dashboard\default\index.html
+    - quiz\dashboard\default\_desktop_battle.html
+    - quiz\dashboard\default\_desktop_individual.html
+    - quiz\dashboard\default\_mobile.html
+    - quiz\individual\session\default\index.html
+    - quiz\individual\session\default\_base.html
+    - quiz\individual\session\default\_quiz_session_batch_desktop.html
+    - quiz\individual\session\default\_quiz_session_batch_mobile.html
+    - quiz\individual\session\default\_quiz_session_single_desktop.html
+    - quiz\individual\session\default\_quiz_session_single_mobile.html
+    - quiz\individual\session\default\_session_batch.html
+    - quiz\individual\session\default\_session_single.html
+    - quiz\individual\setup\default\_modes_list.html
+    - quiz\individual\setup\default\_quiz_custom_options.html
+    - quiz\individual\setup\default\_quiz_modes_selection_desktop.html
+    - quiz\individual\setup\default\_quiz_modes_selection_mobile.html
+    - quiz\individual\setup\default\_quiz_sets_selection_desktop.html
+    - quiz\individual\setup\default\_quiz_sets_selection_mobile.html
+    - quiz\individual\setup\default\_sets_list.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\stats\templates
+  Module: learning.sub_modules.stats
+    - stats\components\_chart_lib.html
+    - stats\components\_container_modal.html
+    - stats\components\_item_charts.html
+    - stats\components\_stats_button.html
+    - stats\dashboard\default\index.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\vocabulary\templates
+  Module: learning.sub_modules.vocabulary
+    - vocabulary\dashboard\default\index.html
+    - vocabulary\dashboard\default\_container_stats_modal.html
+    - vocabulary\dashboard\default\_inject_stats_button.html
+    - vocabulary\dashboard\default\_item_stats_charts.html
+    - vocabulary\dashboard\default\_stats_enhancement.html
+    - vocabulary\stats\item_detail.html
+    - vocabulary\stats\_item_stats_content.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\vocabulary\listening\templates
+  Module: learning.sub_modules.vocabulary.listening
+    - listening\session\default\index.html
+    - listening\setup\default\index.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\vocabulary\matching\templates
+  Module: learning.sub_modules.vocabulary.matching
+    - matching\session\default\index.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\vocabulary\mcq\templates
+  Module: learning.sub_modules.vocabulary.mcq
+    - mcq\session\default\index.html
+    - mcq\setup\default\index.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\vocabulary\memrise\templates
+  Module: learning.sub_modules.vocabulary.memrise
+    - memrise\course\default\index.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\vocabulary\speed\templates
+  Module: learning.sub_modules.vocabulary.speed
+    - speed\session\default\index.html
+    - speed\setup\default\index.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\sub_modules\vocabulary\typing\templates
+  Module: learning.sub_modules.vocabulary.typing
+    - typing\session\default\index.html
+    - typing\setup\default\index.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\main\templates
+  Module: main
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\notes\templates
+  Module: notes
+    - notes\manage_notes.html
+    - notes\_note_panel.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\notification\templates
+  Module: notification
+    - notification\center.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\shared\templates
+  Module: shared
+    - base.html
+    - _base_desktop.html
+    - _base_mobile.html
+    - includes\chat_widget.html
+    - includes\_app_logic.html
+    - includes\_bottom_nav_mobile.html
+    - includes\_global_styles.html
+    - includes\_markdown_assets.html
+    - includes\_navbar.html
+    - includes\_navbar_mobile.html
+    - includes\_pagination.html
+    - includes\_pagination_desktop.html
+    - includes\_pagination_mobile.html
+    - includes\_search_compact.html
+    - includes\_search_form.html
+    - includes\_search_form_desktop.html
+    - includes\_search_form_mobile.html
+    - includes\_session_header.html
+    - includes\_settings_modal.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\stats\templates
+  Module: stats
+    - statistics.html
+    - _leaderboard_list.html
+    - stats\_statistics_desktop.html
+    - stats\_statistics_mobile.html
+
+Found: c:\Code\MindStack\newmindstack\mindstack_app\modules\user_profile\templates
+  Module: user_profile
+    - default\edit_profile.html
+    - default\profile.html
+    - default\_base.html
+    - default\_edit_profile_desktop.html
+    - default\_edit_profile_mobile.html
+    - default\_profile_desktop.html
+    - default\_profile_mobile.html

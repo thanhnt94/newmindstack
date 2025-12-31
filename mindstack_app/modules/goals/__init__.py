@@ -3,6 +3,6 @@
 from flask import Blueprint
 
 
-goals_bp = Blueprint('goals', __name__, template_folder='templates')
+goals_bp = Blueprint('goals', __name__)
 
 from . import routes  # noqa: E402  # isort:skip

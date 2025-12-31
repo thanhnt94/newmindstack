@@ -2,7 +2,8 @@
 # Practice Module Routes
 # Entry point for flashcard practice - delegates to flashcard engine.
 
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import request, redirect, url_for, flash, jsonify
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 
 from . import practice_bp

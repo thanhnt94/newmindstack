@@ -1,6 +1,7 @@
 # Tệp: web/mindstack_app/modules/auth/routes.py
 # Version: 1.0
-from flask import render_template, flash, redirect, url_for, request
+from flask import flash, redirect, url_for, request
+from mindstack_app.core.templating import render_template
 from flask_login import login_user, logout_user, current_user
 from . import auth_bp
 from .forms import LoginForm, RegistrationForm

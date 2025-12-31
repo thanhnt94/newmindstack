@@ -1,7 +1,8 @@
 # File: vocabulary/matching/routes.py
 # Matching Learning Mode Routes
 
-from flask import render_template, request, jsonify, abort, session
+from flask import request, jsonify, abort, session
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 
 from . import matching_bp

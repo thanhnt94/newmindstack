@@ -2,7 +2,8 @@
 # MỤC ĐÍCH: Session routes - render HTML templates
 # Refactored from routes.py
 
-from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
+from flask import request, redirect, url_for, flash, session, current_app, jsonify
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 

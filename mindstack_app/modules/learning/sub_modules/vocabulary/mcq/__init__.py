@@ -5,8 +5,7 @@ from flask import Blueprint
 
 mcq_bp = Blueprint(
     'mcq',
-    __name__,
-    template_folder='templates'
+    __name__
 )
 
 from . import routes

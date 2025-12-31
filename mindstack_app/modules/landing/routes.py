@@ -1,4 +1,5 @@
-from flask import render_template, redirect, url_for
+from flask import redirect, url_for
+from mindstack_app.core.templating import render_template
 from flask_login import current_user
 from . import landing_bp
 

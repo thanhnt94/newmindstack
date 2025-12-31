@@ -5,7 +5,8 @@
 # ĐÃ SỬA: Bổ sung logic vào edit_lesson để thay đổi vị trí bài học và cập nhật lại thứ tự các bài học khác.
 # ĐÃ SỬA: Cập nhật route list_lessons để sắp xếp theo order_in_container.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app, send_file
+from flask import Blueprint, request, redirect, url_for, flash, abort, jsonify, current_app, send_file
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
@@ -105,8 +106,7 @@ def _create_course_excel(info_rows, data_rows, *, output_path: str | None = None
     return target
 
 
-courses_bp = Blueprint('content_management_courses', __name__,
-                       template_folder='templates') # Đã cập nhật đường dẫn template
+courses_bp = Blueprint('content_management_courses', __name__) # Đã cập nhật đường dẫn template
 
 
 
@@ -620,7 +620,7 @@ def list_course_sets():
     }
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('_courses_list.html', **template_vars)
+        return render_template('content_management/courses/_courses_list.html', **template_vars)
     else:
         return render_template('courses.html', **template_vars)
 
@@ -666,7 +666,7 @@ def add_course_set():
         return jsonify({'success': False, 'errors': form.errors}), 400
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_course_set_bare.html', form=form, title='Thêm Bộ khóa học mới')
+        return render_template('content_management/courses/_add_edit_course_set_bare.html', form=form, title='Thêm Bộ khóa học mới')
     
     return render_template('add_edit_course_set.html', form=form, title='Thêm Bộ khóa học mới')
 
@@ -715,7 +715,7 @@ def edit_course_set(set_id):
         return jsonify({'success': False, 'errors': form.errors}), 400
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_course_set_bare.html', form=form, title='Chỉnh sửa Bộ khóa học')
+        return render_template('content_management/courses/_add_edit_course_set_bare.html', form=form, title='Chỉnh sửa Bộ khóa học')
     
     return render_template('add_edit_course_set.html', form=form, title='Chỉnh sửa Bộ khóa học')
 
@@ -771,7 +771,7 @@ def list_lessons(set_id):
         _has_editor_access(set_id)
     )
        
-    return render_template('lessons.html',
+    return render_template('content_management/courses/lessons.html',
                            course=course,
                            lessons=lessons,
                            can_edit=can_edit,
@@ -885,7 +885,7 @@ def add_lesson(set_id):
         return jsonify({'success': False, 'errors': form.errors}), 400
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
+        return render_template('content_management/courses/add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
         
     return render_template('add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
 
@@ -954,7 +954,7 @@ def edit_lesson(set_id, item_id):
         form.order_in_container.data = lesson_item.order_in_container
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
+        return render_template('content_management/courses/add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
         
     return render_template('add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
 

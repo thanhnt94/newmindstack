@@ -1,4 +1,5 @@
-from flask import render_template, request, jsonify, abort, Blueprint
+from flask import request, jsonify, abort, Blueprint
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer
 from .logic import generate_session_questions, process_answer, get_course_overview_stats

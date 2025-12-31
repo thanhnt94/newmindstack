@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import flash, redirect, request, url_for
+from mindstack_app.core.templating import render_template
 from flask_login import current_user, login_required
 
 from ...db_instance import db

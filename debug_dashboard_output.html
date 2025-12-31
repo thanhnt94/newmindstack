@@ -1,0 +1,2120 @@
+
+
+
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="csrf-token" content="IjkxNWE3YWI5N2EyZmJkYWY4ZmExNzA1N2Q2OWY0NWQyYzk3ZTdhMDQi.aVUqyg.TXRa-FxP8NJeJqcGZOGJ9k2lqXs">
+    <title>Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    
+    <script>
+        (function () {
+            if (typeof window === 'undefined') return;
+            const originalWarn = console.warn.bind(console);
+            window.__TAILWIND_ORIGINAL_WARN__ = originalWarn;
+            console.warn = function (...args) {
+                if (args.length && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) {
+                    return;
+                }
+                return originalWarn(...args);
+            };
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (window.__TAILWIND_ORIGINAL_WARN__) {
+            console.warn = window.__TAILWIND_ORIGINAL_WARN__;
+            delete window.__TAILWIND_ORIGINAL_WARN__;
+        }
+    </script>
+
+    <!-- Alpine.js for reactive UI components -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    
+    <style>
+    body {
+        font-family: 'Inter', sans-serif;
+        color: #333333;
+    }
+
+    .active-link {
+        border-bottom: 3px solid #3b82f6;
+        color: #3b82f6;
+    }
+
+    /* ===== MODAL CSS ===== */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .modal-overlay.open {
+        opacity: 1;
+        visibility: visible !important;
+    }
+
+    .modal-content {
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        max-height: 90vh;
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transform: scale(0.95);
+        transition: transform 0.3s ease;
+        border: none;
+        visibility: hidden;
+    }
+
+    .modal-overlay.open .modal-content {
+        transform: scale(1);
+        visibility: visible !important;
+    }
+
+    .modal-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    /* ===== Bổ sung CSS cho layout Flexbox và ẩn trên di động ===== */
+    body.flashcard-session-active {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    body.flashcard-session-active>header,
+    body.flashcard-session-active>footer {
+        display: none;
+    }
+
+    body.flashcard-session-active>main {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+        /* Cho phép cuộn trên màn hình di động */
+    }
+
+    /* THÊM MỚI: CSS để loại bỏ padding trên mobile */
+    @media (max-width: 1024px) {
+
+        body.flashcard-session-active>main,
+        body.flashcard-session-active>main.container {
+            padding: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            margin: 0 !important;
+        }
+
+        body.flashcard-session-active>header {
+            display: none !important;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
+    }
+
+    @media (min-width: 1024px) {
+
+        body.flashcard-session-active>header,
+        body.flashcard-session-active>footer {
+            display: block;
+            /* Hiển thị lại trên desktop */
+        }
+    }
+</style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.4/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+
+<style>
+    .markdown-body {
+        color: #1f2937;
+        font-size: 0.95rem;
+        line-height: 1.65;
+        /* Tailwind prose defaults approximation */
+    }
+
+    .markdown-body p {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+    }
+
+    .markdown-body ul,
+    .markdown-body ol {
+        margin: 0.75rem 0 0.75rem 1.5rem;
+    }
+
+    .markdown-body ul {
+        list-style-type: disc;
+    }
+
+    .markdown-body ol {
+        list-style-type: decimal;
+    }
+
+    .markdown-body li+li {
+        margin-top: 0.35rem;
+    }
+
+    .markdown-body h1,
+    .markdown-body h2,
+    .markdown-body h3,
+    .markdown-body h4,
+    .markdown-body h5,
+    .markdown-body h6 {
+        color: #111827;
+        font-weight: 700;
+        margin-top: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .markdown-body h1 {
+        font-size: 1.75rem;
+    }
+
+    .markdown-body h2 {
+        font-size: 1.5rem;
+    }
+
+    .markdown-body h3 {
+        font-size: 1.3rem;
+    }
+
+    .markdown-body h4 {
+        font-size: 1.1rem;
+    }
+
+    .markdown-body h5 {
+        font-size: 1rem;
+    }
+
+    .markdown-body h6 {
+        font-size: 0.95rem;
+    }
+
+    .markdown-body blockquote {
+        border-left: 4px solid #c4c4c4;
+        margin: 1rem 0;
+        padding: 0.75rem 1rem;
+        background-color: #f3f4f6;
+        border-radius: 0.5rem;
+    }
+
+    .markdown-body code {
+        background-color: #f3f4f6;
+        border-radius: 0.25rem;
+        padding: 0.15rem 0.35rem;
+        font-size: 0.9em;
+    }
+
+    .markdown-body pre {
+        background-color: #111827;
+        color: #f9fafb;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        overflow-x: auto;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+    }
+
+    .markdown-body table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+
+    .markdown-body th,
+    .markdown-body td {
+        border: 1px solid #d1d5db;
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+    }
+
+    .markdown-body th {
+        background-color: #f3f4f6;
+        font-weight: 600;
+    }
+</style>
+<script>
+    (function () {
+        const fallbackFormat = (text) => {
+            if (text === null || text === undefined) {
+                return '';
+            }
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML.replace(/\r?\n/g, '<br>');
+        };
+
+        if (window.marked && typeof window.marked.setOptions === 'function') {
+            window.marked.setOptions({
+                gfm: true,
+                breaks: true,
+                mangle: false,
+                headerIds: false
+            });
+        }
+
+        window.renderMarkdown = function (text, options = {}) {
+            const { treatAsHtml = false } = options;
+            if (text === null || text === undefined) {
+                return '';
+            }
+
+            const value = String(text);
+
+            try {
+                if (treatAsHtml) {
+                    return window.DOMPurify ? window.DOMPurify.sanitize(value) : value;
+                }
+
+                if (window.marked && typeof window.marked.parse === 'function') {
+                    const rawHtml = window.marked.parse(value);
+                    return window.DOMPurify ? window.DOMPurify.sanitize(rawHtml) : rawHtml;
+                }
+            } catch (err) {
+                console.warn('Không thể hiển thị Markdown:', err);
+            }
+
+            return fallbackFormat(value);
+        };
+
+        window.applyMarkdownToElement = function (element, text, options = {}) {
+            if (!element) return;
+            const html = window.renderMarkdown ? window.renderMarkdown(text, options) : fallbackFormat(text);
+            element.innerHTML = html;
+            element.classList.add('markdown-body');
+        };
+
+        window.escapeTextWithBreaks = fallbackFormat;
+    })();
+</script>
+
+    
+
+<style>
+    /* CSS cho thanh cuộn tùy chỉnh (chỉ áp dụng nơi gán class) */
+    .custom-scrollbar-dark::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .custom-scrollbar-dark::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar-dark::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+
+    .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+        background-clip: content-box;
+    }
+
+    /* App-like horizontal scroll (For Mobile) */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+</style>
+
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+
+    
+    
+    
+
+    
+    
+
+
+
+<header class="bg-white shadow-md relative z-50 hidden md:block">
+
+    
+<style>
+    @media (max-width: 767px) {
+
+        /* Tailwind's 'md' breakpoint is 768px */
+        .navbar-text-mobile-hide {
+            display: none !important;
+        }
+    }
+</style>
+<nav class="container mx-auto px-2 sm:px-3 md:px-4 py-3 flex items-center justify-between">
+    <a href="/"
+        class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">
+        <i class="fas fa-brain text-2xl md:text-3xl text-blue-400"></i>
+        <span class="text-lg md:text-[20px] font-normal navbar-text-mobile-hide">Mindstack</span>
+    </a>
+
+    <ul class="flex-grow flex justify-center items-center space-x-2 md:space-x-6">
+        
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2
+                text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                href="/learn/flashcard/dashboard">
+                <i class="fas fa-clone mr-1 md:mr-2"></i>
+                <span>Flashcard</span>
+            </a>
+        </li>
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2
+                text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                href="/learn/quiz_learning_dashboard">
+                <i class="fas fa-question-circle mr-1 md:mr-2"></i>
+                <span>Quiz</span>
+            </a>
+        </li>
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2
+                text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                href="/learn/course_learning_dashboard">
+                <i class="fas fa-graduation-cap mr-1 md:mr-2"></i>
+                <span>Course</span>
+            </a>
+        </li>
+
+        <li>
+            <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2
+                text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                href="/learn/stats/dashboard">
+                <i class="fas fa-chart-line mr-1 md:mr-2"></i>
+                <span>Analytics</span>
+            </a>
+        </li>
+        
+    </ul>
+
+    <ul class="flex items-center space-x-4">
+        
+
+        <!-- Total Score -->
+        <li class="relative hidden sm:block">
+            <div class="flex items-center bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full border border-amber-200">
+                <i class="fas fa-star text-amber-500 mr-2 animation-bounce"></i>
+                <span class="font-bold text-sm">1,936</span>
+            </div>
+        </li>
+
+        <!-- Notification Bell -->
+        <li class="relative">
+            <button id="desktop-noti-btn" onclick="toggleNotificationCenter()"
+                class="text-gray-600 hover:text-blue-500 transition-colors relative p-1 focus:outline-none">
+                <i class="fas fa-bell text-xl"></i>
+                <span id="desktop-noti-badge"
+                    class="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+            </button>
+        </li>
+
+        <!-- Settings Button -->
+        <li class="relative hidden sm:block">
+            <button onclick="window.dispatchEvent(new CustomEvent('open-settings-modal'))"
+                class="text-gray-600 hover:text-blue-500 transition-colors p-1 focus:outline-none"
+                title="Cài đặt học tập">
+                <i class="fas fa-cog text-xl"></i>
+            </button>
+        </li>
+
+        <li class="relative group">
+            <a class="text-gray-600 font-medium hover:text-blue-500 flex items-center" href="#">
+                <span class="hidden md:inline mr-2">thanhnt</span>
+                <i class="fas fa-user-circle text-2xl md:text-xl"></i>
+            </a>
+            <div
+                class="absolute right-0 w-48 origin-top-right transform scale-95 opacity-0 invisible group-hover:visible group-hover:opacity-100 group-hover:scale-100 transition duration-200 ease-out z-50">
+                <div class="bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="/profile/view">
+                        <i class="fas fa-user mr-2 w-4"></i> Profile
+                    </a>
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="/notes">
+                        <i class="fas fa-sticky-note mr-2 w-4"></i> Ghi chú của tôi
+                    </a>
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="/learn/stats/dashboard">
+                        <i class="fas fa-chart-pie mr-2 w-4"></i> Analytics
+                    </a>
+                    
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="/goals/goals">
+                        <i class="fas fa-bullseye mr-2 w-4"></i> Mục tiêu học tập
+                    </a>
+                    
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="/content/">
+                        <i class="fas fa-folder-open mr-2 w-4"></i> Quản lý nội dung
+                    </a>
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="/feedback/">
+                        <i class="fas fa-comment-dots mr-2 w-4"></i> Quản lý Phản hồi
+                    </a>
+                    
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="/admin/dashboard">
+                        <i class="fas fa-user-shield mr-2 w-4"></i> Admin
+                    </a>
+                    
+                    <div class="h-px bg-gray-200 my-1"></div>
+                    <a class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="/auth/logout">
+                        <i class="fas fa-sign-out-alt mr-2 w-4"></i> Đăng xuất
+                    </a>
+                </div>
+            </div>
+        </li>
+        
+    </ul>
+</nav>
+
+</header>
+
+
+    <main class="container mx-auto py-4 px-2 flex-grow relative md:py-4 sm:py-2 sm:px-3">
+        
+        
+        
+        
+
+        
+<div class="bg-transparent">
+    
+    <div class="md:hidden">
+        
+<div class="lg:hidden fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard bg-slate-50"
+    style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+
+    
+    <div class="px-6 pt-5 pb-3 flex items-center justify-between sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold border-2 border-white shadow-sm text-lg">
+                T
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-slate-800 leading-none">Hi, thanhnt!</h1>
+                <p class="text-xs text-slate-500 font-medium mt-1 line-clamp-1">Chúc bạn một ngày học tập hiệu quả!</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Notification Bell -->
+            <button onclick="toggleNotificationCenter()"
+                class="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors shadow-sm relative active:scale-95">
+                <i class="fa-solid fa-bell"></i>
+                <span id="dashboard-noti-badge"
+                    class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm hidden">0</span>
+            </button>
+
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+                <i class="fa-solid fa-star text-amber-500 text-sm animation-bounce"></i>
+                <span class="text-xs font-bold text-slate-700">1,936</span>
+            </div>
+
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+                <i class="fa-solid fa-fire text-orange-500 text-sm animation-bounce"></i>
+                <span class="text-xs font-bold text-slate-700">4</span>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="flex-grow overflow-y-auto overflow-x-hidden px-6 pb-28 space-y-8 no-scrollbar pt-2">
+
+        
+        
+        <div
+            class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden active:scale-[0.98] transition-transform">
+            <div class="absolute top-0 right-0 p-6 opacity-20">
+                <i class="fa-solid fa-quote-right text-6xl"></i>
+            </div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-3 opacity-90">
+                    <span class="bg-white/20 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">💡
+                        Tiêu điểm</span>
+                </div>
+                <p class="text-base font-medium leading-relaxed">
+                    Hôm nay bạn đã làm 7 câu hỏi quiz. Bạn còn kiếm thêm 85 điểm thưởng nữa! Bạn đã học 4 ngày trong 7 ngày gần nhất – tiếp tục duy trì nhé!
+                </p>
+            </div>
+        </div>
+        
+
+        
+        
+        <div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>⚡</span> Gợi ý nhanh
+                </h3>
+                
+                <div class="flex gap-2">
+                    <button
+                        onclick="document.getElementById('shortcuts-scroll').scrollBy({left: -200, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <button
+                        onclick="document.getElementById('shortcuts-scroll').scrollBy({left: 200, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="shortcuts-scroll"
+                class="flex gap-4 overflow-x-auto no-scrollbar snap-x -mx-6 px-6 pb-2 scroll-smooth">
+                
+                <a href="/learn/flashcard/dashboard"
+                    class="snap-start flex-shrink-0 w-40 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32 active:scale-95 transition-transform group hover:border-indigo-200">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:bg-indigo-100 transition-colors">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div>
+                        <h4
+                            class="font-bold text-sm text-slate-800 leading-tight mb-1 group-hover:text-indigo-700 transition-colors">
+                            Ôn flashcard đến hạn</h4>
+                        <p class="text-[10px] text-slate-400 line-clamp-1">27 thẻ đang chờ bạn.</p>
+                    </div>
+                </a>
+                
+                <a href="/learn/quiz_learning_dashboard"
+                    class="snap-start flex-shrink-0 w-40 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32 active:scale-95 transition-transform group hover:border-indigo-200">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:bg-indigo-100 transition-colors">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </div>
+                    <div>
+                        <h4
+                            class="font-bold text-sm text-slate-800 leading-tight mb-1 group-hover:text-indigo-700 transition-colors">
+                            Tiếp tục luyện quiz</h4>
+                        <p class="text-[10px] text-slate-400 line-clamp-1">Bạn còn 15 câu hỏi ở trạng thái đang học.</p>
+                    </div>
+                </a>
+                
+            </div>
+        </div>
+        
+
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-indigo-600 text-3xl font-black mb-1">1,936</div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Điểm thưởng</div>
+            </div>
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-emerald-500 text-3xl font-black mb-1">0</div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Quiz Mastered</div>
+            </div>
+        </div>
+
+        
+        
+        <div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>🎯</span> Mục tiêu
+                </h3>
+                
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('goals-scroll').scrollBy({left: -300, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <button onclick="document.getElementById('goals-scroll').scrollBy({left: 300, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="goals-scroll" class="flex gap-4 overflow-x-auto no-scrollbar snap-x -mx-6 px-6 pb-4 scroll-smooth">
+                
+                <div
+                    class="snap-center flex-shrink-0 w-[80vw] bg-white rounded-3xl p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-50 relative overflow-hidden group hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex gap-3 items-center">
+                            <div
+                                class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-star"></i>
+                            </div>
+                            <div>
+                                <h4
+                                    class="font-bold text-slate-800 text-base line-clamp-1 group-hover:text-indigo-700 transition-colors">
+                                    âf</h4>
+                                <div class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                                    <span>85/2 điểm</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="text-xl font-black text-emerald-500">
+                            100%</div>
+                    </div>
+
+                    <div class="w-full bg-slate-100 rounded-full h-3 mb-4 overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-1000 bg-emerald-500"
+                            style="width: 100%"></div>
+                    </div>
+
+                    <a href="/dashboard"
+                        class="w-full py-3 rounded-xl font-bold text-center block bg-emerald-50 text-emerald-600 transition-colors">
+                        Hoàn thành
+                    </a>
+                </div>
+                
+            </div>
+        </div>
+        
+
+        
+        <div class="space-y-4">
+            <h3 class="text-sm font-bold text-slate-800 mb-2">Chế độ học</h3>
+
+            <a href="/learn/flashcard/dashboard"
+                class="block relative overflow-hidden rounded-3xl h-32 active:scale-[0.98] transition-transform group">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500 group-hover:scale-105 transition-transform duration-500">
+                </div>
+                <div
+                    class="absolute right-0 bottom-0 w-32 h-32 bg-white/20 rounded-full translate-y-1/2 translate-x-1/4 blur-2xl">
+                </div>
+                <div class="relative z-10 h-full p-6 flex flex-col justify-center text-white">
+                    <div class="flex items-center gap-3 mb-1">
+                        <i class="fa-solid fa-clone text-xl opacity-80"></i>
+                        <h4 class="font-bold text-xl">Flashcard</h4>
+                    </div>
+                    <p class="text-blue-100 text-sm font-medium">Lặp lại ngắt quãng</p>
+                </div>
+            </a>
+
+            <div class="grid grid-cols-2 gap-4">
+                <a href="/learn/quiz_learning_dashboard"
+                    class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-emerald-200 group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                        <i class="fa-solid fa-circle-question text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-emerald-700">Luyện Quiz</h4>
+                        <p class="text-xs text-slate-400">Trắc nghiệm</p>
+                    </div>
+                </a>
+
+                <a href="/learn/quiz-battle/"
+                    class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-rose-200 group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+                        <i class="fa-solid fa-bolt text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-rose-700">Đấu trường</h4>
+                        <p class="text-xs text-slate-400">Thách đấu</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="h-6"></div>
+    </div>
+
+    
+    
+    
+<div class="global-bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 lg:hidden z-40 pb-safe">
+    
+
+    
+    <div class="flex-shrink-0 relative z-30">
+        <!-- Learning Menu Overlay with Blur -->
+        <div id="arcMenuOverlay"
+            class="fixed inset-0 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 z-40">
+            <!-- Content Manager Quick Access - Top Right -->
+            <a href="/content/"
+                class="absolute top-6 right-4 flex items-center gap-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white pl-4 pr-5 py-3 rounded-2xl shadow-2xl shadow-violet-500/40 border border-white/20 hover:scale-105 active:scale-95 transition-all"
+                title="Quản lý nội dung">
+                <div
+                    class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-pen-ruler text-xl"></i>
+                </div>
+                <div class="text-left">
+                    <p class="text-sm font-bold leading-tight">Nội dung</p>
+                    <p class="text-[10px] opacity-80">Quản lý</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Learning Menu - Floating Cards -->
+        <div id="arcMenu"
+            class="fixed bottom-32 left-1/2 opacity-0 pointer-events-none transition-all duration-300 z-50"
+            style="transform: translateX(-50%);">
+            <div class="flex flex-col items-center gap-3">
+                <!-- Logo & Brand -->
+                <div class="flex flex-col items-center mb-4 arc-item">
+                    <div
+                        class="w-20 h-20 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-[2rem] shadow-2xl flex items-center justify-center border-4 border-white/25 mb-2 backdrop-blur-md">
+                        <i class="fa-solid fa-brain text-4xl text-white filter drop-shadow-md"></i>
+                    </div>
+                    <h1 class="text-3xl font-black text-white tracking-tight drop-shadow-lg">MindStack</h1>
+                </div>
+
+                <!-- Quiz -->
+                <a href="/learn/quiz_learning_dashboard"
+                    class="flex items-center gap-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
+                    <div
+                        class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <i class="fa-solid fa-circle-question text-3xl"></i>
+                    </div>
+                    <div class="flex-grow text-left">
+                        <p class="text-lg font-black">Quiz</p>
+                        <p class="text-xs opacity-90 font-medium">Luyện tập câu hỏi</p>
+                    </div>
+                    <i class="fa-solid fa-arrow-right text-white/60"></i>
+                </a>
+
+                <!-- Vocabulary -->
+                <a href="/learn/vocabulary/dashboard"
+                    class="flex items-center gap-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-blue-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
+                    <div
+                        class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <i class="fa-solid fa-book-open text-3xl"></i>
+                    </div>
+                    <div class="flex-grow text-left">
+                        <p class="text-lg font-black">Vocabulary</p>
+                        <p class="text-xs opacity-90 font-medium">Học từ vựng thông minh</p>
+                    </div>
+                    <i class="fa-solid fa-arrow-right text-white/60"></i>
+                </a>
+
+                <!-- Practice -->
+                <a href="/learn/practice/flashcard"
+                    class="flex items-center gap-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-amber-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
+                    <div
+                        class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <i class="fa-solid fa-dumbbell text-3xl"></i>
+                    </div>
+                    <div class="flex-grow text-left">
+                        <p class="text-lg font-black">Practice</p>
+                        <p class="text-xs opacity-90 font-medium">Ôn tập đa bộ thẻ</p>
+                    </div>
+                    <i class="fa-solid fa-arrow-right text-white/60"></i>
+                </a>
+
+                <!-- Collab -->
+                <a href="/learn/collab/"
+                    class="flex items-center gap-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-pink-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
+                    <div
+                        class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <i class="fa-solid fa-users text-3xl"></i>
+                    </div>
+                    <div class="flex-grow text-left">
+                        <p class="text-lg font-black">Collab</p>
+                        <p class="text-xs opacity-90 font-medium">Học nhóm cùng bạn bè</p>
+                    </div>
+                    <i class="fa-solid fa-arrow-right text-white/60"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation Bar - Stuck to Bottom with Gradient -->
+        <div class="relative">
+            <!-- Gradient Background -->
+            <div
+                class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white to-transparent pointer-events-none">
+            </div>
+
+            <!-- Main Nav Bar -->
+            <div class="relative bg-white border-t-2 border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+                style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+                <div class="flex justify-between items-end px-5 py-3">
+                    <!-- 1. Home -->
+                    <a href="/dashboard"
+                        class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
+                        
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-500/50 flex items-center justify-center transition-all">
+                            <i class="fa-solid fa-house text-white text-2xl"></i>
+                        </div>
+                        
+                    </a>
+
+                    <!-- 2. Goals -->
+                    <a href="/goals/goals"
+                        class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
+                        
+                        <i
+                            class="fa-solid fa-bullseye text-slate-400 text-2xl group-hover:text-amber-500 transition-colors"></i>
+                        <span
+                            class="text-[11px] font-bold text-slate-400 group-hover:text-amber-600 transition-colors">Mục
+                            tiêu</span>
+                        
+                    </a>
+
+                    <!-- 3. Learn (Center - Elevated) -->
+                    <button id="learnButton"
+                        class="flex flex-col items-center -mt-12 transition-all hover:scale-110 relative group min-w-[60px]">
+                        <!-- Glow Ring -->
+                        <div
+                            class="absolute -inset-3 bg-gradient-to-br from-purple-500 via-pink-500 to-purple-500 rounded-full blur-2xl opacity-50 animate-pulse">
+                        </div>
+
+                        <!-- Main Button -->
+                        <div class="relative">
+                            <div
+                                class="w-[84px] h-[84px] rounded-full bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 flex items-center justify-center transition-all shadow-2xl shadow-purple-500/60 border-[6px] border-white group-hover:shadow-purple-500/80 group-active:scale-95">
+                                <i id="learnIcon"
+                                    class="fa-solid fa-brain text-white text-[38px] transition-transform duration-300"></i>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- 4. Stats -->
+                    <a href="/stats/"
+                        class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
+                        
+                        <i
+                            class="fa-solid fa-chart-line text-slate-400 text-2xl group-hover:text-cyan-500 transition-colors"></i>
+                        <span
+                            class="text-[11px] font-bold text-slate-400 group-hover:text-cyan-600 transition-colors">Thống
+                            kê</span>
+                        
+                    </a>
+
+                    <!-- 5. Profile -->
+                    <a href="/profile/view"
+                        class="flex flex-col items-center gap-1.5 transition-all hover:scale-110 group relative min-w-[60px]">
+                        
+                        <i
+                            class="fa-solid fa-user text-slate-400 text-2xl group-hover:text-rose-500 transition-colors"></i>
+                        <span
+                            class="text-[11px] font-bold text-slate-400 group-hover:text-rose-600 transition-colors">Cá
+                            nhân</span>
+                        
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Learning Menu Toggle
+        const learnButton = document.getElementById('learnButton');
+        const arcMenu = document.getElementById('arcMenu');
+        const arcMenuOverlay = document.getElementById('arcMenuOverlay');
+        const learnIcon = document.getElementById('learnIcon');
+        let isArcMenuOpen = false;
+
+        function toggleArcMenu() {
+            isArcMenuOpen = !isArcMenuOpen;
+
+            if (isArcMenuOpen) {
+                arcMenu.classList.remove('opacity-0', 'pointer-events-none');
+                arcMenu.classList.add('opacity-100', 'pointer-events-auto');
+                arcMenuOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                arcMenuOverlay.classList.add('opacity-100', 'pointer-events-auto');
+                learnIcon.style.transform = 'rotate(180deg)';
+
+                const arcItems = document.querySelectorAll('.arc-item');
+                arcItems.forEach((item, index) => {
+                    setTimeout(() => {
+                        item.style.transform = 'translateY(0) scale(1)';
+                        item.style.opacity = '1';
+                    }, index * 80);
+                });
+            } else {
+                arcMenu.classList.add('opacity-0', 'pointer-events-none');
+                arcMenu.classList.remove('opacity-100', 'pointer-events-auto');
+                arcMenuOverlay.classList.add('opacity-0', 'pointer-events-none');
+                arcMenuOverlay.classList.remove('opacity-100', 'pointer-events-auto');
+                learnIcon.style.transform = 'rotate(0deg)';
+
+                const arcItems = document.querySelectorAll('.arc-item');
+                arcItems.forEach(item => {
+                    item.style.transform = 'translateY(20px) scale(0.8)';
+                    item.style.opacity = '0';
+                });
+            }
+        }
+
+        learnButton.addEventListener('click', toggleArcMenu);
+        arcMenuOverlay.addEventListener('click', toggleArcMenu);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const arcItems = document.querySelectorAll('.arc-item');
+            arcItems.forEach(item => {
+                item.style.transform = 'translateY(20px) scale(0.8)';
+                item.style.opacity = '0';
+                item.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            });
+        });
+    </script>
+</div>
+
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .animation-bounce {
+        animation: bounce 2s infinite;
+    }
+</style>
+    </div>
+
+    
+    <div class="hidden md:block">
+        
+<div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+
+    <div class="grid gap-6 xl:grid-cols-3 items-stretch">
+        <!-- CỘT TRÁI -->
+        <section id="left-column"
+            class="xl:col-span-2 bg-white/80 backdrop-blur border border-slate-100 rounded-3xl shadow-sm p-8 lg:p-10 space-y-8 h-full">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
+                <div class="max-w-2xl">
+                    <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Nhật ký hôm nay</p>
+                    <h1 class="mt-3 text-3xl sm:text-4xl font-bold text-slate-900 leading-tight">Xin chào, thanhnt 👋</h1>
+                    <p class="mt-4 text-sm sm:text-base text-slate-600 leading-relaxed">Hôm nay bạn đã làm 7 câu hỏi quiz. Bạn còn kiếm thêm 85 điểm thưởng nữa! Bạn đã học 4 ngày trong 7 ngày gần nhất – tiếp tục duy trì nhé!</p>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full lg:w-auto">
+                    
+                    <div class="rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-4 sm:p-5 shadow-sm">
+                        <div class="flex items-center justify-between gap-3">
+                            <span
+                                class="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.35em] text-white/70">Điểm hôm nay</span>
+                            <span class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                                <i class="fa-solid fa-sun text-sm"></i>
+                            </span>
+                        </div>
+                        <p class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">85
+                        </p>
+                    </div>
+                    
+                    <div class="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 sm:p-5 shadow-sm">
+                        <div class="flex items-center justify-between gap-3">
+                            <span
+                                class="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.35em] text-white/70">Điểm 7 ngày</span>
+                            <span class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                                <i class="fa-solid fa-calendar-week text-sm"></i>
+                            </span>
+                        </div>
+                        <p class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">1,936
+                        </p>
+                    </div>
+                    
+                    <div class="rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white p-4 sm:p-5 shadow-sm">
+                        <div class="flex items-center justify-between gap-3">
+                            <span
+                                class="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.35em] text-white/70">Điểm tích lũy</span>
+                            <span class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                                <i class="fa-solid fa-trophy text-sm"></i>
+                            </span>
+                        </div>
+                        <p class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">1,936
+                        </p>
+                    </div>
+                    
+                    <div class="rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 text-white p-4 sm:p-5 shadow-sm">
+                        <div class="flex items-center justify-between gap-3">
+                            <span
+                                class="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.35em] text-white/70">Ngày hoạt động</span>
+                            <span class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                                <i class="fa-solid fa-fire text-sm"></i>
+                            </span>
+                        </div>
+                        <p class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">4
+                        </p>
+                    </div>
+                    
+                </div>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-3">
+                <div class="p-5 rounded-2xl border border-indigo-100 bg-indigo-50/70">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-indigo-700">Flashcard đến hạn</p>
+                        <span
+                            class="text-[10px] uppercase font-semibold text-indigo-600 bg-white px-2 py-0.5 rounded-full">Sẵn
+                            sàng</span>
+                    </div>
+                    <p class="mt-4 text-3xl font-bold text-indigo-700">27</p>
+                    <p class="mt-2 text-xs text-indigo-500">Giải quyết để duy trì chuỗi học ổn định.</p>
+                </div>
+                <div class="p-5 rounded-2xl border border-emerald-100 bg-emerald-50/70">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-emerald-700">Quiz đã nắm vững</p>
+                        <span
+                            class="text-[10px] uppercase font-semibold text-emerald-600 bg-white px-2 py-0.5 rounded-full">Tiến
+                            bộ</span>
+                    </div>
+                    <p class="mt-4 text-3xl font-bold text-emerald-700">0</p>
+                    <p class="mt-2 text-xs text-emerald-500">0% câu hỏi đã thành
+                        thạo.</p>
+                </div>
+                <div class="p-5 rounded-2xl border border-amber-100 bg-amber-50/70">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-amber-700">Tiến độ khóa học</p>
+                        <span
+                            class="text-[10px] uppercase font-semibold text-amber-600 bg-white px-2 py-0.5 rounded-full">Lộ
+                            trình</span>
+                    </div>
+                    <p class="mt-4 text-3xl font-bold text-amber-700">0.0%</p>
+                    <p class="mt-2 text-xs text-amber-500">Trung bình hoàn thành trên các khóa đang theo học.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CỘT PHẢI -->
+        <section class="space-y-6 h-full flex flex-col">
+            <div
+                class="bg-slate-900 text-white rounded-3xl p-8 shadow-lg space-y-6 flex flex-col lg:flex-grow lg:overflow-hidden">
+                <div class="flex items-start justify-between gap-4 flex-shrink-0">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/60">Nhắc nhở hành động
+                        </p>
+                        <h2 class="mt-3 text-2xl font-semibold">Mục tiêu &amp; bước tiếp theo</h2>
+                    </div>
+                    <a href="/goals/goals"
+                        class="inline-flex items-center gap-2 text-xs font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition flex-shrink-0">
+                        <i class="fa-solid fa-sliders"></i> Quản lý
+                    </a>
+                </div>
+
+                <div
+                    class="space-y-4 pr-2 min-h-[180px] custom-scrollbar-dark overflow-visible h-auto lg:overflow-y-auto lg:flex-grow lg:h-0">
+                    
+                    <div class="rounded-2xl bg-white/10 hover:bg-white/15 transition-all p-4 flex-shrink-0">
+                        <div class="flex flex-col gap-4">
+                            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                <div class="flex items-start gap-3">
+                                    <span
+                                        class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-lg flex-shrink-0">
+                                        <i class="fa-solid fa-star"></i>
+                                    </span>
+                                    <div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h3 class="text-lg font-semibold text-white">âf</h3>
+                                            <span
+                                                class="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-indigo-200 bg-white/10 px-2 py-1 rounded-full">Hôm nay</span>
+                                            
+                                        </div>
+                                        <p class="mt-2 text-sm text-white/80"></p>
+                                        
+                                        <p class="mt-2 text-sm text-white/70 italic">“ầ”</p>
+                                        
+                                        
+                                    </div>
+                                </div>
+                                <a href="/dashboard"
+                                    class="inline-flex items-center gap-2 text-xs font-semibold text-indigo-200 hover:text-white transition flex-shrink-0">
+                                    Đi tới mục tiêu <i
+                                        class="fa-solid fa-arrow-up-right-from-square text-[0.65rem]"></i>
+                                </a>
+                            </div>
+                            <div>
+                                <div
+                                    class="flex justify-between text-[10px] font-semibold uppercase tracking-[0.35em] text-white/60">
+                                    <span>Tiến độ (85/2 điểm)</span>
+                                    <span>100%</span>
+                                </div>
+                                <div class="mt-2 h-2.5 rounded-full bg-white/10 overflow-hidden">
+                                    <div class="h-full rounded-full bg-white" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- PHẦN DƯỚI -->
+    <section class="grid gap-6 xl:grid-cols-3 items-start">
+        <div class="xl:col-span-2 space-y-6">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Tổng hợp thành tựu
+                        </p>
+                        <h3 class="mt-2 text-xl font-semibold text-slate-900">Bạn đã làm được gì đến hiện tại?</h3>
+                    </div>
+                    <a href="/stats/"
+                        class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">Xem thống kê chi tiết →</a>
+                </div>
+
+                <div class="mt-6 grid gap-4 md:grid-cols-2">
+                    
+                    <div class="rounded-2xl border border-slate-100 p-5">
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-sm font-semibold text-slate-600">Flashcard đã thành thạo</span>
+                            <span
+                                class="w-9 h-9 rounded-xl flex items-center justify-center text-indigo-500 bg-indigo-50">
+                                <i class="fa-solid fa-clone"></i>
+                            </span>
+                        </div>
+                        <p class="mt-3 text-3xl font-bold text-slate-900">0</p>
+                        <p class="mt-2 text-xs text-slate-500">Trong tổng 67 thẻ</p>
+                    </div>
+                    
+                    <div class="rounded-2xl border border-slate-100 p-5">
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-sm font-semibold text-slate-600">Quiz đã nắm vững</span>
+                            <span
+                                class="w-9 h-9 rounded-xl flex items-center justify-center text-emerald-500 bg-emerald-50">
+                                <i class="fa-solid fa-circle-question"></i>
+                            </span>
+                        </div>
+                        <p class="mt-3 text-3xl font-bold text-slate-900">0</p>
+                        <p class="mt-2 text-xs text-slate-500">0% câu hỏi đã thành thạo</p>
+                    </div>
+                    
+                    <div class="rounded-2xl border border-slate-100 p-5">
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-sm font-semibold text-slate-600">Khóa học hoàn thành</span>
+                            <span
+                                class="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500 bg-amber-50">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </span>
+                        </div>
+                        <p class="mt-3 text-3xl font-bold text-slate-900">0</p>
+                        <p class="mt-2 text-xs text-slate-500">Đang theo học 0 khóa</p>
+                    </div>
+                    
+                    <div class="rounded-2xl border border-slate-100 p-5">
+                        <div class="flex items-center justify-between gap-4">
+                            <span class="text-sm font-semibold text-slate-600">Điểm thưởng tích lũy</span>
+                            <span
+                                class="w-9 h-9 rounded-xl flex items-center justify-center text-violet-500 bg-violet-50">
+                                <i class="fa-solid fa-star"></i>
+                            </span>
+                        </div>
+                        <p class="mt-3 text-3xl font-bold text-slate-900">1,936</p>
+                        <p class="mt-2 text-xs text-slate-500">Tích lũy từ mọi hoạt động học tập</p>
+                    </div>
+                    
+                </div>
+
+                <div class="mt-8 grid gap-4 sm:grid-cols-3">
+                    
+                    <div class="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-slate-500">
+                                <i class="fa-solid fa-bolt"></i>
+                            </span>
+                            <p class="text-sm font-semibold text-slate-700">Flashcard đã ôn hôm nay</p>
+                        </div>
+                        <p class="mt-3 text-2xl font-bold text-slate-900">0 <span
+                                class="text-base font-medium text-slate-500">thẻ</span></p>
+                        <p class="mt-1 text-xs text-slate-500">67 trong 7 ngày qua</p>
+                    </div>
+                    
+                    <div class="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-slate-500">
+                                <i class="fa-solid fa-brain"></i>
+                            </span>
+                            <p class="text-sm font-semibold text-slate-700">Quiz đã luyện hôm nay</p>
+                        </div>
+                        <p class="mt-3 text-2xl font-bold text-slate-900">7 <span
+                                class="text-base font-medium text-slate-500">câu</span></p>
+                        <p class="mt-1 text-xs text-slate-500">15 trong 7 ngày qua</p>
+                    </div>
+                    
+                    <div class="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-slate-500">
+                                <i class="fa-solid fa-book-open"></i>
+                            </span>
+                            <p class="text-sm font-semibold text-slate-700">Bài học cập nhật hôm nay</p>
+                        </div>
+                        <p class="mt-3 text-2xl font-bold text-slate-900">0 <span
+                                class="text-base font-medium text-slate-500">bài</span></p>
+                        <p class="mt-1 text-xs text-slate-500">0 trong 7 ngày qua</p>
+                    </div>
+                    
+                </div>
+
+                <div class="mt-8 border-t border-slate-100 pt-6 text-sm text-slate-500">
+                    <p>Duy trì nhịp học tập ổn định sẽ giúp bạn đạt mục tiêu nhanh hơn. Tiếp tục giữ phong độ nhé!</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Khám phá thêm</p>
+                    <h3 class="mt-2 text-xl font-semibold text-slate-900">Chọn hoạt động để tiếp tục đà học tập</h3>
+                </div>
+
+                <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+                    <a href="/learn/flashcard/dashboard"
+                        class="group bg-indigo-50 border border-indigo-100 rounded-2xl p-6 hover:border-indigo-200 transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-semibold text-indigo-700">Flashcard</span>
+                            <i class="fa-solid fa-clone text-indigo-500"></i>
+                        </div>
+                        <p class="mt-3 text-sm text-indigo-600">Ôn luyện với hệ thống lặp lại ngắt quãng thông minh.</p>
+                        <span
+                            class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-indigo-600 group-hover:text-indigo-800">Bắt
+                            đầu ôn tập <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
+                    </a>
+
+                    <a href="/learn/quiz_learning_dashboard"
+                        class="group bg-emerald-50 border border-emerald-100 rounded-2xl p-6 hover:border-emerald-200 transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-semibold text-emerald-700">Quiz</span>
+                            <i class="fa-solid fa-question-circle text-emerald-500"></i>
+                        </div>
+                        <p class="mt-3 text-sm text-emerald-600">Thử sức với các câu hỏi trắc nghiệm đa dạng và tùy
+                            chỉnh.</p>
+                        <span
+                            class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-emerald-600 group-hover:text-emerald-800">Vào
+                            phòng quiz <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
+                    </a>
+
+                    <a href="/learn/course_learning_dashboard"
+                        class="group bg-amber-50 border border-amber-100 rounded-2xl p-6 hover:border-amber-200 transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-semibold text-amber-700">Khóa học</span>
+                            <i class="fa-solid fa-graduation-cap text-amber-500"></i>
+                        </div>
+                        <p class="mt-3 text-sm text-amber-600">Theo dõi lộ trình học tập có cấu trúc rõ ràng.</p>
+                        <span
+                            class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-amber-600 group-hover:text-amber-800">Tiếp
+                            tục bài học <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
+                    </a>
+
+                    <a href="/content/"
+                        class="group bg-slate-50 border border-slate-200 rounded-2xl p-6 hover:border-slate-300 transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-semibold text-slate-700">Quản lý nội dung</span>
+                            <i class="fa-solid fa-book text-slate-500"></i>
+                        </div>
+                        <p class="mt-3 text-sm text-slate-600">Tạo, chỉnh sửa và quản lý tài nguyên học tập của riêng
+                            bạn.</p>
+                        <span
+                            class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 group-hover:text-slate-800">Mở
+                            trang quản trị <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
+                    </a>
+
+                    <a href="/learn/quiz-battle/"
+                        class="group bg-rose-50 border border-rose-100 rounded-2xl p-6 hover:border-rose-200 transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-semibold text-rose-700">Quiz Battle</span>
+                            <i class="fa-solid fa-gamepad text-rose-500"></i>
+                        </div>
+                        <p class="mt-3 text-sm text-rose-600">Thách đấu bạn bè với chế độ test chậm và giới hạn thời
+                            gian.</p>
+                        <span
+                            class="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-rose-600 group-hover:text-rose-800">Vào
+                            phòng đấu <i class="fa-solid fa-arrow-right text-[0.65rem]"></i></span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 h-fit">
+            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Bảng xếp hạng</p>
+            <h3 class="mt-2 text-xl font-semibold text-slate-900">Top điểm thưởng thành viên</h3>
+            <p class="mt-2 text-sm text-slate-500">Cùng thi đua để đạt được nhiều phần thưởng hơn.</p>
+
+            <ul class="mt-6 space-y-3">
+                
+                <li
+                    class="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 px-4 py-3 bg-indigo-50 border-indigo-100">
+                    <div class="flex items-center gap-4">
+                        <span
+                            class="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-amber-100 text-amber-600">1</span>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800">thanhnt</p>
+                            
+                            <p class="text-xs text-indigo-600 font-semibold">Bạn đang ở vị trí này</p>
+                            
+                        </div>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-700">1,936 điểm</span>
+                </li>
+                
+                <li
+                    class="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 px-4 py-3 bg-white">
+                    <div class="flex items-center gap-4">
+                        <span
+                            class="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-slate-100 text-slate-600">2</span>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800">vhuong</p>
+                            
+                        </div>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-700">0 điểm</span>
+                </li>
+                
+                <li
+                    class="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 px-4 py-3 bg-white">
+                    <div class="flex items-center gap-4">
+                        <span
+                            class="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-orange-100 text-orange-600">3</span>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800">hoangdung</p>
+                            
+                        </div>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-700">0 điểm</span>
+                </li>
+                
+                <li
+                    class="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 px-4 py-3 bg-white">
+                    <div class="flex items-center gap-4">
+                        <span
+                            class="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-slate-100 text-slate-500">4</span>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800">vqhoa</p>
+                            
+                        </div>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-700">0 điểm</span>
+                </li>
+                
+                <li
+                    class="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 px-4 py-3 bg-white">
+                    <div class="flex items-center gap-4">
+                        <span
+                            class="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-slate-100 text-slate-500">5</span>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800">test</p>
+                            
+                        </div>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-700">0 điểm</span>
+                </li>
+                
+            </ul>
+        </div>
+    </section>
+</div>
+    </div>
+</div>
+
+    </main>
+
+    
+    
+<footer class="bg-white text-center py-4 mt-auto shadow-sm hidden md:block">
+
+    <div class="container mx-auto px-2 sm:px-3 md:px-4">
+        <p class="text-gray-500">&copy; 2025 Mindstack App. All Rights Reserved.</p>
+    </div>
+</footer>
+
+
+    
+    
+<style>
+    /* === GLOBAL MOBILE RESET === */
+    /* Ensures "App-like" feel on mobile without double headers/footers */
+    @media (max-width: 767px) {
+
+        /* Force hide header/footer just in case logic fails, 
+               though the 'hidden lg:block' classes in desktop macro should handle it. */
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        /* Container Reset: Full width, no padding on mobile main container */
+        body>main.container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        /* Body Reset: Prevent double scrollbars, handle height */
+        body {
+            min-height: 100vh;
+            /* Note: We don't force overflow:hidden here globally because 
+                   some pages might need body scroll. We let individual pages 
+                   (like dashboard/mobile) decide if they want to lock scroll. */
+        }
+    }
+</style>
+
+
+    
+    <!-- Notification Center (Mobile Sheet / Desktop Dropdown) -->
+<div id="notification-center"
+    class="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-[150] transform translate-x-full transition-transform duration-300 flex flex-col pointer-events-auto border-l border-slate-100">
+
+    <!-- Header -->
+    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 backdrop-blur-sm">
+        <div>
+            <h3 class="font-black text-lg text-slate-800">Thông báo</h3>
+            <p class="text-xs text-slate-500 font-medium">Cập nhật mới nhất</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="notifService.markAllRead()"
+                class="text-xs font-bold text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
+                Đọc tất cả
+            </button>
+            <button onclick="toggleNotificationCenter()"
+                class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Subscribe UI -->
+    <div id="push-permission-ui" class="p-4 bg-blue-50 border-b border-blue-100 hidden">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-bold text-blue-800">Bật thông báo</p>
+                <p class="text-xs text-blue-600">Nhận tin mới ngay lập tức.</p>
+            </div>
+            <button onclick="notifService.requestPermission()"
+                class="bg-blue-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm">
+                Bật
+            </button>
+        </div>
+    </div>
+
+    <!-- List -->
+    <div id="notif-list" class="flex-grow overflow-y-auto p-2 space-y-2 bg-slate-50">
+        <!-- Loading -->
+        <div class="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
+            <i class="fas fa-spinner fa-spin text-2xl"></i>
+            <span class="text-xs">Đang tải...</span>
+        </div>
+    </div>
+
+    <!-- Empty Template -->
+    <template id="notif-empty-tpl">
+        <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-300">
+                <i class="fa-regular fa-bell-slash text-2xl"></i>
+            </div>
+            <p class="text-sm font-medium">Không có thông báo mới</p>
+        </div>
+    </template>
+</div>
+
+<!-- Overlay -->
+<div id="notif-overlay" onclick="toggleNotificationCenter()"
+    class="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-[140] opacity-0 pointer-events-none transition-opacity duration-300">
+</div>
+
+<script>
+    const notifService = {
+        isOpen: false,
+
+        toggle() {
+            this.isOpen = !this.isOpen;
+            const panel = document.getElementById('notification-center');
+            const overlay = document.getElementById('notif-overlay');
+
+            if (this.isOpen) {
+                panel.classList.remove('translate-x-full');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                this.fetchNotifications();
+                this.checkPushPermission();
+            } else {
+                panel.classList.add('translate-x-full');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+            }
+        },
+
+        async fetchNotifications() {
+            const listEl = document.getElementById('notif-list');
+            try {
+                const res = await fetch(`/notifications/api/list?limit=20&_t=${Date.now()}`);
+                const data = await res.json();
+                this.render(data.notifications);
+                this.updateBadge(data.unread_count);
+            } catch (err) {
+                console.error('Notif fetch error', err);
+                listEl.innerHTML = '<div class="text-center py-4 text-red-400 text-xs">Lỗi tải thông báo</div>';
+            }
+        },
+
+        render(items) {
+            const listEl = document.getElementById('notif-list');
+            if (!items || items.length === 0) {
+                const emptyTpl = document.getElementById('notif-empty-tpl');
+                listEl.innerHTML = emptyTpl.innerHTML;
+                return;
+            }
+
+            listEl.innerHTML = items.map(item => {
+                let icon = 'fa-bell';
+                let color = 'bg-blue-100 text-blue-600';
+
+                if (item.type === 'STUDY') { icon = 'fa-book-open'; color = 'bg-emerald-100 text-emerald-600'; }
+                if (item.type === 'CHAT') { icon = 'fa-comments'; color = 'bg-indigo-100 text-indigo-600'; }
+                if (item.type === 'ACHIEVEMENT') { icon = 'fa-trophy'; color = 'bg-amber-100 text-amber-600'; }
+
+                const isReadClass = item.is_read ? 'opacity-75 bg-white' : 'bg-white border-l-4 border-l-blue-500';
+
+                return `
+            <div onclick="notifService.handleClick(${item.id}, '${item.link || ''}')" 
+                 class="w-full p-4 rounded-xl shadow-sm border border-slate-100 cursor-pointer hover:shadow-md transition-all flex gap-3 ${isReadClass} group relative">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full ${color} flex items-center justify-center">
+                    <i class="fa-solid ${icon}"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="text-sm font-bold text-slate-800 line-clamp-1 pr-6">${item.title}</h4>
+                        <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-2">${this.timeSince(new Date(item.created_at))}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed">${item.message}</p>
+                </div>
+                <div class="flex flex-col justify-center items-end pl-2 border-l border-slate-100 ml-1">
+                     <button onclick="event.stopPropagation(); notifService.delete(${item.id})" 
+                             class="text-slate-300 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50" title="Xóa">
+                        <i class="fa-solid fa-trash-can text-sm"></i>
+                     </button>
+                     ${!item.is_read ? '<div class="w-2 h-2 rounded-full bg-blue-500 mt-2"></div>' : ''}
+                </div>
+            </div>
+            `;
+            }).join('');
+        },
+
+        getCsrfToken() {
+            return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        },
+
+        async delete(id) {
+            if (!confirm('Bạn có chắc muốn xóa thông báo này?')) return;
+            try {
+                await fetch(`/notifications/api/delete/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': this.getCsrfToken() }
+                });
+                this.fetchNotifications();
+            } catch (e) {
+                alert('Lỗi xóa thông báo: ' + e.message);
+            }
+        },
+
+        async handleClick(id, link) {
+            try {
+                await fetch(`/notifications/api/mark-read/${id}`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': this.getCsrfToken() }
+                });
+            } catch (e) { }
+
+            if (link && link !== 'null' && link !== '') {
+                window.location.href = link;
+            } else {
+                this.fetchNotifications();
+            }
+        },
+
+        async markAllRead() {
+            try {
+                await fetch('/notifications/api/mark-all-read', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': this.getCsrfToken() }
+                });
+                this.fetchNotifications();
+            } catch (e) {
+                alert('Lỗi đánh dấu đã đọc: ' + e.message);
+            }
+        },
+
+        updateBadge(count) {
+            ['mobile-noti-badge', 'desktop-noti-badge', 'dashboard-noti-badge'].forEach(id => {
+                const badge = document.getElementById(id);
+                if (badge) {
+                    if (count > 0) {
+                        badge.classList.remove('hidden');
+                        badge.innerText = count > 9 ? '9+' : count;
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            });
+        },
+
+        timeSince(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " năm trước";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " tháng trước";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " ngày trước";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " giờ trước";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " phút trước";
+            return "Vừa xong";
+        },
+
+        // --- Web Push Logic ---
+
+        checkPushPermission() {
+            const ui = document.getElementById('push-permission-ui');
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                return; // Not supported
+            }
+
+            if (Notification.permission === 'default') {
+                ui.classList.remove('hidden');
+            } else if (Notification.permission === 'granted') {
+                ui.classList.add('hidden');
+                this.ensureSubscription();
+            } else {
+                ui.classList.add('hidden');
+            }
+        },
+
+        async requestPermission() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    document.getElementById('push-permission-ui').classList.add('hidden');
+                    this.checkPushPermission();
+                } else if (permission === 'denied') {
+                    alert('Bạn đã chặn thông báo cho trang web này. Vui lòng vào cài đặt trình duyệt (biểu tượng ổ khóa trên thanh địa chỉ) để Bật lại/Reset quyền thông báo.');
+                }
+            } catch (e) {
+                alert('Lỗi trình duyệt: ' + e.message);
+            }
+        },
+
+        async ensureSubscription() {
+            try {
+                const reg = await navigator.serviceWorker.register('/notifications/sw.js');
+
+                const keyRes = await fetch('/notifications/api/vapid-public-key');
+                if (!keyRes.ok) throw new Error('Không thể lấy VAPID Key');
+
+                const keyData = await keyRes.json();
+                const vapidKey = keyData.publicKey;
+
+                if (!vapidKey) throw new Error('VAPID Key chưa được cấu hình');
+
+                const convertedKey = this.urlBase64ToUint8Array(vapidKey);
+
+                let sub = await reg.pushManager.getSubscription();
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: convertedKey
+                    });
+                }
+
+                await fetch('/notifications/api/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCsrfToken()
+                    },
+                    body: JSON.stringify(sub)
+                });
+                console.log('Subscribed to backend!');
+
+            } catch (err) {
+                console.error('Subscription failed', err);
+                alert('Lỗi đăng ký nhận tin: ' + err.message + '\nHãy thử tải lại trang.');
+            }
+        },
+
+        urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        },
+
+        init() {
+            this.fetchNotifications();
+            setInterval(() => this.fetchNotifications(), 60000);
+
+            if ('serviceWorker' in navigator) {
+                // navigator.serviceWorker.register('/notifications/sw.js');
+            }
+        }
+    };
+
+    window.toggleNotificationCenter = () => notifService.toggle();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        notifService.init();
+    });
+</script>
+<!-- Global Settings Modal -->
+<div x-data="globalSettings()" 
+     class="relative z-[60]" 
+     aria-labelledby="modal-title" 
+     role="dialog" 
+     aria-modal="true"
+     x-show="isOpen" 
+     style="display: none;"
+     x-transition:enter="ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0">
+
+    <!-- Background backdrop -->
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+         @click="closeModal()"></div>
+
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            
+            <!-- Modal panel -->
+            <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+                 x-show="isOpen"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                
+                <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-cog text-blue-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Cài đặt học tập</h3>
+                            <div class="mt-2 text-sm text-gray-500">
+                                Tùy chỉnh trải nghiệm học tập của bạn. Các thay đổi sẽ được lưu và áp dụng cho các phiên học sau.
+                            </div>
+
+                            <!-- Loading State -->
+                            <div x-show="isLoading" class="py-8 flex justify-center">
+                                <i class="fas fa-circle-notch fa-spin text-2xl text-blue-500"></i>
+                            </div>
+
+                            <!-- Settings Form -->
+                            <div x-show="!isLoading" class="mt-4 space-y-4">
+                                
+                                <!-- Global Toggle -->
+                                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                                    <span class="text-gray-700 font-medium">Tự động áp dụng cài đặt cũ</span>
+                                    <button type="button" 
+                                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2" 
+                                            :class="prefs.auto_load_preferences ? 'bg-blue-600' : 'bg-gray-200'"
+                                            role="switch" 
+                                            @click="prefs.auto_load_preferences = !prefs.auto_load_preferences">
+                                        <span aria-hidden="true" 
+                                              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                              :class="prefs.auto_load_preferences ? 'translate-x-5' : 'translate-x-0'"></span>
+                                    </button>
+                                </div>
+
+                                <div x-show="prefs.auto_load_preferences" x-transition>
+                                    <hr class="border-gray-200 my-2">
+                                    
+                                    <!-- Flashcard Settings -->
+                                    <h4 class="font-medium text-gray-900 mb-2 flex items-center">
+                                        <i class="fas fa-clone text-gray-400 mr-2"></i> Flashcard
+                                    </h4>
+                                    <div class="grid grid-cols-1 gap-3 ml-1">
+                                        
+                                        <!-- Buttons Count -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Số nút đánh giá</label>
+                                            <select x-model.number="prefs.flashcard_button_count" class="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm border">
+                                                <option value="3">3 nút (Quên, Nhớ, Dễ)</option>
+                                                <option value="4">4 nút (Thêm nút Khó)</option>
+                                                <option value="6">6 nút (Chi tiết chuẩn SRS)</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Toggles Grid -->
+                                        <div class="grid grid-cols-2 gap-4 mt-2">
+                                            <label class="inline-flex items-center">
+                                                <input type="checkbox" x-model="prefs.flashcard_show_image" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                                <span class="ml-2 text-sm text-gray-600">Hiện ảnh</span>
+                                            </label>
+                                            <label class="inline-flex items-center">
+                                                <input type="checkbox" x-model="prefs.flashcard_autoplay_audio" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                                <span class="ml-2 text-sm text-gray-600">Tự phát Audio</span>
+                                            </label>
+                                            <label class="inline-flex items-center">
+                                                <input type="checkbox" x-model="prefs.flashcard_show_stats" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                                <span class="ml-2 text-sm text-gray-600">Thanh thống kê</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <hr class="border-gray-200 my-3">
+
+                                    <!-- Quiz Settings -->
+                                    <h4 class="font-medium text-gray-900 mb-2 flex items-center">
+                                        <i class="fas fa-question-circle text-gray-400 mr-2"></i> Quiz
+                                    </h4>
+                                    <div class="ml-1">
+                                        <label class="block text-sm font-medium text-gray-700">Số câu hỏi mỗi đợt</label>
+                                        <div class="flex items-center mt-1">
+                                            <input type="range" min="5" max="50" step="5" x-model.number="prefs.quiz_question_count" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                            <span class="ml-3 text-sm font-bold text-blue-600 w-8" x-text="prefs.quiz_question_count"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div x-show="!prefs.auto_load_preferences" class="text-sm text-gray-500 italic p-2 bg-gray-50 rounded">
+                                    Hệ thống sẽ sử dụng cài đặt mặc định mỗi khi bạn bắt đầu phiên học mới.
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer Buttons -->
+                <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                    <button type="button" 
+                            class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto disabled:opacity-50"
+                            :disabled="isLoading || isSaving"
+                            @click="savePreferences()">
+                        <span x-show="!isSaving">Lưu cài đặt</span>
+                        <span x-show="isSaving"><i class="fas fa-spinner fa-spin"></i> Đang lưu...</span>
+                    </button>
+                    <button type="button" 
+                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                            @click="closeModal()">
+                        Hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('globalSettings', () => ({
+            isOpen: false,
+            isLoading: false,
+            isSaving: false,
+            prefs: {
+                // Defaults (will be overwritten by API)
+                flashcard_button_count: 4,
+                flashcard_show_image: true,
+                flashcard_autoplay_audio: true,
+                flashcard_show_stats: true,
+                quiz_question_count: 10,
+                auto_load_preferences: true
+            },
+
+            init() {
+                // Listen for event to open modal
+                window.addEventListener('open-settings-modal', () => {
+                    this.openModal();
+                });
+            },
+
+            openModal() {
+                this.isOpen = true;
+                this.fetchPreferences();
+            },
+
+            closeModal() {
+                this.isOpen = false;
+            },
+
+            async fetchPreferences() {
+                this.isLoading = true;
+                try {
+                    const response = await fetch('/user_profile/api/preferences');
+                    const result = await response.json();
+                    if (result.success) {
+                        this.prefs = result.data;
+                    }
+                } catch (error) {
+                    console.error('Error fetching preferences:', error);
+                    // Fallback to current values
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            async savePreferences() {
+                this.isSaving = true;
+                try {
+                    const response = await fetch('/user_profile/api/preferences', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify(this.prefs)
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        this.closeModal();
+                        // Optional: Show toast
+                        if (window.showFlashMessage) {
+                            window.showFlashMessage('Đã lưu cài đặt thành công!', 'success');
+                        }
+                        
+                        // Dispatch event so other components can react if needed
+                        window.dispatchEvent(new CustomEvent('preferences-updated', { detail: this.prefs }));
+                    } else {
+                        alert('Lỗi khi lưu cài đặt: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error saving preferences:', error);
+                    alert('Đã xảy ra lỗi kết nối.');
+                } finally {
+                    this.isSaving = false;
+                }
+            }
+        }));
+    });
+</script>
+
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content w-full h-full md:w-2/3 lg:w-1/2">
+        <iframe id="modalIframe" class="modal-iframe"></iframe>
+    </div>
+</div>
+
+<script>
+    // Các hàm toàn cục để iframe con có thể gọi
+    window.openModal = function (url) {
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalIframe = document.getElementById('modalIframe');
+        if (modalOverlay && modalIframe) {
+            let finalUrl = url.includes('?') ? `${url}&is_modal=true` : `${url}?is_modal=true`;
+            modalIframe.src = finalUrl;
+            modalOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+    };
+
+    window.closeModal = function () {
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalIframe = document.getElementById('modalIframe');
+        if (modalOverlay && modalIframe) {
+            modalOverlay.classList.remove('open');
+            modalIframe.src = '';
+            document.body.style.overflow = '';
+        }
+    };
+
+    window.showFlashMessage = function (message, category) {
+        const container = document.getElementById('flash-messages-container');
+        if (!container) return;
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `flex items-center p-2 rounded-md shadow-lg bg-gray-800 text-white relative text-sm opacity-100 transition-opacity duration-500" data-dismissible`;
+        alertDiv.innerHTML = `<i class="fas fa-info-circle mr-2"></i><span>${message}</span><button class="ml-auto pl-2" onclick="this.parentNode.remove()">&times;</button>`;
+        if (category === 'success') alertDiv.classList.add('bg-green-500');
+        else if (category === 'danger') alertDiv.classList.add('bg-red-500');
+        else if (category === 'info') alertDiv.classList.add('bg-blue-500');
+        else if (category === 'warning') alertDiv.classList.add('bg-yellow-500');
+        else alertDiv.classList.add('bg-gray-500');
+
+        container.appendChild(alertDiv);
+        setTimeout(() => alertDiv.classList.remove('opacity-0'), 10);
+        setTimeout(() => {
+            alertDiv.classList.add('opacity-0');
+            setTimeout(() => alertDiv.remove(), 500);
+        }, 5000);
+    };
+
+    // Hàm loadTabContent này sẽ được cập nhật để tải nội dung AJAX cho các tab trong content_dashboard
+    // Tuy nhiên, ở đây nó đang được sử dụng để reload trang.
+    // Cần lưu ý nếu có xung đột với logic AJAX của content_dashboard
+    window.loadTabContent = function (tabName) {
+        window.location.reload();
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Tự động đóng flash messages
+        document.querySelectorAll('[data-dismissible]').forEach(notification => {
+            setTimeout(() => {
+                notification.classList.add('opacity-0');
+                setTimeout(() => notification.remove(), 500);
+            }, 5000);
+        });
+
+        const modalOverlay = document.getElementById('modalOverlay');
+
+        // Lắng nghe sự kiện click để mở modal
+        document.addEventListener('click', function (event) {
+            const target = event.target.closest('.open-modal-btn');
+            if (target && target.dataset.modalUrl) {
+                event.preventDefault();
+                window.openModal(target.dataset.modalUrl);
+            }
+        });
+
+        // Lắng nghe sự kiện click để đóng modal
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', function (event) {
+                if (event.target === modalOverlay) {
+                    window.closeModal();
+                }
+            });
+        }
+    });
+</script>
+<script src="/translator/static/js/translator.js"></script>
+
+<link rel="stylesheet" href="/shared/static/css/image_viewer.css">
+<script src="/shared/static/js/image_viewer.js"></script>
+
+    
+</body>
+
+</html>

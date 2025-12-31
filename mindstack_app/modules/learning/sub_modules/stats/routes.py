@@ -4,7 +4,8 @@ Stats Module Routes
 Provides dashboard page and data endpoints for learning analytics.
 """
 
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, jsonify, request
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from mindstack_app.modules.learning.services.srs_service import SrsService
 from mindstack_app.models.learning_progress import LearningProgress
@@ -16,8 +17,7 @@ from .api_routes import stats_api_bp
 
 # Main stats blueprint  
 stats_bp = Blueprint('stats', __name__, 
-                    url_prefix='/stats',
-                    template_folder='templates')
+                    url_prefix='/stats')
 
 # Note: stats_api_bp is registered separately in learning/routes.py
 # because it has its own complete URL prefix (/api/learning/stats)

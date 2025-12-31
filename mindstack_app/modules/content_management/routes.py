@@ -2,7 +2,8 @@
 # Phiên bản: 2.2
 # ĐÃ SỬA: Khắc phục lỗi 404 bằng cách loại bỏ url_prefix khi đăng ký các blueprint con.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
+from flask import Blueprint, request, redirect, url_for, flash, abort, jsonify, current_app
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 from ...models import db, LearningContainer, ContainerContributor, User
@@ -20,8 +21,7 @@ from .flashcards.routes import flashcards_bp
 from .quizzes.routes import quizzes_bp
 
 # Định nghĩa Blueprint chính cho content_management
-content_management_bp = Blueprint('content_management', __name__,
-                                  template_folder='templates') # Vẫn giữ template_folder này cho các template chung
+content_management_bp = Blueprint('content_management', __name__) # Vẫn giữ template_folder này cho các template chung
 
 # Đăng ký các blueprint con
 # ĐÃ SỬA: Loại bỏ url_prefix vì các routes con đã tự định nghĩa đường dẫn đầy đủ
@@ -96,7 +96,7 @@ def content_dashboard():
     """
     Hiển thị dashboard tổng quan về nội dung.
     """
-    return render_template('content_dashboard.html')
+    return render_template('content_management/content_dashboard.html')
 
 @content_management_bp.route('/manage_contributors/<int:container_id>', methods=['GET', 'POST'])
 @login_required
@@ -185,7 +185,7 @@ def manage_contributors(container_id):
     )
     username_suggestions = [username for (username,) in eligible_usernames]
 
-    return render_template('manage_contributors.html',
+    return render_template('content_management/manage_contributors.html',
                            container=container,
                            contributors=contributors,
                            form=form,

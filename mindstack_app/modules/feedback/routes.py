@@ -3,7 +3,8 @@
 # MỤC ĐÍCH: Khắc phục lỗi lưu nội dung feedback trống.
 # ĐÃ SỬA: Thêm logic .strip() để loại bỏ khoảng trắng ở đầu và cuối chuỗi feedback trước khi kiểm tra và lưu vào database.
 
-from flask import render_template, request, jsonify, flash, redirect, url_for, abort
+from flask import request, jsonify, flash, redirect, url_for, abort
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 

@@ -1,4 +1,5 @@
-from flask import render_template, jsonify, request
+from flask import jsonify, request
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from . import gamification_bp, gamification_api_bp
 from .services import ScoreService

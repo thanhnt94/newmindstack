@@ -2,7 +2,8 @@
 # MCQ (Multiple Choice Quiz) Routes for Vocabulary Learning
 
 import json
-from flask import render_template, request, jsonify, abort
+from flask import request, jsonify, abort
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 
 from . import mcq_bp

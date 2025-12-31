@@ -1,4 +1,5 @@
-from flask import render_template, jsonify, request, current_app
+from flask import jsonify, request, current_app
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from . import notification_bp
 from .services import NotificationService

@@ -6,8 +6,7 @@ from flask import Blueprint
 vocabulary_bp = Blueprint(
     'vocabulary',
     __name__,
-    url_prefix='/vocabulary',
-    template_folder='templates'
+    url_prefix='/vocabulary'
 )
 
 # Import and register submodules

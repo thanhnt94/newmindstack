@@ -2,7 +2,8 @@
 # Vocabulary Learning Hub Routes
 # Updated to use flashcard engine for session management
 
-from flask import render_template, request, jsonify, redirect, url_for, flash, abort, current_app, session
+from flask import request, jsonify, redirect, url_for, flash, abort, current_app, session, render_template_string
+from mindstack_app.core.templating import render_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
@@ -287,7 +288,6 @@ def api_get_set_detail(set_id):
     # Get SRS Stats for Course Overview
     course_stats = None
     page = request.args.get('page', 1, type=int)
-    from flask import render_template_string
     pagination_html = ""
 
     try:
