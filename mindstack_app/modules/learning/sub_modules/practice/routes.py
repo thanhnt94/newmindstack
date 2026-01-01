@@ -311,3 +311,34 @@ def api_get_quiz_modes(set_identifier):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
+@practice_bp.route('/quiz/api/check_session')
+@login_required
+def api_check_quiz_session():
+    """API kiểm tra xem có phiên Quiz đang hoạt động không."""
+    from ..quiz.individual.logics.session_logic import QuizSessionManager
+    
+    session_data = QuizSessionManager.get_session_status()
+    if session_data:
+        return jsonify({
+            'success': True,
+            'has_session': True,
+            'session_info': {
+                'mode': session_data.get('mode', ''),
+                'total_items': session_data.get('total_items_in_session', 0),
+                'answered': session_data.get('current_question_index', 0),
+                'correct': session_data.get('correct_answers', 0),
+                'incorrect': session_data.get('incorrect_answers', 0),
+            }
+        })
+    return jsonify({'success': True, 'has_session': False})
+
+
+@practice_bp.route('/quiz/api/clear_session', methods=['POST'])
+@login_required
+def api_clear_quiz_session():
+    """API xóa phiên Quiz hiện tại."""
+    from ..quiz.individual.logics.session_logic import QuizSessionManager
+    
+    QuizSessionManager.end_quiz_session()
+    return jsonify({'success': True, 'message': 'Đã xóa phiên học cũ.'})

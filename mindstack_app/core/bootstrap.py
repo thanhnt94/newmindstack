@@ -88,20 +88,36 @@ def register_extensions(app: Flask) -> None:
 
 
 def configure_static_uploads(app: Flask) -> None:
-    """Configure static file serving (Default: /static) and Uploads (/uploads)."""
-    from flask import send_from_directory
-
-    # Restore default static folder behavior (mindstack_app/static -> /static)
-    # app.static_folder = 'static' # Flask default, no need to set if structure is standard
-    # app.static_url_path = '/static'
+    """Configure static file serving to use UPLOAD_FOLDER for /static/ route.
     
-    # Configure Uploads Folder at /uploads
-    # (Optional: Only needed if you want to serve uploads directly via Flask in Dev)
+    This allows existing URLs stored in the database as /static/... to be served
+    from the UPLOAD_FOLDER (e.g., C:\\Code\\MindStack\\uploads) instead of the
+    default mindstack_app/static/ folder.
+    """
+    from flask import send_from_directory
+    import os
+
+    # Get the uploads folder path from config
+    upload_folder = app.config.get('UPLOAD_FOLDER')
+    
+    if upload_folder and os.path.isdir(upload_folder):
+        app.logger.info(f"UPLOAD_FOLDER đã được xác nhận tại: {upload_folder}")
+    else:
+        app.logger.warning(f"UPLOAD_FOLDER không tồn tại hoặc chưa cấu hình: {upload_folder}")
+    
+    # Override /static/ route to serve from UPLOAD_FOLDER
+    # This route has higher priority than Flask's default static route
+    @app.route('/static/<path:filename>')
+    def custom_static(filename):
+        """Serve static files from UPLOAD_FOLDER instead of default static folder."""
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Also keep the /uploads/ route as an alias
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-    app.logger.info("Đã cấu hình thư mục tĩnh mặc định tại /static và uploads tại /uploads")
+    app.logger.info("Đã cấu hình /static/ và /uploads/ để phục vụ từ UPLOAD_FOLDER")
 
     # Serve favicon from source
     @app.route('/favicon.ico')

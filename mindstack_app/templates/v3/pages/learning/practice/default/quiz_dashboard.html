@@ -426,6 +426,129 @@
         margin-bottom: 1rem;
         color: #cbd5e1;
     }
+
+    /* Session Recovery Modal */
+    .session-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .session-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .session-modal {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        max-width: 90%;
+        width: 360px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    }
+
+    .session-modal-overlay.active .session-modal {
+        transform: scale(1);
+    }
+
+    .session-modal-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+    }
+
+    .session-modal-icon i {
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .session-modal-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1e293b;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .session-modal-desc {
+        font-size: 0.875rem;
+        color: #64748b;
+        text-align: center;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+    }
+
+    .session-modal-info {
+        background: #f1f5f9;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        font-size: 0.8rem;
+        color: #475569;
+    }
+
+    .session-modal-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+    }
+
+    .session-modal-info-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .session-modal-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .session-modal-btn {
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .session-modal-btn.primary {
+        background: var(--quiz-primary);
+        color: white;
+    }
+
+    .session-modal-btn.primary:hover {
+        background: var(--quiz-primary-dark);
+    }
+
+    .session-modal-btn.secondary {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .session-modal-btn.secondary:hover {
+        background: #e2e8f0;
+    }
 </style>
 {% endblock %}
 
@@ -433,6 +556,41 @@
 {# === MOBILE NAVIGATION === #}
 <div class="lg:hidden">
     {% include 'v3/includes/_navbar_mobile.html' %}
+</div>
+
+<!-- Session Recovery Modal -->
+<div id="session-recovery-modal" class="session-modal-overlay">
+    <div class="session-modal">
+        <div class="session-modal-icon">
+            <i class="fas fa-history"></i>
+        </div>
+        <div class="session-modal-title">Phiên học chưa hoàn thành</div>
+        <div class="session-modal-desc">Bạn có một phiên Quiz đang dở. Bạn muốn tiếp tục hay bắt đầu mới?</div>
+        <div id="session-info" class="session-modal-info">
+            <div class="session-modal-info-row">
+                <span>Chế độ:</span>
+                <span id="session-mode">-</span>
+            </div>
+            <div class="session-modal-info-row">
+                <span>Tiến độ:</span>
+                <span><span id="session-answered">0</span>/<span id="session-total">0</span> câu</span>
+            </div>
+            <div class="session-modal-info-row">
+                <span>Đúng:</span>
+                <span id="session-correct">0</span>
+            </div>
+        </div>
+        <div class="session-modal-buttons">
+            <button type="button" class="session-modal-btn primary" id="btn-continue-session">
+                <i class="fas fa-play"></i>
+                Tiếp tục phiên cũ
+            </button>
+            <button type="button" class="session-modal-btn secondary" id="btn-clear-session">
+                <i class="fas fa-trash-alt"></i>
+                Bắt đầu mới
+            </button>
+        </div>
+    </div>
 </div>
 
 <!-- STEP 1: Set Browser (Multi-Select) -->
@@ -548,7 +706,7 @@
         const apiModesUrl = "{{ url_for('learning.practice.api_get_quiz_modes', set_identifier='__ID__') }}";
         const startSessionUrl = "{{ url_for('learning.practice.quiz_start') }}";
 
-        // Init
+        // Init - load sets directly (sessions are auto-cleared when starting new ones)
         loadSets();
 
         // Category tabs

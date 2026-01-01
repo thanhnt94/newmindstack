@@ -22,7 +22,8 @@ __all__ = ["create_app", "app", "db"]
 def create_app(config_class: type[Config] = Config) -> Flask:
     """Create and configure a Flask application instance."""
 
-    app = Flask(__name__)
+    # Set static_folder to UPLOAD_FOLDER so /static/ serves from uploads directory
+    app = Flask(__name__, static_folder=config_class.UPLOAD_FOLDER)
     app.config.from_object(config_class)
 
     configure_logging(app)
