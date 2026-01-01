@@ -50,7 +50,7 @@ Mục đích: Base template cho toàn bộ hệ thống - Template Version 3.0
     {% block head %}{% endblock %}
 </head>
 
-<body class="bg-gray-100 flex flex-col min-h-screen{% block body_class %}{% endblock %}">
+<body class="bg-slate-100/80 flex flex-col min-h-screen antialiased {% block body_class %}{% endblock %}">
 
     {# IMPORT LAYOUT MODES #}
     {% import 'v3/_base_desktop.html' as desktop %}

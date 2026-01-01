@@ -4,15 +4,22 @@
 {# Import the navbar rendering macro locally if needed, or assume it is available in context #}
 {% from 'v3/includes/navbar/_navbar.html' import render_navbar %}
 
-<header class="bg-white shadow-md relative z-50 hidden lg:block">
+<header class="bg-white border-b border-slate-100 relative z-50 hidden lg:block">
     {{ render_navbar(current_user, request) }}
 </header>
 {% endmacro %}
 
 {% macro footer() %}
-<footer class="bg-white text-center py-4 mt-auto shadow-sm hidden lg:block">
-    <div class="container mx-auto px-2 sm:px-3 md:px-4">
-        <p class="text-gray-500">&copy; 2025 Mindstack App. All Rights Reserved.</p>
+<footer class="bg-white border-t border-slate-100 py-6 hidden lg:block mt-auto">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <i class="fa-solid fa-brain text-indigo-500 text-sm"></i>
+            </div>
+            <span class="font-semibold text-slate-600">Mindstack</span>
+            <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">3.0</span>
+        </div>
+        <p class="text-sm text-slate-400">© 2025 Mindstack. All rights reserved.</p>
     </div>
 </footer>
 {% endmacro %}
