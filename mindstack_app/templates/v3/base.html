@@ -3,7 +3,7 @@ File: mindstack_app/templates/v3/base.html
 Phiên bản: 3.0
 Mục đích: Base template cho toàn bộ hệ thống - Template Version 3.0
 #}
-{% from 'v3/includes/_navbar.html' import render_navbar %}
+{% from 'v3/includes/navbar/_navbar.html' import render_navbar %}
 <!doctype html>
 <html lang="vi">
 
@@ -44,8 +44,8 @@ Mục đích: Base template cho toàn bộ hệ thống - Template Version 3.0
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     {# INCLUDES: CORE STYLES & ASSETS #}
-    {% include 'v3/includes/_global_styles.html' %}
-    {% include 'v3/includes/_markdown_assets.html' %}
+    {% include 'v3/includes/assets/_global_styles.html' %}
+    {% include 'v3/includes/assets/_markdown_assets.html' %}
 
     {% block head %}{% endblock %}
 </head>
@@ -97,7 +97,7 @@ Mục đích: Base template cho toàn bộ hệ thống - Template Version 3.0
     {{ mobile.css_reset() }}
 
     {# INCLUDES: APP LOGIC & MODALS #}
-    {% include 'v3/includes/_app_logic.html' %}
+    {% include 'v3/includes/assets/_app_logic.html' %}
 
     {% block scripts %}{% endblock %}
 </body>

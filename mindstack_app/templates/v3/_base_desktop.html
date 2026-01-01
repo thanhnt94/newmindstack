@@ -2,7 +2,7 @@
 
 {% macro header(current_user, request) %}
 {# Import the navbar rendering macro locally if needed, or assume it is available in context #}
-{% from 'v3/includes/_navbar.html' import render_navbar %}
+{% from 'v3/includes/navbar/_navbar.html' import render_navbar %}
 
 <header class="bg-white shadow-md relative z-50 hidden lg:block">
     {{ render_navbar(current_user, request) }}

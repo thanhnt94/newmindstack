@@ -1,55 +1,55 @@
 {% extends "v3/base.html" %}
 
-{% block title %}Đăng nhập - Mindstack{% endblock %}
+{% block title %}Đăng ký - Mindstack{% endblock %}
 
-{% block body_class %} login-page{% endblock %}
+{% block body_class %} register-page{% endblock %}
 
 {% block content %}
 
 {# Include Mobile Version #}
-{% include 'v3/pages/auth/_login_mobile.html' %}
+{% include 'v3/pages/auth/register/_register_mobile.html' %}
 
 {# Include Desktop Version #}
-{% include 'v3/pages/auth/_login_desktop.html' %}
+{% include 'v3/pages/auth/register/_register_desktop.html' %}
 
 {% endblock %}
 
 {% block scripts %}
 <style>
-    /* Hide header and footer on login page for mobile */
+    /* Hide header and footer on register page for mobile */
     @media (max-width: 1023px) {
 
-        body.login-page>header,
-        body.login-page>footer {
+        body.register-page>header,
+        body.register-page>footer {
             display: none !important;
         }
 
-        body.login-page>main {
+        body.register-page>main {
             padding: 0 !important;
             margin: 0 !important;
         }
 
-        body.login-page>main>.container {
+        body.register-page>main>.container {
             padding: 0 !important;
             margin: 0 !important;
             max-width: 100% !important;
         }
     }
 
-    /* Hide header and footer on login page for desktop too */
+    /* Hide header and footer on register page for desktop too */
     @media (min-width: 1024px) {
 
-        body.login-page>header,
-        body.login-page>footer {
+        body.register-page>header,
+        body.register-page>footer {
             display: none !important;
         }
 
-        body.login-page>main {
+        body.register-page>main {
             padding: 0 !important;
             margin: 0 !important;
         }
 
-        body.login-page>main>.container {
+        body.register-page>main>.container {
             padding: 0 !important;
             margin: 0 !important;
             max-width: 100% !important;

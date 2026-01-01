@@ -5,13 +5,13 @@
 {# === MOBILE NAVIGATION === #}
 {# Top Navbar (Mobile Only) #}
 <div class="lg:hidden">
-    {% include 'v3/includes/_navbar_mobile.html' %}
+    {% include 'v3/includes/navbar/_navbar_mobile.html' %}
 </div>
 
 {# Bottom Nav (Mobile Only) #}
 <div class="lg:hidden fixed bottom-0 left-0 right-0 z-[200]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
     {% set active_page = '' %}
-    {% include 'v3/includes/_bottom_nav_mobile.html' %}
+    {% include 'v3/includes/navbar/_bottom_nav_mobile.html' %}
 </div>
 
 <style>
