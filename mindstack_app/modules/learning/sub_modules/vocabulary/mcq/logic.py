@@ -19,17 +19,23 @@ def get_available_content_keys(container_id: int) -> list:
     system_keys = {
         'audio_url', 'image_url', 'video_url', 
         'memrise_audio_url', 'front_audio_url', 'back_audio_url', 
-        'front_img', 'back_img'
+        'front_img', 'back_img', 'front_audio_content', 'back_audio_content'
     }
     
     for item in items:
+        # Check standard content
         content = item.content or {}
         for k in content.keys():
             if k not in system_keys:
                 val = content[k]
-                # Only include keys with string, int, or list values
                 if isinstance(val, (str, int, float)) or (isinstance(val, list) and val):
                     keys.add(k)
+        
+        # [UPDATED] Check custom data
+        custom = item.custom_data or {}
+        for k in custom.keys():
+            if k not in system_keys:
+                keys.add(k)
     
     return sorted(list(keys))
 
@@ -46,8 +52,12 @@ def get_mcq_eligible_items(container_id: int) -> list:
     
     eligible = []
     for item in items:
-        content = item.content or {}
-        # Include full content for custom key access
+        content = dict(item.content or {})
+        
+        # [UPDATED] Merge custom data into content for seamless access
+        if item.custom_data:
+            content.update(item.custom_data)
+            
         eligible.append({
             'item_id': item.item_id,
             'content': content,
@@ -145,9 +155,11 @@ def generate_mcq_question(item: dict, all_items: list, num_choices: int = 4,
 def _get_content_value(content: dict, key: str) -> str:
     """Helper to safely get content value as string."""
     val = content.get(key, '')
+    if val is None:
+        return ''
     if isinstance(val, list):
-        return val[0] if val else ''
-    return str(val) if val else ''
+        return str(val[0]) if val else ''
+    return str(val)
 
 
 def check_mcq_answer(correct_index: int, user_answer_index: int) -> dict:

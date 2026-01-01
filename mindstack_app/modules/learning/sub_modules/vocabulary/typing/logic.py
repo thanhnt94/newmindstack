@@ -16,7 +16,10 @@ def get_typing_eligible_items(container_id, custom_pairs=None):
     # Logic for custom columns
     if custom_pairs and isinstance(custom_pairs, list):
         for item in items:
-            content = item.content or {}
+            # [UPDATED] Merge custom data into content
+            content = dict(item.content or {})
+            if item.custom_data:
+                content.update(item.custom_data)
             
             # Find first valid pair in list
             valid_q = None

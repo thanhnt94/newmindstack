@@ -16,6 +16,48 @@ from mindstack_app.modules.shared.utils.media_paths import (
 class FlashcardExcelService:
     """Service xử lý các nghiệp vụ liên quan đến Excel cho Flashcard."""
 
+    # Class Constants
+    SYSTEM_COLUMNS = {'item_id', 'order_in_container', 'action'}
+    STANDARD_COLUMNS = {
+        'front', 'back',  # Required
+        'front_audio_content', 'back_audio_content',  # TTS text
+        'front_img', 'back_img', 'front_audio_url', 'back_audio_url',  # Media paths
+    }
+    AI_COLUMNS = {'ai_explanation'}
+    URL_FIELDS = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
+
+    @classmethod
+    def analyze_column_structure(cls, filepath: str) -> dict:
+        """
+        Phân tích cấu trúc cột của sheet 'Data' trong file Excel.
+        Trả về dictionary phân loại cột.
+        """
+        try:
+            df = pd.read_excel(filepath, sheet_name='Data')
+            columns = set(df.columns)
+            
+            found_standard = [col for col in columns if col in cls.STANDARD_COLUMNS]
+            found_system = [col for col in columns if col in cls.SYSTEM_COLUMNS]
+            found_ai = [col for col in columns if col in cls.AI_COLUMNS]
+            
+            all_known = cls.SYSTEM_COLUMNS | cls.STANDARD_COLUMNS | cls.AI_COLUMNS
+            found_custom = [col for col in columns if col not in all_known]
+            
+            missing_required = [col for col in ['front', 'back'] if col not in columns]
+            
+            return {
+                'success': True,
+                'total_columns': len(columns),
+                'standard_columns': sorted(found_standard),
+                'custom_columns': sorted(found_custom),
+                'system_columns': sorted(found_system),
+                'ai_columns': sorted(found_ai),
+                'missing_required': missing_required,
+                'all_columns': sorted(list(columns))
+            }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
     @staticmethod
     def _process_relative_url(url, media_folder=None):
         """Helper local: Chuẩn hóa dữ liệu URL/đường dẫn."""
@@ -96,22 +138,31 @@ class FlashcardExcelService:
             delete_ids = set()
             ordered_entries = []
 
-            optional_fields = [
-                'front_audio_content', 'back_audio_content', 'front_img', 'back_img',
-                'front_audio_url', 'back_audio_url', 'ai_prompt',
-                'supports_pronunciation', 'supports_writing', 'supports_quiz',
-                'supports_essay', 'supports_listening', 'supports_speaking',
-            ]
-            url_fields = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
-            capability_fields = {
-                'supports_pronunciation', 'supports_writing', 'supports_quiz',
-                'supports_essay', 'supports_listening', 'supports_speaking'
-            }
+            def log_debug(msg):
+                try:
+                    with open(r"c:\Code\MindStack\newmindstack\import_debug.log", "a", encoding="utf-8") as f:
+                        f.write(f"{msg}\n")
+                except Exception as e:
+                     current_app.logger.error(f"Failed to write log: {e}")
+
+            # Define local aliases for usage in processing loops
+            standard_columns = cls.STANDARD_COLUMNS
+            url_fields = cls.URL_FIELDS
+            image_folder = media_overrides.get('image') or container_media_folders.get('image') or 'images'
+            audio_folder = media_overrides.get('audio') or container_media_folders.get('audio') or 'audio'
+
+            # ============ COLUMN CLASSIFICATION ============
+            log_debug("--- NEW IMPORT STARTED ---")
+            log_debug(f"DataFrame Columns: {list(df.columns)}")
             
-            # Logic lấy capabilities từ container (đơn giản hóa)
-            container_capabilities = set()
-            if hasattr(flashcard_set, 'capability_flags'):
-                container_capabilities = set(flashcard_set.capability_flags())
+            # Detect custom columns using Class Constants
+            all_known_columns = cls.SYSTEM_COLUMNS | cls.STANDARD_COLUMNS | cls.AI_COLUMNS
+            custom_columns = [col for col in df.columns if col not in all_known_columns]
+            
+            if custom_columns:
+                current_app.logger.info(f"Phát hiện {len(custom_columns)} cột custom: {custom_columns}")
+            else:
+                 current_app.logger.info("Không phát hiện cột custom nào.")
 
             stats = {'updated': 0, 'created': 0, 'deleted': 0, 'skipped': 0, 'reordered': 0}
 
@@ -184,33 +235,46 @@ class FlashcardExcelService:
                     if not front_content or not back_content:
                         raise ValueError(f"Hàng {index + 2}: Thẻ với ID {item_id} thiếu dữ liệu front/back.")
 
+                    # Build content dict from standard columns
                     content_dict = item.content or {}
+                    
+                    # Clean up legacy fields from content
+                    keys_to_remove = [k for k in content_dict.keys() if k.startswith('supports_')]
+                    for k in keys_to_remove:
+                        content_dict.pop(k, None)
+                        
                     content_dict['front'] = front_content
                     content_dict['back'] = back_content
                     ai_explanation_value = _get_cell(row, 'ai_explanation')
                     content_dict.pop('ai_explanation', None)
                     
-                    for field in optional_fields:
+                    # Process standard optional columns
+                    for field in standard_columns:
+                        if field in {'front', 'back'}:
+                            continue  # Already handled above
                         cell_value = _get_cell(row, field)
                         if cell_value:
                             if field in url_fields:
                                 base_folder = image_folder if field in {'front_img', 'back_img'} else audio_folder
                                 content_dict[field] = cls._process_relative_url(cell_value, base_folder)
-                            elif field in capability_fields:
-                                content_dict[field] = cell_value.lower() in {'true', '1', 'yes', 'y', 'on'}
                             else:
                                 content_dict[field] = cell_value
                         else:
-                            if field in capability_fields:
-                                content_dict[field] = False
-                            else:
-                                content_dict.pop(field, None)
-                                
-                    for capability_flag in container_capabilities:
-                        content_dict.setdefault(capability_flag, True)
-                        
+                            content_dict.pop(field, None)
+                    
+                    # Process custom columns into custom_data
+                    custom_dict = item.custom_data or {}
+                    for col in custom_columns:
+                        cell_value = _get_cell(row, col)
+                        if cell_value:
+                            custom_dict[col] = cell_value
+                        else:
+                            custom_dict.pop(col, None)
+                    
                     item.content = content_dict
                     flag_modified(item, 'content')
+                    item.custom_data = custom_dict if custom_dict else None
+                    flag_modified(item, 'custom_data')
                     item.ai_explanation = ai_explanation_value or None
                     
                     # Update search text index
@@ -232,29 +296,42 @@ class FlashcardExcelService:
                         stats['skipped'] += 1
                         continue
 
+                    # Build content dict from standard columns
                     content_dict = {'front': front_content, 'back': back_content}
+                    
+                    # [SAFETY] Ensure no legacy fields in new content
+                    for k in list(content_dict.keys()):
+                        if k.startswith('supports_'):
+                            content_dict.pop(k, None)
+                            
                     ai_explanation_value = _get_cell(row, 'ai_explanation')
-                    for field in optional_fields:
+                    
+                    # Process standard optional columns
+                    for field in standard_columns:
+                        if field in {'front', 'back'}:
+                            continue  # Already handled above
                         cell_value = _get_cell(row, field)
                         if cell_value:
                             if field in url_fields:
                                 base_folder = image_folder if field in {'front_img', 'back_img'} else audio_folder
                                 content_dict[field] = cls._process_relative_url(cell_value, base_folder)
-                            elif field in capability_fields:
-                                content_dict[field] = cell_value.lower() in {'true', '1', 'yes', 'y', 'on'}
                             else:
                                 content_dict[field] = cell_value
-                        else:
-                            if field in capability_fields:
-                                content_dict[field] = False
-                            else:
-                                content_dict.pop(field, None)
-                    for capability_flag in container_capabilities:
-                        content_dict.setdefault(capability_flag, True)
+                    
+                    # Process custom columns into custom_data
+                    custom_dict = {}
+                    for col in custom_columns:
+                        cell_value = _get_cell(row, col)
+                        if cell_value:
+                            custom_dict[col] = cell_value
+                    
                     ordered_entries.append({
-                        'type': 'new', 'data': content_dict,
+                        'type': 'new', 
+                        'data': content_dict,
+                        'custom_data': custom_dict if custom_dict else None,
                         'ai_explanation': ai_explanation_value or None,
-                        'order': order_number, 'sequence': index,
+                        'order': order_number, 
+                        'sequence': index,
                     })
                     stats['created'] += 1
 
@@ -286,6 +363,7 @@ class FlashcardExcelService:
                         container_id=container_id,
                         item_type='FLASHCARD',
                         content=entry['data'],
+                        custom_data=entry.get('custom_data'),
                         ai_explanation=entry.get('ai_explanation'),
                         order_in_container=next_order,
                     )

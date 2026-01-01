@@ -223,6 +223,9 @@ class LearningItem(db.Model):
     order_in_container = db.Column(db.Integer, default=0)
     ai_explanation = db.Column(db.Text, nullable=True)
     
+    # [NEW] Custom data column for user-defined fields from Excel import
+    custom_data = db.Column(JSON, nullable=True)
+    
     # [NEW] Optimized search column
     search_text = db.Column(db.Text, nullable=True)
 
@@ -259,3 +262,17 @@ class LearningItem(db.Model):
         
         # Join and lowercase for easier searching
         self.search_text = " ".join(text_parts).lower()
+
+from sqlalchemy import event
+
+@event.listens_for(LearningItem, 'before_insert')
+@event.listens_for(LearningItem, 'before_update')
+def clean_learning_item_content(mapper, connection, target):
+    if target.content and isinstance(target.content, dict):
+        keys_to_remove = [k for k in target.content.keys() if k.startswith('supports_')]
+        if keys_to_remove:
+            new_content = dict(target.content)
+            for k in keys_to_remove:
+                new_content.pop(k, None)
+            target.content = new_content
+

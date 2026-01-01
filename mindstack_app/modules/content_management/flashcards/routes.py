@@ -626,14 +626,24 @@ def process_excel_info():
                 temp_filepath = tmp_file.name
 
             info_data, info_warnings = extract_info_sheet_mapping(temp_filepath)
+            
+            # [NEW] Check for 'Data' sheet column structure
+            column_analysis = FlashcardExcelService.analyze_column_structure(temp_filepath)
+            
             if not info_data and info_warnings:
                 message = format_info_warnings(info_warnings)
                 return jsonify({'success': False, 'message': message}), 400
 
-            message = 'Đã đọc thông tin từ sheet Info.'
+            message = 'Đã đọc thông tin từ file Excel.'
             if info_warnings:
                 message += ' ' + format_info_warnings(info_warnings)
-            return jsonify({'success': True, 'data': info_data, 'message': message})
+                
+            return jsonify({
+                'success': True, 
+                'data': info_data, 
+                'column_analysis': column_analysis,  # Return analysis data
+                'message': message
+            })
         except Exception as e:
             # Xử lý các lỗi khác khi đọc file Excel
             current_app.logger.error(f"Lỗi khi xử lý sheet Info (Flashcard): {e}")
@@ -991,86 +1001,14 @@ def add_flashcard_set():
 
             # Xử lý file Excel nếu có
             if form.excel_file.data and form.excel_file.data.filename != '':
-                excel_file = form.excel_file.data
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
-                    excel_file.save(tmp_file.name)
-                    temp_filepath = tmp_file.name
-                
-                # --- THÊM MỚI LOGIC XỬ LÝ SHEET INFO ---
-                info_notices: list[str] = []
-                media_overrides = {}
-                cover_image_override = cover_image_value
-                info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
-                if info_mapping:
-                    image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
-                    audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))
-                    cover_image_override = info_mapping.get('cover_image', cover_image_override)
-                    if image_folder_override:
-                        media_overrides['image'] = image_folder_override
-                    if audio_folder_override:
-                        media_overrides['audio'] = audio_folder_override
-                if info_warnings:
-                    info_notices.extend(info_warnings)
-
-                if media_overrides:
-                    # Áp dụng media overrides và cập nhật local folders
-                    new_set.set_media_folders(media_overrides)
-                    image_folder = media_overrides.get('image') or image_folder
-                    audio_folder = media_overrides.get('audio') or audio_folder
-                if cover_image_override is not None:
-                    new_set.cover_image = _process_relative_url(str(cover_image_override), image_folder)
-                # --- KẾT THÚC THÊM MỚI ---
-
-                df = pd.read_excel(temp_filepath, sheet_name='Data')
-                required_cols = ['front', 'back']
-                # Kiểm tra các cột bắt buộc
-                if not all(col in df.columns for col in required_cols):
-                    raise ValueError(f"File Excel (sheet 'Data') phải có các cột bắt buộc: {', '.join(required_cols)}.")
-                items_added_count = 0
-                for index, row in df.iterrows():
-                    front_content = str(row['front']) if pd.notna(row['front']) else ''
-                    back_content = str(row['back']) if pd.notna(row['back']) else ''
-                    if front_content and back_content:
-                        item_content = {'front': front_content, 'back': back_content}
-                        optional_cols = [
-                            'front_audio_content',
-                            'back_audio_content',
-                            'front_audio_url',
-                            'back_audio_url',
-                            'front_img',
-                            'back_img',
-                            'ai_explanation',
-                            'ai_prompt',
-                            'supports_pronunciation',
-                            'supports_writing',
-                            'supports_quiz',
-                            'supports_essay',
-                            'supports_listening',
-                            'supports_speaking',
-                        ]
-                        for col in optional_cols:
-                            if col in df.columns and pd.notna(row[col]):
-                                if col in CAPABILITY_FLAGS:
-                                    item_content[col] = str(row[col]).strip().lower() in {'true', '1', 'yes', 'y', 'on'}
-                                elif col in MEDIA_URL_FIELDS:
-                                    base_folder = image_folder if col in {'front_img', 'back_img'} else audio_folder
-                                    item_content[col] = _process_relative_url(str(row[col]), base_folder)
-                                else:
-                                    item_content[col] = str(row[col])
-                        for capability_flag in selected_capabilities:
-                            item_content.setdefault(capability_flag, True)
-                        # Tạo thẻ Flashcard mới
-                        new_item = LearningItem(
-                            container_id=new_set.container_id,
-                            item_type='FLASHCARD',
-                            content=item_content,
-                            order_in_container=index + 1
-                        )
-                        db.session.add(new_item)
-                        items_added_count += 1
-                flash_message = f'Bộ thẻ và {items_added_count} thẻ từ Excel đã được tạo thành công!'
-                if info_notices:
-                    flash_message += ' Lưu ý: ' + format_info_warnings(info_notices)
+                # Gọi Service xử lý trọn gói (bao gồm Info sheet + Data sheet)
+                # Service expect 'excel_file' as a FileStorage object (or object with .save())
+                # FlashcardExcelService.process_import(container_id, excel_file)
+                import_summary = FlashcardExcelService.process_import(
+                    container_id=new_set.container_id,
+                    excel_file=form.excel_file.data
+                )
+                flash_message = f'Bộ thẻ mới đã được tạo. {import_summary}'
                 flash_category = 'success'
             else:
                 flash_message = 'Bộ thẻ mới đã được tạo thành công!'
@@ -1093,7 +1031,7 @@ def add_flashcard_set():
             return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     
     # Xử lý lỗi form validation cho AJAX
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+    if (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('is_modal') == 'true') and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
     
     # Render template cho modal hoặc trang đầy đủ
