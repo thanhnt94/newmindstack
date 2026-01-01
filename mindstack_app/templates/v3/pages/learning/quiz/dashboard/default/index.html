@@ -1270,8 +1270,11 @@
 
             modes.forEach(mode => {
                 const iconData = icons[mode.id] || { icon: 'fa-question', color: 'blue' };
+                const isDisabled = mode.count === 0;
+                const style = isDisabled ? 'opacity: 0.5; filter: grayscale(100%); pointer-events: none; background: #f1f5f9;' : '';
+
                 html += `
-            <div class="quiz-mode-card" data-mode-id="${mode.id}">
+            <div class="quiz-mode-card" data-mode-id="${mode.id}" style="${style}">
                 <div class="quiz-mode-icon ${iconData.color}"><i class="fas ${iconData.icon}"></i></div>
                 <div class="quiz-mode-info">
                     <div class="quiz-mode-name">${mode.name}</div>

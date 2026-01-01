@@ -1,15 +1,15 @@
-{# Practice Flashcard - Wizard-style Dashboard #}
+{# Practice Quiz - Wizard-style Dashboard #}
 {% extends "v3/base.html" %}
-{% block title %}Luyện tập Flashcard - MindStack{% endblock %}
+{% block title %}Luyện tập Quiz - MindStack{% endblock %}
 
 {% block head %}
 {{ super() }}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
     :root {
-        --practice-primary: #10b981;
-        --practice-primary-light: #34d399;
-        --practice-primary-dark: #059669;
+        --quiz-primary: #3b82f6;
+        --quiz-primary-light: #60a5fa;
+        --quiz-primary-dark: #2563eb;
     }
 
     body {
@@ -31,7 +31,7 @@
             max-width: none !important;
         }
 
-        .practice-step {
+        .quiz-step {
             display: none;
             position: fixed;
             inset: 0;
@@ -41,13 +41,13 @@
             overflow-y: auto;
         }
 
-        .practice-step.active {
+        .quiz-step.active {
             display: flex;
         }
     }
 
     @media (min-width: 1024px) {
-        .practice-step {
+        .quiz-step {
             display: block !important;
             position: static !important;
         }
@@ -62,7 +62,7 @@
     }
 
     /* Header */
-    .practice-header {
+    .quiz-header {
         background: white;
         padding: 0.75rem 1rem;
         border-bottom: 1px solid #e2e8f0;
@@ -72,7 +72,7 @@
         flex-shrink: 0;
     }
 
-    .practice-back-btn {
+    .quiz-back-btn {
         width: 36px;
         height: 36px;
         border-radius: 0.75rem;
@@ -87,12 +87,12 @@
         border: none;
     }
 
-    .practice-back-btn:hover {
+    .quiz-back-btn:hover {
         background: #e2e8f0;
         color: #1e293b;
     }
 
-    .practice-title {
+    .quiz-title {
         font-weight: 700;
         color: #1e293b;
         font-size: 1.125rem;
@@ -100,13 +100,13 @@
     }
 
     /* Search */
-    .practice-search-wrap {
+    .quiz-search-wrap {
         padding: 0.75rem 1rem;
         background: white;
         border-bottom: 1px solid #e2e8f0;
     }
 
-    .practice-search {
+    .quiz-search {
         display: flex;
         align-items: center;
         background: #f1f5f9;
@@ -115,11 +115,11 @@
         gap: 0.5rem;
     }
 
-    .practice-search i {
+    .quiz-search i {
         color: #94a3b8;
     }
 
-    .practice-search input {
+    .quiz-search input {
         border: none;
         background: transparent;
         flex: 1;
@@ -128,7 +128,7 @@
     }
 
     /* Tabs */
-    .practice-tabs {
+    .quiz-tabs {
         display: flex;
         gap: 0.25rem;
         padding: 0.5rem 1rem;
@@ -136,7 +136,7 @@
         border-bottom: 1px solid #e2e8f0;
     }
 
-    .practice-tab {
+    .quiz-tab {
         flex: 1;
         padding: 0.5rem;
         text-align: center;
@@ -148,13 +148,13 @@
         transition: all 0.2s;
     }
 
-    .practice-tab.active {
-        background: var(--practice-primary);
+    .quiz-tab.active {
+        background: var(--quiz-primary);
         color: white;
     }
 
     /* Grid */
-    .practice-grid {
+    .quiz-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;
@@ -162,20 +162,20 @@
     }
 
     @media (min-width: 640px) {
-        .practice-grid {
+        .quiz-grid {
             grid-template-columns: repeat(3, 1fr);
         }
     }
 
     @media (min-width: 1024px) {
-        .practice-grid {
+        .quiz-grid {
             grid-template-columns: repeat(4, 1fr);
             gap: 1rem;
         }
     }
 
     /* Set Card */
-    .practice-set-card {
+    .quiz-set-card {
         background: white;
         border-radius: 1rem;
         overflow: hidden;
@@ -185,51 +185,37 @@
         border: 2px solid transparent;
     }
 
-    .practice-set-card:hover {
+    .quiz-set-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 12px 28px rgba(16, 185, 129, 0.15);
+        box-shadow: 0 12px 28px rgba(59, 130, 246, 0.15);
     }
 
-    .practice-set-card.selected {
-        border-color: var(--practice-primary);
-        background: #ecfdf5;
+    .quiz-set-card.selected {
+        border-color: var(--quiz-primary);
+        background: #eff6ff;
     }
 
-    .practice-set-card.selected::after {
-        content: '';
-        position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        width: 24px;
-        height: 24px;
-        background: var(--practice-primary);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .practice-set-cover {
+    .quiz-set-cover {
         height: 100px;
-        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
         display: flex;
         align-items: center;
         justify-content: center;
         position: relative;
     }
 
-    .practice-set-cover i {
+    .quiz-set-cover i {
         font-size: 2rem;
         color: rgba(255, 255, 255, 0.85);
     }
 
-    .practice-set-check {
+    .quiz-set-check {
         position: absolute;
         top: 0.5rem;
         right: 0.5rem;
         width: 28px;
         height: 28px;
-        background: var(--practice-primary);
+        background: var(--quiz-primary);
         border-radius: 50%;
         display: none;
         align-items: center;
@@ -239,15 +225,15 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
-    .practice-set-card.selected .practice-set-check {
+    .quiz-set-card.selected .quiz-set-check {
         display: flex;
     }
 
-    .practice-set-info {
+    .quiz-set-info {
         padding: 0.75rem;
     }
 
-    .practice-set-title {
+    .quiz-set-title {
         font-weight: 700;
         color: #1e293b;
         font-size: 0.875rem;
@@ -258,20 +244,20 @@
         overflow: hidden;
     }
 
-    .practice-set-count {
+    .quiz-set-count {
         font-size: 0.75rem;
         color: #64748b;
     }
 
     /* Scroll */
-    .practice-scroll {
+    .quiz-scroll {
         flex: 1;
         overflow-y: auto;
         padding-bottom: 120px;
     }
 
     /* Footer */
-    .practice-footer {
+    .quiz-footer {
         position: fixed;
         bottom: 0;
         left: 0;
@@ -284,7 +270,7 @@
         z-index: 200;
     }
 
-    .practice-footer-info {
+    .quiz-footer-info {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -293,15 +279,15 @@
         color: #64748b;
     }
 
-    .practice-footer-count {
+    .quiz-footer-count {
         font-weight: 700;
-        color: var(--practice-primary);
+        color: var(--quiz-primary);
     }
 
-    .practice-start-btn {
+    .quiz-start-btn {
         width: 100%;
         padding: 1rem;
-        background: var(--practice-primary);
+        background: var(--quiz-primary);
         color: white;
         font-weight: 700;
         font-size: 1rem;
@@ -315,17 +301,17 @@
         transition: all 0.2s;
     }
 
-    .practice-start-btn:hover:not(:disabled) {
-        background: var(--practice-primary-dark);
+    .quiz-start-btn:hover:not(:disabled) {
+        background: var(--quiz-primary-dark);
     }
 
-    .practice-start-btn:disabled {
+    .quiz-start-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
 
     /* Mode Cards */
-    .practice-mode-card {
+    .quiz-mode-card {
         display: flex;
         align-items: center;
         gap: 1rem;
@@ -339,17 +325,17 @@
         border: 2px solid transparent;
     }
 
-    .practice-mode-card:hover {
+    .quiz-mode-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
     }
 
-    .practice-mode-card.selected {
-        border-color: var(--practice-primary);
-        background: #ecfdf5;
+    .quiz-mode-card.selected {
+        border-color: var(--quiz-primary);
+        background: #eff6ff;
     }
 
-    .practice-mode-icon {
+    .quiz-mode-icon {
         width: 50px;
         height: 50px;
         border-radius: 1rem;
@@ -358,68 +344,84 @@
         justify-content: center;
     }
 
-    .practice-mode-icon i {
+    .quiz-mode-icon i {
         font-size: 1.25rem;
         color: white;
     }
 
-    .practice-mode-icon.yellow {
+    .quiz-mode-icon.yellow {
         background: linear-gradient(135deg, #f59e0b, #fbbf24);
     }
 
-    .practice-mode-icon.green {
+    .quiz-mode-icon.green {
         background: linear-gradient(135deg, #10b981, #34d399);
     }
 
-    .practice-mode-icon.red {
+    .quiz-mode-icon.red {
         background: linear-gradient(135deg, #ef4444, #f87171);
     }
 
-    .practice-mode-icon.purple {
-        background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    .quiz-mode-icon.blue {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
     }
 
-    .practice-mode-info {
+    .quiz-mode-info {
         flex: 1;
     }
 
-    .practice-mode-name {
+    .quiz-mode-name {
         font-weight: 600;
         color: #1e293b;
         margin-bottom: 0.25rem;
     }
 
-    .practice-mode-desc {
+    .quiz-mode-desc {
         font-size: 0.75rem;
         color: #94a3b8;
     }
 
-    .practice-mode-count {
+    .quiz-mode-count {
         font-size: 0.8rem;
         font-weight: 700;
-        color: var(--practice-primary);
+        color: var(--quiz-primary);
+    }
+
+    /* Batch Size Selector */
+    .batch-size-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .batch-size-select {
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid #e2e8f0;
+        font-size: 0.875rem;
     }
 
     /* Loading */
-    .practice-loading {
+    .quiz-loading {
         text-align: center;
         padding: 3rem;
         color: #94a3b8;
     }
 
-    .practice-loading i {
+    .quiz-loading i {
         font-size: 2rem;
-        color: var(--practice-primary);
+        color: var(--quiz-primary);
     }
 
     /* Empty */
-    .practice-empty {
+    .quiz-empty {
         text-align: center;
         padding: 3rem;
         color: #94a3b8;
     }
 
-    .practice-empty i {
+    .quiz-empty i {
         font-size: 3rem;
         margin-bottom: 1rem;
         color: #cbd5e1;
@@ -434,45 +436,45 @@
 </div>
 
 <!-- STEP 1: Set Browser (Multi-Select) -->
-<div id="step-browser" class="practice-step active">
-    <div class="practice-header">
-        <a href="{{ url_for('learning.practice.practice_hub') }}" class="practice-back-btn">
+<div id="step-browser" class="quiz-step active">
+    <div class="quiz-header">
+        <a href="{{ url_for('learning.practice.practice_hub') }}" class="quiz-back-btn">
             <i class="fas fa-arrow-left"></i>
         </a>
-        <div class="practice-title">Chọn bộ thẻ</div>
-        <a href="{{ url_for('dashboard.dashboard') }}" class="practice-back-btn">
+        <div class="quiz-title">Chọn bộ Quiz</div>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="quiz-back-btn">
             <i class="fas fa-home"></i>
         </a>
     </div>
 
-    <div class="practice-search-wrap">
-        <div class="practice-search">
+    <div class="quiz-search-wrap">
+        <div class="quiz-search">
             <i class="fas fa-search"></i>
-            <input type="text" id="search-input" placeholder="Tìm kiếm bộ thẻ...">
+            <input type="text" id="search-input" placeholder="Tìm kiếm bộ quiz...">
         </div>
     </div>
 
-    <div class="practice-tabs">
-        <div class="practice-tab active" data-category="my">Của tôi</div>
-        <div class="practice-tab" data-category="learning">Đang học</div>
-        <div class="practice-tab" data-category="explore">Khám phá</div>
+    <div class="quiz-tabs">
+        <div class="quiz-tab active" data-category="my">Của tôi</div>
+        <div class="quiz-tab" data-category="learning">Đang học</div>
+        <div class="quiz-tab" data-category="explore">Khám phá</div>
     </div>
 
-    <div class="practice-scroll">
-        <div id="sets-grid" class="practice-grid">
-            <div class="practice-loading" style="grid-column: 1/-1;">
+    <div class="quiz-scroll">
+        <div id="sets-grid" class="quiz-grid">
+            <div class="quiz-loading" style="grid-column: 1/-1;">
                 <i class="fas fa-spinner fa-spin"></i>
                 <p>Đang tải...</p>
             </div>
         </div>
     </div>
 
-    <div class="practice-footer">
-        <div class="practice-footer-info">
-            <span>Đã chọn: <span class="practice-footer-count js-selected-count">0</span> bộ thẻ</span>
-            <button type="button" class="text-sm text-emerald-600 font-semibold js-select-all">Chọn tất cả</button>
+    <div class="quiz-footer">
+        <div class="quiz-footer-info">
+            <span>Đã chọn: <span class="quiz-footer-count js-selected-count">0</span> bộ quiz</span>
+            <button type="button" class="text-sm text-blue-600 font-semibold js-select-all">Chọn tất cả</button>
         </div>
-        <button type="button" class="practice-start-btn js-next-step" disabled>
+        <button type="button" class="quiz-start-btn js-next-step" disabled>
             <span>Tiếp tục</span>
             <i class="fas fa-arrow-right"></i>
         </button>
@@ -480,25 +482,37 @@
 </div>
 
 <!-- STEP 2: Mode Selector -->
-<div id="step-modes" class="practice-step">
-    <div class="practice-header">
-        <button type="button" class="practice-back-btn js-back-to-browser">
+<div id="step-modes" class="quiz-step">
+    <div class="quiz-header">
+        <button type="button" class="quiz-back-btn js-back-to-browser">
             <i class="fas fa-arrow-left"></i>
         </button>
-        <div class="practice-title">Chọn chế độ học</div>
-        <a href="{{ url_for('dashboard.dashboard') }}" class="practice-back-btn">
+        <div class="quiz-title">Chọn chế độ học</div>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="quiz-back-btn">
             <i class="fas fa-home"></i>
         </a>
     </div>
 
-    <div class="practice-scroll" style="padding: 1rem;">
+    <div class="quiz-scroll" style="padding: 1rem;">
         <div class="js-modes-container">
             <!-- Modes will be loaded here -->
         </div>
     </div>
 
-    <div class="practice-footer">
-        <button type="button" class="practice-start-btn js-start-session" disabled>
+    <div class="quiz-footer">
+        <div class="batch-size-row">
+            <label for="batch-size-select">Số câu/phiên:</label>
+            <select id="batch-size-select" class="batch-size-select">
+                <option value="1">1 câu</option>
+                <option value="5">5 câu</option>
+                <option value="10" selected>10 câu</option>
+                <option value="15">15 câu</option>
+                <option value="20">20 câu</option>
+                <option value="30">30 câu</option>
+                <option value="50">50 câu</option>
+            </select>
+        </div>
+        <button type="button" class="quiz-start-btn js-start-session" disabled>
             <i class="fas fa-play-circle"></i>
             <span>Bắt đầu luyện tập</span>
         </button>
@@ -527,19 +541,20 @@
         const startSessionBtn = document.querySelector('.js-start-session');
         const selectedCountEl = document.querySelector('.js-selected-count');
         const selectAllBtn = document.querySelector('.js-select-all');
+        const batchSizeSelect = document.getElementById('batch-size-select');
 
         // URLs
-        const apiSetsUrl = "{{ url_for('learning.practice.api_get_sets') }}";
-        const apiModesUrl = "{{ url_for('learning.practice.api_get_modes', set_identifier='__ID__') }}";
-        const startSessionUrl = "{{ url_for('learning.practice.flashcard_start') }}";
+        const apiSetsUrl = "{{ url_for('learning.practice.api_get_quiz_sets') }}";
+        const apiModesUrl = "{{ url_for('learning.practice.api_get_quiz_modes', set_identifier='__ID__') }}";
+        const startSessionUrl = "{{ url_for('learning.practice.quiz_start') }}";
 
         // Init
         loadSets();
 
         // Category tabs
-        document.querySelectorAll('.practice-tab').forEach(function (tab) {
+        document.querySelectorAll('.quiz-tab').forEach(function (tab) {
             tab.addEventListener('click', function () {
-                document.querySelectorAll('.practice-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.quiz-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 currentCategory = tab.dataset.category;
                 loadSets();
@@ -563,11 +578,11 @@
             if (selectedSets.size === allSets.length) {
                 // Deselect all
                 selectedSets.clear();
-                document.querySelectorAll('.practice-set-card').forEach(c => c.classList.remove('selected'));
+                document.querySelectorAll('.quiz-set-card').forEach(c => c.classList.remove('selected'));
             } else {
                 // Select all
                 allSets.forEach(s => selectedSets.add(String(s.id)));
-                document.querySelectorAll('.practice-set-card').forEach(c => c.classList.add('selected'));
+                document.querySelectorAll('.quiz-set-card').forEach(c => c.classList.add('selected'));
             }
             updateSelection();
         });
@@ -589,10 +604,37 @@
         startSessionBtn?.addEventListener('click', () => {
             if (selectedSets.size === 0 || !selectedMode) return;
 
-            // Use GET redirect instead of POST form to avoid CSRF issues
-            const setIds = Array.from(selectedSets).join(',');
-            const url = startSessionUrl + '?set_ids=' + encodeURIComponent(setIds) + '&mode=' + encodeURIComponent(selectedMode);
-            window.location.href = url;
+            // Create and submit POST form to hide parameters
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = startSessionUrl;
+
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '{{ csrf_token() }}';
+            form.appendChild(csrfInput);
+
+            const setIdsInput = document.createElement('input');
+            setIdsInput.type = 'hidden';
+            setIdsInput.name = 'set_ids';
+            setIdsInput.value = Array.from(selectedSets).join(',');
+            form.appendChild(setIdsInput);
+
+            const modeInput = document.createElement('input');
+            modeInput.type = 'hidden';
+            modeInput.name = 'mode';
+            modeInput.value = selectedMode;
+            form.appendChild(modeInput);
+
+            const batchSizeInput = document.createElement('input');
+            batchSizeInput.type = 'hidden';
+            batchSizeInput.name = 'batch_size';
+            batchSizeInput.value = batchSizeSelect ? batchSizeSelect.value : 10;
+            form.appendChild(batchSizeInput);
+
+            document.body.appendChild(form);
+            form.submit();
         });
 
         function showStep(step) {
@@ -605,7 +647,7 @@
 
         function loadSets() {
             if (!setsGrid) return;
-            setsGrid.innerHTML = '<div class="practice-loading" style="grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
+            setsGrid.innerHTML = '<div class="quiz-loading" style="grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
 
             let url = apiSetsUrl + '?filter=' + currentCategory;
             if (currentSearch) url += '&q=' + encodeURIComponent(currentSearch);
@@ -617,12 +659,12 @@
                         allSets = data.sets;
                         renderSets(data.sets);
                     } else {
-                        setsGrid.innerHTML = '<div class="practice-empty" style="grid-column: 1/-1;"><i class="fas fa-folder-open"></i><p>Không có bộ thẻ nào</p></div>';
+                        setsGrid.innerHTML = '<div class="quiz-empty" style="grid-column: 1/-1;"><i class="fas fa-folder-open"></i><p>Không có bộ quiz nào</p></div>';
                         allSets = [];
                     }
                 })
                 .catch(() => {
-                    setsGrid.innerHTML = '<div class="practice-empty" style="grid-column: 1/-1;"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
+                    setsGrid.innerHTML = '<div class="quiz-empty" style="grid-column: 1/-1;"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
                     allSets = [];
                 });
         }
@@ -632,21 +674,21 @@
             sets.forEach(s => {
                 const isSelected = selectedSets.has(String(s.id));
                 html += `
-                <div class="practice-set-card ${isSelected ? 'selected' : ''}" data-set-id="${s.id}">
-                    <div class="practice-set-cover">
-                        <i class="fas fa-clone"></i>
-                        <div class="practice-set-check"><i class="fas fa-check"></i></div>
+                <div class="quiz-set-card ${isSelected ? 'selected' : ''}" data-set-id="${s.id}">
+                    <div class="quiz-set-cover">
+                        <i class="fas fa-circle-question"></i>
+                        <div class="quiz-set-check"><i class="fas fa-check"></i></div>
                     </div>
-                    <div class="practice-set-info">
-                        <div class="practice-set-title">${s.title}</div>
-                        <div class="practice-set-count">${s.total_items || 0} thẻ</div>
+                    <div class="quiz-set-info">
+                        <div class="quiz-set-title">${s.title}</div>
+                        <div class="quiz-set-count">${s.question_count || 0} câu hỏi</div>
                     </div>
                 </div>`;
             });
             setsGrid.innerHTML = html;
 
             // Bind click
-            document.querySelectorAll('.practice-set-card').forEach(card => {
+            document.querySelectorAll('.quiz-set-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const setId = card.dataset.setId;
                     if (selectedSets.has(setId)) {
@@ -673,7 +715,7 @@
 
         function loadModes() {
             if (!modesContainer) return;
-            modesContainer.innerHTML = '<div class="practice-loading"><i class="fas fa-spinner fa-spin"></i></div>';
+            modesContainer.innerHTML = '<div class="quiz-loading"><i class="fas fa-spinner fa-spin"></i></div>';
 
             const ids = Array.from(selectedSets).join(',');
             const url = apiModesUrl.replace('__ID__', ids);
@@ -692,39 +734,37 @@
             const icons = {
                 'new_only': { icon: 'fa-star', color: 'yellow' },
                 'due_only': { icon: 'fa-clock', color: 'green' },
-                'all_review': { icon: 'fa-redo', color: 'green' },
-                'hard_only': { icon: 'fa-fire', color: 'red' },
-                'mixed_srs': { icon: 'fa-brain', color: 'purple' }
+                'hard_only': { icon: 'fa-fire', color: 'red' }
             };
 
-            // Only show basic flashcard modes (exclude practice modes that require special UI)
-            const allowedModes = ['mixed_srs', 'new_only', 'due_only', 'all_review', 'hard_only'];
+            // Only show basic quiz modes
+            const allowedModes = ['new_only', 'due_only', 'hard_only'];
 
             modes.filter(mode => allowedModes.includes(mode.id)).forEach(mode => {
-                const iconData = icons[mode.id] || { icon: 'fa-book', color: 'green' };
+                const iconData = icons[mode.id] || { icon: 'fa-book', color: 'blue' };
                 const isDisabled = mode.count === 0;
                 const style = isDisabled ? 'opacity: 0.5; filter: grayscale(100%); pointer-events: none; background: #f1f5f9;' : '';
 
                 html += `
-                <div class="practice-mode-card" data-mode-id="${mode.id}" style="${style}">
-                    <div class="practice-mode-icon ${iconData.color}"><i class="fas ${iconData.icon}"></i></div>
-                    <div class="practice-mode-info">
-                        <div class="practice-mode-name">${mode.name}</div>
-                        <div class="practice-mode-desc">${mode.count} thẻ</div>
+                <div class="quiz-mode-card" data-mode-id="${mode.id}" style="${style}">
+                    <div class="quiz-mode-icon ${iconData.color}"><i class="fas ${iconData.icon}"></i></div>
+                    <div class="quiz-mode-info">
+                        <div class="quiz-mode-name">${mode.name}</div>
+                        <div class="quiz-mode-desc">${mode.count} câu hỏi</div>
                     </div>
-                    <div class="practice-mode-count">${mode.count}</div>
+                    <div class="quiz-mode-count">${mode.count}</div>
                 </div>`;
             });
 
             modesContainer.innerHTML = html;
 
             // Bind click
-            document.querySelectorAll('.practice-mode-card').forEach(card => {
+            document.querySelectorAll('.quiz-mode-card').forEach(card => {
                 card.addEventListener('click', () => {
-                    const count = parseInt(card.querySelector('.practice-mode-count')?.textContent || '0');
+                    const count = parseInt(card.querySelector('.quiz-mode-count')?.textContent || '0');
                     if (count === 0) return;
 
-                    document.querySelectorAll('.practice-mode-card').forEach(c => c.classList.remove('selected'));
+                    document.querySelectorAll('.quiz-mode-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                     selectedMode = card.dataset.modeId;
 

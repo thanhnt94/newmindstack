@@ -18,7 +18,14 @@ from ..flashcard.engine import (
 
 
 @practice_bp.route('/')
+@login_required
+def practice_hub():
+    """Hub trang chính cho Practice - chọn Flashcard hoặc Quiz."""
+    return render_template('v3/pages/learning/practice/default/hub.html')
+
+
 @practice_bp.route('/flashcard')
+@practice_bp.route('/flashcard/')
 @login_required
 def flashcard_dashboard():
     """Dashboard cho chế độ luyện tập flashcard."""
@@ -68,11 +75,11 @@ def flashcard_setup():
     )
 
 
-@practice_bp.route('/flashcard/start', methods=['POST'])
+@practice_bp.route('/flashcard/start', methods=['GET', 'POST'])
 @login_required
 def flashcard_start():
     """Bắt đầu phiên luyện tập flashcard."""
-    data = request.form or request.get_json() or {}
+    data = request.values or {}
     
     set_ids_str = data.get('set_ids', '')
     mode = data.get('mode', 'mixed_srs')
@@ -119,12 +126,14 @@ def flashcard_session():
 
     # Sử dụng template từ flashcard engine (shared)
     return render_template(
-        'flashcard/individual/session/index.html',
+        'v3/pages/learning/flashcard/session/index.html',
         user_button_count=user_button_count,
         is_autoplay_session=is_autoplay_session,
         autoplay_mode=autoplay_mode,
         # Context để biết đang ở practice mode
         practice_mode=True,
+        # Template base path for includes
+        template_base_path='v3/pages/learning/flashcard/session',
     )
 
 
@@ -190,3 +199,115 @@ def api_get_modes(set_identifier):
         return jsonify({'success': False, 'message': 'ID bộ thẻ không hợp lệ.'}), 400
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================
+# Quiz Practice Routes
+# ============================================
+
+@practice_bp.route('/quiz')
+@practice_bp.route('/quiz/')
+@login_required
+def quiz_dashboard():
+    """Dashboard cho chế độ luyện tập Quiz đa bộ."""
+    return render_template('v3/pages/learning/practice/default/quiz_dashboard.html')
+
+
+@practice_bp.route('/quiz/start', methods=['GET', 'POST'])
+@login_required
+def quiz_start():
+    """Bắt đầu phiên luyện tập Quiz đa bộ."""
+    from ..quiz.individual.logics.session_logic import QuizSessionManager
+    
+    data = request.values or {}
+    
+    set_ids_str = data.get('set_ids', '')
+    mode = data.get('mode', 'new_only')
+    batch_size = data.get('batch_size', 10, type=int)
+    
+    # Parse set IDs
+    if set_ids_str == 'all':
+        set_ids = 'all'
+    elif set_ids_str:
+        try:
+            set_ids = [int(s) for s in set_ids_str.split(',') if s]
+        except ValueError:
+            flash('Định dạng ID bộ quiz không hợp lệ.', 'danger')
+            return redirect(url_for('learning.practice.quiz_dashboard'))
+    else:
+        flash('Vui lòng chọn ít nhất một bộ quiz.', 'warning')
+        return redirect(url_for('learning.practice.quiz_dashboard'))
+    
+    # Bắt đầu session sử dụng quiz engine
+    if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
+        return redirect(url_for('learning.quiz_learning.quiz_session'))
+    else:
+        flash('Không có câu hỏi nào khả dụng để bắt đầu phiên học.', 'warning')
+        return redirect(url_for('learning.practice.quiz_dashboard'))
+
+
+@practice_bp.route('/quiz/api/sets')
+@login_required
+def api_get_quiz_sets():
+    """API lấy danh sách bộ Quiz cho practice."""
+    from ..quiz.individual.logics.algorithms import get_filtered_quiz_sets
+    
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('q', '', type=str)
+    search_field = request.args.get('search_field', 'all', type=str)
+    current_filter = request.args.get('filter', 'doing', type=str)
+
+    try:
+        pagination = get_filtered_quiz_sets(
+            user_id=current_user.user_id,
+            search_query=search,
+            search_field=search_field,
+            current_filter=current_filter,
+            page=page,
+            per_page=12
+        )
+
+        sets = []
+        for item in pagination.items:
+            sets.append({
+                'id': item.container_id,
+                'title': item.title,
+                'description': item.description or '',
+                'cover_image': item.cover_image,
+                'question_count': getattr(item, 'question_count', 0),
+            })
+
+        return jsonify({
+            'success': True,
+            'sets': sets,
+            'has_next': pagination.has_next,
+            'has_prev': pagination.has_prev,
+            'page': page,
+            'total': pagination.total,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@practice_bp.route('/quiz/api/modes/<set_identifier>')
+@login_required
+def api_get_quiz_modes(set_identifier):
+    """API lấy các chế độ học Quiz với số lượng câu hỏi."""
+    from ..quiz.individual.logics.algorithms import get_quiz_mode_counts
+    
+    try:
+        if set_identifier == 'all':
+            modes = get_quiz_mode_counts(current_user.user_id, 'all')
+        else:
+            set_ids = [int(s) for s in set_identifier.split(',') if s]
+            if len(set_ids) == 1:
+                modes = get_quiz_mode_counts(current_user.user_id, set_ids[0])
+            else:
+                modes = get_quiz_mode_counts(current_user.user_id, set_ids)
+        
+        return jsonify({'success': True, 'modes': modes})
+    except ValueError:
+        return jsonify({'success': False, 'message': 'ID bộ quiz không hợp lệ.'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+

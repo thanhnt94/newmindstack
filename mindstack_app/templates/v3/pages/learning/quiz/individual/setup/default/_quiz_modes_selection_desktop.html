@@ -19,8 +19,8 @@
     {# Chỉ hiển thị các mode được yêu cầu #}
     {% if mode.id in ['new_only', 'due_only', 'hard_only'] %}
     {% set is_disabled_mode = (mode.count == 0) %}
-    <div class="quiz-mode-item bg-white p-4 rounded-lg border border-gray-200 transition-colors duration-200 flex justify-between items-center 
-                        {% if is_disabled_mode %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:bg-gray-100{% endif %}"
+    <div class="quiz-mode-item p-4 rounded-lg border border-gray-200 transition-colors duration-200 flex justify-between items-center 
+                        {% if is_disabled_mode %}opacity-50 grayscale pointer-events-none bg-gray-100{% else %}bg-white cursor-pointer hover:bg-gray-50 hover:border-indigo-300{% endif %}"
         data-mode-id="{{ mode.id }}" data-count="{{ mode.count }}" {% if is_disabled_mode
         %}title="Chế độ này không có câu hỏi nào khả dụng." {% endif %}>
         <h3 class="font-semibold text-gray-800">{{ mode.name }}</h3>

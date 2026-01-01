@@ -13,7 +13,7 @@
 <style>
     :root {
 
-        --vocab-primary: #6366f1;
+        --vocab-primary: #4f46e5;
 
         --vocab-primary-light: #818cf8;
 
@@ -345,7 +345,7 @@
 
             grid-template-columns: repeat(4, 1fr);
 
-            gap: 1rem;
+            gap: 1.5rem;
 
         }
 
@@ -379,9 +379,8 @@
 
         transform: translateY(-4px);
 
-        box-shadow: 0 12px 28px rgba(99, 102, 241, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
-
-        border-color: rgba(99, 102, 241, 0.3);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: rgba(79, 70, 229, 0.3);
 
     }
 
@@ -399,7 +398,7 @@
 
         height: 110px;
 
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
 
         display: flex;
 
@@ -579,7 +578,7 @@
 
         height: 240px;
 
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
 
         display: flex;
 
@@ -5200,7 +5199,7 @@
             var displayName = modeNames[mode.id] || mode.name;
             var isDisabled = mode.count === 0;
 
-            html += '<div class="mode-select-card js-flashcard-mode-select' + (isDisabled ? ' disabled' : '') + '" data-mode-id="' + mode.id + '"' + (isDisabled ? ' style="opacity: 0.5; pointer-events: none;"' : '') + '>';
+            html += '<div class="mode-select-card js-flashcard-mode-select' + (isDisabled ? ' disabled' : '') + '" data-mode-id="' + mode.id + '"' + (isDisabled ? ' style="opacity: 0.5; filter: grayscale(100%); pointer-events: none; background: #f1f5f9;"' : '') + '>';
             html += '<div class="mode-select-icon" style="background: ' + iconInfo.color + ';"><i class="fas ' + iconInfo.icon + '"></i></div>';
             html += '<div class="mode-select-info">';
             html += '<div class="mode-select-name">' + displayName + '</div>';
