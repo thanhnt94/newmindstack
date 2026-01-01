@@ -42,3 +42,8 @@ Flask-APScheduler>=1.12 # Dùng để lập lịch các tác vụ định kỳ (
 # --- Tự động tìm kiếm và tải hình ảnh ---
 ddgs>=5.3.0
 requests>=2.31
+
+# --- Thư viện bổ sung (Notification & System) ---
+pywebpush>=1.14.0 # Hỗ trợ Web Push Notification
+pytz>=2023.3 # Xử lý Timezone fallback
+python-dotenv>=1.0.0 # Load biến môi trường .env
