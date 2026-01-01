@@ -1,0 +1,47 @@
+{% from 'v3/includes/_search_form.html' import render_search_form %}
+{% from 'v3/includes/_pagination.html' import render_pagination %}
+
+<div class="w-full space-y-3">
+    {% if lessons %}
+    {% for lesson in lessons %}
+    <a href="{{ url_for('learning.course.course_session', lesson_id=lesson.item_id) }}" class="lesson-item-link block p-4 rounded-lg border transition-colors duration-200 relative overflow-hidden
+                      {% if lesson.completion_percentage == 100 %}
+                          border-green-300 bg-green-50 hover:bg-green-100
+                      {% elif lesson.completion_percentage > 0 %}
+                          border-blue-300 bg-blue-50 hover:bg-blue-100
+                      {% else %}
+                          border-gray-200 bg-white hover:bg-gray-100
+                      {% endif %}">
+
+        <div class="absolute inset-y-0 left-0" style="width: {{ lesson.completion_percentage }}%; 
+                            background-color: {% if lesson.completion_percentage == 100 %}#A7F3D0{% elif lesson.completion_percentage > 0 %}#BFDBFE{% else %}transparent{% endif %}; 
+                            z-index: 0;">
+        </div>
+
+        <div class="relative z-10">
+            <div class="flex justify-between items-center">
+                <h4 class="font-semibold text-gray-800">{{ lesson.content.get('title', 'Không có tiêu đề') }}</h4>
+                <span class="text-sm font-semibold 
+                                     {% if lesson.completion_percentage == 100 %}text-green-700
+                                     {% elif lesson.completion_percentage > 0 %}text-blue-700
+                                     {% else %}text-gray-600{% endif %}">
+                    {{ lesson.completion_percentage }}%
+                </span>
+            </div>
+            {# HIỂN THỊ THỜI GIAN DỰ TÍNH CỦA BÀI HỌC #}
+            {% if lesson.content.get('estimated_time') %}
+            <p class="text-xs text-gray-500 mt-1">
+                <i class="fas fa-clock mr-1"></i>
+                Dự tính: {{ lesson.content.get('estimated_time') }} phút
+            </p>
+            {% endif %}
+        </div>
+    </a>
+    {% endfor %}
+    {% else %}
+    <div class="text-center py-12 px-6 text-gray-600">
+        <i class="fas fa-folder-open text-5xl text-gray-300 mb-4"></i>
+        <p>Khoá học này chưa có bài học nào.</p>
+    </div>
+    {% endif %}
+</div>

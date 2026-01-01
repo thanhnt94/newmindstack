@@ -1601,7 +1601,7 @@ def dashboard():
     )
 
     return render_template(
-        'statistics.html',
+        'v3/pages/stats/index.html',
         leaderboard_data=leaderboard_data,
         dashboard_data=dashboard_data,
         current_sort_by=initial_sort_by,

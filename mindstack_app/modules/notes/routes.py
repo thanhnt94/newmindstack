@@ -68,4 +68,4 @@ def manage_notes():
         UserNote.user_id == current_user.user_id
     ).order_by(UserNote.created_at.desc()).all()
 
-    return render_template('notes/manage_notes.html', notes_with_items=notes)
+    return render_template('v3/pages/notes/manage_notes.html', notes_with_items=notes)

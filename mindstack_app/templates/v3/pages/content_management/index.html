@@ -1,0 +1,31 @@
+{# File: mindstack_app/templates/v3/pages/content_management/index.html #}
+{% extends "v3/base.html" %}
+
+{% block title %}Quản Lý Nội Dung - MindStack{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% include 'v3/pages/content_management/shared/_shared_styles.html' %}
+<style>
+    .cm-tab-bar::-webkit-scrollbar {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# --- Mobile Interface --- #}
+<div class="lg:hidden">
+    {% include 'v3/pages/content_management/_index_mobile.html' %}
+</div>
+
+{# --- Desktop Interface --- #}
+<div class="hidden lg:block">
+    {% include 'v3/pages/content_management/_index_desktop.html' %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{# Scripts are included in the respective mobile/desktop templates #}
+{% endblock %}

@@ -501,7 +501,7 @@ def manage_course_excel(set_id):
     template_url = url_for('content_management.content_management_courses.download_course_excel_template')
 
     return render_template(
-        'manage_course_excel.html',
+        'v3/pages/content_management/courses/excel/manage_course_excel.html',
         course_set=course_set,
         export_excel_url=export_excel_url,
         template_url=template_url,
@@ -620,9 +620,9 @@ def list_course_sets():
     }
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('_courses_list.html', **template_vars)
+        return render_template('v3/pages/content_management/courses/sets/_courses_list.html', **template_vars)
     else:
-        return render_template('courses.html', **template_vars)
+        return render_template('v3/pages/content_management/courses/sets/courses.html', **template_vars)
 
 @courses_bp.route('/courses/add', methods=['GET', 'POST'])
 @login_required
@@ -666,9 +666,9 @@ def add_course_set():
         return jsonify({'success': False, 'errors': form.errors}), 400
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_course_set_bare.html', form=form, title='Thêm Bộ khóa học mới')
+        return render_template('v3/pages/content_management/courses/sets/_add_edit_course_set_bare.html', form=form, title='Thêm Bộ khóa học mới')
     
-    return render_template('add_edit_course_set.html', form=form, title='Thêm Bộ khóa học mới')
+    return render_template('v3/pages/content_management/courses/sets/add_edit_course_set.html', form=form, title='Thêm Bộ khóa học mới')
 
 
 @courses_bp.route('/courses/edit/<int:set_id>', methods=['GET', 'POST'])
@@ -715,9 +715,9 @@ def edit_course_set(set_id):
         return jsonify({'success': False, 'errors': form.errors}), 400
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('_add_edit_course_set_bare.html', form=form, title='Chỉnh sửa Bộ khóa học')
+        return render_template('v3/pages/content_management/courses/sets/_add_edit_course_set_bare.html', form=form, title='Chỉnh sửa Bộ khóa học')
     
-    return render_template('add_edit_course_set.html', form=form, title='Chỉnh sửa Bộ khóa học')
+    return render_template('v3/pages/content_management/courses/sets/add_edit_course_set.html', form=form, title='Chỉnh sửa Bộ khóa học')
 
 @courses_bp.route('/courses/delete/<int:set_id>', methods=['POST'])
 @login_required
@@ -771,7 +771,7 @@ def list_lessons(set_id):
         _has_editor_access(set_id)
     )
        
-    return render_template('lessons.html',
+    return render_template('v3/pages/content_management/courses/lessons/lessons.html',
                            course=course,
                            lessons=lessons,
                            can_edit=can_edit,
@@ -885,9 +885,9 @@ def add_lesson(set_id):
         return jsonify({'success': False, 'errors': form.errors}), 400
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
+        return render_template('v3/pages/content_management/courses/lessons/add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
         
-    return render_template('add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
+    return render_template('v3/pages/content_management/courses/lessons/add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
 
 @courses_bp.route('/courses/<int:set_id>/lessons/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
@@ -954,9 +954,9 @@ def edit_lesson(set_id, item_id):
         form.order_in_container.data = lesson_item.order_in_container
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
+        return render_template('v3/pages/content_management/courses/lessons/add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
         
-    return render_template('add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
+    return render_template('v3/pages/content_management/courses/lessons/add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
 
 @courses_bp.route('/courses/<int:set_id>/lessons/delete/<int:item_id>', methods=['POST'])
 @login_required

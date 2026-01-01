@@ -1,0 +1,14 @@
+{#
+_base.html - Dashboard Default Version
+Extends global base.html. Override blocks here to customize this version.
+#}
+{% extends "base.html" %}
+
+{#
+Để customize version này, override các blocks như:
+
+{% block title %}Custom Title{% endblock %}
+{% block head %}{{ super() }} <custom css>{% endblock %}
+    {% block content %}<custom content>{% endblock %}
+        {% block scripts %}{{ super() }} <custom scripts>{% endblock %}
+            #}

@@ -1,0 +1,76 @@
+{# File: mindstack_app/modules/shared/templates/includes/_search_compact.html #}
+{# Compact search form for mobile dashboards with AJAX support #}
+{#
+Usage:
+{% from 'includes/_search_compact.html' import render_search_compact %}
+{{ render_search_compact(placeholder="Tìm kiếm...", form_id="my-search") }}
+
+Parameters:
+- placeholder: Text hiển thị khi chưa nhập
+- form_id: ID của form (để JS có thể attach event listener)
+- search_query: Giá trị tìm kiếm hiện tại (optional)
+- show_field_select: Hiển thị dropdown chọn field (default: false)
+- search_options: Dict các option cho dropdown field
+- search_field: Field đang được chọn
+- ajax: Nếu true, form sẽ không submit mà chờ JS handler (default: true)
+- action_url: URL submit form (khi ajax=false)
+#}
+
+{% macro render_search_compact(
+placeholder="Tìm kiếm...",
+form_id="compact-search-form",
+search_query=None,
+show_field_select=false,
+search_options=None,
+search_field='all',
+ajax=true,
+action_url=""
+) %}
+<form id="{{ form_id }}" {% if not ajax %}method="GET" action="{{ action_url }}" {% endif %}
+    class="flex items-center gap-2 w-full bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
+
+    {# Field selector (optional) #}
+    {% if show_field_select and search_options %}
+    <div class="relative flex-shrink-0">
+        <select name="search_field"
+            class="appearance-none bg-slate-50 border-none text-slate-600 text-xs font-medium rounded-lg py-2 pl-2 pr-6 focus:ring-0 cursor-pointer">
+            {% for value, display_text in search_options.items() %}
+            <option value="{{ value }}" {% if search_field==value %}selected{% endif %}>{{ display_text }}</option>
+            {% endfor %}
+        </select>
+        <i
+            class="fas fa-chevron-down absolute right-1.5 top-1/2 transform -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none"></i>
+    </div>
+    {% endif %}
+
+    {# Search input #}
+    <input type="text" name="q" id="{{ form_id }}-input" value="{{ search_query if search_query else '' }}"
+        placeholder="{{ placeholder }}"
+        class="flex-grow bg-transparent border-none text-slate-800 placeholder-slate-400 text-sm focus:ring-0 focus:outline-none px-2 py-1.5 min-w-0">
+
+    {# Submit button #}
+    <button type="submit"
+        class="flex-shrink-0 bg-indigo-500 text-white w-9 h-9 rounded-lg flex items-center justify-center hover:bg-indigo-600 active:scale-95 transition-all shadow-sm">
+        <i class="fas fa-search text-sm"></i>
+    </button>
+</form>
+{% endmacro %}
+
+
+{# ===== SEARCH RESULT BANNER ===== #}
+{#
+Usage:
+{{ render_search_banner(query="từ khóa", clear_fn="clearSearch()") }}
+#}
+{% macro render_search_banner(query, clear_fn="clearSearch()") %}
+<div class="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
+    <div class="flex items-center gap-2 text-sm text-indigo-700">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <span>Kết quả cho: <strong>"{{ query }}"</strong></span>
+    </div>
+    <button type="button" onclick="{{ clear_fn }}"
+        class="text-indigo-500 hover:text-indigo-700 text-sm font-medium flex items-center gap-1">
+        <i class="fa-solid fa-xmark"></i> Xóa
+    </button>
+</div>
+{% endmacro %}

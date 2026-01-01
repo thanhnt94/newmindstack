@@ -6,6 +6,7 @@ from . import dashboard_bp
 from ..goals.services import build_goal_progress, get_learning_activity
 from ...models import db, LearningGoal, User
 
+
 @dashboard_bp.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
@@ -235,7 +236,7 @@ def dashboard():
         leaderboard.sort(key=lambda item: item['rank'])
 
     return render_template(
-        'dashboard/default/index.html',
+        'v3/pages/dashboard/index.html',
         flashcard_summary=flashcard_summary,
         quiz_summary=quiz_summary,
         course_summary=course_summary,

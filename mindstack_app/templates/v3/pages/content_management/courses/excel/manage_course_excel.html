@@ -1,0 +1,66 @@
+{% extends "v3/base.html" %}
+
+{% block title %}Quản lý Excel khoá học: {{ course_set.title }}{% endblock %}
+
+{% block content %}
+<div class="cm-shell">
+    <div class="cm-container space-y-6">
+        <div class="cm-section-header">
+            <div class="cm-heading-group">
+                <a href="{{ url_for('content_management.content_management_courses.list_course_sets') }}"
+                    class="cm-link text-sm">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Quay lại danh sách khoá học</span>
+                </a>
+                <span class="cm-eyebrow">Khoá học</span>
+                <h1 class="cm-heading">{{ course_set.title }}</h1>
+                <p class="cm-subheading">Xuất hoặc nhập bài học bằng Excel để cập nhật nhanh nội dung khoá học.</p>
+                <div class="cm-chip-row">
+                    <span class="cm-pill cm-pill--accent">
+                        <i class="fa-solid fa-layer-group"></i>
+                        {{ item_count }} bài học
+                    </span>
+                </div>
+            </div>
+            <div class="cm-actions">
+                <a href="{{ export_excel_url }}" class="cm-action cm-action--primary">
+                    <i class="fa-solid fa-file-export"></i>
+                    <span>Xuất Excel</span>
+                </a>
+                <a href="{{ template_url }}" class="cm-action cm-action--ghost">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Tải file mẫu</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="cm-card cm-card--padded space-y-6">
+            <div class="space-y-2">
+                <h2 class="text-lg font-semibold text-slate-800">Nhập dữ liệu từ Excel</h2>
+                <p class="text-sm text-slate-500">File Excel cần có hai sheet <strong>Info</strong> và
+                    <strong>Data</strong>. Cột <code>action</code> mặc định là <strong>None</strong>, chọn
+                    <em>create</em>, <em>update</em>, <em>delete</em> hoặc <em>skip</em> để thực hiện thao tác tương
+                    ứng.</p>
+            </div>
+            <form method="post" enctype="multipart/form-data" class="space-y-4">
+                {{ csrf_token() }}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700" for="excel_file">Chọn file Excel
+                        (.xlsx)</label>
+                    <input type="file" name="excel_file" id="excel_file" accept=".xlsx"
+                        class="mt-2 block w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        required>
+                </div>
+                <p class="text-xs text-slate-500">Khi nhập dữ liệu, các bài học hiện có sẽ được cập nhật theo cột
+                    <code>action</code>. Nếu để <strong>None</strong>, bài học sẽ được giữ nguyên.</p>
+                <div class="flex justify-end">
+                    <button type="submit" class="cm-action cm-action--primary">
+                        <i class="fa-solid fa-file-import"></i>
+                        <span>Nhập dữ liệu</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

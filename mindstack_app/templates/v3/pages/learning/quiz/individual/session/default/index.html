@@ -1,0 +1,981 @@
+{# =============================== #}
+{# File: mindstack_app/modules/learning/quiz/individual/templates/quiz/individual/quiz_session.html #}
+{# Phiên bản: 4.0 (App-like UI Overhaul) #}
+{# =============================== #}
+
+{% extends "v3/base.html" %}
+
+{% block title %}Làm bài Quiz{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    /* === CORE LAYOUT === */
+    body {
+        background-color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Hide Default Site Elements on Mobile to fake an "App" */
+    @media (max-width: 1023px) {
+
+        body>header,
+        nav.navbar,
+        footer,
+        .site-footer,
+        .back-to-top {
+            display: none !important;
+        }
+
+        body {
+            padding-top: 115px !important;
+            /* Header + Tabs */
+            padding-bottom: 80px;
+            /* Bottom Bar */
+        }
+
+        .container {
+            padding-left: 12px;
+            padding-right: 12px;
+            max-width: 100%;
+        }
+    }
+
+    /* === UI COMPONENTS === */
+    .cm-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 1rem;
+    }
+
+    .cm-card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        background-color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .cm-card-body {
+        padding: 1.25rem;
+        flex: 1;
+        position: relative;
+    }
+
+    .qb-question-text {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+    }
+
+    .qb-question-media img {
+        width: 100%;
+        max-height: 320px;
+        object-fit: contain;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        background: white;
+        margin-bottom: 1rem;
+    }
+
+    /* Options */
+    .qb-options-grid {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .qb-option-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        background: white;
+    }
+
+    .qb-option-label:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+    }
+
+    .qb-option-label.selected {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        ring: 1px solid #3b82f6;
+    }
+
+    .qb-option-label.correct {
+        border-color: #10b981;
+        background: #ecfdf5;
+    }
+
+    .qb-option-label.incorrect {
+        border-color: #ef4444;
+        background: #fef2f2;
+    }
+
+    .qb-option-label.disabled {
+        pointer-events: none;
+        opacity: 0.7;
+    }
+
+    .qb-option-letter-circle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #1e293b;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border: 1px solid #e2e8f0;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .qb-option-label.selected .qb-option-letter-circle {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .qb-option-label.correct .qb-option-letter-circle {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
+    }
+
+    .qb-option-label.incorrect .qb-option-letter-circle {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+    }
+
+    /* Buttons */
+    .cm-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        cursor: pointer;
+        border: none;
+    }
+
+    .cm-btn-primary {
+        background: #2563eb;
+        color: white;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    .cm-btn-primary:hover {
+        background: #1d4ed8;
+        transform: translateY(-1px);
+    }
+
+    .cm-btn-primary:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .cm-btn-danger {
+        background: white;
+        color: #ef4444;
+        border: 1px solid #fecaca;
+    }
+
+    /* === MOBILE SPECIFIC === */
+    .qb-mobile-sticky-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .qb-mobile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px 4px 16px;
+    }
+
+    .qb-mobile-tabs-container {
+        padding: 0 16px 10px 16px;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .qb-mobile-tabs {
+        display: flex;
+        background: #f1f5f9;
+        border-radius: 10px;
+        padding: 3px;
+    }
+
+    .qb-mobile-tab-item {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #64748b;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .qb-mobile-tab-item.active {
+        background: white;
+        color: #2563eb;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .qb-bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 12px 16px;
+        border-top: 1px solid #e2e8f0;
+        z-index: 60;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .qb-bottom-bar .cm-btn {
+        flex: 1;
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 1rem;
+        margin: 0;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .qb-mobile-chat-toggle {
+        position: relative;
+        background: #eff6ff;
+        color: #3b82f6;
+        border: 1px solid #dbeafe;
+        border-radius: 12px;
+        width: 3.25rem;
+        height: 3.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* === HUB MODAL === */
+    .qb-modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s;
+    }
+
+    .qb-modal-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 101;
+        background: white;
+        height: 85vh;
+        border-radius: 20px 20px 0 0;
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .qb-modal-overlay.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .qb-modal-overlay.open .qb-modal-container {
+        transform: translateY(0);
+    }
+
+    .qb-hub-header {
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .qb-hub-tabs {
+        display: flex;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .qb-hub-tab-item {
+        flex: 1;
+        text-align: center;
+        padding: 12px;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+    }
+
+    .qb-hub-tab-item.active {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+        background: white;
+    }
+
+    .qb-hub-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        background: white;
+    }
+
+    .qb-hub-pane {
+        display: none;
+    }
+
+    .qb-hub-pane.active {
+        display: block;
+    }
+
+    /* Desktop Adjustments */
+    @media (min-width: 1024px) {
+
+        .qb-mobile-sticky-wrapper,
+        .qb-bottom-bar {
+            display: none;
+        }
+
+        .qb-layout-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+    }
+
+    @media (max-width: 1023px) {
+        .qb-desktop-header {
+            display: none !important;
+        }
+
+        .qb-layout-grid {
+            display: block;
+        }
+
+        .qb-tab-pane {
+            display: none;
+        }
+
+        .qb-tab-pane.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        /* Hide desktop-specific side panels on mobile, they will be in tabs/modals */
+        .desktop-only-panel {
+            display: none !important;
+        }
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# === MOBILE APP HEADER === #}
+<div class="qb-mobile-sticky-wrapper">
+    <div class="qb-mobile-header">
+        <div class="flex items-center gap-3">
+            <div class="flex flex-col">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
+                <span id="mobile-progress-display" class="text-lg font-black text-slate-800 leading-none">--/--</span>
+            </div>
+            <div class="h-6 w-px bg-slate-200"></div>
+            <div class="flex flex-col">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đúng</span>
+                <span id="mobile-score-display"
+                    class="text-lg font-black text-emerald-600 leading-none font-mono">0</span>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button id="mobile-exit-btn"
+                class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                    class="fa-solid fa-right-from-bracket"></i></button>
+        </div>
+    </div>
+
+    {# === MOBILE TABS === #}
+    <div class="qb-mobile-tabs-container">
+        <div class="qb-mobile-tabs">
+            <div class="qb-mobile-tab-item active" data-tab="game">Câu hỏi</div>
+            <div class="qb-mobile-tab-item" data-tab="stats">Thống kê</div>
+        </div>
+    </div>
+</div>
+
+<div class="container mx-auto px-2 py-6 max-w-7xl">
+
+    {# === DESKTOP HEADER === #}
+    <header
+        class="qb-desktop-header flex items-center justify-between mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Làm bài Quiz</h1>
+            <p class="text-sm text-slate-500">Chế độ cá nhân</p>
+        </div>
+        <div class="flex gap-2">
+            <button id="desktop-exit-btn" class="cm-btn cm-btn-danger"><i class="fa-solid fa-right-from-bracket"></i>
+                Kết thúc</button>
+        </div>
+    </header>
+
+    <div class="qb-layout-grid">
+
+        {# --- LEFT COL: GAMEPLAY --- #}
+        <div id="tab-pane-game" class="qb-tab-pane active space-y-6">
+
+            <div class="cm-card">
+                <div class="cm-card-header">
+                    <span class="font-bold text-slate-700 flex items-center gap-2"><i
+                            class="fa-solid fa-circle-question text-blue-500"></i> <span id="question-header-text">Câu
+                            hỏi --</span></span>
+                </div>
+                <div class="cm-card-body relative">
+                    <!-- Loading State -->
+                    <div id="quiz-loading" class="flex flex-col items-center justify-center py-12 text-blue-500">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                        <p>Đang tải câu hỏi...</p>
+                    </div>
+
+                    <!-- Question Content -->
+                    <div id="quiz-content" class="hidden">
+                        <h2 id="question-text" class="qb-question-text">--</h2>
+                        <div id="question-media" class="qb-question-media hidden"></div>
+
+                        <div id="question-options" class="qb-options-grid mt-4">
+                            <!-- Options injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback / Result Panel (Desktop: Inline, Mobile: Hub/Inline) -->
+            <div id="result-panel" class="cm-card border-l-4 border-l-blue-500 hidden">
+                <div class="cm-card-body">
+                    <div class="flex items-start gap-4">
+                        <div id="feedback-icon" class="text-3xl">💡</div>
+                        <div class="flex-1">
+                            <h3 id="feedback-title" class="text-lg font-bold text-slate-900">Kết quả</h3>
+                            <div class="flex gap-4 text-sm mt-2">
+                                <div class="bg-slate-50 px-3 py-2 rounded border border-slate-100">
+                                    <span class="block text-xs text-slate-400 uppercase">Đáp án đúng</span>
+                                    <span id="feedback-correct-answer" class="font-bold text-emerald-600">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desktop Only: Explanation & AI Preview -->
+            <div class="desktop-only-panel space-y-4 hidden lg:block">
+                <div id="desktop-explanation" class="cm-card hidden">
+                    <div class="cm-card-header"><span class="font-bold">Giải thích</span></div>
+                    <div class="cm-card-body">
+                        <div id="desktop-explanation-content" class="markdown-body text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        {# --- RIGHT COL: STATS (Desktop) / TAB (Mobile) --- #}
+        <div id="tab-pane-stats" class="qb-tab-pane space-y-6">
+            <div class="cm-card">
+                <div class="cm-card-header">
+                    <span class="font-bold text-emerald-600"><i class="fa-solid fa-chart-pie"></i> Thống kê phiên</span>
+                </div>
+                <div class="cm-card-body">
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <div class="text-xs text-slate-500 uppercase">Đã làm</div>
+                            <div id="stat-total" class="text-2xl font-bold text-slate-800">0</div>
+                        </div>
+                        <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                            <div class="text-xs text-emerald-600 uppercase">Chính xác</div>
+                            <div id="stat-accuracy" class="text-2xl font-bold text-emerald-700">0%</div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-xs text-slate-500 mb-1">
+                            <span>Tiến độ</span>
+                            <span id="stat-progress-text">0/0</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5">
+                            <div id="stat-progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cm-card desktop-only-panel">
+                <div class="cm-card-header">
+                    <span class="font-bold text-slate-700">Công cụ</span>
+                </div>
+                <div class="cm-card-body flex flex-col gap-2">
+                    <button id="open-hub-desktop-btn" class="cm-btn cm-btn-primary w-full"><i
+                            class="fa-solid fa-book-open"></i> Xem chi tiết & Ghi chú</button>
+                    <a href="#" id="desktop-question-stats-link" target="_blank"
+                        class="cm-btn w-full border border-slate-200 hover:bg-slate-50 text-center block text-slate-700 no-underline"><i
+                            class="fa-solid fa-chart-pie"></i> Thống kê từ</a>
+                    <button class="cm-btn w-full border border-slate-200 hover:bg-slate-50"
+                        onclick="window.location.reload()"><i class="fa-solid fa-rotate"></i> Tải lại câu hỏi</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{# === MOBILE BOTTOM BAR === #}
+<div class="qb-bottom-bar">
+    <button type="button" id="open-hub-btn"
+        class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 hidden" aria-label="Mở chi tiết">
+        <i class="fa-solid fa-lightbulb text-xl"></i>
+    </button>
+
+    <button type="button" id="mobile-action-btn" class="cm-btn cm-btn-primary w-full shadow-lg" disabled>
+        <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
+    </button>
+</div>
+
+{# === HUB MODAL (Explanation, AI, Notes) === #}
+<div id="explanation-hub-modal" class="qb-modal-overlay">
+    <div class="qb-modal-container">
+        <div class="qb-hub-header">
+            <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
+            <button id="close-hub-btn"
+                class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="qb-hub-tabs">
+            <div class="qb-hub-tab-item active" data-target="hub-expl">📖 Giải thích</div>
+            <div class="qb-hub-tab-item" data-target="hub-ai">🤖 AI Coach</div>
+            <div class="qb-hub-tab-item" data-target="hub-note">📝 Ghi chú</div>
+        </div>
+        <div class="qb-hub-content">
+            <!-- Expl Tab -->
+            <div id="hub-expl" class="qb-hub-pane active">
+                <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
+                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Giải thích:</h4>
+                    <div id="hub-explanation-text">Chưa có giải thích.</div>
+                </div>
+            </div>
+            <!-- AI Tab -->
+            <div id="hub-ai" class="qb-hub-pane">
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i>
+                            <span>AI Phân Tích</span>
+                        </div>
+                        <button id="ai-generate-btn"
+                            class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
+                                class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
+                    </div>
+                    <div id="hub-ai-content" class="text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn nút để
+                        yêu cầu AI phân tích...</div>
+                </div>
+            </div>
+            <!-- Note Tab -->
+            <div id="hub-note" class="qb-hub-pane">
+                <textarea id="hub-note-input"
+                    class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition"
+                    rows="8" placeholder="Ghi chú của bạn..."></textarea>
+                <button id="hub-note-save"
+                    class="mt-2 w-full py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm hover:bg-blue-200">Lưu
+                    ghi chú</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        // URLs & Meta
+        const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}";
+        const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}";
+        const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
+        const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
+        const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
+        const quizDashboardUrl = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        // State
+        let currentBatch = [];
+        let currentIndex = 0; // Current question index within batch
+        let userAnswers = {};
+        let sessionStats = { total: 0, correct: 0, total_questions: 0 };
+        let currentQuestion = null;
+
+        // Elements
+        const dom = {
+            loading: document.getElementById('quiz-loading'),
+            content: document.getElementById('quiz-content'),
+            qHeader: document.getElementById('question-header-text'),
+            qText: document.getElementById('question-text'),
+            qMedia: document.getElementById('question-media'),
+            qOptions: document.getElementById('question-options'),
+            mobileActionBtn: document.getElementById('mobile-action-btn'),
+            resultPanel: document.getElementById('result-panel'),
+
+            // Stats
+            mobileProgress: document.getElementById('mobile-progress-display'),
+            mobileScore: document.getElementById('mobile-score-display'),
+            statTotal: document.getElementById('stat-total'),
+            statAccuracy: document.getElementById('stat-accuracy'),
+            statProgressText: document.getElementById('stat-progress-text'),
+            statProgressBar: document.getElementById('stat-progress-bar'),
+
+            // Hub
+            hubModal: document.getElementById('explanation-hub-modal'),
+            openHubBtn: document.getElementById('open-hub-btn'),
+            closeHubBtn: document.getElementById('close-hub-btn'),
+            hubExplText: document.getElementById('hub-explanation-text'),
+            hubAiContent: document.getElementById('hub-ai-content'),
+            aiGenerateBtn: document.getElementById('ai-generate-btn'),
+            hubNoteInput: document.getElementById('hub-note-input'),
+            hubNoteSave: document.getElementById('hub-note-save'),
+        };
+
+        // --- Core Logic ---
+
+        async function loadBatch() {
+            showLoading(true);
+            try {
+                const res = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!res.ok) {
+                    if (res.status === 404) return finishSession();
+                    throw new Error('Load failed');
+                }
+                const data = await res.json();
+                currentBatch = data.items || [];
+                currentIndex = 0;
+
+                // Init Session Stats
+                sessionStats.total_questions = data.total_question_groups_in_session || data.total_items_in_session || 0;
+                sessionStats.total = data.session_total_answered || 0;
+                sessionStats.correct = data.session_correct_answers || 0;
+                updateStatsUI();
+
+                if (currentBatch.length > 0) {
+                    renderQuestion(currentBatch[currentIndex]);
+                } else {
+                    finishSession();
+                }
+            } catch (e) {
+                alert('Lỗi tải câu hỏi. Vui lòng thử lại.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function renderQuestion(q) {
+            currentQuestion = q;
+            const qNum = (sessionStats.total + currentIndex + 1);
+            dom.qHeader.textContent = `Câu hỏi ${qNum}`;
+            dom.qText.innerHTML = q.content.question;
+
+            // Media
+            dom.qMedia.innerHTML = '';
+            dom.qMedia.classList.add('hidden');
+            if (q.content.question_image_file) {
+                dom.qMedia.innerHTML += `<img src="${q.content.question_image_file}">`;
+                dom.qMedia.classList.remove('hidden');
+            }
+
+            // Options
+            dom.qOptions.innerHTML = Object.entries(q.content.options || {}).map(([key, val]) => `
+            <div class="qb-option-label" data-key="${key}">
+                <span class="qb-option-letter-circle">${key}</span>
+                <span class="text-slate-800 font-medium text-lg leading-tight mt-1">${val}</span>
+            </div>
+        `).join('');
+
+            // Reset UI
+            dom.resultPanel.classList.add('hidden');
+            dom.openHubBtn.classList.add('hidden');
+            dom.mobileActionBtn.disabled = true;
+            dom.mobileActionBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án';
+            dom.mobileActionBtn.dataset.action = 'submit';
+
+            // Add listeners
+            dom.qOptions.querySelectorAll('.qb-option-label').forEach(el => {
+                el.addEventListener('click', () => selectOption(el.dataset.key));
+            });
+
+            // Reset Hub Content
+            dom.hubExplText.textContent = "Chưa có giải thích.";
+            dom.hubAiContent.textContent = "Nhấn nút để yêu cầu AI phân tích...";
+            dom.hubNoteInput.value = q.note_content || "";
+
+            // Update Stats Links
+            const statsUrlTemplate = "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}";
+            const statsUrl = statsUrlTemplate.replace('0', q.item_id || q.id);
+            const mStats = document.getElementById('mobile-question-stats-link');
+            const dStats = document.getElementById('desktop-question-stats-link');
+            if (mStats) mStats.href = statsUrl;
+            if (dStats) dStats.href = statsUrl;
+        }
+
+        function selectOption(key) {
+            dom.qOptions.querySelectorAll('.qb-option-label').forEach(el => {
+                if (el.dataset.key === key) el.classList.add('selected');
+                else el.classList.remove('selected');
+            });
+            userAnswers[currentQuestion.item_id] = key;
+            dom.mobileActionBtn.disabled = false;
+            dom.mobileActionBtn.classList.add('cm-btn-primary');
+        }
+
+        async function submitAnswer() {
+            const itemId = currentQuestion.item_id;
+            const answer = userAnswers[itemId];
+            if (!answer) return;
+
+            dom.mobileActionBtn.disabled = true;
+            dom.mobileActionBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Đang gửi...';
+
+            try {
+                const res = await fetch(submitAnswerBatchUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ answers: [{ item_id: itemId, user_answer: answer }] })
+                });
+                const data = await res.json();
+                const result = data.results[0];
+
+                // Show Feedback
+                showFeedback(result);
+
+                // Update Stats
+                sessionStats.total++;
+                if (result.is_correct) sessionStats.correct++;
+                updateStatsUI();
+
+                // Setup Next Button
+                dom.mobileActionBtn.disabled = false;
+                dom.mobileActionBtn.innerHTML = '<i class="fa-solid fa-arrow-right"></i> Tiếp theo';
+                dom.mobileActionBtn.dataset.action = 'next';
+
+                // Show Hub Button
+                dom.openHubBtn.classList.remove('hidden');
+
+            } catch (e) {
+                alert('Lỗi gửi đáp án.');
+                dom.mobileActionBtn.disabled = false;
+            }
+        }
+
+        function showFeedback(result) {
+            // Highlight Options
+            dom.qOptions.querySelectorAll('.qb-option-label').forEach(el => {
+                el.classList.add('disabled');
+                el.classList.remove('selected'); // Remove selection style to apply specific states
+                if (el.dataset.key === result.correct_answer) el.classList.add('correct');
+                if (el.dataset.key === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
+            });
+
+            // Show Panel
+            dom.resultPanel.classList.remove('hidden');
+            const icon = document.getElementById('feedback-icon');
+            const title = document.getElementById('feedback-title');
+            const ans = document.getElementById('feedback-correct-answer');
+
+            if (result.is_correct) {
+                icon.textContent = '🎉';
+                title.textContent = 'Chính xác!';
+                title.className = 'text-lg font-bold text-emerald-600';
+            } else {
+                icon.textContent = '🤔';
+                title.textContent = 'Sai rồi';
+                title.className = 'text-lg font-bold text-rose-600';
+            }
+            ans.textContent = result.correct_answer;
+
+            // Populate Hub
+            if (result.explanation) dom.hubExplText.innerHTML = result.explanation;
+            if (currentQuestion.ai_explanation) dom.hubAiContent.innerHTML = currentQuestion.ai_explanation;
+
+            // Show Desktop Explanation
+            if (result.explanation) {
+                const dtExpl = document.getElementById('desktop-explanation');
+                const dtExplContent = document.getElementById('desktop-explanation-content');
+                if (dtExpl && dtExplContent) {
+                    dtExpl.classList.remove('hidden');
+                    dtExplContent.innerHTML = result.explanation;
+                }
+            }
+        }
+
+        function nextQuestion() {
+            // Clear previous state
+            const dtExpl = document.getElementById('desktop-explanation');
+            if (dtExpl) dtExpl.classList.add('hidden');
+
+            currentIndex++;
+            if (currentIndex < currentBatch.length) {
+                renderQuestion(currentBatch[currentIndex]);
+            } else {
+                loadBatch(); // Load next batch
+            }
+        }
+
+        function finishSession() {
+            alert('Đã hoàn thành phiên học!');
+            window.location.href = quizDashboardUrl;
+        }
+
+        // --- Helpers ---
+        function showLoading(show) {
+            dom.loading.classList.toggle('hidden', !show);
+            dom.content.classList.toggle('hidden', show);
+        }
+
+        function updateStatsUI() {
+            const acc = sessionStats.total > 0 ? Math.round((sessionStats.correct / sessionStats.total) * 100) : 0;
+            dom.mobileScore.textContent = sessionStats.correct;
+            dom.mobileProgress.textContent = `${sessionStats.total}/${sessionStats.total_questions}`;
+
+            dom.statTotal.textContent = sessionStats.total;
+            dom.statAccuracy.textContent = `${acc}%`;
+            dom.statProgressText.textContent = `${sessionStats.total}/${sessionStats.total_questions}`;
+            dom.statProgressBar.style.width = `${(sessionStats.total / sessionStats.total_questions) * 100}%`;
+        }
+
+        // --- AI & Notes ---
+        dom.aiGenerateBtn.addEventListener('click', async () => {
+            dom.aiGenerateBtn.disabled = true;
+            dom.hubAiContent.textContent = "Đang tạo...";
+            try {
+                const res = await fetch(getAiResponseUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ item_id: currentQuestion.item_id, prompt_type: 'explanation' })
+                });
+                const data = await res.json();
+                const content = data.html_content || data.response;
+                dom.hubAiContent.innerHTML = content;
+                currentQuestion.ai_explanation = content;
+            } catch (e) {
+                dom.hubAiContent.textContent = "Lỗi khi gọi AI.";
+            }
+            dom.aiGenerateBtn.disabled = false;
+        });
+
+        dom.hubNoteSave.addEventListener('click', async () => {
+            const content = dom.hubNoteInput.value;
+            try {
+                await fetch(saveNoteUrlTemplate.replace('0', currentQuestion.item_id), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ content })
+                });
+                currentQuestion.note_content = content;
+                alert('Đã lưu ghi chú.');
+            } catch (e) {
+                alert('Lỗi lưu ghi chú.');
+            }
+        });
+
+        // --- Event Bindings ---
+        dom.mobileActionBtn.addEventListener('click', () => {
+            if (dom.mobileActionBtn.dataset.action === 'submit') submitAnswer();
+            else nextQuestion();
+        });
+
+        // Mobile Tabs
+        document.querySelectorAll('.qb-mobile-tab-item').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.qb-mobile-tab-item').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.remove('active', 'block')); // Remove block/active
+
+                tab.classList.add('active');
+                const pane = document.getElementById(`tab-pane-${tab.dataset.tab}`);
+                pane.classList.add('active'); // CSS handles display:block via class
+            });
+        });
+
+        // Hub Modal
+        dom.openHubBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
+        dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
+        document.getElementById('open-hub-desktop-btn').addEventListener('click', () => dom.hubModal.classList.add('open')); // Desktop link
+
+        // Hub Tabs
+        document.querySelectorAll('.qb-hub-tab-item').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.qb-hub-tab-item').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.qb-hub-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.target).classList.add('active');
+            });
+        });
+
+        // Exit
+        const exitHandler = () => { if (confirm('Kết thúc phiên làm bài?')) finishSession(); };
+        document.getElementById('mobile-exit-btn').addEventListener('click', exitHandler);
+        document.getElementById('desktop-exit-btn').addEventListener('click', exitHandler);
+
+        // Init
+        loadBatch();
+
+    })();
+</script>
+{% endblock %}

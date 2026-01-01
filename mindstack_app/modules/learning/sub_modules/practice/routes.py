@@ -28,7 +28,7 @@ def flashcard_dashboard():
         user_button_count = current_user.session_state.flashcard_button_count
 
     return render_template(
-        'practice/flashcard/dashboard.html',
+        'v3/pages/learning/practice/default/dashboard.html',
         user_button_count=user_button_count,
         flashcard_modes=FlashcardLearningConfig.FLASHCARD_MODES,
     )
@@ -59,7 +59,7 @@ def flashcard_setup():
     modes = get_flashcard_mode_counts(current_user.user_id, set_identifier)
 
     return render_template(
-        'practice/flashcard/setup.html',
+        'v3/pages/learning/practice/default/setup.html',
         selected_sets=selected_sets,
         selected_mode=mode,
         modes=modes,

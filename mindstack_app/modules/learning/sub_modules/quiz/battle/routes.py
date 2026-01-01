@@ -59,7 +59,7 @@ quiz_battle_bp.jinja_loader = ChoiceLoader(
 def quiz_battle_dashboard():
     """Simple landing page that explains the quiz battle feature."""
 
-    return render_template('quiz/battle/default/index.html')
+    return render_template('v3/pages/learning/quiz/battle/default/index.html')
 
 
 def _get_room_or_404(room_code: str) -> QuizBattleRoom:
@@ -378,7 +378,7 @@ def view_room(room_code: str):
         user_id=current_user.user_id,
     )
     return render_template(
-        'quiz/battle/default/room/index.html',
+        'v3/pages/learning/quiz/battle/default/room/index.html',
         room_code=room.room_code,
         room_title=room.title,
         initial_room=room_payload,

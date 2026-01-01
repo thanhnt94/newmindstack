@@ -12,4 +12,4 @@ from . import collab_bp
 @login_required
 def dashboard():
     """Dashboard cho các chế độ học cộng tác."""
-    return render_template('collab/default/dashboard.html')
+    return render_template('v3/pages/learning/collab/default/dashboard.html')

@@ -42,7 +42,7 @@ def manage_feedback():
             )
         ).order_by(UserFeedback.timestamp.desc()).all()
 
-    return render_template('feedback/manage_feedback.html',
+    return render_template('v3/pages/feedback/manage_feedback.html',
                             received_feedbacks=received_feedbacks,
                             sent_feedbacks=sent_feedbacks,
                             users=User.query.order_by(User.username).all())

@@ -45,3 +45,17 @@ def learning_dashboard():
     Chuyển hướng đến trang stats dashboard.
     """
     return redirect(url_for('learning.stats.dashboard'))
+
+
+@learning_bp.route('/assets/v3/<path:filename>')
+def serve_v3_asset(filename):
+    """
+    Serve static assets (CSS, JS, Images) directly from the V3 templates directory.
+    This supports the co-location of assets with templates for easier management.
+    """
+    import os
+    from flask import current_app, send_from_directory
+    
+    # Path to v3/pages/learning templates
+    directory = os.path.join(current_app.root_path, 'templates', 'v3', 'pages', 'learning')
+    return send_from_directory(directory, filename)

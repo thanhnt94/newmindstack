@@ -1327,9 +1327,9 @@ def list_quiz_sets():
     }
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('sets/_quiz_sets_list.html', **template_vars)
+        return render_template('v3/pages/content_management/quizzes/sets/_quiz_sets_list.html', **template_vars)
     else:
-        return render_template('sets/quiz_sets.html', **template_vars)
+        return render_template('v3/pages/content_management/quizzes/sets/quiz_sets.html', **template_vars)
 
 
 @quizzes_bp.route('/quizzes/<int:set_id>/export', methods=['GET'])
@@ -1488,7 +1488,7 @@ def manage_quiz_excel(set_id):
     export_zip_url = url_for('content_management.content_management_quizzes.export_quiz_set', set_id=set_id)
     item_count = LearningItem.query.filter_by(container_id=set_id, item_type='QUIZ_MCQ').count()
     return render_template(
-        'excel/manage_quiz_excel.html',
+        'v3/pages/content_management/quizzes/excel/manage_quiz_excel.html',
         quiz_set=quiz_set,
         export_excel_url=export_excel_url,
         template_excel_url=template_excel_url,
@@ -1740,14 +1740,14 @@ def add_quiz_set():
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template(
-            'sets/_add_edit_quiz_set_bare.html',
+            'v3/pages/content_management/quizzes/sets/_add_edit_quiz_set_bare.html',
             form=form,
             title='Thêm Bộ câu hỏi mới',
             template_excel_url=template_excel_url,
             form_action=request.path,
         )
     return render_template(
-        'sets/add_edit_quiz_set.html',
+        'v3/pages/content_management/quizzes/sets/add_edit_quiz_set.html',
         form=form,
         title='Thêm Bộ câu hỏi mới',
         template_excel_url=template_excel_url,
@@ -1824,7 +1824,7 @@ def edit_quiz_set(set_id):
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template(
-            'sets/_add_edit_quiz_set_bare.html',
+            'v3/pages/content_management/quizzes/sets/_add_edit_quiz_set_bare.html',
             form=form,
             title='Sửa Bộ câu hỏi',
             quiz_set=quiz_set,
@@ -1833,7 +1833,7 @@ def edit_quiz_set(set_id):
             form_action=request.path,
         )
     return render_template(
-        'sets/add_edit_quiz_set.html',
+        'v3/pages/content_management/quizzes/sets/add_edit_quiz_set.html',
         form=form,
         title='Sửa Bộ câu hỏi',
         quiz_set=quiz_set,
@@ -1899,7 +1899,7 @@ def list_quiz_items(set_id):
 
     can_edit = (current_user.user_role == 'admin' or quiz_set.creator_user_id == current_user.user_id)
 
-    return render_template('items/quiz_items.html',
+    return render_template('v3/pages/content_management/quizzes/items/quiz_items.html',
                            quiz_set=quiz_set,
                            quiz_items=quiz_items,
                            can_edit=can_edit,
@@ -2062,8 +2062,8 @@ def add_quiz_item(set_id):
     }
 
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('items/_add_edit_quiz_item_bare.html', **template_context)
-    return render_template('items/add_edit_quiz_item.html', **template_context)
+        return render_template('v3/pages/content_management/quizzes/items/_add_edit_quiz_item_bare.html', **template_context)
+    return render_template('v3/pages/content_management/quizzes/items/add_edit_quiz_item.html', **template_context)
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required

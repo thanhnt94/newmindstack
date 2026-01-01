@@ -271,7 +271,8 @@ def flashcard_session():
     
     # Fallback to system default (Admin settings)
     template_context = TemplateService.get_template_context('flashcard.cardsession')
-    template_base_path = template_context['template_base_path']
+    # Use V3 template path directly for migration
+    template_base_path = 'v3/pages/learning/flashcard/session'
     template_path = f'{template_base_path}/index.html'
     
     current_app.logger.debug(f"Rendering flashcard session with template: {template_path}")

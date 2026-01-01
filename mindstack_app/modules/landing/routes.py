@@ -9,4 +9,4 @@ def index():
     """
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.dashboard'))
-    return render_template('landing/default/index.html')
+    return render_template('v3/pages/landing/index.html')
