@@ -14,9 +14,9 @@ from mindstack_app.models import LearningContainer, LearningItem, User, UserCont
 import json
 
 
-@quiz_learning_bp.route('/quiz_learning_dashboard')
+@quiz_learning_bp.route('/quiz/dashboard')
 @login_required
-def quiz_learning_dashboard():
+def dashboard():
     """Hiển thị trang chính để chọn bộ câu hỏi và chế độ học Quiz."""
     search_query = request.args.get('q', '', type=str)
     search_field = request.args.get('search_field', 'all', type=str)
@@ -160,13 +160,13 @@ def start_quiz_session_all(mode):
 
     if not batch_size:
         flash('Lỗi: Thiếu kích thước nhóm câu hỏi.', 'danger')
-        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+        return redirect(url_for('learning.quiz_learning.dashboard'))
 
     if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
         flash('Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+        return redirect(url_for('learning.quiz_learning.dashboard'))
 
 
 @quiz_learning_bp.route('/start_quiz_session/multi/<string:mode>', methods=['GET'])
@@ -178,19 +178,19 @@ def start_quiz_session_multi(mode):
 
     if not set_ids_str or not batch_size:
         flash('Lỗi: Thiếu thông tin bộ câu hỏi hoặc kích thước nhóm.', 'danger')
-        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+        return redirect(url_for('learning.quiz_learning.dashboard'))
 
     try:
         set_ids = [int(s) for s in set_ids_str.split(',') if s]
     except ValueError:
         flash('Lỗi: Định dạng ID bộ quiz không hợp lệ.', 'danger')
-        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+        return redirect(url_for('learning.quiz_learning.dashboard'))
 
     if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
         flash('Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+        return redirect(url_for('learning.quiz_learning.dashboard'))
 
 
 @quiz_learning_bp.route('/start_quiz_session/<int:set_id>/<string:mode>', methods=['GET'])
@@ -210,13 +210,13 @@ def start_quiz_session_by_id(set_id, mode):
 
     if not batch_size:
         flash('Lỗi: Thiếu kích thước nhóm câu hỏi.', 'danger')
-        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+        return redirect(url_for('learning.quiz_learning.dashboard'))
 
     if QuizSessionManager.start_new_quiz_session(set_id, mode, batch_size, custom_pairs=custom_pairs):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
         flash('Không có câu hỏi nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
-        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+        return redirect(url_for('learning.quiz_learning.dashboard'))
 
 
 @quiz_learning_bp.route('/quiz_session')
@@ -225,7 +225,7 @@ def quiz_session():
     """Hiển thị giao diện làm bài Quiz."""
     if 'quiz_session' not in session:
         flash('Không có phiên học Quiz nào đang hoạt động. Vui lòng chọn bộ Quiz để bắt đầu.', 'info')
-        return redirect(url_for('learning.quiz_learning.quiz_learning_dashboard'))
+        return redirect(url_for('learning.quiz_learning.dashboard'))
 
     try:
         session_manager = QuizSessionManager.from_dict(session['quiz_session'])

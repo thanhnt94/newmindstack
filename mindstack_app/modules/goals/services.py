@@ -387,7 +387,7 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
                 config['endpoint'] = 'learning.flashcard.flashcard_dashboard.dashboard'
             elif goal.domain == 'quiz': 
                 config['icon'] = 'circle-question'
-                config['endpoint'] = 'learning.quiz_learning.quiz_learning_dashboard'
+                config['endpoint'] = 'learning.quiz_learning.dashboard'
 
         current_value = _get_metric_value(goal)
         percent = 0
@@ -464,7 +464,7 @@ def build_goal_progress(goals: Iterable[LearningGoal], metrics: dict[str, object
             if goal.domain == 'flashcard':
                 final_url = url_for('learning.flashcard.flashcard_dashboard.dashboard', preSelect=goal.reference_id, view='setup')
             elif goal.domain == 'quiz':
-                final_url = url_for('learning.quiz_learning.quiz_learning_dashboard', preSelect=goal.reference_id, view='setup')
+                final_url = url_for('learning.quiz_learning.dashboard', preSelect=goal.reference_id, view='setup')
 
         progress.append(
             {

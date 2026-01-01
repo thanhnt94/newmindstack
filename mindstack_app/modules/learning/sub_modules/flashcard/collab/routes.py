@@ -24,6 +24,7 @@ from ..individual.config import FlashcardLearningConfig
 from ..engine import FlashcardEngine
 from .flashcard_collab_logic import calculate_room_srs
 from .services import build_round_payload, ensure_active_round, generate_room_code, serialize_room
+from ..dashboard.routes import _build_dashboard_context
 import os
 
 # Calculate absolute path to the templates folder (one level up)
@@ -63,9 +64,12 @@ def _user_can_edit_flashcard(container_id: int) -> bool:
 @flashcard_collab_bp.route('/')
 @login_required
 def dashboard():
-    """Chuyển sang dashboard dùng chung của Flashcard."""
-
-    return redirect(url_for('learning.flashcard.flashcard_dashboard.dashboard'))
+    """Chuyển sang dashboard dùng chung của Flashcard (Chế độ nhóm)."""
+    
+    template_vars = _build_dashboard_context(current_user)
+    template_vars['initial_mode'] = 'group'
+    # Render main dashboard template but forced to group mode
+    return render_template('dashboard/index.html', **template_vars)
 
 
 @flashcard_collab_bp.route('/rooms', methods=['POST'])

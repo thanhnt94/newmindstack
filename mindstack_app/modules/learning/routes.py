@@ -28,8 +28,8 @@ learning_bp.register_blueprint(quiz_learning_bp)
 learning_bp.register_blueprint(flashcard_bp)
 learning_bp.register_blueprint(flashcard_learning_bp)
 learning_bp.register_blueprint(course_bp)
-learning_bp.register_blueprint(quiz_battle_bp, url_prefix='/quiz-battle')
-learning_bp.register_blueprint(flashcard_collab_bp)
+learning_bp.register_blueprint(quiz_battle_bp, url_prefix='/collab/quiz-battle')
+learning_bp.register_blueprint(flashcard_collab_bp, url_prefix='/collab/flashcard-collab')
 learning_bp.register_blueprint(vocabulary_bp)
 learning_bp.register_blueprint(practice_bp)  # NEW: Practice module
 learning_bp.register_blueprint(collab_bp)  # NEW: Collab module

@@ -38,7 +38,7 @@ Mục đích: Cập nhật navbar theo yêu cầu:
         <li>
             <a class="flex items-center p-2 rounded-md text-sm md:text-base font-medium md:px-4 md:py-2
                 {% if request.endpoint.startswith('learning.quiz_learning') %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-800{% endif %}"
-                href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}">
+                href="{{ url_for('learning.quiz_learning.dashboard') }}">
                 <i class="fas fa-question-circle mr-1 md:mr-2"></i>
                 <span>Quiz</span>
             </a>

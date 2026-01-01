@@ -7,90 +7,80 @@
         <!-- Learning Menu Overlay with Blur -->
         <div id="arcMenuOverlay"
             class="fixed inset-0 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 z-40">
-            <!-- Content Manager Quick Access - Top Right -->
-            <a href="{{ url_for('content_management.content_dashboard') }}"
-                class="absolute top-6 right-4 flex items-center gap-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white pl-4 pr-5 py-3 rounded-2xl shadow-2xl shadow-violet-500/40 border border-white/20 hover:scale-105 active:scale-95 transition-all"
-                title="Quản lý nội dung">
-                <div
-                    class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                    <i class="fa-solid fa-pen-ruler text-xl"></i>
-                </div>
-                <div class="text-left">
-                    <p class="text-sm font-bold leading-tight">Nội dung</p>
-                    <p class="text-[10px] opacity-80">Quản lý</p>
-                </div>
-            </a>
         </div>
 
         <!-- Learning Menu - Floating Cards -->
         <div id="arcMenu"
-            class="fixed bottom-32 left-1/2 opacity-0 pointer-events-none transition-all duration-300 z-50"
-            style="transform: translateX(-50%);">
-            <div class="flex flex-col items-center gap-3">
+            class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 pointer-events-none transition-all duration-300 z-50">
+            <div class="flex flex-col items-center gap-4 w-[340px]">
                 <!-- Logo & Brand -->
-                <div class="flex flex-col items-center mb-4 arc-item">
+                <div class="flex flex-col items-center mb-1 arc-item">
                     <div
-                        class="w-20 h-20 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-[2rem] shadow-2xl flex items-center justify-center border-4 border-white/25 mb-2 backdrop-blur-md">
-                        <i class="fa-solid fa-brain text-4xl text-white filter drop-shadow-md"></i>
+                        class="w-16 h-16 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-[1.5rem] shadow-2xl flex items-center justify-center border-4 border-white/25 mb-2 backdrop-blur-md">
+                        <i class="fa-solid fa-brain text-3xl text-white filter drop-shadow-md"></i>
                     </div>
-                    <h1 class="text-3xl font-black text-white tracking-tight drop-shadow-lg">MindStack</h1>
+                    <h1 class="text-2xl font-black text-white tracking-tight drop-shadow-lg">MindStack</h1>
                 </div>
 
-                <!-- Quiz -->
-                <a href="{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}"
-                    class="flex items-center gap-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
-                    <div
-                        class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <i class="fa-solid fa-circle-question text-3xl"></i>
-                    </div>
-                    <div class="flex-grow text-left">
-                        <p class="text-lg font-black">Quiz</p>
-                        <p class="text-xs opacity-90 font-medium">Luyện tập câu hỏi</p>
-                    </div>
-                    <i class="fa-solid fa-arrow-right text-white/60"></i>
-                </a>
+                <div class="grid grid-cols-2 gap-3 w-full">
+                    <!-- Quiz (Left) -->
+                    <a href="{{ url_for('learning.quiz_learning.dashboard') }}"
+                        class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-emerald-500 to-teal-500 text-white p-4 rounded-2xl shadow-xl hover:shadow-emerald-500/50 active:scale-95 transition-all arc-item border border-white/20 aspect-[4/3]">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg mb-1">
+                            <i class="fa-solid fa-circle-question text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold leading-tight">Quiz</p>
+                            <p class="text-[10px] opacity-90 font-medium">Luyện tập câu hỏi</p>
+                        </div>
+                    </a>
 
-                <!-- Vocabulary -->
-                <a href="{{ url_for('learning.vocabulary.dashboard') }}"
-                    class="flex items-center gap-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-blue-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
-                    <div
-                        class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <i class="fa-solid fa-book-open text-3xl"></i>
-                    </div>
-                    <div class="flex-grow text-left">
-                        <p class="text-lg font-black">Vocabulary</p>
-                        <p class="text-xs opacity-90 font-medium">Học từ vựng thông minh</p>
-                    </div>
-                    <i class="fa-solid fa-arrow-right text-white/60"></i>
-                </a>
+                    <!-- Vocabulary (Left - Row 2 -> Wait, actually grid flows Row 1: Item 1, Item 2. So Item 2 is Right Top) -->
+                    <!-- Practice implies Right Top? User said: "1 side quiz, vocab", "1 side practice, collab" -->
+                    <!-- So Quiz (Top Left), Vocab (Bottom Left). Practice (Top Right), Collab (Bottom Right) -->
+                    <!-- HTML Order for grid-cols-2: Item 1 (TL), Item 2 (TR), Item 3 (BL), Item 4 (BR) -->
+                    <!-- So Item 2 should be Practice. Item 3 should be Vocab. -->
 
-                <!-- Practice -->
-                <a href="{{ url_for('learning.practice.flashcard_dashboard') }}"
-                    class="flex items-center gap-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-amber-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
-                    <div
-                        class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <i class="fa-solid fa-dumbbell text-3xl"></i>
-                    </div>
-                    <div class="flex-grow text-left">
-                        <p class="text-lg font-black">Practice</p>
-                        <p class="text-xs opacity-90 font-medium">Ôn tập đa bộ thẻ</p>
-                    </div>
-                    <i class="fa-solid fa-arrow-right text-white/60"></i>
-                </a>
+                    <!-- Practice (Right) -->
+                    <a href="{{ url_for('learning.practice.flashcard_dashboard') }}"
+                        class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-amber-500 to-orange-500 text-white p-4 rounded-2xl shadow-xl hover:shadow-amber-500/50 active:scale-95 transition-all arc-item border border-white/20 aspect-[4/3]">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg mb-1">
+                            <i class="fa-solid fa-dumbbell text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold leading-tight">Practice</p>
+                            <p class="text-[10px] opacity-90 font-medium">Ôn tập đa bộ thẻ</p>
+                        </div>
+                    </a>
 
-                <!-- Collab -->
-                <a href="{{ url_for('learning.collab.dashboard') }}"
-                    class="flex items-center gap-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:shadow-pink-500/50 hover:scale-105 transition-all arc-item w-[260px] border border-white/20">
-                    <div
-                        class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <i class="fa-solid fa-users text-3xl"></i>
-                    </div>
-                    <div class="flex-grow text-left">
-                        <p class="text-lg font-black">Collab</p>
-                        <p class="text-xs opacity-90 font-medium">Học nhóm cùng bạn bè</p>
-                    </div>
-                    <i class="fa-solid fa-arrow-right text-white/60"></i>
-                </a>
+                    <!-- Vocabulary (Left) -->
+                    <a href="{{ url_for('learning.vocabulary.dashboard') }}"
+                        class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-blue-500 to-indigo-500 text-white p-4 rounded-2xl shadow-xl hover:shadow-blue-500/50 active:scale-95 transition-all arc-item border border-white/20 aspect-[4/3]">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg mb-1">
+                            <i class="fa-solid fa-book-open text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold leading-tight">Vocabulary</p>
+                            <p class="text-[10px] opacity-90 font-medium">Học từ vựng</p>
+                        </div>
+                    </a>
+
+                    <!-- Collab (Right) -->
+                    <a href="{{ url_for('learning.collab.dashboard') }}"
+                        class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-pink-500 to-rose-500 text-white p-4 rounded-2xl shadow-xl hover:shadow-pink-500/50 active:scale-95 transition-all arc-item border border-white/20 aspect-[4/3]">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg mb-1">
+                            <i class="fa-solid fa-users text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold leading-tight">Collab</p>
+                            <p class="text-[10px] opacity-90 font-medium">Học nhóm</p>
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -188,7 +178,6 @@
                             class="text-[11px] font-bold text-slate-400 group-hover:text-rose-600 transition-colors">Cá
                             nhân</span>
                         {% endif %}
-                    </a>
                 </div>
             </div>
         </div>

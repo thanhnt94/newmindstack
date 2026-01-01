@@ -2010,7 +2010,7 @@
         if (!confirm('Rời phòng?')) return;
         try {
             await postJson(leaveRoomUrl);
-            window.location.href = "{{ url_for('learning.quiz_learning.quiz_learning_dashboard') }}";
+            window.location.href = "{{ url_for('learning.quiz_learning.dashboard') }}";
         } catch (e) { setAlert(e.message, 'error'); }
     });
 

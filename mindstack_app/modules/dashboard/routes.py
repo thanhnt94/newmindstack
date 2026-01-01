@@ -72,7 +72,7 @@ def dashboard():
                 'title': 'Tiếp tục luyện quiz',
                 'description': f"Bạn còn {quiz_summary['learning']} câu hỏi ở trạng thái đang học.",
                 'icon': 'circle-question',
-                'url': url_for('learning.quiz_learning.quiz_learning_dashboard'),
+                'url': url_for('learning.quiz_learning.dashboard'),
             }
         )
     if course_summary['in_progress'] > 0:
