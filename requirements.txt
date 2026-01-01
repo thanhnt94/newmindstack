@@ -47,3 +47,6 @@ requests>=2.31
 pywebpush>=1.14.0 # Hỗ trợ Web Push Notification
 pytz>=2023.3 # Xử lý Timezone fallback
 python-dotenv>=1.0.0 # Load biến môi trường .env
+
+# --- Translator ---
+deep_translator>=1.8.0 # Dùng để dịch thuật (Google Translate free)
