@@ -1,6 +1,0 @@
-Fix selector IDs from debugging: change #item-stats-overview to #tab-overview and #item-stats-details to #tab-details  
-
-Also fix modal visibility CSS
-
-File: _container_stats_modal.html - remove opacity/visibility hidden initially
-File: _item_stats_charts.html - fix selector IDs
