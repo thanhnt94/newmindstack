@@ -5,11 +5,7 @@
 from flask import Blueprint
 
 # Tạo đối tượng Blueprint cho module notes
-notes_bp = Blueprint(
-    'notes', 
-    __name__, 
-    template_folder='templates'
-)
+notes_bp = Blueprint('notes', __name__)
 
 # Import các routes để chúng được đăng ký với Blueprint
 from . import routes

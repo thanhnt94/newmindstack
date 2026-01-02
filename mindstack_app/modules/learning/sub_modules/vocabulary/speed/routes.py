@@ -38,7 +38,7 @@ def setup(set_id):
         pass
     
     return render_template(
-        'speed/setup/default/index.html',
+        'v3/pages/learning/vocabulary/speed/setup/default/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -73,7 +73,7 @@ def session_page(set_id):
     # Save settings
     try:
         from mindstack_app.models import db
-        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.utils.db_session import safe_commit
         
         ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
         if not ucs:
@@ -95,7 +95,7 @@ def session_page(set_id):
         pass
     
     return render_template(
-        'speed/session/default/index.html',
+        'v3/pages/learning/vocabulary/speed/session/default/index.html',
         container=container,
         count=count,
         time_limit=time_limit,
@@ -168,7 +168,7 @@ def api_check_answer():
     if item_id:
         try:
             from mindstack_app.modules.learning.services.srs_service import SrsService
-            from mindstack_app.modules.shared.utils.db_session import safe_commit
+            from mindstack_app.utils.db_session import safe_commit
             from mindstack_app.models import db
 
             srs_result = SrsService.process_interaction(

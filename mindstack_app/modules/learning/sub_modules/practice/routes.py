@@ -66,7 +66,7 @@ def flashcard_setup():
     modes = get_flashcard_mode_counts(current_user.user_id, set_identifier)
 
     return render_template(
-        'v3/pages/learning/practice/default/setup.html',
+        'v3/pages/learning/practice/setup.html',
         selected_sets=selected_sets,
         selected_mode=mode,
         modes=modes,

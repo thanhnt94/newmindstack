@@ -15,13 +15,12 @@ from .sub_modules.flashcard.collab.routes import flashcard_collab_bp
 from .sub_modules.vocabulary import vocabulary_bp
 from .sub_modules.practice import practice_bp
 from .sub_modules.collab import collab_bp
-from .sub_modules.stats import stats_bp
+# from .sub_modules.stats import stats_bp
 # Note: stats_api_bp is registered globally in module_registry.py
 
 
 # Định nghĩa Blueprint chính cho learning
-learning_bp = Blueprint('learning', __name__,
-                        template_folder='templates') # Các template chung cho learning (nếu có)
+learning_bp = Blueprint('learning', __name__) # Các template chung cho learning (nếu có)
 
 # Đăng ký các blueprint con
 learning_bp.register_blueprint(quiz_learning_bp)
@@ -33,7 +32,7 @@ learning_bp.register_blueprint(flashcard_collab_bp, url_prefix='/collab/flashcar
 learning_bp.register_blueprint(vocabulary_bp)
 learning_bp.register_blueprint(practice_bp)  # NEW: Practice module
 learning_bp.register_blueprint(collab_bp)  # NEW: Collab module
-learning_bp.register_blueprint(stats_bp)  # Stats dashboard (HTML only, API is global)
+# learning_bp.register_blueprint(stats_bp)  # Stats dashboard (HTML only, API is global)
 
 
 
@@ -44,7 +43,16 @@ def learning_dashboard():
     Mô tả: Hiển thị dashboard tổng quan cho các hoạt động học tập.
     Chuyển hướng đến trang stats dashboard.
     """
-    return redirect(url_for('learning.stats.dashboard'))
+    return redirect(url_for('analytics.dashboard'))
+
+
+@learning_bp.route('/stats/dashboard')
+@login_required
+def legacy_stats_dashboard_redirect():
+    """
+    Redirect legacy /learn/stats/dashboard to new analytics dashboard.
+    """
+    return redirect(url_for('analytics.dashboard'))
 
 
 @learning_bp.route('/assets/v3/<path:filename>')

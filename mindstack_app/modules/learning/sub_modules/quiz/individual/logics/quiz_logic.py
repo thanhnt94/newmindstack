@@ -7,18 +7,15 @@
 
 from mindstack_app.models import LearningItem, User, db
 from mindstack_app.models.learning_progress import LearningProgress
-from mindstack_app.modules.gamification.services import ScoreService
+from mindstack_app.modules.analytics.services.scoring import ScoreService
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
 import datetime
 import math
 from flask import current_app # Import current_app
-from mindstack_app.services.config_service import get_runtime_config
-
-
 def _get_score_value(key: str, default: int) -> int:
     """Fetch an integer score value from runtime config with fallback."""
-
+    from mindstack_app.services.config_service import get_runtime_config
     raw_value = get_runtime_config(key, default)
     try:
         return int(raw_value)

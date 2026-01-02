@@ -20,7 +20,7 @@ from ......models import (
     User,
     db,
 )
-from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
+from mindstack_app.utils.media_paths import build_relative_media_path
 from ..individual import algorithms
 
 

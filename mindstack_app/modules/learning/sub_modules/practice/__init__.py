@@ -7,8 +7,7 @@ from flask import Blueprint
 practice_bp = Blueprint(
     'practice', 
     __name__, 
-    url_prefix='/practice',
-    template_folder='templates'
+    url_prefix='/practice'
 )
 
 # Import routes after blueprint creation to avoid circular imports

@@ -11,9 +11,7 @@ import math
 from flask import current_app
 from mindstack_app.db_instance import db
 from mindstack_app.models import User, LearningItem, ScoreLog, FlashcardRoomProgress, FlashcardCollabRound, FlashcardCollabAnswer
-from mindstack_app.modules.shared.utils.db_session import safe_commit
-from mindstack_app.services.config_service import get_runtime_config
-
+from mindstack_app.utils.db_session import safe_commit
 # --- CẤU HÌNH SRS ---
 LEARNING_STEPS_MINUTES = [1, 10]  # Steps cho thẻ đang học: 1p, 10p
 GRADUATING_INTERVAL_MINUTES = 1440 # 1 ngày
@@ -22,6 +20,7 @@ INITIAL_EASINESS_FACTOR = 2.5
 
 def _get_score_config(key, default):
     try:
+        from mindstack_app.services.config_service import get_runtime_config
         return int(get_runtime_config(key, default))
     except:
         return default

@@ -1,4 +1,4 @@
-{% include 'notification/center.html' %}
+{% include 'v3/pages/notification/center.html' %}
 {% include 'v3/includes/modals/_settings_modal.html' %}
 
 <div id="modalOverlay" class="modal-overlay">
@@ -89,5 +89,4 @@
 </script>
 <script src="{{ url_for('translator.static', filename='js/translator.js') }}"></script>
 {# Image Viewer Helper #}
-<link rel="stylesheet" href="{{ url_for('shared.static', filename='css/image_viewer.css') }}">
-<script src="{{ url_for('shared.static', filename='js/image_viewer.js') }}"></script>
+{% include 'v3/includes/assets/_image_viewer.html' %}

@@ -19,15 +19,14 @@ from mindstack_app.models import (
     db,
 )
 from mindstack_app.models.learning_progress import LearningProgress
-from mindstack_app.services.config_service import get_runtime_config
-from mindstack_app.modules.gamification.services import ScoreService
+from mindstack_app.modules.analytics.services.scoring import ScoreService
 
-course_bp = Blueprint('course', __name__, template_folder='templates')
+course_bp = Blueprint('course', __name__)
 
 
 def _get_score_value(key: str, default: int) -> int:
     """Fetch an integer score value from runtime config with fallback."""
-
+    from mindstack_app.services.config_service import get_runtime_config
     raw_value = get_runtime_config(key, default)
     try:
         return int(raw_value)
@@ -42,7 +41,7 @@ def course_learning_dashboard():
     Mô tả: Hiển thị trang dashboard chính cho việc học Course.
     """
     current_filter = request.args.get('filter', 'doing', type=str)
-    return render_template('v3/pages/learning/course/default/course_learning_dashboard.html', current_filter=current_filter)
+    return render_template('v3/pages/learning/course/course_learning_dashboard.html', current_filter=current_filter)
 
 @course_bp.route('/get_course_sets_partial')
 @login_required
@@ -63,7 +62,7 @@ def get_course_sets_partial():
         page=page
     )
     
-    return render_template('v3/pages/learning/course/default/_course_sets_selection.html',
+    return render_template('v3/pages/learning/course/_course_sets_selection.html',
                            courses=pagination.items,
                            pagination=pagination,
                            search_query=search_query,
@@ -81,7 +80,7 @@ def get_lesson_list_partial(course_id):
         abort(403)
     lessons = get_lessons_for_course(current_user.user_id, course_id)
     
-    return render_template('v3/pages/learning/course/default/_lesson_selection.html', lessons=lessons, course=course)
+    return render_template('v3/pages/learning/course/_lesson_selection.html', lessons=lessons, course=course)
 
 @course_bp.route('/course_session/<int:lesson_id>')
 @login_required
@@ -123,7 +122,7 @@ def course_session(lesson_id):
     note = UserNote.query.filter_by(user_id=current_user.user_id, item_id=lesson.item_id).first()
 
     return render_template(
-        'v3/pages/learning/course/default/course_session.html', 
+        'v3/pages/learning/course/course_session.html', 
         lesson=lesson, 
         course=course, 
         current_percentage=current_percentage,

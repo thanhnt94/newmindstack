@@ -6,9 +6,9 @@ import shutil
 from flask import current_app
 from sqlalchemy.orm.attributes import flag_modified
 from mindstack_app.models import db, LearningContainer, LearningItem
-from mindstack_app.modules.shared.utils.db_session import safe_commit
-from mindstack_app.modules.shared.utils.excel import extract_info_sheet_mapping, format_info_warnings
-from mindstack_app.modules.shared.utils.media_paths import (
+from mindstack_app.utils.db_session import safe_commit
+from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings
+from mindstack_app.utils.media_paths import (
     normalize_media_folder,
     normalize_media_value_for_storage,
 )

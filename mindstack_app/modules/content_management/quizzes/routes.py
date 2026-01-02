@@ -27,12 +27,12 @@ from ....services.config_service import get_runtime_config
 import pandas as pd
 import tempfile
 import os
-from ....modules.shared.utils.pagination import get_pagination_data
-from ....modules.shared.utils.search import apply_search_filter
-from ....modules.shared.utils.excel import extract_info_sheet_mapping, format_info_warnings
+from mindstack_app.utils.pagination import get_pagination_data
+from mindstack_app.utils.search import apply_search_filter
+from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
-from mindstack_app.modules.shared.utils.media_paths import (
+from mindstack_app.utils.media_paths import (
     normalize_media_folder,
     normalize_media_value_for_storage,
     build_relative_media_path,

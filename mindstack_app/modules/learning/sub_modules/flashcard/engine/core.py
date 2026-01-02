@@ -4,9 +4,8 @@
 from datetime import datetime, timezone
 from mindstack_app.models import db, User, LearningItem
 from mindstack_app.models.learning_progress import LearningProgress
-from mindstack_app.modules.gamification.services import ScoreService
-from mindstack_app.modules.shared.utils.db_session import safe_commit
-from mindstack_app.services.config_service import get_runtime_config
+from mindstack_app.modules.analytics.services.scoring import ScoreService
+from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.modules.learning.services.srs_service import SrsService
 
 
@@ -19,6 +18,7 @@ class FlashcardEngine:
     @staticmethod
     def _get_config_score(key: str, default: int) -> int:
         """Fetch integer score from config."""
+        from mindstack_app.services.config_service import get_runtime_config
         try:
             return int(get_runtime_config(key, default))
         except (TypeError, ValueError):

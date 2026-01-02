@@ -12,8 +12,7 @@ template_dir = os.path.join(base_dir, 'templates')
 # Tạo đối tượng Blueprint cho module học Flashcard cá nhân
 flashcard_learning_bp = Blueprint(
     'flashcard_learning',
-    __name__,
-    template_folder=template_dir
+    __name__
 )
 
 # Import các routes để chúng được đăng ký với Blueprint

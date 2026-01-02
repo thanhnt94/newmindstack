@@ -1,0 +1,152 @@
+{% extends "v3/pages/admin/admin_layout.html" %}
+{% set active_page = 'tasks' %}
+
+{% block title %}Nhật ký tác vụ {{ task.task_name }}{% endblock %}
+{% block page_title %}Nhật ký tác vụ: {{ task.task_name }}{% endblock %}
+{% block page_subtitle %}Theo dõi chi tiết tiến trình và thông báo của tác vụ nền này.{% endblock %}
+
+{% block extra_head %}
+<style>
+    .data-card {
+        border-radius: 1rem;
+        background-color: #ffffff;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        box-shadow: 0 18px 40px -30px rgba(15, 23, 42, 0.45);
+    }
+    .status-badge {
+        padding: 0.35rem 0.85rem;
+        border-radius: 9999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .status-idle { background-color: #f1f5f9; color: #475569; }
+    .status-running { background-color: #dbeafe; color: #1d4ed8; }
+    .status-completed { background-color: #dcfce7; color: #15803d; }
+    .status-error { background-color: #fee2e2; color: #dc2626; }
+    .status-stopping { background-color: #fef9c3; color: #854d0e; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+    <a href="{{ url_for('admin.manage_background_tasks') }}" class="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800">
+        <i class="fas fa-arrow-left"></i> Quay lại danh sách tác vụ
+    </a>
+    <button id="refresh-button" class="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-md hover:bg-slate-200 transition text-sm">
+        <i class="fas fa-rotate-right"></i> Làm mới ngay
+    </button>
+</div>
+
+<div class="data-card mb-6">
+    <div class="data-card-header px-6 py-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-slate-100">
+        <div>
+            <p class="text-xs text-slate-500">Tác vụ</p>
+            <h2 class="text-xl font-semibold text-slate-900">{{ task.task_name }}</h2>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="task-status" class="status-badge status-{{ task.status }}">{{ task.status }}</span>
+            <div class="text-right">
+                <p id="task-progress" class="text-sm font-semibold text-slate-900">{{ task.progress }}/{{ task.total }}</p>
+                <p id="task-message" class="text-xs text-slate-500">{{ task.message or 'Chưa có thông tin' }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="px-6 py-4 text-sm text-slate-600">
+        <p>Trang này sẽ tự động cập nhật để bạn theo dõi chi tiết từng bước tác vụ.</p>
+    </div>
+</div>
+
+<div class="data-card">
+    <div class="data-card-header px-6 py-4 flex items-center justify-between border-b border-slate-100">
+        <h3 class="text-lg font-semibold text-slate-900">Log chi tiết</h3>
+        <span class="text-xs text-slate-500">Hiển thị tối đa 200 dòng mới nhất</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-4 py-3 text-left font-semibold">Thời gian</th>
+                    <th class="px-4 py-3 text-left font-semibold">Trạng thái</th>
+                    <th class="px-4 py-3 text-left font-semibold">Tiến độ</th>
+                    <th class="px-4 py-3 text-left font-semibold">Thông báo</th>
+                </tr>
+            </thead>
+            <tbody id="logs-table-body" class="divide-y divide-slate-100 text-sm">
+                {% for log in logs %}
+                <tr>
+                    <td class="px-4 py-3 whitespace-nowrap text-slate-500 text-xs">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-' }}</td>
+                    <td class="px-4 py-3"><span class="status-badge status-{{ log.status }}">{{ log.status }}</span></td>
+                    <td class="px-4 py-3 text-slate-700">{{ log.progress }}/{{ log.total }}</td>
+                    <td class="px-4 py-3 text-slate-700">{{ log.message or '...' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center py-6 text-slate-500">Chưa có log nào cho tác vụ này.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    const taskId = {{ task.task_id }};
+    const tableBody = document.getElementById('logs-table-body');
+    const taskStatusEl = document.getElementById('task-status');
+    const taskProgressEl = document.getElementById('task-progress');
+    const taskMessageEl = document.getElementById('task-message');
+    const refreshButton = document.getElementById('refresh-button');
+
+    function buildLogRow(log) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="px-4 py-3 whitespace-nowrap text-slate-500 text-xs">${log.created_at ? new Date(log.created_at).toLocaleString() : '-'}</td>
+            <td class="px-4 py-3"><span class="status-badge status-${log.status}">${log.status}</span></td>
+            <td class="px-4 py-3 text-slate-700">${log.progress}/${log.total}</td>
+            <td class="px-4 py-3 text-slate-700">${log.message || '...'}</td>
+        `;
+        return row;
+    }
+
+    function updateLogs(logs) {
+        tableBody.innerHTML = '';
+        if (!logs.length) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = '<td colspan="4" class="text-center py-6 text-slate-500">Chưa có log nào cho tác vụ này.</td>';
+            tableBody.appendChild(emptyRow);
+            return;
+        }
+
+        logs.forEach(log => {
+            tableBody.appendChild(buildLogRow(log));
+        });
+    }
+
+    async function refreshLogs() {
+        try {
+            refreshButton.disabled = true;
+            const response = await axios.get(`/admin/tasks/${taskId}/logs/data`);
+            const payload = response.data || {};
+            if (payload.task) {
+                taskStatusEl.textContent = payload.task.status;
+                taskStatusEl.className = `status-badge status-${payload.task.status}`;
+                taskProgressEl.textContent = `${payload.task.progress}/${payload.task.total}`;
+                taskMessageEl.textContent = payload.task.message || 'Chưa có thông tin';
+            }
+            if (Array.isArray(payload.logs)) {
+                updateLogs(payload.logs);
+            }
+        } catch (error) {
+            console.error('Không thể tải log tác vụ:', error);
+        } finally {
+            refreshButton.disabled = false;
+        }
+    }
+
+    refreshButton.addEventListener('click', refreshLogs);
+    setInterval(refreshLogs, 5000);
+</script>
+{% endblock %}

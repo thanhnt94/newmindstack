@@ -34,7 +34,7 @@ def setup(set_id):
         pass
 
     return render_template(
-        'listening/setup/default/index.html',
+        'v3/pages/learning/vocabulary/listening/setup/default/index.html',
         container=container,
         total_items=len(items),
         saved_settings=saved_settings
@@ -78,7 +78,7 @@ def session(set_id):
         new_settings['listening']['count'] = count
         
         ucs.settings = new_settings
-        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.utils.db_session import safe_commit
         from mindstack_app.models import db
         safe_commit(db.session)
     except Exception as e:
@@ -87,7 +87,7 @@ def session(set_id):
         pass
     
     return render_template(
-        'listening/session/default/index.html',
+        'v3/pages/learning/vocabulary/listening/session/default/index.html',
         container=container,
         total_items=len(items)
     )
@@ -132,7 +132,7 @@ def api_check_answer():
     item_id = data.get('item_id')
     if item_id:
         from mindstack_app.modules.learning.services.srs_service import SrsService
-        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.utils.db_session import safe_commit
         from mindstack_app.models import db
 
         srs_result = SrsService.process_interaction(

@@ -9,14 +9,13 @@
 
 {% block head %}
 {{ super() }}
-<link rel="stylesheet"
-    href="{{ url_for('learning.serve_v3_asset', filename='quiz/individual/static/css/session_single.css') }}">
+<link rel="stylesheet" href="{{ url_for('learning.quiz_learning.static', filename='css/session_single.css') }}">
 {% endblock %}
 
 {% block content %}
 {# Include BOTH partials, visibility controlled by CSS classes in files (lg:hidden vs hidden lg:block) #}
-{% include "v3/pages/learning/quiz/individual/session/default/_quiz_session_single_mobile.html" %}
-{% include "v3/pages/learning/quiz/individual/session/default/_quiz_session_single_desktop.html" %}
+{% include "quiz/individual/session/default/_quiz_session_single_mobile.html" %}
+{% include "quiz/individual/session/default/_quiz_session_single_desktop.html" %}
 
 {# Hub Modal (Shared structure but styled for Desktop via CSS overrides) #}
 <div id="explanation-hub-modal" class="qb-modal-overlay">

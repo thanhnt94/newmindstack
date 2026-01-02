@@ -25,7 +25,7 @@ def profile_required():
 def view_profile():
     # current_user đã có sẵn nhờ Flask-Login
     # current_user đã có sẵn nhờ Flask-Login
-    from ...modules.gamification.models import UserBadge
+    from mindstack_app.models import UserBadge
     badges = UserBadge.query.filter_by(user_id=current_user.user_id).join(UserBadge.badge).all()
     
     # Telegram Link

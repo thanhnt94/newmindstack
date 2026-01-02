@@ -36,7 +36,7 @@ def setup(set_id):
         pass
 
     return render_template(
-        'typing/setup/default/index.html',
+        'v3/pages/learning/vocabulary/typing/setup/default/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -87,7 +87,7 @@ def session(set_id):
             new_settings['typing']['custom_pairs'] = custom_pairs
         
         ucs.settings = new_settings
-        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.utils.db_session import safe_commit
         from mindstack_app.models import db
         safe_commit(db.session)
     except Exception as e:
@@ -101,7 +101,7 @@ def session(set_id):
         abort(400, description="Cần ít nhất 1 thẻ để chơi gõ đáp án")
     
     return render_template(
-        'typing/session/default/index.html',
+        'v3/pages/learning/vocabulary/typing/session/default/index.html',
         container=container,
         total_items=len(items),
         custom_pairs=custom_pairs
@@ -157,7 +157,7 @@ def api_check_answer():
     item_id = data.get('item_id')
     if item_id:
         from mindstack_app.modules.learning.services.srs_service import SrsService
-        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.utils.db_session import safe_commit
         from mindstack_app.models import db
 
         srs_result = SrsService.process_interaction(

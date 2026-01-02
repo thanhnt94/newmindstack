@@ -5,7 +5,7 @@
 from flask import Blueprint
 
 # 1. Tạo đối tượng Blueprint
-auth_bp = Blueprint('auth', __name__, template_folder='templates')
+auth_bp = Blueprint('auth', __name__)
 
 # 2. Import các routes ở cuối để chúng được đăng ký với Blueprint
 from . import routes, forms

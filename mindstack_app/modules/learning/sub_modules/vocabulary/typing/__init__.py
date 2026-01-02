@@ -3,11 +3,6 @@
 
 from flask import Blueprint
 
-typing_bp = Blueprint(
-    'vocab_typing',
-    __name__,
-    url_prefix='/typing',
-    template_folder='templates'
-)
+typing_bp = Blueprint('typing', __name__, url_prefix='/typing')
 
 from . import routes

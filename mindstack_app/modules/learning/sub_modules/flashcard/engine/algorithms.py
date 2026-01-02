@@ -15,8 +15,8 @@ from mindstack_app.models.learning_progress import LearningProgress
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_, cast, String
 from flask import current_app
-from mindstack_app.modules.shared.utils.pagination import get_pagination_data
-from mindstack_app.modules.shared.utils.search import apply_search_filter
+from mindstack_app.utils.pagination import get_pagination_data
+from mindstack_app.utils.search import apply_search_filter
 from .config import FlashcardLearningConfig
 import random
 

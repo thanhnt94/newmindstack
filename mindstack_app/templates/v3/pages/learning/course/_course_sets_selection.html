@@ -1,0 +1,63 @@
+{% from 'v3/includes/search/_search_form.html' import render_search_form %}
+{% from 'v3/includes/pagination/_pagination.html' import render_pagination %}
+
+<div class="w-full space-y-3">
+    {# Form tìm kiếm luôn hiển thị #}
+    <div class="mb-6">
+        {% set display_search_options = {'title':'Tiêu đề','description':'Mô tả','tags':'Thẻ'} %}
+        <div class="w-full">{{ render_search_form(search_query=search_query, placeholder="Tìm kiếm khoá học...",
+            search_field=search_field, search_options=display_search_options) }}</div>
+    </div>
+
+    {% if courses %}
+    <div class="space-y-3">
+        {% for course in courses %}
+        {% set is_disabled = (course.total_lessons == 0) %}
+        {% set course_state = course.user_state | default({'is_archived': False}) %}
+        <div class="course-item bg-white p-4 rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 relative {% if is_disabled %}opacity-50 cursor-not-allowed{% else %}cursor-pointer hover:shadow-md{% endif %} {% if course_state.is_archived %}archived{% endif %}"
+            data-course-id="{{ course.container_id }}" data-total-items="{{ course.total_lessons }}"
+            data-completion-percentage="{{ course.overall_completion_percentage | default(0) | int }}"
+            data-title="{{ course.title }}">
+
+            <div class="absolute inset-y-0 left-0 rounded-l-xl"
+                style="width: {{ course.overall_completion_percentage | default(0) }}%; background: #A7F3D0; z-index: 0;">
+            </div>
+
+            <div class="relative z-10 flex justify-between items-start w-full">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-gray-800 my-0">{{ course.title }}</h3>
+                    <div class="flex items-center text-gray-500 text-xs mt-1 space-x-4">
+                        <span><i class="fas fa-layer-group mr-1"></i>{{ course.total_lessons }} bài học</span>
+                        {# HIỂN THỊ THỜI GIAN DỰ TÍNH #}
+                        {% if course.total_estimated_time > 0 %}
+                        <span><i class="fas fa-clock mr-1"></i>~{{ course.total_estimated_time }} phút</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex-shrink-0 ml-4 flex items-center space-x-2">
+                    {% if current_filter != 'archive' %}
+                    <div class="archive-icon" data-course-id="{{ course.container_id }}"
+                        title="{{ 'Bỏ lưu trữ' if course_state.is_archived else 'Lưu trữ' }}">
+                        <i
+                            class="fas fa-archive {% if course_state.is_archived %}text-blue-500{% else %}text-gray-400{% endif %}"></i>
+                    </div>
+                    {% endif %}
+                    <span class="text-lg font-semibold text-gray-700 course-completion-text">
+                        {{ course.overall_completion_percentage | round(0) | int }}%
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {{ render_pagination(pagination=pagination, search_query=search_query, search_field=search_field,
+    current_filter=current_filter) }}
+    {% else %}
+    <div class="text-center py-12 px-6 text-gray-600">
+        <i class="fas fa-book-open text-5xl text-gray-300 mb-4"></i>
+        <p>Không tìm thấy khoá học nào.</p>
+        <p class="text-sm text-gray-500 mt-2">Hãy thử thay đổi bộ lọc hoặc tìm kiếm.</p>
+    </div>
+    {% endif %}
+</div>

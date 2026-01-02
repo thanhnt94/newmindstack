@@ -19,28 +19,17 @@ from mindstack_app.logics.voice_engine import VoiceEngine
 from mindstack_app.db_instance import db
 from mindstack_app.models import LearningContainer, LearningItem, User, BackgroundTask
 from mindstack_app.config import Config
-from mindstack_app.services.config_service import get_runtime_config
-
 logger = logging.getLogger(__name__)
 
 class AudioService:
     def __init__(self):
         """
-        Mô tả: Khởi tạo dịch vụ AudioService, đảm bảo thư mục cache audio tồn tại.
+        Mô tả: Khởi tạo dịch vụ AudioService.
         """
-        try:
-            cache_dir = self._ensure_cache_dir()
-            logger.info("AudioService khởi tạo thành công. Thư mục cache: %s", cache_dir)
-        except OSError as e:
-            logger.critical(
-                "Lỗi: Không thể tạo thư mục cache audio tại %s: %s", self._get_cache_dir(), e, exc_info=True
-            )
-        except Exception as e:
-            logger.critical(f"Lỗi không mong muốn khi khởi tạo AudioService: {e}", exc_info=True)
-        
         self.voice_service = VoiceEngine()
 
     def _get_cache_dir(self) -> str:
+        from mindstack_app.services.config_service import get_runtime_config
         return get_runtime_config('FLASHCARD_AUDIO_CACHE_DIR', Config.FLASHCARD_AUDIO_CACHE_DIR)
 
     def _ensure_cache_dir(self) -> str:

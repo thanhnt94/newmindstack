@@ -60,6 +60,7 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.auth.routes", "auth_bp", url_prefix="/auth", version="1.0"),
     ModuleDefinition("mindstack_app.modules.landing.routes", "landing_bp", version="1.0"),
     ModuleDefinition("mindstack_app.modules.dashboard.routes", "dashboard_bp", version="1.0"),
+    ModuleDefinition("mindstack_app.modules.analytics", "analytics_bp", url_prefix="/analytics", version="1.0"),
     ModuleDefinition("mindstack_app.modules.admin", "admin_bp", url_prefix="/admin", version="1.0"),
     ModuleDefinition(
         "mindstack_app.modules.admin.user_management.user_routes",
@@ -83,17 +84,15 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.learning.routes", "learning_bp", url_prefix="/learn", version="1.0"),
     
     # Learning Stats API (Global - not nested under learning_bp)
-    ModuleDefinition("mindstack_app.modules.learning.sub_modules.stats.api_routes", "stats_api_bp", version="1.0"),
+
     
     ModuleDefinition("mindstack_app.modules.goals.routes", "goals_bp", url_prefix="/goals", version="1.0"),
     ModuleDefinition("mindstack_app.modules.ai_services.routes", "ai_services_bp", version="1.0"),
     ModuleDefinition("mindstack_app.modules.notes.routes", "notes_bp", version="1.0"),
-    ModuleDefinition("mindstack_app.modules.shared", "shared_bp", version="1.0"),
-    ModuleDefinition("mindstack_app.modules.stats.routes", "stats_bp", url_prefix="/stats", version="1.0"),
+    ModuleDefinition("mindstack_app.modules.chat", "chat_bp", url_prefix="/chat", version="1.0"),
     ModuleDefinition("mindstack_app.modules.feedback", "feedback_bp", url_prefix="/feedback", version="1.0"),
     ModuleDefinition("mindstack_app.modules.telegram_bot", "telegram_bot_bp", url_prefix="/telegram", version="1.0"),
     ModuleDefinition("mindstack_app.modules.notification", "notification_bp", url_prefix="/notifications", version="1.0"),
     ModuleDefinition("mindstack_app.modules.translator", "translator_bp", url_prefix="/translator", version="1.0"),
-    ModuleDefinition("mindstack_app.modules.gamification", "gamification_bp", version="1.0"),
-    ModuleDefinition("mindstack_app.modules.gamification", "gamification_api_bp", version="1.0"),
+
 )

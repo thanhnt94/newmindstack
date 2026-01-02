@@ -29,7 +29,7 @@ import random
 import datetime
 import os
 
-from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
+from mindstack_app.utils.media_paths import build_relative_media_path
 
 class QuizSessionManager:
     """

@@ -41,7 +41,7 @@ def setup(set_id):
         pass
     
     return render_template(
-        'mcq/setup/default/index.html',
+        'v3/pages/learning/vocabulary/mcq/setup/default/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -119,7 +119,7 @@ def session(set_id):
             pass
             
         ucs.settings = new_settings
-        from mindstack_app.modules.shared.utils.db_session import safe_commit
+        from mindstack_app.utils.db_session import safe_commit
         from mindstack_app.models import db
         safe_commit(db.session)
     except Exception as e:
@@ -128,7 +128,7 @@ def session(set_id):
         # Non-blocking error
     
     return render_template(
-        'mcq/session/default/index.html',
+        'v3/pages/learning/vocabulary/mcq/session/default/index.html',
         container=container,
         total_items=len(items),
         mode=mode,
@@ -205,7 +205,7 @@ def api_check_answer():
     if item_id:
         try:
             from mindstack_app.modules.learning.services.srs_service import SrsService
-            from mindstack_app.modules.shared.utils.db_session import safe_commit
+            from mindstack_app.utils.db_session import safe_commit
             from mindstack_app.models import db
 
             srs_result = SrsService.process_interaction(

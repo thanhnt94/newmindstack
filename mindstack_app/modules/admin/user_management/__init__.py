@@ -7,7 +7,7 @@ from flask import Blueprint
 from ..context_processors import admin_context_processor
 
 # Tạo đối tượng Blueprint cho module con quản lý người dùng
-user_management_bp = Blueprint('user_management', __name__, template_folder='templates')
+user_management_bp = Blueprint('user_management', __name__)
 
 # Sử dụng chung context processor để có dữ liệu sidebar/thanh điều hướng đồng nhất
 user_management_bp.app_context_processor(admin_context_processor)

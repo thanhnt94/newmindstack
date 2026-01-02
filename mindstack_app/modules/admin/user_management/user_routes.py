@@ -25,7 +25,7 @@ def admin_required():
 @user_management_bp.route('/list')
 def manage_users():
     users = User.query.all() 
-    return render_template('default/users.html', users=users)
+    return render_template('v3/pages/admin/users/users.html', users=users)
 
 # Route để thêm người dùng mới
 @user_management_bp.route('/add', methods=['GET', 'POST'])
@@ -35,10 +35,10 @@ def add_user():
     if form.validate_on_submit():
         if not form.password.data:
             form.password.errors.append('Vui lòng nhập mật khẩu.')
-            return render_template('default/add_edit_user.html', form=form, title='Thêm Người Dùng Mới')
+            return render_template('v3/pages/admin/users/add_edit_user.html', form=form, title='Thêm Người Dùng Mới')
         if form.password.data != form.password2.data:
             form.password2.errors.append('Mật khẩu không khớp.')
-            return render_template('default/add_edit_user.html', form=form, title='Thêm Người Dùng Mới')
+            return render_template('v3/pages/admin/users/add_edit_user.html', form=form, title='Thêm Người Dùng Mới')
 
         # THAY ĐỔI: Thêm trường email khi khởi tạo đối tượng User
         user = User(username=form.username.data, email=form.email.data, user_role=form.user_role.data)
@@ -47,7 +47,7 @@ def add_user():
         db.session.commit()
         flash('Người dùng đã được thêm thành công!', 'success')
         return redirect(url_for('user_management.manage_users'))
-    return render_template('default/add_edit_user.html', form=form, title='Thêm Người Dùng Mới')
+    return render_template('v3/pages/admin/users/add_edit_user.html', form=form, title='Thêm Người Dùng Mới')
 
 # Route để sửa thông tin người dùng
 @user_management_bp.route('/edit/<int:user_id>', methods=['GET', 'POST'])
@@ -65,7 +65,7 @@ def edit_user(user_id):
         if form.password.data:
             if form.password.data != form.password2.data:
                 form.password2.errors.append('Mật khẩu không khớp.')
-                return render_template('default/add_edit_user.html', form=form, title='Sửa Người Dùng', user=user)
+                return render_template('v3/pages/admin/users/add_edit_user.html', form=form, title='Sửa Người Dùng', user=user)
             user.set_password(form.password.data)
         
         db.session.commit()
@@ -75,7 +75,7 @@ def edit_user(user_id):
     elif request.method == 'GET':
         form.user_role.data = user.user_role 
 
-    return render_template('default/add_edit_user.html', form=form, title='Sửa Người Dùng', user=user)
+    return render_template('v3/pages/admin/users/add_edit_user.html', form=form, title='Sửa Người Dùng', user=user)
 
 # Route để xóa người dùng
 @user_management_bp.route('/delete/<int:user_id>', methods=['POST'])

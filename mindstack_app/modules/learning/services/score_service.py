@@ -15,7 +15,7 @@ from typing import Optional
 from datetime import datetime, timezone
 
 from mindstack_app.models import db
-from mindstack_app.modules.gamification.services import ScoreService
+from mindstack_app.modules.analytics.services.scoring import ScoreService
 
 from ..logics.scoring_engine import ScoringEngine, ScoreResult, LearningMode
 from ..logics.memory_engine import MemoryEngine, ProgressState

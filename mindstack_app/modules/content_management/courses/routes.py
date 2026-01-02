@@ -18,11 +18,11 @@ import io
 import re
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
-from ....modules.shared.utils.pagination import get_pagination_data
-from ....modules.shared.utils.search import apply_search_filter
-from ....modules.shared.utils.excel import extract_info_sheet_mapping, format_info_warnings
-from ....modules.shared.utils.html_sanitizer import sanitize_rich_text
-from ....modules.shared.utils.bbcode_parser import bbcode_to_html
+from mindstack_app.utils.pagination import get_pagination_data
+from mindstack_app.utils.search import apply_search_filter
+from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings
+from mindstack_app.utils.html_sanitizer import sanitize_rich_text
+from mindstack_app.utils.bbcode_parser import bbcode_to_html
 
 COURSE_DATA_COLUMNS = [
     'item_id',

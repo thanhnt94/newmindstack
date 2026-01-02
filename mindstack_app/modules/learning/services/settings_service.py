@@ -7,7 +7,7 @@ Handles persistence, deep merging, and session configuration resolution.
 
 from typing import Any, Dict, Optional
 from mindstack_app.models import db, UserContainerState, User
-from mindstack_app.modules.shared.utils.db_session import safe_commit
+from mindstack_app.utils.db_session import safe_commit
 
 class LearningSettingsService:
     @staticmethod

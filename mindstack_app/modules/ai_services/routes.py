@@ -11,7 +11,7 @@ from . import ai_services_bp
 from .service_manager import get_ai_service
 from .prompts import get_formatted_prompt
 from ...models import db, LearningItem
-from ...modules.shared.utils.html_sanitizer import sanitize_rich_text
+from mindstack_app.utils.html_sanitizer import sanitize_rich_text
 from sqlalchemy.orm.attributes import flag_modified
 
 @ai_services_bp.route('/ai/get-ai-response', methods=['POST'])

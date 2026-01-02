@@ -1,0 +1,128 @@
+{% extends "v3/pages/admin/admin_layout.html" %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="sm:flex sm:justify-between sm:items-center mb-8">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">Cấu hình Gamification</h1>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    {% include 'admin_gamification/_tabs.html' %}
+
+    <!-- Content -->
+    <div class="bg-white border border-slate-200 rounded-sm shadow-lg">
+        <div class="p-6">
+            <div class="mb-6">
+                <h2 class="text-lg text-slate-800 font-bold mr-2">Cấu hình điểm số (Points)</h2>
+                <p class="text-sm text-slate-500">Thiết lập số điểm thưởng cho các hoạt động của người dùng.</p>
+            </div>
+
+            <form action="{{ url_for('admin.update_gamification_points') }}" method="POST">
+
+                <!-- Flashcard Section -->
+                <div class="mb-6">
+                    <h3
+                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
+                        <i class="fa-solid fa-clone mr-2"></i> Flashcard
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Điểm xem trước thẻ mới</label>
+                            <input type="number" name="FLASHCARD_PREVIEW_BONUS"
+                                value="{{ config.FLASHCARD_PREVIEW_BONUS }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Khi user xem thẻ mới lần đầu (preview).</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Điểm ôn sớm (Tốt)</label>
+                            <input type="number" name="FLASHCARD_EARLY_REVIEW_HIGH"
+                                value="{{ config.FLASHCARD_EARLY_REVIEW_HIGH }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Ôn trước hạn, trả lời >= 4.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Điểm ôn đúng hạn (Tốt)</label>
+                            <input type="number" name="FLASHCARD_REVIEW_HIGH" value="{{ config.FLASHCARD_REVIEW_HIGH }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Ôn đúng hạn, trả lời >= 4.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Điểm ôn đúng hạn (Khá)</label>
+                            <input type="number" name="FLASHCARD_REVIEW_MEDIUM"
+                                value="{{ config.FLASHCARD_REVIEW_MEDIUM }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Ôn đúng hạn, trả lời 2-3.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Section -->
+                <div class="mb-6">
+                    <h3
+                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
+                        <i class="fa-solid fa-circle-question mr-2"></i> Quiz
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Thưởng lần đầu làm câu hỏi</label>
+                            <input type="number" name="QUIZ_FIRST_TIME_BONUS" value="{{ config.QUIZ_FIRST_TIME_BONUS }}"
+                                class="form-input w-full" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Điểm trả lời đúng</label>
+                            <input type="number" name="QUIZ_CORRECT_BONUS" value="{{ config.QUIZ_CORRECT_BONUS }}"
+                                class="form-input w-full" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Section -->
+                <div class="mb-6">
+                    <h3
+                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
+                        <i class="fa-solid fa-graduation-cap mr-2"></i> Khóa học
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Hoàn thành bài học (Lesson)</label>
+                            <input type="number" name="COURSE_LESSON_COMPLETION_SCORE"
+                                value="{{ config.COURSE_LESSON_COMPLETION_SCORE }}" class="form-input w-full" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Hoàn thành khóa học (Course)</label>
+                            <input type="number" name="COURSE_COMPLETION_SCORE"
+                                value="{{ config.COURSE_COMPLETION_SCORE }}" class="form-input w-full" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Section -->
+                <div class="mb-6">
+                    <h3
+                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
+                        <i class="fa-solid fa-cogs mr-2"></i> Hệ thống
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Điểm danh hàng ngày</label>
+                            <input type="number" name="DAILY_LOGIN_SCORE" value="{{ config.DAILY_LOGIN_SCORE }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Cộng khi user đăng nhập lần đầu tiên trong ngày
+                                server.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-5">
+                    <button type="submit" class="btn bg-indigo-500 hover:bg-indigo-600 text-white">
+                        <i class="fa-solid fa-save mr-2"></i> Lưu cấu hình
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

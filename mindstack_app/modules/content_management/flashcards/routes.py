@@ -24,13 +24,13 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import FlashcardSetForm, FlashcardItemForm
 from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
-from mindstack_app.modules.shared.utils.media_paths import (
+from mindstack_app.utils.media_paths import (
     normalize_media_folder,
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
-from ....modules.shared.utils.db_session import safe_commit
-from ....modules.shared.utils.excel import extract_info_sheet_mapping, format_info_warnings
+from mindstack_app.utils.db_session import safe_commit
+from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings
 from ....config import Config
 from ....services.config_service import get_runtime_config
 import pandas as pd
@@ -41,8 +41,8 @@ import zipfile
 import shutil
 import re
 import io
-from ....modules.shared.utils.pagination import get_pagination_data
-from ....modules.shared.utils.search import apply_search_filter
+from mindstack_app.utils.pagination import get_pagination_data
+from mindstack_app.utils.search import apply_search_filter
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 # THÊM MỚI: Import AudioService

@@ -8,15 +8,14 @@
 
 {% block head %}
 {{ super() }}
-{% include 'v3/pages/content_management/shared/_shared_styles.html' %}
-<link rel="stylesheet"
-    href="{{ url_for('learning.serve_v3_asset', filename='quiz/individual/static/css/session_batch.css') }}">
+{% include 'content_management/_shared_styles.html' %}
+<link rel="stylesheet" href="{{ url_for('learning.quiz_learning.static', filename='css/session_batch.css') }}">
 {% endblock %}
 
 {% block content %}
 {# Include Mobile and Desktop Partials #}
-{% include "v3/pages/learning/quiz/individual/session/default/_quiz_session_batch_mobile.html" %}
-{% include "v3/pages/learning/quiz/individual/session/default/_quiz_session_batch_desktop.html" %}
+{% include "quiz/individual/session/default/_quiz_session_batch_mobile.html" %}
+{% include "quiz/individual/session/default/_quiz_session_batch_desktop.html" %}
 
 {# Hub Modal (Shared) #}
 {# Hub Modal (Shared) #}

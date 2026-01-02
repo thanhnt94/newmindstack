@@ -1,0 +1,171 @@
+{% extends "v3/pages/admin/admin_layout.html" %}
+{% set active_page = 'media' %}
+
+{% block title %}Thư viện Media{% endblock %}
+{% block page_title %}Thư viện Media & tài nguyên số{% endblock %}
+{% block page_subtitle %}Quản lý tập trung hình ảnh, âm thanh, video và tài liệu phục vụ nội dung học tập.{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div class="data-card">
+        <div class="data-card-header px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Tải file & tổ chức thư mục</h2>
+                <p class="text-sm text-slate-500">Vị trí hiện tại: <span class="font-medium text-slate-800">{{ current_folder if current_folder else 'uploads' }}</span></p>
+            </div>
+            {% if breadcrumb %}
+            <nav class="text-xs text-slate-500 bg-slate-100 rounded-md px-4 py-2">
+                <ol class="flex items-center gap-2">
+                    <li><a href="{{ url_for('admin.media_library') }}" class="text-blue-600 hover:underline">uploads</a></li>
+                    {% for crumb in breadcrumb %}
+                        <li class="flex items-center gap-2">
+                            <span>/</span>
+                            {% if not loop.last %}
+                                <a href="{{ url_for('admin.media_library', folder=crumb.path) }}" class="text-blue-600 hover:underline">{{ crumb.name }}</a>
+                            {% else %}
+                                <span class="font-semibold text-slate-700">{{ crumb.name }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+            </nav>
+            {% endif %}
+        </div>
+        <div class="px-6 py-6 space-y-6">
+            <div class="grid gap-6 lg:grid-cols-3">
+                <form method="post" enctype="multipart/form-data" class="lg:col-span-2 space-y-4">
+                    <input type="hidden" name="current_folder" value="{{ current_folder }}">
+                    <label class="block text-sm font-medium text-slate-700">Chọn file để tải lên</label>
+                    <input type="file" name="media_files" multiple class="block w-full text-sm text-slate-700 border border-slate-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="text-xs text-slate-500">Hỗ trợ hình ảnh, audio, video, tài liệu văn phòng và file nén. Các file sẽ được lưu trong thư mục hiện tại.</p>
+                    <button type="submit" class="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-md shadow hover:bg-slate-800 transition">
+                        <i class="fas fa-cloud-upload-alt"></i> Tải file lên
+                    </button>
+                </form>
+                <form method="post" class="space-y-3">
+                    <input type="hidden" name="current_folder" value="{{ current_folder }}">
+                    <input type="hidden" name="action" value="create_folder">
+                    <label for="folder_name" class="block text-sm font-medium text-slate-700">Tạo thư mục con</label>
+                    <input id="folder_name" name="folder_name" type="text" placeholder="ví dụ: images" class="block w-full text-sm border border-slate-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" class="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-200 transition">
+                        <i class="fas fa-folder-plus"></i> Tạo thư mục
+                    </button>
+                </form>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                <span><i class="fas fa-info-circle mr-1"></i> Tổng dung lượng thư mục hiện tại: <strong class="text-slate-800">{{ total_size }}</strong></span>
+                {% if parent_folder != '' or current_folder %}
+                <a href="{{ url_for('admin.media_library', folder=parent_folder or None) }}" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-level-up-alt"></i> Lên thư mục cha
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if directories %}
+    <section class="data-card">
+        <div class="data-card-header px-6 py-4">
+            <h2 class="text-lg font-semibold text-slate-900">Thư mục con</h2>
+        </div>
+        <div class="px-6 py-6">
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {% for directory in directories %}
+                <a href="{{ url_for('admin.media_library', folder=directory.path) }}" class="border border-slate-200 rounded-lg p-4 hover:shadow-lg transition flex items-center gap-3 bg-white">
+                    <span class="text-blue-500 text-2xl"><i class="fas fa-folder-open"></i></span>
+                    <div>
+                        <p class="font-semibold text-slate-900">{{ directory.name }}</p>
+                        <p class="text-xs text-slate-500">{{ directory.item_count }} mục • Cập nhật {{ directory.modified.strftime('%d/%m/%Y %H:%M') }}</p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="data-card">
+        <div class="data-card-header px-6 py-4 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-slate-900">Danh sách file</h2>
+            <span class="text-sm text-slate-500">{{ files|length }} file trong thư mục này</span>
+        </div>
+        {% if files %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                        <th class="px-5 py-3 text-left font-semibold">Tên file</th>
+                        <th class="px-5 py-3 text-left font-semibold">Dung lượng</th>
+                        <th class="px-5 py-3 text-left font-semibold">Cập nhật</th>
+                        <th class="px-5 py-3 text-left font-semibold">Đường dẫn</th>
+                        <th class="px-5 py-3 text-right font-semibold">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for file in files %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-5 py-4 font-medium text-slate-900 flex items-center gap-2">
+                            <i class="fas fa-file-alt text-slate-400"></i>
+                            <span>{{ file.name }}</span>
+                        </td>
+                        <td class="px-5 py-4 text-slate-600">{{ file.size }}</td>
+                        <td class="px-5 py-4 text-slate-600">{{ file.modified.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center gap-2">
+                                <code class="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs">{{ file.url }}</code>
+                                <button type="button" class="text-blue-600 hover:text-blue-800" data-copy-url="{{ file.url }}" title="Sao chép URL">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="px-5 py-4 text-right">
+                            <div class="inline-flex items-center gap-3">
+                                <a href="{{ file.url }}" class="text-emerald-600 hover:text-emerald-800" target="_blank" rel="noopener" title="Xem hoặc tải xuống">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                                <form action="{{ url_for('admin.delete_media_item') }}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa file này?');">
+                                    <input type="hidden" name="path" value="{{ file.path }}">
+                                    <button type="submit" class="text-rose-600 hover:text-rose-800" title="Xóa file">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-6 text-sm text-slate-500">
+            Thư mục này chưa có file nào. Hãy tải file lên hoặc tạo thư mục con để tổ chức dữ liệu.
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[data-copy-url]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const url = button.getAttribute('data-copy-url');
+                if (!navigator.clipboard) {
+                    const tempInput = document.createElement('input');
+                    tempInput.value = url;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                } else {
+                    navigator.clipboard.writeText(url).catch(() => {});
+                }
+
+                button.classList.add('text-emerald-600');
+                setTimeout(() => button.classList.remove('text-emerald-600'), 1200);
+            });
+        });
+    });
+</script>
+{% endblock %}

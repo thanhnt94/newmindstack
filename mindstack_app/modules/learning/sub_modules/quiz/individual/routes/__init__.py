@@ -17,7 +17,6 @@ _static_path = os.path.join(_module_dir, 'static')
 quiz_learning_bp = Blueprint(
     'quiz_learning',
     __name__,
-    template_folder=_individual_templates_path,
     static_folder=_static_path,
     static_url_path='/quiz_learning/static'
 )

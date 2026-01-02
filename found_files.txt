@@ -1,0 +1,4 @@
+c:\Code\MindStack\newmindstack\mindstack_app\modules\dashboard\templates\dashboard\default\_desktop.html
+c:\Code\MindStack\newmindstack\mindstack_app\templates\includes\_bottom_nav_mobile.html
+c:\Code\MindStack\newmindstack\mindstack_app\templates\v3\includes\navbar\_bottom_nav_mobile.html
+c:\Code\MindStack\newmindstack\mindstack_app\templates\v3\pages\dashboard\_desktop.html

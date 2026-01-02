@@ -32,7 +32,7 @@ def session_page(set_id):
     }
     
     return render_template(
-        'matching/session/default/index.html',
+        'v3/pages/learning/vocabulary/matching/session/default/index.html',
         container=container,
         game=game_data
     )
@@ -80,7 +80,7 @@ def api_check_match():
     
     # SRS Update
     from mindstack_app.modules.learning.services.srs_service import SrsService
-    from mindstack_app.modules.shared.utils.db_session import safe_commit
+    from mindstack_app.utils.db_session import safe_commit
     from mindstack_app.models import db
     
     srs_results = []

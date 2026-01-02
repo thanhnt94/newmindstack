@@ -24,7 +24,7 @@ from mindstack_app.models import (
     ContainerContributor,
     db,
 )
-from mindstack_app.modules.shared.utils.media_paths import build_relative_media_path
+from mindstack_app.utils.media_paths import build_relative_media_path
 
 
 def _get_media_folders_from_container(container) -> dict[str, str]:

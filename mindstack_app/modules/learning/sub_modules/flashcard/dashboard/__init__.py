@@ -9,7 +9,6 @@ template_dir = os.path.join(base_dir, 'templates')
 dashboard_bp = Blueprint(
     'flashcard_dashboard',
     __name__,
-    template_folder=template_dir,
     # Url prefix handled by parent or registration
 )
 

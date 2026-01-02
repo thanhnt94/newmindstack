@@ -37,4 +37,4 @@ def dashboard():
     template_vars = _build_dashboard_context(current_user)
     # Using 'dashboard/index.html' relative to the dashboard module's template folder
     # which maps to .../dashboard/templates/dashboard/index.html
-    return render_template('dashboard/index.html', **template_vars)
+    return render_template('v3/pages/learning/flashcard/dashboard/index.html', **template_vars)

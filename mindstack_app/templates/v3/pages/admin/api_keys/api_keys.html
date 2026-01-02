@@ -1,0 +1,707 @@
+{% extends "v3/pages/admin/admin_layout.html" %}
+{% set active_page = 'api_keys' %}
+
+{% block title %}AI Coach Console{% endblock %}
+{% block page_title %}AI Coach Console{% endblock %}
+{% block page_subtitle %}Trung tâm điều khiển trí tuệ nhân tạo: Quản lý Model, API Keys và Giám sát hoạt động.{%
+endblock %}
+
+{% block content %}
+
+<!-- Tabs Navigation -->
+<div class="border-b border-slate-200 mb-6">
+    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <button onclick="switchTab('config')" id="tab-config"
+            class="tab-btn border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+            <i class="fas fa-sliders-h mr-2"></i> Cấu hình & API
+        </button>
+        <button onclick="switchTab('logs')" id="tab-logs"
+            class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+            <i class="fas fa-history mr-2"></i> Nhật ký Hoạt động
+        </button>
+        <button onclick="switchTab('autogen')" id="tab-autogen"
+            class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+            <i class="fas fa-wand-magic-sparkles mr-2"></i> Auto-Generate
+        </button>
+    </nav>
+</div>
+
+<!-- TAB: Configuration & API Keys -->
+<div id="view-config" class="space-y-6">
+
+    <!-- AI Global Settings Card -->
+    <div class="data-card bg-white">
+        <div class="data-card-header px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-slate-800">Cấu hình Chiến lược AI</h3>
+            <span class="text-xs font-medium px-2 py-1 bg-slate-100 text-slate-600 rounded">Global Settings</span>
+        </div>
+        <div class="p-6">
+            <form action="{{ url_for('api_key_management.update_ai_settings') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Provider Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Nhà cung cấp chính</label>
+                        <select name="AI_PROVIDER" id="ai_provider_select" onchange="toggleProviderSettings()"
+                            class="w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="gemini" {% if ai_settings.provider=='gemini' %}selected{% endif %}>Google
+                                Gemini (Recommended)</option>
+                            <option value="huggingface" {% if ai_settings.provider=='huggingface' %}selected{% endif %}>
+                                Hugging Face (Open Source)</option>
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">Chọn nền tạo sinh mặc định cho toàn hệ thống.</p>
+                    </div>
+
+                    <!-- Gemini Model Config -->
+                    <div id="gemini_model_container" class="{% if ai_settings.provider != 'gemini' %}hidden{% endif %}">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Mô hình Gemini (Đa luồng)</label>
+
+                        <!-- Hidden Input for Form Submission -->
+                        <input type="hidden" name="GEMINI_MODEL" id="gemini_model_value"
+                            value="{{ ai_settings.gemini_model }}">
+
+                        <!-- Draggable Badges Area -->
+                        <div class="mb-2">
+                            <div class="text-xs font-semibold text-slate-700 mb-1">Thứ tự ưu tiên (Kéo thả để thay đổi):
+                            </div>
+                            <div id="gemini_selected_badges"
+                                class="flex flex-wrap gap-2 min-h-[2.5rem] p-2 bg-slate-50 border border-slate-200 rounded-md">
+                                <!-- Badges injected by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Load Button -->
+                        <button type="button" onclick="fetchGeminiModels()"
+                            class="w-full mb-2 px-3 py-1.5 bg-white border border-slate-300 rounded text-slate-600 text-sm hover:bg-slate-50 transition flex items-center justify-center gap-2">
+                            <i class="fas fa-sync-alt"></i> Tải/Cập nhật danh sách Model
+                        </button>
+
+                        <!-- Checkbox List -->
+                        <div id="gemini_checkbox_list"
+                            class="hidden space-y-1 max-h-40 overflow-y-auto p-2 border border-slate-200 rounded bg-white text-sm">
+                            <!-- Checkboxes injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- HF Model Config -->
+                    <div id="hf_model_container"
+                        class="{% if ai_settings.provider != 'huggingface' %}hidden{% endif %}">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Mô hình Hugging Face</label>
+                        <select name="HUGGINGFACE_MODEL"
+                            class="w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="{{ ai_settings.hf_model }}" selected>{{ ai_settings.hf_model }} (Hiện tại)
+                            </option>
+                            <option value="google/gemma-7b-it">Google Gemma 7B IT</option>
+                            <option value="meta-llama/Llama-2-7b-chat-hf">Llama 2 7B Chat</option>
+                            <option value="mistralai/Mistral-7B-Instruct-v0.2">Mistral 7B Instruct</option>
+                            <option value="custom">Khác (Nhập tay bên dưới)...</option>
+                        </select>
+                        <input name="HUGGINGFACE_MODEL_custom"
+                            class="mt-2 w-full rounded-md border-slate-300 text-sm hidden"
+                            placeholder="Nhập Repo ID...">
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit"
+                        class="bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 transition shadow">
+                        <i class="fas fa-save mr-2"></i> Lưu Cấu Hình
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- API Keys Management -->
+    <div class="data-card">
+        <div class="data-card-header px-6 py-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Kho API Keys</h2>
+                <p class="text-sm text-slate-500">Quản lý các khóa truy cập ("Nhiên liệu" cho AI).</p>
+            </div>
+            <a href="{{ url_for('api_key_management.add_api_key') }}"
+                class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md shadow hover:bg-blue-500 transition">
+                <i class="fas fa-plus-circle"></i> Thêm Key Mới
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                        <th class="px-5 py-3 text-left font-semibold">ID</th>
+                        <th class="px-5 py-3 text-left font-semibold">Provider</th>
+                        <th class="px-5 py-3 text-left font-semibold">Key Hash</th>
+                        <th class="px-5 py-3 text-left font-semibold">Ghi chú</th>
+                        <th class="px-5 py-3 text-center font-semibold">Trạng thái</th>
+                        <th class="px-5 py-3 text-left font-semibold">Usage</th>
+                        <th class="px-5 py-3 text-left font-semibold">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for key in keys %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-5 py-4 font-medium text-slate-900">#{{ key.key_id }}</td>
+                        <td class="px-5 py-4 text-slate-700">
+                            {% if key.provider == 'huggingface' %}
+                            <span
+                                class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded border border-yellow-200"><i
+                                    class="fas fa-h-square"></i> HuggingFace</span>
+                            {% else %}
+                            <span
+                                class="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded border border-blue-200"><i
+                                    class="fab fa-google"></i> Gemini</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-slate-500 font-mono text-xs">...{{ key.key_value[-6:] }}</td>
+                        <td class="px-5 py-4 text-slate-600 italic">{{ key.notes or '-' }}</td>
+                        <td class="px-5 py-4 text-center">
+                            {% if key.is_active and not key.is_exhausted %}
+                            <span class="inline-flex w-3 h-3 bg-emerald-500 rounded-full" title="Hoạt động"></span>
+                            {% elif not key.is_active %}
+                            <span class="inline-flex w-3 h-3 bg-slate-300 rounded-full" title="Đã tắt"></span>
+                            {% elif key.is_exhausted %}
+                            <span class="inline-flex w-3 h-3 bg-rose-500 rounded-full animate-pulse"
+                                title="Cạn kiệt Quota"></span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-slate-600 text-xs">
+                            {% if key.last_used_timestamp %}
+                            {{ key.last_used_timestamp.strftime('%d/%m %H:%M') }}
+                            {% else %}
+                            <span class="text-slate-400">Chưa dùng</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ url_for('api_key_management.edit_api_key', key_id=key.key_id) }}"
+                                    class="text-slate-400 hover:text-blue-600 transition"><i
+                                        class="fas fa-edit"></i></a>
+                                <form action="{{ url_for('api_key_management.delete_api_key', key_id=key.key_id) }}"
+                                    method="post" onsubmit="return confirm('Xóa key này?');" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="text-slate-400 hover:text-rose-600 transition"><i
+                                            class="fas fa-trash-alt"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-8 text-slate-400 italic">Chưa có key nào.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB: Auto-Generate -->
+<div id="view-autogen" class="hidden space-y-6">
+    <div class="data-card bg-white p-6">
+        <h3 class="text-lg font-semibold text-slate-800 mb-4">
+            <i class="fas fa-wand-magic-sparkles mr-2 text-indigo-600"></i>
+            Tự động tạo nội dung AI
+        </h3>
+
+        <!-- Content Type Selection -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Loại nội dung</label>
+            <div class="flex gap-4">
+                <button onclick="selectContentType('quiz')" id="content-type-quiz"
+                    class="flex-1 px-4 py-3 rounded-lg border-2 border-indigo-500 bg-indigo-50 text-indigo-700 font-medium hover:bg-indigo-100 transition">
+                    <i class="fas fa-question-circle mr-2"></i> Quiz
+                </button>
+                <button onclick="selectContentType('flashcard')" id="content-type-flashcard"
+                    class="flex-1 px-4 py-3 rounded-lg border-2 border-slate-200 bg-white text-slate-700 font-medium hover:bg-slate-50 transition">
+                    <i class="fas fa-layer-group mr-2"></i> Flashcard
+                </button>
+            </div>
+        </div>
+
+        <!-- Quiz Set Selector -->
+        <div id="quiz-set-selector" class="mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Bộ Quiz</label>
+            <select id="quiz-set-select"
+                class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <option value="">-- Chọn bộ quiz --</option>
+            </select>
+            <div id="quiz-set-info" class="mt-3 p-3 bg-slate-50 rounded-lg hidden">
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div><span class="text-slate-500">Tổng câu:</span> <span class="font-bold text-slate-900 ml-1"
+                            id="quiz-total">0</span></div>
+                    <div><span class="text-slate-500">Chưa có explanation:</span> <span
+                            class="font-bold text-amber-600 ml-1" id="quiz-missing">0</span></div>
+                    <div><span class="text-slate-500">Sẽ tạo:</span> <span class="font-bold text-indigo-600 ml-1"
+                            id="quiz-to-generate">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flashcard Set Selector -->
+        <div id="flashcard-set-selector" class="mb-6 hidden">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Bộ Flashcard</label>
+            <select id="flashcard-set-select"
+                class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <option value="">-- Chọn bộ flashcard --</option>
+            </select>
+            <div id="flashcard-set-info" class="mt-3 p-3 bg-slate-50 rounded-lg hidden">
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div><span class="text-slate-500">Tổng thẻ:</span> <span class="font-bold text-slate-900 ml-1"
+                            id="flashcard-total">0</span></div>
+                    <div><span class="text-slate-500">Chưa có hint:</span> <span class="font-bold text-amber-600 ml-1"
+                            id="flashcard-missing">0</span></div>
+                    <div><span class="text-slate-500">Sẽ tạo:</span> <span class="font-bold text-purple-600 ml-1"
+                            id="flashcard-to-generate">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">API Delay (phút)</label>
+                <input type="range" id="api-delay-slider" min="0" max="60" value="2" step="1"
+                    oninput="updateDelayDisplay(this.value)" class="w-full">
+                <div class="text-center text-sm text-slate-600 mt-1"><span id="api-delay-value">2</span> phút</div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Số lượng tối đa</label>
+                <select id="max-items-select" class="w-full rounded-lg border-slate-300 shadow-sm">
+                    <option value="-1">Không giới hạn</option>
+                    <option value="10">10 items</option>
+                    <option value="50">50 items</option>
+                    <option value="100">100 items</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="flex gap-4 items-center">
+            <button onclick="startGeneration()" id="btn-start-generation"
+                class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">
+                <i class="fas fa-play mr-2"></i> Bắt đầu tạo
+            </button>
+            <button onclick="stopGeneration()" id="btn-stop-generation" disabled
+                class="px-6 py-3 bg-rose-600 text-white rounded-lg font-medium hover:bg-rose-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-stop mr-2"></i> Dừng
+            </button>
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-slate-600">Trạng thái:</span>
+                <span id="generation-status"
+                    class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+                    <i class="fas fa-circle mr-1"></i> Chờ
+                </span>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="mt-6">
+            <div class="flex justify-between text-sm text-slate-600 mb-2">
+                <span>Tiến độ: <span id="progress-current">0</span>/<span id="progress-total">0</span></span>
+                <span>Thời gian ước tính: <span id="estimated-time">--</span></span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-indigo-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+            <div class="text-right text-xs text-slate-500 mt-1"><span id="progress-percent">0</span>%</div>
+        </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="data-card bg-white">
+        <div class="data-card-header px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-slate-800">
+                <i class="fas fa-list-ul mr-2 text-indigo-600"></i>
+                Nhật ký hoạt động
+            </h3>
+            <button onclick="clearLog()" class="text-sm text-slate-500 hover:text-slate-700">
+                <i class="fas fa-trash-alt mr-1"></i> Xóa log
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="activity-log" class="space-y-2 max-h-96 overflow-y-auto">
+                <div class="text-center text-slate-400 italic py-8">
+                    Chưa có hoạt động nào
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB: Logs -->
+<div id="view-logs" class="hidden space-y-6">
+
+    <!-- Statistics Chart -->
+    <div class="data-card bg-white p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-slate-800">Thống kê hoạt động (7 ngày qua)</h3>
+
+            <!-- Metric Selector -->
+            <select id="chartMetricSelect" onchange="updateChartMetric()"
+                class="text-sm border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="requests">Lượt yêu cầu (Requests)</option>
+                <option value="tokens">Lượng Token/Ký tự (Approx)</option>
+            </select>
+        </div>
+        <div class="h-64">
+            <canvas id="aiActivityChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="data-card">
+        <div class="data-card-header px-6 py-4 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-slate-800">Nhật ký chi tiết</h3>
+            <button onclick="location.reload()" class="text-slate-500 hover:text-blue-600"><i
+                    class="fas fa-sync-alt"></i></button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                        <th class="px-4 py-2 text-left">Thời gian</th>
+                        <th class="px-4 py-2 text-left">Provider/Model</th>
+                        <th class="px-4 py-2 text-left">Context</th>
+                        <th class="px-4 py-2 text-center">Latency</th>
+                        <th class="px-4 py-2 text-center">Status</th>
+                        <th class="px-4 py-2 text-left">Chi tiết</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for log in logs %}
+                    <tr class="hover:bg-slate-50 text-xs">
+                        <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ log.timestamp | user_timezone }}</td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-slate-800">{{ log.provider|capitalize }}</div>
+                            <div class="text-slate-500 text-[10px]">{{ log.model_name }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600 max-w-xs truncate">
+                            {{ log.item_info or '-' }}
+                            {% if log.item_info and '#' in log.item_info %}
+                                {% set parts = log.item_info.split('#') %}
+                                {% if parts|length > 1 %}
+                                    <a href="{{ url_for('api_key_management.redirect_to_item_context', item_id=parts[1]|int) }}" 
+                                       target="_blank" 
+                                       class="text-blue-500 hover:text-blue-700 ml-1 inline-block" 
+                                       title="Xem chi tiết nội dung">
+                                        <i class="fas fa-external-link-alt text-[10px]"></i>
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center font-mono text-slate-500">{{ log.processing_time_ms }}ms</td>
+                        <td class="px-4 py-3 text-center">
+                            {% if log.status == 'success' %}
+                            <span
+                                class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">OK</span>
+                            {% else %}
+                            <span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px] font-bold">ERR</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 max-w-xs truncate" title="{{ log.error_message }}">
+                            {% if log.status == 'success' %}
+                            <span class="text-emerald-600"><i class="fas fa-arrow-up"></i> {{ log.prompt_chars }}c <i
+                                    class="fas fa-arrow-down"></i> {{ log.response_chars }}c</span>
+                            {% else %}
+                            <span class="text-rose-600">{{ log.error_message[:50] }}...</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-slate-400">Chưa có hoạt động nào được ghi lại.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        {% if pagination.pages > 1 %}
+        <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Trang {{ pagination.page }} / {{ pagination.pages }}</span>
+            <div class="flex space-x-2">
+                {% if pagination.has_prev %}
+                <a href="{{ url_for('api_key_management.list_api_keys', page=pagination.prev_num) }}#view-logs"
+                    class="px-3 py-1 rounded border border-slate-300 text-slate-600 text-xs hover:bg-slate-50">Trước</a>
+                {% endif %}
+                {% if pagination.has_next %}
+                <a href="{{ url_for('api_key_management.list_api_keys', page=pagination.next_num) }}#view-logs"
+                    class="px-3 py-1 rounded border border-slate-300 text-slate-600 text-xs hover:bg-slate-50">Sau</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    window.USER_TIMEZONE = "{{ current_user.timezone or 'UTC' }}";
+    let myChart = null;
+    let chartDataGlobal = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        chartDataGlobal = {{ chart_data | tojson | safe }};
+
+
+
+    if (chartDataGlobal) {
+        updateChartMetric();
+    }
+
+    if (window.location.hash === '#view-logs') {
+        switchTab('logs');
+    } else if (window.location.hash === '#view-autogen') {
+        switchTab('autogen');
+    }
+
+    const geminiHidden = document.getElementById('gemini_model_value');
+    if (geminiHidden && geminiHidden.value) {
+        updateGeminiBadges(geminiHidden.value.split(',').map(s => s.trim()).filter(s => s));
+    }
+
+    toggleProviderSettings();
+    });
+
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e'];
+    function getColor(i) {
+        return colors[i % colors.length];
+    }
+
+    function updateChartMetric() {
+        const selector = document.getElementById('chartMetricSelect');
+        const metric = selector ? selector.value : 'requests';
+        const ctx = document.getElementById('aiActivityChart');
+
+        if (!ctx || !chartDataGlobal) return;
+
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        const rawDatasets = (metric === 'tokens') ? (chartDataGlobal.datasets_tokens || []) : (chartDataGlobal.datasets_requests || []);
+        const yAxisTitle = (metric === 'tokens') ? 'Tổng ký tự (Input + Output)' : 'Số lượng Requests';
+
+        const datasets = rawDatasets.map((ds, index) => ({
+            ...ds,
+            backgroundColor: getColor(index),
+            borderRadius: 4
+        }));
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartDataGlobal.labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Ngày' } },
+                    y: { beginAtZero: true, title: { display: true, text: yAxisTitle } }
+                },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.dataset.label + ': ' + context.raw.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function switchTab(tabName) {
+        const tabs = ['config', 'autogen', 'logs'];
+        tabs.forEach(t => {
+            const view = document.getElementById('view-' + t);
+            const tab = document.getElementById('tab-' + t);
+            if (view) view.classList.add('hidden');
+            if (tab) {
+                tab.classList.remove('border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-slate-500');
+            }
+        });
+
+        const activeView = document.getElementById('view-' + tabName);
+        const activeTab = document.getElementById('tab-' + tabName);
+        if (activeView) activeView.classList.remove('hidden');
+        if (activeTab) {
+            activeTab.classList.add('border-blue-500', 'text-blue-600');
+            activeTab.classList.remove('border-transparent', 'text-slate-500');
+        }
+
+        // Initialize autogen tab when first opened
+        if (tabName === 'autogen' && typeof window.initializeAutogen === 'function') {
+            window.initializeAutogen();
+        }
+
+        if (history.replaceState) {
+            history.replaceState(null, null, '#view-' + tabName);
+        } else {
+            window.location.hash = '#view-' + tabName;
+        }
+    }
+
+    function toggleProviderSettings() {
+        const provider = document.getElementById('ai_provider_select').value;
+        const geminiContainer = document.getElementById('gemini_model_container');
+        const hfContainer = document.getElementById('hf_model_container');
+
+        if (provider === 'gemini') {
+            if (geminiContainer) geminiContainer.classList.remove('hidden');
+            if (hfContainer) hfContainer.classList.add('hidden');
+        } else {
+            if (geminiContainer) geminiContainer.classList.add('hidden');
+            if (hfContainer) hfContainer.classList.remove('hidden');
+        }
+    }
+
+    let dragSrcEl = null;
+    function handleDragStart(e) {
+        this.style.opacity = '0.4';
+        dragSrcEl = this;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+    }
+    function handleDragOver(e) {
+        if (e.preventDefault) e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+    function handleDrop(e) {
+        if (e.stopPropagation) e.stopPropagation();
+        if (dragSrcEl !== this) {
+            const srcId = dragSrcEl.dataset.modelId;
+            const destId = this.dataset.modelId;
+            dragSrcEl.dataset.modelId = destId;
+            this.dataset.modelId = srcId;
+            syncHiddenInputFromBadges(true);
+        }
+        return false;
+    }
+    function handleDragEnd(e) {
+        this.style.opacity = '1';
+    }
+
+    function handleRemoveBadge(modelId) {
+        const hiddenInput = document.getElementById('gemini_model_value');
+        let currentOrder = hiddenInput.value.split(',').map(s => s.trim()).filter(s => s);
+        const newOrder = currentOrder.filter(m => m !== modelId);
+        hiddenInput.value = newOrder.join(',');
+        updateGeminiBadges(newOrder);
+        const chk = document.getElementById('chk_' + modelId);
+        if (chk) chk.checked = false;
+    }
+
+    function syncHiddenInputFromBadges(redraw) {
+        const badgeContainer = document.getElementById('gemini_selected_badges');
+        const badges = badgeContainer.querySelectorAll('.badge-item');
+        const newOrder = Array.from(badges).map(b => b.dataset.modelId);
+        const hiddenInput = document.getElementById('gemini_model_value');
+        hiddenInput.value = newOrder.join(',');
+        if (redraw) updateGeminiBadges(newOrder);
+    }
+
+    function updateGeminiBadges(selectedModels) {
+        const badgeContainer = document.getElementById('gemini_selected_badges');
+        if (!badgeContainer) return;
+        const hiddenInput = document.getElementById('gemini_model_value');
+        hiddenInput.value = selectedModels.join(',');
+        badgeContainer.innerHTML = '';
+        if (selectedModels.length === 0) {
+            badgeContainer.innerHTML = '<span class="text-slate-400 text-xs italic">Chưa chọn model nào</span>';
+            return;
+        }
+        selectedModels.forEach(m => {
+            const badge = document.createElement('div');
+            badge.className = 'badge-item inline-flex items-center px-3 py-1.5 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 cursor-move select-none hover:bg-blue-200 transition-colors gap-2 shadow-sm';
+            badge.setAttribute('draggable', 'true');
+            badge.dataset.modelId = m;
+            const textSpan = document.createElement('span');
+            textSpan.textContent = m;
+            const gripIcon = document.createElement('i');
+            gripIcon.className = 'fas fa-grip-vertical text-blue-400 ml-2';
+            const closeBtn = document.createElement('i');
+            closeBtn.className = 'fas fa-times text-blue-400 hover:text-red-500 cursor-pointer ml-2';
+            closeBtn.title = 'Xóa model này';
+            closeBtn.onclick = function (e) { e.stopPropagation(); handleRemoveBadge(m); };
+            badge.appendChild(textSpan);
+            badge.appendChild(gripIcon);
+            badge.appendChild(closeBtn);
+            badge.addEventListener('dragstart', handleDragStart);
+            badge.addEventListener('dragover', handleDragOver);
+            badge.addEventListener('drop', handleDrop);
+            badge.addEventListener('dragend', handleDragEnd);
+            badgeContainer.appendChild(badge);
+        });
+    }
+
+    async function fetchGeminiModels() {
+        const btn = event.currentTarget;
+        const originalHtml = btn.innerHTML;
+        const checkboxList = document.getElementById('gemini_checkbox_list');
+        const hiddenInput = document.getElementById('gemini_model_value');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        btn.disabled = true;
+        try {
+            const response = await fetch("{{ url_for('admin.fetch_gemini_models_api') }}");
+            const data = await response.json();
+            if (data.success) {
+                checkboxList.innerHTML = '';
+                checkboxList.classList.remove('hidden');
+                const currentValues = hiddenInput.value.split(',').map(s => s.trim()).filter(s => s);
+                updateGeminiBadges(currentValues);
+                data.models.forEach(m => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-2 p-1 hover:bg-slate-50';
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = 'chk_' + m.id;
+                    checkbox.value = m.id;
+                    checkbox.className = 'rounded border-slate-300 text-blue-600 focus:ring-blue-500';
+                    if (currentValues.includes(m.id)) checkbox.checked = true;
+                    checkbox.addEventListener('change', function () {
+                        let cv = hiddenInput.value.split(',').map(s => s.trim()).filter(s => s);
+                        if (checkbox.checked) {
+                            if (!cv.includes(checkbox.value)) cv.push(checkbox.value);
+                        } else {
+                            cv = cv.filter(x => x !== checkbox.value);
+                        }
+                        hiddenInput.value = cv.join(',');
+                        updateGeminiBadges(cv);
+                    });
+                    const label = document.createElement('label');
+                    label.htmlFor = 'chk_' + m.id;
+                    label.className = 'text-slate-700 cursor-pointer flex-1 flex flex-col';
+                    label.innerHTML = '<span class="font-medium">' + m.display_name + '</span><span class="text-slate-400 text-[10px]">' + m.id + '</span>';
+                    div.appendChild(checkbox);
+                    div.appendChild(label);
+                    checkboxList.appendChild(div);
+                });
+            } else {
+                alert('Backend Error: ' + data.message);
+            }
+        } catch (e) {
+            alert('Connection Error: ' + e);
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+</script>
+
+<!-- Auto-Generate JavaScript -->
+<script src="{{ url_for('api_key_management.static', filename='js/autogen.js') }}"></script>
+{% endblock %}

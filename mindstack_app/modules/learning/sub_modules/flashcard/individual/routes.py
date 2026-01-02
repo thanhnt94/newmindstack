@@ -41,11 +41,11 @@ from sqlalchemy.orm.attributes import flag_modified
 import os
 import shutil
 
-from mindstack_app.modules.shared.utils.media_paths import (
+from mindstack_app.utils.media_paths import (
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
-from mindstack_app.modules.shared.utils.db_session import safe_commit
+from mindstack_app.utils.db_session import safe_commit
 
 audio_service = AudioService()
 image_service = ImageService()
@@ -161,7 +161,7 @@ def get_flashcard_options_partial(set_identifier):
             return '<p class="text-red-500 text-center">Lỗi: Không tìm thấy ID bộ thẻ.</p>', 400
 
 
-    return render_template('v3/pages/learning/flashcard/setup/_modes_list.html',
+    return render_template('v3/pages/learning/flashcard/individual/setup/_modes_list.html',
                            modes=modes,
                            selected_set_id=set_identifier,
                            selected_flashcard_mode_id=selected_mode,
@@ -693,7 +693,7 @@ def get_flashcard_sets_partial():
         }
 
         current_app.logger.debug("<<< Kết thúc thực thi get_flashcard_sets_partial (Thành công) >>>")
-        return render_template('flashcard/individual/setup/default/_sets_list.html', **template_vars)
+        return render_template('v3/pages/learning/flashcard/individual/session/index.html', **template_vars)
 
     except Exception as e:
         print(f">>> PYTHON LỖI: Đã xảy ra lỗi trong get_flashcard_sets_partial: {e}")

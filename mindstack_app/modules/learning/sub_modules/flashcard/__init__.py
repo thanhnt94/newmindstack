@@ -3,7 +3,7 @@
 from flask import Blueprint
 
 flashcard_bp = Blueprint(
-    'flashcard', __name__, url_prefix='/flashcard', template_folder='templates'
+    'flashcard', __name__, url_prefix='/flashcard'
 )
 
 # Register sub-blueprints

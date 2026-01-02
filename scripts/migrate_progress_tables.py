@@ -30,7 +30,7 @@ from mindstack_app.models import db
 from mindstack_app.models.user import (
     FlashcardProgress, QuizProgress, CourseProgress
 )
-from mindstack_app.models.memrise import MemriseProgress
+# from mindstack_app.models.memrise import MemriseProgress  # REMOVED: Model deleted
 from mindstack_app.models.learning_progress import LearningProgress
 
 
@@ -39,7 +39,7 @@ def count_legacy_records():
     return {
         'flashcard': FlashcardProgress.query.count(),
         'quiz': QuizProgress.query.count(),
-        'memrise': MemriseProgress.query.count(),
+        # 'memrise': MemriseProgress.query.count(),  # REMOVED: Model deleted
         'course': CourseProgress.query.count(),
     }
 
@@ -273,9 +273,11 @@ def run_migration(dry_run=False):
     results['quiz'] = migrate_quiz_progress(dry_run)
     print(f"  Migrated: {results['quiz'][0]}, Skipped: {results['quiz'][1]}")
     
-    print("Migrating memrise_progress...")
-    results['memrise'] = migrate_memrise_progress(dry_run)
-    print(f"  Migrated: {results['memrise'][0]}, Skipped: {results['memrise'][1]}")
+    # NOTE: Memrise migration disabled - MemriseProgress model was deleted
+    # print("Migrating memrise_progress...")
+    # results['memrise'] = migrate_memrise_progress(dry_run)
+    # print(f"  Migrated: {results['memrise'][0]}, Skipped: {results['memrise'][1]}")
+    results['memrise'] = (0, 0)  # Placeholder
     
     print("Migrating course_progress...")
     results['course'] = migrate_course_progress(dry_run)

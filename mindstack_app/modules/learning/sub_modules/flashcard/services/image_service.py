@@ -30,7 +30,6 @@ except ModuleNotFoundError:  # Fallback cho môi trường chưa nâng cấp
 from sqlalchemy.orm.attributes import flag_modified
 
 from mindstack_app.config import Config
-from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.db_instance import db
 from mindstack_app.models import LearningContainer, LearningItem
 
@@ -47,37 +46,26 @@ class ImageService:
     SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
     def __init__(self) -> None:
-        try:
-            cache_dir = self._ensure_cache_dir()
-            self._relative_cache_dir = os.path.relpath(cache_dir, self._get_upload_dir()).replace(os.path.sep, "/")
-            logger.info(
-                "ImageService khởi tạo thành công. Thư mục cache: %s",
-                cache_dir,
-            )
-        except OSError as exc:
-            logger.critical(
-                "Không thể tạo thư mục cache ảnh tại %s: %s",
-                self._get_cache_dir(),
-                exc,
-                exc_info=True,
-            )
-            self._relative_cache_dir = "flashcard/images/cache"
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.critical("Lỗi không mong muốn khi khởi tạo ImageService: %s", exc, exc_info=True)
-            self._relative_cache_dir = "flashcard/images/cache"
+        self._relative_cache_dir = "flashcard/images/cache" # Default value
 
     # ------------------------------------------------------------------
     # Các hàm tiện ích nội bộ
     # ------------------------------------------------------------------
     def _get_cache_dir(self) -> str:
+        from mindstack_app.services.config_service import get_runtime_config
         return get_runtime_config('FLASHCARD_IMAGE_CACHE_DIR', Config.FLASHCARD_IMAGE_CACHE_DIR)
 
     def _get_upload_dir(self) -> str:
+        from mindstack_app.services.config_service import get_runtime_config
         return get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
 
     def _ensure_cache_dir(self) -> str:
         cache_dir = self._get_cache_dir()
         os.makedirs(cache_dir, exist_ok=True)
+        try:
+             self._relative_cache_dir = os.path.relpath(cache_dir, self._get_upload_dir()).replace(os.path.sep, "/")
+        except Exception:
+             pass # Stick to default if path rel fails
         return cache_dir
 
     def _find_existing_cache(self, content_hash: str) -> Optional[str]:

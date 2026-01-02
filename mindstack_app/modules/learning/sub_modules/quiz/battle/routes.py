@@ -35,7 +35,7 @@ from .services import (
     start_round,
 )
 
-quiz_battle_bp = Blueprint('quiz_battle', __name__, template_folder='templates')
+quiz_battle_bp = Blueprint('quiz_battle', __name__)
 
 _battle_templates_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
 _shared_quiz_templates_path = os.path.abspath(
@@ -59,7 +59,7 @@ quiz_battle_bp.jinja_loader = ChoiceLoader(
 def quiz_battle_dashboard():
     """Simple landing page that explains the quiz battle feature."""
 
-    return render_template('v3/pages/learning/quiz/battle/default/index.html')
+    return render_template('v3/pages/learning/quiz/battle/index.html')
 
 
 def _get_room_or_404(room_code: str) -> QuizBattleRoom:
@@ -378,7 +378,7 @@ def view_room(room_code: str):
         user_id=current_user.user_id,
     )
     return render_template(
-        'v3/pages/learning/quiz/battle/default/room/index.html',
+        'v3/pages/learning/quiz/battle/room/index.html',
         room_code=room.room_code,
         room_title=room.title,
         initial_room=room_payload,

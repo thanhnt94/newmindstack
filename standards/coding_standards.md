@@ -147,9 +147,10 @@ def get_item_stats(item_id):
 
 #### **A) Dashboard Templates** (Vocabulary, Quiz)
 - **Single file** với responsive CSS
+- **Location**: `mindstack_app/templates/v3/pages/{module}/dashboard/`
 
 ```
-module/templates/
+mindstack_app/templates/v3/pages/
 └── module_name/
     └── dashboard/
         └── default/

@@ -4,7 +4,7 @@ and unread badge tracking for any collaborative room type.
 
 Usage example:
 
-{% include 'includes/chat_widget.html' %}
+{% include 'v3/includes/chat/chat_widget.html' %}
 <script>
   const chatCtrl = window.sharedChat.initChat({
     messagesUrl: '{{ url_for('shared.list_chat_messages', room_type='quiz - battle', room_code=room_code) }}',

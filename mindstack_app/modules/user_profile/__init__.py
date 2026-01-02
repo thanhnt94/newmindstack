@@ -5,7 +5,7 @@
 from flask import Blueprint
 
 # Tạo đối tượng Blueprint cho module user_profile
-user_profile_bp = Blueprint('user_profile', __name__, template_folder='templates')
+user_profile_bp = Blueprint('user_profile', __name__)
 
 # Import các routes để chúng được đăng ký với Blueprint
 from . import routes

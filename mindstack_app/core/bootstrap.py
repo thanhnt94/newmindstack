@@ -13,7 +13,7 @@ from sqlalchemy import inspect, or_, text
 
 from ..config import BASE_DIR
 from ..extensions import csrf_protect, db, login_manager, scheduler
-from ..modules.shared.utils.bbcode_parser import bbcode_to_html
+from mindstack_app.utils.bbcode_parser import bbcode_to_html
 from .module_registry import register_default_modules
 
 

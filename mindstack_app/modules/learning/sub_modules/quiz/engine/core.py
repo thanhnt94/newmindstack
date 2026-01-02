@@ -5,8 +5,8 @@
 import random
 from mindstack_app.models import LearningItem, db
 from mindstack_app.modules.learning.services.srs_service import SrsService
-from mindstack_app.modules.gamification.services import ScoreService
-from mindstack_app.modules.shared.utils.db_session import safe_commit
+from mindstack_app.modules.analytics.services.scoring import ScoreService
+from mindstack_app.utils.db_session import safe_commit
 
 
 class QuizEngine:

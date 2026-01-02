@@ -4,8 +4,8 @@
 
 from flask import Blueprint
 
-# Tạo đối tượng Blueprint cho module admin_content
-admin_content_bp = Blueprint('admin_content', __name__, template_folder='templates')
+# Tạo đối tượng Blueprint cho module content_management
+admin_content_management_bp = Blueprint('content_management', __name__)
 
 # Import các routes để chúng được đăng ký với Blueprint
 from . import routes
