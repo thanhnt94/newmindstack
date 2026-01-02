@@ -14,8 +14,8 @@
     const imageToggleButtonHtml = `<button class="icon-btn image-toggle-btn ${o.isMediaHidden ? 'is-active' : ''}" aria-pressed="${o.isMediaHidden}" title="${o.isMediaHidden ? 'Bật ảnh' : 'Tắt ảnh'}"><i class="fas ${o.isMediaHidden ? 'fa-image-slash' : 'fa-image'}"></i></button>`;
     const audioAutoplayToggleButtonHtml = `<button class="icon-btn audio-autoplay-toggle-btn ${o.isAudioAutoplayEnabled ? 'is-active' : ''}" aria-pressed="${o.isAudioAutoplayEnabled}" title="${o.isAudioAutoplayEnabled ? 'Tắt tự động phát audio' : 'Bật tự động phát audio'}"><i class="fas ${o.isAudioAutoplayEnabled ? 'fa-volume-up' : 'fa-volume-mute'}"></i></button>`;
 
-    const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${o.hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${o.itemId}" data-content-to-read="${o.frontAudioContent || ''}" ${o.hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
-    const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${o.hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${o.itemId}" data-content-to-read="${o.backAudioContent || ''}" ${o.hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
+    const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${o.hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio-mobile" data-side="front" data-item-id="${o.itemId}" data-content-to-read="${o.frontAudioContent || ''}" ${o.hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
+    const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${o.hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio-mobile" data-side="back" data-item-id="${o.itemId}" data-content-to-read="${o.backAudioContent || ''}" ${o.hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
 
     const flipButtonHtml = `<button class="js-flip-card-btn flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
 
@@ -42,7 +42,7 @@
             <div class="_card-container">
               <div class="text-area"><div class="flashcard-content-text">${o.fTxt}</div></div>
               ${o.frontImg ? `<div class="media-container"><img src="${o.frontImg}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
-              <audio id="front-audio" class="hidden" src="${o.frontAudioUrl || ''}"></audio>
+              <audio id="front-audio-mobile" class="hidden" src="${o.frontAudioUrl || ''}"></audio>
             </div>
             <div class="flip-btn-container">
               ${flipButtonHtml}
@@ -55,7 +55,7 @@
               ${o.backImg ? `<div class="media-container"><img src="${o.backImg}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
             </div>
             <div class="actions js-internal-actions" data-button-count="${o.buttonCount}">${o.buttonsHtml}</div>
-            <audio id="back-audio" class="hidden" src="${o.backAudioUrl || ''}"></audio>
+            <audio id="back-audio-mobile" class="hidden" src="${o.backAudioUrl || ''}"></audio>
           </div>
         </div>
       </div>`;

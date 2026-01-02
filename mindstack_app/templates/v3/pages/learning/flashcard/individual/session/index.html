@@ -914,7 +914,7 @@
 </div>
 
 {# Nhúng modal AI #}
-{% include 'v3/pages/ai_services/_ai_modal.html' %}
+{% include 'v3/includes/ai_services/_ai_modal.html' %}
 
 {# Nhúng modal Ghi chú #}
 {% include 'v3/pages/notes/_note_panel.html' %}
@@ -1338,7 +1338,8 @@
   }
 
   function stopAllFlashcardAudio(exceptAudio = null) {
-    const audioElements = document.querySelectorAll('#flashcard-content audio');
+    const audioElements = document.querySelectorAll('audio.hidden');
+    console.log(`[Audio] Stopping all audio (count: ${audioElements.length}), except:`, exceptAudio ? exceptAudio.id : 'none');
     audioElements.forEach(audioEl => {
       if (exceptAudio && audioEl === exceptAudio) {
         return;
@@ -1356,7 +1357,10 @@
 
   function playAudioForButton(button, options = {}) {
     if (!button) return Promise.resolve();
+    console.log('[Audio] Request play for button:', button);
     const audioPlayer = document.querySelector(button.dataset.audioTarget);
+    console.log('[Audio] Found player:', audioPlayer ? audioPlayer.id : 'NONE', 'Target:', button.dataset.audioTarget);
+
     if (!audioPlayer || button.classList.contains('is-disabled')) {
       return Promise.resolve();
     }
@@ -1377,9 +1381,20 @@
 
   function autoPlaySide(side) {
     if (!isAudioAutoplayEnabled) return;
-    const button = document.querySelector(`.play-audio-btn[data-side="${side}"]`);
-    if (!button) return;
-    playAudioForButton(button, { suppressLoadingUi: true }).catch(() => { });
+
+    // Tìm button trong container hiển thị (desktop hoặc mobile)
+    const visibleContainer = getVisibleFlashcardContentDiv();
+    console.log('[Audio] AutoPlay side:', side, 'Visible container:', visibleContainer ? (visibleContainer.closest('.flashcard-mobile-view') ? 'MOBILE' : 'DESKTOP') : 'NONE');
+
+    const button = visibleContainer
+      ? visibleContainer.querySelector(`.play-audio-btn[data-side="${side}"]`)
+      : document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+
+    if (!button) {
+      console.warn('[Audio] AutoPlay button not found for side:', side);
+      return;
+    }
+    playAudioForButton(button, { suppressLoadingUi: true }).catch(err => console.error('[Audio] AutoPlay error:', err));
   }
 
   function autoPlayFrontSide() {
@@ -1416,7 +1431,13 @@
 
   async function playAutoplayAudioForSide(side, token) {
     if (token !== currentAutoplayToken) return;
-    const button = document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+
+    // Tìm button trong container hiển thị (desktop hoặc mobile)
+    const visibleContainer = getVisibleFlashcardContentDiv();
+    const button = visibleContainer
+      ? visibleContainer.querySelector(`.play-audio-btn[data-side="${side}"]`)
+      : document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+
     if (!button) return;
     try {
       await playAudioForButton(button, { await: true, suppressLoadingUi: true });
@@ -1761,14 +1782,20 @@
     }
 
     function setupAudioErrorHandler(itemId, frontContent, backContent) {
-      const frontAudio = document.getElementById('front-audio');
-      const backAudio = document.getElementById('back-audio');
-      if (frontAudio) {
-        frontAudio.addEventListener('error', () => handleAudioError(frontAudio, itemId, 'front', frontContent));
-      }
-      if (backAudio) {
-        backAudio.addEventListener('error', () => handleAudioError(backAudio, itemId, 'back', backContent));
-      }
+      const audioIds = [
+        'front-audio-desktop', 'back-audio-desktop',
+        'front-audio-mobile', 'back-audio-mobile'
+      ];
+
+      audioIds.forEach(id => {
+        const audioEl = document.getElementById(id);
+        if (audioEl) {
+          const isFront = id.includes('front');
+          const content = isFront ? frontContent : backContent;
+          const side = isFront ? 'front' : 'back';
+          audioEl.addEventListener('error', () => handleAudioError(audioEl, itemId, side, content));
+        }
+      });
     }
 
     if (card) {
@@ -2875,5 +2902,5 @@
 
 </script>
 <script
-  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='static/js/flashcard_viewport.js') }}"></script>
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/flashcard_viewport.js') }}"></script>
 {% endblock %}

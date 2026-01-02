@@ -810,7 +810,7 @@ NOTE: Visibility được control bởi critical CSS trong index.html
                 // Check if flipped, play back audio, else play front audio
                 const card = mobileView ? mobileView.querySelector('.js-flashcard-card') : null;
                 const isFlipped = card && card.classList.contains('flipped');
-                const audioTarget = isFlipped ? '#back-audio' : '#front-audio';
+                const audioTarget = isFlipped ? '#back-audio-mobile' : '#front-audio-mobile';
                 const audioEl = mobileView ? mobileView.querySelector(audioTarget) : null;
 
                 if (audioEl && audioEl.src) {

@@ -6,7 +6,6 @@ from sqlalchemy import func
 from mindstack_app.models import db, ScoreLog
 from .. import analytics_bp
 from ..services.metrics import (
-    get_leaderboard_data,
     get_score_trend_series,
     get_activity_breakdown,
     get_flashcard_activity_series,
@@ -20,6 +19,8 @@ from ..services.metrics import (
     paginate_course_items,
     sanitize_pagination_args
 )
+from mindstack_app.services.learning_metrics_service import LearningMetricsService
+
 
 @analytics_bp.route('/api/leaderboard-data')
 @login_required
@@ -27,8 +28,13 @@ def get_leaderboard_data_api():
     """API endpoint để tải lại dữ liệu bảng xếp hạng một cách động."""
     sort_by = request.args.get('sort_by', 'total_score')
     timeframe = request.args.get('timeframe', 'all_time')
-    data = get_leaderboard_data(sort_by, timeframe, viewer=current_user)
+    data = LearningMetricsService.get_leaderboard(
+        sort_by=sort_by, 
+        timeframe=timeframe, 
+        viewer_user=current_user
+    )
     return jsonify({'success': True, 'data': data})
+
 
 @analytics_bp.route('/api/heatmap-data')
 @login_required

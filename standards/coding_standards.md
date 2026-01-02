@@ -143,6 +143,11 @@ def get_item_stats(item_id):
 
 ### 📁 Folder Structure
 
+**Rules/Quy tắc:**
+1.  ❌ **KHÔNG ĐƯỢC** để templates trong `modules/`.
+2.  ✅ Tất cả templates phải ở `mindstack_app/templates/v3/pages/{module}/`.
+3.  ✅ **Session Folders**: Phải có cấu trúc `css/`, `js/`, và các file `.html` ở root.
+
 **Pattern có 2 loại:**
 
 #### **A) Dashboard Templates** (Vocabulary, Quiz)
@@ -159,36 +164,35 @@ mindstack_app/templates/v3/pages/
 
 #### **B) Session/Interactive Templates** (Flashcard, Quiz Session)
 - **Separate files** cho mobile & desktop
+- **Asset Folders**: `css/`, `js/` (Không dùng `static/`)
 
 ```
-module/templates/
+mindstack_app/templates/v3/pages/
 └── module_name/
-    └── feature/
-        └── default/
+    └── individual/
+        └── session/
+            ├── css/                 # CSS files (card.css, components.css)
+            ├── js/                  # JS files (viewport.js, engine.js)
             ├── index.html           # Main orchestrator
             ├── _mobile.html         # Mobile UI
             ├── _desktop.html        # Desktop UI
-            ├── _card_mobile.html    # Card component (mobile)
-            ├── _card_desktop.html   # Card component (desktop)
-            ├── _stats_mobile.html   # Stats modal (mobile)
-            └── _stats_desktop.html  # Stats panel (desktop)
+            ├── _card_mobile.html
+            ├── _card_desktop.html
+            ├── _stats_mobile.html
+            └── _stats_desktop.html
 ```
 
 **Ví dụ thực tế**:
 ```
-flashcard/individual/cardsession/default/
-├── index.html           ← Main file
-├── _mobile.html         ← Mobile layout
-├── _desktop.html        ← Desktop layout
-├── _card_mobile.html
-├── _card_desktop.html
-├── _stats_mobile.html
-└── _stats_desktop.html
-
-quiz/individual/session/default/
+flashcard/individual/session/
+├── css/
+│   ├── card.css
+│   └── components.css
+├── js/
+│   └── flashcard_viewport.js
 ├── index.html
-├── _quiz_session_batch_mobile.html
-└── _quiz_session_batch_desktop.html
+├── _mobile.html
+└── _desktop.html
 ```
 
 ### 📱 Template Patterns
@@ -388,11 +392,6 @@ modules/learning/
     │   ├── __init__.py      # Export vocabulary_bp
     │   ├── routes.py        # HTML routes
     │   ├── api_routes/      # API endpoints (if needed)
-    │   ├── templates/
-    │   │   └── vocabulary/
-    │   │       └── dashboard/
-    │   │           └── default/
-    │   │               └── index.html
     │   ├── logics/          # Vocab-specific logic (optional)
     │   └── services/        # Vocab-specific services (optional)
     │
@@ -401,13 +400,9 @@ modules/learning/
     │   ├── routes.py
     │   ├── api_routes/
     │   │   └── stats_api.py
-    │   └── templates/
-    │       └── stats/
-    │           └── dashboard/
-    │               └── default/
-    │                   └── index.html
     │
     └── quiz/
+        ├── __init__.py
         └── ... (giống vocabulary)
 ```
 

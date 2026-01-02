@@ -6,8 +6,6 @@ from datetime import datetime, timedelta, date
 from mindstack_app.models import db, ScoreLog, LearningProgress, LearningContainer, LearningItem
 from .. import analytics_bp
 from ..services.metrics import (
-    get_leaderboard_data,
-    compute_learning_streaks,
     get_user_container_options,
     ITEM_TYPE_LABELS
 )
@@ -18,252 +16,150 @@ def dashboard():
     """
     Route chính để hiển thị trang dashboard thống kê.
     """
+    from mindstack_app.services.learning_metrics_service import LearningMetricsService
+
     initial_sort_by = request.args.get('sort_by', 'total_score')
     initial_timeframe = request.args.get('timeframe', 'all_time')
-    leaderboard_data = get_leaderboard_data(initial_sort_by, initial_timeframe, viewer=current_user)
+
+    # [REPLACE] Use service for leaderboard
+    leaderboard_data = LearningMetricsService.get_leaderboard(
+        sort_by=initial_sort_by, 
+        timeframe=initial_timeframe or 'all_time',
+        viewer_user=current_user
+    )
     
-    score_summary = (
-        db.session.query(
-            func.sum(ScoreLog.score_change).label('total_score'),
-            func.count(func.distinct(func.date(ScoreLog.timestamp))).label('active_days'),
-            func.max(ScoreLog.timestamp).label('last_activity'),
-            func.count(ScoreLog.log_id).label('entry_count'),
-        )
-        .filter(ScoreLog.user_id == current_user.user_id)
-        .one()
-    )
-
-    total_score_all_time = int(score_summary.total_score or 0)
-    active_days = int(score_summary.active_days or 0)
-    last_activity_value = score_summary.last_activity.isoformat() if score_summary.last_activity else None
-    total_entries = int(score_summary.entry_count or 0)
-    average_daily_score = round(total_score_all_time / active_days, 1) if active_days else 0
-
-    last_30_start = date.today() - timedelta(days=29)
-    last_30_score = (
-        db.session.query(func.sum(ScoreLog.score_change))
-        .filter(
-            ScoreLog.user_id == current_user.user_id,
-            ScoreLog.timestamp >= datetime.combine(last_30_start, datetime.min.time()),
-        )
-        .scalar()
-        or 0
-    )
-    average_recent_score = round(last_30_score / 30, 1) if last_30_score else 0
-
-    current_streak, longest_streak = compute_learning_streaks(current_user.user_id)
-
-    flashcard_score_total = int(
-        db.session.query(func.sum(ScoreLog.score_change))
-        .filter(
-            ScoreLog.user_id == current_user.user_id,
-            ScoreLog.item_type == 'FLASHCARD',
-        )
-        .scalar()
-        or 0
-    )
-    flashcard_summary = (
-        db.session.query(
-            func.sum(LearningProgress.times_correct).label('correct'),
-            func.sum(LearningProgress.times_incorrect).label('incorrect'),
-            func.sum(LearningProgress.times_vague).label('vague'),
-            func.avg(LearningProgress.correct_streak).label('avg_streak'),
-            func.max(LearningProgress.correct_streak).label('best_streak'),
-        )
-        .filter(
-            LearningProgress.user_id == current_user.user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
-        )
-        .one()
-    )
-    flashcard_correct_total = int(flashcard_summary.correct or 0)
-    flashcard_incorrect_total = int(flashcard_summary.incorrect or 0)
-    flashcard_vague_total = int(flashcard_summary.vague or 0)
-    flashcard_attempt_total = flashcard_correct_total + flashcard_incorrect_total + flashcard_vague_total
-    flashcard_accuracy_percent = (
-        round((flashcard_correct_total / flashcard_attempt_total) * 100, 1)
-        if flashcard_attempt_total
-        else None
-    )
-    flashcard_avg_streak = float(flashcard_summary.avg_streak or 0) if flashcard_summary.avg_streak is not None else 0.0
-    flashcard_best_streak = int(flashcard_summary.best_streak or 0) if flashcard_summary.best_streak is not None else 0
-    flashcard_mastered_count = LearningProgress.query.filter_by(
-        user_id=current_user.user_id, 
-        learning_mode=LearningProgress.MODE_FLASHCARD,
-        status='mastered'
-    ).count()
-    flashcard_total_cards = LearningProgress.query.filter_by(
-        user_id=current_user.user_id,
-        learning_mode=LearningProgress.MODE_FLASHCARD
-    ).count()
-    flashcard_sets_count = (
-        db.session.query(func.count(func.distinct(LearningContainer.container_id)))
-        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
-        .filter(
-            LearningProgress.user_id == current_user.user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-            LearningContainer.container_type == 'FLASHCARD_SET',
-            LearningItem.item_type == 'FLASHCARD',
-        )
-        .scalar()
-        or 0
-    )
-
-    quiz_score_total = int(
-        db.session.query(func.sum(ScoreLog.score_change))
-        .filter(
-            ScoreLog.user_id == current_user.user_id,
-            ScoreLog.item_type == 'QUIZ_MCQ',
-        )
-        .scalar()
-        or 0
-    )
-    quiz_summary = (
-        db.session.query(
-            func.sum(LearningProgress.times_correct).label('correct'),
-            func.sum(LearningProgress.times_incorrect).label('incorrect'),
-            func.avg(LearningProgress.correct_streak).label('avg_streak'),
-            func.max(LearningProgress.correct_streak).label('best_streak'),
-        )
-        .filter(
-            LearningProgress.user_id == current_user.user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
-        )
-        .one()
-    )
-    quiz_correct_total = int(quiz_summary.correct or 0)
-    quiz_incorrect_total = int(quiz_summary.incorrect or 0)
-    quiz_attempt_total = quiz_correct_total + quiz_incorrect_total
-    quiz_accuracy_percent = (
-        round((quiz_correct_total / quiz_attempt_total) * 100, 1)
-        if quiz_attempt_total
-        else None
-    )
-    quiz_avg_streak = float(quiz_summary.avg_streak or 0) if quiz_summary.avg_streak is not None else 0.0
-    quiz_best_streak = int(quiz_summary.best_streak or 0) if quiz_summary.best_streak is not None else 0
-    quiz_questions_answered = LearningProgress.query.filter_by(
-        user_id=current_user.user_id,
-        learning_mode=LearningProgress.MODE_QUIZ
-    ).count()
-    quiz_mastered_count = LearningProgress.query.filter_by(
-        user_id=current_user.user_id, 
-        learning_mode=LearningProgress.MODE_QUIZ,
-        status='mastered'
-    ).count()
-    quiz_sets_started_count = (
-        db.session.query(func.count(func.distinct(LearningContainer.container_id)))
-        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
-        .filter(
-            LearningProgress.user_id == current_user.user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
-            LearningContainer.container_type == 'QUIZ_SET',
-            LearningItem.item_type == 'QUIZ_MCQ',
-        )
-        .scalar()
-        or 0
-    )
-
-    courses_started_count = (
-        db.session.query(func.count(func.distinct(LearningContainer.container_id)))
-        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
-        .filter(
-            LearningProgress.user_id == current_user.user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
-            LearningContainer.container_type == 'COURSE',
-            LearningItem.item_type == 'LESSON',
-        )
-        .scalar()
-        or 0
-    )
-    lessons_completed_count = LearningProgress.query.filter(
-        LearningProgress.user_id == current_user.user_id,
-        LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
-        LearningProgress.mastery >= 1.0
-    ).count()
-    courses_in_progress_count = LearningProgress.query.filter(
-        LearningProgress.user_id == current_user.user_id,
-        LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
-        LearningProgress.mastery > 0.0,
-        LearningProgress.mastery < 1.0,
-    ).count()
-    course_summary = (
-        db.session.query(
-            func.avg(LearningProgress.mastery * 100).label('avg_completion'),
-            func.max(LearningProgress.last_reviewed).label('last_progress'),
-        )
-        .filter(
-            LearningProgress.user_id == current_user.user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_COURSE
-        )
-        .one()
-    )
-    course_avg_completion = float(course_summary.avg_completion or 0)
-    course_last_progress = course_summary.last_progress.isoformat() if course_summary.last_progress else None
-
-    dashboard_data = {
-        'flashcard_score': flashcard_score_total,
-        'learned_distinct_overall': flashcard_total_cards,
-        'learned_sets_count': flashcard_sets_count,
-        'flashcard_accuracy_percent': flashcard_accuracy_percent,
-        'flashcard_attempt_total': flashcard_attempt_total,
-        'flashcard_correct_total': flashcard_correct_total,
-        'flashcard_incorrect_total': flashcard_incorrect_total,
-        'flashcard_mastered_count': flashcard_mastered_count,
-        'flashcard_avg_streak_overall': round(flashcard_avg_streak, 1) if flashcard_avg_streak else 0.0,
-        'flashcard_best_streak_overall': flashcard_best_streak,
-        'quiz_score': quiz_score_total,
-        'questions_answered_count': quiz_questions_answered,
-        'quiz_sets_started_count': quiz_sets_started_count,
-        'quiz_accuracy_percent': quiz_accuracy_percent,
-        'quiz_attempt_total': quiz_attempt_total,
-        'quiz_correct_total': quiz_correct_total,
-        'quiz_incorrect_total': quiz_incorrect_total,
-        'quiz_mastered_count': quiz_mastered_count,
-        'quiz_avg_streak_overall': round(quiz_avg_streak, 1) if quiz_avg_streak else 0.0,
-        'quiz_best_streak_overall': quiz_best_streak,
-        'courses_started_count': courses_started_count,
-        'lessons_completed_count': lessons_completed_count,
-        'courses_in_progress_count': courses_in_progress_count,
-        'course_avg_completion_percent': round(course_avg_completion, 1) if course_avg_completion else 0.0,
-        'course_last_progress': course_last_progress,
-        'total_score_all_time': total_score_all_time,
-        'total_activity_entries': total_entries,
-        'active_days': active_days,
-        'average_daily_score': average_daily_score,
-        'total_score_last_30_days': int(last_30_score),
-        'average_daily_score_recent': average_recent_score,
-        'last_activity': last_activity_value,
-        'current_learning_streak': current_streak,
-        'longest_learning_streak': longest_streak,
-    }
-
-    recent_logs = (
-        ScoreLog.query.filter_by(user_id=current_user.user_id)
-        .order_by(ScoreLog.timestamp.desc())
-        .limit(6)
-        .all()
-    )
-    recent_activity = [
-        {
-            'timestamp': log.timestamp.isoformat() if log.timestamp else None,
-            'score_change': int(log.score_change or 0),
-            'reason': log.reason or 'Hoạt động học tập',
-            'item_type': log.item_type or 'OTHER',
-            'item_type_label': ITEM_TYPE_LABELS.get(log.item_type or '', 'Hoạt động khác'),
-        }
-        for log in recent_logs
-    ]
-
-    flashcard_sets = get_user_container_options(
+    # [REPLACE] Use service for main summary
+    # Note: Service returns a comprehensive dict. We map it to 'dashboard_data' keys.
+    summary = LearningMetricsService.get_user_learning_summary(current_user.user_id)
+    
+    fc = summary['flashcard']
+    qz = summary['quiz']
+    co = summary['course']
+    
+    # Calculate derived metrics that might be expecting specific keys
+    # Old key: 'learned_distinct_overall' -> fc['total']
+    # Old key: 'learned_sets_count' -> Not in summary currently? 
+    # Wait, I missed 'sets_count' in flashcard summary in service? 
+    # Let's check service. I put 'sets_started' in quiz/course but maybe missed flashcard sets.
+    # Actually, looking at service implementation: 
+    # _get_flashcard_metrics currently returns: total, mastered, learning, new, hard, reviewing, due, completion_percent, correct_total, incorrect_total, attempt_total, accuracy_percent, avg_streak, best_streak.
+    # It DOES NOT return 'sets_count'. 
+    # I should add it or calculate it here separately using the old helper if needed, 
+    # OR better yet, update the service to include it.
+    # For now to keep this atomic, I will calculate it here or fetch it if crucial.
+    # But wait, 'learned_sets_count' is displayed on the UI.
+    # I will allow a small ad-hoc query here or simple '0' if I want to rush, but better to add it to service.
+    # Actually, let's look at `metrics.get_user_container_options` - that gets the LIST of sets.
+    # I can just count that list!
+    
+    flashcard_sets_list = get_user_container_options(
         current_user.user_id,
         'FLASHCARD_SET',
         LearningProgress.MODE_FLASHCARD,
         'last_reviewed',
         item_type='FLASHCARD',
     )
+    flashcard_sets_count = len(flashcard_sets_list)
+
+    # Re-map service output to template expected keys
+    dashboard_data = {
+        'flashcard_score': 0, # TODO: Service doesn't break down score by mode yet in summary, but 'get_score_breakdown' does time based.
+                              # 'get_learning_activity_breakdown' (which I implemented as get_score_breakdown?) 
+                              # Wait, I implemented 'get_todays_activity_counts'.
+                              # I missed 'score by type' in my service implementation plan?
+                              # The dashboard uses individual scores like 'flashcard_score'.
+                              # Inspecting service... I did NOT implement 'get_score_by_type'.
+                              # I will calculate it here or accept 0 for now? No, user wants data.
+                              # I will add a quick query here using the same logic as before for now, 
+                              # or add it to service in next step. For refactoring safety, let's keep the raw query for *just* the breakdown if needed,
+                              # OR utilize 'get_recent_activity' logic? No.
+                              # Let's assume for this specific refactor I will map what I have.
+        'learned_distinct_overall': fc['total'],
+        'learned_sets_count': flashcard_sets_count,
+        'flashcard_accuracy_percent': fc['accuracy_percent'],
+        'flashcard_attempt_total': fc['attempt_total'],
+        'flashcard_correct_total': fc['correct_total'],
+        'flashcard_incorrect_total': fc['incorrect_total'],
+        'flashcard_mastered_count': fc['mastered'],
+        'flashcard_avg_streak_overall': fc['avg_streak'],
+        'flashcard_best_streak_overall': fc['best_streak'],
+        
+        'quiz_score': 0, # Placeholder
+        'questions_answered_count': qz['total_questions_encountered'],
+        'quiz_sets_started_count': qz['sets_started'],
+        'quiz_accuracy_percent': qz['accuracy_percent'],
+        'quiz_attempt_total': qz['attempt_total'],
+        'quiz_correct_total': qz['correct_total'],
+        'quiz_incorrect_total': qz['incorrect_total'],
+        'quiz_mastered_count': qz['mastered'],
+        'quiz_avg_streak_overall': qz['avg_streak'],
+        'quiz_best_streak_overall': qz['best_streak'],
+        
+        'courses_started_count': co['courses_started'],
+        'lessons_completed_count': co['completed_lessons'],
+        'courses_in_progress_count': co['in_progress_lessons'],
+        'course_avg_completion_percent': co['avg_completion'],
+        'course_last_progress': co['last_progress'].isoformat() if co['last_progress'] else None,
+        
+        'total_score_all_time': summary['total_score'],
+        'total_activity_entries': summary['total_entries'],
+        'active_days': summary['active_days'],
+        'average_daily_score': round(summary['total_score'] / summary['active_days'], 1) if summary['active_days'] else 0,
+        
+        'total_score_last_30_days': 0, # Service doesn't provide this yet
+        'average_daily_score_recent': 0, # Service doesn't provide this yet
+        'last_activity': summary['last_activity'].isoformat() if summary['last_activity'] else None,
+        'current_learning_streak': summary['current_streak'],
+        'longest_learning_streak': summary['longest_streak'],
+    }
+    
+    # [FIX MISSING METRICS] 
+    # To properly fill gaps (score breakdown, 30 day score), we perform a supplementary query 
+    # essentially mimicking what `get_activity_breakdown` or similar did, but cleaner.
+    # OR even better, we rely on `get_recent_activity` for the list.
+    
+    # Let's fill the gaps with the Activity Breakdown helper I put in service?
+    # Wait, I implemented `get_todays_activity_counts` but not the generic `get_activity_breakdown(timeframe)` I promised in the plan.
+    # My plan said "Implement get_learning_activity_breakdown (by item type)".
+    # In the code step for service, I implemented `get_todays_activity_counts` and `get_week_activity_counts`.
+    # I did NOT implement the generic one. I should have. 
+    # I will add it to the service now via a separate tool call to be clean, 
+    # then come back to this file. 
+    # Wait, I can't interrupt replace_file_content.
+    # I will stub them here with 0 and then immediately update the service.
+    # Actually, the user will see 0s. 
+    # Better: I will use the old logic for the missing pieces TEMPORARILY in this route (or re-use the functions from metrics.py if they are still there - yes they are).
+    # `get_activity_breakdown` is in `services/metrics.py`. I can still import it!
+    # So I will use `LearningMetricsService` for the big stuff, and existing helpers for the stuff I haven't migrated yet.
+    
+    from ..services.metrics import (
+        get_activity_breakdown,
+        get_score_trend_series # Still needed for charts? Yes likely via AJAX, but maybe not on main load?
+                               # Actually `dashboard.html` usually loads charts via API, but `dashboard_data` needs the scalar values.
+    )
+    
+    # activity_breakdown = get_activity_breakdown(current_user.user_id, 'all_time') 
+    # buckets = activity_breakdown['buckets'] ...
+    # This seems safer than showing 0.
+    
+    # Let's execute the old breakdown to get the scores.
+    breakdown = get_activity_breakdown(current_user.user_id, 'all_time')
+    for bucket in breakdown['buckets']:
+        if bucket['item_type'] == 'FLASHCARD':
+            dashboard_data['flashcard_score'] = bucket['score']
+        elif bucket['item_type'] == 'QUIZ_MCQ':
+            dashboard_data['quiz_score'] = bucket['score']
+
+    # 30 day score
+    breakdown_30 = get_activity_breakdown(current_user.user_id, '30d')
+    dashboard_data['total_score_last_30_days'] = breakdown_30['total_score']
+    # Avg recent
+    # Approximate based on 30 days
+    dashboard_data['average_daily_score_recent'] = round(breakdown_30['total_score'] / 30, 1) if breakdown_30['total_score'] else 0
+
+    recent_activity = LearningMetricsService.get_recent_activity(current_user.user_id)
+
+    flashcard_sets = flashcard_sets_list # reused from above
     quiz_sets = get_user_container_options(
         current_user.user_id,
         'QUIZ_SET',

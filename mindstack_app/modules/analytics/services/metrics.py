@@ -25,76 +25,6 @@ ITEM_TYPE_LABELS = {
 }
 
 
-def get_leaderboard_data(sort_by, timeframe, viewer=None):
-    """HÃ m ná»™i bá»™ Ä‘á»ƒ láº¥y dá»¯ liá»‡u báº£ng xáº¿p háº¡ng Ä‘á»™ng.
-
-    Args:
-        sort_by (str): TiÃªu chÃ­ sáº¯p xáº¿p.
-        timeframe (str): Má»‘c thá»i gian lá»c dá»¯ liá»‡u.
-        viewer (User | None): NgÆ°á»i Ä‘ang xem báº£ng xáº¿p háº¡ng, dÃ¹ng Ä‘á»ƒ áº©n danh náº¿u cáº§n.
-    """
-    today = date.today()
-    start_date = None
-    if timeframe == 'day':
-        start_date = datetime.combine(today, datetime.min.time())
-    elif timeframe == 'week':
-        start_date = datetime.combine(today - timedelta(days=today.weekday()), datetime.min.time())
-    elif timeframe == 'month':
-        start_date = datetime.combine(today.replace(day=1), datetime.min.time())
-
-    if sort_by != 'total_score':
-        return []
-
-    query = db.session.query(
-        User.user_id,
-        User.username,
-        User.user_role,
-        func.sum(ScoreLog.score_change).label('value')
-    ).join(ScoreLog, User.user_id == ScoreLog.user_id)
-
-    if start_date:
-        query = query.filter(ScoreLog.timestamp >= start_date)
-
-    results = (
-        query
-        .group_by(User.user_id, User.username, User.user_role)
-        .order_by(func.sum(ScoreLog.score_change).desc())
-        .limit(10)
-        .all()
-    )
-
-    placeholder_username = 'NgÆ°á»i dÃ¹ng áº©n danh'
-    viewer_role = getattr(viewer, 'user_role', None)
-    viewer_id = getattr(viewer, 'user_id', None)
-
-    leaderboard_data = []
-    for user in results:
-        is_anonymous = user.user_role == User.ROLE_ANONYMOUS
-        is_viewer = viewer_id is not None and user.user_id == viewer_id
-        can_view_real_name = (
-            viewer_role == User.ROLE_ADMIN
-            or is_viewer
-        )
-        mask_username = is_anonymous and not can_view_real_name
-        display_username = user.username if not mask_username else placeholder_username
-
-        leaderboard_data.append({
-            'user_id': user.user_id if not mask_username else None,
-            'user_role': user.user_role,
-            'username': display_username,
-            'display_username': display_username,
-            'is_anonymous': is_anonymous,
-            'is_username_masked': mask_username,
-            'is_viewer': is_viewer,
-            'current_period_score': user.value or 0,
-            'total_reviews': 0,
-            'learned_cards': 0,
-            'new_cards_today': 0,
-            'total_quiz_answers': 0,
-        })
-
-    return leaderboard_data
-
 
 def get_user_container_options(user_id, container_type, learning_mode, timestamp_attr='last_reviewed', item_type=None):
     """Return the list of learning containers (id/title) a user interacted with.
@@ -232,58 +162,7 @@ def _date_range(start_date, end_date):
         current += timedelta(days=1)
 
 
-def compute_learning_streaks(user_id):
-    """Return (current_streak, longest_streak) in days based on score logs."""
 
-    rows = (
-        db.session.query(func.date(ScoreLog.timestamp).label('activity_date'))
-        .filter(ScoreLog.user_id == user_id)
-        .group_by(func.date(ScoreLog.timestamp))
-        .order_by(func.date(ScoreLog.timestamp))
-        .all()
-    )
-
-    if not rows:
-        return 0, 0
-
-    dates = []
-    for row in rows:
-        value = row.activity_date
-        if isinstance(value, datetime):
-            value = value.date()
-        elif isinstance(value, str):
-            try:
-                value = date.fromisoformat(value)
-            except ValueError:
-                continue
-        if isinstance(value, date):
-            dates.append(value)
-
-    if not dates:
-        return 0, 0
-
-    date_set = set(dates)
-
-    # Current streak: count backwards from today until a gap appears.
-    today = date.today()
-    current_streak = 0
-    pointer = today
-    while pointer in date_set:
-        current_streak += 1
-        pointer -= timedelta(days=1)
-
-    # Longest streak: scan sorted dates.
-    longest = 1
-    run = 1
-    for previous, current in zip(dates, dates[1:]):
-        if current == previous + timedelta(days=1):
-            run += 1
-        else:
-            longest = max(longest, run)
-            run = 1
-    longest = max(longest, run)
-
-    return current_streak, longest
 
 
 def get_score_trend_series(user_id, timeframe='30d'):

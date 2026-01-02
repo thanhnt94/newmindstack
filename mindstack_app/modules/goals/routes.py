@@ -11,7 +11,7 @@ from mindstack_app.utils.pagination import get_pagination_data
 from . import goals_bp
 from .constants import GOAL_TYPE_CONFIG, PERIOD_LABELS
 from .forms import LearningGoalForm
-from .services import build_goal_progress, get_learning_activity
+from .services import build_goal_progress
 
 
 @goals_bp.route('/goals', methods=['GET', 'POST'])
@@ -66,7 +66,31 @@ def manage_goals():
         request.args.get('page', type=int, default=1),
         per_page=6,
     )
-    metrics = get_learning_activity(current_user.user_id)
+    
+    # [REFACTORED] Use LearningMetricsService
+    from mindstack_app.services.learning_metrics_service import LearningMetricsService
+    summary = LearningMetricsService.get_user_learning_summary(current_user.user_id)
+    activity_today = LearningMetricsService.get_todays_activity_counts(current_user.user_id)
+    activity_week = LearningMetricsService.get_week_activity_counts(current_user.user_id)
+    score_stats = LearningMetricsService.get_score_breakdown(current_user.user_id)
+    
+    # Construct metrics context for build_goal_progress
+    metrics = {
+        'flashcard_summary': summary['flashcard'],
+        'quiz_summary': summary['quiz'],
+        'course_summary': summary['course'],
+        'flashcard_reviews_today': activity_today['flashcard'],
+        'flashcard_reviews_week': activity_week['flashcard'],
+        'quiz_attempts_today': activity_today['quiz'],
+        'quiz_attempts_week': activity_week['quiz'],
+        'course_updates_today': activity_today['course'],
+        'course_updates_week': activity_week['course'],
+        'score_today': score_stats['today'],
+        'score_week': score_stats['week'],
+        'score_total': score_stats['total'],
+        'weekly_active_days': summary['active_days']
+    }
+    
     goal_progress = build_goal_progress(pagination.items, metrics)
     
     # Fetch containers for selector (Only those learned/accessed by user)
