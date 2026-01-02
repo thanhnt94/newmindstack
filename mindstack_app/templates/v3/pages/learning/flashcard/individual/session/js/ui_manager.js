@@ -348,7 +348,14 @@ function renderCard(data) {
     const visibleContainer = getVisibleFlashcardContentDiv();
     const card = visibleContainer ? visibleContainer.querySelector('.js-flashcard-card') : document.querySelector('.js-flashcard-card');
     const actions = visibleContainer ? visibleContainer.querySelector('.js-internal-actions') : document.querySelector('.js-internal-actions');
-    const flipBtn = visibleContainer ? visibleContainer.querySelector('.js-flip-card-btn') : document.querySelector('.js-flip-card-btn');
+    // Fix: Handle both internal card button (Desktop) and external footer button (Mobile)
+    const internalFlipBtn = visibleContainer ? visibleContainer.querySelector('.js-flip-card-btn') : null;
+    const mobileFlipBtn = document.querySelector('.js-fc-flip-btn');
+
+    // We want to control both if they exist
+    const flipBtns = [];
+    if (internalFlipBtn) flipBtns.push(internalFlipBtn);
+    if (mobileFlipBtn) flipBtns.push(mobileFlipBtn);
 
     if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
         window.flashcardViewport.refresh();
@@ -367,9 +374,13 @@ function renderCard(data) {
         window.stopAllFlashcardAudio ? window.stopAllFlashcardAudio() : null;
         card.classList.add('flipped');
         actions?.classList.add('visible');
-        if (flipBtn) {
-            flipBtn.style.display = 'none';
-        }
+        // Hide all flip buttons
+        flipBtns.forEach(btn => btn.style.display = 'none');
+
+        // Mobile Support: Show footer rating buttons
+        const mobileRatingBtns = document.querySelector('.js-fc-rating-btns');
+        if (mobileRatingBtns) mobileRatingBtns.classList.add('show');
+
         setTimeout(adjustCardLayout, 0);
         if (!isAutoplaySession && window.autoPlayBackSide) {
             window.autoPlayBackSide();
@@ -380,18 +391,23 @@ function renderCard(data) {
         window.stopAllFlashcardAudio ? window.stopAllFlashcardAudio() : null;
         card.classList.remove('flipped');
         actions?.classList.remove('visible');
-        if (flipBtn) {
-            flipBtn.style.display = '';
-        }
+        // Show all flip buttons
+        flipBtns.forEach(btn => btn.style.display = '');
+
+        // Mobile Support: Hide footer rating buttons
+        const mobileRatingBtns = document.querySelector('.js-fc-rating-btns');
+        if (mobileRatingBtns) mobileRatingBtns.classList.remove('show');
+
         setTimeout(adjustCardLayout, 0);
     };
 
-    if (flipBtn) {
-        flipBtn.addEventListener('click', (ev) => {
+    flipBtns.forEach(btn => {
+        // Use onclick to prevent listener accumulation
+        btn.onclick = (ev) => {
             ev.stopPropagation();
             flipToBack();
-        });
-    }
+        };
+    });
 
     const frontLabel = card?.querySelector('.front .card-toolbar .label');
     const backLabel = card?.querySelector('.back .card-toolbar .label');

@@ -681,28 +681,12 @@ NOTE: Visibility được control bởi critical CSS trong index.html
         }
 
         // Connect bottom bar buttons to existing flashcard logic
+        // Connect bottom bar buttons to existing flashcard logic
         const flipBtn = document.querySelector('.js-fc-flip-btn');
         const ratingBtnsContainer = document.querySelector('.js-fc-rating-btns');
 
-        if (flipBtn) {
-            flipBtn.addEventListener('click', function () {
-                // Directly add flipped class to the card in MOBILE VIEW
-                const mobileView = document.querySelector('.flashcard-mobile-view');
-                const card = mobileView ? mobileView.querySelector('.js-flashcard-card') : null;
-                const actions = mobileView ? mobileView.querySelector('.js-internal-actions') : null;
+        // Note: Flip button logic is now handled in ui_manager.js to ensure consistent state and autoplays.
 
-                if (card) {
-                    card.classList.add('flipped');
-                }
-                if (actions) {
-                    actions.classList.add('visible');
-                }
-
-                // Show rating buttons, hide flip
-                flipBtn.style.display = 'none';
-                ratingBtnsContainer.classList.add('show');
-            });
-        }
 
         // Setup rating button handlers after buttons are generated
         function setupRatingButtonHandlers() {

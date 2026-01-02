@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. Settings init
+    if (window.FlashcardConfig) {
+        window.userButtonCount = window.FlashcardConfig.userButtonCount;
+        window.isAutoplaySession = window.FlashcardConfig.isAutoplaySession;
+    }
     if (window.initAudioSettings) window.initAudioSettings();
     if (window.initUiSettings) window.initUiSettings();
 
