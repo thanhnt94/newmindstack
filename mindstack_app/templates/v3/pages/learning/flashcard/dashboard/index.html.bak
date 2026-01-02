@@ -408,10 +408,9 @@
 <script>
     console.log('>>> flashcard/dashboard.js: init');
 
-    // Fix: Restore mode from URL or server-side variable
-    const initialMode = "{{ initial_mode|default('') }}";
+    // Fix: Restore mode from URL
     const urlParams = new URLSearchParams(window.location.search);
-    currentStudyMode = initialMode || urlParams.get('mode') || 'solo';
+    currentStudyMode = urlParams.get('mode') || 'solo';
     // Ensure valid mode
     if (currentStudyMode !== 'solo' && currentStudyMode !== 'group') currentStudyMode = 'solo';
 

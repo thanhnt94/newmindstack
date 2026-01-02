@@ -8,13 +8,13 @@
 
 {# === TOP NAVBAR (Mobile Only) === #}
 <div class="lg:hidden">
-    {% include 'includes/_navbar_mobile.html' %}
+    {% include 'v3/includes/navbar/_navbar_mobile.html' %}
 </div>
 
 {# === BOTTOM NAV (Mobile Only) === #}
 <div class="lg:hidden fixed bottom-0 left-0 right-0 z-[200]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
     {% set active_page = '' %} {# No active page since this is a learning sub-page #}
-    {% include 'includes/_bottom_nav_mobile.html' %}
+    {% include 'v3/includes/navbar/_bottom_nav_mobile.html' %}
 </div>
 
 <style>

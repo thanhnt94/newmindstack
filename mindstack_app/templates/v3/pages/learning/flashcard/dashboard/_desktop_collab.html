@@ -3,7 +3,7 @@
 {# Phiên bản: 4.1 (Mobile Refactor) #}
 {# =============================== #}
 
-{% from 'v3/includes/search/_search_form.html' import render_search_form %}
+{% from 'includes/_search_form.html' import render_search_form %}
 
 <style>
     /* Ensure interactivity on desktop */
@@ -288,7 +288,7 @@
         border-bottom: 2px solid transparent !important;
         border-radius: 0;
     }
-
+    
     .tab-filter-button:hover {
         color: #374151;
     }
@@ -581,10 +581,9 @@
 
         {# === HEADER SECTION (Mobile & Desktop Unified) === #}
         <div class="cm-card rounded-t-none border-t-0 relative min-h-[400px] flex flex-col">
-
-            <div
-                class="mobile-header-section lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none p-4 border-b border-slate-200">
-
+            
+            <div class="mobile-header-section lg:p-0 lg:bg-transparent lg:border-none lg:shadow-none p-4 border-b border-slate-200">
+                
                 {# Mobile Top Row: Back, Title, Search Toggle #}
                 <div class="lg:hidden flex items-center justify-between gap-2 mb-3">
                     <div class="flex items-center gap-2 min-w-0">
@@ -593,12 +592,11 @@
                             <i class="fas fa-arrow-left text-sm"></i>
                         </button>
                         <div class="min-w-0">
-                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">FLASHCARD <span
-                                    class="text-slate-300 mx-0.5">›</span> COLLAB</p>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">FLASHCARD <span class="text-slate-300 mx-0.5">›</span> COLLAB</p>
                             <h2 class="text-base font-bold text-gray-800 leading-tight truncate">Học theo nhóm</h2>
                         </div>
                     </div>
-
+                    
                     <div class="flex items-center gap-2">
                         <button type="button" id="collab-search-toggle-btn"
                             class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"
@@ -609,42 +607,37 @@
                 </div>
 
                 {# Desktop Title #}
-                <h2
-                    class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between hidden lg:flex">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between hidden lg:flex">
                     <span class="flex items-center">
                         <i class="fas fa-users mr-3 text-blue-500"></i> Phòng học nhóm
                     </span>
                     {# Create Room Button (Desktop) #}
-                    <button type="button" id="open-create-room-modal"
-                        class="cm-action-btn cm-action-btn--primary ml-auto text-sm">
+                    <button type="button" id="open-create-room-modal" class="cm-action-btn cm-action-btn--primary ml-auto text-sm">
                         <i class="fas fa-plus"></i><span>Tạo phòng mới</span>
                     </button>
                 </h2>
 
                 {# Tabs #}
                 <div class="flex border-b border-gray-200 mb-2 lg:mb-4 collab-tabs">
-                    <button type="button"
-                        class="tab-filter-button active collab-tab-btn flex items-center justify-center"
-                        data-collab-tab="public">
+                    <button type="button" class="tab-filter-button active collab-tab-btn flex items-center justify-center" data-collab-tab="public">
                         <i class="fas fa-globe mr-2"></i><span>Phòng công khai</span>
                     </button>
-                    <button type="button" class="tab-filter-button collab-tab-btn flex items-center justify-center"
-                        data-collab-tab="my">
+                    <button type="button" class="tab-filter-button collab-tab-btn flex items-center justify-center" data-collab-tab="my">
                         <i class="fas fa-user-check mr-2"></i><span>Phòng của tôi</span>
                     </button>
                 </div>
 
                 {# Mobile Search Bar (Collapsible) #}
                 <div id="collab-mobile-search-bar" class="hidden mb-3 lg:hidden mt-3">
-                    <div id="collab-room-search-wrapper-mobile">
+                     <div id="collab-room-search-wrapper-mobile">
                         {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
-                    </div>
+                     </div>
                 </div>
 
                 {# Desktop Search Form (Visible) #}
                 <div class="hidden lg:block mb-3 w-full">
                     <div class="search-wrapper w-full" id="collab-room-search-wrapper">
-                        {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
+                         {{ render_search_form(placeholder="Tìm tên phòng...", search_field='all') }}
                     </div>
                 </div>
 
@@ -1024,7 +1017,7 @@
 
         // Handle BOTH Desktop and Mobile Search Forms
         const searchForms = document.querySelectorAll('#collab-room-search-wrapper form, #collab-room-search-wrapper-mobile form');
-
+        
         searchForms.forEach(form => {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -1136,9 +1129,9 @@
         // Mobile Search Toggle
         const searchToggleBtn = document.getElementById('collab-search-toggle-btn');
         const mobileSearchBar = document.getElementById('collab-mobile-search-bar');
-
+        
         if (searchToggleBtn && mobileSearchBar) {
-            searchToggleBtn.addEventListener('click', function () {
+            searchToggleBtn.addEventListener('click', function() {
                 const isOpen = !mobileSearchBar.classList.contains('hidden');
                 if (isOpen) {
                     mobileSearchBar.classList.add('hidden');

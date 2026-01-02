@@ -6,7 +6,7 @@
 #}
 
 {% extends "v3/base.html" %}
-{% from 'includes/_navbar.html' import render_navbar %}
+{% from 'v3/includes/navbar/_navbar.html' import render_navbar %}
 {% block title %}Học Flashcard{% endblock %}
 
 {# CRITICAL: Add flashcard-session-active class to body to hide header/footer on mobile #}
@@ -914,13 +914,13 @@
 </div>
 
 {# Nhúng modal AI #}
-{% include 'ai_services/_ai_modal.html' %}
+{% include 'v3/pages/ai_services/_ai_modal.html' %}
 
 {# Nhúng modal Ghi chú #}
-{% include 'notes/_note_panel.html' %}
+{% include 'v3/pages/notes/_note_panel.html' %}
 
 {# Nhúng modal Feedback #}
-{% include 'feedback/_feedback_modal.html' %}
+{% include 'v3/pages/feedback/_feedback_modal.html' %}
 
 {% endblock %}
 
@@ -928,7 +928,7 @@
 {{ super() }}
 
 <script
-  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='v2/static/js/flashcard_viewport.js') }}"></script>
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='static/js/flashcard_viewport.js') }}"></script>
 
 <script>
   const setVh = () => {
@@ -2875,5 +2875,5 @@
 
 </script>
 <script
-  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='v2/static/js/flashcard_viewport.js') }}"></script>
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='static/js/flashcard_viewport.js') }}"></script>
 {% endblock %}

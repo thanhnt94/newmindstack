@@ -104,7 +104,7 @@ def serve_session_asset(filename):
     """Serve static assets from the templates directory."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     # Serve from individual/templates/individual/cardsession
-    assets_dir = os.path.join(base_dir, 'templates', 'individual', 'cardsession')
+    assets_dir = os.path.join(base_dir, '..', '..', '..', '..', '..', 'templates', 'v3', 'pages', 'learning', 'flashcard', 'individual', 'session')
     try:
         from flask import send_from_directory
         return send_from_directory(assets_dir, filename)
@@ -272,7 +272,7 @@ def flashcard_session():
     # Fallback to system default (Admin settings)
     template_context = TemplateService.get_template_context('flashcard.cardsession')
     # Use V3 template path directly for migration
-    template_base_path = 'v3/pages/learning/flashcard/session'
+    template_base_path = 'v3/pages/learning/flashcard/individual/session'
     template_path = f'{template_base_path}/index.html'
     
     current_app.logger.debug(f"Rendering flashcard session with template: {template_path}")
@@ -288,6 +288,9 @@ def flashcard_session():
     except Exception:
         pass
 
+    # Override template_base_path in context to avoid conflict and ensure correct path
+    template_context['template_base_path'] = template_base_path
+
     return render_template(
         template_path,
         user_button_count=user_button_count,
@@ -296,7 +299,7 @@ def flashcard_session():
         container_name=container_name,
         saved_visual_settings=session.get('flashcard_visual_settings', {}),
         saved_auto_save=saved_auto_save,
-        **template_context  # Contains template_base_path and template_version
+        **template_context  # Contains template_version and updated template_base_path
     )
 
 
@@ -693,7 +696,7 @@ def get_flashcard_sets_partial():
         }
 
         current_app.logger.debug("<<< Kết thúc thực thi get_flashcard_sets_partial (Thành công) >>>")
-        return render_template('v3/pages/learning/flashcard/individual/session/index.html', **template_vars)
+        return render_template('v3/pages/learning/flashcard/individual/setup/_sets_list.html', **template_vars)
 
     except Exception as e:
         print(f">>> PYTHON LỖI: Đã xảy ra lỗi trong get_flashcard_sets_partial: {e}")
