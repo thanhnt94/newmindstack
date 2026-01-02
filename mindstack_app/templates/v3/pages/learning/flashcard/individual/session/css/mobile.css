@@ -521,3 +521,24 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
+
+/* From _stats_mobile.html */
+/* Mobile Stats Specific CSS */
+    .stats-mobile-tab.active {
+        background-color: white;
+        color: #2563eb;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .stats-mobile-pane.hidden {
+        display: none;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
