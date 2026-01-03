@@ -1,6 +1,7 @@
 {# MCQ Session Template - Refined UI #}
 {% extends "v3/base.html" %}
 {% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
+{% block body_class %} mcq-session-active{% endblock %}
 
 {% block head %}
 {{ super() }}
@@ -693,8 +694,6 @@
 </style>
 {% endblock %}
 
-{% block body_class %}mcq-session-active{% endblock %}
-
 {% block content %}
 <div class="session-container">
     <header class="session-header">
@@ -708,7 +707,8 @@
                 <!-- Total Diamond Score (CẠNH NÚT MCQ - GIỐNG FLASHCARD) -->
                 <div class="mcq-total-score">
                     <i class="fas fa-gem"></i>
-                    <span id="mcq-total-score">{{ "{:,}".format(current_user.total_score if current_user.total_score is
+                    <span id="mcq-total-score-val">{{ "{:,}".format(current_user.total_score if current_user.total_score
+                        is
                         not none else 0) }}</span>
                 </div>
             </div>
@@ -823,6 +823,10 @@
         </div>
     </div>
 </div>
+
+{# Explicit Notification Integration #}
+{% include 'v3/includes/notification/_score_toast.html' %}
+{% include 'v3/includes/notification/_memory_power.html' %}
 {% endblock %}
 
 {% block scripts %}
@@ -984,19 +988,55 @@
         els.nextBtn.disabled = false;
         els.nextBtn.focus(); // Focus for Enter key
 
-        // Send to Backend (Silent)
+        // Send to Backend (Silent but now with metadata for feedback)
         const duration_ms = Date.now() - startTime;
+        const payload = {
+            item_id: q.item_id,
+            correct_index: q.correct_index,
+            user_answer_index: selectedIndex,
+            user_answer_text: q.choices[selectedIndex],
+            duration_ms: duration_ms
+        };
+        console.log("Submitting MCQ Answer:", payload);
+
         fetch('/learn/vocabulary/mcq/api/check', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                item_id: q.item_id,
-                correct_index: q.correct_index,
-                user_answer_index: selectedIndex,
-                user_answer_text: q.choices[selectedIndex],
-                duration_ms: duration_ms
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(r => r.json())
+            .then(async data => {
+                console.log("MCQ API Response:", data);
+                if (data.success) {
+                    // 1. Update total score from backend
+                    if (data.updated_total_score !== undefined && data.updated_total_score !== null) {
+                        const totalScoreEl = document.getElementById('mcq-total-score-val');
+                        if (totalScoreEl) {
+                            totalScoreEl.textContent = data.updated_total_score.toLocaleString();
+                        }
+                    }
+
+                    // 2. Trigger notifications
+                    // Score Toast
+                    if (data.score_change > 0 && typeof window.showScoreToast === 'function') {
+                        console.log("Triggering Score Toast:", data.score_change);
+                        await window.showScoreToast(data.score_change);
+                    }
+
+                    // Memory Power Feedback (Show if data exists, regardless of is_correct)
+                    if (data.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
+                        console.log("Triggering Memory Power Feedback:", data.memory_power);
+                        await window.showMemoryPowerFeedback(
+                            data.memory_power.old_memory_power,
+                            data.memory_power.memory_power
+                        );
+                    }
+                }
             })
-        }).catch(console.error);
+            .catch(console.error);
     }
 
     function nextQuestion() {

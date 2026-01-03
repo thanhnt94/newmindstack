@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 
 from . import mcq_bp
 from .logic import get_mcq_eligible_items, generate_mcq_question, check_mcq_answer, get_available_content_keys, get_mcq_mode_counts
-from mindstack_app.models import LearningContainer
+from mindstack_app.models import LearningContainer, UserContainerState, db
 
 
 @mcq_bp.route('/setup/<int:set_id>')
@@ -191,7 +191,13 @@ def api_check_answer():
     user_answer_index = data.get('user_answer_index')
     item_id = data.get('item_id')
     
+    # [DEBUG]
+    import logging
+    import traceback
+    logging.info(f"MCQ API payload: {data}")
+
     if correct_index is None or user_answer_index is None:
+        logging.warning(f"MCQ API Error: Missing fields. correct={correct_index}, user={user_answer_index}")
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
     
     user_answer_text = data.get('user_answer_text')
@@ -206,7 +212,6 @@ def api_check_answer():
         try:
             from mindstack_app.modules.learning.services.srs_service import SrsService
             from mindstack_app.utils.db_session import safe_commit
-            from mindstack_app.models import db
 
             srs_result = SrsService.process_interaction(
                 user_id=current_user.user_id,
@@ -215,11 +220,13 @@ def api_check_answer():
                 result_data=result
             )
             safe_commit(db.session)
-            result['srs'] = srs_result
+            # Flatten SRS results into the main response for easier frontend access
+            result.update(srs_result)
         except Exception as e:
             # Log but don't fail
-            import logging
-            logging.warning(f"SRS update failed for MCQ: {e}")
+            logging.error(f"SRS update failed for MCQ: {e}")
+            logging.error(traceback.format_exc())
     
     result['success'] = True
+    result['is_correct'] = result.get('is_correct')  # Ensure explicit boolean for frontend
     return jsonify(result)

@@ -14,7 +14,7 @@ This service:
 import datetime
 from typing import Optional
 from flask import current_app
-from mindstack_app.models import db, LearningItem, ReviewLog
+from mindstack_app.models import db, LearningItem, ReviewLog, User
 from mindstack_app.models.learning_progress import LearningProgress
 
 from ..logics.srs_engine import SrsEngine, SrsConstants
@@ -459,8 +459,16 @@ class SrsService:
             result_data: Mode-specific result data (quality, accuracy, is_correct, etc.)
 
         Returns:
-            dict: Summary (quality, status, next_review, score_change, points_breakdown)
+            dict: Summary (quality, status, next_review, score_change, points_breakdown, memory_power, updated_total_score)
         """
+        # 0. Capture old state for delta calculations
+        progress_old = LearningProgress.query.filter_by(
+            user_id=user_id, item_id=item_id, learning_mode=mode
+        ).first()
+
+        # Capture old mastery for UI feedback delta (using mastery avoids retention-reset confusion)
+        old_mastery_pct = round((progress_old.mastery or 0.0) * 100, 1) if progress_old else 0.0
+
         # 1. Normalize result to SRS quality using engine
         quality = SrsEngine.normalize_quality(mode, result_data)
 
@@ -487,7 +495,7 @@ class SrsService:
             base_points_config_key = 'VOCAB_LISTENING_CORRECT_BONUS'
         elif mode_lower == 'speed' or mode_lower == 'speed_review':
             base_points_config_key = 'VOCAB_SPEED_CORRECT_BONUS'
-        elif mode_lower == 'mcq' or mode_lower == 'quiz_mcq':
+        elif mode_lower in ['mcq', 'quiz_mcq', 'quiz']:
              base_points_config_key = 'VOCAB_MCQ_CORRECT_BONUS'
         
         base_points_override = None
@@ -522,14 +530,41 @@ class SrsService:
             latest_log.score_change = score_change
             # We could also save breakdown if ReviewLog had a JSON field for it, but for now just score.
             db.session.add(latest_log)
-            # Commit is handled by caller or request teardown
+        
+        # 5. Award Points and get updated total
+        from mindstack_app.modules.gamification.services.scoring_service import ScoreService
+        award_result = ScoreService.award_points(
+            user_id=user_id,
+            amount=score_change,
+            reason=f"{mode.upper()} Answer (Quality: {quality})",
+            item_id=item_id,
+            item_type='VOCABULARY_ITEM' # generic for vocab items
+        )
+        if award_result.get('success') and award_result.get('new_total') is not None:
+            updated_total_score = award_result.get('new_total')
+        else:
+            # Fallback for amount=0 or failure
+            user = User.query.get(user_id)
+            updated_total_score = user.total_score if user else 0
+
+        # Calculate new mastery for UI delta
+        new_mastery_pct = round((progress.mastery or 0.0) * 100, 1)
 
         return {
             'quality': quality,
             'status': progress.status,
-            'next_review': progress.due_time,
+            'is_correct': is_correct,
+            'next_review': progress.due_time.isoformat() if progress.due_time else None,
             'score_change': score_change,
-            'points_breakdown': score_result.breakdown
+            'points_breakdown': score_result.breakrate if hasattr(score_result, 'breakrate') else score_result.breakdown, 
+            'updated_total_score': updated_total_score,
+            'memory_power': {
+                'mastery': new_mastery_pct,
+                'memory_power': new_mastery_pct,  # Use mastery for interaction feedback
+                'old_memory_power': old_mastery_pct,
+                'correct_streak': progress.correct_streak,
+                'interval_minutes': progress.interval
+            }
         }
 
     @staticmethod
