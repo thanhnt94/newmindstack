@@ -17,7 +17,7 @@
     <div class="bg-white rounded-lg shadow-sm p-6">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-bold text-gray-800">Danh sách Huy hiệu & Thử thách</h2>
-            <a href="{{ url_for('admin.create_badge') }}"
+            <a href="{{ url_for('gamification.create_badge') }}"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                 <i class="fas fa-plus mr-2"></i>Tạo Huy hiệu
             </a>
@@ -84,11 +84,11 @@
                             {% endif %}
                         </td>
                         <td class="p-3 text-right">
-                            <a href="{{ url_for('admin.edit_badge', badge_id=badge.badge_id) }}"
+                            <a href="{{ url_for('gamification.edit_badge', badge_id=badge.badge_id) }}"
                                 class="text-blue-600 hover:text-blue-800 mr-3">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <form action="{{ url_for('admin.delete_badge', badge_id=badge.badge_id) }}" method="POST"
+                            <form action="{{ url_for('gamification.delete_badge', badge_id=badge.badge_id) }}" method="POST"
                                 class="inline" onsubmit="return confirm('Bạn chắc chắn muốn xóa?');">
                                 <button type="submit" class="text-red-500 hover:text-red-700">
                                     <i class="fas fa-trash"></i>

@@ -4,13 +4,13 @@ from sqlalchemy import func
 from datetime import datetime, timedelta, date
 
 from mindstack_app.models import db, ScoreLog, LearningProgress, LearningContainer, LearningItem
-from .. import analytics_bp
+from .. import stats_bp
 from ..services.metrics import (
     get_user_container_options,
     ITEM_TYPE_LABELS
 )
 
-@analytics_bp.route('/')
+@stats_bp.route('/')
 @login_required
 def dashboard():
     """

@@ -7,7 +7,7 @@
 
 from mindstack_app.models import LearningItem, User, db
 from mindstack_app.models.learning_progress import LearningProgress
-from mindstack_app.modules.analytics.services.scoring import ScoreService
+from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
 import datetime

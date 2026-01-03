@@ -1,0 +1,25 @@
+{# File: mindstack_app/templates/admin/content_management.html #}
+{% extends "admin/admin_layout.html" %}
+{% set active_page = 'content' %}
+
+{% block title %}Quản Lý Nội Dung - Admin{% endblock %}
+{% block page_title %}Quản lý Nội dung học tập{% endblock %}
+{% block page_subtitle %}Quản lý tất cả flashcard, quiz và khóa học trong hệ thống.{% endblock %}
+
+{% block extra_head %}
+{% include 'v3/pages/content_management/shared/_shared_styles.html' %}
+<style>
+    .cm-tab-bar::-webkit-scrollbar {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Embed the desktop version of content management #}
+{% include 'v3/pages/content_management/_index_desktop.html' %}
+{% endblock %}
+
+{% block extra_scripts %}
+{# Scripts are included in the respective templates #}
+{% endblock %}

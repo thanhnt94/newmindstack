@@ -44,7 +44,7 @@ def login():
         login_user(user, remember=form.remember_me.data)
         
         try:
-            from ...modules.analytics.services.scoring import ScoreService
+            from ...modules.gamification.services.scoring_service import ScoreService
             ScoreService.record_daily_login(user.user_id)
         except Exception as e:
             # Login should verify succeed even if gamification fails

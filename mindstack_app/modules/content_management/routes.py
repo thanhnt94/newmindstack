@@ -96,6 +96,9 @@ def content_dashboard():
     """
     Hiển thị dashboard tổng quan về nội dung.
     """
+    # Check if user is admin, render within admin layout
+    if current_user.user_role == 'admin':
+        return render_template('admin/content_management.html')
     return render_template('v3/pages/content_management/index.html')
 
 @content_management_bp.route('/manage_contributors/<int:container_id>', methods=['GET', 'POST'])

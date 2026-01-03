@@ -3,9 +3,9 @@ from flask_login import login_required, current_user
 from mindstack_app.modules.learning.services.srs_service import SrsService
 from mindstack_app.modules.learning.services.progress_service import ProgressService
 from mindstack_app.models.learning_progress import LearningProgress
-from .. import analytics_bp
+from .. import stats_bp
 
-@analytics_bp.route('/api/memory/item/<int:item_id>', methods=['GET'])
+@stats_bp.route('/api/memory/item/<int:item_id>', methods=['GET'])
 @login_required
 def get_memory_item_stats(item_id):
     """
@@ -60,7 +60,7 @@ def get_memory_item_stats(item_id):
     return jsonify(stats)
 
 
-@analytics_bp.route('/api/memory/container/<int:container_id>', methods=['GET'])
+@stats_bp.route('/api/memory/container/<int:container_id>', methods=['GET'])
 @login_required
 def get_memory_container_stats(container_id):
     """
@@ -99,7 +99,7 @@ def get_memory_container_stats(container_id):
     return jsonify(stats)
 
 
-@analytics_bp.route('/api/memory/batch', methods=['POST'])
+@stats_bp.route('/api/memory/batch', methods=['POST'])
 @login_required
 def get_memory_batch_stats():
     """
@@ -138,7 +138,7 @@ def get_memory_batch_stats():
     return jsonify({'items': results})
 
 
-@analytics_bp.route('/api/memory/dashboard', methods=['GET'])
+@stats_bp.route('/api/memory/dashboard', methods=['GET'])
 @login_required
 def get_memory_dashboard_stats():
     """

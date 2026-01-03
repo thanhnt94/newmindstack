@@ -60,7 +60,8 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.auth.routes", "auth_bp", url_prefix="/auth", version="1.0"),
     ModuleDefinition("mindstack_app.modules.landing.routes", "landing_bp", version="1.0"),
     ModuleDefinition("mindstack_app.modules.dashboard.routes", "dashboard_bp", version="1.0"),
-    ModuleDefinition("mindstack_app.modules.analytics", "analytics_bp", url_prefix="/analytics", version="1.0"),
+    ModuleDefinition("mindstack_app.modules.stats", "stats_bp", url_prefix="/stats", version="1.0"),
+    ModuleDefinition("mindstack_app.modules.gamification", "gamification_bp", url_prefix="/admin/gamification", version="1.0"),
     ModuleDefinition("mindstack_app.modules.admin", "admin_bp", url_prefix="/admin", version="1.0"),
     ModuleDefinition(
         "mindstack_app.modules.admin.user_management.user_routes",

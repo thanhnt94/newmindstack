@@ -43,7 +43,7 @@ def learning_dashboard():
     Mô tả: Hiển thị dashboard tổng quan cho các hoạt động học tập.
     Chuyển hướng đến trang stats dashboard.
     """
-    return redirect(url_for('analytics.dashboard'))
+    return redirect(url_for('stats.dashboard'))
 
 
 @learning_bp.route('/stats/dashboard')
@@ -52,7 +52,7 @@ def legacy_stats_dashboard_redirect():
     """
     Redirect legacy /learn/stats/dashboard to new analytics dashboard.
     """
-    return redirect(url_for('analytics.dashboard'))
+    return redirect(url_for('stats.dashboard'))
 
 
 @learning_bp.route('/assets/v3/<path:filename>')

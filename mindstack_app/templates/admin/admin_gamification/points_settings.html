@@ -21,7 +21,7 @@
                 <p class="text-sm text-slate-500">Thiết lập số điểm thưởng cho các hoạt động của người dùng.</p>
             </div>
 
-            <form action="{{ url_for('admin.update_gamification_points') }}" method="POST">
+            <form action="{{ url_for('gamification.update_gamification_points') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
 

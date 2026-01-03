@@ -1,7 +1,12 @@
+"""
+Score Service
+Logic quản lý điểm số và leaderboard.
+"""
 from datetime import datetime, timedelta
 from mindstack_app.models import db, User, ScoreLog
 from flask import current_app
 from sqlalchemy import func
+
 
 class ScoreService:
     """Dịch vụ quản lý điểm số và leaderboard."""
@@ -38,10 +43,9 @@ class ScoreService:
             db.session.commit()
             
             # Kiểm tra Badges sau khi cộng điểm
-            # Import lười để tránh circular import với badges.py
-            from .badges import BadgeService
+            from .badges_service import BadgeService
             BadgeService.check_and_award_badges(user_id, 'SCORE')
-            BadgeService.check_and_award_badges(user_id, 'LOGIN') # Check streak luôn cho tiện
+            BadgeService.check_and_award_badges(user_id, 'LOGIN')
             
             return {
                 'success': True, 
@@ -80,8 +84,8 @@ class ScoreService:
             points = int(get_runtime_config('DAILY_LOGIN_SCORE', 10))
             return ScoreService.award_points(user_id, points, 'Đăng nhập hàng ngày', item_type='LOGIN')
         
-        # Nếu đã login rồi thì vẫn check badge (phòng trường hợp cấu hình badge thay đổi)
-        from .badges import BadgeService
+        # Nếu đã login rồi thì vẫn check badge
+        from .badges_service import BadgeService
         BadgeService.check_and_award_badges(user_id, 'LOGIN')
         return None
 
@@ -92,7 +96,6 @@ class ScoreService:
         timeframe: 'day', 'week', 'month', 'all_time'
         """
         if timeframe == 'all_time':
-            # Nếu all_time, lấy trực tiếp từ User.total_score cho nhanh
             users = User.query.order_by(User.total_score.desc()).limit(limit).all()
             return [
                 {
@@ -144,7 +147,6 @@ class ScoreService:
 
         if not rows: return 0
 
-        # Convert to date objects
         learned_dates = set()
         for row in rows:
             val = row.activity_date
@@ -165,12 +167,11 @@ class ScoreService:
         streak = 0
         current_check = today
         
-        # Nếu hôm nay chưa học, check từ hôm qua
         if today not in learned_dates:
             if yesterday in learned_dates:
                 current_check = yesterday
             else:
-                return 0 # Mất streak
+                return 0
         
         while current_check in learned_dates:
             streak += 1

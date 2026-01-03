@@ -1,11 +1,16 @@
+"""
+Gamification Routes
+Routes quản trị cho hệ thống điểm số và huy hiệu.
+"""
 from flask import render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
-from . import admin_bp
+from . import gamification_bp
 from mindstack_app.models import Badge
-from ...models import db, AppSettings
-from ...extensions import csrf_protect
+from mindstack_app.models import db, AppSettings
+from mindstack_app.extensions import csrf_protect
 
-@admin_bp.route('/gamification/points')
+
+@gamification_bp.route('/points')
 @login_required
 def gamification_points():
     """Hiển thị trang cấu hình điểm số."""
@@ -15,7 +20,8 @@ def gamification_points():
     
     return render_template('admin/admin_gamification/points_settings.html', active_tab='points', config=current_app.config, active_page='badges')
 
-@admin_bp.route('/gamification/points/update', methods=['POST'])
+
+@gamification_bp.route('/points/update', methods=['POST'])
 @login_required
 @csrf_protect.exempt
 def update_gamification_points():
@@ -38,7 +44,7 @@ def update_gamification_points():
                     try:
                         setting.value = int(value)
                     except ValueError:
-                        setting.value = 0 # Fallback
+                        setting.value = 0  # Fallback
                 elif setting.data_type == 'bool':
                     setting.value = (value.lower() in ['true', '1', 'on'])
                 else:
@@ -46,8 +52,6 @@ def update_gamification_points():
                 
                 updated_count += 1
             else:
-                # Nếu chưa có trong DB (lạ, vì config_service ensure_defaults), tạo mới?
-                # Tốt nhất là bỏ qua hoặc log warning.
                 current_app.logger.warning(f"Setting key {key} not found in DB during update.")
 
         db.session.commit()
@@ -62,9 +66,10 @@ def update_gamification_points():
         current_app.logger.error(f"Error updating gamification points: {e}")
         flash('Có lỗi xảy ra khi lưu cấu hình.', 'error')
 
-    return redirect(url_for('admin.gamification_points'))
+    return redirect(url_for('gamification.gamification_points'))
 
-@admin_bp.route('/gamification/badges')
+
+@gamification_bp.route('/badges')
 @login_required
 def list_badges():
     """Hiển thị danh sách huy hiệu."""
@@ -73,10 +78,10 @@ def list_badges():
         return redirect(url_for('dashboard.dashboard'))
         
     badges = Badge.query.order_by(Badge.created_at.desc()).all()
-    # Pass active_tab='badges'
     return render_template('admin/admin_gamification/badges_list.html', badges=badges, active_tab='badges', active_page='badges')
 
-@admin_bp.route('/gamification/badges/new', methods=['GET', 'POST'])
+
+@gamification_bp.route('/badges/new', methods=['GET', 'POST'])
 @login_required
 def create_badge():
     """Tạo huy hiệu mới."""
@@ -102,14 +107,15 @@ def create_badge():
             db.session.add(badge)
             db.session.commit()
             flash('Tạo huy hiệu thành công!', 'success')
-            return redirect(url_for('admin.list_badges'))
+            return redirect(url_for('gamification.list_badges'))
         except Exception as e:
             db.session.rollback()
             flash(f'Lỗi: {str(e)}', 'error')
 
     return render_template('admin/admin_gamification/badge_form.html', badge=None)
 
-@admin_bp.route('/gamification/badges/<int:badge_id>/edit', methods=['GET', 'POST'])
+
+@gamification_bp.route('/badges/<int:badge_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_badge(badge_id):
     """Sửa huy hiệu."""
@@ -130,14 +136,15 @@ def edit_badge(badge_id):
             
             db.session.commit()
             flash('Cập nhật huy hiệu thành công!', 'success')
-            return redirect(url_for('admin.list_badges'))
+            return redirect(url_for('gamification.list_badges'))
         except Exception as e:
             db.session.rollback()
             flash(f'Lỗi: {str(e)}', 'error')
             
     return render_template('admin/admin_gamification/badge_form.html', badge=badge)
 
-@admin_bp.route('/gamification/badges/<int:badge_id>/delete', methods=['POST'])
+
+@gamification_bp.route('/badges/<int:badge_id>/delete', methods=['POST'])
 @login_required
 def delete_badge(badge_id):
     """Xóa huy hiệu."""
@@ -153,4 +160,4 @@ def delete_badge(badge_id):
         db.session.rollback()
         flash(f'Lỗi: {str(e)}', 'error')
         
-    return redirect(url_for('admin.list_badges'))
+    return redirect(url_for('gamification.list_badges'))

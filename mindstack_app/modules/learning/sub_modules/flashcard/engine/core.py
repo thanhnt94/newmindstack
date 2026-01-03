@@ -4,7 +4,7 @@
 from datetime import datetime, timezone
 from mindstack_app.models import db, User, LearningItem
 from mindstack_app.models.learning_progress import LearningProgress
-from mindstack_app.modules.analytics.services.scoring import ScoreService
+from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.modules.learning.services.srs_service import SrsService
 

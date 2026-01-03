@@ -20,10 +20,10 @@ Mục đích: Clean minimal navbar - no heavy gradients, subtle colors.
         {% if current_user.is_authenticated %}
         <li>
             <a class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                {% if request.endpoint.startswith('learning.flashcard') %}bg-indigo-50 text-indigo-600{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}"
-                href="{{ url_for('learning.flashcard.flashcard_dashboard.dashboard') }}">
-                <i class="fas fa-clone text-sm"></i>
-                <span>Flashcard</span>
+                {% if request.endpoint.startswith('learning.vocabulary') %}bg-indigo-50 text-indigo-600{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}"
+                href="{{ url_for('learning.vocabulary.dashboard') }}">
+                <i class="fas fa-layer-group text-sm"></i>
+                <span>Vocabulary</span>
             </a>
         </li>
         <li>
@@ -45,7 +45,7 @@ Mục đích: Clean minimal navbar - no heavy gradients, subtle colors.
         <li>
             <a class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
                 {% if request.endpoint.startswith('learning.stats') %}bg-indigo-50 text-indigo-600{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}"
-                href="{{ url_for('analytics.dashboard') }}">
+                href="{{ url_for('stats.dashboard') }}">
                 <i class="fas fa-chart-line text-sm"></i>
                 <span>Analytics</span>
             </a>

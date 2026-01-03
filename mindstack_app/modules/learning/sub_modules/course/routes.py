@@ -19,7 +19,7 @@ from mindstack_app.models import (
     db,
 )
 from mindstack_app.models.learning_progress import LearningProgress
-from mindstack_app.modules.analytics.services.scoring import ScoreService
+from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 
 course_bp = Blueprint('course', __name__)
 

@@ -1356,7 +1356,7 @@ def manage_system_settings():
            and not _is_gamification_setting(setting.key)
     ]
     data_type_options = ['string', 'int', 'bool', 'path', 'json']
-    category_order = ['paths', 'other']
+    category_order = ['paths']
 
     users = User.query.order_by(User.username.asc()).all()
     quiz_sets = (

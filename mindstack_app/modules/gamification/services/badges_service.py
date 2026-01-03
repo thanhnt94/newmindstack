@@ -1,7 +1,12 @@
+"""
+Badge Service
+Logic kiểm tra và cấp phát huy hiệu (Achievements).
+"""
 from datetime import datetime
 from mindstack_app.models import db, User, ScoreLog
 from flask import current_app
 from mindstack_app.models import Badge, UserBadge
+
 
 class BadgeService:
     """Dịch vụ quản lý logic cấp phát Huy hiệu (Achievements)."""
@@ -10,7 +15,7 @@ class BadgeService:
     def check_and_award_badges(user_id, trigger_type):
         """Kiểm tra và trao huy hiệu nếu đủ điều kiện."""
         try:
-            from .scoring import ScoreService
+            from .scoring_service import ScoreService
             
             user = User.query.get(user_id)
             if not user: return []
@@ -26,7 +31,7 @@ class BadgeService:
             
             # Tính toán các metric cần thiết một lần
             current_streak = 0
-            if trigger_type == 'LOGIN' or trigger_type == 'SCORE': # Trigger score cũng nên check streak vì score log là activity
+            if trigger_type == 'LOGIN' or trigger_type == 'SCORE':
                 current_streak = ScoreService.calculate_current_streak(user_id)
 
             for badge in active_badges:
@@ -54,7 +59,6 @@ class BadgeService:
                     # Cộng điểm thưởng badge (nếu có)
                     if badge.reward_points > 0:
                         reward_reason = f"Đạt huy hiệu: {badge.name}"
-                        # Gọi thẳng ScoreLog creation để tránh recursive loop vô hạn nếu gọi award_points của ScoreService
                         user.total_score = (user.total_score or 0) + badge.reward_points
                         log = ScoreLog(
                             user_id=user_id,
@@ -69,7 +73,6 @@ class BadgeService:
 
             if new_badges:
                 db.session.commit()
-                # Có thể gửi notify cho user ở đây
 
             return new_badges
 

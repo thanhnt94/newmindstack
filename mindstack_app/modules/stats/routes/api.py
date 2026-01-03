@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 
 from mindstack_app.models import db, ScoreLog
-from .. import analytics_bp
+from .. import stats_bp
 from ..services.metrics import (
     get_score_trend_series,
     get_activity_breakdown,
@@ -22,7 +22,7 @@ from ..services.metrics import (
 from mindstack_app.services.learning_metrics_service import LearningMetricsService
 
 
-@analytics_bp.route('/api/leaderboard-data')
+@stats_bp.route('/api/leaderboard-data')
 @login_required
 def get_leaderboard_data_api():
     """API endpoint để tải lại dữ liệu bảng xếp hạng một cách động."""
@@ -36,7 +36,7 @@ def get_leaderboard_data_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/heatmap-data')
+@stats_bp.route('/api/heatmap-data')
 @login_required
 def get_heatmap_data_api():
     """API endpoint để cung cấp dữ liệu cho biểu đồ heatmap."""
@@ -53,7 +53,7 @@ def get_heatmap_data_api():
     return jsonify(heatmap_data)
 
 
-@analytics_bp.route('/api/score-trend')
+@stats_bp.route('/api/score-trend')
 @login_required
 def get_score_trend_api():
     timeframe = request.args.get('timeframe', '30d')
@@ -61,7 +61,7 @@ def get_score_trend_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/activity-breakdown')
+@stats_bp.route('/api/activity-breakdown')
 @login_required
 def get_activity_breakdown_api():
     timeframe = request.args.get('timeframe', '30d')
@@ -69,7 +69,7 @@ def get_activity_breakdown_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/flashcard-activity')
+@stats_bp.route('/api/flashcard-activity')
 @login_required
 def get_flashcard_activity_api():
     container_id = request.args.get('container_id', type=int)
@@ -81,7 +81,7 @@ def get_flashcard_activity_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/quiz-activity')
+@stats_bp.route('/api/quiz-activity')
 @login_required
 def get_quiz_activity_api():
     container_id = request.args.get('container_id', type=int)
@@ -93,7 +93,7 @@ def get_quiz_activity_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/course-activity')
+@stats_bp.route('/api/course-activity')
 @login_required
 def get_course_activity_api():
     container_id = request.args.get('container_id', type=int)
@@ -105,7 +105,7 @@ def get_course_activity_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/flashcard-set-metrics')
+@stats_bp.route('/api/flashcard-set-metrics')
 @login_required
 def get_flashcard_set_metrics_api():
     container_id = request.args.get('container_id', type=int)
@@ -124,7 +124,7 @@ def get_flashcard_set_metrics_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/quiz-set-metrics')
+@stats_bp.route('/api/quiz-set-metrics')
 @login_required
 def get_quiz_set_metrics_api():
     container_id = request.args.get('container_id', type=int)
@@ -143,7 +143,7 @@ def get_quiz_set_metrics_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/course-metrics')
+@stats_bp.route('/api/course-metrics')
 @login_required
 def get_course_metrics_api():
     container_id = request.args.get('container_id', type=int)
@@ -162,7 +162,7 @@ def get_course_metrics_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/flashcard-items')
+@stats_bp.route('/api/flashcard-items')
 @login_required
 def get_flashcard_items_api():
     container_id = request.args.get('container_id', type=int)
@@ -181,7 +181,7 @@ def get_flashcard_items_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/quiz-items')
+@stats_bp.route('/api/quiz-items')
 @login_required
 def get_quiz_items_api():
     container_id = request.args.get('container_id', type=int)
@@ -200,7 +200,7 @@ def get_quiz_items_api():
     return jsonify({'success': True, 'data': data})
 
 
-@analytics_bp.route('/api/course-items')
+@stats_bp.route('/api/course-items')
 @login_required
 def get_course_items_api():
     container_id = request.args.get('container_id', type=int)

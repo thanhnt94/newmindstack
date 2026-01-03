@@ -16,4 +16,5 @@ admin_bp.app_context_processor(admin_context_processor)
 # 2. Import các routes ở cuối để chúng được đăng ký với Blueprint.
 # Điều này đảm bảo admin_bp đã được định nghĩa trước khi routes.py sử dụng nó.
 from . import routes
-from . import gamification_routes
+# gamification_routes đã chuyển sang modules/gamification/
+
