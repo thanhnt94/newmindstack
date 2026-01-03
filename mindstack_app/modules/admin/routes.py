@@ -1332,13 +1332,31 @@ def manage_system_settings():
     telegram_token_setting = AppSettings.query.get('telegram_bot_token')
 
     raw_settings = AppSettings.query.order_by(AppSettings.key.asc()).all()
+    
+    # Filter out gamification/points settings - they're managed in Gamification section
+    def _is_gamification_setting(key: str) -> bool:
+        key_upper = key.upper()
+        return (
+            key_upper.startswith('FLASHCARD_') or
+            key_upper.startswith('QUIZ_') or
+            key_upper.startswith('COURSE_') or
+            key_upper.startswith('VOCAB_') or
+            key_upper.startswith('DAILY_LOGIN') or
+            'SCORE' in key_upper or
+            'BONUS' in key_upper or
+            'POINTS' in key_upper
+        )
+    
     settings = [
         setting
         for setting in raw_settings
-        if not _is_sensitive_setting(setting.key) and setting.key not in CORE_SETTING_KEYS and setting.key != 'telegram_bot_token'
+        if not _is_sensitive_setting(setting.key) 
+           and setting.key not in CORE_SETTING_KEYS 
+           and setting.key != 'telegram_bot_token'
+           and not _is_gamification_setting(setting.key)
     ]
     data_type_options = ['string', 'int', 'bool', 'path', 'json']
-    category_order = ['paths', 'flashcard', 'quiz', 'course', 'other']
+    category_order = ['paths', 'other']
 
     users = User.query.order_by(User.username.asc()).all()
     quiz_sets = (
