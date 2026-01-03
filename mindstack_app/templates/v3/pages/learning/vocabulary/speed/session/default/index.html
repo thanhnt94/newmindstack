@@ -665,6 +665,8 @@
             if (isCorrect) {
                 correctCount++;
                 totalScore += 10;
+                // Trigger gamified toast
+                if (window.showScoreToast) window.showScoreToast(10);
             } else {
                 wrongCount++;
             }

@@ -217,8 +217,6 @@ def get_all_review_items(user_id, container_id, session_size):
             LearningProgress.user_id == user_id,
             LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
         )
-    ).filter(
-        or_(LearningProgress.status != 'new', LearningProgress.status.is_(None))
     )
 
     review_items_query = review_items_query.outerjoin(UserContainerState,

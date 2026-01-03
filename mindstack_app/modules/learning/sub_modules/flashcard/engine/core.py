@@ -61,8 +61,11 @@ class FlashcardEngine:
         progress = None
         memory_power_data = None  # NEW: Track Memory Power metrics
 
-        if update_srs and not is_all_review:
+        if update_srs:
             # Update SRS via Service using UnifiedSrsSystem
+            # For 'all_review', we treat it as Cram Mode (stats update only, no scheduling change unless new)
+            is_cram = is_all_review
+            
             progress, srs_result = SrsService.update_unified(
                 user_id=user_id,
                 item_id=item_id,
@@ -70,7 +73,8 @@ class FlashcardEngine:
                 mode='flashcard',
                 is_first_time=False,  # TODO: detect first time properly
                 response_time_seconds=duration_ms / 1000.0 if duration_ms else None,
-                duration_ms=duration_ms  # Track response time in ReviewLog
+                duration_ms=duration_ms,  # Track response time in ReviewLog
+                is_cram=is_cram
             )
             
             # Use score from SrsResult (already calculated by UnifiedSrsSystem)

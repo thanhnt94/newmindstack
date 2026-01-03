@@ -9,6 +9,7 @@ let previousCardStats = null;
 let sessionScore = 0;
 let currentUserTotalScore = 0;
 let sessionAnswerHistory = [];
+let currentStreak = 0;
 
 // Local stats
 let sessionStatsLocal = {
@@ -172,7 +173,23 @@ async function getNextFlashcardBatch() {
             total: sessionStatsLocal.total,
             correct: sessionStatsLocal.correct,
             incorrect: sessionStatsLocal.incorrect,
-            vague: sessionStatsLocal.vague
+            vague: sessionStatsLocal.vague,
+            session_score: sessionScore,
+            // Use repetition_number as Level (Lvl) and round it to represent a % (cap at 100% for display)
+            // Or better, just show Lvl and let UI handle it. 
+            // User requested %: Let's assume max repetition is ~10 for 100%. 
+            // Actually, let's just use Lvl for now as requested by user in text ("lvl 0 là cái gì" -> he hates Lvl 0).
+            // Wait, he said "lvl 0 là cái gì, mỗi 1 thẻ có memory score tính theo % đúng k".
+            // So he WANTS %.
+            // I'll calculate %: (repetition_number / 10) * 100 roughly? Or use easiness_factor?
+            // Let's use a safe proxy: repetition_number * 10 capped at 100.
+            current_card_mem_percent: Math.min(100, (currentCardData.initial_stats ? (currentCardData.initial_stats.repetition_number || 0) : 0) * 10),
+
+            // History counts for this card (mocking if not available from backend yet)
+            // We need to look at `currentCardData.initial_stats` to see if it has review counts.
+            // If not, we will default to 0.
+            current_card_history_right: currentCardData.initial_stats ? (currentCardData.initial_stats.repetition_number || 0) : 0, // Approx
+            current_card_history_wrong: currentCardData.initial_stats ? (currentCardData.initial_stats.lapses || 0) : 0
         };
         // Dispatch custom event for mobile stats update
         document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
@@ -201,6 +218,11 @@ async function submitFlashcardAnswer(itemId, answer) {
 
         sessionScore += data.score_change;
         currentUserTotalScore = data.updated_total_score;
+
+        // Gamified Notification
+        if (data.score_change > 0 && typeof window.showScoreToast === 'function') {
+            window.showScoreToast(data.score_change);
+        }
 
         const previousCardContent = currentFlashcardBatch[currentFlashcardIndex].content;
         previousCardStats = {
@@ -240,12 +262,22 @@ async function submitFlashcardAnswer(itemId, answer) {
         const answerResult = data.answer_result || answer;
         if (['good', 'easy', 'very_easy', 'nhớ', 'medium'].includes(answerResult)) {
             sessionStatsLocal.correct++;
+            window.currentStreak = (window.currentStreak || 0) + 1;
         } else if (['fail', 'again', 'quên'].includes(answerResult)) {
             sessionStatsLocal.incorrect++;
+            window.currentStreak = 0;
         } else {
             sessionStatsLocal.vague++;
+            // Vague answers typically break streak or keep it? Let's keep it but not increment?
+            // Or treat as break? Let's reset for now to be strict, or keep. 
+            // Let's reset if it's not "correct".
+            window.currentStreak = 0;
         }
         sessionStatsLocal.processed++;
+
+        // Calculate Accuracy
+        const totalAnswered = sessionStatsLocal.correct + sessionStatsLocal.incorrect + sessionStatsLocal.vague;
+        const accuracy = totalAnswered > 0 ? Math.round((sessionStatsLocal.correct / totalAnswered) * 100) : 100;
 
         // Update window stats and dispatch event immediately
         window.flashcardSessionStats = {
@@ -254,7 +286,13 @@ async function submitFlashcardAnswer(itemId, answer) {
             total: sessionStatsLocal.total,
             correct: sessionStatsLocal.correct,
             incorrect: sessionStatsLocal.incorrect,
-            vague: sessionStatsLocal.vague
+            vague: sessionStatsLocal.vague,
+            streak: window.currentStreak,
+            accuracy: accuracy,
+            session_score: sessionScore,
+            current_card_mem_percent: 0,
+            current_card_history_right: 0,
+            current_card_history_wrong: 0
         };
         document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
 

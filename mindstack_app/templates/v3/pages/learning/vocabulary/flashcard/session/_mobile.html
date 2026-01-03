@@ -9,6 +9,12 @@
                     <i class="fas fa-clone"></i>
                     <span>Flashcard</span>
                 </span>
+                <div
+                    class="flex items-center gap-1.5 bg-orange-100/20 text-orange-600 px-2 py-1 rounded-full ml-2 border border-orange-200/30">
+                    <i class="fas fa-gem text-orange-500 text-xs shadow-sm"></i>
+                    <span class="font-bold text-xs js-fc-score">{{ "{:,}".format(current_user.total_score if
+                        current_user.total_score is not none else 0) }}</span>
+                </div>
                 <div class="fc-nav-btns">
                     <!-- Utility buttons from card toolbar -->
                     <button class="fc-nav-btn open-ai-modal-btn js-fc-ai-btn" title="AI">
@@ -62,25 +68,56 @@
             </div>
 
             <!-- Stats Row -->
-            <div class="fc-stats-row">
-                <div class="fc-stat-item">
-                    <span class="fc-stat-label">Tiến độ</span>
-                    <span class="fc-stat-value js-fc-progress">0/0</span>
+            <!-- Stats Row: Gamified HUD v3 (Refined per User Feedback) -->
+            <div class="fc-stats-container rpg-theme" id="fc-stats-container">
+                <!-- 1. Progress Line -->
+                <div class="fc-progress-line">
+                    <div class="fc-progress-fill js-fc-progress-fill" style="width: 0%"></div>
                 </div>
-                <div class="fc-stat-divider"></div>
-                <div class="fc-stat-item">
-                    <span class="fc-stat-label">Đã thuộc</span>
-                    <span class="fc-stat-value learned js-fc-learned">0</span>
+
+                <!-- 2. Quest Badge (Title) -->
+                <div class="fc-quest-badge">
+                    <div class="badge-inner">
+                        <span class="fc-title-text js-fc-title">{{ container_name }}</span>
+                    </div>
                 </div>
-                <div class="fc-stat-divider"></div>
-                <div class="fc-stat-item">
-                    <span class="fc-stat-label">Học lại</span>
-                    <span class="fc-stat-value relearn js-fc-relearn">0</span>
-                </div>
-                <div class="fc-stat-divider"></div>
-                <div class="fc-title-group">
-                    <span class="fc-title-label">Bộ thẻ</span>
-                    <span class="fc-title-text js-fc-title">{{ container_name }}</span>
+
+                <!-- 3. Split HUD Boxes -->
+                <div class="fc-rpg-hud">
+                    <!-- Box A: Session Stats -->
+                    <div class="hud-box hud-box-hero">
+                        <div class="hud-content">
+                            <div class="hud-main-stat">
+                                <i class="fas fa-gem text-blue-500 hud-icon-lg"></i>
+                                <span class="hud-value-lg text-blue-600 js-fc-session-score">+0</span>
+                            </div>
+                            <div class="hud-sub-stat flex gap-3">
+                                <span class="text-xs font-bold text-emerald-500"><i class="fas fa-check mr-1"></i><span
+                                        class="js-fc-session-correct">0</span></span>
+                                <span class="text-xs font-bold text-rose-500"><i class="fas fa-times mr-1"></i><span
+                                        class="js-fc-session-incorrect">0</span></span>
+                            </div>
+                        </div>
+                        <div class="hud-label">SESSION</div>
+                    </div>
+
+                    <!-- Box B: Card Stats -->
+                    <div class="hud-box hud-box-target">
+                        <div class="hud-content">
+                            <div class="hud-main-stat">
+                                <i class="fas fa-brain text-purple-500 hud-icon-lg"></i>
+                                <span class="hud-value-lg text-purple-600 js-fc-memory-score">0%</span>
+                            </div>
+                            <div class="hud-sub-stat flex gap-3">
+                                <span class="text-xs font-bold text-emerald-500" title="Đã trả lời đúng"><i
+                                        class="fas fa-check-double mr-1"></i><span
+                                        class="js-fc-card-right">0</span></span>
+                                <span class="text-xs font-bold text-rose-500" title="Đã trả lời sai"><i
+                                        class="fas fa-undo mr-1"></i><span class="js-fc-card-wrong">0</span></span>
+                            </div>
+                        </div>
+                        <div class="hud-label">THẺ NÀY</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -217,20 +254,36 @@
         initMobileRatingButtons();
 
         // Update stats from custom event dispatched by main script
+        // Update stats from custom event dispatched by main script
         function updateMobileStats(stats) {
             if (!stats) return;
-            // Update progress
-            document.querySelectorAll('.js-fc-progress').forEach(el => {
-                el.textContent = stats.progress || '0/0';
+
+            // Update Progress Bar
+            if (stats.total > 0) {
+                const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
+                document.querySelectorAll('.js-fc-progress-fill').forEach(el => {
+                    el.style.width = percent + '%';
+                });
+                // Update text if exists
+                document.querySelectorAll('.js-fc-progress-text').forEach(el => {
+                    el.textContent = stats.processed + '/' + stats.total;
+                });
+            }
+
+            // Update Session Score (Simple)
+            document.querySelectorAll('.js-fc-session-score').forEach(el => {
+                const score = stats.session_score || 0;
+                el.textContent = score;
             });
-            // Update learned (correct answers)
-            document.querySelectorAll('.js-fc-learned').forEach(el => {
-                el.textContent = stats.correct || 0;
-            });
-            // Update relearn (incorrect + vague)
-            document.querySelectorAll('.js-fc-relearn').forEach(el => {
-                el.textContent = (stats.incorrect || 0) + (stats.vague || 0);
-            });
+
+            // Note: RPG specific stats (Memory, History) are ignored in Classic View
+
+            // Update total score badge
+            if (typeof window.currentUserTotalScore !== 'undefined') {
+                document.querySelectorAll('.js-fc-score').forEach(el => {
+                    el.textContent = parseInt(window.currentUserTotalScore).toLocaleString();
+                });
+            }
         }
 
         // Reset mobile card state when new card loads
@@ -415,7 +468,8 @@
         const statsToggleBtn = document.querySelector('.js-fc-stats-toggle');
         const statsIcon = document.querySelector('.js-fc-stats-icon');
         const statsText = document.querySelector('.js-fc-stats-text');
-        const statsRow = document.querySelector('.fc-stats-row');
+        // Fix: Target new container ID instead of old class
+        const statsContainer = document.getElementById('fc-stats-container');
         let isStatsHidden = false;
 
         function updateStatsToggleUI() {
@@ -425,8 +479,8 @@
             if (statsText) {
                 statsText.textContent = isStatsHidden ? 'Hiện tiến độ' : 'Ẩn tiến độ';
             }
-            if (statsRow) {
-                statsRow.style.display = isStatsHidden ? 'none' : 'flex';
+            if (statsContainer) {
+                statsContainer.style.display = isStatsHidden ? 'none' : 'block';
             }
         }
 
@@ -597,7 +651,7 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
                 class="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center">
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tổng điểm</span>
                 <div class="text-2xl font-black text-blue-600 flex items-center gap-1 mt-1">
-                    <i class="fas fa-star text-yellow-400 text-lg"></i>
+                    <i class="fas fa-gem text-blue-500 text-lg"></i>
                     <span id="total-score-display-mobile">-</span>
                 </div>
             </div>
