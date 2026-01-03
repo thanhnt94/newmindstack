@@ -212,12 +212,14 @@
         display: none;
         align-items: center;
         justify-content: center;
-        z-index: 100;
+        z-index: 9999;
         backdrop-filter: blur(4px);
     }
 
     .modal-overlay.active {
-        display: flex;
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     .result-card {
@@ -275,6 +277,53 @@
             width: 0%;
         }
     }
+
+    /* Stats Grid in Modal */
+    .result-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        width: 100%;
+    }
+
+    .stat-item {
+        background: #f8fafc;
+        padding: 0.75rem;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-transform: uppercase;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--text-main);
+    }
+
+    .stat-value.score {
+        color: var(--primary);
+    }
+
+    .stat-value.time {
+        color: #3b82f6;
+    }
+
+    .stat-value.wrong {
+        color: #ef4444;
+    }
+
+    .stat-value.avg {
+        color: #8b5cf6;
+    }
 </style>
 {% endblock %}
 
@@ -320,6 +369,26 @@
     <div class="result-card">
         <div class="result-title" id="end-title">Game Over</div>
         <div class="result-sub" id="end-msg">Bạn đã hết mạng!</div>
+
+        <div class="result-stats">
+            <div class="stat-item">
+                <div class="stat-label">Thời gian</div>
+                <div class="stat-value time" id="stat-time">00:00</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Tốc độ TB</div>
+                <div class="stat-value avg" id="stat-avg">0s</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Sai</div>
+                <div class="stat-value wrong" id="stat-wrong">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Điểm số</div>
+                <div class="stat-value score" id="stat-score">0</div>
+            </div>
+        </div>
+
         <button class="restart-btn" onclick="location.reload()">Chơi lại</button>
         <a href="{{ url_for('learning.vocabulary.dashboard') }}"
             style="display:block; margin-top:1rem; color:#64748b; font-weight:600; text-decoration:none;">Thoát</a>
@@ -352,6 +421,12 @@
         var timerInterval = null;
         var timeLeft = 0; // ms
         var startTime = 0;
+
+        // Stats
+        var sessionStartTimestamp = 0;
+        var totalScore = 0;
+        var correctCount = 0;
+        var wrongCount = 0;
 
         // UI
         var livesContainer = document.getElementById('lives-display');
@@ -400,6 +475,7 @@
                     if (data.success && data.questions.length > 0) {
                         questions = data.questions;
                         document.getElementById('total-q').textContent = questions.length;
+                        sessionStartTimestamp = Date.now();
                         startQuestion(0);
                     } else {
                         qText.textContent = "Không đủ dữ liệu câu hỏi.";
@@ -460,42 +536,72 @@
         }
 
         function handleAnswer(choiceIdx) {
-            clearInterval(timerInterval);
-            timerBar.style.transition = 'none'; // stop anim
+            try {
+                clearInterval(timerInterval);
+                timerBar.style.transition = 'none'; // stop anim
 
-            var q = questions[currentIdx];
-            var btns = answersGrid.querySelectorAll('.answer-btn');
-            btns.forEach(b => b.disabled = true); // Lock input
+                var q = questions[currentIdx];
+                var btns = answersGrid.querySelectorAll('.answer-btn');
+                btns.forEach(b => b.disabled = true); // Lock input
 
-            var isCorrect = (choiceIdx === q.correct_index);
-            var durationMs = Date.now() - startTime;
+                var isCorrect = (choiceIdx === q.correct_index);
+                var durationMs = Date.now() - startTime;
 
-            // UI Feedback
-            if (isCorrect) {
-                btns[choiceIdx].classList.add('correct');
-                // showFeedback(true);
-                submitResult(q.item_id, true, durationMs, q.choices[choiceIdx]);
-                setTimeout(() => nextQ(), 500); // Fast transition
-            } else {
-                btns[choiceIdx].classList.add('wrong');
-                btns[q.correct_index].classList.add('correct'); // Show correct
-                loseLife();
-                submitResult(q.item_id, false, durationMs, q.choices[choiceIdx]);
-                if (!isGameOver) setTimeout(() => nextQ(), 1500); // Longer delay to see correct
+                // UI Feedback
+                if (isCorrect) {
+                    btns[choiceIdx].classList.add('correct');
+                    scoreUpdate(true);
+                    submitResult(q.item_id, true, durationMs, q.choices[choiceIdx]);
+                    setTimeout(() => nextQ(), 500); // Fast transition
+                } else {
+                    btns[choiceIdx].classList.add('wrong');
+                    btns[q.correct_index].classList.add('correct'); // Show correct
+                    scoreUpdate(false);
+                    // Check lives
+                    if (maxLives !== 'inf') {
+                        lives--;
+                        updateLivesUI();
+                        if (lives <= 0) {
+                            endGame(false);
+                            return; // Stop flow
+                        }
+                    }
+
+                    submitResult(q.item_id, false, durationMs, q.choices[choiceIdx]);
+                    if (!isGameOver) setTimeout(() => nextQ(), 1500);
+                }
+            } catch (err) {
+                alert("Lỗi xử lý câu trả lời: " + err.message);
+                console.error(err);
             }
         }
 
         function handleTimeOut() {
-            var q = questions[currentIdx];
-            var btns = answersGrid.querySelectorAll('.answer-btn');
-            btns.forEach(b => b.disabled = true);
+            try {
+                var q = questions[currentIdx];
+                var btns = answersGrid.querySelectorAll('.answer-btn');
+                btns.forEach(b => b.disabled = true);
 
-            // Show correct
-            btns[q.correct_index].classList.add('correct');
+                // Show correct
+                btns[q.correct_index].classList.add('correct');
 
-            loseLife();
-            submitResult(q.item_id, false, timeLimit * 1000, "TIME_OUT");
-            if (!isGameOver) setTimeout(() => nextQ(), 1500);
+                scoreUpdate(false);
+
+                var isDead = false;
+                if (maxLives !== 'inf') {
+                    lives--;
+                    updateLivesUI();
+                    if (lives <= 0) {
+                        endGame(false);
+                        isDead = true;
+                    }
+                }
+
+                submitResult(q.item_id, false, timeLimit * 1000, "TIME_OUT");
+                if (!isGameOver && !isDead) setTimeout(() => nextQ(), 1500);
+            } catch (err) {
+                alert("Lỗi xử lý hết giờ: " + err.message);
+            }
         }
 
         function loseLife() {
@@ -513,19 +619,54 @@
         }
 
         function endGame(isWin) {
-            isGameOver = true;
-            endModal.classList.add('active');
-            var title = document.getElementById('end-title');
-            var msg = document.getElementById('end-msg');
+            try {
+                isGameOver = true;
+                // Force display via style to override anything
+                endModal.style.display = 'flex';
+                endModal.classList.add('active');
 
-            if (isWin) {
-                title.textContent = "Hoàn thành!";
-                title.style.color = "var(--success)";
-                msg.textContent = "Bạn đã hoàn thành bài ôn tập!";
+                var title = document.getElementById('end-title');
+                var msg = document.getElementById('end-msg');
+
+                // Calculate Stats safely
+                var sessionDuration = Date.now() - (sessionStartTimestamp || Date.now());
+                var totalQ = (correctCount || 0) + (wrongCount || 0);
+                var avgTime = totalQ > 0 ? (sessionDuration / totalQ / 1000).toFixed(1) : "0.0";
+
+                // Format Time MM:SS
+                var seconds = Math.floor(sessionDuration / 1000);
+                var minutes = Math.floor(seconds / 60);
+                seconds = seconds % 60;
+                var timeStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
+
+                if (document.getElementById('stat-time')) document.getElementById('stat-time').textContent = timeStr;
+                if (document.getElementById('stat-avg')) document.getElementById('stat-avg').textContent = avgTime + 's';
+                if (document.getElementById('stat-wrong')) document.getElementById('stat-wrong').textContent = (wrongCount || 0);
+                if (document.getElementById('stat-score')) document.getElementById('stat-score').textContent = (totalScore || 0);
+
+                if (isWin) {
+                    title.textContent = "Hoàn thành!";
+                    title.style.color = "var(--success)";
+                    msg.textContent = "Bạn đã hoàn thành bài ôn tập!";
+                } else {
+                    title.textContent = "Hết mạng!";
+                    title.style.color = "var(--error)";
+                    msg.textContent = "Bạn đã hết số mạng cho phép.";
+                }
+            } catch (e) {
+                console.error("EndGame Error:", e);
+                alert("Game Over! (Error showing stats: " + e.message + ")");
+                // Fallback redirect
+                window.location.href = "{{ url_for('learning.vocabulary.dashboard') }}";
+            }
+        }
+
+        function scoreUpdate(isCorrect) {
+            if (isCorrect) {
+                correctCount++;
+                totalScore += 10;
             } else {
-                title.textContent = "Hết mạng!";
-                title.style.color = "var(--error)";
-                msg.textContent = "Bạn đã hết số mạng cho phép.";
+                wrongCount++;
             }
         }
 

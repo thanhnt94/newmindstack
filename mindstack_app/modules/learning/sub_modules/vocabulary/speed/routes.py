@@ -60,6 +60,7 @@ def session_page(set_id):
     time_limit = request.args.get('time_limit', 5, type=int)
     lives = request.args.get('lives', 3) # Can be 'inf'
     choices = request.args.get('choices', 4, type=int)
+    mode = request.args.get('mode', 'front_back')
     
     # Custom Pairs
     custom_pairs_str = request.args.get('custom_pairs', '')
@@ -88,6 +89,10 @@ def session_page(set_id):
         new_settings['speed']['lives'] = lives
         if custom_pairs:
             new_settings['speed']['custom_pairs'] = custom_pairs
+        else:
+            new_settings['speed']['mode'] = mode
+            if 'custom_pairs' in new_settings['speed']:
+                del new_settings['speed']['custom_pairs']
             
         ucs.settings = new_settings
         safe_commit(db.session)
@@ -101,7 +106,8 @@ def session_page(set_id):
         time_limit=time_limit,
         lives=lives,
         custom_pairs=custom_pairs,
-        choices=choices
+        choices=choices,
+        mode=mode
     )
 
 @speed_bp.route('/api/items/<int:set_id>')
@@ -114,7 +120,7 @@ def api_get_items(set_id):
     # Custom pairs
     custom_pairs_str = request.args.get('custom_pairs', '')
     custom_pairs = None
-    mode = 'front_back' # Default
+    mode = request.args.get('mode', 'front_back')
     if custom_pairs_str:
         try:
             custom_pairs = json.loads(custom_pairs_str)

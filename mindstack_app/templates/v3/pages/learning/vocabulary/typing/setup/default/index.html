@@ -582,7 +582,7 @@
             var count = Math.min(selectedCount, totalItems);
 
             // Use Typing Session Endpoint
-            var baseUrl = "{{ url_for('learning.vocabulary.vocab_typing.session', set_id=container.container_id) }}";
+            var baseUrl = "{{ url_for('learning.vocabulary.typing.session', set_id=container.container_id) }}";
             var url = baseUrl + '?mode=custom' + '&count=' + count + '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
             window.location.href = url;
         });
