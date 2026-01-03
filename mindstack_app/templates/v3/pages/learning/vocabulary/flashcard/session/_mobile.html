@@ -254,7 +254,6 @@
         initMobileRatingButtons();
 
         // Update stats from custom event dispatched by main script
-        // Update stats from custom event dispatched by main script
         function updateMobileStats(stats) {
             if (!stats) return;
 
@@ -264,24 +263,36 @@
                 document.querySelectorAll('.js-fc-progress-fill').forEach(el => {
                     el.style.width = percent + '%';
                 });
-                // Update text if exists
-                document.querySelectorAll('.js-fc-progress-text').forEach(el => {
-                    el.textContent = stats.processed + '/' + stats.total;
-                });
             }
 
-            // Update Session Score (Simple)
+            // Update Session Box (Box A)
             document.querySelectorAll('.js-fc-session-score').forEach(el => {
-                const score = stats.session_score || 0;
-                el.textContent = score;
+                el.textContent = stats.session_score || 0;
+            });
+            document.querySelectorAll('.js-fc-session-correct').forEach(el => {
+                el.textContent = stats.correct || 0;
+            });
+            document.querySelectorAll('.js-fc-session-incorrect').forEach(el => {
+                el.textContent = (stats.incorrect || 0) + (stats.vague || 0);
             });
 
-            // Note: RPG specific stats (Memory, History) are ignored in Classic View
-
-            // Update total score badge
+            // Update total score badge in header
             if (typeof window.currentUserTotalScore !== 'undefined') {
                 document.querySelectorAll('.js-fc-score').forEach(el => {
                     el.textContent = parseInt(window.currentUserTotalScore).toLocaleString();
+                });
+            }
+
+            // Update Card Box (Box B) - Memory Power & Card History
+            if (stats.current_card_mem_percent !== undefined) {
+                document.querySelectorAll('.js-fc-memory-score').forEach(el => {
+                    el.textContent = stats.current_card_mem_percent + '%';
+                });
+                document.querySelectorAll('.js-fc-card-right').forEach(el => {
+                    el.textContent = stats.current_card_history_right;
+                });
+                document.querySelectorAll('.js-fc-card-wrong').forEach(el => {
+                    el.textContent = stats.current_card_history_wrong;
                 });
             }
         }

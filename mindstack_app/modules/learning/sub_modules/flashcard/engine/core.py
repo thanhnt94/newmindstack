@@ -60,6 +60,14 @@ class FlashcardEngine:
         score_change = 0
         progress = None
         memory_power_data = None  # NEW: Track Memory Power metrics
+        
+        # Capture previous state for delta animation
+        old_memory_power = 0.0
+        old_progress = LearningProgress.query.filter_by(
+            user_id=user_id, item_id=item_id, learning_mode='flashcard'
+        ).first()
+        if old_progress:
+            old_memory_power = round(SrsService.get_memory_power(old_progress) * 100, 1)
 
         if update_srs:
             # Update SRS via Service using UnifiedSrsSystem
@@ -85,6 +93,7 @@ class FlashcardEngine:
                 'mastery': round(srs_result.mastery * 100, 1),  # Convert to percentage
                 'retention': round(srs_result.retention * 100, 1),
                 'memory_power': round(srs_result.memory_power * 100, 1),
+                'old_memory_power': old_memory_power,
                 'correct_streak': srs_result.correct_streak,
                 'incorrect_streak': srs_result.incorrect_streak,
                 'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None,

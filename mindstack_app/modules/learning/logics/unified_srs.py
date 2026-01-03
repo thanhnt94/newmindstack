@@ -40,6 +40,10 @@ class SrsResult:
     # Scoring
     score_points: int
     score_breakdown: Dict[str, int]
+    
+    # Internal State (for persistence)
+    repetitions: int
+    easiness_factor: float
 
 
 class UnifiedSrsSystem:
@@ -166,7 +170,11 @@ class UnifiedSrsSystem:
             
             # Scoring
             score_points=score_result.total_points,
-            score_breakdown=score_result.breakdown
+            score_breakdown=score_result.breakdown,
+            
+            # Internal State
+            repetitions=new_reps,
+            easiness_factor=new_ef
         )
     
     # === ANALYTICS HELPER ===

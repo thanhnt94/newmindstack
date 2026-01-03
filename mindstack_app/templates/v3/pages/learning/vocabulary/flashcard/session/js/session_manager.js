@@ -175,21 +175,10 @@ async function getNextFlashcardBatch() {
             incorrect: sessionStatsLocal.incorrect,
             vague: sessionStatsLocal.vague,
             session_score: sessionScore,
-            // Use repetition_number as Level (Lvl) and round it to represent a % (cap at 100% for display)
-            // Or better, just show Lvl and let UI handle it. 
-            // User requested %: Let's assume max repetition is ~10 for 100%. 
-            // Actually, let's just use Lvl for now as requested by user in text ("lvl 0 là cái gì" -> he hates Lvl 0).
-            // Wait, he said "lvl 0 là cái gì, mỗi 1 thẻ có memory score tính theo % đúng k".
-            // So he WANTS %.
-            // I'll calculate %: (repetition_number / 10) * 100 roughly? Or use easiness_factor?
-            // Let's use a safe proxy: repetition_number * 10 capped at 100.
-            current_card_mem_percent: Math.min(100, (currentCardData.initial_stats ? (currentCardData.initial_stats.repetition_number || 0) : 0) * 10),
-
-            // History counts for this card (mocking if not available from backend yet)
-            // We need to look at `currentCardData.initial_stats` to see if it has review counts.
-            // If not, we will default to 0.
-            current_card_history_right: currentCardData.initial_stats ? (currentCardData.initial_stats.repetition_number || 0) : 0, // Approx
-            current_card_history_wrong: currentCardData.initial_stats ? (currentCardData.initial_stats.lapses || 0) : 0
+            // Stats for Box B (Current Card)
+            current_card_mem_percent: currentCardData.initial_stats ? currentCardData.initial_stats.memory_power : 0,
+            current_card_history_right: currentCardData.initial_stats ? currentCardData.initial_stats.correct_count : 0,
+            current_card_history_wrong: currentCardData.initial_stats ? (currentCardData.initial_stats.incorrect_count + (currentCardData.initial_stats.vague_count || 0)) : 0
         };
         // Dispatch custom event for mobile stats update
         document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
@@ -222,6 +211,11 @@ async function submitFlashcardAnswer(itemId, answer) {
         // Gamified Notification
         if (data.score_change > 0 && typeof window.showScoreToast === 'function') {
             window.showScoreToast(data.score_change);
+        }
+
+        // Memory Power Notification
+        if (data.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
+            window.showMemoryPowerFeedback(data.memory_power.old_memory_power, data.memory_power.memory_power);
         }
 
         const previousCardContent = currentFlashcardBatch[currentFlashcardIndex].content;
@@ -290,10 +284,17 @@ async function submitFlashcardAnswer(itemId, answer) {
             streak: window.currentStreak,
             accuracy: accuracy,
             session_score: sessionScore,
-            current_card_mem_percent: 0,
-            current_card_history_right: 0,
-            current_card_history_wrong: 0
+            // Include card-specific stats (Box B)
+            current_card_mem_percent: data.statistics ? data.statistics.memory_power : 0,
+            current_card_history_right: data.statistics ? data.statistics.correct_count : 0,
+            current_card_history_wrong: data.statistics ? (data.statistics.incorrect_count + data.statistics.vague_count) : 0
         };
+
+        // Update HUD immediately for the card we just answered
+        if (window.updateCardHudStats) {
+            window.updateCardHudStats(data.statistics);
+        }
+
         document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
 
         currentFlashcardIndex++;

@@ -472,6 +472,12 @@ function renderCard(data) {
     }));
 
     applyMediaVisibility();
+
+    // RPG HUD Update: Ensure "THẺ NÀY" stats are shown for the new card
+    if (initialStats) {
+        window.updateCardHudStats(initialStats);
+    }
+
     setTimeout(adjustCardLayout, 0);
 
     if (isAutoplaySession) {
@@ -980,6 +986,110 @@ function showCustomAlert(message) {
 }
 
 
+// --- Feedback Animations ---
+
+
+function showMemoryPowerFeedback(oldVal, newVal) {
+    if (oldVal === undefined || newVal === undefined || oldVal === newVal) return;
+
+    const diff = (newVal - oldVal).toFixed(1);
+    const sign = diff >= 0 ? '+' : '';
+
+    // Create the container
+    const container = document.createElement('div');
+    container.className = 'fixed inset-0 z-[1000] pointer-events-none flex items-center justify-center';
+
+    // Circle parameters
+    const size = 200;
+    const strokeWidth = 14;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+
+    // Initial display value (oldVal)
+    // Styling with darker transparent background for better contrast
+    container.innerHTML = `
+        <div class="relative flex items-center justify-center p-12 rounded-full bg-slate-900/60 backdrop-blur-xl border border-white/20 shadow-[0_0_60px_rgba(79,70,229,0.4)] scale-0 transition-all duration-200 js-mp-container opacity-0">
+            <!-- Progress Circle -->
+            <svg width="${size}" height="${size}" class="transform -rotate-90 drop-shadow-xl">
+                <!-- Background track -->
+                <circle 
+                    cx="${size / 2}" cy="${size / 2}" r="${radius}" 
+                    stroke="currentColor" stroke-width="${strokeWidth}" 
+                    fill="transparent" class="text-white/10"
+                />
+                <!-- Progress ring -->
+                <circle 
+                    cx="${size / 2}" cy="${size / 2}" r="${radius}" 
+                    stroke="url(#mp-gradient-main)" stroke-width="${strokeWidth}" 
+                    fill="transparent" stroke-linecap="round"
+                    style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${circumference - (oldVal / 100) * circumference}; transition: stroke-dashoffset 0.6s cubic-bezier(0.2, 0, 0, 1);"
+                    class="js-mp-circle"
+                />
+                <defs>
+                    <linearGradient id="mp-gradient-main" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#c084fc" />
+                        <stop offset="50%" stop-color="#818cf8" />
+                        <stop offset="100%" stop-color="#4f46e5" />
+                    </linearGradient>
+                </defs>
+            </svg>
+            
+            <!-- Inner content -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-white text-center drop-shadow-lg">
+                <div class="text-[9px] font-black uppercase tracking-[0.15em] text-indigo-200 mb-1 drop-shadow-md">Memory Power</div>
+                <div class="text-5xl font-black js-mp-value tabular-nums tracking-tighter drop-shadow-md">${oldVal}%</div>
+                <div class="text-xs font-bold mt-2 bg-indigo-500/30 px-3 py-0.5 rounded-full border border-white/10 backdrop-blur-sm">
+                   <span class="${diff >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${sign}${diff}%</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(container);
+
+    const containerInner = container.querySelector('.js-mp-container');
+    const circle = container.querySelector('.js-mp-circle');
+    const valueDisplay = container.querySelector('.js-mp-value');
+
+    // Initial animation: pop in
+    requestAnimationFrame(() => {
+        containerInner.classList.remove('scale-0', 'opacity-0');
+        containerInner.classList.add('scale-100', 'opacity-100');
+    });
+
+    // Start circle and number animation after a small delay
+    setTimeout(() => {
+        // Update circle to newVal
+        const targetOffset = circumference - (newVal / 100) * circumference;
+        circle.style.strokeDashoffset = targetOffset;
+
+        // Count up numbers
+        const duration = 600; // Adjusted for 1.2s total
+        const start = performance.now();
+
+        const animateNumbers = (time) => {
+            const timeFraction = Math.min((time - start) / duration, 1);
+            const progress = 1 - Math.pow(1 - timeFraction, 3); // easeOutCubic
+            const current = oldVal + (newVal - oldVal) * progress;
+
+            valueDisplay.textContent = current.toFixed(1) + '%';
+
+            if (timeFraction < 1) {
+                requestAnimationFrame(animateNumbers);
+            }
+        };
+        requestAnimationFrame(animateNumbers);
+    }, 50);
+
+    // Remove after 1.2 seconds total (matching showScoreToast)
+    setTimeout(() => {
+        containerInner.classList.remove('scale-100', 'opacity-100');
+        containerInner.classList.add('scale-75', 'opacity-0');
+        setTimeout(() => container.remove(), 300);
+    }, 900); // 900ms + 300ms fade = 1200ms
+}
+
+
 // --- AI Modal ---
 function openAiModal(itemId, termContent) {
     const aiModal = document.getElementById('ai-modal');
@@ -1150,6 +1260,7 @@ window.adjustCardLayout = adjustCardLayout;
 window.determineCardCategory = determineCardCategory;
 window.closeAllSettingsMenus = closeAllSettingsMenus;
 window.toggleSettingsMenu = toggleSettingsMenu;
+window.showMemoryPowerFeedback = showMemoryPowerFeedback;
 
 Object.defineProperty(window, 'isMediaHidden', {
     get: () => isMediaHidden,
@@ -1161,3 +1272,41 @@ Object.defineProperty(window, 'showStats', {
     set: (val) => showStats = val,
     configurable: true
 });
+Object.defineProperty(window, 'flashcardSessionStats', {
+    get: () => window._fStats,
+    set: (val) => { window._fStats = val; },
+    configurable: true
+});
+
+/**
+ * Cập nhật các chỉ số RPG HUD ("THẺ NÀY" box)
+ * @param {Object} stats - Dữ liệu thống kê từ backend
+ */
+window.updateCardHudStats = function (stats) {
+    if (!stats) return;
+
+    // 1. Memory Power (Percentage)
+    const memPowerEls = document.querySelectorAll('.js-fc-memory-score');
+    memPowerEls.forEach(el => {
+        const val = stats.memory_power || 0;
+        el.textContent = val + '%';
+
+        // Optional: color based on value
+        if (val >= 90) el.className = 'hud-value-lg text-emerald-500 js-fc-memory-score';
+        else if (val >= 70) el.className = 'hud-value-lg text-purple-600 js-fc-memory-score';
+        else if (val >= 40) el.className = 'hud-value-lg text-indigo-600 js-fc-memory-score';
+        else el.className = 'hud-value-lg text-slate-500 js-fc-memory-score';
+    });
+
+    // 2. Correct Count for this card
+    const correctEls = document.querySelectorAll('.js-fc-card-right');
+    correctEls.forEach(el => {
+        el.textContent = stats.correct_count || 0;
+    });
+
+    // 3. Incorrect Count for this card
+    const incorrectEls = document.querySelectorAll('.js-fc-card-wrong');
+    incorrectEls.forEach(el => {
+        el.textContent = (stats.incorrect_count || 0) + (stats.vague_count || 0);
+    });
+};

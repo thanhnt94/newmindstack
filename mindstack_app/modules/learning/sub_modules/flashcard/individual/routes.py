@@ -568,6 +568,7 @@ def submit_flashcard_answer():
         'is_correct': result.get('is_correct'),
         'new_progress_status': result.get('new_progress_status'),
         'statistics': result.get('statistics'),
+        'memory_power': result.get('memory_power'),  # NEW: Pass memory power data
         'session_correct_answers': session_manager.correct_answers,
         'session_incorrect_answers': session_manager.incorrect_answers,
         'session_vague_answers': session_manager.vague_answers,

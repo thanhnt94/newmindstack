@@ -111,70 +111,8 @@ class SrsService:
         if should_update_schedule:
             progress.status = result.status
             progress.interval = result.interval_minutes
-            progress.easiness_factor = result.status  # Note: logic bug in original code, fixed below? No, wait.
-            # IN ORIGINAL CODE (line 105): progress.easiness_factor = progress.easiness_factor
-            # Wait, UnifiedSrsSystem (srs_engine) calculates new EF but it's not in SrsResult explicitly?
-            # Checking SrsResult dataclass in unified_srs.py... 
-            # It seems SrsResult DOES NOT have 'easiness_factor' field based on previous view!
-            # Let me re-read process_answer in unified_srs.py.
-            # It returns SrsResult.
-            
-            # Re-checking SrsResult definition in Step 3085 (lines 23-43):
-            # next_review, interval_minutes, status, mastery, retention, memory_power, correct_streak, incorrect_streak, score...
-            # It MISSES easiness_factor and repetitions in the Dataclass!
-            
-            # BUT wait, srs_service.py line 105 in original was:
-            # progress.easiness_factor = progress.easiness_factor  # Keep from calculation
-            # result.status is used.
-            
-            # I must ensure I don't break existing logic.
-            # The original code at line 105 said: `progress.easiness_factor = progress.easiness_factor` (no change?)
-            # That looks suspicious or I misread.
-            
-            # Let's look at SrsEngine.calculate_next_state call in unified_srs.py (line 106).
-            # It returns new_ef.
-            # But SrsResult (line 152) does NOT store it.
-            # This implies the SrsResult might need updating OR the service calculates it separately?
-            # NO, UnifiedSrsSystem.process_answer drops the new_ef ! 
-            
-            # If so, EF never updates? That would be a bug in UnifiedSrsSystem or SrsService.
-            # However, I should stick to adding is_cram logic first, preserving existing behavior (even if buggy) 
-            # unless fixing the bug is part of this.
-            # The user asked for "Memory Power", not an EF fix.
-            # I will preserve existing behavior for now but note the issue.
-            
-            # Wait, if I am rewriting this block, I should probably copy what was there.
-            # Original:
-            # progress.status = result.status
-            # progress.interval = result.interval_minutes
-            # progress.easiness_factor = progress.easiness_factor  # Keep from calculation
-            # progress.repetitions = progress.repetitions  # Updated inside UnifiedSrsSystem
-            
-            # Actually line 106 said: `progress.repetitions = progress.repetitions`
-            # This means REPETITIONS ARE NOT UPDATING either in the original code!
-            # And UnifiedSrsSystem returns new_reps but SrsResult DOES NOT carry it.
-            
-            # THIS SEEMS LIKE A BROKEN IMPLEMENTATION of UnifiedSrsSystem usage in SrsService.
-            # However, fixing that is out of scope unless it affects Memory Power.
-            
-            # I will strictly implement is_cram logic wrapping the assignments.
-            
-            progress.status = result.status
-            progress.interval = result.interval_minutes
-            # Preserving original weird behavior for EF and Reps as I cannot see SrsResult definition change here
-            # actually I can assumes it's broken or rely on side effects? No side effects.
-            
-            # Wait, if `result` (SrsResult) doesn't have eps/reps, then how does it update?
-            # It seems `updated_progress` in line 60 returns it. 
-            
-            # Let's look at what I am replacing: lines 34-140.
-            
-            # Use original assignments:
-            progress.status = result.status
-            progress.interval = result.interval_minutes
-            # progress.easiness_factor = ... (Original didn't update it from result)
-            # progress.repetitions = ... (Original didn't update it from result)
-            
+            progress.easiness_factor = result.easiness_factor
+            progress.repetitions = result.repetitions
             progress.due_time = result.next_review
 
         progress.correct_streak = result.correct_streak

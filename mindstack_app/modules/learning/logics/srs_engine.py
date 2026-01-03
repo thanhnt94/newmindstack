@@ -75,10 +75,14 @@ class SrsEngine:
         if current_status in ['learning', 'new']:
             if quality < 3:
                 # Failed - reset to relearning
+                new_status = 'learning'
                 new_interval = SrsConstants.RELEARNING_STEP_MINUTES
+                new_reps = 0
             else:
                 # Correct - progress through learning steps
-                new_interval = SrsEngine.get_learning_interval(current_reps)
+                new_status = 'learning'
+                new_reps = current_reps + 1
+                new_interval = SrsEngine.get_learning_interval(new_reps)
         
         elif current_status == 'reviewing':
             if quality < 3:
