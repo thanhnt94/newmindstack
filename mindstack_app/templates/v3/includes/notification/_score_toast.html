@@ -1,0 +1,69 @@
+<style>
+    /* Gamified Score Toast */
+    .score-toast {
+        position: fixed;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 4rem;
+        font-weight: 900;
+        color: #fbbf24;
+        /* Amber */
+        text-shadow: 2px 2px 0px #fff, 0 4px 15px rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+        z-index: 10000;
+        font-family: 'Inter', sans-serif;
+        animation: scoreFloatUp 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .score-toast i {
+        font-size: 3rem;
+        color: #f59e0b;
+    }
+
+    @keyframes scoreFloatUp {
+        0% {
+            transform: translate(-50%, -30%) scale(0.5) rotate(-10deg);
+            opacity: 0;
+        }
+
+        20% {
+            transform: translate(-50%, -50%) scale(1.2) rotate(0deg);
+            opacity: 1;
+        }
+
+        40% {
+            transform: translate(-50%, -55%) scale(1);
+        }
+
+        100% {
+            transform: translate(-50%, -100%) scale(0.8);
+            opacity: 0;
+        }
+    }
+</style>
+
+<script>
+    // Gamified Score Notification
+    window.showScoreToast = function (points) {
+        // Only show if positive points
+        if (points <= 0) return;
+
+        const el = document.createElement('div');
+        el.className = 'score-toast';
+        // Add star icon for extra flair
+        el.innerHTML = `<i class="fas fa-gem text-blue-400"></i> +${points}`;
+
+        document.body.appendChild(el);
+
+        // Haptic feedback if available (mobile)
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+
+        setTimeout(() => el.remove(), 1200);
+    };
+</script>

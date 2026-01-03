@@ -989,126 +989,6 @@ function showCustomAlert(message) {
 // --- Feedback Animations ---
 
 
-function showMemoryPowerFeedback(oldVal, newVal) {
-    if (oldVal === undefined || newVal === undefined || oldVal === newVal) return;
-
-    const diff = (newVal - oldVal).toFixed(1);
-    const sign = diff >= 0 ? '+' : '';
-    const isPositive = diff >= 0;
-
-    // Create the container
-    const container = document.createElement('div');
-    container.className = 'fixed inset-0 z-[1000] pointer-events-none flex items-center justify-center';
-
-    // Circle parameters
-    const size = 180; // Slightly smaller for elegance
-    const strokeWidth = 8; // Thinner stroke
-    const radius = (size - strokeWidth) / 2;
-    const circumference = 2 * Math.PI * radius;
-
-    container.innerHTML = `
-        <div class="relative flex flex-col items-center justify-center p-8 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-2xl scale-90 opacity-0 transition-all duration-300 ease-out js-mp-container"
-            style="min-width: 240px; min-height: 240px;">
-            
-            <!-- Glow Effect -->
-            <div class="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
-
-            <!-- Progress Circle -->
-            <div class="relative z-10">
-                <svg width="${size}" height="${size}" class="transform -rotate-90 drop-shadow-lg">
-                    <!-- Track -->
-                    <circle 
-                        cx="${size / 2}" cy="${size / 2}" r="${radius}" 
-                        stroke="rgba(255,255,255,0.1)" stroke-width="${strokeWidth}" 
-                        fill="transparent"
-                    />
-                    <!-- Indicator -->
-                    <circle 
-                        cx="${size / 2}" cy="${size / 2}" r="${radius}" 
-                        stroke="url(#mp-gradient-new)" stroke-width="${strokeWidth}" 
-                        fill="transparent" stroke-linecap="round"
-                        style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${circumference - (oldVal / 100) * circumference}; transition: stroke-dashoffset 1s cubic-bezier(0.2, 0, 0, 1);"
-                        class="js-mp-circle"
-                    />
-                    <defs>
-                        <linearGradient id="mp-gradient-new" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#818cf8" /> <!-- Indigo 400 -->
-                            <stop offset="100%" stop-color="#c084fc" /> <!-- Purple 400 -->
-                        </linearGradient>
-                    </defs>
-                </svg>
-
-                <!-- Center Content -->
-                <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
-                     <span class="text-[10px] uppercase font-bold tracking-widest text-indigo-200 mb-1 opacity-80">Memory Power</span>
-                     <span class="text-5xl font-black js-mp-value tracking-tight drop-shadow-md">${oldVal.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span></span>
-                     
-                     <div class="mt-3 overflow-hidden">
-                        <div class="px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-sm flex items-center gap-1.5 transform translate-y-4 opacity-0 transition-all duration-300 delay-100 js-mp-diff">
-                            <i class="fas ${isPositive ? 'fa-arrow-up' : 'fa-arrow-down'} text-[10px] ${isPositive ? 'text-emerald-400' : 'text-rose-400'}"></i>
-                            <span class="text-sm font-bold ${isPositive ? 'text-emerald-300' : 'text-rose-300'}">${sign}${Math.abs(diff)}%</span>
-                        </div>
-                     </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(container);
-
-    const containerInner = container.querySelector('.js-mp-container');
-    const circle = container.querySelector('.js-mp-circle');
-    const valueDisplay = container.querySelector('.js-mp-value');
-    const diffBadge = container.querySelector('.js-mp-diff');
-
-    // ENTRANCE ANIMATION
-    requestAnimationFrame(() => {
-        containerInner.classList.remove('scale-90', 'opacity-0');
-        containerInner.classList.add('scale-100', 'opacity-100');
-
-        // Show diff badge slightly later
-        setTimeout(() => {
-            diffBadge.classList.remove('translate-y-4', 'opacity-0');
-        }, 100);
-    });
-
-    // COUNT UP & CIRCLE FILL ANIMATION
-    setTimeout(() => {
-        // 1. Animate Circle
-        const targetOffset = circumference - (newVal / 100) * circumference;
-        circle.style.strokeDashoffset = targetOffset;
-
-        // 2. Animate Number
-        const duration = 1000;
-        const start = performance.now();
-
-        const animateNumbers = (time) => {
-            const timeFraction = Math.min((time - start) / duration, 1);
-            // easeOutExpo for a snappy yet smooth finish
-            const progress = timeFraction === 1 ? 1 : 1 - Math.pow(2, -10 * timeFraction);
-
-            const current = oldVal + (newVal - oldVal) * progress;
-
-            // Maintain layout stability by fixing decimal places
-            valueDisplay.innerHTML = `${current.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span>`;
-
-            if (timeFraction < 1) {
-                requestAnimationFrame(animateNumbers);
-            }
-        };
-        requestAnimationFrame(animateNumbers);
-
-    }, 100);
-
-    // EXIT ANIMATION
-    setTimeout(() => {
-        containerInner.classList.remove('scale-100', 'opacity-100');
-        containerInner.classList.add('scale-95', 'opacity-0', 'blur-sm'); // Add blur on exit
-        setTimeout(() => container.remove(), 300);
-    }, 2500); // Shorter duration? 2.5s is enough to read
-}
-
-
 // --- AI Modal ---
 function openAiModal(itemId, termContent) {
     const aiModal = document.getElementById('ai-modal');
@@ -1279,7 +1159,7 @@ window.adjustCardLayout = adjustCardLayout;
 window.determineCardCategory = determineCardCategory;
 window.closeAllSettingsMenus = closeAllSettingsMenus;
 window.toggleSettingsMenu = toggleSettingsMenu;
-window.showMemoryPowerFeedback = showMemoryPowerFeedback;
+
 
 Object.defineProperty(window, 'isMediaHidden', {
     get: () => isMediaHidden,

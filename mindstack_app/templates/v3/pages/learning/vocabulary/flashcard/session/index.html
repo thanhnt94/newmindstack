@@ -1,8 +1,8 @@
 {#
 # File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
-# Phiên bản: 69.1
-# MỤC ĐÍCH: Thay đổi vị trí nút Feedback.
-# ĐÃ SỬA: Di chuyển nút Feedback từ toolbar bên trái sang bên phải, đặt cạnh nút Sửa thẻ.
+# Phiên bản: 69.2
+# MỤC ĐÍCH: Sửa lỗi syntax Jinja template.
+# ĐÃ SỬA: Fix lỗi "{ {" thành "{{" trong FlashcardConfig object.
 #}
 
 {% extends "v3/base.html" %}
@@ -28,8 +28,10 @@
         var header = document.querySelector('body > header');
         if (header) {
           header.style.display = 'none';
-        }});
-    }})();
+        }
+      });
+    }
+  })();
 </script>
 
 {# Flashcard Session CSS - External Files stored in template directory #}
@@ -87,6 +89,9 @@
 {# Nhúng modal Ghi chú #}
 {% include 'v3/pages/notes/_note_panel.html' %}
 
+{# Nhúng modal Memory Power #}
+{% include 'v3/includes/notification/_memory_power.html' %}
+
 {# Nhúng modal Feedback #}
 {% include 'v3/pages/feedback/_feedback_modal.html' %}
 
@@ -107,21 +112,21 @@
     getNoteUrl: "{{ url_for('notes.get_note', item_id=0) }}",
     saveNoteUrl: "{{ url_for('notes.save_note', item_id=0) }}",
     editFlashcardUrlTemplate: "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}",
-    csrfHeaders: { 'X-CSRFToken': "{{ csrf_token() }}" },
-    userButtonCount: {{ user_button_count | default(4) | tojson }},
-    isAutoplaySession: {{ is_autoplay_session | default(False) | tojson }},
-    autoplayMode: {{ autoplay_mode | default('') | tojson }},
-    visualSettings: {{ (saved_visual_settings or {}) | tojson }},
-    autoSaveOn: {{ saved_auto_save | default(True) | tojson }}
+    csrfHeaders: { "X-CSRFToken": "{{ csrf_token() }}" },
+    userButtonCount: {{ user_button_count | default (4) | tojson }},
+  isAutoplaySession: { { is_autoplay_session | default (false) | tojson } },
+  autoplayMode: { { autoplay_mode | default ('') | tojson } },
+  visualSettings: { { (saved_visual_settings or { }) | tojson } },
+  autoSaveOn: { { saved_auto_save | default (true) | tojson } }
   };
 
   const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
   const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
   if (csrfToken) {
-    window.FlashcardConfig.csrfHeaders = { 'X-CSRFToken': csrfToken };
+    window.FlashcardConfig.csrfHeaders = { "X-CSRFToken": csrfToken };
   }
 
-  window.currentUserTotalScoreInit = {{ current_user.total_score | default(0) }};
+  window.currentUserTotalScoreInit = {{ current_user.total_score | default (0) }};
   window.sessionScore = 0;
 </script>
 
