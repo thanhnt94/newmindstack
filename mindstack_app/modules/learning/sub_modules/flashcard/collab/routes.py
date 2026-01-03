@@ -69,7 +69,7 @@ def dashboard():
     template_vars = _build_dashboard_context(current_user)
     template_vars['initial_mode'] = 'group'
     # Render main dashboard template but forced to group mode
-    return render_template('v3/pages/learning/flashcard/dashboard/index.html', **template_vars)
+    return render_template('v3/pages/learning/collab/flashcard/index.html', **template_vars)
 
 
 @flashcard_collab_bp.route('/rooms', methods=['POST'])
@@ -162,7 +162,7 @@ def view_room(room_code: str):
     room_payload = serialize_room(room)
 
     return render_template(
-        'v3/pages/learning/flashcard/collab/room/index.html',
+        'v3/pages/learning/collab/flashcard/room/index.html',
         room=room,
         room_payload=room_payload,
         can_edit_flashcards=_user_can_edit_flashcard(room.container_id),

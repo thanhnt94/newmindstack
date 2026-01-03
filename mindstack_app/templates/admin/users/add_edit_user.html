@@ -1,0 +1,97 @@
+{% extends "admin/admin_layout.html" %}
+{% set active_page = 'users' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Điền thông tin chi tiết để tạo mới hoặc cập nhật tài khoản quản trị.{% endblock %}
+
+{% block content %}
+<div class="data-card max-w-3xl">
+    <div class="data-card-header px-6 py-5">
+        <h2 class="text-xl font-semibold text-slate-900">Thông tin tài khoản</h2>
+        <p class="text-sm text-slate-500">Các trường bắt buộc được đánh dấu rõ ràng, đảm bảo tính toàn vẹn của hệ thống.
+        </p>
+    </div>
+    <div class="px-6 py-6">
+        <form action="" method="post" class="space-y-6">
+            {{ form.csrf_token }}
+            <div class="grid gap-5 md:grid-cols-2">
+                <div class="space-y-2">
+                    {{ form.username.label(class="block text-sm font-medium text-slate-700") }}
+                    {{ form.username(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none
+                    focus:ring-2 focus:ring-blue-500", placeholder="Tên đăng nhập") }}
+                    {% if form.username.errors %}
+                    <div class="text-xs text-rose-600">
+                        {% for error in form.username.errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="space-y-2">
+                    {{ form.email.label(class="block text-sm font-medium text-slate-700") }}
+                    {{ form.email(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none
+                    focus:ring-2 focus:ring-blue-500", placeholder="Địa chỉ email") }}
+                    {% if form.email.errors %}
+                    <div class="text-xs text-rose-600">
+                        {% for error in form.email.errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid gap-5 md:grid-cols-2">
+                <div class="space-y-2">
+                    {{ form.password.label(class="block text-sm font-medium text-slate-700") }}
+                    {% if title == 'Thêm Người Dùng Mới' %}
+                    {{ form.password(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none
+                    focus:ring-2 focus:ring-blue-500", placeholder="Mật khẩu (bắt buộc)") }}
+                    {% else %}
+                    {{ form.password(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none
+                    focus:ring-2 focus:ring-blue-500", placeholder="Mật khẩu (để trống nếu không đổi)") }}
+                    {% endif %}
+                    {% if form.password.errors %}
+                    <div class="text-xs text-rose-600">
+                        {% for error in form.password.errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="space-y-2">
+                    {{ form.password2.label(class="block text-sm font-medium text-slate-700") }}
+                    {% if title == 'Thêm Người Dùng Mới' %}
+                    {{ form.password2(class="block w-full px-4 py-2 border border-slate-200 rounded-lg
+                    focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="Nhập lại mật khẩu (bắt buộc)") }}
+                    {% else %}
+                    {{ form.password2(class="block w-full px-4 py-2 border border-slate-200 rounded-lg
+                    focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="Nhập lại mật khẩu (để trống nếu
+                    không đổi)") }}
+                    {% endif %}
+                    {% if form.password2.errors %}
+                    <div class="text-xs text-rose-600">
+                        {% for error in form.password2.errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                {{ form.user_role.label(class="block text-sm font-medium text-slate-700") }}
+                {{ form.user_role(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none
+                focus:ring-2 focus:ring-blue-500") }}
+                {% if form.user_role.errors %}
+                <div class="text-xs text-rose-600">
+                    {% for error in form.user_role.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
+                <a href="{{ url_for('user_management.manage_users') }}"
+                    class="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-5 py-2.5 rounded-md hover:bg-slate-200 transition">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </a>
+                {{ form.submit(class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md
+                shadow hover:bg-blue-500 transition") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

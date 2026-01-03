@@ -931,7 +931,7 @@ def admin_dashboard():
     overview_metrics = build_admin_sidebar_metrics()
 
     return render_template(
-        'v3/pages/admin/dashboard.html',
+        'admin/dashboard.html',
         stats_data=stats_data,
         recent_users=recent_users,
         recent_containers=recent_containers,
@@ -1037,7 +1037,7 @@ def media_library():
     total_size = _format_file_size(sum(item['size_bytes'] for item in files)) if files else '0 B'
 
     return render_template(
-        'v3/pages/admin/media_library.html',
+        'admin/media_library.html',
         directories=directories,
         files=files,
         current_folder=current_folder,
@@ -1111,7 +1111,7 @@ def voice_service_panel():
     )
     
     return render_template(
-        'v3/pages/admin/voice_service_panel.html',
+        'admin/voice_service_panel.html',
         tasks=tasks,
         flashcard_containers=flashcard_containers,
         quiz_containers=quiz_containers
@@ -1153,7 +1153,7 @@ def manage_background_tasks():
     )
 
     return render_template(
-        'v3/pages/admin/background_tasks.html',
+        'admin/background_tasks.html',
         tasks=tasks,
         flashcard_containers=flashcard_containers,
         quiz_containers=quiz_containers,
@@ -1285,7 +1285,7 @@ def view_task_logs(task_id: int):
     )
 
     return render_template(
-        'v3/pages/admin/background_task_logs.html',
+        'admin/background_task_logs.html',
         task=task,
         logs=logs,
     )
@@ -1348,7 +1348,7 @@ def manage_system_settings():
     )
 
     return render_template(
-        'v3/pages/admin/system_settings.html',
+        'admin/system_settings.html',
         maintenance_mode=maintenance_mode,
         telegram_token_setting=telegram_token_setting,
         core_settings=_get_core_settings(),
@@ -1774,7 +1774,7 @@ def manage_backup_restore():
     ]
 
     return render_template(
-        'default/backup_restore.html',
+        'admin/backup_restore.html',
         backup_entries=backup_entries,
         dataset_options=dataset_options,
     )
@@ -2240,7 +2240,7 @@ def manage_templates():
     template_settings = TemplateService.get_all_template_settings()
     
     return render_template(
-        'default/manage_templates.html',
+        'admin/manage_templates.html',
         template_settings=template_settings,
     )
 

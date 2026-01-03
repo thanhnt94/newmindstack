@@ -1,0 +1,89 @@
+{# Desktop Interface #}
+<div class="flashcard-desktop-view">
+    <div class="page-shell">
+        <div class="session-layout">
+            <div class="flashcard-wrapper">
+                <div class="card-surface">
+                    <div class="flashcard-panel">
+                        <div class="js-flashcard-content">
+                            <div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]">
+                                <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                                <p>Đang tải thẻ...</p>
+                            </div>
+                        </div>
+                        <div class="js-flashcard-buttons mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="desktop-stats-container">
+                {# =============================== #}
+                {# File: mindstack_app/modules/learning/flashcard_learning/templates/_flashcard_session_stats.html #}
+                {# Phiên bản: 3.0 #}
+                {# MỤC ĐÍCH: Thiết kế lại bảng thống kê phiên Flashcard với giao diện hiện đại, giàu thông tin và hạn
+                chế phải
+                cuộn. #}
+                {# =============================== #}
+
+
+
+                <div class="statistics-card" id="stats-content-desktop">
+                    <div class="statistics-card__header">
+                        <div>
+                            <span class="statistics-card__subtitle">Phiên học Flashcard</span>
+                            <h3 class="statistics-card__title">Thống kê thời gian thực</h3>
+                        </div>
+                        <span class="statistics-card__badge"><i class="fas fa-bolt"></i> Đang cập nhật</span>
+                    </div>
+
+                    <div class="session-overview">
+                        <div class="summary-card summary-card--total">
+                            <span class="summary-card__label">Tổng điểm</span>
+                            <div id="total-score-display" class="summary-card__value">
+                                <i class="fas fa-star"></i>
+                                <span>-</span>
+                            </div>
+                            <p class="summary-card__hint">Cộng dồn toàn bộ điểm Flashcard</p>
+                        </div>
+                        <div class="summary-card summary-card--session">
+                            <span class="summary-card__label">Điểm phiên này</span>
+                            <div id="session-score-display" class="summary-card__value summary-card__value--accent">+0
+                            </div>
+                            <p class="summary-card__hint">Cập nhật sau mỗi câu trả lời</p>
+                        </div>
+                    </div>
+
+                    <div class="stats-tab-nav">
+                        <button class="stats-tab-button active" data-target="current-card-stats-pane"><i
+                                class="fas fa-dot-circle"></i>
+                            Thẻ hiện tại</button>
+                        <button class="stats-tab-button" data-target="previous-card-stats-pane"><i
+                                class="fas fa-history"></i> Thẻ
+                            trước
+                            đó</button>
+                    </div>
+
+                    <div class="stats-tab-content">
+                        <div id="current-card-stats-pane" class="stats-tab-pane active">
+                            <div id="current-card-stats" class="stats-stack">
+                                <div class="empty-state"><i class="fas fa-circle-notch fa-spin"></i> Đang tải thông tin
+                                    thẻ...</div>
+                            </div>
+                        </div>
+                        <div id="previous-card-stats-pane" class="stats-tab-pane">
+                            <div id="previous-card-stats" class="stats-stack">
+                                <div class="empty-state"><i class="fas fa-info-circle"></i> Trả lời thẻ để xem thống kê
+                                    gần nhất.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="statistics-card__footer">
+                        <button id="end-session-btn" class="session-end-btn"><i class="fas fa-flag-checkered"></i>
+                            <span>Kết thúc
+                                phiên</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

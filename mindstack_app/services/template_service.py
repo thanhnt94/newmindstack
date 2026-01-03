@@ -29,11 +29,11 @@ class TemplateService:
         },
         'flashcard.cardsession': {
             'label': 'Flashcard Session',
-            'relative_path': 'pages/learning/flashcard/session'
+            'relative_path': 'pages/learning/vocabulary/flashcard/session'
         },
         'flashcard.setup': {
             'label': 'Flashcard Setup (Chọn chế độ)',
-            'relative_path': 'pages/learning/flashcard/setup'
+            'relative_path': 'pages/learning/collab/flashcard'
         },
         'quiz.session': {
             'label': 'Quiz Session (Làm bài)',

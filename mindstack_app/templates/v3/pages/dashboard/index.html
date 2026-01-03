@@ -47,9 +47,13 @@ Extends v3/base.html directly. Uses static v3/ paths.
 {% block content %}
 <div class="bg-transparent">
     {# --- Giao diện Mobile (App-like) --- #}
-    {% include 'v3/pages/dashboard/_mobile.html' %}
+    <div class="lg:hidden">
+        {% include 'v3/pages/dashboard/_mobile.html' %}
+    </div>
 
     {# --- Giao diện Desktop (Grid Complex) --- #}
-    {% include 'v3/pages/dashboard/_desktop.html' %}
+    <div class="hidden lg:block">
+        {% include 'v3/pages/dashboard/_desktop.html' %}
+    </div>
 </div>
 {% endblock %}
