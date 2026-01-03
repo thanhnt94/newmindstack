@@ -140,7 +140,14 @@ class VocabularyItemStats:
                 'front': content.get('front', '?'),
                 'back': content.get('back', '?'),
                 'pronunciation': content.get('pronunciation'),
-                'meaning': content.get('meaning') # Should ideally be consistent with 'back' or separate
+                'meaning': content.get('meaning'),
+                'image': content.get('image'),
+                'audio': content.get('audio'),
+                'example': content.get('example'),
+                'example_meaning': content.get('example_meaning'),
+                'phonetic': content.get('phonetic'),
+                'tags': content.get('tags', []),
+                'full_content': content # Pass original content for flexibility
             },
             'progress': {
                 'status': status,

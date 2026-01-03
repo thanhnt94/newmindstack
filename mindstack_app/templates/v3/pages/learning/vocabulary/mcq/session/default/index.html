@@ -385,8 +385,8 @@
         display: flex;
         flex-direction: column;
         background: #f8fafc;
-        overflow: visible;
-        /* Let container scroll */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     /* Scrollbar styling for Main */
@@ -545,6 +545,17 @@
         60% {
             transform: translate3d(4px, 0, 0);
         }
+    }
+
+    .choice-btn.answered-state {
+        cursor: pointer;
+        /* Keep pointer to indicate clickable for stats */
+    }
+
+    .choice-btn.answered-state:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+        z-index: 10;
     }
 
     /* Footer */
@@ -717,9 +728,9 @@
                 <a href="/" class="mcq-nav-btn" title="Trang chủ">
                     <i class="fas fa-house" style="font-size: 0.75rem;"></i>
                 </a>
-                <a href="#" class="mcq-nav-btn" title="Thống kê từ" id="single-stats-btn" target="_blank">
+                <button class="mcq-nav-btn" title="Thống kê từ" id="single-stats-btn">
                     <i class="fas fa-chart-pie" style="font-size: 0.75rem;"></i>
-                </a>
+                </button>
                 <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="mcq-nav-btn" title="Thoát">
                     <i class="fas fa-right-from-bracket" style="font-size: 0.75rem;"></i>
                 </a>
@@ -827,6 +838,7 @@
 {# Explicit Notification Integration #}
 {% include 'v3/includes/notification/_score_toast.html' %}
 {% include 'v3/includes/notification/_memory_power.html' %}
+{% include 'v3/pages/learning/vocabulary/stats/_modal_stats.html' %}
 {% endblock %}
 
 {% block scripts %}
@@ -927,8 +939,13 @@
 
         // Update Stats Link
         const statsBtn = document.getElementById('single-stats-btn');
-        const statsUrlTemplate = "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}";
-        if (statsBtn) statsBtn.href = statsUrlTemplate.replace('0', q.item_id || q.id);
+        if (statsBtn) {
+            statsBtn.onclick = () => {
+                if (window.openVocabularyItemStats && q.item_id) {
+                    window.openVocabularyItemStats(q.item_id);
+                }
+            };
+        }
 
         els.nextBtn.disabled = true;
 
@@ -944,7 +961,16 @@
                 <div class="choice-text">${choiceText}</div>
             `;
 
-            btn.onclick = () => handleAnswer(idx, btn);
+            btn.onclick = () => {
+                if (!isAnswered) {
+                    handleAnswer(idx, btn);
+                } else {
+                    // Open stats modal if already answered
+                    if (window.openVocabularyItemStats && q.item_id) {
+                        window.openVocabularyItemStats(q.item_id);
+                    }
+                }
+            };
             els.cGrid.appendChild(btn);
         });
 
@@ -973,7 +999,8 @@
         const buttons = els.cGrid.children;
         for (let i = 0; i < buttons.length; i++) {
             const btn = buttons[i];
-            btn.disabled = true; // Disable all
+            // Don't fully disable, but mark as answered to change interaction
+            btn.classList.add('answered-state');
 
             if (i === q.correct_index) {
                 btn.classList.add('correct'); // Always show correct one
