@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from . import admin_bp
 from mindstack_app.models import Badge
 from ...models import db, AppSettings
+from ...extensions import csrf_protect
 
 @admin_bp.route('/gamification/points')
 @login_required
@@ -16,6 +17,7 @@ def gamification_points():
 
 @admin_bp.route('/gamification/points/update', methods=['POST'])
 @login_required
+@csrf_protect.exempt
 def update_gamification_points():
     """Cập nhật các giá trị cấu hình điểm số."""
     if current_user.user_role != 'admin':

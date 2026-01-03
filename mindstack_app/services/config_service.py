@@ -204,6 +204,36 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "description": "Điểm thưởng hoàn thành toàn bộ khóa học.",
             },
             {
+                "key": "VOCAB_TYPING_CORRECT_BONUS",
+                "value": 15,
+                "data_type": "int",
+                "description": "Điểm thưởng khi trả lời đúng (Typing).",
+            },
+            {
+                "key": "VOCAB_MATCHING_CORRECT_BONUS",
+                "value": 10,
+                "data_type": "int",
+                "description": "Điểm thưởng khi ghép đúng cặp (Matching).",
+            },
+            {
+                "key": "VOCAB_LISTENING_CORRECT_BONUS",
+                "value": 12,
+                "data_type": "int",
+                "description": "Điểm thưởng khi nghe và chọn đúng (Listening).",
+            },
+             {
+                "key": "VOCAB_SPEED_CORRECT_BONUS",
+                "value": 20,
+                "data_type": "int",
+                "description": "Điểm thưởng khi trả lời đúng trong Speed Review.",
+            },
+            {
+                "key": "VOCAB_MCQ_CORRECT_BONUS",
+                "value": 10,
+                "data_type": "int",
+                "description": "Điểm thưởng khi trả lời đúng trắc nghiệm (Vocabulary MCQ).",
+            },
+            {
                 "key": "DAILY_LOGIN_SCORE",
                 "value": 10,
                 "data_type": "int",

@@ -89,7 +89,8 @@ class ScoringEngine:
         is_correct: bool,
         is_first_time: bool = False,
         correct_streak: int = 0,
-        response_time_seconds: Optional[float] = None
+        response_time_seconds: Optional[float] = None,
+        base_points_override: Optional[int] = None
     ) -> ScoreResult:
         """
         Calculate points for answering a learning item.
@@ -101,6 +102,7 @@ class ScoringEngine:
             is_first_time: Whether this is the first time seeing this item
             correct_streak: Current consecutive correct answers
             response_time_seconds: Time taken to answer (for speed bonus)
+            base_points_override: Override preset base points with a custom value
 
         Returns:
             ScoreResult with breakdown of points earned
@@ -127,7 +129,10 @@ class ScoringEngine:
             )
 
         # === BASE POINTS ===
-        base = ScoringEngine.MODE_BASE_POINTS.get(mode, 10)
+        if base_points_override is not None:
+            base = base_points_override
+        else:
+            base = ScoringEngine.MODE_BASE_POINTS.get(mode, 10)
         
         # Quality scaling (quality 3 = 50%, quality 4 = 75%, quality 5 = 100%)
         quality_multiplier = max(0.5, min(1.0, (quality - 2) * 0.25))

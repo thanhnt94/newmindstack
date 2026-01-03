@@ -11,7 +11,7 @@
     </div>
 
     <!-- Tabs -->
-    {% include 'admin_gamification/_tabs.html' %}
+    {% include 'admin/admin_gamification/_tabs.html' %}
 
     <!-- Content -->
     <div class="bg-white border border-slate-200 rounded-sm shadow-lg">
@@ -22,40 +22,9 @@
             </div>
 
             <form action="{{ url_for('admin.update_gamification_points') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
-                <!-- Flashcard Section -->
-                <div class="mb-6">
-                    <h3
-                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
-                        <i class="fa-solid fa-clone mr-2"></i> Flashcard
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Điểm xem trước thẻ mới</label>
-                            <input type="number" name="FLASHCARD_PREVIEW_BONUS"
-                                value="{{ config.FLASHCARD_PREVIEW_BONUS }}" class="form-input w-full" />
-                            <div class="text-xs text-slate-500 mt-1">Khi user xem thẻ mới lần đầu (preview).</div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Điểm ôn sớm (Tốt)</label>
-                            <input type="number" name="FLASHCARD_EARLY_REVIEW_HIGH"
-                                value="{{ config.FLASHCARD_EARLY_REVIEW_HIGH }}" class="form-input w-full" />
-                            <div class="text-xs text-slate-500 mt-1">Ôn trước hạn, trả lời >= 4.</div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Điểm ôn đúng hạn (Tốt)</label>
-                            <input type="number" name="FLASHCARD_REVIEW_HIGH" value="{{ config.FLASHCARD_REVIEW_HIGH }}"
-                                class="form-input w-full" />
-                            <div class="text-xs text-slate-500 mt-1">Ôn đúng hạn, trả lời >= 4.</div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Điểm ôn đúng hạn (Khá)</label>
-                            <input type="number" name="FLASHCARD_REVIEW_MEDIUM"
-                                value="{{ config.FLASHCARD_REVIEW_MEDIUM }}" class="form-input w-full" />
-                            <div class="text-xs text-slate-500 mt-1">Ôn đúng hạn, trả lời 2-3.</div>
-                        </div>
-                    </div>
-                </div>
+
 
                 <!-- Quiz Section -->
                 <div class="mb-6">
@@ -93,6 +62,74 @@
                             <label class="block text-sm font-medium mb-1">Hoàn thành khóa học (Course)</label>
                             <input type="number" name="COURSE_COMPLETION_SCORE"
                                 value="{{ config.COURSE_COMPLETION_SCORE }}" class="form-input w-full" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vocabulary Section -->
+                <div class="mb-6">
+                    <h3
+                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
+                        <i class="fa-solid fa-book-open mr-2"></i> Học từ vựng (Vocabulary)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Flashcard Fields -->
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Flashcard (Xem trước)</label>
+                            <input type="number" name="FLASHCARD_PREVIEW_BONUS"
+                                value="{{ config.FLASHCARD_PREVIEW_BONUS }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Khi user xem thẻ mới lần đầu.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Flashcard (Ôn sớm - Tốt)</label>
+                            <input type="number" name="FLASHCARD_EARLY_REVIEW_HIGH"
+                                value="{{ config.FLASHCARD_EARLY_REVIEW_HIGH }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Ôn trước hạn, trả lời >= 4.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Flashcard (Đúng hạn - Tốt)</label>
+                            <input type="number" name="FLASHCARD_REVIEW_HIGH" value="{{ config.FLASHCARD_REVIEW_HIGH }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Ôn đúng hạn, trả lời >= 4.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Flashcard (Đúng hạn - Khá)</label>
+                            <input type="number" name="FLASHCARD_REVIEW_MEDIUM"
+                                value="{{ config.FLASHCARD_REVIEW_MEDIUM }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Ôn đúng hạn, trả lời 2-3.</div>
+                        </div>
+
+                        <!-- Typing Fields -->
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Gõ từ (Typing)</label>
+                            <input type="number" name="VOCAB_TYPING_CORRECT_BONUS"
+                                value="{{ config.VOCAB_TYPING_CORRECT_BONUS }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Điểm thưởng khi gõ đúng từ.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Ghép cặp (Matching)</label>
+                            <input type="number" name="VOCAB_MATCHING_CORRECT_BONUS"
+                                value="{{ config.VOCAB_MATCHING_CORRECT_BONUS }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Điểm thưởng mỗi cặp ghép đúng.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Luyện nghe (Listening)</label>
+                            <input type="number" name="VOCAB_LISTENING_CORRECT_BONUS"
+                                value="{{ config.VOCAB_LISTENING_CORRECT_BONUS }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Điểm thưởng khi chọn đúng từ nghe được.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Ôn tập nhanh (Speed Review)</label>
+                            <input type="number" name="VOCAB_SPEED_CORRECT_BONUS"
+                                value="{{ config.VOCAB_SPEED_CORRECT_BONUS }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Điểm thưởng khi trả lời đúng trong thời gian ngắn.
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Trắc nghiệm (MCQ)</label>
+                            <input type="number" name="VOCAB_MCQ_CORRECT_BONUS"
+                                value="{{ config.VOCAB_MCQ_CORRECT_BONUS }}" class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Điểm thưởng cho chế độ trắc nghiệm thường.</div>
                         </div>
                     </div>
                 </div>

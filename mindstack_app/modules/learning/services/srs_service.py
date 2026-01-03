@@ -13,6 +13,7 @@ This service:
 
 import datetime
 from typing import Optional
+from flask import current_app
 from mindstack_app.models import db, LearningItem, ReviewLog
 from mindstack_app.models.learning_progress import LearningProgress
 
@@ -446,7 +447,7 @@ class SrsService:
             result_data: Mode-specific result data (quality, accuracy, is_correct, etc.)
 
         Returns:
-            dict: Summary (quality, status, next_review, score_change)
+            dict: Summary (quality, status, next_review, score_change, points_breakdown)
         """
         # 1. Normalize result to SRS quality using engine
         quality = SrsEngine.normalize_quality(mode, result_data)
@@ -462,19 +463,61 @@ class SrsService:
             user_answer=result_data.get('user_answer')
         )
         
-        # 3. Get latest score from ReviewLog
+        # 3. Calculate Score using ScoringEngine with Dynamic Config
+        base_points_config_key = None
+        mode_lower = mode.lower()
+        
+        if mode_lower == 'typing':
+            base_points_config_key = 'VOCAB_TYPING_CORRECT_BONUS'
+        elif mode_lower == 'matching':
+            base_points_config_key = 'VOCAB_MATCHING_CORRECT_BONUS'
+        elif mode_lower == 'listening':
+            base_points_config_key = 'VOCAB_LISTENING_CORRECT_BONUS'
+        elif mode_lower == 'speed' or mode_lower == 'speed_review':
+            base_points_config_key = 'VOCAB_SPEED_CORRECT_BONUS'
+        elif mode_lower == 'mcq' or mode_lower == 'quiz_mcq':
+             base_points_config_key = 'VOCAB_MCQ_CORRECT_BONUS'
+        
+        base_points_override = None
+        if base_points_config_key:
+             base_points_override = current_app.config.get(base_points_config_key)
+
+        is_correct = SrsEngine.is_correct(quality)
+        
+        # We need correct_streak for bonus calculation (it was just updated in step 2)
+        current_streak = progress.correct_streak if progress else 0
+        
+        score_result = ScoringEngine.calculate_answer_points(
+            mode=mode,
+            quality=quality,
+            is_correct=is_correct,
+            is_first_time=(progress.repetitions == 1 and is_correct), # Approximation
+            correct_streak=current_streak,
+            response_time_seconds=result_data.get('duration_ms', 0) / 1000.0,
+            base_points_override=base_points_override
+        )
+        
+        score_change = score_result.total_points
+
+        # 4. Update the latest ReviewLog with the accurate calculated score
+        # (The update() method created a log with a basic score, we refine it here)
         latest_log = ReviewLog.query.filter_by(
             user_id=user_id,
             item_id=item_id
         ).order_by(ReviewLog.timestamp.desc()).first()
         
-        score_change = latest_log.score_change if latest_log else 0
+        if latest_log:
+            latest_log.score_change = score_change
+            # We could also save breakdown if ReviewLog had a JSON field for it, but for now just score.
+            db.session.add(latest_log)
+            # Commit is handled by caller or request teardown
 
         return {
             'quality': quality,
             'status': progress.status,
             'next_review': progress.due_time,
-            'score_change': score_change
+            'score_change': score_change,
+            'points_breakdown': score_result.breakdown
         }
 
     @staticmethod
