@@ -113,11 +113,11 @@
     saveNoteUrl: "{{ url_for('notes.save_note', item_id=0) }}",
     editFlashcardUrlTemplate: "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}",
     csrfHeaders: { "X-CSRFToken": "{{ csrf_token() }}" },
-    userButtonCount: {{ user_button_count | default (4) | tojson }},
-  isAutoplaySession: { { is_autoplay_session | default (false) | tojson } },
-  autoplayMode: { { autoplay_mode | default ('') | tojson } },
-  visualSettings: { { (saved_visual_settings or { }) | tojson } },
-  autoSaveOn: { { saved_auto_save | default (true) | tojson } }
+    userButtonCount: {{ user_button_count | default(4) | tojson }},
+      isAutoplaySession: {{ is_autoplay_session | default(false) | tojson }},
+      autoplayMode: {{ autoplay_mode | default('') | tojson }},
+      visualSettings: {{ (saved_visual_settings or {}) | tojson }},
+      autoSaveOn: {{ saved_auto_save | default(true) | tojson }}
   };
 
   const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
@@ -126,7 +126,7 @@
     window.FlashcardConfig.csrfHeaders = { "X-CSRFToken": csrfToken };
   }
 
-  window.currentUserTotalScoreInit = {{ current_user.total_score | default (0) }};
+  window.currentUserTotalScoreInit = {{ current_user.total_score | default(0) }};
   window.sessionScore = 0;
 </script>
 

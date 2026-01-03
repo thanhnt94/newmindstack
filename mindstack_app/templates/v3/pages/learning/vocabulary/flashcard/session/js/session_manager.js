@@ -209,13 +209,15 @@ async function submitFlashcardAnswer(itemId, answer) {
         currentUserTotalScore = data.updated_total_score;
 
         // Gamified Notification
+        let notificationPromise = Promise.resolve();
+
         if (data.score_change > 0 && typeof window.showScoreToast === 'function') {
             window.showScoreToast(data.score_change);
         }
 
-        // Memory Power Notification
+        // Memory Power Notification - await its animation
         if (data.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
-            window.showMemoryPowerFeedback(data.memory_power.old_memory_power, data.memory_power.memory_power);
+            notificationPromise = window.showMemoryPowerFeedback(data.memory_power.old_memory_power, data.memory_power.memory_power);
         }
 
         const previousCardContent = currentFlashcardBatch[currentFlashcardIndex].content;
@@ -298,6 +300,9 @@ async function submitFlashcardAnswer(itemId, answer) {
         document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
 
         currentFlashcardIndex++;
+
+        // Wait for notification animation to complete before loading next card
+        await notificationPromise;
         getNextFlashcardBatch();
     } catch (e) {
         console.error('Lỗi khi gửi đáp án:', e);

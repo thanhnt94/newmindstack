@@ -2,26 +2,44 @@
     /**
     * Memory Power Notification Component
     * Extracted from ui_manager.js for reusability
+    * Returns a Promise that resolves when the animation is complete
+    * 
+    * TIMING CONFIG (adjust these values to change animation duration):
     */
+    const MP_ANIMATION_CONFIG = {
+        ENTRANCE_DELAY: 50,      // Delay before entrance animation (ms)
+        COUNT_DURATION: 400,     // Duration of number count-up animation (ms)
+        DISPLAY_TIME: 600,       // Time to display after count-up completes (ms)
+        EXIT_DURATION: 150       // Exit fade-out duration (ms)
+        // TOTAL ≈ ENTRANCE_DELAY + COUNT_DURATION + DISPLAY_TIME + EXIT_DURATION = ~1200ms
+    };
+
     window.showMemoryPowerFeedback = function (oldVal, newVal) {
-        if (oldVal === undefined || newVal === undefined || oldVal === newVal) return;
+        return new Promise((resolve) => {
+            if (oldVal === undefined || newVal === undefined || oldVal === newVal) {
+                resolve(); // Resolve immediately if no animation needed
+                return;
+            }
 
-        const diff = (newVal - oldVal).toFixed(1);
-        const sign = diff >= 0 ? '+' : '';
-        const isPositive = diff >= 0;
+            const diff = (newVal - oldVal).toFixed(1);
+            const sign = diff >= 0 ? '+' : '';
+            const isPositive = diff >= 0;
 
-        // Create the container
-        const container = document.createElement('div');
-        container.className = 'fixed inset-0 z-[1000] pointer-events-none flex items-center justify-center';
+            // Create the container
+            const container = document.createElement('div');
+            container.className = 'fixed inset-0 z-[1000] pointer-events-none flex items-center justify-center';
 
-        // Circle parameters
-        const size = 180; // Slightly smaller for elegance
-        const strokeWidth = 8; // Thinner stroke
-        const radius = (size - strokeWidth) / 2;
-        const circumference = 2 * Math.PI * radius;
+            // Circle parameters
+            const size = 180;
+            const strokeWidth = 8;
+            const radius = (size - strokeWidth) / 2;
+            const circumference = 2 * Math.PI * radius;
 
-        container.innerHTML = `
-            <div class="relative flex flex-col items-center justify-center p-8 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-2xl scale-90 opacity-0 transition-all duration-300 ease-out js-mp-container"
+            // Use config for transition duration
+            const circleDuration = MP_ANIMATION_CONFIG.COUNT_DURATION / 1000;
+
+            container.innerHTML = `
+            <div class="relative flex flex-col items-center justify-center p-8 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-2xl scale-90 opacity-0 transition-all duration-150 ease-out js-mp-container"
                 style="min-width: 240px; min-height: 240px;">
                 
                 <!-- Glow Effect -->
@@ -41,13 +59,13 @@
                             cx="${size / 2}" cy="${size / 2}" r="${radius}" 
                             stroke="url(#mp-gradient-new)" stroke-width="${strokeWidth}" 
                             fill="transparent" stroke-linecap="round"
-                            style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${circumference - (oldVal / 100) * circumference}; transition: stroke-dashoffset 1s cubic-bezier(0.2, 0, 0, 1);"
+                            style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${circumference - (oldVal / 100) * circumference}; transition: stroke-dashoffset ${circleDuration}s cubic-bezier(0.2, 0, 0, 1);"
                             class="js-mp-circle"
                         />
                         <defs>
                             <linearGradient id="mp-gradient-new" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#818cf8" /> <!-- Indigo 400 -->
-                                <stop offset="100%" stop-color="#c084fc" /> <!-- Purple 400 -->
+                                <stop offset="0%" stop-color="#818cf8" />
+                                <stop offset="100%" stop-color="#c084fc" />
                             </linearGradient>
                         </defs>
                     </svg>
@@ -58,7 +76,7 @@
                         <span class="text-5xl font-black js-mp-value tracking-tight drop-shadow-md">${oldVal.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span></span>
                         
                         <div class="mt-3 overflow-hidden">
-                            <div class="px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-sm flex items-center gap-1.5 transform translate-y-4 opacity-0 transition-all duration-300 delay-100 js-mp-diff">
+                            <div class="px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-sm flex items-center gap-1.5 transform translate-y-4 opacity-0 transition-all duration-150 delay-50 js-mp-diff">
                                 <i class="fas ${isPositive ? 'fa-arrow-up' : 'fa-arrow-down'} text-[10px] ${isPositive ? 'text-emerald-400' : 'text-rose-400'}"></i>
                                 <span class="text-sm font-bold ${isPositive ? 'text-emerald-300' : 'text-rose-300'}">${sign}${Math.abs(diff)}%</span>
                             </div>
@@ -68,57 +86,62 @@
             </div>
         `;
 
-        document.body.appendChild(container);
+            document.body.appendChild(container);
 
-        const containerInner = container.querySelector('.js-mp-container');
-        const circle = container.querySelector('.js-mp-circle');
-        const valueDisplay = container.querySelector('.js-mp-value');
-        const diffBadge = container.querySelector('.js-mp-diff');
+            const containerInner = container.querySelector('.js-mp-container');
+            const circle = container.querySelector('.js-mp-circle');
+            const valueDisplay = container.querySelector('.js-mp-value');
+            const diffBadge = container.querySelector('.js-mp-diff');
 
-        // ENTRANCE ANIMATION
-        requestAnimationFrame(() => {
-            containerInner.classList.remove('scale-90', 'opacity-0');
-            containerInner.classList.add('scale-100', 'opacity-100');
+            // ENTRANCE ANIMATION
+            requestAnimationFrame(() => {
+                containerInner.classList.remove('scale-90', 'opacity-0');
+                containerInner.classList.add('scale-100', 'opacity-100');
 
-            // Show diff badge slightly later
+                // Show diff badge slightly later
+                setTimeout(() => {
+                    diffBadge.classList.remove('translate-y-4', 'opacity-0');
+                }, 50);
+            });
+
+            // COUNT UP & CIRCLE FILL ANIMATION
             setTimeout(() => {
-                diffBadge.classList.remove('translate-y-4', 'opacity-0');
-            }, 100);
-        });
+                // 1. Animate Circle
+                const targetOffset = circumference - (newVal / 100) * circumference;
+                circle.style.strokeDashoffset = targetOffset;
 
-        // COUNT UP & CIRCLE FILL ANIMATION
-        setTimeout(() => {
-            // 1. Animate Circle
-            const targetOffset = circumference - (newVal / 100) * circumference;
-            circle.style.strokeDashoffset = targetOffset;
+                // 2. Animate Number
+                const duration = MP_ANIMATION_CONFIG.COUNT_DURATION;
+                const start = performance.now();
 
-            // 2. Animate Number
-            const duration = 1000;
-            const start = performance.now();
+                const animateNumbers = (time) => {
+                    const timeFraction = Math.min((time - start) / duration, 1);
+                    // easeOutExpo for a snappy yet smooth finish
+                    const progress = timeFraction === 1 ? 1 : 1 - Math.pow(2, -10 * timeFraction);
 
-            const animateNumbers = (time) => {
-                const timeFraction = Math.min((time - start) / duration, 1);
-                // easeOutExpo for a snappy yet smooth finish
-                const progress = timeFraction === 1 ? 1 : 1 - Math.pow(2, -10 * timeFraction);
+                    const current = oldVal + (newVal - oldVal) * progress;
 
-                const current = oldVal + (newVal - oldVal) * progress;
+                    // Maintain layout stability by fixing decimal places
+                    valueDisplay.innerHTML = `${current.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span>`;
 
-                // Maintain layout stability by fixing decimal places
-                valueDisplay.innerHTML = `${current.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span>`;
+                    if (timeFraction < 1) {
+                        requestAnimationFrame(animateNumbers);
+                    }
+                };
+                requestAnimationFrame(animateNumbers);
 
-                if (timeFraction < 1) {
-                    requestAnimationFrame(animateNumbers);
-                }
-            };
-            requestAnimationFrame(animateNumbers);
+            }, MP_ANIMATION_CONFIG.ENTRANCE_DELAY);
 
-        }, 100);
-
-        // EXIT ANIMATION
-        setTimeout(() => {
-            containerInner.classList.remove('scale-100', 'opacity-100');
-            containerInner.classList.add('scale-95', 'opacity-0', 'blur-sm'); // Add blur on exit
-            setTimeout(() => container.remove(), 300);
-        }, 2500);
+            // EXIT ANIMATION - starts after ENTRANCE + COUNT + DISPLAY time
+            const exitStartTime = MP_ANIMATION_CONFIG.ENTRANCE_DELAY + MP_ANIMATION_CONFIG.COUNT_DURATION + MP_ANIMATION_CONFIG.DISPLAY_TIME;
+            setTimeout(() => {
+                containerInner.classList.remove('scale-100', 'opacity-100');
+                containerInner.classList.add('scale-95', 'opacity-0', 'blur-sm');
+                setTimeout(() => {
+                    container.remove();
+                    resolve(); // Resolve Promise after animation completes
+                }, MP_ANIMATION_CONFIG.EXIT_DURATION);
+            }, exitStartTime);
+        }); // Close Promise
     };
 </script>
