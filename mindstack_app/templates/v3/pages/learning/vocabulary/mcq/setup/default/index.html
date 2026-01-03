@@ -430,6 +430,36 @@
                 </div>
             </div>
 
+            <!-- Answer Choices Count (NEW) -->
+            <div class="setup-card">
+                <div class="card-header">
+                    <div class="card-icon" style="background: #f59e0b;"><i class="fas fa-check-double"></i></div>
+                    <div>
+                        <div class="card-title">Số đáp án</div>
+                        <span class="card-desc">Mỗi câu có bao nhiêu lựa chọn?</span>
+                    </div>
+                </div>
+
+                <div class="count-options" id="choices-options">
+                    <div class="count-option" data-value="3">
+                        <span class="count-label">3 đáp án</span>
+                        <div class="check-circle"></div>
+                    </div>
+                    <div class="count-option selected" data-value="4">
+                        <span class="count-label">4 đáp án</span>
+                        <div class="check-circle"></div>
+                    </div>
+                    <div class="count-option" data-value="6">
+                        <span class="count-label">6 đáp án</span>
+                        <div class="check-circle"></div>
+                    </div>
+                    <div class="count-option" data-value="8">
+                        <span class="count-label">8 đáp án</span>
+                        <div class="check-circle"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Configuration Pairs -->
             <div class="setup-card">
                 <div class="card-header">
@@ -512,11 +542,29 @@
     }
     if (matchedOption) matchedOption.classList.add('selected');
 
-    // --- 2. Load Saved Settings: Choices ---
+    // --- 2. Load Saved Settings: Choices (NEW UI) ---
+    var selectedChoices = 4; // Default
     if (savedSettings && savedSettings.choices) {
-        var choicesSelect = document.getElementById('choices-select');
-        if (choicesSelect) choicesSelect.value = savedSettings.choices;
+        selectedChoices = parseInt(savedSettings.choices);
     }
+
+    // Render Choices Selection
+    var choicesOptions = document.querySelectorAll('#choices-options .count-option');
+    choicesOptions.forEach(function (card) {
+        card.addEventListener('click', function () {
+            choicesOptions.forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedChoices = parseInt(this.dataset.value);
+        });
+    });
+
+    // Re-apply selection visual for choices
+    choicesOptions.forEach(c => c.classList.remove('selected'));
+    var matchedChoice = Array.from(choicesOptions).find(c => parseInt(c.dataset.value) === selectedChoices);
+    if (!matchedChoice) {
+        matchedChoice = Array.from(choicesOptions).find(c => parseInt(c.dataset.value) === 4); // fallback to 4
+    }
+    if (matchedChoice) matchedChoice.classList.add('selected');
 
     // --- 3. Load Saved Settings: Custom Pairs ---
     var hasSavedPairs = false;
@@ -629,8 +677,7 @@
             }
 
             var count = Math.min(selectedCount, totalItems);
-            var choicesSelect = document.getElementById('choices-select');
-            var choices = choicesSelect ? choicesSelect.value : 4;
+            var choices = selectedChoices; // Use the variable from radio selection
 
             // Updated base URL to use 'learning.vocabulary.mcq.session'
             var baseUrl = "{{ url_for('learning.vocabulary.mcq.session', set_id=container.container_id) }}";

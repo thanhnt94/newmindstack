@@ -15,29 +15,74 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timezone, timedelta
-from typing import Tuple, Optional, NamedTuple
+from typing import Tuple, Optional, NamedTuple, TYPE_CHECKING
 from dataclasses import dataclass
 
 
-# === CONSTANTS ===
+# === CONFIG SERVICE (Lazy Import) ===
+# Use lazy import to avoid circular dependencies during app initialization
+_config_service = None
 
-# Learning phase: intervals in minutes for each successful repetition
-LEARNING_INTERVALS_MINUTES = [1, 10, 60, 240, 480, 1440]  # 1m, 10m, 1h, 4h, 8h, 1d
+def _get_config():
+    """Lazy load MemoryPowerConfigService to avoid circular imports."""
+    global _config_service
+    if _config_service is None:
+        try:
+            from ..services.memory_power_config_service import MemoryPowerConfigService
+            _config_service = MemoryPowerConfigService
+        except ImportError:
+            # Fallback for standalone usage or testing
+            _config_service = None
+    return _config_service
 
-# Graduating interval when moving from Learning -> Reviewing (in minutes)
-GRADUATING_INTERVAL_MINUTES = 4 * 24 * 60  # 4 days
 
-# Relearning interval when failing in Review phase
-RELEARNING_INTERVAL_MINUTES = 10
+# === DEFAULT CONSTANTS (Fallback when config not available) ===
+_DEFAULT_LEARNING_INTERVALS = [1, 10, 60, 240, 480, 1440]
+_DEFAULT_GRADUATING_INTERVAL = 5760  # 4 days
+_DEFAULT_RELEARNING_INTERVAL = 10
+_DEFAULT_MIN_INTERVAL = 1
+_DEFAULT_RETENTION_THRESHOLD = 0.90
+_DEFAULT_LEARNING_TO_REVIEWING_STREAK = 7
 
-# Minimum interval (1 minute)
-MIN_INTERVAL_MINUTES = 1
 
-# Retention threshold for due items (90%)
-RETENTION_THRESHOLD = 0.90
+def _get_learning_intervals():
+    """Get learning intervals from config or use defaults."""
+    config = _get_config()
+    if config:
+        return config.get_learning_intervals()
+    return _DEFAULT_LEARNING_INTERVALS
 
-# Streak thresholds
-LEARNING_TO_REVIEWING_STREAK = 7  # Graduate after 7 correct answers
+
+def _get_graduating_interval():
+    """Get graduating interval from config or use defaults."""
+    config = _get_config()
+    if config:
+        return config.get_graduating_interval()
+    return _DEFAULT_GRADUATING_INTERVAL
+
+
+def _get_relearning_interval():
+    """Get relearning interval from config or use defaults."""
+    config = _get_config()
+    if config:
+        return config.get_relearning_interval()
+    return _DEFAULT_RELEARNING_INTERVAL
+
+
+def _get_min_interval():
+    """Get minimum interval from config or use defaults."""
+    config = _get_config()
+    if config:
+        return config.get_min_interval()
+    return _DEFAULT_MIN_INTERVAL
+
+
+def _get_learning_to_reviewing_streak():
+    """Get streak threshold from config or use defaults."""
+    config = _get_config()
+    if config:
+        return config.get('SRS_LEARNING_TO_REVIEWING_STREAK')
+    return _DEFAULT_LEARNING_TO_REVIEWING_STREAK
 
 
 @dataclass
@@ -241,17 +286,20 @@ class MemoryEngine:
             # Status transitions
             if status == 'new':
                 status = 'learning'
-                interval = LEARNING_INTERVALS_MINUTES[0]
+                learning_intervals = _get_learning_intervals()
+                interval = learning_intervals[0]
 
             elif status == 'learning':
                 # Get next learning interval
-                step_idx = min(reps - 1, len(LEARNING_INTERVALS_MINUTES) - 1)
-                interval = LEARNING_INTERVALS_MINUTES[step_idx]
+                learning_intervals = _get_learning_intervals()
+                step_idx = min(reps - 1, len(learning_intervals) - 1)
+                interval = learning_intervals[step_idx]
 
                 # Check graduation to reviewing
-                if reps >= LEARNING_TO_REVIEWING_STREAK and quality >= 4:
+                grad_streak = _get_learning_to_reviewing_streak()
+                if reps >= grad_streak and quality >= 4:
                     status = 'reviewing'
-                    interval = GRADUATING_INTERVAL_MINUTES
+                    interval = _get_graduating_interval()
                     reps = 1  # Reset for reviewing phase
 
             elif status == 'reviewing':
@@ -288,18 +336,18 @@ class MemoryEngine:
                     mastery = max(0.40, mastery * 0.8)
                     reps = max(0, reps - 1)
 
-                interval = RELEARNING_INTERVAL_MINUTES
+                interval = _get_relearning_interval()
                 ef = max(1.3, ef - 0.2)
 
             elif status == 'learning':
                 if incorrect_streak >= 2:
                     reps = 0  # Reset learning progress
                     mastery = 0.10
-                interval = RELEARNING_INTERVAL_MINUTES
+                interval = _get_relearning_interval()
 
             elif status == 'new':
                 status = 'learning'
-                interval = RELEARNING_INTERVAL_MINUTES
+                interval = _get_relearning_interval()
 
         # Recalculate mastery based on new state
         new_mastery = MemoryEngine.calculate_mastery(
@@ -307,7 +355,7 @@ class MemoryEngine:
         )
 
         # Ensure interval minimum
-        interval = max(MIN_INTERVAL_MINUTES, interval)
+        interval = max(_get_min_interval(), interval)
 
         new_state = ProgressState(
             status=status,
@@ -333,55 +381,70 @@ class MemoryEngine:
     def flashcard_rating_to_quality(rating: int, button_count: int = 3) -> int:
         """
         Map flashcard button rating to quality score.
+        Uses configurable mappings from MemoryPowerConfigService.
 
-        3-button mode:
+        3-button mode (default):
         - Button 1 (Forgot): quality 1
         - Button 2 (Hard): quality 3
         - Button 3 (Easy): quality 5
 
-        4-button mode:
+        4-button mode (default):
         - Button 1 (Forgot): quality 0
         - Button 2 (Hard): quality 2
         - Button 3 (Good): quality 4
         - Button 4 (Easy): quality 5
         """
+        config = _get_config()
+        if config:
+            mapping = config.get_flashcard_quality_mapping(button_count)
+            if mapping:
+                return mapping.get(rating, 3)
+
+        # Fallback to defaults
         if button_count == 3:
             mapping = {1: 1, 2: 3, 3: 5}
         elif button_count == 4:
             mapping = {1: 0, 2: 2, 3: 4, 4: 5}
         else:
-            # Default: treat as 0-5 directly
             return max(0, min(5, rating))
 
         return mapping.get(rating, 3)
 
     @staticmethod
     def quiz_answer_to_quality(is_correct: bool) -> int:
-        """Map quiz answer to quality score."""
+        """Map quiz answer to quality score. Uses configurable values."""
+        config = _get_config()
+        if config:
+            return config.get_quiz_quality(is_correct)
         return 4 if is_correct else 1
 
     @staticmethod
     def typing_accuracy_to_quality(accuracy: float, used_hint: bool = False) -> int:
         """
-        Map typing accuracy to quality score.
+        Map typing accuracy to quality score. Uses configurable thresholds.
 
         Args:
             accuracy: 0.0 - 1.0 (percentage of correct characters)
             used_hint: Whether user requested a hint
         """
+        config = _get_config()
+        if config:
+            return config.get_typing_quality(accuracy, used_hint)
+
+        # Fallback to defaults
         if used_hint:
-            return 2  # Hint used = borderline pass
+            return 2
 
         if accuracy >= 1.0:
-            return 5  # Perfect
+            return 5
         elif accuracy >= 0.9:
-            return 4  # Minor typo
+            return 4
         elif accuracy >= 0.7:
-            return 3  # Mostly correct
+            return 3
         elif accuracy >= 0.5:
-            return 2  # Half correct
+            return 2
         else:
-            return 1  # Wrong
+            return 1
 
     # === DUE TIME CALCULATION ===
 

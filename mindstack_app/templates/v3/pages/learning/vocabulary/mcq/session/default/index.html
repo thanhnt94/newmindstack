@@ -51,10 +51,17 @@
         display: flex;
         flex-direction: column;
         height: 100vh;
-        max-width: 800px;
+        max-width: 100%;
+        /* Full width on mobile */
         margin: 0 auto;
         background: var(--bg);
         position: relative;
+    }
+
+    @media (min-width: 768px) {
+        .session-container {
+            max-width: 800px;
+        }
     }
 
 
@@ -498,7 +505,7 @@
 </style>
 {% endblock %}
 
-{% block body_class %} flashcard-session-active{% endblock %}
+{% block body_class %}mcq-session-active{% endblock %}
 
 {% block content %}
 <div class="session-container">

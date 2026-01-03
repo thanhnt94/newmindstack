@@ -2304,3 +2304,126 @@ def update_template_settings():
             'success': False,
             'message': f'Lỗi: {str(e)}',
         }), 500
+
+
+# =====================================================================
+# SRS / Memory Power Configuration Routes
+# =====================================================================
+
+@admin_bp.route('/srs-config', methods=['GET'])
+@login_required
+def srs_config():
+    """
+    Trang cấu hình hệ thống SRS / Memory Power.
+    Cho phép admin điều chỉnh các tham số như:
+    - Khoảng thời gian ôn tập
+    - Ánh xạ quality score cho Flashcard/Quiz/Typing
+    - Công thức tính Mastery
+    """
+    if current_user.user_role != User.ROLE_ADMIN:
+        abort(403)
+
+    from ...services.memory_power_config_service import MemoryPowerConfigService
+
+    grouped_settings = MemoryPowerConfigService.get_grouped()
+
+    return render_template(
+        'admin/srs_config.html',
+        grouped_settings=grouped_settings,
+        groups=MemoryPowerConfigService.GROUPS,
+    )
+
+
+@admin_bp.route('/srs-config', methods=['POST'])
+@login_required
+def save_srs_config():
+    """
+    API endpoint để lưu cấu hình SRS / Memory Power.
+    """
+    if current_user.user_role != User.ROLE_ADMIN:
+        return jsonify({'success': False, 'message': 'Không có quyền.'}), 403
+
+    from ...services.memory_power_config_service import MemoryPowerConfigService
+
+    try:
+        data = request.get_json() or {}
+        settings = data.get('settings', {})
+
+        if not settings:
+            return jsonify({'success': False, 'message': 'Không có thay đổi.'})
+
+        # Parse and validate each setting
+        parsed_settings = {}
+        for key, value in settings.items():
+            data_type = MemoryPowerConfigService.DATA_TYPES.get(key, 'string')
+
+            if data_type == 'int':
+                parsed_settings[key] = int(value) if value else 0
+            elif data_type == 'float':
+                parsed_settings[key] = float(value) if value else 0.0
+            elif data_type == 'json':
+                if isinstance(value, str):
+                    parsed_settings[key] = json.loads(value)
+                else:
+                    parsed_settings[key] = value
+            else:
+                parsed_settings[key] = value
+
+        MemoryPowerConfigService.save_all(parsed_settings, user_id=current_user.user_id)
+
+        current_app.logger.info(
+            f"SRS config updated by {current_user.username}: {list(parsed_settings.keys())}"
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Đã lưu cấu hình Memory Power.',
+        })
+
+    except json.JSONDecodeError as e:
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi JSON không hợp lệ: {str(e)}',
+        }), 400
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'message': f'Giá trị không hợp lệ: {str(e)}',
+        }), 400
+    except Exception as e:
+        current_app.logger.error(f"Error saving SRS config: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}',
+        }), 500
+
+
+@admin_bp.route('/srs-config/reset', methods=['POST'])
+@login_required
+def reset_srs_config():
+    """
+    Reset tất cả cấu hình SRS về giá trị mặc định.
+    """
+    if current_user.user_role != User.ROLE_ADMIN:
+        return jsonify({'success': False, 'message': 'Không có quyền.'}), 403
+
+    from ...services.memory_power_config_service import MemoryPowerConfigService
+
+    try:
+        MemoryPowerConfigService.reset_to_defaults(user_id=current_user.user_id)
+
+        current_app.logger.info(
+            f"SRS config reset to defaults by {current_user.username}"
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Đã khôi phục cấu hình về mặc định.',
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error resetting SRS config: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}',
+        }), 500
