@@ -66,7 +66,8 @@ class FlashcardSessionManager:
 
     def __init__(self, user_id, set_id, mode,
                  total_items_in_session, processed_item_ids,
-                 correct_answers, incorrect_answers, vague_answers, start_time):
+                 correct_answers, incorrect_answers, vague_answers, start_time,
+                 session_points=0):
         self.user_id = user_id
         self.set_id = set_id
         self.mode = mode
@@ -76,6 +77,7 @@ class FlashcardSessionManager:
         self.incorrect_answers = incorrect_answers
         self.vague_answers = vague_answers
         self.start_time = start_time
+        self.session_points = session_points  # Track points earned in this session
         self._media_folders_cache = None
         self._edit_permission_cache = {}
 
@@ -90,7 +92,8 @@ class FlashcardSessionManager:
             correct_answers=session_dict['correct_answers'],
             incorrect_answers=session_dict['incorrect_answers'],
             vague_answers=session_dict['vague_answers'],
-            start_time=session_dict['start_time']
+            start_time=session_dict['start_time'],
+            session_points=session_dict.get('session_points', 0)
         )
         instance._media_folders_cache = None
         instance._edit_permission_cache = {}
@@ -107,7 +110,8 @@ class FlashcardSessionManager:
             'correct_answers': self.correct_answers,
             'incorrect_answers': self.incorrect_answers,
             'vague_answers': self.vague_answers,
-            'start_time': self.start_time
+            'start_time': self.start_time,
+            'session_points': self.session_points
         }
 
     @classmethod
@@ -421,6 +425,10 @@ class FlashcardSessionManager:
                 if item_id in self.processed_item_ids:
                     self.processed_item_ids.remove(item_id)
 
+            # [NEW] Track session points for persistence across reloads
+            if score_change and score_change > 0:
+                self.session_points += score_change
+
             session[self.SESSION_KEY] = self.to_dict()
             session.modified = True
             
@@ -431,11 +439,13 @@ class FlashcardSessionManager:
                 'answer_result_type': answer_result_type,
                 'new_progress_status': new_progress_status,
                 'statistics': item_stats,
-                'memory_power': memory_power_data  # NEW: Include Memory Power metrics
+                'memory_power': memory_power_data,  # NEW: Include Memory Power metrics
+                'session_points': self.session_points  # NEW: Return accumulated session points
             }
         except Exception as e:
             current_app.logger.error(f"Lỗi khi xử lý câu trả lời flashcard: {e}", exc_info=True)
             return {'error': f'Lỗi khi xử lý câu trả lời: {str(e)}'}
+
 
     @classmethod
     def end_flashcard_session(cls):

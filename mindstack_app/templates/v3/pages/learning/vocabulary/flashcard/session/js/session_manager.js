@@ -159,6 +159,12 @@ async function getNextFlashcardBatch() {
         sessionStatsLocal.incorrect = batch.session_incorrect_answers || sessionStatsLocal.incorrect || 0;
         sessionStatsLocal.vague = batch.session_vague_answers || sessionStatsLocal.vague || 0;
 
+        // [NEW] Restore session score from backend on page load
+        if (batch.session_points !== undefined && batch.session_points > 0) {
+            sessionScore = batch.session_points;
+            console.log('[Session] Restored session_points from backend:', sessionScore);
+        }
+
         // Update container name from batch
         if (batch.container_name) {
             document.querySelectorAll('.js-fc-title').forEach(el => {

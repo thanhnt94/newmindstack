@@ -574,6 +574,12 @@
                             <i class="fa-solid fa-times text-rose-500 text-[9px]"></i>
                             <span class="text-rose-600 font-bold" id="live-wrong">0</span>
                         </div>
+
+                        {# Session Points Pill #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg">
+                            <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
+                            <span class="text-amber-600 font-bold" id="live-session-score">0</span>
+                        </div>
                     </div>
 
                     {# Action Buttons #}
@@ -591,8 +597,9 @@
                         </a>
 
                         {# Exit Button #}
-                        <a href="{{ url_for('learning.vocabulary.dashboard') }}"
-                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100">
+                        <a href="{{ url_for('learning.vocabulary.mcq.setup', set_id=container.container_id) }}"
+                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
+                            title="Quay lại Setup">
                             <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
                         </a>
                     </div>
@@ -645,14 +652,18 @@
                 <span class="stat-val" style="color: var(--primary)" id="final-percent">0%</span>
                 <span class="stat-lbl">Kết quả</span>
             </div>
+            <div class="stat-box">
+                <span class="stat-val" style="color: #f59e0b" id="final-points">0</span>
+                <span class="stat-lbl">Điểm số</span>
+            </div>
         </div>
 
         <div class="action-group">
             <button class="next-btn" onclick="location.reload()">Luyện tập lại</button>
             <button class="next-btn"
                 style="background: var(--bg); color: var(--text-sub); box-shadow: none; border: 1px solid var(--border);"
-                onclick="location.href='{{ url_for('learning.vocabulary.dashboard') }}'">
-                Về Dashboard
+                onclick="location.href='{{ url_for('learning.vocabulary.mcq.setup', set_id=container.container_id) }}'">
+                Quay lại Setup
             </button>
         </div>
     </div>
@@ -690,7 +701,7 @@
         tNum: document.getElementById('total-q-num'),
         lCorrect: document.getElementById('live-correct'),
         lWrong: document.getElementById('live-wrong'),
-        lScore: document.getElementById('live-score'),
+        lSessionScore: document.getElementById('live-session-score'),
         qText: document.getElementById('question-text'),
         cGrid: document.getElementById('choices-grid'),
         nextBtn: document.getElementById('next-btn'),
@@ -718,6 +729,7 @@
                     // Update stats UI
                     els.lCorrect.textContent = stats.correct;
                     els.lWrong.textContent = stats.wrong;
+                    if (els.lSessionScore) els.lSessionScore.textContent = stats.points || 0;
                     els.tNum.textContent = questions.length;
 
                     // If we have answers for previous questions, we should technically be at the first unanswered one
@@ -850,9 +862,7 @@
 
         if (isCorrect) {
             stats.correct++;
-            totalScore += 10;
             els.lCorrect.textContent = stats.correct;
-            if (els.lScore) els.lScore.textContent = '+' + totalScore;
         } else {
             stats.wrong++;
             els.lWrong.textContent = stats.wrong;
@@ -896,6 +906,9 @@
             .then(r => r.json())
             .then(async data => {
                 if (data.success) {
+                    if (data.stats && els.lSessionScore) {
+                        els.lSessionScore.textContent = data.stats.points;
+                    }
                     if (data.updated_total_score !== undefined && data.updated_total_score !== null) {
                         const totalScoreEl = document.getElementById('mcq-total-score-val');
                         if (totalScoreEl) totalScoreEl.textContent = data.updated_total_score.toLocaleString();
@@ -942,12 +955,15 @@
         document.getElementById('final-correct').textContent = stats.correct;
         document.getElementById('final-wrong').textContent = stats.wrong;
 
-        const total = stats.correct + stats.wrong;
-        const p = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
-        document.getElementById('final-percent').textContent = `${p}%`;
+        const percent = (stats.correct / questions.length) * 100;
+        document.getElementById('final-percent').textContent = Math.round(percent) + '%';
+
+        if (els.lSessionScore) {
+            document.getElementById('final-points').textContent = els.lSessionScore.textContent;
+        }
 
         els.result.classList.add('active');
     }
-    }) ();
+}) ();
 </script>
 {% endblock %}

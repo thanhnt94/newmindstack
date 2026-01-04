@@ -18,7 +18,8 @@ class MCQSessionManager:
         self.params = params or {}
         self.questions = questions or []
         self.currentIndex = currentIndex
-        self.stats = stats or {'correct': 0, 'wrong': 0}
+        # stats includes 'correct', 'wrong', and now 'points'
+        self.stats = stats or {'correct': 0, 'wrong': 0, 'points': 0}
         self.answers = answers or {} # Map: currentIndex (str) -> {'user_answer_index': int, ...}
 
     def to_dict(self):
@@ -34,13 +35,17 @@ class MCQSessionManager:
 
     @classmethod
     def from_dict(cls, data):
+        stats = data.get('stats') or {'correct': 0, 'wrong': 0, 'points': 0}
+        if 'points' not in stats:
+            stats['points'] = 0
+            
         return cls(
             user_id=data.get('user_id'),
             set_id=data.get('set_id'),
             params=data.get('params'),
             questions=data.get('questions'),
             currentIndex=data.get('currentIndex', 0),
-            stats=data.get('stats'),
+            stats=stats,
             answers=data.get('answers')
         )
 
@@ -114,7 +119,7 @@ class MCQSessionManager:
             
         self.questions = questions
         self.currentIndex = 0
-        self.stats = {'correct': 0, 'wrong': 0}
+        self.stats = {'correct': 0, 'wrong': 0, 'points': 0}
         self.answers = {}
         
         self.save_to_db()
@@ -140,6 +145,7 @@ class MCQSessionManager:
         
         if is_correct:
             self.stats['correct'] += 1
+            self.stats['points'] += 10 # Default points for correct MCQ
         else:
             self.stats['wrong'] += 1
             

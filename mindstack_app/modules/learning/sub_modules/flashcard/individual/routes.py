@@ -333,6 +333,7 @@ def get_flashcard_batch():
         flashcard_batch['session_incorrect_answers'] = session_manager.incorrect_answers
         flashcard_batch['session_vague_answers'] = session_manager.vague_answers
         flashcard_batch['session_total_answered'] = session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
+        flashcard_batch['session_points'] = session_manager.session_points  # NEW: Include session points
         
         # Add additional fields for mobile stats view
         flashcard_batch['session_total_items'] = session_manager.total_items_in_session
@@ -572,7 +573,8 @@ def submit_flashcard_answer():
         'session_correct_answers': session_manager.correct_answers,
         'session_incorrect_answers': session_manager.incorrect_answers,
         'session_vague_answers': session_manager.vague_answers,
-        'session_total_answered': session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
+        'session_total_answered': session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers,
+        'session_points': result.get('session_points', session_manager.session_points)  # NEW: Include session points
     }
 
     current_app.logger.debug("--- Kết thúc submit_flashcard_answer (Thành công) ---")
