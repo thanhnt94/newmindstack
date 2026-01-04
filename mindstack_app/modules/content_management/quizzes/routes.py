@@ -715,6 +715,11 @@ def _build_quiz_export_payload(
             row['group_shared_components'] = ','.join(sorted(shared_components))
         row['group_item_order'] = content.get('group_item_order') if content.get('group_item_order') is not None else ''
 
+        # [NEW] Export custom data columns
+        custom_data = item.custom_data or {}
+        for key, value in custom_data.items():
+            row[key] = value
+
         row['action'] = 'None'
         data_rows.append(row)
 
@@ -1067,6 +1072,26 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 item.content = content_dict
                 flag_modified(item, 'content')
 
+                # Process custom columns
+                known_quiz_columns = {
+                    'item_id', 'order_in_container', 'action', 'group_id', 'group_item_order', 'group_shared_components',
+                    'question', 'pre_question_text', 'correct_answer_text', 'guidance',
+                    'option_a', 'option_b', 'option_c', 'option_d',
+                    'question_image_file', 'question_audio_file',
+                    'ai_prompt', 'ai_explanation'
+                }
+                custom_cols = [c for c in df.columns if c not in known_quiz_columns]
+                custom_dict = item.custom_data or {}
+                for col in custom_cols:
+                    val = _get_cell(row, col)
+                    if val:
+                        custom_dict[col] = val
+                    elif col in custom_dict:
+                        custom_dict.pop(col)
+                
+                item.custom_data = custom_dict if custom_dict else None
+                flag_modified(item, 'custom_data')
+
                 ordered_entries.append({
                     'type': 'existing',
                     'item': item,
@@ -1075,10 +1100,6 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 })
                 processed_ids.add(item_id)
                 stats['updated'] += 1
-            else:
-                if action_value == 'delete':
-                    stats['deleted'] += 1
-                    continue
                 if action_value == 'skip':
                     stats['skipped'] += 1
                     continue
@@ -1099,45 +1120,52 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
                 guidance_value = _get_cell(row, 'guidance')
                 pre_question_value = _get_cell(row, 'pre_question_text')
 
-                question_value = _value_with_group('question', 'question', question_text)
-                pre_question_shared = _value_with_group('pre_question_text', 'pre_question_text', pre_question_value)
-                correct_answer_value = _value_with_group('correct_answer', 'correct_answer', correct_answer)
-
-                new_content = {
-                    'question': question_value,
-                    'options': {
-                        'A': option_a,
-                        'B': option_b,
-                        'C': option_c,
-                        'D': option_d,
-                    },
-                    'correct_answer': correct_answer_value,
-                    'explanation': _value_with_group('explanation', 'explanation', guidance_value),
-                    'pre_question_text': pre_question_shared,
+                # Define known columns to separate custom data
+                known_quiz_columns = {
+                    'item_id', 'order_in_container', 'action', 'group_id', 'group_item_order', 'group_shared_components',
+                    'question', 'pre_question_text', 'correct_answer_text', 'guidance',
+                    'option_a', 'option_b', 'option_c', 'option_d',
+                    'question_image_file', 'question_audio_file',
+                    'ai_prompt', 'ai_explanation'
                 }
+                
+                # Identify custom columns
+                custom_cols = [c for c in df.columns if c not in known_quiz_columns]
+                custom_dict = {}
+                for col in custom_cols:
+                    val = _get_cell(row, col)
+                    if val:
+                        custom_dict[col] = val
 
-                image_processed = _process_relative_url(image_value, image_folder) if image_value else None
-                audio_processed = _process_relative_url(audio_value, audio_folder) if audio_value else None
-                shared_image = _value_with_group('image', 'question_image_file', image_processed)
-                shared_audio = _value_with_group('audio', 'question_audio_file', audio_processed)
-                if shared_image:
-                    new_content['question_image_file'] = shared_image
-                if shared_audio:
-                    new_content['question_audio_file'] = shared_audio
-
-                prompt_value = _value_with_group('prompt', 'ai_prompt', ai_prompt_value)
-                if prompt_value:
-                    new_content['ai_prompt'] = prompt_value
-
-                if group_item_order is not None:
-                    new_content['group_item_order'] = group_item_order
-
+                new_item = LearningItem(
+                    container_id=container_id,
+                    item_type='QUIZ_MCQ',
+                    content={
+                        'question': _value_with_group('question', 'question', question_text),
+                        'options': {
+                            'A': option_a,
+                            'B': option_b,
+                            'C': option_c,
+                            'D': option_d,
+                        },
+                        'correct_answer': _value_with_group('correct_answer', 'correct_answer', correct_answer),
+                        'explanation': _value_with_group('explanation', 'explanation', guidance_value),
+                        'pre_question_text': _value_with_group('pre_question_text', 'pre_question_text', pre_question_value),
+                        'question_image_file': _value_with_group('image', 'question_image_file', _process_relative_url(image_value, image_folder) if image_value else None),
+                        'question_audio_file': _value_with_group('audio', 'question_audio_file', _process_relative_url(audio_value, audio_folder) if audio_value else None),
+                        'ai_prompt': _value_with_group('prompt', 'ai_prompt', ai_prompt_value) if _value_with_group('prompt', 'ai_prompt', ai_prompt_value) else None,
+                        'group_item_order': group_item_order if group_item_order is not None else None,
+                    },
+                    custom_data=custom_dict if custom_dict else None,
+                    ai_explanation=ai_explanation_value or None,
+                    group_id=group_entry['group'].group_id if group_entry else None,
+                    order_in_container=order_number,
+                )
+                
+                # Check order for new items
                 ordered_entries.append({
                     'type': 'new',
-                    'data': new_content,
-                    'group_id': group_entry['group'].group_id if group_entry else None,
-                    'group_obj': group_entry['group'] if group_entry else None,
-                    'ai_explanation': ai_explanation_value or None,
+                    'item': new_item, 
                     'order': order_number,
                     'sequence': index,
                 })
@@ -1168,20 +1196,16 @@ def _update_quiz_from_excel_file(container_id: int, excel_file) -> str:
 
         next_order = 1
         for entry in ordered_entries:
-            if entry['type'] == 'existing':
-                entry['item'].order_in_container = next_order
+            # Handle both existing items and newly created item instances
+            item = entry.get('item')
+            if item:
+                item.order_in_container = next_order
+                if entry['type'] == 'new':
+                    db.session.add(item)
             else:
-                group_id_value = entry.get('group_id')
-                group_obj = entry.get('group_obj')
-                new_item = LearningItem(
-                    container_id=container_id,
-                    group_id=group_id_value if group_id_value else (group_obj.group_id if group_obj else None),
-                    item_type='QUIZ_MCQ',
-                    content=entry['data'],
-                    ai_explanation=entry.get('ai_explanation'),
-                    order_in_container=next_order,
-                )
-                db.session.add(new_item)
+                # Fallback for any legacy entry structure (should not happen with new logic)
+                current_app.logger.warning("Found entry without item object in ordered_entries")
+            
             next_order += 1
 
         for group_entry in group_state.values():

@@ -2,122 +2,118 @@
 <div class="flashcard-mobile-view">
     <div class="page-shell">
         <!-- Header - Stats Bar -->
-        <div class="fc-header">
-            <!-- Context Bar -->
-            <div class="fc-context-bar">
-                <span class="fc-context-pill">
-                    <i class="fas fa-clone"></i>
-                    <span>Flashcard</span>
-                </span>
-                <div
-                    class="flex items-center gap-1.5 bg-orange-100/20 text-orange-600 px-2 py-1 rounded-full ml-2 border border-orange-200/30">
-                    <i class="fas fa-gem text-orange-500 text-xs shadow-sm"></i>
-                    <span class="font-bold text-xs js-fc-score">{{ "{:,}".format(current_user.total_score if
-                        current_user.total_score is not none else 0) }}</span>
+        <!-- Header - Quiz Style Structure -->
+        <div class="fc-header flex-col items-stretch !p-0">
+            {# --- Row 1: Badge + Title + Score --- #}
+            <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-600">
+                {# Badge + Title #}
+                <div class="flex items-center gap-2.5 overflow-hidden max-w-[70%]">
+                    <span class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white/20 rounded-lg shadow-sm">
+                        <i class="fas fa-layer-group text-white text-[10px]"></i>
+                        <span class="text-[10px] font-bold text-white uppercase tracking-wide">FLASHCARD</span>
+                    </span>
+                    <span class="text-sm font-bold text-white truncate js-fc-title"
+                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">{{ container_name }}</span>
                 </div>
-                <div class="fc-nav-btns">
-                    <!-- Utility buttons from card toolbar -->
-                    <button class="fc-nav-btn open-ai-modal-btn js-fc-ai-btn" title="AI">
-                        <i class="fas fa-robot" style="font-size: 0.75rem;"></i>
-                    </button>
-                    <button class="fc-nav-btn open-note-panel-btn js-fc-note-btn" title="Ghi chú">
-                        <i class="fas fa-sticky-note" style="font-size: 0.75rem;"></i>
-                    </button>
-                    <button class="fc-nav-btn js-fc-audio-btn" title="Phát âm thanh">
-                        <i class="fas fa-volume-up" style="font-size: 0.75rem;"></i>
-                    </button>
-                    <button class="fc-nav-btn open-stats-modal-btn" title="Thống kê">
-                        <i class="fas fa-chart-bar" style="font-size: 0.75rem;"></i>
-                    </button>
-                    <!-- Settings dropdown -->
-                    <div class="fc-settings-dropdown">
-                        <button class="fc-nav-btn js-fc-settings-toggle" title="Cài đặt">
-                            <i class="fas fa-ellipsis-v" style="font-size: 0.75rem;"></i>
-                        </button>
-                        <div class="fc-settings-menu js-fc-settings-menu">
-                            <button class="fc-settings-item js-fc-image-toggle">
-                                <i class="fas fa-image js-fc-image-icon"></i>
-                                <span class="js-fc-image-text">Hiện ảnh</span>
-                            </button>
-                            <button class="fc-settings-item js-fc-autoplay-toggle">
-                                <i class="fas fa-play js-fc-autoplay-icon"></i>
-                                <span class="js-fc-autoplay-text">Tự động phát</span>
-                            </button>
-                            <button class="fc-settings-item js-fc-stats-toggle">
-                                <i class="fas fa-chart-line js-fc-stats-icon"></i>
-                                <span class="js-fc-stats-text">Ẩn tiến độ</span>
-                            </button>
-                            <button class="fc-settings-item open-feedback-modal-btn js-fc-feedback-btn">
-                                <i class="fas fa-flag"></i>
-                                <span>Báo lỗi thẻ</span>
-                            </button>
-                            <button class="fc-settings-item edit-card-btn js-fc-edit-btn">
-                                <i class="fas fa-pencil-alt"></i>
-                                <span>Sửa thẻ</span>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Home and Exit buttons outside dropdown -->
-                    <a href="/" class="fc-nav-btn" title="Trang chủ">
-                        <i class="fas fa-house" style="font-size: 0.75rem;"></i>
-                    </a>
-                    <a href="javascript:history.back()" class="fc-nav-btn" title="Thoát">
-                        <i class="fas fa-right-from-bracket" style="font-size: 0.75rem;"></i>
-                    </a>
+
+                {# Score Badge #}
+                <div class="flex items-center gap-1.5 h-8 px-3 bg-white/20 rounded-full">
+                    <i class="fa-solid fa-gem text-white text-xs"></i>
+                    <span class="text-sm font-black text-white font-mono js-fc-score">
+                        {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
+                    </span>
                 </div>
             </div>
 
-            <!-- Stats Row -->
-            <!-- Stats Row: Gamified HUD v3 (Refined per User Feedback) -->
-            <div class="fc-stats-container rpg-theme" id="fc-stats-container">
-                <!-- 1. Progress Line -->
-                <div class="fc-progress-line">
-                    <div class="fc-progress-fill js-fc-progress-fill" style="width: 0%"></div>
-                </div>
+            {# --- Row 2: Stats (White) --- #}
+            <div class="bg-white border-b border-slate-200">
+                <div class="flex items-center justify-between px-3 py-2">
+                    {# Stats Pills #}
+                    <div class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[50%]">
+                        {# Progress #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
+                            <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
+                            <span class="text-slate-700 font-semibold js-fc-progress-text">0/0</span>
+                        </div>
 
-                <!-- 2. Quest Badge (Title) -->
-                <div class="fc-quest-badge">
-                    <div class="badge-inner">
-                        <span class="fc-title-text js-fc-title">{{ container_name }}</span>
+                        {# Session Correct #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg">
+                            <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
+                            <span class="text-emerald-600 font-bold js-fc-session-correct">0</span>
+                        </div>
+
+                        {# Session Points #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg">
+                            <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
+                            <span class="text-amber-600 font-bold font-mono js-fc-session-score">+0</span>
+                        </div>
                     </div>
-                </div>
 
-                <!-- 3. Split HUD Boxes -->
-                <div class="fc-rpg-hud">
-                    <!-- Box A: Session Stats -->
-                    <div class="hud-box hud-box-hero">
-                        <div class="hud-content">
-                            <div class="hud-main-stat">
-                                <i class="fas fa-gem text-blue-500 hud-icon-lg"></i>
-                                <span class="hud-value-lg text-blue-600 js-fc-session-score">+0</span>
-                            </div>
-                            <div class="hud-sub-stat flex gap-3">
-                                <span class="text-xs font-bold text-emerald-500"><i class="fas fa-check mr-1"></i><span
-                                        class="js-fc-session-correct">0</span></span>
-                                <span class="text-xs font-bold text-rose-500"><i class="fas fa-times mr-1"></i><span
-                                        class="js-fc-session-incorrect">0</span></span>
+                    {# Action Buttons #}
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        {# AI Button #}
+                        <button
+                            class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center hover:bg-indigo-100 open-ai-modal-btn js-fc-ai-btn">
+                            <i class="fas fa-robot text-[10px]"></i>
+                        </button>
+
+                        {# Note Button #}
+                        <button
+                            class="w-7 h-7 rounded-full bg-yellow-50 text-yellow-600 flex items-center justify-center hover:bg-yellow-100 open-note-panel-btn js-fc-note-btn">
+                            <i class="fas fa-sticky-note text-[10px]"></i>
+                        </button>
+
+                        {# Stats Button (Restored) #}
+                        <button
+                            class="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100 open-stats-modal-btn js-fc-stats-toggle">
+                            <i class="fas fa-chart-pie text-[10px]"></i>
+                        </button>
+
+                        {# Audio Button #}
+                        <button
+                            class="w-7 h-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 js-fc-audio-btn">
+                            <i class="fas fa-volume-up text-[10px]"></i>
+                        </button>
+
+                        {# Settings Checkbox equivalent #}
+                        <div class="relative inline-block">
+                            <button
+                                class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 js-fc-settings-toggle">
+                                <i class="fas fa-ellipsis-v text-[10px]"></i>
+                            </button>
+                            <div class="fc-settings-menu js-fc-settings-menu" style="right: 0; top: 100%;">
+                                <button class="fc-settings-item js-fc-image-toggle">
+                                    <i class="fas fa-image js-fc-image-icon"></i>
+                                    <span class="js-fc-image-text">Hiện ảnh</span>
+                                </button>
+                                <button class="fc-settings-item js-fc-autoplay-toggle">
+                                    <i class="fas fa-play js-fc-autoplay-icon"></i>
+                                    <span class="js-fc-autoplay-text">Tự động phát</span>
+                                </button>
+                                <button class="fc-settings-item open-feedback-modal-btn js-fc-feedback-btn">
+                                    <i class="fas fa-flag"></i>
+                                    <span>Báo lỗi thẻ</span>
+                                </button>
+                                <button class="fc-settings-item edit-card-btn js-fc-edit-btn">
+                                    <i class="fas fa-pencil-alt"></i>
+                                    <span>Sửa thẻ</span>
+                                </button>
                             </div>
                         </div>
-                        <div class="hud-label">SESSION</div>
-                    </div>
 
-                    <!-- Box B: Card Stats -->
-                    <div class="hud-box hud-box-target">
-                        <div class="hud-content">
-                            <div class="hud-main-stat">
-                                <i class="fas fa-brain text-purple-500 hud-icon-lg"></i>
-                                <span class="hud-value-lg text-purple-600 js-fc-memory-score">0%</span>
-                            </div>
-                            <div class="hud-sub-stat flex gap-3">
-                                <span class="text-xs font-bold text-emerald-500" title="Đã trả lời đúng"><i
-                                        class="fas fa-check-double mr-1"></i><span
-                                        class="js-fc-card-right">0</span></span>
-                                <span class="text-xs font-bold text-rose-500" title="Đã trả lời sai"><i
-                                        class="fas fa-undo mr-1"></i><span class="js-fc-card-wrong">0</span></span>
-                            </div>
-                        </div>
-                        <div class="hud-label">THẺ NÀY</div>
+                        {# Exit Button #}
+                        <button
+                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
+                            onclick="history.back()">
+                            <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                        </button>
                     </div>
+                </div>
+            </div>
+
+            {# Progress Line (Thin, optional, maybe keep it?) #}
+            <div class="h-0.5 bg-slate-100 w-full">
+                <div class="h-full bg-amber-500 js-fc-progress-fill transition-all duration-300" style="width: 0%">
                 </div>
             </div>
         </div>
@@ -258,10 +254,19 @@
             if (!stats) return;
 
             // Update Progress Bar
+            // Update Progress Bar & Text
             if (stats.total > 0) {
                 const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
                 document.querySelectorAll('.js-fc-progress-fill').forEach(el => {
                     el.style.width = percent + '%';
+                });
+                // Update text
+                document.querySelectorAll('.js-fc-progress-text').forEach(el => {
+                    el.textContent = `${stats.processed}/${stats.total}`;
+                });
+            } else {
+                document.querySelectorAll('.js-fc-progress-text').forEach(el => {
+                    el.textContent = `0/0`;
                 });
             }
 

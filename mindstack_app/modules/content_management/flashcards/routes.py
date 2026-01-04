@@ -558,6 +558,11 @@ def _build_flashcard_export_payload(
             else:
                 row[capability_key] = 'true' if bool(value) else 'false'
 
+        # [NEW] Export custom data columns
+        custom_data = item.custom_data or {}
+        for key, value in custom_data.items():
+            row[key] = value
+
         row['action'] = 'None'
         data_rows.append(row)
 
