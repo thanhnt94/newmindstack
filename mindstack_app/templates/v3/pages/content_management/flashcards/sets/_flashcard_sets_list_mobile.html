@@ -84,6 +84,7 @@
                         method="post"
                         onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ thẻ này và tất cả các thẻ của nó?');"
                         class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                         <button type="submit" class="cm-icon-button" title="Xoá bộ thẻ">
                             <i class="fas fa-trash-alt"></i>
                         </button>

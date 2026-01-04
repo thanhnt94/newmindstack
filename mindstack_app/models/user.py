@@ -259,6 +259,8 @@ class UserNote(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
+    item = db.relationship('LearningItem', backref=db.backref('user_notes', cascade='all, delete-orphan'))
+
 
 class UserFeedback(db.Model):
     """Feedback reports tied to specific learning items."""
@@ -330,4 +332,4 @@ class ReviewLog(db.Model):
         db.Index('ix_review_logs_timestamp', 'timestamp'),
     )
 
-    item = db.relationship('LearningItem', backref='review_logs')
+    item = db.relationship('LearningItem', backref=db.backref('review_logs', cascade='all, delete-orphan'))

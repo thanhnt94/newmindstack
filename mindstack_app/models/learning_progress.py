@@ -70,7 +70,7 @@ class LearningProgress(db.Model):
     )
     item = db.relationship(
         'LearningItem',
-        backref=db.backref('progress_records', lazy='dynamic'),
+        backref=db.backref('progress_records', lazy='dynamic', cascade='all, delete-orphan'),
         lazy=True,
     )
     
