@@ -29,7 +29,8 @@
             <div class="bg-white border-b border-slate-200">
                 <div class="flex items-center justify-between px-3 py-2">
                     {# Stats Pills #}
-                    <div class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[50%]">
+                    <div id="fc-mobile-stats-pills"
+                        class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[50%] transition-all duration-300">
                         {# Progress #}
                         <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
                             <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
@@ -50,62 +51,80 @@
                     </div>
 
                     {# Action Buttons #}
-                    <div class="flex items-center gap-1.5 flex-shrink-0">
-                        {# AI Button #}
-                        <button
-                            class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center hover:bg-indigo-100 open-ai-modal-btn js-fc-ai-btn">
-                            <i class="fas fa-robot text-[10px]"></i>
+                    <div class="flex items-center gap-1.5 flex-shrink-0" id="fc-mobile-actions">
+
+                        {# Collapsible Menu Container #}
+                        <div id="fc-mobile-expanded-menu" class="hidden flex items-center gap-1.5">
+
+                            {# Stats Button (Restored) #}
+                            <button
+                                class="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100 open-stats-modal-btn js-fc-stats-toggle">
+                                <i class="fas fa-chart-pie text-[10px]"></i>
+                            </button>
+
+                            {# Note Button #}
+                            <button
+                                class="w-7 h-7 rounded-full bg-yellow-50 text-yellow-600 flex items-center justify-center hover:bg-yellow-100 open-note-panel-btn js-fc-note-btn">
+                                <i class="fas fa-sticky-note text-[10px]"></i>
+                            </button>
+
+                            {# AI Button #}
+                            <button
+                                class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center hover:bg-indigo-100 open-ai-modal-btn js-fc-ai-btn">
+                                <i class="fas fa-robot text-[10px]"></i>
+                            </button>
+
+                            {# Settings Checkbox equivalent - MOVED HERE #}
+                            <div class="relative inline-block">
+                                <button
+                                    class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 js-fc-settings-toggle">
+                                    <i class="fas fa-ellipsis-v text-[10px]"></i>
+                                </button>
+                                <div class="fc-settings-menu js-fc-settings-menu z-50" style="right: 0; top: 100%;">
+                                    <button class="fc-settings-item js-fc-image-toggle">
+                                        <i class="fas fa-image js-fc-image-icon"></i>
+                                        <span class="js-fc-image-text">Hiện ảnh</span>
+                                    </button>
+                                    <button class="fc-settings-item js-fc-autoplay-toggle">
+                                        <i class="fas fa-play js-fc-autoplay-icon"></i>
+                                        <span class="js-fc-autoplay-text">Tự động phát</span>
+                                    </button>
+                                    <button class="fc-settings-item open-feedback-modal-btn js-fc-feedback-btn">
+                                        <i class="fas fa-flag"></i>
+                                        <span>Báo lỗi thẻ</span>
+                                    </button>
+                                    <button class="fc-settings-item edit-card-btn js-fc-edit-btn">
+                                        <i class="fas fa-pencil-alt"></i>
+                                        <span>Sửa thẻ</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {# Home Button #}
+                            <a href="/"
+                                class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100">
+                                <i class="fas fa-home text-[10px]"></i>
+                            </a>
+
+                            {# Exit Button #}
+                            <button
+                                class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
+                                onclick="history.back()">
+                                <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                            </button>
+                        </div>
+
+                        {# Menu Toggle Button (New, Always Visible) #}
+                        <button id="fc-mobile-menu-toggle"
+                            class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                            <i class="fas fa-chevron-left transition-transform duration-300" id="fc-mobile-menu-icon"
+                                style="font-size: 10px;"></i>
                         </button>
 
-                        {# Note Button #}
-                        <button
-                            class="w-7 h-7 rounded-full bg-yellow-50 text-yellow-600 flex items-center justify-center hover:bg-yellow-100 open-note-panel-btn js-fc-note-btn">
-                            <i class="fas fa-sticky-note text-[10px]"></i>
-                        </button>
-
-                        {# Stats Button (Restored) #}
-                        <button
-                            class="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100 open-stats-modal-btn js-fc-stats-toggle">
-                            <i class="fas fa-chart-pie text-[10px]"></i>
-                        </button>
-
-                        {# Audio Button #}
+                        {# Audio Button (Moved here, Always Visible) #}
                         <button
                             class="w-7 h-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 js-fc-audio-btn">
                             <i class="fas fa-volume-up text-[10px]"></i>
-                        </button>
-
-                        {# Settings Checkbox equivalent #}
-                        <div class="relative inline-block">
-                            <button
-                                class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 js-fc-settings-toggle">
-                                <i class="fas fa-ellipsis-v text-[10px]"></i>
-                            </button>
-                            <div class="fc-settings-menu js-fc-settings-menu" style="right: 0; top: 100%;">
-                                <button class="fc-settings-item js-fc-image-toggle">
-                                    <i class="fas fa-image js-fc-image-icon"></i>
-                                    <span class="js-fc-image-text">Hiện ảnh</span>
-                                </button>
-                                <button class="fc-settings-item js-fc-autoplay-toggle">
-                                    <i class="fas fa-play js-fc-autoplay-icon"></i>
-                                    <span class="js-fc-autoplay-text">Tự động phát</span>
-                                </button>
-                                <button class="fc-settings-item open-feedback-modal-btn js-fc-feedback-btn">
-                                    <i class="fas fa-flag"></i>
-                                    <span>Báo lỗi thẻ</span>
-                                </button>
-                                <button class="fc-settings-item edit-card-btn js-fc-edit-btn">
-                                    <i class="fas fa-pencil-alt"></i>
-                                    <span>Sửa thẻ</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {# Exit Button #}
-                        <button
-                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
-                            onclick="history.back()">
-                            <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
                         </button>
                     </div>
                 </div>
@@ -642,6 +661,56 @@
         document.addEventListener('flashcardStatsUpdated', function () {
             renderSessionHistoryList();
         });
+        // Initialize Menu Toggle Logic
+        const menuToggle = document.getElementById('fc-mobile-menu-toggle');
+        const expandedMenu = document.getElementById('fc-mobile-expanded-menu');
+        const statsPills = document.getElementById('fc-mobile-stats-pills');
+        const menuIcon = document.getElementById('fc-mobile-menu-icon');
+
+        if (menuToggle && expandedMenu && statsPills) {
+            menuToggle.addEventListener('click', function () {
+                const isHidden = expandedMenu.classList.contains('hidden');
+                const parentRow = statsPills.parentElement;
+
+                if (isHidden) {
+                    // Show Menu, Hide Stats
+                    expandedMenu.classList.remove('hidden');
+                    // Add a small animation class if needed, or just remove hidden
+                    setTimeout(() => {
+                        expandedMenu.classList.add('opacity-100');
+                        expandedMenu.classList.remove('opacity-0');
+                    }, 10);
+
+                    statsPills.style.display = 'none';
+
+                    // Fix alignment: force parent to justify-end so button stays on right
+                    if (parentRow) {
+                        parentRow.classList.remove('justify-between');
+                        parentRow.classList.add('justify-end');
+                    }
+
+                    // Rotate icon
+                    if (menuIcon) {
+                        menuIcon.classList.add('rotate-180');
+                    }
+                } else {
+                    // Hide Menu, Show Stats
+                    expandedMenu.classList.add('hidden');
+                    statsPills.style.display = 'flex';
+
+                    // Restore alignment
+                    if (parentRow) {
+                        parentRow.classList.add('justify-between');
+                        parentRow.classList.remove('justify-end');
+                    }
+
+                    // Reset icon
+                    if (menuIcon) {
+                        menuIcon.classList.remove('rotate-180');
+                    }
+                }
+            });
+        }
     })();
 </script>
 {#
