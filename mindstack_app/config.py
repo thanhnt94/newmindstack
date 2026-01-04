@@ -37,8 +37,8 @@ class Config:
     ITEMS_PER_PAGE = 12 # Số mục trên mỗi trang
 
     # Cấu hình thư mục lưu trữ file tải lên (media)
-    # HARDCODED FOR TESTING
-    UPLOAD_FOLDER = r'C:\Code\MindStack\uploads'
+    # Cấu hình thư mục lưu trữ file tải lên (uploads)
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
     
     # THÊM MỚI: Cấu hình thư mục sao lưu (backup)
     # Đặt thư mục backups ở thư mục gốc của dự án
