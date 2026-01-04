@@ -376,7 +376,8 @@ class FlashcardSessionManager:
             'can_edit': self._can_edit_container(next_item.container_id)
         }
         
-        self.processed_item_ids.append(next_item.item_id)
+        # REMOVED: self.processed_item_ids.append(next_item.item_id) - Move to process_flashcard_answer
+        # to prevents skipping items on page reload.
         session[self.SESSION_KEY] = self.to_dict()
         session.modified = True
 
@@ -405,6 +406,11 @@ class FlashcardSessionManager:
                 user_answer_text=user_answer_text
             )
             
+            # [UPDATED] Add to processed list ONLY after answer (prevent skip on reload)
+            if answer_result_type in ('correct', 'incorrect', 'vague'):
+                if item_id not in self.processed_item_ids:
+                    self.processed_item_ids.append(item_id)
+
             if answer_result_type == 'correct':
                 self.correct_answers += 1
             elif answer_result_type == 'vague':
