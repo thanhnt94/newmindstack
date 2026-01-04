@@ -257,7 +257,7 @@ def start_quiz_session_by_id(set_id, mode):
         return redirect(url_for('learning.quiz_learning.dashboard'))
 
 
-@quiz_learning_bp.route('/quiz_session')
+@quiz_learning_bp.route('/quiz/session')
 @login_required
 def quiz_session():
     """Hiển thị giao diện làm bài Quiz."""

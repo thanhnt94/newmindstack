@@ -1,7 +1,7 @@
 # File: vocabulary/typing/routes.py
 # Typing Learning Mode Routes
 
-from flask import render_template, request, jsonify, abort
+from flask import render_template, request, jsonify, abort, url_for
 from flask_login import login_required, current_user
 
 from . import typing_bp
@@ -44,67 +44,89 @@ def setup(set_id):
     )
 
 
-@typing_bp.route('/session/<int:set_id>')
+@typing_bp.route('/start', methods=['POST'])
 @login_required
-def session(set_id):
-    """Typing learning session page."""
+def start_session():
+    """Start a typing session: Save settings and redirect."""
+    try:
+        from flask import session
+        data = request.get_json()
+        
+        set_id = data.get('set_id')
+        mode = data.get('mode', 'custom')
+        count = data.get('count', 10)
+        custom_pairs = data.get('custom_pairs')
+        
+        if not set_id:
+            return jsonify({'success': False, 'message': 'Missing set_id'}), 400
+
+        # Save to Session
+        session['typing_session'] = {
+            'set_id': set_id,
+            'mode': mode,
+            'count': count,
+            'custom_pairs': custom_pairs
+        }
+        
+        # Save preferences to DB (UserContainerState)
+        try:
+            from mindstack_app.models import UserContainerState, db
+            from mindstack_app.utils.db_session import safe_commit
+            
+            ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+            if not ucs:
+                ucs = UserContainerState(user_id=current_user.user_id, container_id=set_id, settings={})
+                db.session.add(ucs)
+            
+            new_settings = dict(ucs.settings or {})
+            if 'typing' not in new_settings: new_settings['typing'] = {}
+            new_settings['typing']['count'] = count
+            if custom_pairs:
+                new_settings['typing']['custom_pairs'] = custom_pairs
+            
+            ucs.settings = new_settings
+            safe_commit(db.session)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            
+        return jsonify({
+            'success': True, 
+            'redirect_url': url_for('learning.vocabulary.typing.session_page')
+        })
+    except Exception as outer_e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f"Server Error: {str(outer_e)}"}), 500
+
+
+@typing_bp.route('/session/')
+@login_required
+def session_page():
+    """Typing learning session page (Clean URL)."""
+    from flask import session
+    
+    session_data = session.get('typing_session', {})
+    set_id = session_data.get('set_id')
+    
+    if not set_id:
+        # Fallback or redirect to dashboard
+        return redirect(url_for('learning.vocabulary.dashboard'))
+        
     container = LearningContainer.query.get_or_404(set_id)
     
     if not container.is_public and container.creator_user_id != current_user.user_id:
         abort(403)
-    
-    # Get custom_pairs if provided
-    custom_pairs_str = request.args.get('custom_pairs', '')
-    custom_pairs = None
-    if custom_pairs_str:
-        try:
-            import json
-            custom_pairs = json.loads(custom_pairs_str)
-        except:
-            pass
-
-    # [UPDATED] Save settings to persistence
-    try:
-        count = request.args.get('count', 10, type=int)
         
-        from mindstack_app.models import UserContainerState
-        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
-        if not ucs:
-            ucs = UserContainerState(
-                user_id=current_user.user_id, 
-                container_id=set_id,
-                settings={}
-            )
-            from mindstack_app.models import db
-            db.session.add(ucs)
-        
-        # Update settings
-        new_settings = dict(ucs.settings or {})
-        if 'typing' not in new_settings: new_settings['typing'] = {}
-        
-        new_settings['typing']['count'] = count
-        if custom_pairs:
-            new_settings['typing']['custom_pairs'] = custom_pairs
-        
-        ucs.settings = new_settings
-        from mindstack_app.utils.db_session import safe_commit
-        from mindstack_app.models import db
-        safe_commit(db.session)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        pass
-
-    # Get eligible items
-    items = get_typing_eligible_items(set_id, custom_pairs=custom_pairs)
-    if len(items) < 1:
-        abort(400, description="Cần ít nhất 1 thẻ để chơi gõ đáp án")
+    # Get params (Already in session, but we might pass to template if needed)
+    custom_pairs = session_data.get('custom_pairs')
+    count = session_data.get('count', 10)
     
     return render_template(
         'v3/pages/learning/vocabulary/typing/session/default/index.html',
         container=container,
-        total_items=len(items),
-        custom_pairs=custom_pairs
+        custom_pairs=custom_pairs,
+        count=count
     )
 
 
@@ -112,11 +134,25 @@ def session(set_id):
 @login_required
 def api_get_items(set_id):
     """API to get items for a typing session."""
-    count = request.args.get('count', 10, type=int)
+    from flask import session
     
-    # Get custom_pairs if provided
+    # Priority: URL Args (for testing/link sharing) > Session > Defaults
+    count = request.args.get('count', type=int)
     custom_pairs_str = request.args.get('custom_pairs', '')
+    
     custom_pairs = None
+    
+    # Try getting from session if set_id matches
+    session_data = session.get('typing_session', {})
+    if session_data.get('set_id') == set_id:
+        if not count: count = session_data.get('count')
+        if not custom_pairs_str and session_data.get('custom_pairs'):
+            custom_pairs = session_data.get('custom_pairs')
+
+    # Fallback default
+    if not count: count = 10
+    
+    # Parse URL custom_pairs if exists (overrides session)
     if custom_pairs_str:
         try:
             import json

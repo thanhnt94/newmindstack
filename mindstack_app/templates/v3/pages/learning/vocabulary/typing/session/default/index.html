@@ -496,7 +496,8 @@
 {% block content %}
 <div class="session-layout">
     <div id="session-data" data-set-id="{{ container.container_id }}"
-        data-custom-pairs='{{ custom_pairs| tojson if custom_pairs else "null" }}' style="display:none">
+        data-custom-pairs='{{ custom_pairs| tojson if custom_pairs else "null" }}' data-count="{{ count }}"
+        style="display:none">
     </div>
 
     <!-- HEADER (Premium Style) -->
@@ -637,9 +638,8 @@
         var liveWrongEl = document.getElementById('live-wrong');
         var totalScoreValEl = document.getElementById('mcq-total-score-val');
 
-        // Logic: Get count from URL
-        var urlParams = new URLSearchParams(window.location.search);
-        var count = urlParams.get('count') || '10';
+        // Logic: Get count from Data Attribute
+        var count = dataEl.dataset.count || '10';
 
         // Fetch Items
         var fetchUrl = '/learn/vocabulary/typing/api/items/' + setId + '?count=' + count;
