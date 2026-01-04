@@ -109,42 +109,51 @@ def generate_mcq_question(item: dict, all_items: list, num_choices: int = 4,
         answer_key = pair.get('a')
         current_mode = 'custom'
     
-    # Determine question and answer based on mode
+    # Determine correct answer and distractors with their item_ids
     if current_mode == 'custom' and question_key and answer_key:
         question_text = _get_content_value(content, question_key)
         correct_answer = _get_content_value(content, answer_key)
-        # Build distractor pool from answer_key of other items
+        # Build distractor pool with IDs
         distractor_pool = []
         for other in all_items:
             if other['item_id'] != item['item_id']:
                 val = _get_content_value(other.get('content', {}), answer_key)
                 if val and val != correct_answer:
-                    distractor_pool.append(val)
+                    distractor_pool.append({'text': val, 'item_id': other['item_id']})
     elif current_mode == 'back_front':
         question_text = item.get('back', '')
         correct_answer = item.get('front', '')
-        distractor_pool = [i['front'] for i in all_items if i['item_id'] != item['item_id'] and i.get('front')]
+        distractor_pool = [{'text': i['front'], 'item_id': i['item_id']} for i in all_items if i['item_id'] != item['item_id'] and i.get('front')]
     else:  # front_back (default)
         question_text = item.get('front', '')
         correct_answer = item.get('back', '')
-        distractor_pool = [i['back'] for i in all_items if i['item_id'] != item['item_id'] and i.get('back')]
+        distractor_pool = [{'text': i['back'], 'item_id': i['item_id']} for i in all_items if i['item_id'] != item['item_id'] and i.get('back')]
     
-    # Remove duplicates from distractor pool
-    distractor_pool = list(set([d for d in distractor_pool if d != correct_answer]))
+    # Remove duplicates from distractor pool (based on text)
+    seen_texts = set([correct_answer])
+    unique_distractors = []
+    for d in distractor_pool:
+        if d['text'] not in seen_texts:
+            unique_distractors.append(d)
+            seen_texts.add(d['text'])
     
     # Select distractors
-    num_distractors = min(num_choices - 1, len(distractor_pool))
-    distractors = random.sample(distractor_pool, num_distractors) if distractor_pool else []
+    num_distractors = min(num_choices - 1, len(unique_distractors))
+    selected_distractors = random.sample(unique_distractors, num_distractors) if unique_distractors else []
     
-    # Build choices and shuffle
-    choices = [correct_answer] + distractors
-    random.shuffle(choices)
+    # Build choices and item_ids mapping
+    choices_data = [{'text': correct_answer, 'item_id': item['item_id']}] + selected_distractors
+    random.shuffle(choices_data)
+    
+    choices = [c['text'] for c in choices_data]
+    choice_item_ids = [c['item_id'] for c in choices_data]
     correct_index = choices.index(correct_answer) if correct_answer in choices else 0
     
     return {
         'item_id': item['item_id'],
         'question': question_text,
         'choices': choices,
+        'choice_item_ids': choice_item_ids,
         'correct_index': correct_index,
         'correct_answer': correct_answer,
         'question_key': question_key,

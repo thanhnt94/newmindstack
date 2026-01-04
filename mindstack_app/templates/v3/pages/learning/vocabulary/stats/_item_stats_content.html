@@ -1,430 +1,197 @@
-<div class="stats-container" style="padding: 1rem;">
+<div class="stats-container"
+    style="display: flex; flex-direction: column; height: 100%; background: white; text-align: left !important; overflow: hidden; position: relative;">
     {% set s = stats %}
     {% set p = s.progress %}
     {% set perf = s.performance %}
 
-    <!-- HEADER: Minimal (Term Only) -->
-    <div class="stats-header" style="margin-bottom: 1.5rem; text-align: center;">
-        <h1
-            style="font-size: 2rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #4f46e5, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.2;">
-            {{ s.item.front }}
-        </h1>
-        {% if s.item.pronunciation %}
-        <div
-            style="margin-top:0.5rem; font-family:'Courier New', monospace; color:#6366f1; font-weight: 600; font-size: 0.9rem;">
-            /{{ s.item.pronunciation }}/
-        </div>
-        {% endif %}
+    <!-- FIXED TOP SECTION -->
+    <div class="stats-fixed-header"
+        style="background: white; border-bottom: 2px solid #f1f5f9; padding: 1.25rem 3.5rem 0.75rem 1.25rem; flex-shrink: 0; position: relative; z-index: 10; text-align: left !important;">
+        <!-- Padding-right 3.5rem for Close Button -->
+        <div class="stats-header-info" style="text-align: left !important; display: block;">
+            <h1
+                style="font-size: 1.5rem; font-weight: 800; margin: 0; color: #0f172a; line-height: 1.1; text-align: left !important;">
+                {{ s.item.front }}
+            </h1>
 
-        <div style="margin-top: 0.75rem;">
-            <span class="status-badge"
-                style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.9rem; border-radius: 9999px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; 
-                {% if p.status == 'new' %}background: #e0f2fe; color: #0284c7;{% elif p.status == 'learning' %}background: #fef3c7; color: #d97706;{% elif p.status == 'mastered' %}background: #dcfce7; color: #16a34a;{% elif p.status == 'hard' %}background: #fee2e2; color: #dc2626;{% elif p.status == 'due' %}background: #ffedd5; color: #ea580c; border: 1px solid #fdba74;{% endif %}">
-                {% if p.status == 'mastered' %}<i class="fas fa-crown"></i> Đã thuộc
-                {% elif p.status == 'due' %}<i class="fas fa-clock"></i> Cần ôn tập
-                {% elif p.status == 'hard' %}<i class="fas fa-exclamation-circle"></i> Khó
-                {% elif p.status == 'learning' %}<i class="fas fa-book-reader"></i> Đang học
-                {% else %}<i class="fas fa-star"></i> Mới
+            <div
+                style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; justify-content: flex-start !important;">
+                {% if s.item.pronunciation %}
+                <span
+                    style="font-family:'Courier New', monospace; color:#4f46e5; font-weight: 600; font-size: 0.85rem;">
+                    /{{ s.item.pronunciation }}/
+                </span>
                 {% endif %}
-            </span>
+
+                <span class="status-badge"
+                    style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700; font-size: 0.6rem; text-transform: uppercase; 
+                    {% if p.status == 'new' %}background: #f0f9ff; color: #0369a1;{% elif p.status == 'learning' %}background: #fffbeb; color: #b45309;{% elif p.status == 'mastered' %}background: #f0fdf4; color: #15803d;{% elif p.status == 'hard' %}background: #fef2f2; color: #b91c1c;{% elif p.status == 'due' %}background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;{% endif %}">
+                    {% if p.status == 'mastered' %}ĐÃ THUỘC
+                    {% elif p.status == 'due' %}CẦN ÔN
+                    {% elif p.status == 'hard' %}KHÓ
+                    {% elif p.status == 'learning' %}HỌC
+                    {% else %}MỚI
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- TAB NAVIGATION -->
+        <div class="tab-navigation"
+            style="display: flex; gap: 0.2rem; margin-top: 1rem; background: #f8fafc; padding: 0.2rem; border-radius: 0.6rem; border: 1px solid #f1f5f9;">
+            <button class="tab-btn active" data-tab="content"
+                style="flex: 1; padding: 0.4rem; border-radius: 0.4rem; font-weight: 700; font-size: 0.75rem; border: none; transition: all 0.2s; cursor: pointer;">Nội
+                dung</button>
+            <button class="tab-btn" data-tab="overview"
+                style="flex: 1; padding: 0.4rem; border-radius: 0.4rem; font-weight: 700; font-size: 0.75rem; border: none; transition: all 0.2s; cursor: pointer;">Thống
+                kê</button>
+            <button class="tab-btn" data-tab="details"
+                style="flex: 1; padding: 0.4rem; border-radius: 0.4rem; font-weight: 700; font-size: 0.75rem; border: none; transition: all 0.2s; cursor: pointer;">Chi
+                tiết</button>
+            <button class="tab-btn" data-tab="history"
+                style="flex: 1; padding: 0.4rem; border-radius: 0.4rem; font-weight: 700; font-size: 0.75rem; border: none; transition: all 0.2s; cursor: pointer;">Lịch
+                sử</button>
         </div>
     </div>
 
-    <!-- TAB NAVIGATION -->
-    <div class="tab-navigation"
-        style="display: flex; gap: 0.5rem; margin-bottom: 1rem; background: #f1f5f9; padding: 0.25rem; border-radius: 0.75rem;">
-        <button class="tab-btn active" data-tab="overview"
-            style="flex: 1; padding: 0.5rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.85rem; border: none; transition: all 0.2s;">
-            Tổng quan
-        </button>
-        <button class="tab-btn" data-tab="details"
-            style="flex: 1; padding: 0.5rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.85rem; border: none; transition: all 0.2s;">
-            Chi tiết
-        </button>
-        <button class="tab-btn" data-tab="history"
-            style="flex: 1; padding: 0.5rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.85rem; border: none; transition: all 0.2s;">
-            Lịch sử
-        </button>
-        <button class="tab-btn" data-tab="content"
-            style="flex: 1; padding: 0.5rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.85rem; border: none; transition: all 0.2s;">
-            Nội dung
-        </button>
-    </div>
+    <!-- SCROLLABLE BODY -->
+    <div class="stats-scroll-body"
+        style="flex: 1; overflow-y: auto; padding: 1.25rem; background: white; text-align: left !important;">
+        <!-- TAB: CONTENT -->
+        <div class="tab-content active" id="tab-content" style="text-align: left !important;">
+            {% if s.item.image %}
+            <div style="margin-bottom: 1.25rem; text-align: left !important;">
+                <img src="{{ s.item.image }}"
+                    style="max-width: 100%; max-height: 180px; object-fit: contain; border-radius: 0.75rem; border: 1px solid #f1f5f9;">
+            </div>
+            {% endif %}
 
-    <!-- TAB: OVERVIEW -->
-    <div class="tab-content active" id="tab-overview">
-        <!-- STATS GRID: 2 Columns, 10 cards -->
-        <div class="stats-grid"
-            style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1.5rem;">
-
-            <!-- Metric 1: Mastery -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
+            <div style="text-align: left !important; margin-bottom: 1.5rem;">
                 <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Sức khỏe trí nhớ</div>
-                <div style="font-size: 1.6rem; font-weight: 800; color: #6366f1;">{{ p.mastery }}%</div>
+                    style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.1em;">
+                    Ý nghĩa</div>
+                <div
+                    style="font-size: 1.15rem; font-weight: 600; color: #1e293b; line-height: 1.4; white-space: pre-wrap;">
+                    {{ s.item.back or s.item.meaning }}</div>
             </div>
 
-            <!-- Metric 2: Streak -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
+            {% if s.item.example %}
+            <div style="text-align: left !important; margin-bottom: 1.5rem;">
                 <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Chuỗi đúng</div>
+                    style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.1em;">
+                    Ví dụ</div>
                 <div
-                    style="font-size: 1.6rem; font-weight: 800; color: #f59e0b; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
-                    <i class="fas fa-fire"></i> {{ p.streak }}
+                    style="background: #f8fafc; padding: 1rem; border-radius: 0.75rem; border-left: 4px solid #6366f1; border: 1px solid #f1f5f9; border-left: 4px solid #6366f1;">
+                    <div
+                        style="font-size: 1rem; color: #334155; font-style: italic; font-weight: 500; line-height: 1.5; white-space: pre-wrap;">
+                        "{{ s.item.example }}"</div>
+                    {% if s.item.example_meaning %}
+                    <div
+                        style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem; white-space: pre-wrap;">
+                        {{ s.item.example_meaning }}</div>
+                    {% endif %}
                 </div>
             </div>
+            {% endif %}
 
-            <!-- Metric 3: Accuracy -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
-                <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Độ chính xác</div>
-                <div
-                    style="font-size: 1.6rem; font-weight: 800; {% if perf.accuracy >= 80 %}color: #10b981;{% else %}color: #1e293b;{% endif %}">
-                    {{ perf.accuracy }}%</div>
+            {% if s.item.audio %}
+            <div style="margin-top: 1.5rem; text-align: left !important;">
+                <button onclick="new Audio('{{ s.item.audio }}').play()"
+                    style="display: flex; align-items: center; gap: 0.5rem; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.5rem 1rem; border-radius: 99px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-volume-up"></i> Nghe phát âm
+                </button>
             </div>
+            {% endif %}
+        </div>
 
-            <!-- Metric 4: Ease -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
+        <!-- TAB: OVERVIEW -->
+        <div class="tab-content" id="tab-overview" style="display: none; text-align: left !important;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
                 <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Độ khó (Ease)</div>
-                <div style="font-size: 1.6rem; font-weight: 800; color: #475569;">{{ p.ease_factor }}</div>
-            </div>
-
-            <!-- Metric 5: Total Score -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
-                <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Tổng điểm</div>
-                <div
-                    style="font-size: 1.6rem; font-weight: 800; color: #0891b2; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
-                    <i class="fas fa-star text-yellow-400" style="font-size: 1.1rem;"></i> {{ perf.total_score }}
+                    style="background: white; border-radius: 0.6rem; padding: 0.9rem; border: 1px solid #f1f5f9; text-align: left !important;">
+                    <div
+                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
+                        SỨC KHỎE</div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: #6366f1;">{{ p.mastery }}%</div>
                 </div>
-                <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 500;">{{ perf.total_reviews }} lần ôn</div>
-            </div>
-
-            <!-- Metric 6: Next Due SRS -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
                 <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Ngày ôn tiếp</div>
-                <div style="font-size: 1.05rem; font-weight: 800; color: #7c3aed; padding: 0.2rem 0;">{{ p.due_relative
-                    }}</div>
-                <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 500;">
-                    {% if p.next_due %}{{ p.next_due.strftime('%H:%M %d/%m') }}{% else %}-{% endif %}
+                    style="background: white; border-radius: 0.6rem; padding: 0.9rem; border: 1px solid #f1f5f9; text-align: left !important;">
+                    <div
+                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
+                        CHUỖI</div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: #f59e0b;">{{ p.streak }} 🔥</div>
                 </div>
-            </div>
-
-            <!-- Metric 7: First Reviewed -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
                 <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Lần ôn đầu</div>
-                <div style="font-size: 0.9rem; font-weight: 800; color: #06b6d4;">
-                    {% if p.first_reviewed %}{{ p.first_reviewed.strftime('%d/%m/%Y') }}{% else %}-{% endif %}
+                    style="background: white; border-radius: 0.6rem; padding: 0.9rem; border: 1px solid #f1f5f9; text-align: left !important;">
+                    <div
+                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
+                        ĐỘ CHÍNH XÁC</div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: #10b981;">{{ perf.accuracy }}%</div>
                 </div>
-            </div>
-
-            <!-- Metric 8: Last Reviewed -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
                 <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Lần ôn cuối</div>
-                <div style="font-size: 1.05rem; font-weight: 800; color: #8b5cf6;">{{ p.last_reviewed_relative }}</div>
-            </div>
-
-            <!-- Metric 9: Avg Score -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
-                <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Điểm TB/lần</div>
-                <div style="font-size: 1.6rem; font-weight: 800; color: #14b8a6;">+{{ perf.avg_score }}</div>
-            </div>
-
-            <!-- Metric 10: Mastery Trend -->
-            <div class="stat-card"
-                style="background: #f8fafc; border-radius: 1rem; padding: 0.9rem; text-align: center; border: 1px solid #e2e8f0;">
-                <div
-                    style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem;">
-                    Xu hướng</div>
-                <div
-                    style="font-size: 1.4rem; font-weight: 800; {% if p.mastery_trend > 0 %}color: #10b981;{% elif p.mastery_trend < 0 %}color: #ef4444;{% else %}color: #64748b;{% endif %}">
-                    {% if p.mastery_trend > 0 %}↗️ +{{ p.mastery_trend }}%
-                    {% elif p.mastery_trend < 0 %}↘️ {{ p.mastery_trend }}% {% else %}➡️ 0% {% endif %} </div>
+                    style="background: white; border-radius: 0.6rem; padding: 0.9rem; border: 1px solid #f1f5f9; text-align: left !important;">
+                    <div
+                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
+                        LẦN ÔN</div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: #64748b;">{{ perf.total_reviews }}</div>
                 </div>
             </div>
         </div>
 
         <!-- TAB: DETAILS -->
         <div class="tab-content" id="tab-details" style="display: none;">
-            <!-- Mode Breakdown Table -->
-            <div style="margin-bottom: 1.5rem;">
-                <h3
-                    style="font-size: 0.9rem; font-weight: 800; color: #334155; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-chart-bar text-indigo-500"></i> Phân tích theo chế độ
-                </h3>
-                {% if s.modes %}
-                <div style="background: white; border-radius: 0.75rem; overflow: hidden; border: 1px solid #e2e8f0;">
-                    {% for mode, data in s.modes.items() %}
-                    <div
-                        style="padding: 0.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="font-weight: 600; color: #475569; text-transform: capitalize;">{{ mode }}</div>
-                        <div style="display: flex; gap: 1rem; font-size: 0.85rem;">
-                            <span style="color: #64748b;">{{ data.count }} lần</span>
-                            <span
-                                style="{% if data.accuracy >= 80 %}color: #10b981;{% else %}color: #64748b;{% endif %} font-weight: 600;">{{
-                                data.accuracy }}%</span>
-                            <span style="color: #f59e0b; font-weight: 600;">+{{ data.score }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p style="text-align: center; color: #94a3b8; padding: 1.5rem;">Chưa có dữ liệu</p>
-                {% endif %}
-            </div>
-
-            <!-- Rating Distribution (Flashcard only) -->
-            {% if s.rating_distribution and (s.rating_distribution.again + s.rating_distribution.hard +
-            s.rating_distribution.good + s.rating_distribution.easy) > 0 %}
-            <div style="margin-bottom: 1.5rem;">
-                <h3 style="font-size: 0.9rem; font-weight: 800; color: #334155; margin-bottom: 0.75rem;">
-                    <i class="fas fa-gem text-blue-500"></i> Đánh giá Flashcard
-                </h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    <div style="background: #fee2e2; padding: 0.75rem; border-radius: 0.75rem; text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 800; color: #dc2626;">{{ s.rating_distribution.again
-                            }}</div>
-                        <div style="font-size: 0.7rem; color: #7f1d1d; font-weight: 600;">Again</div>
-                    </div>
-                    <div style="background: #fef3c7; padding: 0.75rem; border-radius: 0.75rem; text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 800; color: #d97706;">{{ s.rating_distribution.hard
-                            }}</div>
-                        <div style="font-size: 0.7rem; color: #78350f; font-weight: 600;">Hard</div>
-                    </div>
-                    <div style="background: #dcfce7; padding: 0.75rem; border-radius: 0.75rem; text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 800; color: #16a34a;">{{ s.rating_distribution.good
-                            }}</div>
-                        <div style="font-size: 0.7rem; color: #14532d; font-weight: 600;">Good</div>
-                    </div>
-                    <div style="background: #dbeafe; padding: 0.75rem; border-radius: 0.75rem; text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 800; color: #2563eb;">{{ s.rating_distribution.easy
-                            }}</div>
-                        <div style="font-size: 0.7rem; color: #1e3a8a; font-weight: 600;">Easy</div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Time Stats -->
-            <div style="margin-bottom: 1.5rem;">
-                <h3 style="font-size: 0.9rem; font-weight: 800; color: #334155; margin-bottom: 0.75rem;">
-                    <i class="fas fa-clock text-cyan-500"></i> Thời gian học tập
-                </h3>
-                <div style="background: white; border-radius: 0.75rem; padding: 1rem; border: 1px solid #e2e8f0;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span style="color: #64748b; font-size: 0.85rem;">Trung bình/lần:</span>
-                        <span style="font-weight: 700; color: #334155;">{{ (perf.avg_time_ms / 1000) | round(1)
-                            }}s</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span style="color: #64748b; font-size: 0.85rem;">Nhanh nhất:</span>
-                        <span style="font-weight: 700; color: #10b981;">{{ (perf.min_time_ms / 1000) | round(1)
-                            }}s</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="color: #64748b; font-size: 0.85rem;">Chậm nhất:</span>
-                        <span style="font-weight: 700; color: #ef4444;">{{ (perf.max_time_ms / 1000) | round(1)
-                            }}s</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Frequency -->
-            <div>
-                <h3 style="font-size: 0.9rem; font-weight: 800; color: #334155; margin-bottom: 0.75rem;">
-                    <i class="fas fa-calendar-alt text-purple-500"></i> Tần suất ôn tập
-                </h3>
+            <div style="background: white; border-radius: 0.5rem; border: 1px solid #e2e8f0; overflow: hidden;">
+                {% for mode, data in s.modes.items() %}
                 <div
-                    style="background: white; border-radius: 0.75rem; padding: 1rem; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 1.8rem; font-weight: 800; color: #8b5cf6;">{{ perf.review_frequency }}</div>
-                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem;">lần/tuần</div>
+                    style="padding: 0.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 0.8rem;">
+                    <span style="font-weight: 600; text-transform: capitalize;">{{ mode }}</span>
+                    <span>{{ data.count }} lần | {{ data.accuracy }}%</span>
                 </div>
+                {% endfor %}
             </div>
         </div>
 
         <!-- TAB: HISTORY -->
         <div class="tab-content" id="tab-history" style="display: none;">
-            <h3
-                style="font-size: 0.9rem; font-weight: 800; color: #334155; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                <i class="fas fa-history text-slate-400"></i> Lịch sử gần đây
-            </h3>
-
-            {% if s.history %}
-            <div class="history-scroll"
-                style="display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 1rem; scrollbar-width: none; -ms-overflow-style: none;">
+            <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem;">
                 {% for log in s.history %}
-                <button class="history-btn" onclick="window.showLogDetails(this, {{ loop.index0 }})"
-                    data-timestamp="{{ log.timestamp.strftime('%H:%M %d/%m/%Y') }}" data-mode="{{ log.mode }}"
-                    data-result="{{ log.result }}" data-answer="{{ log.user_answer or 'Không có' }}"
-                    data-duration="{{ (log.duration_ms / 1000) | round(1) }}s"
-                    style="flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px; border: 2px solid transparent; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; transition: all 0.2s;
-                {% if log.result == 'Correct' %}background: #dcfce7; color: #16a34a;{% else %}background: #fee2e2; color: #dc2626;{% endif %}">
-                    {% if log.result == 'Correct' %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-times"></i>{%
-                    endif %}
-                </button>
+                <div
+                    style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+                    {% if log.result == 'Correct' %}background: #dcfce7; color: #16a34a;{% else %}background: #fee2e2; color: #dc2626;{% endif %}">
+                    {% if log.result == 'Correct' %}✓{% else %}✕{% endif %}
+                </div>
                 {% endfor %}
-            </div>
-
-            <div id="log-detail-panel"
-                style="background: #f1f5f9; border-radius: 1rem; padding: 1rem; margin-top: 0.5rem; display: none; animation: fadeIn 0.3s ease;">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <span id="detail-timestamp" style="font-size: 0.85rem; font-weight: 600; color: #64748b;">-</span>
-                    <span id="detail-mode"
-                        style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; background: #e2e8f0; color: #475569; padding: 0.2rem 0.6rem; border-radius: 99px;">-</span>
-                </div>
-
-                <div style="display: flex; gap: 0.5rem; flex-direction: column;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="font-size: 0.85rem; color: #64748b;">Kết quả:</span>
-                        <span id="detail-result" style="font-size: 0.9rem; font-weight: 700;">-</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="font-size: 0.85rem; color: #64748b;">Câu trả lời:</span>
-                        <span id="detail-answer"
-                            style="font-size: 0.9rem; font-weight: 600; color: #334155; max-width: 200px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</span>
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <div
-                style="text-align: center; color: #94a3b8; padding: 2rem; background: #f8fafc; border-radius: 1rem; border: 1px dashed #cbd5e1;">
-                Chưa có lịch sử ôn tập
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- TAB: CONTENT -->
-        <div class="tab-content" id="tab-content" style="display: none;">
-            <div class="content-tab-wrapper"
-                style="background: white; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e2e8f0; animation: slideIn 0.3s ease;">
-                <!-- Image (if any) -->
-                {% if s.item.image %}
-                <div style="margin-bottom: 1.5rem; text-align: center;">
-                    <img src="{{ s.item.image }}"
-                        style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 4px solid #f8fafc;">
-                </div>
-                {% endif %}
-
-                <!-- Main Info -->
-                <div style="text-align: center; margin-bottom: 1.5rem;">
-                    <div style="font-size: 2.2rem; font-weight: 900; color: #1e293b; margin-bottom: 0.25rem;">{{
-                        s.item.front }}</div>
-                    {% if s.item.pronunciation or s.item.phonetic %}
-                    <div
-                        style="font-size: 1.1rem; color: #6366f1; font-weight: 600; font-family: 'Courier New', monospace; letter-spacing: 0.05em;">
-                        /{{ s.item.pronunciation or s.item.phonetic }}/
-                    </div>
-                    {% endif %}
-
-                    {% if s.item.audio %}
-                    <div style="margin-top: 1rem;">
-                        <button onclick="new Audio('{{ s.item.audio }}').play()" class="audio-play-btn"
-                            style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 15px rgba(99, 102, 241, 0.4);">
-                            <i class="fas fa-volume-up" style="font-size: 1.5rem;"></i>
-                        </button>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div
-                    style="height: 2px; background: linear-gradient(90deg, transparent, #f1f5f9, transparent); margin: 1.5rem 0;">
-                </div>
-
-                <!-- Meaning -->
-                <div style="margin-bottom: 1.5rem; text-align: center;">
-                    <div
-                        style="font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.1em;">
-                        Ý nghĩa</div>
-                    <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a; line-height: 1.3;">{{ s.item.back
-                        or s.item.meaning }}</div>
-                </div>
-
-                <!-- Example -->
-                {% if s.item.example %}
-                <div
-                    style="background: #f8fafc; padding: 1.25rem; border-radius: 1rem; border-left: 5px solid #6366f1; position: relative; overflow: hidden;">
-                    <i class="fas fa-quote-right"
-                        style="position: absolute; right: 1rem; top: 1rem; font-size: 2rem; color: #e2e8f0; z-index: 0;"></i>
-                    <div style="position: relative; z-index: 1;">
-                        <div
-                            style="font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.1em;">
-                            Ví dụ</div>
-                        <div
-                            style="font-size: 1.05rem; color: #334155; font-style: italic; font-weight: 500; line-height: 1.6; margin-bottom: 0.5rem;">
-                            "{{ s.item.example }}"</div>
-                        {% if s.item.example_meaning %}
-                        <div
-                            style="font-size: 0.9rem; color: #64748b; font-weight: 500; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem; margin-top: 0.5rem;">
-                            {{ s.item.example_meaning }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Tags -->
-                {% if s.item.tags %}
-                <div style="margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
-                    {% for tag in s.item.tags %}
-                    <span
-                        style="background: #f1f5f9; color: #6366f1; padding: 0.35rem 0.75rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(99, 102, 241, 0.1);">#{{
-                        tag }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
+</div>
 
-    <style>
-        .tab-btn {
-            background: transparent;
-            color: #64748b;
-            cursor: pointer;
+<style>
+    .tab-btn {
+        background: transparent;
+        color: #64748b;
+        cursor: pointer;
+    }
+
+    .tab-btn.active {
+        background: white;
+        color: #4f46e5;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .tab-content {
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
         }
 
-        .tab-btn.active {
-            background: white;
-            color: #4f46e5;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
-
-        .tab-content {
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+    }
+</style>

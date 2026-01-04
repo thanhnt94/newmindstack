@@ -7,7 +7,7 @@
             {# --- Row 1: Badge + Title + Score --- #}
             <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-600">
                 {# Badge + Title #}
-                <div class="flex items-center gap-2.5 overflow-hidden max-w-[70%]">
+                <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
                     <span class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white/20 rounded-lg shadow-sm">
                         <i class="fas fa-layer-group text-white text-[10px]"></i>
                         <span class="text-[10px] font-bold text-white uppercase tracking-wide">FLASHCARD</span>
@@ -17,9 +17,9 @@
                 </div>
 
                 {# Score Badge #}
-                <div class="flex items-center gap-1.5 h-8 px-3 bg-white/20 rounded-full">
-                    <i class="fa-solid fa-gem text-white text-xs"></i>
-                    <span class="text-sm font-black text-white font-mono js-fc-score">
+                <div class="flex-shrink-0 flex items-center gap-1 h-7 px-2.5 bg-white/20 rounded-full">
+                    <i class="fa-solid fa-gem text-white text-[10px]"></i>
+                    <span class="text-xs font-black text-white font-mono js-fc-score">
                         {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
                     </span>
                 </div>
@@ -78,7 +78,7 @@
                             <div class="relative inline-block">
                                 <button
                                     class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 js-fc-settings-toggle">
-                                    <i class="fas fa-ellipsis-v text-[10px]"></i>
+                                    <i class="fas fa-cog text-[10px]"></i>
                                 </button>
                                 <div class="fc-settings-menu js-fc-settings-menu z-50" style="right: 0; top: 100%;">
                                     <button class="fc-settings-item js-fc-image-toggle">
