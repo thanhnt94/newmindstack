@@ -242,9 +242,9 @@ def quiz_session():
                 pass
 
         if is_single_mode:
-            return render_template('v3/pages/learning/quiz/individual/session/_session_single.html')
+            return render_template('v3/pages/learning/quiz/individual/session/default/_session_single.html')
         else:
-            return render_template('v3/pages/learning/quiz/individual/session/_session_batch.html')
+            return render_template('v3/pages/learning/quiz/individual/session/default/_session_batch.html')
     except Exception as e:
         current_app.logger.error(f"Error loading quiz session: {e}", exc_info=True)
         # DEBUG: Return error directly to see what failed

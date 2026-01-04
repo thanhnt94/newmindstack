@@ -679,52 +679,55 @@ class QuizSessionManager:
                     duration_ms=duration_ms
                 )
                 
-                is_correct = result.get('correct', False)
-                score_change = 0 # Handled by QuizEngine internally (SRS + Score)?
-                # QuizEngine.check_answer calls ScoreService.award_points.
-                # But it returns 'correct' dict.
-                # It does NOT return score_change explicitly.
-                # Wait, QuizEngine.check_answer DOES return score_change?
-                # No, looking at code: `return {'correct': is_correct, ...}`.
-                # But it calculates `score_change` internally for ScoreService.
-                # We need `score_change` for frontend feedback in `results`.
+            is_correct = result.get('correct', False)
+            score_change = result.get('score_change', 0)
+            correct_option_char = None
+            
+            if item:
+                # Need explanation
+                explanation = item.content.get('explanation') or item.ai_explanation or ""
                 
-                # Update QuizEngine to return score_change? 
-                # Or estimate it. 
-                # Standard is usually +5 or updated logic.
-                # Actually, QuizEngine hardcodes +5.
-                score_change = 5 if is_correct else 0
-                
-                # Also, we might want "correct_option_char" for UI feedback.
-                # We need to find which Key corresponds to the correct answer returned by QuizEngine.
+                # Resolve User Answer Text from Key (A/B/C/D) via batch_options_mappings
+                options_mapping = self.batch_options_mappings.get(str(item_id)) or {}
+                # Also check item content directly if not in mapping (fallback for legacy sets)
+                if not options_mapping and item.content and item.content.get('options'):
+                     options_mapping = item.content.get('options')
+
+                # Find correct option char
                 correct_text = result.get('correct_answer')
-                correct_option_char = None
                 if correct_text and options_mapping:
-                    # Find key for this text
+                    c_text_normalized = str(correct_text).strip().lower()
                     for k, v in options_mapping.items():
-                        if str(v).strip().lower() == str(correct_text).strip().lower():
+                        if str(v).strip().lower() == c_text_normalized:
                             correct_option_char = k
                             break
-                            
-                updated_total_score = current_user_total_score + score_change # Approximate, real value in DB.
+                
+                if not correct_option_char:
+                    print(f"!!! SESSION_MANAGER: WARNING - Không tìm thấy key cho đáp án '{correct_text}' trong options_mapping cho item {item_id}")
+                    print(f"Mapping hiện tại: {options_mapping}")
 
             item_stats = get_quiz_item_statistics(self.user_id, item_id)
             
             if is_correct:
                 self.correct_answers += 1
-                print(f">>> SESSION_MANAGER: Câu trả lời đúng. Điểm thay đổi: {score_change} <<<")
             else:
                 self.incorrect_answers += 1
-                print(f">>> SESSION_MANAGER: Câu trả lời sai. Điểm thay đổi: {score_change} <<<")
             
-            results.append({
+            # Build result result dictionary with all fields from QuizEngine
+            res_dict = {
                 'item_id': item_id,
                 'is_correct': is_correct,
                 'correct_answer': correct_option_char,
                 'explanation': explanation,
                 'statistics': item_stats,
                 'score_change': score_change,
-            })
+            }
+            # Add SRS fields if available
+            for field in ['mastery_delta', 'new_mastery_pct', 'points_breakdown', 'srs_result']:
+                if field in result:
+                    res_dict[field] = result[field]
+                    
+            results.append(res_dict)
         
         session[self.SESSION_KEY] = self.to_dict()
         session.modified = True 

@@ -213,15 +213,32 @@ class QuizEngine:
                  correct_answers = [str(val)]
                  
         if not correct_answers:
-            correct_answers = content.get('memrise_answers', [])
-            if not correct_answers:
-                correct_answers = [content.get('back', '')]
+            # Try various common keys
+            potential_keys = ['correct_answer', 'answer', 'memrise_answers', 'back']
+            for pk in potential_keys:
+                pk_val = content.get(pk)
+                if pk_val:
+                    if isinstance(pk_val, list):
+                        correct_answers = [str(v) for v in pk_val if v]
+                    else:
+                        correct_answers = [str(pk_val)]
+                    if correct_answers:
+                        break
         
-        is_correct = user_answer.strip().lower() in [a.strip().lower() for a in correct_answers]
+        is_correct = False
+        if correct_answers:
+            is_correct = user_answer.strip().lower() in [a.strip().lower() for a in correct_answers if a]
         
         if user_id:
             # Determine quality: 4 (Good) if correct, 1 (Again) if incorrect
             quality = 4 if is_correct else 1
+            
+            # Fetch old progress for delta calculation
+            from mindstack_app.models.learning_progress import LearningProgress
+            old_progress = LearningProgress.query.filter_by(
+                user_id=user_id, item_id=item_id, learning_mode='quiz'
+            ).first()
+            old_mastery = old_progress.mastery if old_progress else 0.0
             
             # Update SRS using UnifiedSrsSystem
             progress, srs_result = SrsService.update_unified(
@@ -234,16 +251,29 @@ class QuizEngine:
             )
             
             # Use score from SrsResult
-            score_change = srs_result.score_points
+            score_change = getattr(srs_result, 'score_points', 0)
             
             ScoreService.award_points(
                 user_id=user_id,
                 amount=score_change,
-                reason=f"MCQ Answer (Correct: {is_correct})",
+                reason=f"Quiz Answer (Correct: {is_correct})",
                 item_id=item_id,
-                item_type='MCQ'
+                item_type='QUIZ_MCQ'
             )
             safe_commit(db.session)
+
+            new_mastery_pct = round((srs_result.mastery or 0.0) * 100, 1)
+            old_mastery_pct = round((old_mastery or 0.0) * 100, 1)
+            mastery_delta = round(new_mastery_pct - old_mastery_pct, 1)
+
+            return {
+                'correct': is_correct,
+                'correct_answer': correct_answers[0] if correct_answers else '',
+                'score_change': score_change,
+                'mastery_delta': mastery_delta,
+                'new_mastery_pct': new_mastery_pct,
+                'points_breakdown': getattr(srs_result, 'score_breakdown', {})
+            }
 
         return {
             'correct': is_correct,

@@ -4,12 +4,16 @@
 
 {% extends "v3/base.html" %}
 
-{% block title %}Làm bài Quiz{% endblock %}
+{% block title %}Làm bài Quiz{% include " v3/includes/notification/_score_toast.html\ %}
+{% include \v3/includes/notification/_memory_power.html\ %}
+{% endblock %}
 
 {% block head %}
 {{ super() }}
-{% include "v3/pages/content_management/shared/_shared_styles.html" %}
+{% include 'content_management/_shared_styles.html' %}
 <link rel="stylesheet" href="{{ url_for('learning.quiz_learning.static', filename='css/session_batch.css') }}">
+{% include " v3/includes/notification/_score_toast.html\ %}
+{% include \v3/includes/notification/_memory_power.html\ %}
 {% endblock %}
 
 {% block content %}
@@ -298,6 +302,8 @@
         </div>
     </div>
 </div>
+{% include " v3/includes/notification/_score_toast.html\ %}
+{% include \v3/includes/notification/_memory_power.html\ %}
 {% endblock %}
 
 {% block scripts %}
@@ -1003,14 +1009,8 @@
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const responseData = await response.json();
 
-            // Update Score HUD
-            if (responseData.new_total_score !== undefined) {
-                const scoreEl = document.getElementById('header-total-score');
-                if (scoreEl) scoreEl.textContent = responseData.new_total_score;
-            }
-
             // Process Results
-            let totalScoreChange = 0;
+            let totalScoreDelta = 0;
             responseData.results.forEach(result => {
                 // Update Local data
                 const qIndex = currentQuestionBatch.findIndex(q => q.item_id === result.item_id);
@@ -1018,16 +1018,47 @@
                     currentQuestionBatch[qIndex].explanation = result.explanation;
                     currentQuestionBatch[qIndex].correct_answer = result.correct_answer;
                     currentQuestionBatch[qIndex].is_correct = result.is_correct;
+
+                    // Detailed SRS metadata
+                    currentQuestionBatch[qIndex].mastery_delta = result.mastery_delta || 0;
+                    currentQuestionBatch[qIndex].new_mastery_pct = result.new_mastery_pct || 0;
+                    currentQuestionBatch[qIndex].points_breakdown = result.points_breakdown || {};
                 }
+
+                if (result.score_change) totalScoreDelta += result.score_change;
                 renderFeedbackForQuestion(result);
-                if (result.score_change) totalScoreChange += result.score_change;
             });
 
-            // Trigger Score Toast (consolidated for batch)
-            if (totalScoreChange > 0 && window.showScoreToast) {
-                window.showScoreToast(totalScoreChange);
+            // Update Score HUD
+            if (responseData.new_total_score !== undefined) {
+                const scoreEl = document.getElementById('header-total-score');
+                if (scoreEl) scoreEl.textContent = responseData.new_total_score;
             }
 
+            // Trigger Score Toast (Cumulative for batch)
+            if (totalScoreDelta > 0 && window.showScoreToast) {
+                window.showScoreToast(totalScoreDelta);
+            }
+
+            // Trigger Memory Power Feedback (Using the average or the last one? 
+            // Usually for batch, we might just show the sum of mastery changes if applicable, 
+            // but the UI is designed for single. Let's show the breakdown of the first one or a summary?)
+            // Actually, for batch, we can show a summary or skip memory power feedback to avoid clutter, 
+            // BUT the user wants it "similar to other learning modes". 
+            // In batch/multisave, we usually show a summary. 
+            // Let's show memory power feedback for the batch if there were changes.
+            if (window.showMemoryPowerFeedback && responseData.results.length > 0) {
+                const totalMasteryDelta = responseData.results.reduce((sum, r) => sum + (r.mastery_delta || 0), 0);
+                // For simplicity, show the overall delta.
+                if (totalMasteryDelta !== 0) {
+                    window.showMemoryPowerFeedback({
+                        is_correct: responseData.session_correct_answers > 0, // Simplified
+                        mastery_delta: totalMasteryDelta,
+                        new_mastery_pct: responseData.results[0].new_mastery_pct, // Show first one as representative
+                        points_breakdown: { 'Batch Quiz': totalScoreDelta }
+                    });
+                }
+            }
             updateSessionSummary(responseData.session_correct_answers, responseData.session_total_answered);
             toggleControlButtons('submitted');
             saveState();
@@ -1573,6 +1604,6 @@
         setTimeout(() => { toast.classList.remove('visible'); setTimeout(() => toast.remove(), 300); }, 3000);
     }
 </script>
-
-{% include "v3/includes/notification/_score_toast.html" %}
+{% include " v3/includes/notification/_score_toast.html\ %}
+{% include \v3/includes/notification/_memory_power.html\ %}
 {% endblock %}

@@ -355,21 +355,27 @@ def submit_answer_batch():
                 db.session.rollback()
                 current_app.logger.error(f"Lỗi khi cập nhật last_accessed cho bộ quiz {s_id}: {e}", exc_info=True)
 
-    results = session_manager.process_answer_batch(answers)
-    if 'error' in results:
-        current_app.logger.error(f"Lỗi trong quá trình process_answer_batch: {results.get('error')}")
-        return jsonify(results), 400
+    try:
+        results = session_manager.process_answer_batch(answers)
+        if 'error' in results:
+            current_app.logger.error(f"Lỗi trong quá trình process_answer_batch: {results.get('error')}")
+            return jsonify(results), 400
 
-    session['quiz_session'] = session_manager.to_dict()
+        session['quiz_session'] = session_manager.to_dict()
 
-    response_data = {
-        'results': results,
-        'session_correct_answers': session_manager.correct_answers,
-        'session_total_answered': session_manager.correct_answers + session_manager.incorrect_answers
-    }
+        response_data = {
+            'results': results,
+            'session_correct_answers': session_manager.correct_answers,
+            'session_total_answered': session_manager.correct_answers + session_manager.incorrect_answers,
+            'new_total_score': current_user.total_score
+        }
 
-    current_app.logger.debug("--- Kết thúc submit_answer_batch (Thành công) ---")
-    return jsonify(response_data)
+        current_app.logger.debug("--- Kết thúc submit_answer_batch (Thành công) ---")
+        return jsonify(response_data)
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"LỖI NGHIÊM TRỌNG trong submit_answer_batch: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Lỗi hệ thống: {str(e)}'}), 500
 
 
 @quiz_learning_bp.route('/end_session', methods=['POST'])

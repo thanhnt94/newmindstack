@@ -1,15 +1,19 @@
-Ôªø<!-- mindstack_app/modules/learning/quiz/individual/templates/quiz/individual/quiz_session_batch.html -->
-<!-- Phi√™n b?n: 4.2 (Responsive Batch - with Hub & Scroll Tracking) -->
-<!-- M?C √ê√çCH: Giao di?n l√†m b√†i nhi?u c√¢u h?i (Batch) c√≥ h? tr? giao di?n Mobile ri√™ng bi?t v√† ch?c nang Hub + Scroll Spy. -->
+<!-- mindstack_app/modules/learning/quiz/individual/templates/quiz/individual/quiz_session_batch.html -->
+<!-- PhiÍn b?n: 4.2 (Responsive Batch - with Hub & Scroll Tracking) -->
+<!-- M?C –ÕCH: Giao di?n l‡m b‡i nhi?u c‚u h?i (Batch) cÛ h? tr? giao di?n Mobile riÍng bi?t v‡ ch?c nang Hub + Scroll Spy. -->
 
 {% extends "v3/base.html" %}
 
-{% block title %}L√†m b√†i Quiz{% endblock %}
+{% block title %}L‡m b‡i Quiz{% include " v3/includes/notification/_score_toast.html\ %}
+{% include \v3/includes/notification/_memory_power.html\ %}
+{% endblock %}
 
 {% block head %}
 {{ super() }}
-{% include "v3/pages/content_management/shared/_shared_styles.html" %}
+{% include 'content_management/_shared_styles.html' %}
 <link rel="stylesheet" href="{{ url_for('learning.quiz_learning.static', filename='css/session_batch.css') }}">
+{% include " v3/includes/notification/_score_toast.html\ %}
+{% include \v3/includes/notification/_memory_power.html\ %}
 {% endblock %}
 
 {% block content %}
@@ -29,16 +33,16 @@
                     class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="qb-hub-tabs">
-            <div class="qb-hub-tab-item active" data-target="hub-expl">?? Gi?i th√≠ch</div>
+            <div class="qb-hub-tab-item active" data-target="hub-expl">?? Gi?i thÌch</div>
             <div class="qb-hub-tab-item" data-target="hub-ai">?? AI Coach</div>
-            <div class="qb-hub-tab-item" data-target="hub-note">?? Ghi ch√∫</div>
+            <div class="qb-hub-tab-item" data-target="hub-note">?? Ghi ch˙</div>
         </div>
         <div class="qb-hub-content">
             <!-- Expl Tab -->
             <div id="hub-expl" class="qb-hub-pane active">
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
-                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Gi?i th√≠ch:</h4>
-                    <div id="hub-explanation-text">Chua c√≥ gi?i th√≠ch.</div>
+                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Gi?i thÌch:</h4>
+                    <div id="hub-explanation-text">Chua cÛ gi?i thÌch.</div>
                 </div>
             </div>
             <!-- AI Tab -->
@@ -46,7 +50,7 @@
                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i>
-                            <span>AI Ph√¢n T√≠ch</span>
+                            <span>AI Ph‚n TÌch</span>
                         </div>
                         <button id="ai-generate-btn"
                             class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
@@ -54,14 +58,14 @@
                     </div>
                     <div id="hub-ai-content"
                         class="content-display markdown-body text-sm text-slate-700 leading-relaxed min-h-[100px]">Nh?n
-                        n√∫t d? y√™u c?u AI ph√¢n t√≠ch...</div>
+                        n˙t d? yÍu c?u AI ph‚n tÌch...</div>
                 </div>
             </div>
 
             <!-- Note Tab -->
             <div id="hub-note" class="qb-hub-pane">
                 <div class="flex justify-between items-center mb-2">
-                    <h4 class="font-bold text-slate-700">Ghi ch√∫ c?a b?n</h4>
+                    <h4 class="font-bold text-slate-700">Ghi ch˙ c?a b?n</h4>
                     <button id="hub-note-edit-btn"
                         class="hidden text-xs bg-blue-100 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-200 font-medium"><i
                             class="fa-solid fa-pencil"></i> S?a</button>
@@ -74,7 +78,7 @@
                 <div id="hub-note-edit-mode" class="hidden">
                     <textarea id="hub-note-input"
                         class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition"
-                        rows="8" placeholder="Ghi ch√∫ c?a b?n..."></textarea>
+                        rows="8" placeholder="Ghi ch˙ c?a b?n..."></textarea>
                     <div class="flex justify-end mt-2 gap-2">
                         <button id="hub-note-cancel"
                             class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-1.5 px-4 text-sm rounded-md">H?y</button>
@@ -93,7 +97,7 @@
         style="max-width: 900px; margin: 0 auto; height: 90vh; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
         <div class="qb-hub-header">
             <h3 class="font-bold text-slate-800 text-lg"><i
-                    class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i>Ch?nh s?a c√¢u h?i</h3>
+                    class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i>Ch?nh s?a c‚u h?i</h3>
             <button id="close-edit-modal-btn"
                 class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
                     class="fa-solid fa-xmark"></i></button>
@@ -115,16 +119,16 @@
                     class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="qb-hub-tabs">
-            <div class="qb-hub-tab-item active" data-target="hub-expl">?? Gi?i th√≠ch</div>
+            <div class="qb-hub-tab-item active" data-target="hub-expl">?? Gi?i thÌch</div>
             <div class="qb-hub-tab-item" data-target="hub-ai">?? AI Coach</div>
-            <div class="qb-hub-tab-item" data-target="hub-note">?? Ghi ch√∫</div>
+            <div class="qb-hub-tab-item" data-target="hub-note">?? Ghi ch˙</div>
         </div>
         <div class="qb-hub-content">
             <!-- Expl Tab -->
             <div id="hub-expl" class="qb-hub-pane active">
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
-                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Gi?i th√≠ch:</h4>
-                    <div id="hub-explanation-text">Chua c√≥ gi?i th√≠ch.</div>
+                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Gi?i thÌch:</h4>
+                    <div id="hub-explanation-text">Chua cÛ gi?i thÌch.</div>
                 </div>
             </div>
             <!-- AI Tab -->
@@ -132,7 +136,7 @@
                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i>
-                            <span>AI Ph√¢n T√≠ch</span>
+                            <span>AI Ph‚n TÌch</span>
                         </div>
                         <button id="ai-generate-btn"
                             class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
@@ -140,16 +144,16 @@
                     </div>
                     <div id="hub-ai-content"
                         class="content-display markdown-body text-sm text-slate-700 leading-relaxed min-h-[100px]">Nh?n
-                        n√∫t d? y√™u c?u AI ph√¢n t√≠ch...</div>
+                        n˙t d? yÍu c?u AI ph‚n tÌch...</div>
                 </div>
             </div>
             <!-- Note Tab -->
             <div id="hub-note" class="qb-hub-pane">
                 <div class="flex justify-between items-center mb-2">
-                    <h4 class="font-bold text-slate-700">Ghi ch√∫ c?a b?n</h4>
+                    <h4 class="font-bold text-slate-700">Ghi ch˙ c?a b?n</h4>
                     <button id="hub-note-edit-btn"
                         class="hidden text-xs bg-blue-100 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-200 font-medium">
-                        <i class="fa-solid fa-pencil"></i> S?a ghi ch√∫
+                        <i class="fa-solid fa-pencil"></i> S?a ghi ch˙
                     </button>
                 </div>
 
@@ -164,13 +168,13 @@
                 <div id="hub-note-edit-mode" class="hidden">
                     <textarea id="hub-note-input"
                         class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition"
-                        rows="8" placeholder="Ghi ch√∫ c?a b?n..."></textarea>
+                        rows="8" placeholder="Ghi ch˙ c?a b?n..."></textarea>
                     <div class="flex justify-end mt-2 gap-2">
                         <button id="hub-note-cancel"
                             class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-1.5 px-4 text-sm rounded-md">H?y</button>
                         <button id="hub-note-save"
                             class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-1.5 px-4 text-sm rounded-md">Luu
-                            ghi ch√∫</button>
+                            ghi ch˙</button>
                     </div>
                 </div>
             </div>
@@ -183,15 +187,15 @@
     <div class="qb-modal-container"
         style="max-width: 500px; margin: 0 auto; height: auto; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
         <div class="qb-hub-header">
-            <h3 class="font-bold text-slate-800 text-lg"><i class="fa-solid fa-flag text-red-500 mr-2"></i>B√°o l?i / G√≥p
-                √Ω</h3>
+            <h3 class="font-bold text-slate-800 text-lg"><i class="fa-solid fa-flag text-red-500 mr-2"></i>B·o l?i / GÛp
+                ˝</h3>
             <button id="close-feedback-btn"
                 class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
                     class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="p-4">
-            <p class="text-sm text-slate-600 mb-3">H√£y m√¥ t? v?n d? b?n g?p ph?i v?i c√¢u h?i n√†y. √ê√≥ng g√≥p c?a b?n gi√∫p
-                ch√∫ng t√¥i c?i thi?n ch?t lu?ng!</p>
+            <p class="text-sm text-slate-600 mb-3">H„y mÙ t? v?n d? b?n g?p ph?i v?i c‚u h?i n‡y. –Ûng gÛp c?a b?n gi˙p
+                ch˙ng tÙi c?i thi?n ch?t lu?ng!</p>
             <textarea id="feedback-input"
                 class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition mb-4"
                 rows="4" placeholder="Nh?p n?i dung ph?n h?i..."></textarea>
@@ -232,8 +236,8 @@
             <div id="transcript-loading"
                 class="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center text-blue-600 hidden">
                 <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
-                <p class="font-medium animate-pulse">√êang chuy?n d?i gi?ng n√≥i th√†nh van b?n...</p>
-                <p class="text-xs text-slate-400 mt-2">Vi?c n√†y c√≥ th? m?t v√†i gi√¢y v?i audio d√†i.</p>
+                <p class="font-medium animate-pulse">–ang chuy?n d?i gi?ng nÛi th‡nh van b?n...</p>
+                <p class="text-xs text-slate-400 mt-2">Vi?c n‡y cÛ th? m?t v‡i gi‚y v?i audio d‡i.</p>
             </div>
 
             <!-- View Mode -->
@@ -251,14 +255,14 @@
 
             <div id="transcript-empty" class="hidden text-center py-8 text-slate-400 flex flex-col items-center">
                 <i class="fas fa-quote-right text-4xl mb-3 opacity-20"></i>
-                <p>Chua c√≥ n?i dung transcript.</p>
+                <p>Chua cÛ n?i dung transcript.</p>
             </div>
 
             <div id="transcript-error"
                 class="hidden bg-red-50 text-red-700 p-4 rounded-lg flex items-start gap-3 border border-red-100">
                 <i class="fas fa-exclamation-circle mt-0.5 shrink-0"></i>
                 <div>
-                    <h4 class="font-bold text-sm">Kh√¥ng th? l?y transcript</h4>
+                    <h4 class="font-bold text-sm">KhÙng th? l?y transcript</h4>
                     <p class="text-sm mt-1" id="transcript-error-msg">L?i k?t n?i.</p>
                 </div>
             </div>
@@ -292,12 +296,14 @@
                 <button type="button" onclick="document.getElementById('transcript-modal').classList.add('hidden')"
                     class="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg transition"
                     id="transcript-close-main-btn">
-                    √ê√≥ng
+                    –Ûng
                 </button>
             </div>
         </div>
     </div>
 </div>
+{% include " v3/includes/notification/_score_toast.html\ %}
+{% include \v3/includes/notification/_memory_power.html\ %}
 {% endblock %}
 
 {% block scripts %}
@@ -457,8 +463,8 @@
         questionCards.forEach(card => {
             const feedbackArea = card.querySelector('.feedback-area');
             let feedbackHtml = result.is_correct ?
-                `<div class="feedback-box feedback-correct"><span class="feedback-icon"><i class="fas fa-check-circle"></i></span><div class="feedback-text"><strong>Ch√≠nh x√°c!</strong></div></div>` :
-                `<div class="feedback-box feedback-incorrect"><span class="feedback-icon"><i class="fas fa-times-circle"></i></span><div class="feedback-text"><strong>Sai r?i</strong><span>√ê√°p √°n d√∫ng: ${result.correct_answer}</span></div></div>`;
+                `<div class="feedback-box feedback-correct"><span class="feedback-icon"><i class="fas fa-check-circle"></i></span><div class="feedback-text"><strong>ChÌnh x·c!</strong></div></div>` :
+                `<div class="feedback-box feedback-incorrect"><span class="feedback-icon"><i class="fas fa-times-circle"></i></span><div class="feedback-text"><strong>Sai r?i</strong><span>–·p ·n d˙ng: ${result.correct_answer}</span></div></div>`;
 
             // Standard Feedback Area (Just correct/incorrect + optional base explanation text if we want duplicates?)
             // We already have detailed explanation in the insights section.
@@ -521,7 +527,7 @@
     }
 
     async function getNextQuestionBatch() {
-        setHtml('.js-quiz-content', `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>√êang t?i c√¢u h?i...</p></div>`);
+        setHtml('.js-quiz-content', `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>–ang t?i c‚u h?i...</p></div>`);
         toggleControlButtons('loading');
 
         try {
@@ -543,8 +549,8 @@
             saveState();
         }
         catch (error) {
-            console.error('L?i khi t?i nh√≥m c√¢u h?i:', error);
-            setHtml('.js-quiz-content', `<p class="text-red-500 text-center p-4">Kh√¥ng th? t?i c√¢u h?i. Vui l√≤ng th? l?i.</p>`);
+            console.error('L?i khi t?i nhÛm c‚u h?i:', error);
+            setHtml('.js-quiz-content', `<p class="text-red-500 text-center p-4">KhÙng th? t?i c‚u h?i. Vui lÚng th? l?i.</p>`);
             toggleControlButtons('error');
         }
     }
@@ -572,7 +578,7 @@
         const startRange = batchData.question_number_min || (currentBatchMeta.startIndex + 1);
         const endRange = batchData.question_number_max || (currentBatchMeta.startIndex + currentQuestionBatch.length);
         const totalInSession = totalQuestionsInSession;
-        setText('.js-quiz-group-range', totalInSession ? `C√¢u ${startRange}-${endRange}` : '---');
+        setText('.js-quiz-group-range', totalInSession ? `C‚u ${startRange}-${endRange}` : '---');
 
         updateProgressCard();
         attachOptionHandlers();
@@ -668,7 +674,7 @@
         // Build Media
         let mediaHtml = '';
         if (content.question_image_file) {
-            mediaHtml += `<img src="${content.question_image_file}" alt="H√¨nh ?nh" class="quiz-image mb-4">`;
+            mediaHtml += `<img src="${content.question_image_file}" alt="HÏnh ?nh" class="quiz-image mb-4">`;
         }
         if (content.question_audio_file) {
             mediaHtml += `<audio controls src="${content.question_audio_file}" class="w-full mb-2"></audio>`;
@@ -704,7 +710,7 @@
         // 3. Report Button (Grey)
         actionButtonsHtml += `
             <button class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors js-report-error-btn"
-                    data-question-id="${questionData.item_id}" title="B√°o l?i">
+                    data-question-id="${questionData.item_id}" title="B·o l?i">
                 <i class="fa-regular fa-flag text-lg"></i>
             </button>
         `;
@@ -713,7 +719,7 @@
         // Keep hidden by default unless logic requires it
         actionButtonsHtml += `
             <button class="w-8 h-8 flex items-center justify-center text-yellow-500 hover:text-yellow-600 transition-colors js-hint-btn hidden"
-                    data-question-id="${questionData.item_id}" title="G?i √Ω">
+                    data-question-id="${questionData.item_id}" title="G?i ˝">
                 <i class="fa-regular fa-lightbulb text-lg"></i>
             </button>
         `;
@@ -721,7 +727,7 @@
         return `
                 <div class="question-card" data-item-id="${questionData.item_id}">
                     <div class="flex justify-between items-center text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">
-                        <span>C√¢u ${questionNumber}</span>
+                        <span>C‚u ${questionNumber}</span>
                         <div class="flex items-center gap-1">
                             ${actionButtonsHtml}
                         </div>
@@ -764,7 +770,7 @@
                     const editUrl = `/content/quizzes/${containerId}/items/edit/${qId}`;
                     if (window.openEditModal) window.openEditModal(editUrl, qId);
                 } else {
-                    showCustomAlert("Thi?u th√¥ng tin d? s?a c√¢u h?i.", "error");
+                    showCustomAlert("Thi?u thÙng tin d? s?a c‚u h?i.", "error");
                 }
             });
         });
@@ -800,7 +806,7 @@
         document.querySelectorAll('.js-mobile-hub-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (activeHubItemId) openHub(activeHubItemId);
-                else showCustomAlert("H√£y cu?n t?i m?t c√¢u h?i.", "info");
+                else showCustomAlert("H„y cu?n t?i m?t c‚u h?i.", "info");
             });
         });
 
@@ -931,11 +937,11 @@
                 currentQuestionBatch[qIdx].note_content = content;
                 saveState();
             }
-            showCustomAlert("√ê√£ luu ghi ch√∫.", "success");
+            showCustomAlert("–„ luu ghi ch˙.", "success");
 
         } catch (err) {
             console.error(err);
-            showCustomAlert("L?i luu ghi ch√∫.", "error");
+            showCustomAlert("L?i luu ghi ch˙.", "error");
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -986,7 +992,7 @@
         if (isBatchSubmitted) return;
         const allAnswered = currentQuestionBatch.every(q => userAnswers.hasOwnProperty(q.item_id));
         if (!allAnswered) {
-            showCustomAlert("Vui l√≤ng tr? l?i t?t c? c√°c c√¢u h?i.");
+            showCustomAlert("Vui lÚng tr? l?i t?t c? c·c c‚u h?i.");
             return;
         }
 
@@ -1003,14 +1009,8 @@
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const responseData = await response.json();
 
-            // Update Score HUD
-            if (responseData.new_total_score !== undefined) {
-                const scoreEl = document.getElementById('header-total-score');
-                if (scoreEl) scoreEl.textContent = responseData.new_total_score;
-            }
-
             // Process Results
-            let totalScoreChange = 0;
+            let totalScoreDelta = 0;
             responseData.results.forEach(result => {
                 // Update Local data
                 const qIndex = currentQuestionBatch.findIndex(q => q.item_id === result.item_id);
@@ -1018,23 +1018,54 @@
                     currentQuestionBatch[qIndex].explanation = result.explanation;
                     currentQuestionBatch[qIndex].correct_answer = result.correct_answer;
                     currentQuestionBatch[qIndex].is_correct = result.is_correct;
+
+                    // Detailed SRS metadata
+                    currentQuestionBatch[qIndex].mastery_delta = result.mastery_delta || 0;
+                    currentQuestionBatch[qIndex].new_mastery_pct = result.new_mastery_pct || 0;
+                    currentQuestionBatch[qIndex].points_breakdown = result.points_breakdown || {};
                 }
+
+                if (result.score_change) totalScoreDelta += result.score_change;
                 renderFeedbackForQuestion(result);
-                if (result.score_change) totalScoreChange += result.score_change;
             });
 
-            // Trigger Score Toast (consolidated for batch)
-            if (totalScoreChange > 0 && window.showScoreToast) {
-                window.showScoreToast(totalScoreChange);
+            // Update Score HUD
+            if (responseData.new_total_score !== undefined) {
+                const scoreEl = document.getElementById('header-total-score');
+                if (scoreEl) scoreEl.textContent = responseData.new_total_score;
             }
 
+            // Trigger Score Toast (Cumulative for batch)
+            if (totalScoreDelta > 0 && window.showScoreToast) {
+                window.showScoreToast(totalScoreDelta);
+            }
+
+            // Trigger Memory Power Feedback (Using the average or the last one? 
+            // Usually for batch, we might just show the sum of mastery changes if applicable, 
+            // but the UI is designed for single. Let's show the breakdown of the first one or a summary?)
+            // Actually, for batch, we can show a summary or skip memory power feedback to avoid clutter, 
+            // BUT the user wants it "similar to other learning modes". 
+            // In batch/multisave, we usually show a summary. 
+            // Let's show memory power feedback for the batch if there were changes.
+            if (window.showMemoryPowerFeedback && responseData.results.length > 0) {
+                const totalMasteryDelta = responseData.results.reduce((sum, r) => sum + (r.mastery_delta || 0), 0);
+                // For simplicity, show the overall delta.
+                if (totalMasteryDelta !== 0) {
+                    window.showMemoryPowerFeedback({
+                        is_correct: responseData.session_correct_answers > 0, // Simplified
+                        mastery_delta: totalMasteryDelta,
+                        new_mastery_pct: responseData.results[0].new_mastery_pct, // Show first one as representative
+                        points_breakdown: { 'Batch Quiz': totalScoreDelta }
+                    });
+                }
+            }
             updateSessionSummary(responseData.session_correct_answers, responseData.session_total_answered);
             toggleControlButtons('submitted');
             saveState();
 
         } catch (error) {
             console.error(error);
-            showCustomAlert('C√≥ l?i x?y ra khi g?i d√°p √°n.');
+            showCustomAlert('CÛ l?i x?y ra khi g?i d·p ·n.');
             isBatchSubmitted = false;
             toggleControlButtons('answering');
         }
@@ -1128,15 +1159,15 @@
         if (questionData.explanation) {
             dom.hubExplText.innerHTML = formatTextForHtml(questionData.explanation);
         } else if (isBatchSubmitted) {
-            dom.hubExplText.innerHTML = "Chua c√≥ gi?i th√≠ch cho c√¢u h?i n√†y.";
+            dom.hubExplText.innerHTML = "Chua cÛ gi?i thÌch cho c‚u h?i n‡y.";
         } else {
-            dom.hubExplText.innerHTML = "H√£y ho√†n th√†nh c√¢u h?i d? xem gi?i th√≠ch.";
+            dom.hubExplText.innerHTML = "H„y ho‡n th‡nh c‚u h?i d? xem gi?i thÌch.";
         }
 
         if (questionData.ai_explanation) {
             dom.hubAiContent.innerHTML = questionData.ai_explanation;
         } else {
-            dom.hubAiContent.innerHTML = "Nh?n n√∫t d? y√™u c?u AI ph√¢n t√≠ch...";
+            dom.hubAiContent.innerHTML = "Nh?n n˙t d? yÍu c?u AI ph‚n tÌch...";
         }
 
         updateNoteUI(questionData.note_content || "");
@@ -1191,7 +1222,7 @@
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         btn.disabled = true;
-        dom.hubAiContent.innerHTML = "√êang ph√¢n t√≠ch...";
+        dom.hubAiContent.innerHTML = "–ang ph‚n tÌch...";
 
         try {
             const res = await fetch(getAiResponseUrl, {
@@ -1234,9 +1265,9 @@
 
             updateNoteUI(content);
             saveState();
-            showCustomAlert("√ê√£ luu ghi ch√∫", "success");
+            showCustomAlert("–„ luu ghi ch˙", "success");
         } catch (e) {
-            showCustomAlert("L?i luu ghi ch√∫", "error");
+            showCustomAlert("L?i luu ghi ch˙", "error");
         }
         btn.disabled = false;
         btn.innerHTML = "Luu";
@@ -1298,7 +1329,7 @@
                 if (q) q.transcript_content = content;
 
                 renderTranscriptUI(content, true); // Keep edit permission
-                showCustomAlert("√ê√£ luu transcript", "success");
+                showCustomAlert("–„ luu transcript", "success");
 
                 // Switch back to view mode
                 dom.transcriptEditContainer.classList.add('hidden');
@@ -1409,7 +1440,7 @@
             submits.forEach(btn => {
                 btn.style.display = 'inline-flex';
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span class="control-button-text">G?i d√°p √°n</span>';
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span class="control-button-text">G?i d·p ·n</span>';
             });
             checkCompletionStatus();
         } else if (state === 'submitting') {
@@ -1418,7 +1449,7 @@
                 btn.disabled = true;
                 btn.style.opacity = '1';
                 btn.classList.remove('opacity-50');
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> √êang g?i...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> –ang g?i...';
             });
         } else if (state === 'submitted') {
             nexts.forEach(btn => btn.style.display = 'inline-flex');
@@ -1426,21 +1457,21 @@
     }
 
     function handleSessionComplete(endMessage) {
-        setText('.js-quiz-group-range', 'Ho√†n th√†nh');
-        const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Ho√†n th√†nh phi√™n h?c!</h3><p class="text-slate-500 mb-6">${formatTextForHtml(endMessage.message)}</p><a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> V? Dashboard</a></div>`;
+        setText('.js-quiz-group-range', 'Ho‡n th‡nh');
+        const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Ho‡n th‡nh phiÍn h?c!</h3><p class="text-slate-500 mb-6">${formatTextForHtml(endMessage.message)}</p><a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> V? Dashboard</a></div>`;
         setHtml('.js-quiz-content', msgHtml);
         toggleControlButtons('complete');
         document.querySelectorAll('.js-end-session-btn').forEach(btn => btn.style.display = 'none');
     }
 
     async function handleEndSession() {
-        if (confirm('B?n c√≥ ch?c ch?n mu?n k?t th√∫c phi√™n h?c hi?n t?i?')) {
+        if (confirm('B?n cÛ ch?c ch?n mu?n k?t th˙c phiÍn h?c hi?n t?i?')) {
             try {
                 await fetch(endSessionUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders }, body: JSON.stringify({}) });
                 clearState();
                 window.location.href = quizDashboardUrl;
             } catch (e) {
-                showCustomAlert('L?i k?t th√∫c phi√™n.', 'error');
+                showCustomAlert('L?i k?t th˙c phiÍn.', 'error');
             }
         }
     }
@@ -1477,16 +1508,16 @@
         submitBtn?.addEventListener('click', () => {
             const content = input.value.trim();
             if (!content) {
-                showCustomAlert("Vui l√≤ng nh?p n?i dung.", "warning");
+                showCustomAlert("Vui lÚng nh?p n?i dung.", "warning");
                 return;
             }
             // Simulate API call
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> √êang g?i...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> –ang g?i...';
 
             setTimeout(() => {
                 console.log(`Sending feedback for item ${activeFeedbackItemId}: ${content}`);
-                showCustomAlert("C?m on d√≥ng g√≥p c?a b?n!", "success");
+                showCustomAlert("C?m on dÛng gÛp c?a b?n!", "success");
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'G?i ph?n h?i';
                 closeFeedback();
@@ -1573,6 +1604,6 @@
         setTimeout(() => { toast.classList.remove('visible'); setTimeout(() => toast.remove(), 300); }, 3000);
     }
 </script>
-
-{% include "v3/includes/notification/_score_toast.html" %}
+{% include " v3/includes/notification/_score_toast.html\ %}
+{% include \v3/includes/notification/_memory_power.html\ %}
 {% endblock %}

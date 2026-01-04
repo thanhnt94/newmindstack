@@ -14,16 +14,43 @@
         // TOTAL ≈ ENTRANCE_DELAY + COUNT_DURATION + DISPLAY_TIME + EXIT_DURATION = ~1200ms
     };
 
-    window.showMemoryPowerFeedback = function (oldVal, newVal) {
+    window.showMemoryPowerFeedback = function (arg1, arg2) {
         return new Promise((resolve) => {
-            if (oldVal === undefined || newVal === undefined || oldVal === newVal) {
-                resolve(); // Resolve immediately if no animation needed
-                return;
+            let config = {};
+
+            // Handle both (oldVal, newVal) and (resultObject) patterns
+            if (typeof arg1 === 'object' && arg1 !== null) {
+                const res = arg1;
+                config = {
+                    is_correct: res.is_correct !== undefined ? res.is_correct : true,
+                    delta: res.mastery_delta !== undefined ? res.mastery_delta : 0,
+                    newVal: res.new_mastery_pct !== undefined ? res.new_mastery_pct : 0,
+                    pointsBreakdown: res.points_breakdown || {}
+                };
+                config.oldVal = config.newVal - config.delta;
+            } else {
+                config = {
+                    oldVal: arg1 || 0,
+                    newVal: arg2 || 0,
+                    delta: (arg2 || 0) - (arg1 || 0),
+                    is_correct: (arg2 || 0) >= (arg1 || 0),
+                    pointsBreakdown: {}
+                };
             }
 
-            const diff = (newVal - oldVal).toFixed(1);
-            const sign = diff >= 0 ? '+' : '';
-            const isPositive = diff >= 0;
+            if (config.oldVal === undefined || config.newVal === undefined || config.oldVal === config.newVal) {
+                // If no change, but we want to show it for 'incorrect' maybe?
+                // For now, if delta is 0, we can still show the current state if it's correct/incorrect?
+                // Actually, if delta is 0, it means no progress.
+                if (config.delta === 0) {
+                    resolve();
+                    return;
+                }
+            }
+
+            const diff = config.delta.toFixed(1);
+            const sign = config.delta >= 0 ? '+' : '';
+            const isPositive = config.delta >= 0;
 
             // Create the container
             const container = document.createElement('div');
@@ -43,7 +70,7 @@
                 style="min-width: 240px; min-height: 240px;">
                 
                 <!-- Glow Effect -->
-                <div class="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
+                <div class="absolute inset-0 ${isPositive ? 'bg-indigo-500/20' : 'bg-rose-500/20'} blur-3xl rounded-full pointer-events-none"></div>
 
                 <!-- Progress Circle -->
                 <div class="relative z-10">
@@ -59,21 +86,21 @@
                             cx="${size / 2}" cy="${size / 2}" r="${radius}" 
                             stroke="url(#mp-gradient-new)" stroke-width="${strokeWidth}" 
                             fill="transparent" stroke-linecap="round"
-                            style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${circumference - (oldVal / 100) * circumference}; transition: stroke-dashoffset ${circleDuration}s cubic-bezier(0.2, 0, 0, 1);"
+                            style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${circumference - (config.oldVal / 100) * circumference}; transition: stroke-dashoffset ${circleDuration}s cubic-bezier(0.2, 0, 0, 1);"
                             class="js-mp-circle"
                         />
                         <defs>
                             <linearGradient id="mp-gradient-new" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#818cf8" />
-                                <stop offset="100%" stop-color="#c084fc" />
+                                <stop offset="0%" stop-color="${isPositive ? '#818cf8' : '#fb7185'}" />
+                                <stop offset="100%" stop-color="${isPositive ? '#c084fc' : '#f43f5e'}" />
                             </linearGradient>
                         </defs>
                     </svg>
 
                     <!-- Center Content -->
                     <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
-                        <span class="text-[10px] uppercase font-bold tracking-widest text-indigo-200 mb-1 opacity-80">Memory Power</span>
-                        <span class="text-5xl font-black js-mp-value tracking-tight drop-shadow-md">${oldVal.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span></span>
+                        <span class="text-[10px] uppercase font-bold tracking-widest text-indigo-200 mb-1 opacity-80">Mastery</span>
+                        <span class="text-5xl font-black js-mp-value tracking-tight drop-shadow-md">${config.oldVal.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span></span>
                         
                         <div class="mt-3 overflow-hidden">
                             <div class="px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-sm flex items-center gap-1.5 transform translate-y-4 opacity-0 transition-all duration-150 delay-50 js-mp-diff">
@@ -107,7 +134,7 @@
             // COUNT UP & CIRCLE FILL ANIMATION
             setTimeout(() => {
                 // 1. Animate Circle
-                const targetOffset = circumference - (newVal / 100) * circumference;
+                const targetOffset = circumference - (config.newVal / 100) * circumference;
                 circle.style.strokeDashoffset = targetOffset;
 
                 // 2. Animate Number
@@ -116,14 +143,9 @@
 
                 const animateNumbers = (time) => {
                     const timeFraction = Math.min((time - start) / duration, 1);
-                    // easeOutExpo for a snappy yet smooth finish
                     const progress = timeFraction === 1 ? 1 : 1 - Math.pow(2, -10 * timeFraction);
-
-                    const current = oldVal + (newVal - oldVal) * progress;
-
-                    // Maintain layout stability by fixing decimal places
+                    const current = config.oldVal + (config.newVal - config.oldVal) * progress;
                     valueDisplay.innerHTML = `${current.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span>`;
-
                     if (timeFraction < 1) {
                         requestAnimationFrame(animateNumbers);
                     }
@@ -132,16 +154,16 @@
 
             }, MP_ANIMATION_CONFIG.ENTRANCE_DELAY);
 
-            // EXIT ANIMATION - starts after ENTRANCE + COUNT + DISPLAY time
+            // EXIT ANIMATION
             const exitStartTime = MP_ANIMATION_CONFIG.ENTRANCE_DELAY + MP_ANIMATION_CONFIG.COUNT_DURATION + MP_ANIMATION_CONFIG.DISPLAY_TIME;
             setTimeout(() => {
                 containerInner.classList.remove('scale-100', 'opacity-100');
                 containerInner.classList.add('scale-95', 'opacity-0', 'blur-sm');
                 setTimeout(() => {
                     container.remove();
-                    resolve(); // Resolve Promise after animation completes
+                    resolve();
                 }, MP_ANIMATION_CONFIG.EXIT_DURATION);
             }, exitStartTime);
-        }); // Close Promise
+        });
     };
 </script>
