@@ -48,6 +48,34 @@ def dashboard():
     return render_template('v3/pages/learning/quiz/dashboard/index.html', **template_vars)
 
 
+@quiz_learning_bp.route('/quiz/set/<int:set_id>')
+@login_required
+def set_detail(set_id):
+    """Handle direct URL access to /learn/quiz/set/<id> for page reloads.
+    Renders the dashboard template and lets JavaScript handle loading the set detail.
+    """
+    # Logic xác định batch size mặc định
+    pref_batch = current_user.last_preferences.get('quiz_question_count') if current_user.last_preferences else None
+    
+    if pref_batch:
+        user_default_batch_size = pref_batch
+    elif current_user.session_state and current_user.session_state.current_quiz_batch_size is not None:
+        user_default_batch_size = current_user.session_state.current_quiz_batch_size
+    else:
+        user_default_batch_size = QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
+
+    template_vars = {
+        'search_query': '',
+        'search_field': 'all',
+        'quiz_set_search_options': {'title': 'Tiêu đề', 'description': 'Mô tả', 'tags': 'Thẻ'},
+        'current_filter': 'doing',
+        'user_default_batch_size': user_default_batch_size,
+        'quiz_type': 'individual',
+        'initial_set_id': set_id  # Pass this to JS to auto-load set detail
+    }
+    return render_template('v3/pages/learning/quiz/dashboard/index.html', **template_vars)
+
+
 @quiz_learning_bp.route('/get_quiz_modes_partial/all', methods=['GET'])
 @login_required
 def get_quiz_modes_partial_all():
@@ -211,6 +239,16 @@ def start_quiz_session_by_id(set_id, mode):
     if not batch_size:
         flash('Lỗi: Thiếu kích thước nhóm câu hỏi.', 'danger')
         return redirect(url_for('learning.quiz_learning.dashboard'))
+
+    # [NEW] Save batch size preference for next time
+    try:
+        from mindstack_app import db
+        if current_user.last_preferences is None:
+            current_user.last_preferences = {}
+        current_user.last_preferences = {**current_user.last_preferences, 'quiz_question_count': batch_size}
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.warning(f"Failed to save quiz batch size preference: {e}")
 
     if QuizSessionManager.start_new_quiz_session(set_id, mode, batch_size, custom_pairs=custom_pairs):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
