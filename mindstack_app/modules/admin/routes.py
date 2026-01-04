@@ -118,33 +118,8 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
 # Đã gom theo nhóm để UI dễ quản lý hơn
 CORE_SETTING_FIELDS: list[dict[str, object]] = [
     # === NHÓM: Đường dẫn hệ thống ===
-    {
-        "key": "UPLOAD_FOLDER",
-        "label": "Thư mục lưu file tải lên",
-        "data_type": "path",
-        "placeholder": Config.UPLOAD_FOLDER,
-        "description": "Vị trí lưu trữ tệp do người dùng tải lên (ảnh, âm thanh, tài liệu...).",
-        "default": Config.UPLOAD_FOLDER,
-        "group": "paths",
-    },
-    {
-        "key": "BACKUP_FOLDER",
-        "label": "Thư mục sao lưu",
-        "data_type": "path",
-        "placeholder": Config.BACKUP_FOLDER,
-        "description": "Nơi lưu trữ các gói backup được tạo từ trang quản trị.",
-        "default": Config.BACKUP_FOLDER,
-        "group": "paths",
-    },
-    {
-        "key": "DEFAULT_AUDIO_FOLDER",
-        "label": "Thư mục audio mặc định",
-        "data_type": "path",
-        "placeholder": "upload/audio",
-        "description": "Thư mục lưu audio nếu container không có cấu hình riêng.",
-        "default": "upload/audio",
-        "group": "paths",
-    },
+    # [REMOVED] Hardcoded in Config, hidden from Admin UI
+    # === NHÓM: Cấu hình chung ===
     # === NHÓM: Cấu hình chung ===
     {
         "key": "ITEMS_PER_PAGE",
@@ -168,11 +143,11 @@ CORE_SETTING_FIELDS: list[dict[str, object]] = [
 
 # Định nghĩa các nhóm settings để hiển thị trên UI
 CORE_SETTING_GROUPS = {
-    "paths": {
-        "label": "Đường dẫn hệ thống",
-        "icon": "fas fa-folder-open",
-        "description": "Cấu hình các thư mục lưu trữ file của hệ thống.",
-    },
+    # "paths": {
+    #     "label": "Đường dẫn hệ thống",
+    #     "icon": "fas fa-folder-open",
+    #     "description": "Cấu hình các thư mục lưu trữ file của hệ thống.",
+    # },
     "system": {
         "label": "Cấu hình chung",
         "icon": "fas fa-cog",
@@ -216,7 +191,7 @@ def _get_backup_folder():
     Raises:
         RuntimeError: Nếu biến BACKUP_FOLDER không được cấu hình trong config.py.
     """
-    backup_folder = get_runtime_config('BACKUP_FOLDER', Config.BACKUP_FOLDER)
+    backup_folder = Config.BACKUP_FOLDER
     if not backup_folder:
         # Nếu config.py không định nghĩa, đây là một lỗi nghiêm trọng
         current_app.logger.error("LỖI CẤU HÌNH: BACKUP_FOLDER không được định nghĩa trong config.py.")
@@ -642,7 +617,7 @@ def _restore_backup_from_zip(zipf, restore_database=True, restore_uploads=True):
             shutil.copy2(extracted_db_path, db_path)
 
         if restore_uploads:
-            uploads_folder = get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
+            uploads_folder = Config.UPLOAD_FOLDER
             # Kiểm tra xem zip có thư mục uploads không
             if uploads_folder and any(member.startswith('uploads/') for member in members):
                 zipf.extractall(temp_dir)

@@ -112,19 +112,6 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
     def _default_settings(app_obj: Flask) -> list[dict[str, object]]:
         return [
             {
-                "key": "UPLOAD_FOLDER",
-                "value": app_obj.config.get("UPLOAD_FOLDER"),
-                "data_type": "path",
-                "description": "Thư mục lưu trữ file tải lên (uploads).",
-            },
-            {
-                "key": "BACKUP_FOLDER",
-                "value": app_obj.config.get("BACKUP_FOLDER"),
-                "data_type": "path",
-                "description": "Thư mục lưu trữ bản sao lưu (backups).",
-            },
-
-            {
                 "key": "AI_PROVIDER",
                 "value": "gemini",
                 "data_type": "string",
@@ -141,12 +128,6 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "value": "google/gemma-7b-it",
                 "data_type": "string",
                 "description": "Model mặc định khi sử dụng Hugging Face.",
-            },
-            {
-                "key": "DEFAULT_AUDIO_FOLDER",
-                "value": "upload/audio",
-                "data_type": "string",
-                "description": "Thư mục mặc định lưu audio nếu container không có cấu hình riêng.",
             },
             {
                 "key": "FLASHCARD_PREVIEW_BONUS",
