@@ -712,8 +712,26 @@
             .then(data => {
                 if (data.success) {
                     questions = data.questions;
+                    currentIndex = data.currentIndex || 0;
+                    stats = data.stats || { correct: 0, wrong: 0 };
+
+                    // Update stats UI
+                    els.lCorrect.textContent = stats.correct;
+                    els.lWrong.textContent = stats.wrong;
                     els.tNum.textContent = questions.length;
+
+                    // If we have answers for previous questions, we should technically be at the first unanswered one
+                    // The backend manager already handles currentIndex increment.
+
                     renderQuestion();
+
+                    // If the current question was already answered (from a previous reload), restore UI
+                    const savedAnswer = data.answers ? data.answers[String(currentIndex)] : null;
+                    if (savedAnswer !== null && savedAnswer !== undefined) {
+                        const answerIndex = (typeof savedAnswer === 'object') ? savedAnswer.user_answer_index : savedAnswer;
+                        restoreAnswerState(answerIndex);
+                    }
+
                 } else {
                     els.qText.textContent = data.message || 'Lỗi tải dữ liệu';
                 }
@@ -802,6 +820,27 @@
         startTime = Date.now();
     }
 
+    function restoreAnswerState(selectedIndex) {
+        // Similar to handleAnswer but without sending to backend or updating local stats (already loaded)
+        isAnswered = true;
+        const q = questions[currentIndex];
+        const isCorrect = (selectedIndex === q.correct_index);
+
+        const buttons = els.cGrid.children;
+        for (let i = 0; i < buttons.length; i++) {
+            const btn = buttons[i];
+            btn.classList.add('answered-state');
+            if (i === q.correct_index) {
+                btn.classList.add('correct');
+            } else if (i === selectedIndex && !isCorrect) {
+                btn.classList.add('wrong');
+            } else {
+                btn.classList.add('dimmed');
+            }
+        }
+        els.nextBtn.disabled = false;
+    }
+
     function handleAnswer(selectedIndex, selectedBtn) {
         if (isAnswered) return;
         isAnswered = true;
@@ -823,32 +862,28 @@
         const buttons = els.cGrid.children;
         for (let i = 0; i < buttons.length; i++) {
             const btn = buttons[i];
-            // Don't fully disable, but mark as answered to change interaction
             btn.classList.add('answered-state');
-
             if (i === q.correct_index) {
-                btn.classList.add('correct'); // Always show correct one
+                btn.classList.add('correct');
             } else if (i === selectedIndex && !isCorrect) {
-                btn.classList.add('wrong'); // Show error if selected wrong
+                btn.classList.add('wrong');
             } else {
-                btn.classList.add('dimmed'); // Dim others
+                btn.classList.add('dimmed');
             }
         }
 
-        // Enable Next
         els.nextBtn.disabled = false;
-        els.nextBtn.focus(); // Focus for Enter key
+        els.nextBtn.focus();
 
-        // Send to Backend (Silent but now with metadata for feedback)
         const duration_ms = Date.now() - startTime;
         const payload = {
+            set_id: setId,
             item_id: q.item_id,
             correct_index: q.correct_index,
             user_answer_index: selectedIndex,
             user_answer_text: q.choices[selectedIndex],
             duration_ms: duration_ms
         };
-        console.log("Submitting MCQ Answer:", payload);
 
         fetch('/learn/vocabulary/mcq/api/check', {
             method: 'POST',
@@ -860,26 +895,15 @@
         })
             .then(r => r.json())
             .then(async data => {
-                console.log("MCQ API Response:", data);
                 if (data.success) {
-                    // 1. Update total score from backend
                     if (data.updated_total_score !== undefined && data.updated_total_score !== null) {
                         const totalScoreEl = document.getElementById('mcq-total-score-val');
-                        if (totalScoreEl) {
-                            totalScoreEl.textContent = data.updated_total_score.toLocaleString();
-                        }
+                        if (totalScoreEl) totalScoreEl.textContent = data.updated_total_score.toLocaleString();
                     }
-
-                    // 2. Trigger notifications
-                    // Score Toast
                     if (data.score_change > 0 && typeof window.showScoreToast === 'function') {
-                        console.log("Triggering Score Toast:", data.score_change);
                         await window.showScoreToast(data.score_change);
                     }
-
-                    // Memory Power Feedback (Show if data exists, regardless of is_correct)
                     if (data.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
-                        console.log("Triggering Memory Power Feedback:", data.memory_power);
                         await window.showMemoryPowerFeedback(
                             data.memory_power.old_memory_power,
                             data.memory_power.memory_power
@@ -890,9 +914,28 @@
             .catch(console.error);
     }
 
-    function nextQuestion() {
-        currentIndex++;
-        renderQuestion();
+    async function nextQuestion() {
+        // Call backend to advance index
+        try {
+            const res = await fetch(`/learn/vocabulary/mcq/api/next/${setId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                currentIndex = data.currentIndex;
+                renderQuestion();
+            } else {
+                console.error("Failed to advance MCQ session:", data.message);
+                // Fallback local advance if session lost? 
+                // Better to just reload or show error.
+            }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     function showResult() {

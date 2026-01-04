@@ -76,19 +76,25 @@ def session(set_id):
     if len(items) < 2:
         abort(400, description="Cần ít nhất 2 thẻ để chơi trắc nghiệm")
     
-    # Get params from query
-    mode = request.args.get('mode', 'front_back')
-    count = request.args.get('count', 10, type=int)
-    choices = request.args.get('choices', 4, type=int)
+    # [UPDATED] Prioritize stored settings for clean URLs
+    ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+    saved_mcq = ucs.settings.get('mcq', {}) if ucs and ucs.settings else {}
+
+    # Get params (Query params take precedence for backward compatibility/direct links)
+    mode = request.args.get('mode', saved_mcq.get('mode', 'front_back'))
+    count = request.args.get('count', saved_mcq.get('count', 10), type=int)
+    choices = request.args.get('choices', saved_mcq.get('choices', 4), type=int)
     
-    # Get custom_pairs if provided
-    custom_pairs_str = request.args.get('custom_pairs', '')
+    # Get custom_pairs
     custom_pairs = None
+    custom_pairs_str = request.args.get('custom_pairs', '')
     if custom_pairs_str:
         try:
             custom_pairs = json.loads(custom_pairs_str)
-        except:
-            pass
+        except: pass
+    
+    if not custom_pairs and 'custom_pairs' in saved_mcq:
+        custom_pairs = saved_mcq['custom_pairs']
             
     # [UPDATED] Save settings to persistence
     try:
@@ -138,80 +144,197 @@ def session(set_id):
     )
 
 
+@mcq_bp.route('/setup/save/<int:set_id>', methods=['POST'])
+@login_required
+def save_setup(set_id):
+    """API to save MCQ settings before starting session (for clean URLs)."""
+    import datetime
+    def log_mcq(msg):
+        with open('mcq_debug.log', 'a', encoding='utf-8') as f:
+            f.write(f"[{datetime.datetime.now()}] {msg}\n")
+
+    log_mcq(f"Received save_setup for set_id={set_id}")
+    from flask import session
+    
+    try:
+        data = request.get_json()
+        if not data:
+            log_mcq("No JSON data received in save_setup")
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+            
+        log_mcq(f"Payload keys: {list(data.keys())}")
+        
+        mode = data.get('mode', 'custom')
+        count = data.get('count', 10)
+        choices = data.get('choices', 4)
+        custom_pairs = data.get('custom_pairs')
+
+        from mindstack_app.models import UserContainerState, db
+        from mindstack_app.utils.db_session import safe_commit
+        
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if not ucs:
+            log_mcq(f"Creating new UserContainerState for user={current_user.user_id}, container={set_id}")
+            ucs = UserContainerState(user_id=current_user.user_id, container_id=set_id, settings={})
+            db.session.add(ucs)
+        
+        # Update settings
+        new_settings = dict(ucs.settings or {})
+        if 'mcq' not in new_settings: new_settings['mcq'] = {}
+        
+        new_settings['mcq']['mode'] = mode
+        new_settings['mcq']['count'] = int(count) if count else 10
+        new_settings['mcq']['choices'] = int(choices) if choices else 4
+        if custom_pairs:
+            new_settings['mcq']['custom_pairs'] = custom_pairs
+            
+        # [CRITICAL] Clear existing DB-backed session data to force new generation
+        if 'mcq_session_data' in new_settings:
+            log_mcq("Clearing old mcq_session_data for fresh start")
+            del new_settings['mcq_session_data']
+            
+        ucs.settings = new_settings
+        
+        # Trigger SQLAlchemy change detection for JSON
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(ucs, "settings")
+        
+        log_mcq("Attempting safe_commit")
+        safe_commit(db.session)
+        log_mcq("save_setup successful")
+        
+        # Also clear legacy Flask session cache if any
+        mcq_session_key = f'mcq_session_{set_id}'
+        if mcq_session_key in session:
+            session.pop(mcq_session_key)
+            session.modified = True
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        log_mcq(f"ERROR in save_setup: {str(e)}")
+        import traceback
+        log_mcq(traceback.format_exc())
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @mcq_bp.route('/api/items/<int:set_id>')
 @login_required
 def api_get_items(set_id):
-    """API to get MCQ items for a session."""
-    count = request.args.get('count', 10, type=int)
-    mode = request.args.get('mode', 'front_back')
-    num_choices = request.args.get('choices', 4, type=int)
-    
-    # Get custom_pairs if provided
-    custom_pairs_str = request.args.get('custom_pairs', '')
-    custom_pairs = None
-    if custom_pairs_str:
-        try:
-            custom_pairs = json.loads(custom_pairs_str)
-        except:
-            pass
-    
-    items = get_mcq_eligible_items(set_id)
-    if len(items) < 2:
-        return jsonify({'success': False, 'message': 'Cần ít nhất 2 thẻ để chơi trắc nghiệm'}), 400
-    
-    # Shuffle and pick items
-    import random
-    random.shuffle(items)
-    selected_items = items[:min(count, len(items))]
-    
-    # Generate questions for each selected item
-    questions = []
-    for item in selected_items:
-        question = generate_mcq_question(
-            item, items, 
-            num_choices=num_choices, 
-            mode=mode,
-            custom_pairs=custom_pairs
+    """API to get MCQ items for a session, with session persistence."""
+    import json
+    import datetime
+    def log_mcq(msg):
+        with open('mcq_debug.log', 'a', encoding='utf-8') as f:
+            f.write(f"[{datetime.datetime.now()}] {msg}\n")
+
+    try:
+        from .mcq_session_manager import MCQSessionManager
+        
+        count = request.args.get('count', 10, type=int)
+        mode = request.args.get('mode', 'front_back')
+        num_choices = request.args.get('choices', 4, type=int)
+        custom_pairs_str = request.args.get('custom_pairs', '')
+        
+        log_mcq(f"api_get_items for set_id={set_id}")
+        
+        # Parse custom pairs early
+        custom_pairs = None
+        if custom_pairs_str:
+            try:
+                custom_pairs = json.loads(custom_pairs_str)
+            except:
+                pass
+
+        # Try to load existing session from DB
+        manager = MCQSessionManager.load_from_db(current_user.user_id, set_id)
+        if manager:
+            log_mcq(f"  Manager FOUND in DB for set_id={set_id}")
+            
+            # Re-use session if params match (compare as objects!)
+            request_params = {
+                'count': count, 'mode': mode, 'choices': num_choices, 'custom_pairs': custom_pairs
+            }
+            
+            log_mcq(f"Comparing params")
+            log_mcq(f"  Existing count type: {type(manager.params.get('count'))}")
+            log_mcq(f"  Requested count type: {type(count)}")
+                
+            if manager.params == request_params:
+                log_mcq("  MATCH - Reusing existing session")
+                response = manager.get_session_data()
+                response['is_restored'] = True
+                return jsonify(response)
+
+        log_mcq("  NO MATCH or NO MANAGER - Initializing new session")
+        # Initialize new session
+        manager = MCQSessionManager(current_user.user_id, set_id)
+        success, message = manager.initialize_session(
+            count=count, mode=mode, choices=num_choices, custom_pairs=custom_pairs
         )
-        questions.append(question)
-    
-    return jsonify({
-        'success': True,
-        'questions': questions,
-        'total': len(questions)
-    })
+        
+        if not success:
+            log_mcq(f"  Initialization FAILED: {message}")
+            return jsonify({'success': False, 'message': message}), 400
+            
+        return jsonify(manager.get_session_data())
+
+    except Exception as e:
+        log_mcq(f"ERROR in api_get_items: {str(e)}")
+        import traceback
+        log_mcq(traceback.format_exc())
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@mcq_bp.route('/api/next/<int:set_id>', methods=['POST'])
+@login_required
+def api_next_question(set_id):
+    """API to advance to the next MCQ question in the session."""
+    from .mcq_session_manager import MCQSessionManager
+    manager = MCQSessionManager.load_from_db(current_user.user_id, set_id)
+    if not manager:
+        return jsonify({'success': False, 'message': 'No active session'}), 404
+        
+    success = manager.next_item()
+    return jsonify({'success': success, 'currentIndex': manager.currentIndex})
 
 
 @mcq_bp.route('/api/check', methods=['POST'])
 @login_required
 def api_check_answer():
     """API to check MCQ answer."""
+    from .mcq_session_manager import MCQSessionManager
     data = request.get_json()
-    correct_index = data.get('correct_index')
+    set_id = data.get('set_id')
     user_answer_index = data.get('user_answer_index')
     item_id = data.get('item_id')
     
-    # [DEBUG]
-    import logging
-    import traceback
-    logging.info(f"MCQ API payload: {data}")
-
-    if correct_index is None or user_answer_index is None:
-        logging.warning(f"MCQ API Error: Missing fields. correct={correct_index}, user={user_answer_index}")
+    if set_id is None or user_answer_index is None:
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-    
+        
+    manager = MCQSessionManager.load_from_db(current_user.user_id, set_id)
+    if not manager:
+        return jsonify({'success': False, 'message': 'Session not found'}), 404
+
+    # The actual check logic is shared with the manager to update stats/answers
+    result = manager.check_answer(user_answer_index)
+    if not result['success']:
+        return jsonify(result), 400
+        
+    # Enrich result with extra data for frontend/SRS
     user_answer_text = data.get('user_answer_text')
     duration_ms = data.get('duration_ms', 0)
-
-    result = check_mcq_answer(correct_index, user_answer_index)
     result['user_answer'] = user_answer_text
     result['duration_ms'] = duration_ms
+    result['quality'] = 5 if result['is_correct'] else 0
+    result['score_change'] = 10 if result['is_correct'] else 0
     
     # Update SRS if item_id provided
     if item_id:
         try:
+            import logging
             from mindstack_app.modules.learning.services.srs_service import SrsService
             from mindstack_app.utils.db_session import safe_commit
+            from mindstack_app.models import db
 
             srs_result = SrsService.process_interaction(
                 user_id=current_user.user_id,
@@ -220,13 +343,9 @@ def api_check_answer():
                 result_data=result
             )
             safe_commit(db.session)
-            # Flatten SRS results into the main response for easier frontend access
             result.update(srs_result)
         except Exception as e:
-            # Log but don't fail
+            import logging
             logging.error(f"SRS update failed for MCQ: {e}")
-            logging.error(traceback.format_exc())
     
-    result['success'] = True
-    result['is_correct'] = result.get('is_correct')  # Ensure explicit boolean for frontend
     return jsonify(result)

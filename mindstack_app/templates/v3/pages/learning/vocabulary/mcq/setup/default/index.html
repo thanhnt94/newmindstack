@@ -677,17 +677,50 @@
             }
 
             var count = Math.min(selectedCount, totalItems);
-            var choices = selectedChoices; // Use the variable from radio selection
+            var choices = selectedChoices;
 
-            // Updated base URL to use 'learning.vocabulary.mcq.session'
-            var baseUrl = "{{ url_for('learning.vocabulary.mcq.session', set_id=container.container_id) }}";
-            var url = baseUrl +
-                '?mode=custom' +
-                '&count=' + count +
-                '&choices=' + choices +
-                '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
+            // [UPDATED] Save settings first via API for clean URLs
+            const payload = {
+                mode: 'custom',
+                count: count,
+                choices: choices,
+                custom_pairs: customPairs
+            };
 
-            window.location.href = url;
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang chuẩn bị...';
+
+            fetch("{{ url_for('learning.vocabulary.mcq.save_setup', set_id=container.container_id) }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(async r => {
+                    const isJson = r.headers.get('content-type')?.includes('application/json');
+                    const data = isJson ? await r.json() : null;
+                    if (!r.ok) {
+                        throw new Error(data?.message || `Error ${r.status}`);
+                    }
+                    return data;
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        window.location.href = "{{ url_for('learning.vocabulary.mcq.session', set_id=container.container_id) }}";
+                    } else {
+                        alert('Lỗi: ' + (data?.message || 'Không thể lưu cài đặt'));
+                        startBtn.disabled = false;
+                        startBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Lỗi kết nối hoặc server: ' + err.message);
+                    startBtn.disabled = false;
+                    startBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+                });
         });
     }
     }) ();
