@@ -14,7 +14,7 @@ function initAudioSettings() {
     const visualSettings = window.FlashcardConfig ? window.FlashcardConfig.visualSettings : {};
 
     if (visualSettings && visualSettings.autoplay !== undefined) {
-        isAudioAutoplayEnabled = (visualSettings.autoplay !== false);
+        isAudioAutoplayEnabled = (visualSettings.autoplay === true);
     } else {
         try {
             const storedAudioAutoplay = localStorage.getItem('flashcardAutoPlayAudio');

@@ -148,8 +148,11 @@ class VocabularyContainerStats:
         return {
             'new': stats['new'],
             'due': stats['due'],
+            'review': stats['due'],     # Added alias
             'learned': stats['learned'],
-            'total': stats['total']
+            'hard': stats['hard'],      # Added
+            'total': stats['total'],
+            'random': stats['total']    # Added alias
         }
     
     

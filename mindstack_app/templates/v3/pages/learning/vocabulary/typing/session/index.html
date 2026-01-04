@@ -1,0 +1,913 @@
+{# Typing Session Template - Refined UI (Pink Theme) #}
+{% extends "v3/base.html" %}
+{% block title %}Gõ Từ - {{ container.title }}{% endblock %}
+{% block body_class %} typing-session-active{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* CRITICAL: Hide global header/footer on mobile */
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        body>main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+        }
+    }
+
+    :root {
+        --primary: #f59e0b;
+        /* Amber 500 */
+        --primary-hover: #d97706;
+        /* Amber 600 */
+        --primary-light: #fffbeb;
+        /* Amber 50 */
+        --success: #10b981;
+        --success-light: #d1fae5;
+        --error: #ef4444;
+        --error-light: #fee2e2;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --footer-height: 8.5rem;
+        /* Increased footer height for input + buttons */
+        --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        height: 100vh;
+        overflow: hidden;
+        /* Prevent scrolling on body, handle in main */
+    }
+
+    /* Layout */
+    .session-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        max-width: 100%;
+        margin: 0 auto;
+        background: var(--bg);
+        position: relative;
+    }
+
+    @media (min-width: 768px) {
+        .session-container {
+            max-width: 800px;
+        }
+    }
+
+
+    /* Header - Static Top Block */
+    .session-header {
+        position: relative;
+        z-index: 50;
+        background: white;
+        padding: 0;
+        flex-shrink: 0;
+        box-shadow: none;
+        border-bottom: none;
+    }
+
+
+    /* Tailwind-like utility classes */
+    .text-pink-500 {
+        color: #ec4899;
+    }
+
+    .text-pink-600 {
+        color: #db2777;
+    }
+
+    .text-emerald-500 {
+        color: #10b981;
+    }
+
+    .text-emerald-600 {
+        color: #059669;
+    }
+
+    .text-rose-500 {
+        color: #f43f5e;
+    }
+
+    .text-rose-600 {
+        color: #e11d48;
+    }
+
+    .text-amber-500 {
+        color: #f59e0b;
+    }
+
+    .text-amber-600 {
+        color: #d97706;
+    }
+
+    .bg-amber-50 {
+        background-color: #fffbeb;
+    }
+
+    .text-xs {
+        font-size: 0.75rem;
+    }
+
+    .font-bold {
+        font-weight: 700;
+    }
+
+    .font-semibold {
+        font-weight: 600;
+    }
+
+    .flex {
+        display: flex;
+    }
+
+    .gap-3 {
+        gap: 0.75rem;
+    }
+
+    .mr-1 {
+        margin-right: 0.25rem;
+    }
+
+    /* Question Card - Sticky to Container Top */
+    .question-card {
+        background: radial-gradient(circle at top left, white, #f8fafc);
+        padding: 2.5rem 2rem 2.5rem 4rem;
+        /* More left padding for labels */
+        text-align: left;
+        margin: 0.75rem 0.75rem 0 0.75rem;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 160px;
+        position: sticky;
+        top: 0.75rem;
+        z-index: 100;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .question-label-v {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 32px;
+        background: linear-gradient(180deg, #f59e0b, #d97706);
+        /* Amber Gradient */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 1rem;
+        gap: 0.5rem;
+        color: white;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .question-label-v i {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    .question-label-v span {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-size: 0.75rem;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        opacity: 0.95;
+    }
+
+    .question-text {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.3;
+        width: 100%;
+        letter-spacing: -0.02em;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Main Content */
+    .session-main {
+        padding: 0;
+        padding-bottom: calc(var(--footer-height) + var(--safe-area-bottom) + 1rem);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+    }
+
+    /* Scroll mask */
+    .session-main::before {
+        content: '';
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 0.75rem;
+        background: var(--bg);
+        z-index: 99;
+        display: block;
+        flex-shrink: 0;
+    }
+
+    /* TYPING INPUT & FEEDBACK in Footer now */
+    .footer-input-area {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .typing-input {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.75rem;
+        text-align: center;
+        outline: none;
+        transition: all 0.2s;
+        background: #f8fafc;
+        color: var(--text-main);
+    }
+
+    .typing-input:focus {
+        border-color: var(--primary);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+    }
+
+    .typing-input.correct {
+        border-color: var(--success);
+        background: #ecfdf5;
+        color: #065f46;
+    }
+
+    .typing-input.wrong {
+        border-color: var(--error);
+        background: #fef2f2;
+        color: #991b1b;
+        animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    @keyframes shake {
+
+        10%,
+        90% {
+            transform: translate3d(-1px, 0, 0);
+        }
+
+        20%,
+        80% {
+            transform: translate3d(2px, 0, 0);
+        }
+
+        30%,
+        50%,
+        70% {
+            transform: translate3d(-4px, 0, 0);
+        }
+
+        40%,
+        60% {
+            transform: translate3d(4px, 0, 0);
+        }
+    }
+
+    /* Feedback in Main Area (Below Question) */
+    .feedback-area {
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 4rem;
+    }
+
+    .feedback-msg {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        border-radius: 1rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        animation: fadeIn 0.3s ease;
+        text-align: center;
+        width: 90%;
+        max-width: 600px;
+    }
+
+    .feedback-msg.success {
+        background: #ecfdf5;
+        color: var(--success);
+        border: 1px solid #d1fae5;
+    }
+
+    .feedback-msg.error {
+        background: #fef2f2;
+        color: var(--error);
+        border: 1px solid #fee2e2;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+
+    @media (max-width: 640px) {
+        .question-text {
+            font-size: 1.35rem;
+        }
+
+        .question-card {
+            padding: 1.5rem 1rem 1.5rem 3.5rem;
+            min-height: 120px;
+        }
+
+        .question-label-v {
+            width: 28px;
+            font-size: 0.6rem;
+        }
+    }
+
+    /* Footer */
+    .session-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 0.75rem 1rem;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .footer-actions {
+        display: flex;
+        width: 100%;
+        max-width: 600px;
+        gap: 0.75rem;
+    }
+
+    .next-btn {
+        flex: 1;
+        padding: 0.875rem 1.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+        transition: all 0.2s;
+    }
+
+    .next-btn:active:not(:disabled) {
+        transform: scale(0.98);
+    }
+
+    .lightbulb-btn {
+        width: 3.25rem;
+        height: 3.25rem;
+        border-radius: 0.75rem;
+        border: 2px solid #e2e8f0;
+        background: white;
+        color: #f59e0b;
+        /* Amber */
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .lightbulb-btn:hover {
+        background: #fffbeb;
+        border-color: #fcd34d;
+    }
+
+    .lightbulb-btn:active {
+        transform: scale(0.95);
+    }
+
+    /* Result Modal */
+    .result-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+
+    .result-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .result-card {
+        background: white;
+        padding: 3rem 2rem;
+        border-radius: 24px;
+        text-align: center;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border: 1px solid var(--border);
+        max-width: 400px;
+        width: 90%;
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .result-overlay.active .result-card {
+        transform: scale(1);
+    }
+
+    .result-icon {
+        font-size: 4rem;
+        color: #fbbf24;
+        margin-bottom: 1.5rem;
+        display: inline-block;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .result-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin-bottom: 0.5rem;
+    }
+
+    .result-msg {
+        color: var(--text-sub);
+        margin-bottom: 2rem;
+    }
+
+    .stats-row {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-box {
+        text-align: center;
+    }
+
+    .stat-val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        display: block;
+    }
+
+    .stat-lbl {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-sub);
+        font-weight: 600;
+    }
+
+    .action-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="session-container">
+    <div id="session-data" data-set-id="{{ container.container_id }}"
+        data-custom-pairs='{{ custom_pairs| tojson if custom_pairs else "null" }}' data-count="{{ count }}"
+        style="display:none">
+    </div>
+
+    <header class="session-header">
+        <div class="fc-header flex-col items-stretch !p-0">
+            {# --- Row 1: Badge + Title + Score (Amber Gradient) --- #}
+            <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-500 to-amber-600">
+                {# Badge + Title #}
+                <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
+                    <span class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white/20 rounded-lg shadow-sm">
+                        <i class="fas fa-keyboard text-white text-[10px]"></i>
+                        <span class="text-[10px] font-bold text-white uppercase tracking-wide">TYPING</span>
+                    </span>
+                    <span class="text-sm font-bold text-white truncate js-fc-title"
+                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">{{ container.title }}</span>
+                </div>
+
+                {# Score Badge #}
+                <div class="flex-shrink-0 flex items-center gap-1 h-7 px-2.5 bg-white/20 rounded-full">
+                    <i class="fa-solid fa-gem text-white text-[10px]"></i>
+                    <span class="text-xs font-black text-white font-mono" id="mcq-total-score-val">
+                        {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
+                    </span>
+                </div>
+            </div>
+
+            {# --- Row 2: Stats (White) --- #}
+            <div class="bg-white border-b border-slate-200">
+                <div class="flex items-center justify-between px-3 py-2">
+                    {# Stats Pills #}
+                    <div id="fc-mobile-stats-pills"
+                        class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[80%] transition-all duration-300">
+
+                        {# Progress Pill #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
+                            <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
+                            <span class="text-slate-700 font-semibold">
+                                <span id="current-q-num">1</span>/<span id="total-q-num">...</span>
+                            </span>
+                        </div>
+
+                        {# Correct Pill #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg">
+                            <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
+                            <span class="text-emerald-600 font-bold" id="live-correct">0</span>
+                        </div>
+
+                        {# Wrong Pill #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-rose-50 rounded-lg">
+                            <i class="fa-solid fa-times text-rose-500 text-[9px]"></i>
+                            <span class="text-rose-600 font-bold" id="live-wrong">0</span>
+                        </div>
+
+                        {# Session Score Pill [NEW] #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg">
+                            <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
+                            <span class="text-amber-600 font-bold" id="live-session-score">0</span>
+                        </div>
+                    </div>
+
+                    {# Action Buttons - MINIMAL #}
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        {# Only Exit Button #}
+                        <a href="{{ url_for('learning.vocabulary.typing.setup', set_id=container.container_id) }}"
+                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
+                            title="Thoát">
+                            <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="session-main">
+        <!-- Row 3: Question Area (Sticky inside Main) -->
+        <div class="question-card" id="question-card">
+            <div class="question-label-v">
+                <i class="fas fa-pen-fancy"></i>
+                <span>TYPING</span>
+            </div>
+            <div class="question-text" id="prompt">Đang tải...</div>
+        </div>
+
+        <div class="feedback-area" id="feedback"></div>
+    </main>
+
+    <footer class="session-footer">
+        <div class="footer-input-area">
+            <input type="text" class="typing-input" id="answer-input" placeholder="Nhập đáp án..." autocomplete="off">
+        </div>
+        <div class="footer-actions">
+            <!-- Lightbulb Stats Button -->
+            <button class="lightbulb-btn" id="hint-btn" title="Xem thống kê" style="display: none;">
+                <i class="fas fa-lightbulb"></i>
+            </button>
+
+            <!-- Check Button -->
+            <button class="next-btn" id="submit-btn">
+                Kiểm tra <i class="fas fa-check ms-2"></i>
+            </button>
+        </div>
+    </footer>
+</div>
+
+<!-- Result Modal -->
+<div class="result-overlay" id="complete-modal">
+    <div class="result-card">
+        <div class="result-icon">
+            <i class="fas fa-crown"></i>
+        </div>
+        <h2 class="result-title">Hoàn thành!</h2>
+        <p class="result-msg">Bạn đã hoàn thành bài luyện tập.</p>
+
+        <div class="stats-row">
+            <div class="stat-box">
+                <span class="stat-val" style="color: var(--success)" id="final-correct">0</span>
+                <span class="stat-lbl">Đúng</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-val" style="color: var(--error)" id="final-wrong">0</span>
+                <span class="stat-lbl">Sai</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-val" style="color: var(--primary)" id="final-total">0</span>
+                <span class="stat-lbl">Tổng số</span>
+            </div>
+        </div>
+
+        <div class="action-group">
+            <button class="next-btn" onclick="location.reload()">Luyện tập lại</button>
+            <button class="next-btn"
+                style="background: var(--bg); color: var(--text-sub); box-shadow: none; border: 1px solid var(--border);"
+                onclick="location.href='{{ url_for('learning.vocabulary.typing.setup', set_id=container.container_id) }}'">
+                Quay lại Setup
+            </button>
+        </div>
+    </div>
+</div>
+
+{# Explicit Notification Integration #}
+{% include 'v3/includes/notification/_score_toast.html' %}
+{% include 'v3/includes/notification/_memory_power.html' %}
+{% include 'v3/pages/learning/vocabulary/stats/_modal_stats.html' %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        var dataEl = document.getElementById('session-data');
+        var setId = dataEl.dataset.setId;
+        var customPairs = JSON.parse(dataEl.dataset.customPairs || 'null');
+        var items = [];
+        var current = 0;
+
+        // Stats
+        var scoreCorrect = 0;
+        var scoreWrong = 0;
+        var sessionPoints = 0;
+        var answered = false;
+        var startTime = 0;
+
+        // UI Elements
+        var promptEl = document.getElementById('prompt');
+        var inputEl = document.getElementById('answer-input');
+        var feedbackEl = document.getElementById('feedback');
+        var submitBtn = document.getElementById('submit-btn');
+        var hintBtn = document.getElementById('hint-btn');
+
+        // Stats UI
+        var progressNumEl = document.getElementById('current-q-num');
+        var totalNumEl = document.getElementById('total-q-num');
+        var liveCorrectEl = document.getElementById('live-correct');
+        var liveWrongEl = document.getElementById('live-wrong');
+        var liveSessionScoreEl = document.getElementById('live-session-score');
+        var totalScoreValEl = document.getElementById('mcq-total-score-val');
+
+        // Logic: Get count from Data Attribute
+        var count = dataEl.dataset.count || '10';
+
+        // Auto focus (ensure it handles footer position)
+        setTimeout(() => {
+            if (inputEl) {
+                inputEl.focus();
+                // Prevent mobile keyboard from scrolling view strangely
+                inputEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        }, 500);
+
+        // Fetch Items
+        var fetchUrl = '/learn/vocabulary/typing/api/items/' + setId + '?count=' + count;
+        if (customPairs) {
+            fetchUrl += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
+        }
+
+        fetch(fetchUrl)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    items = data.items;
+                    if (totalNumEl) totalNumEl.textContent = items.length;
+
+                    var finalTotalEl = document.getElementById('final-total');
+                    if (finalTotalEl) finalTotalEl.textContent = items.length;
+
+                    updateStats();
+                    showItem();
+                } else {
+                    promptEl.textContent = 'Lỗi tải dữ liệu';
+                }
+            })
+            .catch(function (err) {
+                console.error(err);
+                promptEl.textContent = 'Lỗi kết nối';
+            });
+
+        function updateStats() {
+            if (items.length > 0) {
+                if (progressNumEl) progressNumEl.textContent = (current + 1);
+            }
+            if (liveCorrectEl) liveCorrectEl.textContent = scoreCorrect;
+            if (liveWrongEl) liveWrongEl.textContent = scoreWrong;
+            if (liveSessionScoreEl) liveSessionScoreEl.textContent = sessionPoints;
+        }
+
+        function showItem() {
+            if (current >= items.length) {
+                showComplete();
+                return;
+            }
+            updateStats();
+            answered = false;
+
+            // Reset Input
+            inputEl.value = '';
+            inputEl.className = 'typing-input';
+            inputEl.disabled = false;
+            inputEl.focus();
+
+            feedbackEl.innerHTML = '';
+
+            // Reset Button
+            submitBtn.innerHTML = 'Kiểm tra <i class="fas fa-check ms-2"></i>';
+            submitBtn.classList.remove('bg-emerald-500', 'bg-rose-500');
+
+            // Hide Hint Button
+            if (hintBtn) hintBtn.style.display = 'none';
+
+            var item = items[current];
+
+            // Setup Hint Button (Stats)
+            if (hintBtn) {
+                hintBtn.onclick = function () {
+                    if (window.openVocabularyItemStats && item.item_id) {
+                        window.openVocabularyItemStats(item.item_id);
+                    }
+                };
+            }
+
+            promptEl.textContent = item.prompt;
+            startTime = Date.now();
+        }
+
+        async function checkAnswer() {
+            var item = items[current];
+            var userAnswer = inputEl.value.trim().toLowerCase();
+            var correctAnswer = item.answer.trim().toLowerCase();
+
+            if (!userAnswer) return;
+
+            answered = true;
+            inputEl.disabled = true;
+
+            // Show Hint Button
+            if (hintBtn) hintBtn.style.display = 'flex';
+
+            if (userAnswer === correctAnswer) {
+                inputEl.classList.add('correct');
+                feedbackEl.innerHTML = '<div class="feedback-msg success"><i class="fas fa-check-circle"></i> Chính xác!</div>';
+                scoreCorrect++;
+            } else {
+                inputEl.classList.add('wrong');
+                feedbackEl.innerHTML = '<div class="feedback-msg error"><i class="fas fa-times-circle"></i> Đáp án: ' + item.answer + '</div>';
+                scoreWrong++;
+            }
+
+            // Report to Backend
+            var duration_ms = Date.now() - startTime;
+            fetch('/learn/vocabulary/typing/api/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    item_id: item.item_id,
+                    user_answer: userAnswer,
+                    duration_ms: duration_ms
+                })
+            })
+                .then(r => r.json())
+                .then(async data => {
+                    if (data.success || data.srs) {
+                        var srs = data.srs || {};
+                        // Update total score from backend
+                        if (srs.updated_total_score !== undefined) {
+                            if (totalScoreValEl) totalScoreValEl.textContent = srs.updated_total_score.toLocaleString();
+                        }
+
+                        // Update session score
+                        if (srs.score_change > 0) {
+                            sessionPoints += srs.score_change;
+                            updateStats(); // Refresh UI
+                        }
+
+                        // Trigger notifications
+                        if (srs.score_change > 0 && typeof window.showScoreToast === 'function') {
+                            await window.showScoreToast(srs.score_change);
+                        }
+                        if (srs.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
+                            await window.showMemoryPowerFeedback(
+                                srs.memory_power.old_memory_power,
+                                srs.memory_power.memory_power
+                            );
+                        }
+                    }
+                });
+
+            // Update stats immediately after answer
+            updateStats();
+
+            submitBtn.innerHTML = 'Tiếp theo <i class="fas fa-arrow-right ms-2"></i>';
+        }
+
+        function showComplete() {
+            var finalCorrectEl = document.getElementById('final-correct');
+            var finalWrongEl = document.getElementById('final-wrong');
+
+            if (finalCorrectEl) finalCorrectEl.textContent = scoreCorrect;
+            if (finalWrongEl) finalWrongEl.textContent = scoreWrong;
+
+            document.getElementById('complete-modal').classList.add('active');
+        }
+
+        // Event Listeners
+        submitBtn.onclick = function () {
+            if (!answered) {
+                checkAnswer();
+            } else {
+                current++;
+                showItem();
+            }
+        };
+
+        inputEl.onkeypress = function (e) {
+            if (e.key === 'Enter') {
+                if (!answered) checkAnswer();
+                else {
+                    current++;
+                    showItem();
+                }
+            }
+        };
+
+    })();
+</script>
+{% endblock %}

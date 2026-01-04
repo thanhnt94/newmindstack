@@ -5,11 +5,11 @@
         <!-- Header - Quiz Style Structure -->
         <div class="fc-header flex-col items-stretch !p-0">
             {# --- Row 1: Badge + Title + Score --- #}
-            <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-600">
+            <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-emerald-500 to-green-600">
                 {# Badge + Title #}
                 <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
                     <span class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white/20 rounded-lg shadow-sm">
-                        <i class="fas fa-layer-group text-white text-[10px]"></i>
+                        <i class="fas fa-clone text-white text-[10px]"></i>
                         <span class="text-[10px] font-bold text-white uppercase tracking-wide">FLASHCARD</span>
                     </span>
                     <span class="text-sm font-bold text-white truncate js-fc-title"
@@ -132,7 +132,7 @@
 
             {# Progress Line (Thin, optional, maybe keep it?) #}
             <div class="h-0.5 bg-slate-100 w-full">
-                <div class="h-full bg-amber-500 js-fc-progress-fill transition-all duration-300" style="width: 0%">
+                <div class="h-full bg-emerald-500 js-fc-progress-fill transition-all duration-300" style="width: 0%">
                 </div>
             </div>
         </div>
@@ -142,7 +142,8 @@
                 <div class="card-surface">
                     <div class="flashcard-panel">
                         <div class="js-flashcard-content">
-                            <div class="flex flex-col items-center justify-center h-full text-orange-500 min-h-[300px]">
+                            <div
+                                class="flex flex-col items-center justify-center h-full text-emerald-500 min-h-[300px]">
                                 <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
                                 <p>Đang tải thẻ...</p>
                             </div>

@@ -4,12 +4,43 @@
 from mindstack_app.models import LearningItem
 
 
-def get_typing_eligible_items(container_id, custom_pairs=None):
+def get_typing_eligible_items(container_id, custom_pairs=None, mode='random'):
     """Get all items eligible for Typing mode from a container."""
-    items = LearningItem.query.filter_by(
+    from mindstack_app.models import LearningProgress, db
+    from datetime import datetime, timezone
+
+    base_query = LearningItem.query.filter_by(
         container_id=container_id,
         item_type='FLASHCARD'
-    ).all()
+    )
+    
+    # Filter by Mode
+    if mode == 'new':
+        # Items with NO progress
+        # Use NOT EXISTS subquery
+        items = base_query.filter(
+            ~LearningItem.progress_records.any()
+        ).all()
+        
+    elif mode == 'review':
+        # Items due for review
+        now = datetime.now(timezone.utc)
+        items = base_query.join(LearningProgress).filter(
+            LearningProgress.due_time <= now
+        ).all()
+        
+    elif mode == 'learned':
+        # All items with ANY progress
+        items = base_query.join(LearningProgress).all()
+
+    elif mode == 'hard':
+        # Items with low stability or lapsing (simplified: easiness_factor < 2.5)
+        items = base_query.join(LearningProgress).filter(
+            LearningProgress.easiness_factor < 2.5
+        ).all()
+        
+    else: # 'random' or 'custom'
+        items = base_query.all()
     
     eligible = []
     

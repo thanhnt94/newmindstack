@@ -1,7 +1,7 @@
 # File: vocabulary/routes/dashboard.py
 # Vocabulary Hub - Dashboard and HTML Page Routes
 
-from flask import render_template, request, abort, current_app
+from flask import render_template, request, abort, current_app, redirect, url_for
 from flask_login import login_required, current_user
 
 from . import vocabulary_bp
@@ -50,24 +50,32 @@ def set_modes_page(set_id):
         current_app.logger.warning(f"[MODE FILTER] No capabilities set, defaulting to all modes")
         capabilities = ['supports_flashcard', 'supports_quiz', 'supports_writing', 'supports_listening', 'supports_speaking']
     
-    return render_template('v3/pages/learning/vocabulary/dashboard/index.html', 
-                          active_set_id=set_id, 
-                          active_step='modes',
-                          container_capabilities=capabilities)
+    return redirect(url_for('learning.vocabulary.modes_selection_page', set_id=set_id))
+
+
+@vocabulary_bp.route('/modes/<int:set_id>')
+@login_required
+def modes_selection_page(set_id):
+    """
+    [NEW] Dedicated Modes Selection Page (Wizard Style).
+    New URL: /learn/vocabulary/modes/<set_id>
+    """
+    container = LearningContainer.query.get_or_404(set_id)
+    return render_template('v3/pages/learning/vocabulary/modes/index.html', container=container)
 
 
 @vocabulary_bp.route('/set/<int:set_id>/flashcard')
 @login_required
 def set_flashcard_page(set_id):
     """Step 3: Flashcard options page."""
-    return render_template('v3/pages/learning/vocabulary/dashboard/index.html', active_set_id=set_id, active_step='flashcard-options')
+    return redirect(url_for('learning.flashcard_learning.setup', set_id=set_id))
 
 
 @vocabulary_bp.route('/set/<int:set_id>/mcq')
 @login_required
 def set_mcq_page(set_id):
-    """Step 3: MCQ options page."""
-    return render_template('v3/pages/learning/vocabulary/dashboard/index.html', active_set_id=set_id, active_step='mcq-options')
+    """Step 3: MCQ options page - Redirect to new setup wizard."""
+    return redirect(url_for('learning.vocabulary.mcq.setup', set_id=set_id))
 
 
 @vocabulary_bp.route('/item/<int:item_id>/stats')

@@ -25,6 +25,28 @@ def setup(set_id):
     
     available_keys = get_available_content_keys(set_id)
     
+    # Calculate counts for each mode
+    from mindstack_app.models import LearningItem, LearningProgress
+    from datetime import datetime, timezone
+
+    base_query = LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD')
+    
+    # New
+    count_new = base_query.filter(~LearningItem.progress_records.any()).count()
+    
+    # Review
+    now = datetime.now(timezone.utc)
+    count_review = base_query.join(LearningProgress).filter(LearningProgress.due_time <= now).count()
+    
+    # Learned (Review All)
+    count_learned = base_query.join(LearningProgress).count()
+    
+    # Hard (Simplified: easiness_factor < 2.5)
+    count_hard = base_query.join(LearningProgress).filter(LearningProgress.easiness_factor < 2.5).count()
+    
+    # Random
+    count_random = len(items)
+
     # [UPDATED] Load saved settings
     saved_settings = {}
     try:
@@ -36,8 +58,15 @@ def setup(set_id):
         pass
 
     return render_template(
-        'v3/pages/learning/vocabulary/typing/setup/default/index.html',
+        'v3/pages/learning/vocabulary/typing/setup/index.html',
         container=container,
+        counts={
+            'new': count_new,
+            'review': count_review,
+            'learned': count_learned,
+            'hard': count_hard,
+            'random': count_random
+        },
         total_items=len(items),
         available_keys=available_keys,
         saved_settings=saved_settings
@@ -123,7 +152,7 @@ def session_page():
     count = session_data.get('count', 10)
     
     return render_template(
-        'v3/pages/learning/vocabulary/typing/session/default/index.html',
+        'v3/pages/learning/vocabulary/typing/session/index.html',
         container=container,
         custom_pairs=custom_pairs,
         count=count
@@ -160,7 +189,10 @@ def api_get_items(set_id):
         except:
             pass
 
-    items = get_typing_eligible_items(set_id, custom_pairs=custom_pairs)
+    # Get Mode
+    mode = session_data.get('mode', 'custom')
+
+    items = get_typing_eligible_items(set_id, custom_pairs=custom_pairs, mode=mode)
     if len(items) < 1:
         return jsonify({'success': False, 'message': 'No items available'}), 400
     

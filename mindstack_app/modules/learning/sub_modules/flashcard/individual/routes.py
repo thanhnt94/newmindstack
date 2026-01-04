@@ -113,6 +113,43 @@ def serve_session_asset(filename):
         abort(404)
 
 
+@flashcard_learning_bp.route('/vocabulary/flashcard/setup/<int:set_id>')
+@login_required
+def setup(set_id):
+    """Giao diện Setup Wizard cho Flashcard (thay thế URL trực tiếp cũ)."""
+    container = LearningContainer.query.get_or_404(set_id)
+    
+    # Check access
+    if not container.is_public and container.creator_user_id != current_user.user_id:
+        from mindstack_app.modules.learning.sub_modules.flashcard.individual.routes import _user_can_edit_flashcard
+        if not _user_can_edit_flashcard(set_id):
+             abort(403)
+        
+    # Get Stats via Service
+    from mindstack_app.modules.learning.sub_modules.vocabulary.stats import VocabularyStatsService
+    try:
+        mode_counts = VocabularyStatsService.get_mode_counts(current_user.user_id, set_id)
+    except Exception:
+        mode_counts = {'new': 0, 'due': 0, 'hard': 0, 'total': 0, 'learned': 0, 'review': 0, 'random': 0}
+        
+    # Get Saved Settings
+    saved_settings = {}
+    try:
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if ucs and ucs.settings:
+            saved_settings = ucs.settings.get('flashcard', {})
+    except Exception:
+        pass
+
+    return render_template(
+        'v3/pages/learning/vocabulary/flashcard/setup/index.html',
+        set_id=set_id,
+        container_title=container.title,
+        mode_counts=mode_counts,
+        saved_settings=saved_settings
+    )
+
+
 
 @flashcard_learning_bp.route('/get_flashcard_options_partial/<set_identifier>', methods=['GET'])
 @login_required

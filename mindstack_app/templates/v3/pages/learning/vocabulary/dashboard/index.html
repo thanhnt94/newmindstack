@@ -4552,23 +4552,10 @@
 
         btn.addEventListener('click', function () {
 
-            if (selectedSetData) {
-
-                var setNameEl = document.querySelector('.js-selected-set-name');
-
-                if (setNameEl) {
-
-                    setNameEl.textContent = selectedSetData.title;
-
-                }
-
+            if (selectedSetId) {
+                window.location.href = '/learn/vocabulary/modes/' + selectedSetId;
+                return;
             }
-
-            updateModeVisibility();
-
-            showStep('modes');
-
-            history.pushState({ step: 'modes', setId: selectedSetId }, '', '/learn/vocabulary/set/' + selectedSetId + '/modes');
 
         });
 
@@ -4686,7 +4673,7 @@
 
         if (mode === 'flashcard') {
 
-            loadFlashcardOptions(selectedSetId);
+            window.location.href = '/learn/vocabulary/flashcard/setup/' + selectedSetId;
 
         } else if (mode === 'mcq') {
 

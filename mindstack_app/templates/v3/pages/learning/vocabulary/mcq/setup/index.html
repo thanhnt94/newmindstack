@@ -1,0 +1,835 @@
+﻿{# MCQ Setup Template - Wizard Style #}
+{% extends "v3/base.html" %}
+{% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary: #6366f1;
+        /* Indigo 500 */
+        --primary-bg: #eef2ff;
+        /* Indigo 50 */
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #0f172a;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --radius: 24px;
+        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+
+    body {
+        background: var(--background);
+        font-family: 'Outfit', 'Inter', sans-serif;
+    }
+
+    .wizard-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 600px;
+        margin: 0 auto;
+        background: var(--background);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Minimal Header */
+    .wizard-header {
+        padding: 0.75rem 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        border: 1px solid var(--border);
+    }
+
+    .nav-btn:hover {
+        background: var(--background);
+    }
+
+    /* Center Info */
+    .header-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .set-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mode-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .step-indicator {
+        display: flex;
+        gap: 6px;
+        width: 40px;
+        justify-content: flex-end;
+    }
+
+    .step-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--border);
+        transition: background 0.3s;
+    }
+
+    .step-dot.active {
+        background: var(--primary);
+        width: 16px;
+        border-radius: 12px;
+    }
+
+    /* Steps Content */
+    .wizard-content {
+        flex: 1;
+        padding: 75px 1.5rem 100px 1.5rem;
+        /* Space for fixed header and footer */
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .step-screen {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .step-screen.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .title-area {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .title-area h2 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0 0 0.5rem 0;
+        line-height: 1.2;
+    }
+
+    .title-area p {
+        color: var(--text-sub);
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    /* Mode Grid */
+    .mode-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .mode-card {
+        background: var(--surface);
+        border: 2px solid transparent;
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-sm);
+        position: relative;
+    }
+
+    .mode-card:hover:not(.disabled) {
+        transform: translateY(-2px);
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .mode-card.selected {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .mode-card.disabled {
+        opacity: 0.5;
+        filter: grayscale(1);
+        cursor: not-allowed;
+        background: var(--background);
+    }
+
+    .mode-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 16px;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--text-sub);
+        transition: all 0.3s;
+    }
+
+    .mode-card.selected .mode-icon {
+        background: var(--primary);
+        color: white;
+        transform: scale(1.1) rotate(-5deg);
+    }
+
+    .mode-info {
+        flex: 1;
+    }
+
+    .mode-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-main);
+        display: block;
+    }
+
+    .mode-desc {
+        font-size: 0.9rem;
+        color: var(--text-sub);
+        margin-top: 2px;
+        display: block;
+    }
+
+    /* Config Cards */
+    .config-card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+    }
+
+    .config-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .config-header i {
+        color: var(--primary);
+        opacity: 0.8;
+    }
+
+    /* Count/Choice Options */
+    .options-row {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .option-chip {
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--background);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .option-chip:hover {
+        background: white;
+        border-color: var(--primary);
+    }
+
+    .option-chip.selected {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Pairs Styling */
+    .pair-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .pair-row {
+        background: var(--background);
+        border-radius: 16px;
+        padding: 0.75rem;
+        position: relative;
+        border: 1px solid var(--border);
+    }
+
+    .pair-connection {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        justify-content: space-between;
+    }
+
+    .pair-box {
+        flex: 1;
+    }
+
+    .pair-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-sub);
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    .modern-select {
+        width: 100%;
+        padding: 0.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-main);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+        background-size: 1.25rem;
+    }
+
+    .modern-select:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    .arrow-divider {
+        color: var(--text-sub);
+        font-size: 1rem;
+        transform: translateY(10px);
+    }
+
+    .add-pair-btn {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px dashed var(--border);
+        background: transparent;
+        border-radius: 16px;
+        color: var(--primary);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .add-pair-btn:hover {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+    }
+
+    .delete-pair {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 24px;
+        height: 24px;
+        background: var(--error, #ef4444);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        border: 2px solid var(--background);
+        cursor: pointer;
+    }
+
+    /* Footer */
+    .wizard-footer {
+        padding: 1rem 1.5rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .action-btn {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 16px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 20px -4px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+
+    <!-- Top Header -->
+    <div class="wizard-header">
+        <a id="header-back-btn" href="#" class="nav-btn">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+
+        <div class="header-info">
+            <span class="mode-badge"><i class="fas fa-list-ul"></i> Trắc nghiệm</span>
+            <h1 class="set-title">{{ container.title }}</h1>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step-dot active" id="dot-1"></div>
+            <div class="step-dot" id="dot-2"></div>
+        </div>
+    </div>
+
+    <div class="wizard-content">
+
+        <!-- STEP 1: MODE SELECTION -->
+        <div class="step-screen active" id="step-1">
+            <div class="title-area">
+                <h2>Chọn chế độ học</h2>
+                <p>Bạn muốn ôn tập theo cách nào?</p>
+            </div>
+
+            <div class="mode-grid">
+                <!-- New -->
+                <div class="mode-card {% if mode_counts.new == 0 %}disabled{% endif %}" data-value="new">
+                    <div class="mode-icon"><i class="fas fa-seedling"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Học từ mới</span>
+                        <span class="mode-desc">{{ mode_counts.new }} từ chưa học</span>
+                    </div>
+                </div>
+
+                <!-- Review -->
+                <div class="mode-card {% if mode_counts.review == 0 %}disabled{% endif %}" data-value="review">
+                    <div class="mode-icon"><i class="fas fa-history"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ôn tập tới hạn</span>
+                        <span class="mode-desc">{{ mode_counts.review }} từ cần ôn lại</span>
+                    </div>
+                </div>
+
+                <!-- Hard -->
+                <div class="mode-card {% if mode_counts.hard == 0 %}disabled{% endif %}" data-value="hard">
+                    <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Từ khó</span>
+                        <span class="mode-desc">{{ mode_counts.hard }} từ hay sai</span>
+                    </div>
+                </div>
+
+                <!-- Review All -->
+                <div class="mode-card {% if mode_counts.learned == 0 %}disabled{% endif %}" data-value="learned">
+                    <div class="mode-icon"><i class="fas fa-check-double"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ôn tất cả</span>
+                        <span class="mode-desc">{{ mode_counts.learned }} từ đã học</span>
+                    </div>
+                </div>
+
+                <!-- Random -->
+                <div class="mode-card {% if mode_counts.random == 0 %}disabled{% endif %}" data-value="random">
+                    <div class="mode-icon"><i class="fas fa-random"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ngẫu nhiên</span>
+                        <span class="mode-desc">{{ mode_counts.random }} từ trong bộ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: CONFIGURATION -->
+        <div class="step-screen" id="step-2">
+            <div class="title-area">
+                <h2>Thiết lập câu hỏi</h2>
+                <p>Tùy chỉnh nội dung bài trắc nghiệm</p>
+            </div>
+
+            <!-- Choice Config -->
+            <div class="config-card">
+                <div class="config-header"><i class="fas fa-th-large"></i> Số lượng đáp án</div>
+                <div class="options-row" id="choices-options">
+                    <div class="option-chip" data-value="3">3 đáp án</div>
+                    <div class="option-chip selected" data-value="4">4 đáp án</div>
+                    <div class="option-chip" data-value="6">6 đáp án</div>
+                    <div class="option-chip" data-value="8">8 đáp án</div>
+                </div>
+            </div>
+
+            <!-- Pairs Config -->
+            <div class="config-card">
+                <div class="config-header"><i class="fas fa-sliders-h"></i> Cấu hình Hỏi & Đáp</div>
+                <div class="pair-container" id="pairs-list">
+                    <!-- Pairs injected via JS -->
+                </div>
+
+                <button type="button" class="add-pair-btn" id="add-pair-btn">
+                    <i class="fas fa-plus-circle"></i> Thêm cấu hình khác
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer Action -->
+    <div class="wizard-footer">
+        <button class="action-btn btn-primary" id="next-btn">
+            Tiếp tục <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        // --- Data ---
+        const setId = Number("{{ container.container_id }}");
+        const modeCounts = {{ mode_counts | tojson
+    }};
+    const availableKeys = {{ available_keys | tojson }} || [];
+    const savedSettings = {{ saved_settings | tojson }} || {};
+
+    // --- State ---
+    let currentStep = 1;
+    let selectedMode = 'random';
+    let selectedCount = 999999; // Default to ALL
+    let selectedChoices = 4;
+    let customPairs = [];
+
+    // --- DOM Elements ---
+    const step1 = document.getElementById('step-1');
+    const step2 = document.getElementById('step-2');
+    const dot1 = document.getElementById('dot-1');
+    const dot2 = document.getElementById('dot-2');
+    const nextBtn = document.getElementById('next-btn');
+    const backBtn = document.getElementById('header-back-btn');
+    const modeCards = document.querySelectorAll('.mode-card');
+    const pairsList = document.getElementById('pairs-list');
+    const addPairBtn = document.getElementById('add-pair-btn');
+    const dashboardUrl = "{{ url_for('learning.vocabulary.dashboard') }}";
+
+    // Config Options
+    // const countChips = document.querySelectorAll('#count-options .option-chip'); // REMOVED
+    const choicesChips = document.querySelectorAll('#choices-options .option-chip');
+
+    // --- Initialize ---
+
+    // 1. Auto-select mode
+    let firstValidMode = null;
+    modeCards.forEach(card => {
+        if (!card.classList.contains('disabled')) {
+            if (!firstValidMode) firstValidMode = card;
+        }
+    });
+
+    if (firstValidMode) {
+        selectMode(firstValidMode);
+    } else {
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = "Không có từ nào";
+    }
+
+    // 2. Load Saved Settings (Favorites)
+    // Removed count loading, force ALL
+    /*
+    if (savedSettings.count) {
+        selectedCount = Number(savedSettings.count);
+        updateChipSelection(countChips, selectedCount);
+    }
+    */
+    if (savedSettings.choices) {
+        selectedChoices = Number(savedSettings.choices);
+        updateChipSelection(choicesChips, selectedChoices);
+    }
+
+    // 3. Load Saved Pairs
+    if (savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0) {
+        savedSettings.custom_pairs.forEach(p => addPairUI(p.q, p.a));
+    } else {
+        // Default Pair
+        const defQ = availableKeys.includes('front') ? 'front' : (availableKeys[0] || '');
+        const defA = availableKeys.includes('back') ? 'back' : (availableKeys[1] || '');
+        addPairUI(defQ, defA);
+    }
+
+    // --- Event Listeners ---
+
+    // Mode Selection
+    modeCards.forEach(card => {
+        if (card.classList.contains('disabled')) return;
+        card.addEventListener('click', () => selectMode(card));
+    });
+
+    function selectMode(cardElement) {
+        modeCards.forEach(c => c.classList.remove('selected'));
+        cardElement.classList.add('selected');
+        selectedMode = cardElement.dataset.value;
+    }
+
+    // Chip Selection (Choices Only)
+    /*
+    countChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            updateChipSelection(countChips, Number(chip.dataset.value));
+            selectedCount = Number(chip.dataset.value);
+        });
+    });
+    */
+
+    choicesChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            updateChipSelection(choicesChips, Number(chip.dataset.value));
+            selectedChoices = Number(chip.dataset.value);
+        });
+    });
+
+    function updateChipSelection(chipList, value) {
+        let matched = false;
+        chipList.forEach(c => {
+            c.classList.remove('selected');
+            if (Number(c.dataset.value) === value) {
+                c.classList.add('selected');
+                matched = true;
+            }
+        });
+        // If exact value not found (e.g. custom count via url), maybe select nothing or closest? 
+    }
+
+    // Navigation Logic
+    nextBtn.addEventListener('click', () => {
+        if (currentStep === 1) {
+            goToStep(2);
+        } else {
+            startSession();
+        }
+    });
+
+    backBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentStep === 2) {
+            goToStep(1);
+        } else {
+            window.location.href = dashboardUrl;
+        }
+    });
+
+    addPairBtn.addEventListener('click', () => addPairUI());
+
+    function goToStep(step) {
+        currentStep = step;
+
+        if (step === 1) {
+            step1.classList.add('active');
+            step2.classList.remove('active');
+            dot1.classList.add('active');
+            dot2.classList.remove('active');
+            nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+        } else {
+            step1.classList.remove('active');
+            step2.classList.add('active');
+            dot1.classList.remove('active');
+            dot2.classList.add('active');
+            nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+            updatePairsData();
+        }
+    }
+
+    // --- Pair Logic ---
+    function addPairUI(qVal = '', aVal = '') {
+        const row = document.createElement('div');
+        row.className = 'pair-row';
+
+        let optionsHtml = '';
+        availableKeys.forEach(k => {
+            optionsHtml += `<option value="${k}">${k}</option>`;
+        });
+
+        row.innerHTML = `
+            <div class="pair-connection">
+                <div class="pair-box">
+                    <label class="pair-label">Hỏi</label>
+                    <select class="modern-select pair-q">${optionsHtml}</select>
+                </div>
+                <div class="arrow-divider"><i class="fas fa-arrow-right"></i></div>
+                <div class="pair-box">
+                    <label class="pair-label">Đáp án</label>
+                    <select class="modern-select pair-a">${optionsHtml}</select>
+                </div>
+            </div>
+            <button class="delete-pair"><i class="fas fa-times"></i></button>
+        `;
+
+        pairsList.appendChild(row);
+
+        // Set values
+        if (qVal) row.querySelector('.pair-q').value = qVal;
+        if (aVal) row.querySelector('.pair-a').value = aVal;
+
+        // Bind Events
+        row.querySelector('.delete-pair').addEventListener('click', () => {
+            if (pairsList.children.length > 1) {
+                row.remove();
+            } else {
+                alert("Cần ít nhất một cấu hình học!");
+            }
+        });
+    }
+
+    function updatePairsData() {
+        customPairs = [];
+        document.querySelectorAll('.pair-row').forEach(row => {
+            const q = row.querySelector('.pair-q').value;
+            const a = row.querySelector('.pair-a').value;
+            if (q && a) customPairs.push({ q, a });
+        });
+    }
+
+    // --- Start Session ---
+    function startSession() {
+        updatePairsData();
+
+        if (customPairs.length === 0) {
+            alert('Vui lòng kiểm tra lại cấu hình câu hỏi!');
+            return;
+        }
+
+        // Loading State
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
+
+        const saveUrl = "{{ url_for('learning.vocabulary.mcq.save_setup', set_id=container.container_id) }}";
+        const sessionUrl = "{{ url_for('learning.vocabulary.mcq.session', set_id=container.container_id) }}";
+
+        fetch(saveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                mode: selectedMode,
+                count: selectedCount,
+                choices: selectedChoices,
+                custom_pairs: customPairs
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = sessionUrl;
+                } else {
+                    alert(data.message || 'Lỗi không xác định');
+                    nextBtn.disabled = false;
+                    nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Lỗi kết nối máy chủ');
+                nextBtn.disabled = false;
+                nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+            });
+    }
+
+}) ();
+</script>
+{% endblock %}
