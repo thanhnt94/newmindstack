@@ -319,6 +319,7 @@
     let sessionTotalAnswered = 0;
     let activeHubItemId = null; // Currently tracked question ID
     let activeFeedbackItemId = null;
+    let sessionPoints = 0; // Track points earned in this session
     const SESSION_KEY = 'quiz_session_batch_state';
 
     // URLs
@@ -385,6 +386,12 @@
         try {
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
         } catch (e) { console.error('Error saving state', e); }
+    }
+
+    function clearState() {
+        try {
+            sessionStorage.removeItem(SESSION_KEY);
+        } catch (e) { console.error('Error clearing state', e); }
     }
 
     function loadState() {
@@ -458,7 +465,7 @@
             const feedbackArea = card.querySelector('.feedback-area');
             let feedbackHtml = result.is_correct ?
                 `<div class="feedback-box feedback-correct"><span class="feedback-icon"><i class="fas fa-check-circle"></i></span><div class="feedback-text"><strong>Chính xác!</strong></div></div>` :
-                `<div class="feedback-box feedback-incorrect"><span class="feedback-icon"><i class="fas fa-times-circle"></i></span><div class="feedback-text"><strong>Sai r?i</strong><span>Ðáp án dúng: ${result.correct_answer}</span></div></div>`;
+                `<div class="feedback-box feedback-incorrect"><span class="feedback-icon"><i class="fas fa-times-circle"></i></span><div class="feedback-text"><strong>Sai rồi</strong><span>Đáp án đúng: ${result.correct_answer}</span></div></div>`;
 
             // Standard Feedback Area (Just correct/incorrect + optional base explanation text if we want duplicates?)
             // We already have detailed explanation in the insights section.
@@ -1028,13 +1035,19 @@
                 window.showScoreToast(totalScoreChange);
             }
 
+            // Update session points display
+            sessionPoints += totalScoreChange;
+            document.querySelectorAll('.js-stat-session-points').forEach(el => {
+                el.textContent = '+' + sessionPoints;
+            });
+
             updateSessionSummary(responseData.session_correct_answers, responseData.session_total_answered);
             toggleControlButtons('submitted');
             saveState();
 
         } catch (error) {
             console.error(error);
-            showCustomAlert('Có l?i x?y ra khi g?i dáp án.');
+            showCustomAlert('Có lỗi xảy ra khi gửi đáp án.');
             isBatchSubmitted = false;
             toggleControlButtons('answering');
         }
@@ -1409,7 +1422,7 @@
             submits.forEach(btn => {
                 btn.style.display = 'inline-flex';
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span class="control-button-text">G?i dáp án</span>';
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span class="control-button-text">Gửi đáp án</span>';
             });
             checkCompletionStatus();
         } else if (state === 'submitting') {
@@ -1418,7 +1431,7 @@
                 btn.disabled = true;
                 btn.style.opacity = '1';
                 btn.classList.remove('opacity-50');
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ðang g?i...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
             });
         } else if (state === 'submitted') {
             nexts.forEach(btn => btn.style.display = 'inline-flex');
@@ -1427,20 +1440,20 @@
 
     function handleSessionComplete(endMessage) {
         setText('.js-quiz-group-range', 'Hoàn thành');
-        const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Hoàn thành phiên h?c!</h3><p class="text-slate-500 mb-6">${formatTextForHtml(endMessage.message)}</p><a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> V? Dashboard</a></div>`;
+        const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Hoàn thành phiên học!</h3><p class="text-slate-500 mb-6">${formatTextForHtml(endMessage.message)}</p><a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> Về Dashboard</a></div>`;
         setHtml('.js-quiz-content', msgHtml);
         toggleControlButtons('complete');
         document.querySelectorAll('.js-end-session-btn').forEach(btn => btn.style.display = 'none');
     }
 
     async function handleEndSession() {
-        if (confirm('B?n có ch?c ch?n mu?n k?t thúc phiên h?c hi?n t?i?')) {
+        if (confirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?')) {
             try {
                 await fetch(endSessionUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders }, body: JSON.stringify({}) });
                 clearState();
                 window.location.href = quizDashboardUrl;
             } catch (e) {
-                showCustomAlert('L?i k?t thúc phiên.', 'error');
+                showCustomAlert('Lỗi kết thúc phiên.', 'error');
             }
         }
     }

@@ -155,7 +155,7 @@
         let currentBatch = [];
         let currentIndex = 0;
         let userAnswers = {};
-        let sessionStats = { total: 0, correct: 0, total_questions: 0 };
+        let sessionStats = { total: 0, correct: 0, total_questions: 0, session_points: 0 };
         let currentQuestion = null;
         let lastAnswerResult = null; // Holds the result of the last answered question
         let startTime = 0;
@@ -434,9 +434,13 @@
                     if (scoreEl) scoreEl.textContent = data.new_total_score;
                 }
 
-                // Trigger Score Toast
-                if (lastAnswerResult.score_change && window.showScoreToast) {
-                    window.showScoreToast(lastAnswerResult.score_change);
+                // Trigger Score Toast and accumulate session points
+                const scoreEarned = lastAnswerResult.score_change || 0;
+                console.log('Score earned this answer:', scoreEarned, 'Total session:', sessionStats.session_points);
+                if (scoreEarned > 0) {
+                    if (window.showScoreToast) window.showScoreToast(scoreEarned);
+                    sessionStats.session_points += scoreEarned;
+                    setText('.js-stat-session-points', sessionStats.session_points);
                 }
 
                 // Update Local Stats immediately
@@ -701,6 +705,7 @@
             setText('.js-stat-correct', sessionStats.correct);
             setText('.js-stat-accuracy', `${acc}%`);
             setText('.js-stat-progress-text', `${sessionStats.total}/${sessionStats.total_questions}`);
+            setText('.js-stat-session-points', sessionStats.session_points || 0);
             document.querySelectorAll('.js-stat-progress-bar').forEach(el => {
                 el.style.width = `${(sessionStats.total / (sessionStats.total_questions || 1)) * 100}%`;
             });
@@ -1221,31 +1226,56 @@
             try {
                 const storedTitles = JSON.parse(localStorage.getItem('selectedQuizSetTitles') || '{}');
                 const titleKeys = Object.keys(storedTitles);
-                const headerSetLabel = document.querySelector('.js-quiz-set-title');
 
-                if (headerSetLabel) {
+                // Update ALL elements with js-quiz-set-title class (both collapsed header and any other places)
+                document.querySelectorAll('.js-quiz-set-title').forEach(el => {
                     if (titleKeys.length > 0) {
-                        // Get the first title or a summary
                         const mainTitle = storedTitles[titleKeys[0]];
-                        headerSetLabel.textContent = titleKeys.length === 1 ? mainTitle : `${mainTitle} (+${titleKeys.length - 1})`;
-
-                        // Add tooltip via simple title attribute
-                        headerSetLabel.parentElement.title = Object.values(storedTitles).join(', ');
+                        el.textContent = titleKeys.length === 1 ? mainTitle : `${mainTitle} (+${titleKeys.length - 1})`;
+                        if (el.parentElement) el.parentElement.title = Object.values(storedTitles).join(', ');
                     } else {
-                        headerSetLabel.textContent = "Phiên học Quiz";
+                        el.textContent = "Phiên học Quiz";
                     }
-                }
+                });
             } catch (e) {
                 console.error("Lỗi khi tải tên bộ quiz:", e);
-                const headerSetLabel = document.querySelector('.js-quiz-set-title');
-                if (headerSetLabel) headerSetLabel.textContent = "Phiên học Quiz";
+                document.querySelectorAll('.js-quiz-set-title').forEach(el => el.textContent = "Phiên học Quiz");
             }
+        }
+
+        // Feature: Collapsible Header Toggle
+        function setupHeaderToggle() {
+            const toggleBtn = document.getElementById('header-toggle-btn');
+            const collapsedState = document.getElementById('header-collapsed');
+            const expandedState = document.getElementById('header-expanded');
+            const toggleIcon = document.querySelector('.js-toggle-icon');
+
+            if (!toggleBtn || !expandedState) return;
+
+            let isExpanded = false;
+
+            toggleBtn.addEventListener('click', () => {
+                isExpanded = !isExpanded;
+
+                if (isExpanded) {
+                    expandedState.classList.remove('hidden');
+                    toggleIcon?.classList.remove('fa-chevron-down');
+                    toggleIcon?.classList.add('fa-chevron-up');
+                } else {
+                    expandedState.classList.add('hidden');
+                    toggleIcon?.classList.remove('fa-chevron-up');
+                    toggleIcon?.classList.add('fa-chevron-down');
+                }
+            });
         }
 
         // --- Init ---
         function init() {
             // Load title immediately
             loadQuizTitleFromStorage();
+
+            // Setup collapsible header
+            setupHeaderToggle();
 
             // Check for force new session flag from Dashboard
             if (localStorage.getItem('force_new_session') === 'true') {
