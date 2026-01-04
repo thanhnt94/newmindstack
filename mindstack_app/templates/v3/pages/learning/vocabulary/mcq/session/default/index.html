@@ -35,6 +35,9 @@
         --text-main: #1e293b;
         --text-sub: #64748b;
         --border: #e2e8f0;
+        --footer-height: 4.5rem;
+        /* Base footer height */
+        --safe-area-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     body {
@@ -197,14 +200,30 @@
     /* Main Content */
     .session-main {
         padding: 0;
-        padding-bottom: 6rem;
-        /* Space for footer */
+        padding-bottom: calc(var(--footer-height) + var(--safe-area-bottom) + 1rem);
+        /* Dynamic space for footer */
         flex: 1;
         display: flex;
         flex-direction: column;
-        background: #f8fafc;
+        background: var(--bg);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        position: relative;
+    }
+
+    /* Scroll mask - hides content scrolling above the question card */
+    .session-main::before {
+        content: '';
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 0.75rem;
+        /* Same as question-card top margin */
+        background: var(--bg);
+        z-index: 99;
+        display: block;
+        flex-shrink: 0;
     }
 
     /* Scrollbar styling for Main */
@@ -214,8 +233,10 @@
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
-        padding: 2rem 1.5rem 0 1.5rem;
+        padding: 2rem 1.5rem 2rem 1.5rem;
         /* Increased top padding */
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0));
+        /* Extra bottom padding for safe scrolling above fixed footer */
         max-width: 100%;
         margin: 0 auto;
         width: 100%;
@@ -241,6 +262,9 @@
 
         .choices-grid {
             grid-template-columns: 1fr;
+            /* Single column on mobile */
+            padding-bottom: calc(var(--footer-height) + var(--safe-area-bottom) + 2rem) !important;
+            /* Dynamic bottom padding for fixed footer + safe area */
         }
     }
 
@@ -713,6 +737,10 @@
     init();
 
     function init() {
+        // [NEW] Calculate dynamic footer padding
+        updateFooterPadding();
+        window.addEventListener('resize', updateFooterPadding);
+
         // Build API URL
         let apiUrl = `/learn/vocabulary/mcq/api/items/${setId}?count=${count}&mode=${mode}&choices=${numChoices}`;
         if (customPairs) apiUrl += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
@@ -963,6 +991,24 @@
         }
 
         els.result.classList.add('active');
+    }
+
+    // [NEW] Dynamic footer padding calculation
+    function updateFooterPadding() {
+        const footer = document.querySelector('.session-footer');
+        const choicesGrid = document.querySelector('.choices-grid');
+
+        if (footer && choicesGrid) {
+            const footerHeight = footer.offsetHeight;
+            // Add buffer of 16px for spacing
+            const requiredPadding = footerHeight + 16;
+
+            // Set CSS variable for dynamic use
+            document.documentElement.style.setProperty('--footer-height', footerHeight + 'px');
+
+            // Apply directly to choices-grid for immediate effect
+            choicesGrid.style.paddingBottom = requiredPadding + 'px';
+        }
     }
 }) ();
 </script>
