@@ -336,6 +336,8 @@
 
                                 // Use wrapper to find scoped elements
                                 const settingsInput = wrapper.querySelector('input[name="settings"]');
+                                const csrfInput = wrapper.querySelector('input[name="csrf_token"]');
+                                const csrfToken = csrfInput ? csrfInput.value : '';
                                 const configTabs = wrapper.querySelector('#config-tabs'); // ID might still be duplicated but querySelector on wrapper finds first *inside* it? No, querySelector traverses down. It should be fine if unique inside wrapper. better to use class or direct relationship.
                                 // Actually, IDs must be unique globally. Having duplicate IDs is invalid HTML.
                                 // We should use classes for 'config-tabs' and others, but for now scoping getElementById is impossible.
@@ -523,7 +525,8 @@
                                         method: 'POST',
                                         headers: {
                                             'Content-Type': 'application/json',
-                                            'X-Requested-With': 'XMLHttpRequest'
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                            'X-CSRFToken': csrfToken
                                         },
                                         body: JSON.stringify(payload)
                                     });

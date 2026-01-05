@@ -41,6 +41,7 @@ import zipfile
 import shutil
 import re
 import io
+import json
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.utils.search import apply_search_filter
 from openpyxl.utils import get_column_letter
@@ -1161,7 +1162,7 @@ def edit_flashcard_set(set_id):
                 except Exception as e:
                     print(f"Error parsing settings JSON: {e}")
             
-            safe_commit(db)
+            safe_commit(db.session)
             
             flash_message = 'Đã cập nhật bộ thẻ thành công (bao gồm cả cấu hình mặc định)!'
             flash_category = 'success'
@@ -1204,11 +1205,11 @@ def update_flashcard_set_settings(set_id):
         return jsonify({'success': False, 'message': 'Không tìm thấy bộ thẻ.'}), 404
         
     # Check permission (contributor or admin)
-    if flashcard_set.creator_user_id != current_user.id and current_user.user_role not in ['admin', 'manager']:
+    if flashcard_set.creator_user_id != current_user.user_id and current_user.user_role not in ['admin', 'manager']:
          # check contributor
          is_contrib = ContainerContributor.query.filter_by(
             container_id=set_id, 
-            user_id=current_user.id
+            user_id=current_user.user_id
          ).first() is not None
          if not is_contrib:
             return jsonify({'success': False, 'message': 'Bạn không có quyền sửa bộ thẻ này.'}), 403
@@ -1240,7 +1241,7 @@ def update_flashcard_set_settings(set_id):
         flashcard_set.settings = current_settings
         flag_modified(flashcard_set, "settings") # Validates for JSON updates
         
-        safe_commit(db)
+        safe_commit(db.session)
         
         return jsonify({
             'success': True, 
@@ -1251,29 +1252,6 @@ def update_flashcard_set_settings(set_id):
         db.session.rollback()
         current_app.logger.error(f"Error updating flashcard set settings: {e}")
         return jsonify({'success': False, 'message': f'Lỗi server: {str(e)}'}), 500
-        
-    # Xử lý lỗi form validation cho AJAX
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
-        return jsonify({'success': False, 'errors': form.errors}), 400
-    
-    # Render template cho modal hoặc trang đầy đủ
-    if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template(
-            'v3/pages/content_management/flashcards/sets/_add_edit_flashcard_set_bare.html',
-            form=form,
-            title='Chỉnh sửa Bộ thẻ ghi nhớ',
-            previous_set_id=previous_set_id,
-            next_set_id=next_set_id,
-            available_keys=available_keys,
-        )
-    return render_template(
-        'v3/pages/content_management/flashcards/sets/add_edit_flashcard_set.html',
-        form=form,
-        title='Chỉnh sửa Bộ thẻ ghi nhớ',
-        previous_set_id=previous_set_id,
-        next_set_id=next_set_id,
-        available_keys=available_keys,
-    )
 
 @flashcards_bp.route('/flashcards/delete/<int:set_id>', methods=['POST'])
 @login_required
