@@ -98,16 +98,15 @@ def generate_mcq_question(item: dict, all_items: list, num_choices: int = 4,
     content = item.get('content', {})
     current_mode = mode
     
-    # Handle mixed mode - randomly pick direction
-    if mode == 'mixed':
-        current_mode = random.choice(['front_back', 'back_front'])
-    
-    # Handle custom pairs - randomly select one pair
-    if mode == 'custom' and custom_pairs:
+    # Handle custom pairs - prioritize if provided (overrides default front/back)
+    if custom_pairs:
         pair = random.choice(custom_pairs)
         question_key = pair.get('q')
         answer_key = pair.get('a')
         current_mode = 'custom'
+    # Fallback to mixed mode if specified and no custom pairs
+    elif mode == 'mixed':
+        current_mode = random.choice(['front_back', 'back_front'])
     
     # Determine correct answer and distractors with their item_ids
     if current_mode == 'custom' and question_key and answer_key:
