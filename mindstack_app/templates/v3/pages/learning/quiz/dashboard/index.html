@@ -1145,8 +1145,8 @@
         // Bind click
         document.querySelectorAll('.quiz-set-card').forEach(card => {
             card.addEventListener('click', () => {
-                selectedSetId = card.dataset.setId;
-                loadSetDetail(selectedSetId);
+                const setId = card.dataset.setId;
+                window.location.href = '/learn/quiz/set/' + setId;
             });
         });
     }

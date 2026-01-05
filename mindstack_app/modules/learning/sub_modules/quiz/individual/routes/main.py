@@ -51,9 +51,9 @@ def dashboard():
 @quiz_learning_bp.route('/quiz/set/<int:set_id>')
 @login_required
 def set_detail(set_id):
-    """Handle direct URL access to /learn/quiz/set/<id> for page reloads.
-    Renders the dashboard template and lets JavaScript handle loading the set detail.
-    """
+    """Render the wizard-style Quiz setup page."""
+    container = LearningContainer.query.get_or_404(set_id)
+    
     # Logic xác định batch size mặc định
     pref_batch = current_user.last_preferences.get('quiz_question_count') if current_user.last_preferences else None
     
@@ -64,16 +64,15 @@ def set_detail(set_id):
     else:
         user_default_batch_size = QuizLearningConfig.QUIZ_DEFAULT_BATCH_SIZE
 
+    # Lấy danh sách các chế độ học
+    modes = get_quiz_mode_counts(current_user.user_id, set_id)
+
     template_vars = {
-        'search_query': '',
-        'search_field': 'all',
-        'quiz_set_search_options': {'title': 'Tiêu đề', 'description': 'Mô tả', 'tags': 'Thẻ'},
-        'current_filter': 'doing',
-        'user_default_batch_size': user_default_batch_size,
-        'quiz_type': 'individual',
-        'initial_set_id': set_id  # Pass this to JS to auto-load set detail
+        'container': container,
+        'modes': modes,
+        'user_default_batch_size': user_default_batch_size
     }
-    return render_template('v3/pages/learning/quiz/dashboard/index.html', **template_vars)
+    return render_template('v3/pages/learning/quiz/individual/setup/index.html', **template_vars)
 
 
 @quiz_learning_bp.route('/get_quiz_modes_partial/all', methods=['GET'])
