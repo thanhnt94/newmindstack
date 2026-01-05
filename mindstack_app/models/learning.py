@@ -34,6 +34,10 @@ class LearningContainer(db.Model):
     ai_capabilities = db.Column(JSON, nullable=True)
     media_image_folder = db.Column(db.String(255), nullable=True)
     media_audio_folder = db.Column(db.String(255), nullable=True)
+    
+    # Generic settings for container defaults (e.g. default MCQ pairs, etc.)
+    # Structure: {'mcq': {'default_pairs': [...]}, 'typing': {...}, 'listening': {...}}
+    settings = db.Column(JSON, nullable=True)
 
     creator = db.relationship(
         'User',

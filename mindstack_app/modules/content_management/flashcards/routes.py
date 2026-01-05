@@ -988,6 +988,16 @@ def add_flashcard_set():
             image_folder = media_folders.get('image')
             audio_folder = media_folders.get('audio')
             cover_image_value = _process_relative_url(form.cover_image.data, image_folder)
+            
+            # Parse settings
+            settings_data = None
+            if form.settings.data:
+                try:
+                    import json
+                    settings_data = json.loads(form.settings.data)
+                except:
+                    pass
+
             # Tạo bộ Flashcard mới
             new_set = LearningContainer(
                 creator_user_id=current_user.user_id,
@@ -997,7 +1007,8 @@ def add_flashcard_set():
                 cover_image=cover_image_value,
                 tags=form.tags.data,
                 is_public=False if current_user.user_role == 'free' else form.is_public.data,
-                ai_settings=ai_settings_payload
+                ai_settings=ai_settings_payload,
+                settings=settings_data
             )
             if media_folders:
                 new_set.set_media_folders(media_folders)
@@ -1063,12 +1074,39 @@ def edit_flashcard_set(set_id):
     
     form = FlashcardSetForm(obj=flashcard_set)
     _apply_is_public_restrictions(form)
+
+    # Determine available keys by scanning all items
+    items = LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD').all()
+    all_keys = set(['front', 'back'])
+    
+    for item in items:
+        if item.content:
+            all_keys.update(item.content.keys())
+        if item.custom_data:
+            all_keys.update(item.custom_data.keys())
+            
+    # Sort: front, back first, then others alphabetically
+    available_keys = []
+    if 'front' in all_keys: available_keys.append('front')
+    if 'back' in all_keys: available_keys.append('back')
+    
+    # Add remainder sorted
+    others = sorted([k for k in all_keys if k not in ('front', 'back')])
+    available_keys.extend(others)
+
     if request.method == 'GET':
         ai_prompt_value = getattr(flashcard_set, 'ai_prompt', None)
         ai_settings_payload = flashcard_set.ai_settings if hasattr(flashcard_set, 'ai_settings') else None
         if not ai_prompt_value and isinstance(ai_settings_payload, dict):
             ai_prompt_value = ai_settings_payload.get('custom_prompt', '')
         form.ai_prompt.data = ai_prompt_value or ''
+
+        # Populate settings JSON to form
+        if flashcard_set.settings:
+            try:
+                form.settings.data = json.dumps(flashcard_set.settings)
+            except:
+                form.settings.data = '{}'
 
         media_folders = _get_media_folders_from_container(flashcard_set)
         form.image_base_folder.data = media_folders.get('image')
@@ -1115,27 +1153,105 @@ def edit_flashcard_set(set_id):
             flashcard_set.tags = form.tags.data
             flashcard_set.is_public = False if current_user.user_role == 'free' else form.is_public.data
             flashcard_set.ai_settings = _build_ai_settings_from_form(form, flashcard_set.ai_settings)
-
-            # Xử lý file Excel nếu có để cập nhật các thẻ
-            if form.excel_file.data and form.excel_file.data.filename != '':
-                flash_message = FlashcardExcelService.process_import(set_id, form.excel_file.data)
-                flash_category = 'success'
-            else:
-                flash_message = 'Bộ thẻ đã được cập nhật!'
-                flash_category = 'success'
-            db.session.commit() # Lưu các thay đổi vào DB
+            
+            # Save settings
+            if form.settings.data:
+                try:
+                    flashcard_set.settings = json.loads(form.settings.data)
+                except Exception as e:
+                    print(f"Error parsing settings JSON: {e}")
+            
+            safe_commit(db)
+            
+            flash_message = 'Đã cập nhật bộ thẻ thành công (bao gồm cả cấu hình mặc định)!'
+            flash_category = 'success'
         except Exception as e:
-            db.session.rollback() # Hoàn tác nếu có lỗi
-            flash_message = f'Lỗi khi xử lý: {str(e)}'
+            db.session.rollback()
+            current_app.logger.error(f"Error updating flashcard set: {e}")
+            flash_message = f'Có lỗi xảy ra: {str(e)}'
             flash_category = 'danger'
 
-        # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': flash_category == 'success', 'message': flash_message})
-        else:
-            flash(flash_message, flash_category)
-            return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
-    
+            if flash_message:
+                 flash(flash_message, flash_category)
+            return jsonify({
+                'success': flash_category == 'success',
+                'message': flash_message
+            })
+            
+        return redirect(url_for('content_management.flashcards.sets.list_flashcard_sets'))
+
+    return render_template(
+        'v3/pages/content_management/flashcards/sets/_add_edit_flashcard_set_bare.html',
+        form=form,
+        is_edit=True,
+        flashcard_set=flashcard_set,
+        available_keys=available_keys,
+        set_id=set_id,
+        previous_set_id=previous_set_id,
+        next_set_id=next_set_id
+    )
+
+@flashcards_bp.route('/flashcards/set/<int:set_id>/settings/update', methods=['POST'])
+@login_required
+def update_flashcard_set_settings(set_id):
+    """
+    API endpoint để cập nhật riêng phần settings (cấu hình mặc định) cho bộ thẻ.
+    Dùng nút 'Lưu Cấu hình' riêng biệt.
+    """
+    flashcard_set = db.session.get(LearningContainer, set_id)
+    if not flashcard_set:
+        return jsonify({'success': False, 'message': 'Không tìm thấy bộ thẻ.'}), 404
+        
+    # Check permission (contributor or admin)
+    if flashcard_set.creator_user_id != current_user.id and current_user.user_role not in ['admin', 'manager']:
+         # check contributor
+         is_contrib = ContainerContributor.query.filter_by(
+            container_id=set_id, 
+            user_id=current_user.id
+         ).first() is not None
+         if not is_contrib:
+            return jsonify({'success': False, 'message': 'Bạn không có quyền sửa bộ thẻ này.'}), 403
+
+    try:
+        data = request.get_json()
+        if not data or 'settings' not in data:
+            return jsonify({'success': False, 'message': 'Dữ liệu không hợp lệ.'}), 400
+            
+        new_settings = data['settings']
+        
+        # Merge or replace? 
+        # Replace is safer to match UI state exactly.
+        # But we should preserve other keys if they exist? 
+        # The UI sends 'mcq', 'typing', 'listening'. 
+        # If there are other hidden settings in DB, we might overwrite them.
+        # Let's inspect current settings.
+        current_settings = flashcard_set.settings or {}
+        
+        # Merge specific keys from payload
+        for mode in ['mcq', 'typing', 'listening']:
+            if mode in new_settings:
+                current_settings[mode] = new_settings[mode]
+            elif mode in current_settings:
+                 # If UI sends nothing for a mode but it exists in DB, should we keep it?
+                 # The UI sends empty list if cleared. So we trust the UI payload.
+                 pass
+
+        flashcard_set.settings = current_settings
+        flag_modified(flashcard_set, "settings") # Validates for JSON updates
+        
+        safe_commit(db)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Đã lưu cấu hình mặc định thành công!'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating flashcard set settings: {e}")
+        return jsonify({'success': False, 'message': f'Lỗi server: {str(e)}'}), 500
+        
     # Xử lý lỗi form validation cho AJAX
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
         return jsonify({'success': False, 'errors': form.errors}), 400
@@ -1148,6 +1264,7 @@ def edit_flashcard_set(set_id):
             title='Chỉnh sửa Bộ thẻ ghi nhớ',
             previous_set_id=previous_set_id,
             next_set_id=next_set_id,
+            available_keys=available_keys,
         )
     return render_template(
         'v3/pages/content_management/flashcards/sets/add_edit_flashcard_set.html',
@@ -1155,6 +1272,7 @@ def edit_flashcard_set(set_id):
         title='Chỉnh sửa Bộ thẻ ghi nhớ',
         previous_set_id=previous_set_id,
         next_set_id=next_set_id,
+        available_keys=available_keys,
     )
 
 @flashcards_bp.route('/flashcards/delete/<int:set_id>', methods=['POST'])

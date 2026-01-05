@@ -520,13 +520,60 @@
             </div>
 
             <div class="config-card">
-                <div class="pair-container" id="pairs-list">
-                    <!-- Pairs injected via JS -->
+                <div class="flex justify-between items-center mb-3">
+                    <div class="config-header" style="margin-bottom:0;"><i class="fas fa-sliders-h"></i> Cấu hình Bài
+                        viết</div>
+                    <!-- Custom Toggle -->
+                    <label class="flex items-center cursor-pointer">
+                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <div class="relative">
+                            <input type="checkbox" id="custom-config-toggle" class="sr-only">
+                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                            <div
+                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                            </div>
+                        </div>
+                    </label>
                 </div>
 
-                <button type="button" class="add-pair-btn" id="add-pair-btn">
-                    <i class="fas fa-plus-circle"></i> Thêm cấu hình khác
-                </button>
+                <style>
+                    /* Toggle Styles */
+                    #custom-config-toggle:checked~.toggle-bg {
+                        background-color: var(--primary);
+                    }
+
+                    #custom-config-toggle:checked~.dot {
+                        transform: translateX(100%);
+                    }
+                </style>
+
+                <!-- Default View (Read Only) -->
+                <div id="default-config-view" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div id="default-summary" class="space-y-2">
+                        <!-- Injected via JS -->
+                    </div>
+                    <p id="no-default-msg" class="text-sm text-red-500 italic hidden">
+                        <i class="fas fa-exclamation-circle"></i> Bộ này chưa có cấu hình mặc định. Vui lòng bật "Tùy
+                        chỉnh" để thiết lập.
+                    </p>
+                </div>
+
+                <div id="custom-builder-view" class="hidden mt-4">
+                    <div class="pair-container" id="pairs-list">
+                        <!-- Pairs injected via JS -->
+                    </div>
+
+                    <button type="button" class="add-pair-btn" id="add-pair-btn">
+                        <i class="fas fa-plus-circle"></i> Thêm cấu hình khác
+                    </button>
+
+                    <div class="flex justify-end mt-2">
+                        <button type="button" class="text-xs text-blue-600 hover:underline" id="reset-to-default-btn"
+                            style="display:none">
+                            <i class="fas fa-undo"></i> Khôi phục mặc định
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div style="margin-top: 1.5rem; text-align: center; color: var(--text-sub); font-size: 0.9rem;">
@@ -557,11 +604,13 @@
     }};
     const availableKeys = {{ available_keys | tojson }} || [];
     const savedSettings = {{ saved_settings | tojson }} || {};
+    const defaultSettings = {{ default_settings | tojson }} || {};
 
     // --- State ---
     let currentStep = 1;
     let selectedMode = 'random'; // Default fallback
     let customPairs = [];
+    let isCustomMode = false;
 
     // --- DOM Elements ---
     const step1 = document.getElementById('step-1');
@@ -574,6 +623,15 @@
     const pairsList = document.getElementById('pairs-list');
     const addPairBtn = document.getElementById('add-pair-btn');
     const dashboardUrl = "{{ url_for('learning.vocabulary.dashboard') }}";
+
+    // Toggle Elements
+    const customToggle = document.getElementById('custom-config-toggle');
+    const defaultView = document.getElementById('default-config-view');
+    const customView = document.getElementById('custom-builder-view');
+    const defaultSummary = document.getElementById('default-summary');
+    const noDefaultMsg = document.getElementById('no-default-msg');
+    const resetBtn = document.getElementById('reset-to-default-btn');
+
 
     // --- Initialize ---
 
@@ -594,17 +652,118 @@
         nextBtn.style.background = "#94a3b8";
     }
 
-    // 2. Load Saved Pairs or Default
-    if (savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0) {
-        savedSettings.custom_pairs.forEach(p => addPairUI(p.q, p.a));
+    // 2. Initialize Toggle State based on History
+    // Logic: If saved_settings has custom entries, assume custom mode.
+    const hasUserHistory = savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0;
+
+    if (hasUserHistory) {
+        isCustomMode = true;
+        customToggle.checked = true;
+        savedSettings.custom_pairs.forEach(p => addPairUI(p.q, p.a)); // Loading enabled by default, typing doesn't have enabled flag? Check AddPair logic.
     } else {
-        // Default: Front -> Back
-        const defQ = availableKeys.includes('front') ? 'front' : (availableKeys[0] || '');
-        const defA = availableKeys.includes('back') ? 'back' : (availableKeys[1] || '');
-        addPairUI(defQ, defA);
+        isCustomMode = false;
+        customToggle.checked = false;
+        loadDefaultsToBuilder();
+    }
+
+    renderConfigView();
+    checkStartButtonState();
+
+
+    function renderDefaultView() {
+        defaultSummary.innerHTML = '';
+        const defaults = defaultSettings.custom_pairs || [];
+
+        if (defaults.length > 0) {
+            noDefaultMsg.classList.add('hidden');
+            defaultSummary.classList.remove('hidden');
+
+            defaults.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'flex items-center text-sm text-gray-700 bg-white p-2 rounded border border-gray-100';
+                el.innerHTML = `
+                         <span class="text-xs text-gray-500 mr-2">Nhìn:</span>
+                        <span class="font-bold bg-gray-100 px-2 py-0.5 rounded text-xs mr-2 uppercase">${p.q}</span>
+                        <i class="fas fa-arrow-right text-gray-400 text-xs mx-1"></i>
+                         <span class="text-xs text-gray-500 ml-2 mr-1">Gõ:</span>
+                        <span class="font-bold bg-gray-100 px-2 py-0.5 rounded text-xs uppercase">${p.a}</span>
+                    `;
+                defaultSummary.appendChild(el);
+            });
+        } else {
+            defaultSummary.classList.add('hidden');
+            noDefaultMsg.classList.remove('hidden');
+        }
+    }
+
+    renderDefaultView();
+
+    if (defaultSettings.custom_pairs && defaultSettings.custom_pairs.length > 0) {
+        resetBtn.style.display = 'inline-block';
     }
 
     // --- Event Listeners ---
+    customToggle.addEventListener('change', (e) => {
+        isCustomMode = e.target.checked;
+        renderConfigView();
+        checkStartButtonState();
+    });
+
+    function renderConfigView() {
+        if (isCustomMode) {
+            defaultView.classList.add('hidden');
+            customView.classList.remove('hidden');
+            if (pairsList.children.length === 0) loadDefaultsToBuilder();
+        } else {
+            defaultView.classList.remove('hidden');
+            customView.classList.add('hidden');
+        }
+    }
+
+    resetBtn.addEventListener('click', () => {
+        loadDefaultsToBuilder();
+    });
+
+    function loadDefaultsToBuilder() {
+        pairsList.innerHTML = '';
+        const defaults = defaultSettings.custom_pairs;
+        if (defaults && defaults.length > 0) {
+            defaults.forEach(p => addPairUI(p.q, p.a));
+        } else {
+            // Fallback
+            const defQ = availableKeys.includes('front') ? 'front' : (availableKeys[0] || '');
+            const defA = availableKeys.includes('back') ? 'back' : (availableKeys[1] || '');
+            addPairUI(defQ, defA);
+        }
+    }
+
+
+
+    function checkStartButtonState() {
+        if (currentStep !== 2) return;
+
+        let isValid = true;
+        let msg = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+
+        if (!isCustomMode) {
+            if (!defaultSettings.custom_pairs || defaultSettings.custom_pairs.length === 0) {
+                isValid = false;
+                msg = 'Chưa có cấu hình mặc định';
+            }
+        } else {
+            const rows = document.querySelectorAll('.pair-row'); // Typing pairs don't have disable checkbox yet
+            if (rows.length === 0) {
+                isValid = false;
+                msg = 'Cần ít nhất 1 cấu hình';
+            }
+        }
+
+        nextBtn.disabled = !isValid;
+        nextBtn.innerHTML = msg;
+        if (isValid) nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        else nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
 
     // Mode Selection
     modeCards.forEach(card => {
@@ -638,7 +797,10 @@
         }
     });
 
-    addPairBtn.addEventListener('click', () => addPairUI());
+    addPairBtn.addEventListener('click', () => {
+        addPairUI();
+        checkStartButtonState();
+    });
 
     function goToStep(step) {
         currentStep = step;
@@ -650,14 +812,14 @@
             dot2.classList.remove('active');
 
             nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('opacity-50');
         } else {
             step1.classList.remove('active');
             step2.classList.add('active');
             dot1.classList.remove('active');
             dot2.classList.add('active');
-
-            nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
-            updatePairsData(); // ensure data is fresh
+            checkStartButtonState();
         }
     }
 
@@ -672,19 +834,19 @@
         });
 
         row.innerHTML = `
-            <div class="pair-connection">
-                <div class="pair-box">
-                    <label class="pair-label">Nhìn thấy</label>
-                    <select class="modern-select pair-q">${optionsHtml}</select>
+                <div class="pair-connection">
+                    <div class="pair-box">
+                        <label class="pair-label">Nhìn thấy</label>
+                        <select class="modern-select pair-q">${optionsHtml}</select>
+                    </div>
+                    <div class="arrow-divider"><i class="fas fa-arrow-right"></i></div>
+                    <div class="pair-box">
+                        <label class="pair-label">Gõ lại</label>
+                        <select class="modern-select pair-a">${optionsHtml}</select>
+                    </div>
                 </div>
-                <div class="arrow-divider"><i class="fas fa-arrow-right"></i></div>
-                <div class="pair-box">
-                    <label class="pair-label">Gõ lại</label>
-                    <select class="modern-select pair-a">${optionsHtml}</select>
-                </div>
-            </div>
-            <button class="delete-pair"><i class="fas fa-times"></i></button>
-        `;
+                <button class="delete-pair"><i class="fas fa-times"></i></button>
+            `;
 
         pairsList.appendChild(row);
 
@@ -694,16 +856,19 @@
 
         // Bind Events
         row.querySelector('.delete-pair').addEventListener('click', () => {
-            if (pairsList.children.length > 1) {
-                row.remove();
-            } else {
-                alert("Cần ít nhất một cấu hình học!");
-            }
+            row.remove();
+            checkStartButtonState();
         });
     }
 
+
     function updatePairsData() {
         customPairs = [];
+        if (!isCustomMode) {
+            if (defaultSettings.custom_pairs) customPairs = defaultSettings.custom_pairs;
+            return;
+        }
+
         document.querySelectorAll('.pair-row').forEach(row => {
             const q = row.querySelector('.pair-q').value;
             const a = row.querySelector('.pair-a').value;

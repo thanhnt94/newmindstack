@@ -47,12 +47,21 @@ def setup(set_id):
     # Random
     count_random = len(items)
 
-    # [UPDATED] Load saved settings
+    # [UPDATED] Load saved settings & defaults
     saved_settings = {}
+    default_settings = {}
+    
+    # 1. defaults
+    if container.settings and container.settings.get('typing'):
+        default_settings = container.settings.get('typing').copy()
+        if 'pairs' in default_settings:
+            default_settings['custom_pairs'] = default_settings.pop('pairs')
+
+    # 2. saved user state
     try:
         from mindstack_app.models import UserContainerState
         ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
-        if ucs and ucs.settings:
+        if ucs and ucs.settings and ucs.settings.get('typing'):
             saved_settings = ucs.settings.get('typing', {})
     except Exception as e:
         pass
@@ -69,7 +78,8 @@ def setup(set_id):
         },
         total_items=len(items),
         available_keys=available_keys,
-        saved_settings=saved_settings
+        saved_settings=saved_settings,
+        default_settings=default_settings
     )
 
 

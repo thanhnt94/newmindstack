@@ -31,11 +31,21 @@ def setup(set_id):
     # Get learning statistics
     mode_counts = get_mcq_mode_counts(current_user.user_id, set_id)
 
-    # [UPDATED] Load saved settings
+    # [UPDATED] Load saved settings & container defaults
     saved_settings = {}
+    default_settings = {}
+    
+    # 1. Get Container Defaults
+    if container.settings and container.settings.get('mcq'):
+        default_settings = container.settings.get('mcq').copy()
+        # Map 'pairs' to 'custom_pairs' for consistency
+        if 'pairs' in default_settings:
+            default_settings['custom_pairs'] = default_settings.pop('pairs')
+
+    # 2. Get User Settings
     try:
         ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
-        if ucs and ucs.settings:
+        if ucs and ucs.settings and ucs.settings.get('mcq'):
             saved_settings = ucs.settings.get('mcq', {})
     except Exception as e:
         pass
@@ -46,7 +56,8 @@ def setup(set_id):
         total_items=len(items),
         available_keys=available_keys,
         mode_counts=mode_counts,
-        saved_settings=saved_settings
+        saved_settings=saved_settings,
+        default_settings=default_settings
     )
 
 
@@ -79,6 +90,13 @@ def session(set_id):
     # [UPDATED] Prioritize stored settings for clean URLs
     ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
     saved_mcq = ucs.settings.get('mcq', {}) if ucs and ucs.settings else {}
+
+    # Fallback to container defaults if no user settings
+    if not saved_mcq and container.settings and container.settings.get('mcq'):
+        default_mcq = container.settings.get('mcq')
+        saved_mcq = default_mcq.copy()
+        if 'pairs' in default_mcq:
+             saved_mcq['custom_pairs'] = default_mcq['pairs']
 
     # Get params (Query params take precedence for backward compatibility/direct links)
     mode = request.args.get('mode', saved_mcq.get('mode', 'front_back'))
@@ -242,6 +260,9 @@ def api_get_items(set_id):
         if custom_pairs_str:
             try:
                 custom_pairs = json.loads(custom_pairs_str)
+                # Filter enabled pairs only for processing
+                if custom_pairs:
+                    custom_pairs = [p for p in custom_pairs if p.get('enabled', True)]
             except:
                 pass
 

@@ -4,10 +4,12 @@
 # ĐÃ SỬA: Thêm IntegerField cho order_in_container vào LessonForm.
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, BooleanField, SubmitField, FileField, SelectField, IntegerField
+from wtforms import StringField, TextAreaField, BooleanField, SubmitField, FileField, SelectField, IntegerField, HiddenField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError, NumberRange
 from flask_wtf.file import FileAllowed
 import re
+
+
 
 # ==============================================================================
 # Form MỚI cho QUẢN LÝ QUYỀN (CONTRIBUTORS)
@@ -123,6 +125,10 @@ class FlashcardSetForm(FlaskForm):
         FileAllowed(['xlsx'], 'Chỉ cho phép file Excel (.xlsx)!'),
         Optional()
     ], description='Nếu bạn tải file lên, các thông tin bạn điền ở trên (ngoại trừ Tiêu đề, Mô tả, Tags, Trạng thái) sẽ bị bỏ qua.')
+    
+    # Store settings JSON (MCQ defaults, etc.)
+    settings = HiddenField('Settings')
+    
     submit = SubmitField('Lưu bộ thẻ')
 
 class FlashcardItemForm(FlaskForm):

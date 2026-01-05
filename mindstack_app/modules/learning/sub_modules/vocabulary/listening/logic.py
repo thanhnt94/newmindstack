@@ -32,7 +32,8 @@ def get_listening_eligible_items(container_id):
                     'prompt': '???', # Audio only
                     'answer': content.get('front'), # Type what you hear
                     'audio_url': content.get('front_audio_url'),
-                    'meaning': content.get('back') # Show after answer
+                    'meaning': content.get('back'), # Show after answer
+                    'content': content # Expose for remapping
                 })
             # What if only back audio exists? (e.g. Listen English -> Write English?)
             # Let's stick to Front=Target for now.
