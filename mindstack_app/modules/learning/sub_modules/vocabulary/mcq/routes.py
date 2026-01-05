@@ -186,7 +186,8 @@ def save_setup(set_id):
         count = data.get('count', 10)
         choices = data.get('choices', 4)
         custom_pairs = data.get('custom_pairs')
-
+        use_custom_config = data.get('use_custom_config', False)
+        
         from mindstack_app.models import UserContainerState, db
         from mindstack_app.utils.db_session import safe_commit
         
@@ -201,8 +202,15 @@ def save_setup(set_id):
         if 'mcq' not in new_settings: new_settings['mcq'] = {}
         
         new_settings['mcq']['mode'] = mode
-        new_settings['mcq']['count'] = int(count) if count else 10
+        # Fix: Allow count=0 for unlimited. Only default to 10 if count is None or not present.
+        if count is not None:
+             new_settings['mcq']['count'] = int(count)
+        else:
+             new_settings['mcq']['count'] = 10
+             
         new_settings['mcq']['choices'] = int(choices) if choices else 4
+        new_settings['mcq']['use_custom_config'] = bool(use_custom_config)
+        
         if custom_pairs:
             new_settings['mcq']['custom_pairs'] = custom_pairs
             

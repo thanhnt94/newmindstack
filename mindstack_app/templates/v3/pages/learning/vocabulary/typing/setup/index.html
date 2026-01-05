@@ -519,6 +519,48 @@
                 <p>Cấu hình cách hiển thị và gõ từ</p>
             </div>
 
+            <!-- Count Config -->
+            <div class="config-card" style="margin-bottom: 1rem;">
+                <div class="flex justify-between items-center">
+                    <div class="config-header mb-0">
+                        <i class="fas fa-sort-numeric-up"></i> Số lượng câu hỏi <span id="limit-status-text"
+                            class="text-amber-500 font-semibold">Không giới hạn</span>
+                    </div>
+                    <!-- Limit Toggle -->
+                    <label class="flex items-center cursor-pointer">
+                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <div class="relative">
+                            <input type="checkbox" id="limit-toggle" class="sr-only">
+                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                            <div
+                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Count Select (Hidden by default) -->
+                <div id="limit-options" class="hidden mt-4">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn số câu:</label>
+                    <div class="relative w-full">
+                        <select id="count-select"
+                            class="w-full p-2.5 appearance-none bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:outline-none focus:border-amber-500 transition-all">
+                            <option value="5">5 câu</option>
+                            <option value="10" selected>10 câu</option>
+                            <option value="15">15 câu</option>
+                            <option value="20">20 câu</option>
+                            <option value="25">25 câu</option>
+                            <option value="30">30 câu</option>
+                            <option value="40">40 câu</option>
+                            <option value="50">50 câu</option>
+                            <option value="100">100 câu</option>
+                        </select>
+                        <i
+                            class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+            </div>
+
             <div class="config-card">
                 <div class="flex justify-between items-center mb-3">
                     <div class="config-header" style="margin-bottom:0;"><i class="fas fa-sliders-h"></i> Cấu hình Bài
@@ -606,9 +648,13 @@
     const savedSettings = {{ saved_settings | tojson }} || {};
     const defaultSettings = {{ default_settings | tojson }} || {};
 
+    console.log('[Typing Setup] savedSettings:', savedSettings);
+    console.log('[Typing Setup] defaultSettings:', defaultSettings);
+
     // --- State ---
     let currentStep = 1;
     let selectedMode = 'random'; // Default fallback
+    let selectedCount = 0; // 0 = Unlimited
     let customPairs = [];
     let isCustomMode = false;
 
@@ -632,6 +678,33 @@
     const noDefaultMsg = document.getElementById('no-default-msg');
     const resetBtn = document.getElementById('reset-to-default-btn');
 
+    // Count Toggle Elements
+    const limitToggle = document.getElementById('limit-toggle');
+    const limitOptions = document.getElementById('limit-options');
+    const limitStatusText = document.getElementById('limit-status-text');
+    const countSelect = document.getElementById('count-select');
+    const toggleBg = limitToggle.nextElementSibling;
+    const toggleDot = toggleBg.nextElementSibling;
+
+    // Count UI Helper
+    function updateLimitUI() {
+        if (limitToggle.checked) {
+            limitOptions.classList.remove('hidden');
+            limitStatusText.classList.add('hidden');
+            toggleBg.classList.add('bg-amber-500');
+            toggleBg.classList.remove('bg-gray-200');
+            toggleDot.classList.add('translate-x-full');
+            countSelect.disabled = false;
+        } else {
+            limitOptions.classList.add('hidden');
+            limitStatusText.classList.remove('hidden');
+            toggleBg.classList.remove('bg-amber-500');
+            toggleBg.classList.add('bg-gray-200');
+            toggleDot.classList.remove('translate-x-full');
+            countSelect.disabled = true;
+        }
+    }
+
 
     // --- Initialize ---
 
@@ -652,19 +725,54 @@
         nextBtn.style.background = "#94a3b8";
     }
 
-    // 2. Initialize Toggle State based on History
-    // Logic: If saved_settings has custom entries, assume custom mode.
-    const hasUserHistory = savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0;
+    // Load Saved Mode (if available)
+    if (savedSettings.mode) {
+        const savedModeCard = document.querySelector(`.mode-card[data-value="${savedSettings.mode}"]`);
+        if (savedModeCard && !savedModeCard.classList.contains('disabled')) {
+            selectMode(savedModeCard);
+        }
+    }
 
-    if (hasUserHistory) {
+    // 2. Initialize Toggle State based on History
+    // Logic: Respect explicit 'use_custom_config' flag if present.
+    let useCustomConfig = false;
+
+    if (savedSettings.use_custom_config !== undefined) {
+        useCustomConfig = savedSettings.use_custom_config;
+    } else if (savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0) {
+        // Legacy fallback
+        useCustomConfig = true;
+    }
+
+    if (useCustomConfig && savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0) {
         isCustomMode = true;
         customToggle.checked = true;
-        savedSettings.custom_pairs.forEach(p => addPairUI(p.q, p.a)); // Loading enabled by default, typing doesn't have enabled flag? Check AddPair logic.
+        savedSettings.custom_pairs.forEach(p => addPairUI(p.q, p.a));
     } else {
         isCustomMode = false;
         customToggle.checked = false;
         loadDefaultsToBuilder();
     }
+
+    // 3. Load Count Settings
+    if (savedSettings.count !== undefined) {
+        let sc = Number(savedSettings.count);
+        if (sc <= 0) {
+            limitToggle.checked = false;
+            selectedCount = 0;
+            countSelect.value = "10";
+        } else {
+            limitToggle.checked = true;
+            const exists = [...countSelect.options].some(o => o.value == sc);
+            countSelect.value = exists ? String(sc) : "10";
+            selectedCount = Number(countSelect.value);
+        }
+    } else {
+        limitToggle.checked = false;
+        countSelect.value = "10";
+        selectedCount = 0;
+    }
+    updateLimitUI();
 
     renderConfigView();
     checkStartButtonState();
@@ -802,8 +910,23 @@
         checkStartButtonState();
     });
 
+    // Limit Toggle Logic
+    limitToggle.addEventListener('change', (e) => {
+        updateLimitUI();
+        selectedCount = e.target.checked ? Number(countSelect.value) : 0;
+    });
+
+    countSelect.addEventListener('change', (e) => {
+        selectedCount = Number(e.target.value);
+    });
+
     function goToStep(step) {
         currentStep = step;
+
+        // Update URL
+        const url = new URL(window.location);
+        url.searchParams.set('step', step);
+        window.history.pushState({}, '', url);
 
         if (step === 1) {
             step1.classList.add('active');
@@ -821,6 +944,15 @@
             dot2.classList.add('active');
             checkStartButtonState();
         }
+    }
+
+    // Check URL for initial step
+    const urlParams = new URLSearchParams(window.location.search);
+    let initialStep = parseInt(urlParams.get('step')) || 1;
+    if (initialStep === 2 && selectedMode) {
+        goToStep(2);
+    } else {
+        goToStep(1);
     }
 
     // --- Pair Logic ---
@@ -900,7 +1032,8 @@
             body: JSON.stringify({
                 set_id: setId,
                 mode: selectedMode,
-                count: 999999,
+                count: selectedCount,
+                use_custom_config: isCustomMode,
                 custom_pairs: customPairs
             })
         })

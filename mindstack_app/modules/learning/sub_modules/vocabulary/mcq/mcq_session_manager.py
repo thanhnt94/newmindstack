@@ -105,7 +105,12 @@ class MCQSessionManager:
             return False, "Cần ít nhất 2 thẻ để chơi trắc nghiệm"
             
         random.shuffle(items)
-        selected_items = items[:min(count, len(items))]
+        
+        # If count <= 0, use all items (Unlimited mode)
+        if count <= 0:
+            selected_items = items
+        else:
+            selected_items = items[:min(count, len(items))]
         
         questions = []
         for item in selected_items:

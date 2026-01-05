@@ -582,8 +582,10 @@
                         {# Progress Pill #}
                         <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
                             <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
-                            <span class="text-slate-700 font-semibold">
-                                <span id="current-q-num">1</span>/<span id="total-q-num">...</span>
+                            <span class="text-slate-700 font-semibold gap-0.5 flex items-center">
+                                <span id="current-q-num">1</span>
+                                <span class="text-slate-400 text-[10px] mx-0.5">/</span>
+                                <span id="total-q-num">...</span>
                             </span>
                         </div>
 
@@ -758,7 +760,13 @@
                     els.lCorrect.textContent = stats.correct;
                     els.lWrong.textContent = stats.wrong;
                     if (els.lSessionScore) els.lSessionScore.textContent = stats.points || 0;
-                    els.tNum.textContent = questions.length;
+
+                    // Set Total Count Display
+                    if (count <= 0) {
+                        els.tNum.innerHTML = '<i class="fa-solid fa-infinity text-[10px]"></i>';
+                    } else {
+                        els.tNum.textContent = questions.length;
+                    }
 
                     // If we have answers for previous questions, we should technically be at the first unanswered one
                     // The backend manager already handles currentIndex increment.

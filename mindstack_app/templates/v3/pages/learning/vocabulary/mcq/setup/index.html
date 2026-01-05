@@ -570,16 +570,63 @@
             <div class="title-area">
                 <h2>Thiết lập câu hỏi</h2>
                 <p>Tùy chỉnh nội dung bài trắc nghiệm</p>
+                <div id="selected-mode-display"
+                    class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-sm font-bold">
+                    <i class="fas fa-layer-group"></i> <span>...</span>
+                </div>
+            </div>
+
+            <!-- Count Config -->
+            <!-- Count Config -->
+            <div class="config-card">
+                <div class="flex justify-between items-center">
+                    <div class="config-header mb-0">
+                        <i class="fas fa-sort-numeric-up"></i> Số lượng câu hỏi <span id="limit-status-text"
+                            class="text-indigo-500 font-semibold">Không giới hạn</span>
+                    </div>
+                    <!-- Limit Toggle -->
+                    <label class="flex items-center cursor-pointer">
+                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <div class="relative">
+                            <input type="checkbox" id="limit-toggle" class="sr-only">
+                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                            <div
+                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Count Select (Hidden by default) -->
+                <div id="limit-options" class="hidden mt-4">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn số câu:</label>
+                    <div class="relative w-full">
+                        <select id="count-select"
+                            class="w-full p-2.5 appearance-none bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+                            <option value="5">5 câu</option>
+                            <option value="10" selected>10 câu</option>
+                            <option value="15">15 câu</option>
+                            <option value="20">20 câu</option>
+                            <option value="25">25 câu</option>
+                            <option value="30">30 câu</option>
+                            <option value="40">40 câu</option>
+                            <option value="50">50 câu</option>
+                            <option value="100">100 câu</option>
+                        </select>
+                        <i
+                            class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
             </div>
 
             <!-- Choice Config -->
             <div class="config-card">
                 <div class="config-header"><i class="fas fa-th-large"></i> Số lượng đáp án</div>
-                <div class="options-row" id="choices-options">
-                    <div class="option-chip" data-value="3">3 đáp án</div>
-                    <div class="option-chip selected" data-value="4">4 đáp án</div>
-                    <div class="option-chip" data-value="6">6 đáp án</div>
-                    <div class="option-chip" data-value="8">8 đáp án</div>
+                <div class="grid grid-cols-2 gap-2" id="choices-options">
+                    <div class="option-chip text-center justify-center flex" data-value="3">3 đáp án</div>
+                    <div class="option-chip selected text-center justify-center flex" data-value="4">4 đáp án</div>
+                    <div class="option-chip text-center justify-center flex" data-value="6">6 đáp án</div>
+                    <div class="option-chip text-center justify-center flex" data-value="8">8 đáp án</div>
                 </div>
             </div>
 
@@ -619,7 +666,8 @@
                         <!-- Injected via JS -->
                     </div>
                     <p id="no-default-msg" class="text-sm text-red-500 italic hidden">
-                        <i class="fas fa-exclamation-circle"></i> Bộ này chưa có cấu hình mặc định. Vui lòng bật "Tùy
+                        <i class="fas fa-exclamation-circle"></i> Bộ này chưa có cấu hình mặc định. Vui lòng bật
+                        "Tùy
                         chỉnh" để thiết lập.
                     </p>
                 </div>
@@ -634,12 +682,7 @@
                         <i class="fas fa-plus-circle"></i> Thêm cấu hình khác
                     </button>
 
-                    <div class="flex justify-end mt-2">
-                        <button type="button" class="text-xs text-blue-600 hover:underline" id="reset-to-default-btn"
-                            style="display:none">
-                            <i class="fas fa-undo"></i> Khôi phục mặc định
-                        </button>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -696,13 +739,56 @@
     const customView = document.getElementById('custom-builder-view');
     const defaultSummary = document.getElementById('default-summary');
     const noDefaultMsg = document.getElementById('no-default-msg');
-    const resetBtn = document.getElementById('reset-to-default-btn');
 
 
     // Config Options
     const choicesChips = document.querySelectorAll('#choices-options .option-chip');
+    const countSelect = document.getElementById('count-select');
+
+    // New Toggle Elements
+    const limitToggle = document.getElementById('limit-toggle');
+    const limitOptions = document.getElementById('limit-options');
+    const limitStatusText = document.getElementById('limit-status-text');
+    const selectedModeDisplay = document.getElementById('selected-mode-display');
+    const toggleBg = limitToggle.nextElementSibling;
+    const toggleDot = toggleBg.nextElementSibling;
+
+    // UI Helper
+    function updateLimitUI() {
+        if (limitToggle.checked) {
+            // Limited Mode (Custom ON)
+            limitOptions.classList.remove('hidden');
+            limitStatusText.classList.add('hidden');
+
+            // Toggle Color -> Active
+            toggleBg.classList.add('bg-indigo-500');
+            toggleBg.classList.remove('bg-gray-200');
+
+            // Toggle Dot -> Move Right
+            toggleDot.classList.add('translate-x-full');
+
+            countSelect.disabled = false;
+        } else {
+            // Unlimited Mode (Custom OFF)
+            limitOptions.classList.add('hidden');
+            limitStatusText.classList.remove('hidden');
+
+            // Toggle Color -> Inactive
+            toggleBg.classList.remove('bg-indigo-500');
+            toggleBg.classList.add('bg-gray-200');
+
+            // Toggle Dot -> Reset
+            toggleDot.classList.remove('translate-x-full');
+
+            countSelect.disabled = true;
+        }
+    }
 
     // --- Initialize ---
+
+    // Check URL for step
+    const urlParams = new URLSearchParams(window.location.search);
+    let initialStep = parseInt(urlParams.get('step')) || 1;
 
     // 1. Auto-select mode
     let firstValidMode = null;
@@ -719,25 +805,77 @@
         nextBtn.innerHTML = "Không có từ nào";
     }
 
+    // Load Saved Mode (if available)
+    let hasSavedMode = false;
+    if (savedSettings.mode) {
+        const savedModeCard = document.querySelector(`.mode-card[data-value="${savedSettings.mode}"]`);
+        if (savedModeCard && !savedModeCard.classList.contains('disabled')) {
+            selectMode(savedModeCard);
+            hasSavedMode = true;
+        }
+    }
+
     // 2. Load Saved Settings (User Prefs)
     if (savedSettings.choices) {
         selectedChoices = Number(savedSettings.choices);
         updateChipSelection(choicesChips, selectedChoices);
     }
 
-    // 3. Initialize Toggle State
-    // Logic: specific user history implies custom intent? Or we just define a field 'is_custom_mode'?
-    // For now: If saved_settings has 'custom_pairs', we assume they customized it.
-    // But if those match default exactly... tricky.
-    // Simple heuristic: If user has saved history, start in Custom Mode populated with history.
-    // If no history, start in Default Mode.
-    const hasUserHistory = savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0;
+    // Load Count
+    if (savedSettings.count !== undefined) {
+        let sc = Number(savedSettings.count);
 
-    if (hasUserHistory) {
+        if (sc <= 0) {
+            // Unlimited
+            limitToggle.checked = false;
+            selectedCount = 0;
+            countSelect.value = "10";
+        } else {
+            // Limited
+            limitToggle.checked = true;
+            // Check if sc exists in options, else add or default
+            const exists = [...countSelect.options].some(o => o.value == sc);
+            if (exists) {
+                countSelect.value = String(sc);
+            } else {
+                countSelect.value = "10";
+            }
+            selectedCount = Number(countSelect.value);
+        }
+    } else {
+        // Default: Unlimited
+        limitToggle.checked = false;
+        countSelect.value = "10";
+        selectedCount = 0;
+    }
+    updateLimitUI();
+
+
+
+    // 3. Initialize Toggle State
+    // Logic: Respect explicit 'use_custom_config' flag if present.
+    // If not present (legacy), fallback to checking if custom_pairs exist.
+    let useCustomConfig = false;
+
+    if (savedSettings.use_custom_config !== undefined) {
+        useCustomConfig = savedSettings.use_custom_config;
+    } else {
+        // Legacy fallback
+        useCustomConfig = savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0;
+    }
+
+    if (useCustomConfig) {
         isCustomMode = true;
         customToggle.checked = true;
-        // Load saved pairs into builder
-        savedSettings.custom_pairs.forEach(p => addPairUI(p.q, p.a, p.enabled !== false));
+
+        // Load saved pairs into builder (from User Prefs)
+        const userPairs = savedSettings.custom_pairs;
+        if (userPairs && userPairs.length > 0) {
+            userPairs.forEach(p => addPairUI(p.q, p.a, p.enabled !== false));
+        } else {
+            // If user enabled custom but has no pairs, maybe load defaults as starting point
+            loadDefaultsToBuilder();
+        }
     } else {
         isCustomMode = false;
         customToggle.checked = false;
@@ -775,8 +913,11 @@
 
     renderDefaultView();
 
-    if (defaultSettings.custom_pairs && defaultSettings.custom_pairs.length > 0) {
-        resetBtn.style.display = 'inline-block';
+    // Restore Step (only from URL, not auto-navigate based on saved mode)
+    if (initialStep === 2 && selectedMode) {
+        goToStep(2);
+    } else {
+        goToStep(1);
     }
 
     // --- Event Listeners ---
@@ -799,9 +940,7 @@
         }
     }
 
-    resetBtn.addEventListener('click', () => {
-        loadDefaultsToBuilder();
-    });
+
 
     function loadDefaultsToBuilder() {
         pairsList.innerHTML = ''; // Clear
@@ -831,10 +970,28 @@
     // Chip Selection (Choices Only)
     choicesChips.forEach(chip => {
         chip.addEventListener('click', () => {
-            updateChipSelection(choicesChips, Number(chip.dataset.value));
             selectedChoices = Number(chip.dataset.value);
+            updateChipSelection(choicesChips, selectedChoices);
         });
     });
+
+    // Limit Toggle Logic
+    limitToggle.addEventListener('change', (e) => {
+        const isLimited = e.target.checked;
+        updateLimitUI();
+
+        if (isLimited) {
+            selectedCount = Number(countSelect.value);
+        } else {
+            selectedCount = 0;
+        }
+    });
+
+    countSelect.addEventListener('change', (e) => {
+        selectedCount = Number(e.target.value);
+    });
+
+
 
     function updateChipSelection(chipList, value) {
         let matched = false;
@@ -905,6 +1062,11 @@
     function goToStep(step) {
         currentStep = step;
 
+        // Update URL
+        const url = new URL(window.location);
+        url.searchParams.set('step', step);
+        window.history.pushState({}, '', url);
+
         if (step === 1) {
             step1.classList.add('active');
             step2.classList.remove('active');
@@ -918,6 +1080,19 @@
             step2.classList.add('active');
             dot1.classList.remove('active');
             dot2.classList.add('active');
+
+            // Update Mode Display
+            const modeNameInfo = {
+                'new': 'Học từ mới',
+                'review': 'Ôn tập tới hạn',
+                'hard': 'Từ khó',
+                'learned': 'Ôn tất cả',
+                'random': 'Ngẫu nhiên'
+            };
+            if (selectedModeDisplay) {
+                selectedModeDisplay.innerHTML = `<i class="fas fa-layer-group"></i> <span>Chế độ: ${modeNameInfo[selectedMode] || selectedMode}</span>`;
+            }
+
             checkStartButtonState(); // Validate immediately on entry
         }
     }
@@ -1023,7 +1198,8 @@
                 mode: selectedMode,
                 count: selectedCount,
                 choices: selectedChoices,
-                custom_pairs: customPairs
+                custom_pairs: customPairs,
+                use_custom_config: isCustomMode
             })
         })
             .then(r => r.json())

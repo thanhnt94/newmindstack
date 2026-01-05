@@ -94,6 +94,7 @@ def start_session():
         set_id = data.get('set_id')
         mode = data.get('mode', 'custom')
         count = data.get('count', 10)
+        use_custom_config = data.get('use_custom_config', False)
         custom_pairs = data.get('custom_pairs')
         
         if not set_id:
@@ -119,7 +120,9 @@ def start_session():
             
             new_settings = dict(ucs.settings or {})
             if 'typing' not in new_settings: new_settings['typing'] = {}
+            new_settings['typing']['mode'] = mode
             new_settings['typing']['count'] = count
+            new_settings['typing']['use_custom_config'] = use_custom_config
             if custom_pairs:
                 new_settings['typing']['custom_pairs'] = custom_pairs
             
@@ -184,12 +187,12 @@ def api_get_items(set_id):
     # Try getting from session if set_id matches
     session_data = session.get('typing_session', {})
     if session_data.get('set_id') == set_id:
-        if not count: count = session_data.get('count')
+        if count is None: count = session_data.get('count')
         if not custom_pairs_str and session_data.get('custom_pairs'):
             custom_pairs = session_data.get('custom_pairs')
 
-    # Fallback default
-    if not count: count = 10
+    # Fallback default (None means not provided, 0 means unlimited)
+    if count is None: count = 10
     
     # Parse URL custom_pairs if exists (overrides session)
     if custom_pairs_str:
@@ -209,7 +212,8 @@ def api_get_items(set_id):
     # Shuffle and pick items
     import random
     random.shuffle(items)
-    selected = items[:min(count, len(items))]
+    # count=0 means unlimited (all items), otherwise limit to count
+    selected = items if count <= 0 else items[:min(count, len(items))]
     
     return jsonify({
         'success': True,
