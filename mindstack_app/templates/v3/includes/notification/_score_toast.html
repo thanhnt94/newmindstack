@@ -1,46 +1,96 @@
 <style>
     /* Gamified Score Toast */
-    .score-toast {
+    @import url('https://fonts.googleapis.com/css2?family=Titan+One&display=swap');
+
+    .score-toast-game {
         position: fixed;
-        top: 40%;
+        top: 20%;
         left: 50%;
         transform: translate(-50%, -50%);
-        font-size: 4rem;
-        font-weight: 900;
-        color: #fbbf24;
-        /* Amber */
-        text-shadow: 2px 2px 0px #fff, 0 4px 15px rgba(0, 0, 0, 0.3);
+        font-family: 'Titan One', cursive;
+        /* Chunky, playful font */
+        font-size: 5rem;
+        color: #facc15;
+        /* Bright yellow */
+        text-shadow:
+            3px 3px 0px #b45309,
+            /* Dark orange shadow */
+            -1px -1px 0 #fff,
+            1px -1px 0 #fff,
+            -1px 1px 0 #fff,
+            1px 1px 0 #fff,
+            0 8px 20px rgba(0, 0, 0, 0.3);
         pointer-events: none;
         z-index: 10000;
-        font-family: 'Inter', sans-serif;
-        animation: scoreFloatUp 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 0.5rem;
+        animation: scoreFloatUpGame 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
     }
 
-    .score-toast i {
-        font-size: 3rem;
-        color: #f59e0b;
+    .score-toast-icon {
+        font-size: 4rem;
+        background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(2px 2px 0px #b45309);
+        animation: scoreSpin 2s ease-out;
     }
 
-    @keyframes scoreFloatUp {
+    /* Star Burst Background */
+    .score-burst {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(253, 224, 71, 0.4) 0%, rgba(255, 255, 255, 0) 70%);
+        transform: translate(-50%, -50%) scale(0);
+        z-index: -1;
+        animation: burstExpand 1.5s ease-out forwards;
+        pointer-events: none;
+    }
+
+    @keyframes scoreFloatUpGame {
         0% {
-            transform: translate(-50%, -30%) scale(0.5) rotate(-10deg);
+            transform: translate(-50%, 0%) scale(0.2) rotate(-15deg);
             opacity: 0;
         }
 
-        20% {
-            transform: translate(-50%, -50%) scale(1.2) rotate(0deg);
+        50% {
+            transform: translate(-50%, -50%) scale(1.2) rotate(5deg);
             opacity: 1;
         }
 
-        40% {
-            transform: translate(-50%, -55%) scale(1);
+        70% {
+            transform: translate(-50%, -55%) scale(1) rotate(-3deg);
         }
 
         100% {
-            transform: translate(-50%, -100%) scale(0.8);
+            transform: translate(-50%, -120%) scale(0.9) rotate(0deg);
+            opacity: 0;
+        }
+    }
+
+    @keyframes scoreSpin {
+        0% {
+            transform: rotate(-180deg) scale(0);
+        }
+
+        100% {
+            transform: rotate(0deg) scale(1);
+        }
+    }
+
+    @keyframes burstExpand {
+        0% {
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 1;
+        }
+
+        100% {
+            transform: translate(-50%, -50%) scale(1.5);
             opacity: 0;
         }
     }
@@ -53,17 +103,26 @@
         if (points <= 0) return;
 
         const el = document.createElement('div');
-        el.className = 'score-toast';
-        // Add star icon for extra flair
-        el.innerHTML = `<i class="fas fa-gem text-blue-400"></i> +${points}`;
+        el.className = 'score-toast-game';
+
+        // Random encouraging emoji sometimes?
+        const emojis = ['⭐', '💎', '🎉', '🔥'];
+        const icon = emojis[Math.floor(Math.random() * emojis.length)];
+
+        el.innerHTML = `
+            <div class="score-burst"></div>
+            <i class="fas fa-gem score-toast-icon"></i> 
+            <span>+${points}</span>
+        `;
 
         document.body.appendChild(el);
 
         // Haptic feedback if available (mobile)
         if (navigator.vibrate) {
-            navigator.vibrate(50);
+            navigator.vibrate([50, 30, 50]); // Pulse pattern
         }
 
+        // Cleanup
         setTimeout(() => el.remove(), 1200);
     };
 </script>

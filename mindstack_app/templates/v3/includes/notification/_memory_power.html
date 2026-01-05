@@ -1,31 +1,86 @@
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+
+    .font-game {
+        font-family: 'Outfit', sans-serif;
+    }
+
+    @keyframes mp-bounce-in {
+        0% {
+            transform: scale(0.3);
+            opacity: 0;
+        }
+
+        50% {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+
+        70% {
+            transform: scale(0.9);
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes mp-pulse-ring {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+        }
+    }
+
+    @keyframes mp-float {
+        0% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
+
+        100% {
+            transform: translateY(0px);
+        }
+    }
+
+    .mp-container-game {
+        animation: mp-bounce-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+</style>
+
 <script>
     /**
-    * Memory Power Notification Component
-    * Extracted from ui_manager.js for reusability
-    * Returns a Promise that resolves when the animation is complete
-    * 
-    * TIMING CONFIG (adjust these values to change animation duration):
+    * Memory Power Notification Component - Game Style
+    * Colorful, playful, and animated for a fun experience.
     */
     const MP_ANIMATION_CONFIG = {
-        ENTRANCE_DELAY: 50,      // Delay before entrance animation (ms)
-        COUNT_DURATION: 400,     // Duration of number count-up animation (ms)
-        DISPLAY_TIME: 600,       // Time to display after count-up completes (ms)
-        EXIT_DURATION: 150       // Exit fade-out duration (ms)
-        // TOTAL ≈ ENTRANCE_DELAY + COUNT_DURATION + DISPLAY_TIME + EXIT_DURATION = ~1200ms
+        ENTRANCE_DELAY: 50,
+        COUNT_DURATION: 800,     // Slower for dramatic effect
+        DISPLAY_TIME: 1000,      // Longer display to enjoy the visuals
+        EXIT_DURATION: 300
     };
 
     window.showMemoryPowerFeedback = function (arg1, arg2) {
         return new Promise((resolve) => {
             let config = {};
 
-            // Handle both (oldVal, newVal) and (resultObject) patterns
             if (typeof arg1 === 'object' && arg1 !== null) {
                 const res = arg1;
                 config = {
                     is_correct: res.is_correct !== undefined ? res.is_correct : true,
                     delta: res.mastery_delta !== undefined ? res.mastery_delta : 0,
                     newVal: res.new_mastery_pct !== undefined ? res.new_mastery_pct : 0,
-                    pointsBreakdown: res.points_breakdown || {}
                 };
                 config.oldVal = config.newVal - config.delta;
             } else {
@@ -34,17 +89,13 @@
                     newVal: arg2 || 0,
                     delta: (arg2 || 0) - (arg1 || 0),
                     is_correct: (arg2 || 0) >= (arg1 || 0),
-                    pointsBreakdown: {}
                 };
             }
 
-            if (config.oldVal === undefined || config.newVal === undefined || config.oldVal === config.newVal) {
-                // If no change, but we want to show it for 'incorrect' maybe?
-                // For now, if delta is 0, we can still show the current state if it's correct/incorrect?
-                // Actually, if delta is 0, it means no progress.
+            if (config.delta === 0 && config.oldVal === config.newVal) {
+                // If strictly no change, still show it if it's a "streak" or something, but for now resolve.
                 if (config.delta === 0) {
-                    resolve();
-                    return;
+                    // resolve(); return; // Optional: Force show even if 0 for consistency? Let's show it!
                 }
             }
 
@@ -52,84 +103,89 @@
             const sign = config.delta >= 0 ? '+' : '';
             const isPositive = config.delta >= 0;
 
+            // Colors
+            // Positive: Electric Blue to Bright Green
+            // Negative: Hot Pink to Orange
+            const gradientId = 'mp-game-grad-' + Math.random().toString(36).substr(2, 9);
+            const startColor = isPositive ? '#facc15' : '#f472b6'; // Yellow / Pink
+            const endColor = isPositive ? '#4ade80' : '#fb923c';   // Green / Orange
+
             // Create the container
             const container = document.createElement('div');
-            container.className = 'fixed inset-0 z-[1000] pointer-events-none flex items-center justify-center';
+            container.className = 'fixed inset-0 z-[1000] pointer-events-none flex items-center justify-center font-game';
 
-            // Circle parameters
-            const size = 180;
-            const strokeWidth = 8;
+            // Layout dimensions
+            const size = 220;
+            const strokeWidth = 20; // Fat playful strokes
             const radius = (size - strokeWidth) / 2;
             const circumference = 2 * Math.PI * radius;
-
-            // Use config for transition duration
             const circleDuration = MP_ANIMATION_CONFIG.COUNT_DURATION / 1000;
 
             container.innerHTML = `
-            <div class="relative flex flex-col items-center justify-center p-8 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-2xl scale-90 opacity-0 transition-all duration-150 ease-out js-mp-container"
-                style="min-width: 240px; min-height: 240px;">
+            <div class="relative mp-container-game flex flex-col items-center justify-center">
                 
-                <!-- Glow Effect -->
-                <div class="absolute inset-0 ${isPositive ? 'bg-indigo-500/20' : 'bg-rose-500/20'} blur-3xl rounded-full pointer-events-none"></div>
+                <!-- Background Blob/Card -->
+                <div class="absolute inset-0 bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform scale-90 border-4 border-white"
+                     style="width: ${size + 40}px; height: ${size + 60}px; top: -30px; left: -20px; z-index: 0;">
+                </div>
+
+                <!-- Animated Background Shapes (Decoration) -->
+                <div class="absolute -top-12 -left-12 text-6xl animate-bounce" style="animation-duration: 2s;">🌟</div>
+                <div class="absolute -bottom-8 -right-8 text-5xl animate-bounce" style="animation-delay: 0.5s; animation-duration: 2.5s;">✨</div>
+                ${!isPositive ? '<div class="absolute top-1/2 -right-16 text-5xl animate-pulse">💔</div>' : ''}
 
                 <!-- Progress Circle -->
-                <div class="relative z-10">
-                    <svg width="${size}" height="${size}" class="transform -rotate-90 drop-shadow-lg">
+                <div class="relative z-10 drop-shadow-2xl">
+                    <svg width="${size}" height="${size}" class="transform -rotate-90">
                         <!-- Track -->
                         <circle 
                             cx="${size / 2}" cy="${size / 2}" r="${radius}" 
-                            stroke="rgba(255,255,255,0.1)" stroke-width="${strokeWidth}" 
-                            fill="transparent"
+                            stroke="#f3f4f6" stroke-width="${strokeWidth}" 
+                            fill="white"
+                            stroke-linecap="round"
                         />
                         <!-- Indicator -->
                         <circle 
                             cx="${size / 2}" cy="${size / 2}" r="${radius}" 
-                            stroke="url(#mp-gradient-new)" stroke-width="${strokeWidth}" 
+                            stroke="url(#${gradientId})" stroke-width="${strokeWidth}" 
                             fill="transparent" stroke-linecap="round"
-                            style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${circumference - (config.oldVal / 100) * circumference}; transition: stroke-dashoffset ${circleDuration}s cubic-bezier(0.2, 0, 0, 1);"
+                            style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${circumference - (config.oldVal / 100) * circumference}; transition: stroke-dashoffset ${circleDuration}s cubic-bezier(0.34, 1.56, 0.64, 1);"
                             class="js-mp-circle"
                         />
                         <defs>
-                            <linearGradient id="mp-gradient-new" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="${isPositive ? '#818cf8' : '#fb7185'}" />
-                                <stop offset="100%" stop-color="${isPositive ? '#c084fc' : '#f43f5e'}" />
+                            <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="${startColor}" />
+                                <stop offset="100%" stop-color="${endColor}" />
                             </linearGradient>
                         </defs>
                     </svg>
 
                     <!-- Center Content -->
-                    <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
-                        <span class="text-[10px] uppercase font-bold tracking-widest text-indigo-200 mb-1 opacity-80">Mastery</span>
-                        <span class="text-5xl font-black js-mp-value tracking-tight drop-shadow-md">${config.oldVal.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span></span>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-700">
+                        <span class="text-sm uppercase font-black tracking-widest text-slate-400 mb-1">Mastery</span>
+                        <div class="flex items-baseline">
+                            <span class="text-7xl font-black js-mp-value tracking-tighter" style="color: ${endColor}; text-shadow: 2px 2px 0px rgba(0,0,0,0.1);">${config.oldVal.toFixed(0)}</span>
+                            <span class="text-4xl font-bold text-slate-300 ml-1">%</span>
+                        </div>
                         
-                        <div class="mt-3 overflow-hidden">
-                            <div class="px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-sm flex items-center gap-1.5 transform translate-y-4 opacity-0 transition-all duration-150 delay-50 js-mp-diff">
-                                <i class="fas ${isPositive ? 'fa-arrow-up' : 'fa-arrow-down'} text-[10px] ${isPositive ? 'text-emerald-400' : 'text-rose-400'}"></i>
-                                <span class="text-sm font-bold ${isPositive ? 'text-emerald-300' : 'text-rose-300'}">${sign}${Math.abs(diff)}%</span>
+                        <!-- Badge -->
+                        <div class="mt-2 scale-0 transition-transform duration-300 ease-out js-mp-diff-badge">
+                            <div class="px-4 py-1.5 rounded-full flex items-center gap-1 shadow-lg border-2 border-white"
+                                 style="background: ${isPositive ? 'linear-gradient(45deg, #facc15, #4ade80)' : 'linear-gradient(45deg, #f472b6, #fb923c)'}">
+                                <i class="fas ${isPositive ? 'fa-arrow-up' : 'fa-arrow-down'} text-xs text-white drop-shadow-md"></i>
+                                <span class="text-lg font-black text-white drop-shadow-md">${sign}${Math.abs(diff)}%</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        `;
+            `;
 
             document.body.appendChild(container);
 
-            const containerInner = container.querySelector('.js-mp-container');
             const circle = container.querySelector('.js-mp-circle');
             const valueDisplay = container.querySelector('.js-mp-value');
-            const diffBadge = container.querySelector('.js-mp-diff');
-
-            // ENTRANCE ANIMATION
-            requestAnimationFrame(() => {
-                containerInner.classList.remove('scale-90', 'opacity-0');
-                containerInner.classList.add('scale-100', 'opacity-100');
-
-                // Show diff badge slightly later
-                setTimeout(() => {
-                    diffBadge.classList.remove('translate-y-4', 'opacity-0');
-                }, 50);
-            });
+            const diffBadge = container.querySelector('.js-mp-diff-badge');
 
             // COUNT UP & CIRCLE FILL ANIMATION
             setTimeout(() => {
@@ -143,11 +199,26 @@
 
                 const animateNumbers = (time) => {
                     const timeFraction = Math.min((time - start) / duration, 1);
-                    const progress = timeFraction === 1 ? 1 : 1 - Math.pow(2, -10 * timeFraction);
-                    const current = config.oldVal + (config.newVal - config.oldVal) * progress;
-                    valueDisplay.innerHTML = `${current.toFixed(1)}<span class="text-2xl text-indigo-300 ml-0.5">%</span>`;
+                    // Elastic ease out
+                    const progress = timeFraction === 1 ? 1 : 1 - Math.pow(2, -10 * timeFraction) * Math.sin((timeFraction - duration / 4) * (2 * Math.PI) / duration) + 1; // Simplified elastic? No, let's stick to standard nice ease.
+                    // Actually just standard ease out expo is cleaner for numbers
+                    const easeOutExpo = (x) => x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
+
+                    const p = easeOutExpo(timeFraction);
+                    const current = config.oldVal + (config.newVal - config.oldVal) * p;
+
+                    valueDisplay.innerText = current.toFixed(0);
+
                     if (timeFraction < 1) {
                         requestAnimationFrame(animateNumbers);
+                    } else {
+                        // Animation validly done
+                        // Show badge with pop
+                        diffBadge.classList.remove('scale-0');
+                        diffBadge.classList.add('scale-110');
+                        setTimeout(() => diffBadge.classList.remove('scale-110'), 200);
+
+                        // Fire confetti if significant progress? (Maybe later)
                     }
                 };
                 requestAnimationFrame(animateNumbers);
@@ -157,8 +228,11 @@
             // EXIT ANIMATION
             const exitStartTime = MP_ANIMATION_CONFIG.ENTRANCE_DELAY + MP_ANIMATION_CONFIG.COUNT_DURATION + MP_ANIMATION_CONFIG.DISPLAY_TIME;
             setTimeout(() => {
-                containerInner.classList.remove('scale-100', 'opacity-100');
-                containerInner.classList.add('scale-95', 'opacity-0', 'blur-sm');
+                const inner = container.querySelector('.mp-container-game');
+                inner.style.transition = 'all 0.3s ease-in';
+                inner.style.transform = 'scale(0) rotate(20deg)';
+                inner.style.opacity = '0';
+
                 setTimeout(() => {
                     container.remove();
                     resolve();
