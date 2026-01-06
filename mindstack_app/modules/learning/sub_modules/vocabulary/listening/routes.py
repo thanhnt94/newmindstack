@@ -374,7 +374,8 @@ def api_check_answer():
             result_data=result
         )
         safe_commit(db.session)
-        result['srs'] = srs_result
+        # Flatten srs_result into main response
+        result.update(srs_result)
         
     return jsonify(result)
 

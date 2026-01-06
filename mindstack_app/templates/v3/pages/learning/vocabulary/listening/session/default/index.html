@@ -437,7 +437,7 @@
 
                 <div class="flex-shrink-0 flex items-center gap-1 h-7 px-2.5 bg-white/20 rounded-full">
                     <i class="fa-solid fa-gem text-white text-[10px]"></i>
-                    <span class="text-xs font-black text-white font-mono">
+                    <span class="text-xs font-black text-white font-mono" id="total-score-display">
                         {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
                     </span>
                 </div>
@@ -719,11 +719,25 @@
                         inputEl.classList.add('correct');
                         feedbackEl.innerHTML = `<div class="feedback-msg success"><i class="fas fa-check"></i> Đúng: ${item.answer}</div>${meaningHtml}`;
                         score++;
-                        if (window.showScoreToast) window.showScoreToast(result.points || 10);
                     } else {
                         inputEl.classList.add('wrong');
                         feedbackEl.innerHTML = `<div class="feedback-msg error"><i class="fas fa-times"></i> Đáp án: ${item.answer}</div>${meaningHtml}`;
                         wrongCount++;
+                    }
+
+                    // Notifications
+                    if (result.score_change > 0 && window.showScoreToast) {
+                        window.showScoreToast(result.score_change);
+                    }
+                    if (result.memory_power && window.showMemoryPowerFeedback) {
+                        window.showMemoryPowerFeedback(
+                            result.memory_power.old_memory_power,
+                            result.memory_power.memory_power
+                        );
+                    }
+                    if (result.updated_total_score !== undefined) {
+                        const scoreEl = document.getElementById('total-score-display');
+                        if (scoreEl) scoreEl.textContent = result.updated_total_score.toLocaleString();
                     }
 
                     updateStats();
