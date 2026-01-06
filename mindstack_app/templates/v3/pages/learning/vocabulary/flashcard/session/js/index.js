@@ -114,6 +114,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. Start Session
     if (window.updateSessionSummary) window.updateSessionSummary();
     if (window.getNextFlashcardBatch) window.getNextFlashcardBatch();
+
+    // 6. Mode display toggle logic (New)
+    const modeBtn = document.getElementById('js-fc-mode-btn');
+    const titleEls = document.querySelectorAll('.js-fc-title');
+    if (modeBtn && titleEls.length > 0) {
+        modeBtn.addEventListener('click', () => {
+            if (modeBtn.dataset.busy === "true") return;
+            modeBtn.dataset.busy = "true";
+
+            const originalTitles = Array.from(titleEls).map(el => el.textContent);
+            const modeName = window.FlashcardConfig.modeDisplayName || 'Chế độ học';
+
+            // Visual feedback
+            modeBtn.style.opacity = "0.7";
+
+            // Set mode name
+            titleEls.forEach(el => el.textContent = modeName);
+
+            // Revert after 2 seconds
+            setTimeout(() => {
+                titleEls.forEach((el, idx) => el.textContent = originalTitles[idx]);
+                modeBtn.style.opacity = "";
+                modeBtn.dataset.busy = "false";
+            }, 2000);
+        });
+    }
 });
 
 window.addEventListener('resize', () => {

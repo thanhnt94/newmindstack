@@ -301,16 +301,25 @@ def flashcard_session():
     autoplay_mode = session_mode if is_autoplay_session else ''
     
     # Calculate Mode Display Text
+    # [UPDATED] Expanded map to match all modes and shorter labels
     mode_map = {
         'new_only': 'Học từ mới',
         'due_only': 'Ôn tập tới hạn',
         'hard_only': 'Từ khó',
         'mixed_srs': 'Học ngẫu nhiên',
         'preview': 'Xem trước',
+        'all_review': 'Ôn tập tất cả',
         'autoplay_all': 'Tự động phát tất cả',
-        'autoplay_learned': 'Tự động phát đã học'
+        'autoplay_learned': 'Tự động phát đã học',
+        'pronunciation_practice': 'Luyện phát âm',
+        'writing_practice': 'Luyện viết',
+        'quiz_practice': 'Trắc nghiệm',
+        'essay_practice': 'Tự luận',
+        'listening_practice': 'Luyện nghe',
+        'speaking_practice': 'Luyện nói'
     }
-    mode_display_text = mode_map.get(session_mode, 'Mặc định')
+    mode_display_text = mode_map.get(session_mode, 'Phiên học')
+    current_app.logger.debug(f"[FLASHCARD] session_mode: {session_mode}, mode_display_text: {mode_display_text}")
     autoplay_mode = session_mode if is_autoplay_session else ''
 
     # Get container name from session
