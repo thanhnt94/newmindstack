@@ -502,9 +502,10 @@
             <h1 class="set-title">{{ container.title }}</h1>
         </div>
 
-        <a href="/dashboard" class="nav-btn" title="Về trang chủ">
-            <i class="fas fa-home"></i>
-        </a>
+        <div class="step-indicator">
+            <div id="dot-1" class="step-dot active"></div>
+            <div id="dot-2" class="step-dot"></div>
+        </div>
     </div>
 
     <div class="wizard-content">
@@ -1069,16 +1070,16 @@
         if (step === 1) {
             step1.classList.add('active');
             step2.classList.remove('active');
-            dot1.classList.add('active');
-            dot2.classList.remove('active');
+            if (dot1) dot1.classList.add('active');
+            if (dot2) dot2.classList.remove('active');
             nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
             nextBtn.disabled = false;
             nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
             step1.classList.remove('active');
             step2.classList.add('active');
-            dot1.classList.remove('active');
-            dot2.classList.add('active');
+            if (dot1) dot1.classList.remove('active');
+            if (dot2) dot2.classList.add('active');
 
             // Update Mode Display
             const modeNameInfo = {

@@ -684,11 +684,11 @@
             .then(data => {
                 if (data.success) {
                     // Determine start URL based on mode
-                    // Mapping: new -> 'new_only', review -> 'review_due', hard -> 'hard_items', random -> 'random_all'
-                    let backendMode = 'random_all';
+                    // Mapping: new -> 'new_only', review -> 'due_only', hard -> 'hard_only', random -> 'mixed_srs'
+                    let backendMode = 'mixed_srs';
                     if (selectedMode === 'new') backendMode = 'new_only';
-                    else if (selectedMode === 'review') backendMode = 'review_due';
-                    else if (selectedMode === 'hard') backendMode = 'hard_items';
+                    else if (selectedMode === 'review') backendMode = 'due_only';
+                    else if (selectedMode === 'hard') backendMode = 'hard_only';
 
                     // Construct URL manually or use a helper if available. 
                     // The pattern is /start_flashcard_session/<set_id>/<mode>

@@ -4,9 +4,16 @@
     {% set p = s.progress %}
     {% set perf = s.performance %}
 
-    <!-- FIXED TOP SECTION (Centered Header) -->
+    <!-- FIXED TOP SECTION -->
     <div class="stats-fixed-header"
-        style="background: white; border-bottom: 1px solid #f1f5f9; padding: 1.25rem 1.25rem 0.75rem 1.25rem; flex-shrink: 0; text-align: center;">
+        style="background: white; border-bottom: 1px solid #f1f5f9; padding: 1.25rem 1.25rem 0.5rem 1.25rem; flex-shrink: 0; text-align: center;">
+
+        <!-- Set Name Header -->
+        <div
+            style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em;">
+            <i class="fas fa-layer-group" style="margin-right: 4px;"></i> {{ s.item.container_title }}
+        </div>
+
         <div class="stats-header-info">
             <h1 style="font-size: 1.5rem; font-weight: 800; margin: 0; color: #0f172a; line-height: 1.1;">
                 {{ s.item.front }}
@@ -32,151 +39,212 @@
             </div>
         </div>
 
-        <!-- TAB NAVIGATION (Centered Tabs) -->
+        <!-- MAIN TAB NAVIGATION -->
         <div class="tab-navigation"
-            style="display: flex; gap: 0.25rem; margin-top: 1rem; background: #f8fafc; padding: 0.25rem; border-radius: 0.75rem; border: 1px solid #f1f5f9;">
-            <button class="tab-btn active" data-tab="content"
-                style="flex: 1; padding: 0.45rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.75rem; border: none; transition: all 0.2s; cursor: pointer; text-align: center;">Nội
-                dung</button>
-            <button class="tab-btn" data-tab="overview"
-                style="flex: 1; padding: 0.45rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.75rem; border: none; transition: all 0.2s; cursor: pointer; text-align: center;">Thống
-                kê</button>
-            <button class="tab-btn" data-tab="details"
-                style="flex: 1; padding: 0.45rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.75rem; border: none; transition: all 0.2s; cursor: pointer; text-align: center;">Chi
-                tiết</button>
-            <button class="tab-btn" data-tab="history"
-                style="flex: 1; padding: 0.45rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.75rem; border: none; transition: all 0.2s; cursor: pointer; text-align: center;">Lịch
-                sử</button>
+            style="display: flex; gap: 0.25rem; margin-top: 1rem; margin-bottom: 0.5rem; background: #f8fafc; padding: 0.25rem; border-radius: 0.75rem; border: 1px solid #f1f5f9; overflow-x: auto; scrollbar-width: none;">
+            <button class="tab-btn active" data-tab="content" onclick="toggleSubTabs(true)"
+                style="flex: 1; min-width: 60px;">Nội dung</button>
+            <button class="tab-btn" data-tab="stats" onclick="toggleSubTabs(false)"
+                style="flex: 1; min-width: 60px;">Thống kê</button>
+            <button class="tab-btn" data-tab="notes" onclick="toggleSubTabs(false)"
+                style="flex: 1; min-width: 60px;">Ghi chú</button>
+            <button class="tab-btn" data-tab="details" onclick="toggleSubTabs(false)"
+                style="flex: 1; min-width: 60px;">Chi tiết</button>
+        </div>
+
+        <!-- [MOVED] SUB-NAVIGATION (Hidden by default unless Content tab active) -->
+        <div id="header-sub-tabs" class="sub-tab-navigation"
+            style="display: flex; gap: 0.5rem; justify-content: center; padding-top: 0.5rem; border-top: 1px solid #f1f5f9;">
+            <button class="sub-tab-btn active" onclick="switchSubTab('sub-flashcard')"
+                style="font-size: 0.8rem; font-weight: 700; color: #64748b; background: none; border: none; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 0.5rem; transition: all 0.2s;">
+                Flashcard
+            </button>
+            <button class="sub-tab-btn" onclick="switchSubTab('sub-custom')"
+                style="font-size: 0.8rem; font-weight: 700; color: #64748b; background: none; border: none; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 0.5rem; transition: all 0.2s;">
+                Thông tin thêm
+            </button>
+            <button class="sub-tab-btn" onclick="switchSubTab('sub-ai')"
+                style="font-size: 0.8rem; font-weight: 700; color: #64748b; background: none; border: none; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 0.5rem; transition: all 0.2s;">
+                AI
+            </button>
         </div>
     </div>
 
     <!-- SCROLLABLE BODY -->
     <div class="stats-scroll-body" style="flex: 1; overflow-y: auto; padding: 1.25rem; background: white;">
 
-        <!-- TAB: CONTENT (Left-aligned Content) -->
+        <!-- TAB 1: CONTENT -->
         <div class="tab-content active" id="tab-content" style="text-align: left;">
-            {% if s.item.image %}
-            <div style="margin-bottom: 1.25rem; text-align: center;">
-                <img src="{{ s.item.image }}"
-                    style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 0.75rem; border: 1px solid #f1f5f9; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-            </div>
-            {% endif %}
 
-            <div style="margin-bottom: 1.5rem;">
-                <div
-                    style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em;">
-                    Ý nghĩa</div>
-                <div
-                    style="font-size: 1.2rem; font-weight: 600; color: #1e293b; line-height: 1.4; white-space: pre-wrap; text-align: left !important; display: block !important; width: 100% !important;">
-                    {%- if s.item.back or s.item.meaning -%}{{- (s.item.back or s.item.meaning).splitlines() |
-                    map('trim') | join('\n') | trim -}}{%- endif -%}</div>
-            </div>
-
-            {% if s.item.example %}
-            <div style="margin-bottom: 1.5rem; text-align: left !important;">
-                <div
-                    style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em; text-align: left !important;">
-                    Ví dụ</div>
-                <div
-                    style="background: #f8fafc; padding: 1rem; border-radius: 0.75rem; border-left: 4px solid #6366f1; border: 1px solid #f1f5f9; text-align: left !important;">
-                    <div
-                        style="font-size: 1rem; color: #334155; font-style: italic; font-weight: 500; line-height: 1.5; white-space: pre-wrap; text-align: left !important;">
-                        "{{- s.item.example.splitlines() | map('trim') | join('\n') | trim -}}"
-                    </div>
-                    {% if s.item.example_meaning %}
-                    <div
-                        style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem; white-space: pre-wrap; text-align: left !important;">
-                        {{- s.item.example_meaning.splitlines() | map('trim') | join('\n') | trim -}}</div>
-                    {% endif %}
+            <!-- SUB-TAB A: FLASHCARD -->
+            <div id="sub-flashcard" class="sub-tab-content active">
+                {% if s.item.image %}
+                <div style="margin-bottom: 1.25rem; text-align: center;">
+                    <img src="{{ s.item.image }}"
+                        style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 0.75rem; border: 1px solid #f1f5f9; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                 </div>
-            </div>
-            {% endif %}
+                {% endif %}
 
-            {% if s.item.audio %}
-            <div style="margin-top: 1.5rem; text-align: center;">
-                <button onclick="new Audio('{{ s.item.audio }}').play()"
-                    style="display: inline-flex; align-items: center; gap: 0.5rem; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.6rem 1.25rem; border-radius: 99px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;">
-                    <i class="fas fa-volume-up"></i> Nghe phát âm
-                </button>
+                <div style="margin-bottom: 1.5rem;">
+                    <div
+                        style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em;">
+                        Ý nghĩa</div>
+                    <div
+                        style="font-size: 1.2rem; font-weight: 600; color: #1e293b; line-height: 1.4; white-space: pre-wrap; text-align: left !important; display: block !important; width: 100% !important;">
+                        {%- if s.item.back or s.item.meaning -%}{{- (s.item.back or s.item.meaning).splitlines() |
+                        map('trim') | join('\n') | trim -}}{%- endif -%}</div>
+                </div>
+
+                {% if s.item.example %}
+                <div style="margin-bottom: 1.5rem; text-align: left !important;">
+                    <div
+                        style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em; text-align: left !important;">
+                        Ví dụ</div>
+                    <div
+                        style="background: #f8fafc; padding: 1rem; border-radius: 0.75rem; border-left: 4px solid #6366f1; border: 1px solid #f1f5f9; text-align: left !important;">
+                        <div
+                            style="font-size: 1rem; color: #334155; font-style: italic; font-weight: 500; line-height: 1.5; white-space: pre-wrap; text-align: left !important;">
+                            "{{- s.item.example.splitlines() | map('trim') | join('\n') | trim -}}"
+                        </div>
+                        {% if s.item.example_meaning %}
+                        <div
+                            style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem; white-space: pre-wrap; text-align: left !important;">
+                            {{- s.item.example_meaning.splitlines() | map('trim') | join('\n') | trim -}}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if s.item.audio %}
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    <button onclick="new Audio('{{ s.item.audio }}').play()"
+                        style="display: inline-flex; align-items: center; gap: 0.5rem; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.6rem 1.25rem; border-radius: 99px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-volume-up"></i> Nghe phát âm
+                    </button>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
+
+            <!-- SUB-TAB B: CUSTOM DATA -->
+            <div id="sub-custom" class="sub-tab-content" style="display: none;">
+                {% set has_custom_data = false %}
+
+                {# Try explicit custom_data first #}
+                {% if s.item.custom_data %}
+                {% set has_custom_data = true %}
+                {% for key, val in s.item.custom_data.items() %}
+                <div class="custom-data-row" style="margin-bottom: 1.25rem;">
+                    <div
+                        style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
+                        {{ key }}
+                    </div>
+                    <div
+                        style="background: #f8fafc; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #f1f5f9; color: #334155; font-size: 0.95rem;">
+                        {{ val }}
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                {# Fallback: Iterate full_content for unknown keys if custom_data empty or to supplement #}
+                {% if not has_custom_data %}
+                {% set exclude_keys = ['id', 'front', 'back', 'meaning', 'pronunciation', 'example', 'example_meaning',
+                'image', 'audio', 'custom_data', 'ai_explanation', 'note', 'full_content', 'container_title'] %}
+                {% for key, val in s.item.full_content.items() %}
+                {% if key not in exclude_keys and val %}
+                {% set has_custom_data = true %}
+                <div class="custom-data-row" style="margin-bottom: 1.25rem;">
+                    <div
+                        style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
+                        {{ key|replace('_', ' ') }}
+                    </div>
+                    <div
+                        style="background: #f8fafc; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #f1f5f9; color: #334155; font-size: 0.95rem;">
+                        {{ val }}
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+
+                {% if not has_custom_data %}
+                <div style="text-align: center; color: #94a3b8; padding: 2rem;">
+                    <i class="fas fa-database" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p>Không có dữ liệu cập nhật.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- SUB-TAB C: AI CONTENT -->
+            <div id="sub-ai" class="sub-tab-content" style="display: none;">
+                {% if s.item.ai_explanation %}
+                <div class="ai-content-box" style="line-height: 1.6; color: #334155; font-size: 0.95rem;">
+                    <div style="white-space: pre-wrap;">{{ s.item.ai_explanation }}</div>
+                </div>
+                {% else %}
+                <div id="ai-placeholder" style="text-align: center; color: #94a3b8; padding: 2rem;">
+                    <i class="fas fa-robot" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p style="margin-bottom: 1.5rem;">Chưa có nội dung từ AI.</p>
+
+                    <!-- [NEW] Generate Button -->
+                    <button id="generate-ai-btn" onclick="generateAIExplanation({{ s.item.id }})"
+                        style="background: #6366f1; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-sparkles"></i> Tạo nội dung AI
+                    </button>
+                </div>
+                <!-- Box for new content -->
+                <div id="ai-content-box" class="ai-content-box"
+                    style="display: none; line-height: 1.6; color: #334155; font-size: 0.95rem;"></div>
+                {% endif %}
+            </div>
         </div>
 
-        <!-- TAB: OVERVIEW (ALL 10 INDICATORS) -->
-        <div class="tab-content" id="tab-overview" style="display: none;">
+        <!-- TAB 2: STATS -->
+        <div class="tab-content" id="tab-stats" style="display: none;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem;">
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        SỨC KHỎE</div>
-                    <div style="font-size: 1.3rem; font-weight: 800; color: #6366f1;">{{ p.mastery }}%</div>
+                <!-- Existing indicator blocks -->
+                <div class="stat-box">
+                    <div class="stat-label">SỨC KHỎE</div>
+                    <div class="stat-value" style="color: #6366f1;">{{ p.mastery }}%</div>
                 </div>
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        CHUỖI ĐÚNG</div>
-                    <div style="font-size: 1.3rem; font-weight: 800; color: #f59e0b;">{{ p.streak }} 🔥</div>
+                <div class="stat-box">
+                    <div class="stat-label">CHUỖI ĐÚNG</div>
+                    <div class="stat-value" style="color: #f59e0b;">{{ p.streak }} 🔥</div>
                 </div>
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        CHÍNH XÁC</div>
-                    <div style="font-size: 1.3rem; font-weight: 800; color: #10b981;">{{ perf.accuracy }}%</div>
+                <div class="stat-box">
+                    <div class="stat-label">CHÍNH XÁC</div>
+                    <div class="stat-value" style="color: #10b981;">{{ perf.accuracy }}%</div>
                 </div>
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        ĐỘ KHÓ</div>
-                    <div style="font-size: 1.3rem; font-weight: 800; color: #475569;">{{ p.ease_factor }}</div>
+                <div class="stat-box">
+                    <div class="stat-label">ĐỘ KHÓ</div>
+                    <div class="stat-value" style="color: #475569;">{{ p.ease_factor }}</div>
                 </div>
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        TỔNG ĐIỂM</div>
-                    <div style="font-size: 1.3rem; font-weight: 800; color: #0891b2;">+{{ perf.total_score }}</div>
+                <div class="stat-box">
+                    <div class="stat-label">TỔNG ĐIỂM</div>
+                    <div class="stat-value" style="color: #0891b2;">+{{ perf.total_score }}</div>
                 </div>
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        ÔN TIẾP</div>
-                    <div style="font-size: 0.85rem; font-weight: 800; color: #7c3aed;">{{ p.due_relative }}</div>
+                <div class="stat-box">
+                    <div class="stat-label">ÔN TIẾP</div>
+                    <div class="stat-value" style="color: #7c3aed; font-size: 0.85rem;">{{ p.due_relative }}</div>
                 </div>
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        LẦN ĐẦU</div>
-                    <div style="font-size: 0.85rem; font-weight: 800; color: #06b6d4;">{% if p.first_reviewed %}{{
+                <div class="stat-box">
+                    <div class="stat-label">LẦN ĐẦU</div>
+                    <div class="stat-value" style="color: #06b6d4; font-size: 0.85rem;">{% if p.first_reviewed %}{{
                         p.first_reviewed.strftime('%d/%m/%y') }}{% else %}-{% endif %}</div>
                 </div>
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        GẦN NHẤT</div>
-                    <div style="font-size: 0.85rem; font-weight: 800; color: #8b5cf6;">{{ p.last_reviewed_relative }}
+                <div class="stat-box">
+                    <div class="stat-label">GẦN NHẤT</div>
+                    <div class="stat-value" style="color: #8b5cf6; font-size: 0.85rem;">{{ p.last_reviewed_relative }}
                     </div>
                 </div>
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        ĐIỂM TB</div>
-                    <div style="font-size: 1.3rem; font-weight: 800; color: #14b8a6;">+{{ perf.avg_score }}</div>
+                <div class="stat-box">
+                    <div class="stat-label">ĐIỂM TB</div>
+                    <div class="stat-value" style="color: #14b8a6;">+{{ perf.avg_score }}</div>
                 </div>
-                <div
-                    style="background: #f8fafc; border-radius: 0.7rem; padding: 0.75rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div
-                        style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        XU HƯỚNG</div>
-                    <div
-                        style="font-size: 1.1rem; font-weight: 800; {% if p.mastery_trend > 0 %}color: #10b981;{% else %}color: #ef4444;{% endif %}">
+                <div class="stat-box">
+                    <div class="stat-label">XU HƯỚNG</div>
+                    <div class="stat-value"
+                        style="{% if p.mastery_trend > 0 %}color: #10b981;{% else %}color: #ef4444;{% endif %}; font-size: 1.1rem;">
                         {% if p.mastery_trend > 0 %}↗ +{{ p.mastery_trend }}%{% else %}↘ {{ p.mastery_trend }}%{% endif
                         %}
                     </div>
@@ -184,7 +252,24 @@
             </div>
         </div>
 
-        <!-- TAB: DETAILS -->
+        <!-- TAB 3: NOTES -->
+        <div class="tab-content" id="tab-notes" style="display: none;">
+            <div style="margin-bottom: 1rem;">
+                <label
+                    style="display: block; font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem;">
+                    Ghi chú cá nhân
+                </label>
+                <textarea id="item-note-input" rows="8"
+                    style="width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem; padding: 1rem; font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none; transition: all 0.2s;"
+                    placeholder="Viết ghi chú của bạn về từ này...">{{ s.item.note }}</textarea>
+            </div>
+            <button id="save-note-btn" onclick="saveItemNote({{ s.item.id }})"
+                style="width: 100%; background: #4f46e5; color: white; border: none; padding: 0.75rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;">
+                <i class="fas fa-save"></i> Lưu ghi chú
+            </button>
+        </div>
+
+        <!-- TAB 4: DETAILS -->
         <div class="tab-content" id="tab-details" style="display: none;">
             <!-- Mode Analysis -->
             <div style="margin-bottom: 1.5rem;">
@@ -226,10 +311,8 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- TAB: HISTORY -->
-        <div class="tab-content" id="tab-history" style="display: none;">
+            <!-- History Section -->
             <h3
                 style="font-size: 0.85rem; font-weight: 800; color: #475569; margin-bottom: 1rem; text-transform: uppercase;">
                 Lịch sử gần đây</h3>
@@ -243,30 +326,24 @@
                 </div>
                 {% endfor %}
             </div>
-            {% if s.history %}
-            <div
-                style="background: #f8fafc; border-radius: 0.75rem; padding: 1rem; margin-top: 0.5rem; border: 1px solid #f1f5f9;">
-                {% set last = s.history[0] %}
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.4rem;">
-                    <span style="color: #64748b;">Lần cuối:</span>
-                    <span style="font-weight: 700; color: #334155;">{{ last.timestamp.strftime('%H:%M %d/%m') }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
-                    <span style="color: #64748b;">Chế độ:</span>
-                    <span style="font-weight: 700; color: #334155; text-transform: capitalize;">{{ last.mode }}</span>
-                </div>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
 <style>
+    /* Styling for buttons and boxes */
     .tab-btn {
+        padding: 0.45rem;
+        border-radius: 0.5rem;
+        font-weight: 700;
+        font-size: 0.75rem;
+        border: none;
+        transition: all 0.2s;
+        cursor: pointer;
+        text-align: center;
         background: transparent;
         color: #64748b;
-        cursor: pointer;
-        border: none;
+        white-space: nowrap;
     }
 
     .tab-btn.active {
@@ -275,9 +352,46 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
+    .sub-tab-btn.active {
+        background: #eef2ff !important;
+        color: #4f46e5 !important;
+    }
+
+    .stat-box {
+        background: #f8fafc;
+        border-radius: 0.7rem;
+        padding: 0.75rem;
+        text-align: center;
+        border: 1px solid #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .stat-label {
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
     .tab-content {
         animation: fadeIn 0.25s ease;
         width: 100%;
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
     }
 
     @keyframes fadeIn {
@@ -292,3 +406,13 @@
         }
     }
 </style>
+
+<script>
+    function toggleSubTabs(show) {
+        const el = document.getElementById('header-sub-tabs');
+        if (el) el.style.display = show ? 'flex' : 'none';
+
+        // Also ensure the parent tab logic from _modal_stats works, 
+        // effectively this onclick handles the visual sub-nav only.
+    }
+</script>

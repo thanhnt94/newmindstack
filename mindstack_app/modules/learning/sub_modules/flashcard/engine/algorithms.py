@@ -394,7 +394,11 @@ def get_hard_items(user_id, container_id, session_size):
             LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
         )
     ).filter(
-        LearningProgress.status == 'hard'
+        or_(
+            LearningProgress.status == 'hard',
+            LearningProgress.mastery < 0.5,
+            LearningProgress.incorrect_streak >= 2
+        )
     )
     
     hard_items_query = hard_items_query.outerjoin(UserContainerState,

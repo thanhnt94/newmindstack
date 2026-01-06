@@ -1,0 +1,261 @@
+{# Reusable Quiz Item Stats Modal #}
+<div id="quiz-item-stats-modal" class="quiz-stats-modal" style="display: none;">
+    <div class="quiz-stats-modal-overlay js-close-quiz-stats-modal"></div>
+    <div class="quiz-stats-modal-content">
+        <!-- Header with edit and close buttons - positioned at corners -->
+        <a id="quiz-stats-edit-btn" href="#" target="_blank"
+            style="display: none; position: absolute; top: 0.5rem; left: 0.75rem; width: 32px; height: 32px; border-radius: 50%; background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; z-index: 10; text-decoration: none;">
+            <i class="fas fa-pen"></i>
+        </a>
+        <button class="quiz-stats-modal-close js-close-quiz-stats-modal"
+            style="position: absolute; top: 0.5rem; right: 0.75rem; z-index: 10;">
+            <i class="fas fa-times"></i>
+        </button>
+        <div id="quiz-item-stats-container" class="quiz-stats-modal-body">
+            <!-- Content loaded here -->
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Quiz Stats Modal Styles */
+    .quiz-stats-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        box-sizing: border-box;
+    }
+
+    .quiz-stats-modal-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+    }
+
+    .quiz-stats-modal-content {
+        position: relative;
+        width: 100%;
+        max-width: 480px;
+        max-height: 88vh;
+        max-height: 88dvh;
+        background: white;
+        border-radius: 1.25rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: quizStatsScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        margin: auto;
+    }
+
+    .quiz-stats-modal-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+        z-index: 10;
+    }
+
+    .quiz-stats-modal-close:hover {
+        background: #e2e8f0;
+        color: #ef4444;
+    }
+
+    .quiz-stats-modal-body {
+        padding: 0;
+        flex: 1;
+        background: #f8fafc;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    @keyframes quizStatsScaleIn {
+        from {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        const initQuizStatsModal = () => {
+            const statsModal = document.getElementById('quiz-item-stats-modal');
+            const statsContainer = document.getElementById('quiz-item-stats-container');
+            const closeBtns = document.querySelectorAll('.js-close-quiz-stats-modal');
+
+            if (closeBtns) {
+                closeBtns.forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        if (statsModal) statsModal.style.display = 'none';
+                    });
+                });
+            }
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && statsModal && statsModal.style.display !== 'none') {
+                    statsModal.style.display = 'none';
+                }
+            });
+
+            window.openQuizItemStats = function (itemId) {
+                if (!statsModal || !statsContainer) {
+                    console.error("Quiz Stats Modal elements not found");
+                    return;
+                }
+
+                // Hide edit button initially
+                var editBtn = document.getElementById('quiz-stats-edit-btn');
+                if (editBtn) editBtn.style.display = 'none';
+
+                statsModal.style.display = 'flex';
+                statsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 16rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6366f1;"></i></div>';
+
+                fetch('/learn/quiz/item/' + itemId + '/stats?modal=true&_cb=' + new Date().getTime())
+                    .then(function (r) { return r.text(); })
+                    .then(function (html) {
+                        statsContainer.innerHTML = html;
+                        // Initialize tab switching
+                        if (window.initQuizStatsModalTabs) window.initQuizStatsModalTabs();
+
+                        // Show edit button if available
+                        var dataEl = statsContainer.querySelector('[data-edit-url]');
+                        if (dataEl && editBtn) {
+                            var editUrl = dataEl.getAttribute('data-edit-url');
+                            if (editUrl) {
+                                editBtn.href = editUrl;
+                                editBtn.style.display = 'flex';
+                            }
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error("Quiz Stats load error:", err);
+                        statsContainer.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 16rem; color: #94a3b8;"><i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 0.5rem;"></i><span>Không thể tải thống kê</span></div>';
+                    });
+            };
+
+            // Tab switching logic
+            window.initQuizStatsModalTabs = function () {
+                const modalContainer = document.getElementById('quiz-item-stats-container');
+                if (!modalContainer) return;
+
+                const tabBtns = modalContainer.querySelectorAll('.tab-btn');
+                const tabContents = modalContainer.querySelectorAll('.tab-content');
+
+                tabBtns.forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const targetTab = this.dataset.tab;
+                        tabBtns.forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+
+                        tabContents.forEach(content => {
+                            if (content.id === 'tab-' + targetTab) {
+                                content.style.display = 'block';
+                                content.classList.add('active');
+                            } else {
+                                content.style.display = 'none';
+                                content.classList.remove('active');
+                            }
+                        });
+                    });
+                });
+            };
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initQuizStatsModal);
+        } else {
+            initQuizStatsModal();
+        }
+    })();
+
+    // ============================================
+    // GLOBAL FUNCTIONS (must be defined before AJAX content loads)
+    // ============================================
+
+    // Sub-tab switcher for Hướng dẫn tab
+    window.switchGuideSubtab = function (tabName) {
+        var btnExpl = document.getElementById('subtab-btn-explanation');
+        var btnAi = document.getElementById('subtab-btn-ai');
+
+        if (tabName === 'explanation') {
+            if (btnExpl) { btnExpl.style.background = '#3b82f6'; btnExpl.style.color = 'white'; }
+            if (btnAi) { btnAi.style.background = '#f1f5f9'; btnAi.style.color = '#64748b'; }
+        } else {
+            if (btnExpl) { btnExpl.style.background = '#f1f5f9'; btnExpl.style.color = '#64748b'; }
+            if (btnAi) { btnAi.style.background = '#3b82f6'; btnAi.style.color = 'white'; }
+        }
+
+        var subtabExpl = document.getElementById('subtab-explanation');
+        var subtabAi = document.getElementById('subtab-ai');
+        if (subtabExpl) subtabExpl.style.display = (tabName === 'explanation') ? 'block' : 'none';
+        if (subtabAi) subtabAi.style.display = (tabName === 'ai') ? 'block' : 'none';
+    };
+
+    // Save note
+    window.saveQuizNote = function (itemId) {
+        var textarea = document.getElementById('quiz-stats-note-input');
+        var content = textarea ? textarea.value : '';
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+        fetch('/notes/save/' + itemId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ content: content })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) { alert('Đã lưu ghi chú!'); })
+            .catch(function (err) { console.error(err); alert('Lỗi lưu ghi chú.'); });
+    };
+
+    // Generate AI explanation
+    window.generateQuizAI = function (itemId) {
+        var aiContent = document.getElementById('quiz-stats-ai-content');
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+        if (aiContent) {
+            aiContent.innerHTML = '<div style="text-align: center; padding: 1rem;"><i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: #6366f1;"></i><p style="margin-top: 0.5rem; color: #64748b;">Đang tạo...</p></div>';
+        }
+
+        fetch('/ai/response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ item_id: itemId, prompt_type: 'explanation' })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (aiContent) {
+                    aiContent.innerHTML = '<div style="line-height: 1.6; white-space: pre-wrap;">' + (data.html_content || data.response || 'Không thể tạo giải thích.') + '</div>';
+                }
+            })
+            .catch(function (err) {
+                console.error(err);
+                if (aiContent) {
+                    aiContent.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 1rem;"><i class="fas fa-exclamation-triangle"></i> Lỗi khi gọi AI.</div>';
+                }
+            });
+    };
+</script>

@@ -141,6 +141,7 @@
 </div>
 <link rel="stylesheet" href="{{ url_for('learning.quiz_learning.static', filename='css/session_single.css') }}">
 {% include "v3/includes/notification/_score_toast.html" %}
+{% include "v3/pages/learning/quiz/stats/_modal_stats.html" %}
 {% endblock %}
 
 {% block scripts %}
@@ -916,10 +917,19 @@
             });
         }
 
-        // Hub & Tabs
+        // Hub & Tabs - Now opens Quiz Stats Modal instead
         if (dom.hubModal) {
-            if (dom.openHubBtn) dom.openHubBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
-            if (dom.openHubDesktopBtn) dom.openHubDesktopBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
+            // Keep old hub modal logic but redirect lightbulb buttons to new Stats Modal
+            if (dom.openHubBtn) dom.openHubBtn.addEventListener('click', () => {
+                if (currentQuestion && window.openQuizItemStats) {
+                    window.openQuizItemStats(currentQuestion.item_id);
+                }
+            });
+            if (dom.openHubDesktopBtn) dom.openHubDesktopBtn.addEventListener('click', () => {
+                if (currentQuestion && window.openQuizItemStats) {
+                    window.openQuizItemStats(currentQuestion.item_id);
+                }
+            });
             if (dom.closeHubBtn) dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
         }
         document.querySelectorAll('.qb-hub-tab-item').forEach(tab => {

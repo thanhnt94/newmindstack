@@ -120,9 +120,10 @@ def start_flashcard_session(set_id, mode):
     except Exception:
         pass
 
-    if FlashcardSessionManager.start_new_flashcard_session(set_id, mode):
+    success, message = FlashcardSessionManager.start_new_flashcard_session(set_id, mode)
+    if success:
         # Redirect đến flashcard session (có thể dùng route cũ hoặc practice mới)
         return redirect(url_for('learning.flashcard_learning.flashcard_session'))
     else:
-        flash('Không có thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
+        flash(message, 'warning')
         return redirect(url_for('learning.vocabulary.set_detail_page', set_id=set_id))

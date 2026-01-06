@@ -453,3 +453,100 @@ def api_get_quiz_set_detail(set_id):
         'modes': modes
     })
 
+
+# ============================================
+# Item Stats Modal (Similar to Vocabulary)
+# ============================================
+
+@quiz_learning_bp.route('/quiz/item/<int:item_id>/stats')
+@login_required
+def get_quiz_item_stats(item_id):
+    """
+    Return HTML content for the Quiz Item Stats modal.
+    Similar to Vocabulary's item stats modal.
+    """
+    from ..logics.stats_logic import get_quiz_item_statistics
+    
+    item = LearningItem.query.get_or_404(item_id)
+    container = LearningContainer.query.get(item.container_id)
+    
+    # Get user stats for this item
+    stats = get_quiz_item_statistics(current_user.user_id, item_id)
+    
+    # Build item data
+    question_image = item.content.get('question_image_file', '')
+    question_audio = item.content.get('question_audio_file', '')
+    
+    # Add /uploads/ prefix if needed
+    if question_image and not question_image.startswith(('http', '/')):
+        question_image = '/uploads/' + question_image
+    if question_audio and not question_audio.startswith(('http', '/')):
+        question_audio = '/uploads/' + question_audio
+    
+    # Get options and correct_answer
+    options = item.content.get('options', {})
+    correct_answer_raw = item.content.get('correct_answer', '')
+    
+    # Convert correct_answer text to option KEY (A, B, C, D)
+    # If correct_answer is already a key (A, B, C, D), use it directly
+    # Otherwise, find the key where the value matches
+    correct_answer_key = ''
+    if correct_answer_raw in options:
+        # Already a key
+        correct_answer_key = correct_answer_raw
+    elif correct_answer_raw in ['A', 'B', 'C', 'D']:
+        # It's a key
+        correct_answer_key = correct_answer_raw
+    else:
+        # It's the text value, find the key
+        for key, value in options.items():
+            if value == correct_answer_raw:
+                correct_answer_key = key
+                break
+    
+    item_data = {
+        'item_id': item.item_id,
+        'container_id': item.container_id,
+        'container_title': container.title if container else 'Unknown',
+        'question': item.content.get('question', ''),
+        'options': options,
+        'correct_answer': correct_answer_key,  # Now it's the KEY (A, B, C, D)
+        'explanation': item.content.get('explanation', ''),
+        'question_image': question_image,
+        'question_audio': question_audio,
+        'note_content': '',  # Will be loaded separately if needed
+        'ai_explanation': item.content.get('ai_explanation', ''),
+    }
+    
+    # Default stats if none exist
+    if not stats:
+        stats = {
+            'total_attempts': 0,
+            'times_correct': 0,
+            'times_incorrect': 0,
+            'correct_percentage': 0,
+            'correct_streak': 0,
+            'status': 'new',
+            'last_reviewed': None,
+            'first_seen': None,
+            'review_history': []
+        }
+    
+    # Check if modal=true for partial rendering
+    modal_mode = request.args.get('modal', 'false').lower() == 'true'
+    
+    if modal_mode:
+        return render_template(
+            'v3/pages/learning/quiz/stats/_item_stats_content.html',
+            item=item_data,
+            stats=stats,
+            can_edit=container.creator_user_id == current_user.user_id if container else False
+        )
+    
+    # Full page (rarely used)
+    return render_template(
+        'v3/pages/learning/quiz/stats/item_detail.html',
+        item=item_data,
+        stats=stats,
+        can_edit=container.creator_user_id == current_user.user_id if container else False
+    )

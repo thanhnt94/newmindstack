@@ -165,6 +165,144 @@
                     });
                 });
             };
+
+            // [NEW] Sub-tab switching logic
+            // [NEW] Sub-tab switching logic
+            window.switchSubTab = function (targetId) {
+                // Search in the whole stats container or body (since buttons are now in header)
+                const container = document.querySelector('.stats-container') || document.body;
+
+                // Hide all sub-tabs content
+                container.querySelectorAll('.sub-tab-content').forEach(el => {
+                    el.style.display = 'none';
+                    el.classList.remove('active');
+                });
+
+                // Remove active class from ALL sub-tab buttons
+                container.querySelectorAll('.sub-tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Show target content
+                const target = document.getElementById(targetId);
+                if (target) {
+                    target.style.display = 'block';
+                    target.classList.add('active');
+                }
+
+                // Activate the specific button
+                const btns = container.querySelectorAll('.sub-tab-btn');
+                btns.forEach(btn => {
+                    const onclickVal = btn.getAttribute('onclick');
+                    if (onclickVal && onclickVal.includes("'" + targetId + "'")) {
+                        btn.classList.add('active');
+                    }
+                });
+            };
+
+            // [NEW] Save Note Logic
+            window.saveItemNote = function (itemId) {
+                const btn = document.getElementById('save-note-btn');
+                const input = document.getElementById('item-note-input');
+                if (!btn || !input) return;
+
+                const originalText = btn.innerHTML;
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+
+                // Try to get CSRF token from meta tag first, usually safer for static JS
+                let csrfToken = '';
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) csrfToken = meta.getAttribute('content');
+
+                fetch('/api/progress/' + itemId + '/note', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ note: input.value })
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            btn.innerHTML = '<i class="fas fa-check"></i> Đã lưu';
+                            btn.style.background = '#10b981';
+                            setTimeout(() => {
+                                btn.innerHTML = originalText;
+                                btn.style.background = '#4f46e5';
+                                btn.disabled = false;
+                            }, 2000);
+                        } else {
+                            alert('Lỗi: ' + data.message);
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Lỗi kết nối');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    });
+            };
+
+            // [NEW] Generate AI Explanation Logic
+            window.generateAIExplanation = function (itemId) {
+                const btn = document.getElementById('generate-ai-btn');
+                const contentBox = document.getElementById('ai-content-box');
+                const placeholder = document.getElementById('ai-placeholder');
+
+                if (!btn) return;
+                const originalText = btn.innerHTML;
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+
+                let csrfToken = '';
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) csrfToken = meta.getAttribute('content');
+
+                fetch('/api/item/' + itemId + '/generate-ai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update UI with new content
+                            if (placeholder) placeholder.style.display = 'none';
+                            if (contentBox) {
+                                contentBox.style.display = 'block';
+                                contentBox.innerHTML = '<div style="white-space: pre-wrap;">' + data.explanation + '</div>';
+                            } else {
+                                // Reload modal content if structure is complex, but simple update is better
+                                // If content box didn't exist (because if/else blocks in template), we might need to reload.
+                                // However, we can structure the template to always have a box.
+                                // For now, let's assume we reload the stats modal content by re-fetching.
+                                // But cleaner is to reload. Let's try to just update innerHTML of tab-ai.
+                                const tabAi = document.querySelector('#sub-ai');
+                                if (tabAi) {
+                                    tabAi.innerHTML = '<div class="ai-content-box" style="line-height: 1.6; color: #334155; font-size: 0.95rem;"><div style="white-space: pre-wrap;">' + data.explanation + '</div></div>';
+                                }
+                            }
+                        } else {
+                            alert('Lỗi: ' + data.message);
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Lỗi kết nối: ' + err);
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    });
+            };
         };
 
         if (document.readyState === 'loading') {

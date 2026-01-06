@@ -118,11 +118,17 @@ class FlashcardSessionManager:
     def start_new_flashcard_session(cls, set_id, mode):
         user_id = current_user.user_id
         cls.end_flashcard_session()
+        # [FIX] Legacy Mode Mapping
+        if mode == 'review_due': mode = 'due_only'
+        if mode == 'hard_items': mode = 'hard_only'
+        if mode == 'random_all': mode = 'mixed_srs'
+        if mode == 'review_hard': mode = 'hard_only'
+
         mode_config = next((m for m in FlashcardLearningConfig.FLASHCARD_MODES if m['id'] == mode), None)
         if not mode_config and mode in ('autoplay_all', 'autoplay_learned'):
             mode_config = {'id': mode}
         if not mode_config:
-            return False
+            return False, "Chế độ học không hợp lệ."
 
         algorithm_func = {
             'new_only': get_new_only_items,
@@ -139,17 +145,14 @@ class FlashcardSessionManager:
             'autoplay_all': get_all_items_for_autoplay,
             'autoplay_learned': get_all_review_items,
         }.get(mode)
-        if not algorithm_func: return False
+        if not algorithm_func: return False, "Không tìm thấy thuật toán cho chế độ này."
 
         accessible_ids = set(get_accessible_flashcard_set_ids(user_id))
         normalized_set_id = set_id
 
         if set_id == 'all':
             if not accessible_ids:
-                current_app.logger.info(
-                    "FlashcardSessionManager: Người dùng không có bộ thẻ nào khả dụng cho chế độ 'all'."
-                )
-                return False
+                return False, "Bạn chưa có bộ thẻ nào khả dụng."
         elif isinstance(set_id, list):
             filtered_ids = []
             for set_value in set_id:
@@ -161,31 +164,30 @@ class FlashcardSessionManager:
                     filtered_ids.append(set_int)
 
             if not filtered_ids:
-                current_app.logger.info(
-                    "FlashcardSessionManager: Không có bộ thẻ nào khả dụng sau khi lọc chế độ multi-selection."
-                )
-                return False
+                return False, "Không có bộ thẻ nào khả dụng trong danh sách đã chọn."
 
             normalized_set_id = filtered_ids
         else:
             try:
                 set_id_int = int(set_id)
             except (TypeError, ValueError):
-                current_app.logger.warning(
-                    "FlashcardSessionManager: ID bộ thẻ không hợp lệ khi khởi tạo phiên học."
-                )
-                return False
+                return False, "ID bộ thẻ không hợp lệ."
 
             if set_id_int not in accessible_ids:
-                current_app.logger.info(
-                    "FlashcardSessionManager: Người dùng không có quyền truy cập bộ thẻ đã chọn."
-                )
-                return False
+                return False, "Bạn không có quyền truy cập bộ thẻ này."
 
             normalized_set_id = set_id_int
 
         total_items_in_session = algorithm_func(user_id, normalized_set_id, None).count()
-        if total_items_in_session == 0: return False
+        if total_items_in_session == 0:
+            if mode == 'due_only':
+                return False, "Không có thẻ nào đến hạn ôn tập."
+            elif mode == 'hard_only':
+                return False, "Không có thẻ nào được đánh dấu là khó."
+            elif mode == 'new_only':
+                return False, "Không còn thẻ mới nào để học."
+            else:
+                return False, "Không tìm thấy thẻ nào phù hợp cho chế độ này."
 
         new_session_manager = cls(
             user_id=user_id, set_id=normalized_set_id, mode=mode,
@@ -196,7 +198,7 @@ class FlashcardSessionManager:
         )
         session[cls.SESSION_KEY] = new_session_manager.to_dict()
         session.modified = True
-        return True
+        return True, "Bắt đầu phiên học thành công."
 
     def _get_media_folders(self):
         if self._media_folders_cache is None:

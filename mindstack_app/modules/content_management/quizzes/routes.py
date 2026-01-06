@@ -2261,8 +2261,8 @@ def edit_quiz_item(set_id, item_id):
     }
 
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('items/_add_edit_quiz_item_bare.html', **template_context)
-    return render_template('items/add_edit_quiz_item.html', **template_context)
+        return render_template('v3/pages/content_management/quizzes/items/_add_edit_quiz_item_bare.html', **template_context)
+    return render_template('v3/pages/content_management/quizzes/items/add_edit_quiz_item.html', **template_context)
 
 
 @quizzes_bp.route('/quizzes/<int:set_id>/items/<int:item_id>/move', methods=['POST'])

@@ -98,10 +98,11 @@ def flashcard_start():
         return redirect(url_for('learning.practice.flashcard_dashboard'))
     
     # Bắt đầu session sử dụng flashcard engine
-    if FlashcardSessionManager.start_new_flashcard_session(set_ids, mode):
+    success, message = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
+    if success:
         return redirect(url_for('learning.practice.flashcard_session'))
     else:
-        flash('Không có thẻ nào khả dụng để bắt đầu phiên học.', 'warning')
+        flash(message, 'warning')
         return redirect(url_for('learning.practice.flashcard_dashboard'))
 
 

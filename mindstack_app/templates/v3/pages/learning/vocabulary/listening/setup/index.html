@@ -894,8 +894,8 @@
         if (step === 1) {
             step1.classList.add('active');
             step2.classList.remove('active');
-            dot1.classList.add('active');
-            dot2.classList.remove('active');
+            if (dot1) dot1.classList.add('active');
+            if (dot2) dot2.classList.remove('active');
 
             nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
             nextBtn.disabled = false;
@@ -903,8 +903,8 @@
         } else {
             step1.classList.remove('active');
             step2.classList.add('active');
-            dot1.classList.remove('active');
-            dot2.classList.add('active');
+            if (dot1) dot1.classList.remove('active');
+            if (dot2) dot2.classList.add('active');
 
             const modeNameInfo = {
                 'new': 'Học từ mới',

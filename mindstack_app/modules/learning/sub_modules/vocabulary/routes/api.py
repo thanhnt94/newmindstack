@@ -13,6 +13,8 @@ from mindstack_app.models import (
 
 # Import flashcard engine for session management
 from ...flashcard.engine import get_flashcard_mode_counts
+from mindstack_app.modules.ai_services.service_manager import get_ai_service
+from mindstack_app.modules.ai_services.prompts import get_formatted_prompt
 
 
 # Helper for manual pagination object mocking SQLAlchemy pagination
@@ -300,3 +302,77 @@ def api_get_container_stats(container_id):
             'success': False,
             'error': str(e)
         }), 500
+
+
+@vocabulary_bp.route('/api/progress/<int:item_id>/note', methods=['POST'])
+@login_required
+def api_save_item_note(item_id):
+    """
+    Save or update user note for a specific item.
+    Notes are stored in LearningProgress.mode_data['note'].
+    """
+    payload = request.get_json() or {}
+    note_content = payload.get('note', '').strip()
+    
+    try:
+        # Get progress record
+        progress = LearningProgress.query.filter_by(
+            user_id=current_user.user_id,
+            item_id=item_id,
+            learning_mode=LearningProgress.MODE_FLASHCARD
+        ).first()
+        
+        if not progress:
+            # Create if not exists (unlikely but possible)
+            progress = LearningProgress(
+                user_id=current_user.user_id,
+                item_id=item_id,
+                learning_mode=LearningProgress.MODE_FLASHCARD,
+                status='new'
+            )
+            db.session.add(progress)
+            
+        # Update mode_data safely
+        mode_data = dict(progress.mode_data) if progress.mode_data else {}
+        mode_data['note'] = note_content
+        progress.mode_data = mode_data
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Ghi chú đã được lưu.'})
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error saving note for item {item_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@vocabulary_bp.route('/api/item/<int:item_id>/generate-ai', methods=['POST'])
+@login_required
+def api_generate_ai_explanation(item_id):
+    """Generate AI explanation for a single item."""
+    item = LearningItem.query.get_or_404(item_id)
+    
+    try:
+        ai_client = get_ai_service()
+        if not ai_client:
+            return jsonify({'success': False, 'message': 'Chưa cấu hình dịch vụ AI.'}), 503
+            
+        prompt = get_formatted_prompt(item, purpose="explanation")
+        if not prompt:
+            return jsonify({'success': False, 'message': 'Không thể tạo prompt cho học liệu này.'}), 400
+            
+        item_info = f"{item.item_type} ID {item.item_id}"
+        success, ai_response = ai_client.generate_content(prompt, item_info)
+        
+        if not success:
+            return jsonify({'success': False, 'message': f'Lỗi từ AI: {ai_response}'}), 500
+            
+        item.ai_explanation = ai_response
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Đã tạo nội dung AI thành công.', 'explanation': ai_response})
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error generating AI for item {item_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500

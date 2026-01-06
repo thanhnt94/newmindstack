@@ -137,6 +137,7 @@ class VocabularyItemStats:
         return {
             'item': {
                 'id': item.item_id,
+                'container_title': item.container.title if item.container else 'Unknown Set',
                 'front': content.get('front', '?'),
                 'back': content.get('back', '?'),
                 'pronunciation': content.get('pronunciation'),
@@ -147,6 +148,9 @@ class VocabularyItemStats:
                 'example_meaning': content.get('example_meaning'),
                 'phonetic': content.get('phonetic'),
                 'tags': content.get('tags', []),
+                'custom_data': content.get('custom_data') or content.get('custom_content', {}),  # [UPDATED] Check custom_content too
+                'ai_explanation': item.ai_explanation,        # [NEW] Column in DB
+                'note': (progress.mode_data or {}).get('note', '') if progress else '', # [NEW]
                 'full_content': content # Pass original content for flexibility
             },
             'progress': {
