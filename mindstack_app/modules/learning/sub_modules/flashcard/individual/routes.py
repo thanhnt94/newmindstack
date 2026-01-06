@@ -275,7 +275,7 @@ def start_flashcard_session_by_id(set_id, mode):
         return redirect(url_for('learning.vocabulary.dashboard'))
 
 
-@flashcard_learning_bp.route('/vocabulary/flashcard')
+@flashcard_learning_bp.route('/vocabulary/flashcard/session')
 @login_required
 def flashcard_session():
     """
@@ -298,6 +298,19 @@ def flashcard_session():
     session_data = session.get('flashcard_session', {})
     session_mode = session_data.get('mode')
     is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
+    autoplay_mode = session_mode if is_autoplay_session else ''
+    
+    # Calculate Mode Display Text
+    mode_map = {
+        'new_only': 'Học từ mới',
+        'due_only': 'Ôn tập tới hạn',
+        'hard_only': 'Từ khó',
+        'mixed_srs': 'Học ngẫu nhiên',
+        'preview': 'Xem trước',
+        'autoplay_all': 'Tự động phát tất cả',
+        'autoplay_learned': 'Tự động phát đã học'
+    }
+    mode_display_text = mode_map.get(session_mode, 'Mặc định')
     autoplay_mode = session_mode if is_autoplay_session else ''
 
     # Get container name from session
@@ -337,6 +350,7 @@ def flashcard_session():
         is_autoplay_session=is_autoplay_session,
         autoplay_mode=autoplay_mode,
         container_name=container_name,
+        mode_display_text=mode_display_text,
         saved_visual_settings=session.get('flashcard_visual_settings', {}),
         saved_auto_save=saved_auto_save,
         **template_context  # Contains template_version and updated template_base_path

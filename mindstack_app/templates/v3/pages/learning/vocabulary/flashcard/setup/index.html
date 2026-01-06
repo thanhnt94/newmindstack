@@ -192,6 +192,7 @@
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: var(--shadow-sm);
         position: relative;
+        overflow: hidden;
     }
 
     .mode-card:hover:not(.disabled) {
@@ -427,6 +428,11 @@
             <div class="title-area">
                 <h2>Thiết lập thẻ</h2>
                 <p>Tùy chỉnh trải nghiệm học tập</p>
+                <!-- Display Selected Mode Here -->
+                <div id="selected-mode-display"
+                    class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-700 text-sm font-semibold">
+                    <i class="fas fa-info-circle"></i> <span>...</span>
+                </div>
             </div>
 
             <!-- Button Count -->
@@ -490,7 +496,7 @@
 
     // --- State ---
     let currentStep = 1;
-    let selectedMode = 'random';
+    let selectedMode = 'random'; // Default fallback
     let selectedButtonCount = 4;
     let isAutoplay = false;
     let isShowImage = true;
@@ -498,12 +504,11 @@
     // --- DOM Elements ---
     const step1 = document.getElementById('step-1');
     const step2 = document.getElementById('step-2');
-    const dot1 = document.getElementById('dot-1');
-    const dot2 = document.getElementById('dot-2');
     const nextBtn = document.getElementById('next-btn');
     const backBtn = document.getElementById('header-back-btn');
     const modeCards = document.querySelectorAll('.mode-card');
     const dashboardUrl = "{{ url_for('learning.vocabulary.dashboard') }}";
+    const selectedModeDisplay = document.getElementById('selected-mode-display');
 
     // Config Options
     const buttonChips = document.querySelectorAll('#button-options .option-chip');
@@ -514,22 +519,23 @@
 
     // --- Initialize ---
 
-    // 1. Auto-select mode
+    // 1. Auto-select mode logic (internal)
     let firstValidMode = null;
+    let modeMap = {}; // Map value to UI text/icon for display
+
     modeCards.forEach(card => {
+        const val = card.dataset.value;
+        const title = card.querySelector('.mode-title').innerText;
+        const iconClass = card.querySelector('.mode-icon i').className;
+
+        modeMap[val] = { title, iconClass };
+
         if (!card.classList.contains('disabled')) {
             if (!firstValidMode) firstValidMode = card;
         }
     });
 
-    if (firstValidMode) {
-        selectMode(firstValidMode);
-    } else {
-        nextBtn.disabled = true;
-        nextBtn.innerHTML = "Không có từ nào";
-    }
-
-    // 2. Load Saved Settings (Check flattened keys)
+    // 2. Load Saved Settings
     if (savedSettings.button_count) {
         selectedButtonCount = Number(savedSettings.button_count);
         updateChipSelection(buttonChips, selectedButtonCount);
@@ -550,6 +556,30 @@
         else showImageOption.classList.remove('selected');
     }
 
+    // 3. Check URL for State Recovery (Persistence)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlStep = parseInt(urlParams.get('step'));
+    const urlMode = urlParams.get('mode');
+
+    if (firstValidMode) {
+        // Default selection
+        selectMode(firstValidMode);
+    } else {
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = "Không có từ nào";
+    }
+
+    // Restore if URL valid
+    if (urlStep === 2 && urlMode && modeMap[urlMode]) {
+        // Find card for this mode
+        const targetCard = document.querySelector(`.mode-card[data-value="${urlMode}"]`);
+        if (targetCard && !targetCard.classList.contains('disabled')) {
+            selectMode(targetCard);
+            goToStep(2, false); // Don't push history again on load
+        }
+    }
+
+
     // --- Event Listeners ---
 
     // Mode Selection
@@ -561,9 +591,6 @@
     function selectMode(cardElement) {
         modeCards.forEach(c => c.classList.remove('selected'));
         cardElement.classList.add('selected');
-        // Retrieve internal value
-        // Note: Frontend uses 'new', 'review', 'hard', 'random'
-        // But backend expects specific mode strings for start_session url
         selectedMode = cardElement.dataset.value;
     }
 
@@ -624,7 +651,7 @@
     // Navigation Logic
     nextBtn.addEventListener('click', () => {
         if (currentStep === 1) {
-            goToStep(2);
+            goToStep(2, true);
         } else {
             startSession();
         }
@@ -633,27 +660,86 @@
     backBtn.addEventListener('click', (e) => {
         e.preventDefault();
         if (currentStep === 2) {
-            goToStep(1);
+            // If we have history state, we can go back, else simulate
+            if (window.history.state && window.history.state.step === 2) {
+                window.history.back();
+            } else {
+                goToStep(1, true);
+            }
         } else {
             window.location.href = dashboardUrl;
         }
     });
 
-    function goToStep(step) {
+    // Handle Browser Back/Forward buttons
+    window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.step) {
+            // Restore logic for visual sync (url is already updated by browser)
+            const s = event.state.step;
+            const m = event.state.mode;
+
+            if (s === 1) {
+                showStep1_UI();
+            } else if (s === 2) {
+                if (m && modeMap[m]) {
+                    // Ensure mode is re-selected internally if needed, though usually state is enough
+                    const targetCard = document.querySelector(`.mode-card[data-value="${m}"]`);
+                    if (targetCard) selectMode(targetCard);
+                    showStep2_UI();
+                } else {
+                    // Invalid mode in history, fallback
+                    showStep1_UI();
+                }
+            }
+            currentStep = s;
+
+        } else {
+            // Initial state or no state
+            showStep1_UI();
+            currentStep = 1;
+        }
+    });
+
+    function goToStep(step, updateHistory = false) {
         currentStep = step;
 
         if (step === 1) {
-            step1.classList.add('active');
-            step2.classList.remove('active');
-            dot1.classList.add('active');
-            dot2.classList.remove('active');
-            nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+            showStep1_UI();
+            if (updateHistory) {
+                const url = new URL(window.location);
+                url.searchParams.delete('step');
+                url.searchParams.delete('mode');
+                window.history.pushState({ step: 1 }, '', url);
+            }
         } else {
-            step1.classList.remove('active');
-            step2.classList.add('active');
-            dot1.classList.remove('active');
-            dot2.classList.add('active');
-            nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+            showStep2_UI();
+            if (updateHistory) {
+                const url = new URL(window.location);
+                url.searchParams.set('step', '2');
+                url.searchParams.set('mode', selectedMode);
+                window.history.pushState({ step: 2, mode: selectedMode }, '', url);
+            }
+        }
+    }
+
+    // Split UI logic from State logic for reuse
+    function showStep1_UI() {
+        step1.classList.add('active');
+        step2.classList.remove('active');
+        nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+    }
+
+    function showStep2_UI() {
+        step1.classList.remove('active');
+        step2.classList.add('active');
+        nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+        updateModeDisplay();
+    }
+
+    function updateModeDisplay() {
+        if (selectedModeDisplay && modeMap[selectedMode]) {
+            const info = modeMap[selectedMode];
+            selectedModeDisplay.innerHTML = `<i class="${info.iconClass}"></i> <span>${info.title}</span>`;
         }
     }
 
@@ -706,6 +792,6 @@
             });
     }
 
-}) ();
+    }) ();
 </script>
 {% endblock %}
