@@ -117,13 +117,13 @@ class QuizSessionManager:
         }
 
     @classmethod
-    def start_new_quiz_session(cls, set_id, mode, batch_size, custom_pairs=None):
+    def start_new_quiz_session(cls, set_id, mode, session_size, batch_size=1, custom_pairs=None):
         """
         Khởi tạo một phiên học Quiz mới.
         Lấy danh sách câu hỏi dựa trên chế độ và số lượng yêu cầu.
         """
-        print(f">>> SESSION_MANAGER: Bắt đầu start_new_quiz_session cho set_id={set_id}, mode={mode}, batch_size={batch_size} <<<")
-        current_app.logger.debug(f"SessionManager: Bắt đầu start_new_quiz_session cho set_id={set_id}, mode={mode}, batch_size={batch_size}")
+        print(f">>> SESSION_MANAGER: Bắt đầu start_new_quiz_session cho set_id={set_id}, mode={mode}, session_size={session_size}, turn_size={batch_size} <<<")
+        current_app.logger.debug(f"SessionManager: Bắt đầu start_new_quiz_session cho set_id={set_id}, mode={mode}, session_size={session_size}, turn_size={batch_size}")
         user_id = current_user.user_id
         
         cls.end_quiz_session()
@@ -205,7 +205,7 @@ class QuizSessionManager:
             normalized_set_id = set_id_int
 
         total_items_in_session_query = algorithm_func(user_id, normalized_set_id, None)
-        total_items_in_session = total_items_in_session_query.count()
+        total_items_in_session = min(total_items_in_session_query.count(), session_size)
 
         group_counts = (
             total_items_in_session_query

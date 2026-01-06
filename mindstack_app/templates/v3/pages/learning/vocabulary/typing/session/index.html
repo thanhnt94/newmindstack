@@ -5,6 +5,11 @@
 
 {% block head %}
 {{ super() }}
+<style>
+    .hidden {
+        display: none !important;
+    }
+</style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     /* CRITICAL: Hide global header/footer on mobile */
@@ -636,7 +641,7 @@
         </div>
         <div class="footer-actions">
             <!-- Lightbulb Stats Button -->
-            <button class="lightbulb-btn" id="hint-btn" title="Xem thống kê" style="display: none;">
+            <button class="lightbulb-btn hidden" id="hint-btn" title="Xem thống kê">
                 <i class="fas fa-lightbulb"></i>
             </button>
 
@@ -790,7 +795,10 @@
             submitBtn.classList.remove('bg-emerald-500', 'bg-rose-500');
 
             // Hide Hint Button
-            if (hintBtn) hintBtn.style.display = 'none';
+            if (hintBtn) {
+                hintBtn.classList.add('hidden');
+                hintBtn.style.display = 'none';
+            }
 
             var item = items[current];
 
@@ -818,7 +826,10 @@
             inputEl.disabled = true;
 
             // Show Hint Button
-            if (hintBtn) hintBtn.style.display = 'flex';
+            if (hintBtn) {
+                hintBtn.classList.remove('hidden');
+                hintBtn.style.display = 'flex';
+            }
 
             if (userAnswer === correctAnswer) {
                 inputEl.classList.add('correct');

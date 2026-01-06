@@ -424,6 +424,30 @@
             display: none !important;
         }
     }
+
+    /* Toggle Styles */
+    .toggle-bg {
+        transition: background-color 0.2s ease;
+    }
+
+    #limit-toggle:checked~.toggle-bg,
+    #mobile-limit-toggle:checked~.toggle-bg {
+        background-color: #3b82f6;
+    }
+
+    #limit-toggle:checked~.dot,
+    #mobile-limit-toggle:checked~.dot {
+        transform: translateX(100%);
+    }
+
+    .config-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
 </style>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-full">
@@ -655,20 +679,68 @@
 
         {# Mobile Footer Step 2 (INSIDE Step 2 Card) #}
         <div class="mobile-footer-section lg:hidden flex-col gap-2">
-            {# Mobile: Session Size Selector #}
+            {# Mobile: Session Size Selector (New Toggle Style) #}
             <div id="mobile-session-size-row" class="w-full mb-2 hidden">
-                <div class="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
-                    <span class="text-sm text-slate-600 font-medium">Số câu:</span>
-                    <select id="mobile-session-size-select"
-                        class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-300 focus:border-blue-400">
-                        <option value="1" {% if user_default_batch_size==1 %}selected{% endif %}>1 câu</option>
-                        <option value="3" {% if user_default_batch_size==3 %}selected{% endif %}>3 câu</option>
-                        <option value="5" {% if user_default_batch_size==5 %}selected{% endif %}>5 câu</option>
-                        <option value="10" {% if user_default_batch_size==10 or user_default_batch_size is not defined
-                            %}selected{% endif %}>10 câu</option>
-                        <option value="20" {% if user_default_batch_size==20 %}selected{% endif %}>20 câu</option>
-                        <option value="50" {% if user_default_batch_size==50 %}selected{% endif %}>50 câu</option>
-                    </select>
+                <div class="bg-slate-50 rounded-xl border border-slate-200 p-3">
+                    <div class="flex justify-between items-center mb-0">
+                        <div class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fas fa-sort-numeric-up text-blue-500"></i> Số lượng: <span
+                                id="mobile-limit-status-text" class="text-blue-500">Tất cả</span>
+                        </div>
+                        <label class="flex items-center cursor-pointer">
+                            <span class="mr-2 text-xs font-medium text-slate-500">Tùy chỉnh</span>
+                            <div class="relative">
+                                <input type="checkbox" id="mobile-limit-toggle" class="sr-only">
+                                <div class="block bg-gray-200 w-8 h-5 rounded-full transition-colors toggle-bg"></div>
+                                <div
+                                    class="dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform transform">
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <div id="mobile-limit-options" class="hidden mt-3">
+                        <select id="mobile-session-size-select"
+                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 w-full text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-300">
+                            <option value="5">5 câu</option>
+                            <option value="10" selected>10 câu</option>
+                            <option value="20">20 câu</option>
+                            <option value="30">30 câu</option>
+                            <option value="50">50 câu</option>
+                            <option value="100">100 câu</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {# Mobile: Turn Size Selector (Batch Mode) #}
+            <div id="mobile-turn-size-row" class="w-full mb-3 hidden">
+                <div class="bg-slate-50 rounded-xl border border-slate-200 p-3">
+                    <div class="flex justify-between items-center mb-0">
+                        <div class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fas fa-layer-group text-blue-500"></i> Lượt: <span id="mobile-turn-status-text"
+                                class="text-blue-500">1 câu</span>
+                        </div>
+                        <label class="flex items-center cursor-pointer">
+                            <span class="mr-2 text-xs font-medium text-slate-500">Tùy chỉnh</span>
+                            <div class="relative">
+                                <input type="checkbox" id="mobile-turn-toggle" class="sr-only">
+                                <div class="block bg-gray-200 w-8 h-5 rounded-full transition-colors toggle-bg"></div>
+                                <div
+                                    class="dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform transform">
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <div id="mobile-turn-options" class="hidden mt-3">
+                        <select id="mobile-turn-size-select"
+                            class="bg-white border border-slate-200 rounded-lg px-3 py-2 w-full text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-300">
+                            <option value="1" selected>1 câu mỗi lượt</option>
+                            <option value="2">2 câu mỗi lượt</option>
+                            <option value="3">3 câu mỗi lượt</option>
+                            <option value="5">5 câu mỗi lượt</option>
+                            <option value="10">10 câu mỗi lượt</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -701,6 +773,7 @@
     let selectedQuizSetIds = [];
     let selectedQuizMode = null;
     let selectedSessionSize = parseInt("{{ user_default_batch_size | default(10) }}");
+    let selectedTurnSize = 1;
     let currentCategory = 'my';  // my, learning, explore
     let currentPage = 1;
     let currentSearchQuery = "{{ search_query | default('') }}";
@@ -944,7 +1017,7 @@
 
         // Session size in footer
         const sessionSizeRow = document.getElementById('mobile-session-size-row');
-        const mobileSessionSelect = document.getElementById('mobile-session-size-select');
+        const turnSizeRow = document.getElementById('mobile-turn-size-row');
 
         // Show selected sets in header
         if (headerDisplayEl && headerChipsEl) {
@@ -955,23 +1028,113 @@
                 }).join('');
                 headerChipsEl.innerHTML = chipsHtml;
                 headerDisplayEl.classList.remove('hidden');
+                if (sessionSizeRow) sessionSizeRow.classList.remove('hidden');
+                if (turnSizeRow) turnSizeRow.classList.remove('hidden');
             } else {
                 headerDisplayEl.classList.add('hidden');
+                if (sessionSizeRow) sessionSizeRow.classList.add('hidden');
+                if (turnSizeRow) turnSizeRow.classList.add('hidden');
             }
         }
 
-        // Show session size row in footer with default value
-        if (sessionSizeRow) {
-            sessionSizeRow.classList.remove('hidden');
-            if (mobileSessionSelect) {
-                mobileSessionSelect.value = selectedSessionSize;
-                mobileSessionSelect.onchange = () => {
-                    selectedSessionSize = parseInt(mobileSessionSelect.value);
-                    // Sync with desktop selector if exists
-                    const desktopSelect = document.getElementById('session-size-select');
-                    if (desktopSelect) desktopSelect.value = selectedSessionSize;
-                };
+        // Handle Mobile Limit Toggle Logic
+        const mobileLimitToggle = document.getElementById('mobile-limit-toggle');
+        const mobileLimitOptions = document.getElementById('mobile-limit-options');
+        const mobileLimitStatusText = document.getElementById('mobile-limit-status-text');
+        const mobileSessionSelect = document.getElementById('mobile-session-size-select');
+
+        if (mobileLimitToggle && !mobileLimitToggle.dataset.bound) {
+            // Initialize mobile toggle state
+            if (selectedSessionSize < 999999) {
+                mobileLimitToggle.checked = true;
+                mobileLimitOptions?.classList.remove('hidden');
+                mobileLimitStatusText?.classList.add('hidden');
+                if (mobileSessionSelect) mobileSessionSelect.value = selectedSessionSize;
+            } else {
+                mobileLimitToggle.checked = false;
+                mobileLimitOptions?.classList.add('hidden');
+                mobileLimitStatusText?.classList.remove('hidden');
             }
+
+            mobileLimitToggle.addEventListener('change', function () {
+                if (this.checked) {
+                    mobileLimitOptions?.classList.remove('hidden');
+                    mobileLimitStatusText?.classList.add('hidden');
+                    selectedSessionSize = parseInt(mobileSessionSelect?.value || 10);
+                } else {
+                    mobileLimitOptions?.classList.add('hidden');
+                    mobileLimitStatusText?.classList.remove('hidden');
+                    selectedSessionSize = 999999;
+                }
+                // Sync with desktop selector if exists
+                const desktopLimitToggle = document.getElementById('limit-toggle');
+                if (desktopLimitToggle) {
+                    desktopLimitToggle.checked = this.checked;
+                    desktopLimitToggle.dispatchEvent(new Event('change'));
+                }
+            });
+
+            if (mobileSessionSelect) {
+                mobileSessionSelect.addEventListener('change', function () {
+                    if (mobileLimitToggle.checked) {
+                        selectedSessionSize = parseInt(this.value);
+                        // Sync with desktop select if exists
+                        const desktopSelect = document.getElementById('session-size-select');
+                        if (desktopSelect) desktopSelect.value = this.value;
+                    }
+                });
+            }
+            mobileLimitToggle.dataset.bound = "true";
+        }
+
+        // Handle Mobile Turn Toggle Logic (Batch Mode)
+        const mobileTurnToggle = document.getElementById('mobile-turn-toggle');
+        const mobileTurnOptions = document.getElementById('mobile-turn-options');
+        const mobileTurnStatusText = document.getElementById('mobile-turn-status-text');
+        const mobileTurnSelect = document.getElementById('mobile-turn-size-select');
+
+        if (mobileTurnToggle && !mobileTurnToggle.dataset.bound) {
+            // Initialize turn toggle state
+            if (selectedTurnSize > 1) {
+                mobileTurnToggle.checked = true;
+                mobileTurnOptions?.classList.remove('hidden');
+                mobileTurnStatusText?.classList.add('hidden');
+                if (mobileTurnSelect) mobileTurnSelect.value = selectedTurnSize;
+            } else {
+                mobileTurnToggle.checked = false;
+                mobileTurnOptions?.classList.add('hidden');
+                mobileTurnStatusText?.classList.remove('hidden');
+            }
+
+            mobileTurnToggle.addEventListener('change', function () {
+                if (this.checked) {
+                    mobileTurnOptions?.classList.remove('hidden');
+                    mobileTurnStatusText?.classList.add('hidden');
+                    selectedTurnSize = parseInt(mobileTurnSelect?.value || 1);
+                } else {
+                    mobileTurnOptions?.classList.add('hidden');
+                    mobileTurnStatusText?.classList.remove('hidden');
+                    selectedTurnSize = 1;
+                }
+                // Sync with desktop selector if exists
+                const desktopTurnToggle = document.getElementById('turn-toggle');
+                if (desktopTurnToggle) {
+                    desktopTurnToggle.checked = this.checked;
+                    desktopTurnToggle.dispatchEvent(new Event('change'));
+                }
+            });
+
+            if (mobileTurnSelect) {
+                mobileTurnSelect.addEventListener('change', function () {
+                    if (mobileTurnToggle.checked) {
+                        selectedTurnSize = parseInt(this.value);
+                        // Sync with desktop select if exists
+                        const desktopSelect = document.getElementById('turn-size-select');
+                        if (desktopSelect) desktopSelect.value = this.value;
+                    }
+                });
+            }
+            mobileTurnToggle.dataset.bound = "true";
         }
     }
 
@@ -1112,11 +1275,101 @@
 
             quizModesContainer.innerHTML = await response.text();
 
-            // Xử lý Dropdown số câu
+            // Xử lý Toggle & Dropdown số câu (Desktop)
+            const limitToggle = document.getElementById('limit-toggle');
+            const limitOptions = document.getElementById('limit-options');
+            const limitStatusText = document.getElementById('limit-status-text');
             const sizeSelect = document.getElementById('session-size-select');
+
+            const turnToggle = document.getElementById('turn-toggle');
+            const turnOptions = document.getElementById('turn-options');
+            const turnStatusText = document.getElementById('turn-status-text');
+            const turnSelect = document.getElementById('turn-size-select');
+
+            if (limitToggle) {
+                // Initialize
+                if (selectedSessionSize < 999999) {
+                    limitToggle.checked = true;
+                    limitOptions?.classList.remove('hidden');
+                    limitStatusText?.classList.add('hidden');
+                    if (sizeSelect) sizeSelect.value = selectedSessionSize;
+                } else {
+                    limitToggle.checked = false;
+                    limitOptions?.classList.add('hidden');
+                    limitStatusText?.classList.remove('hidden');
+                }
+
+                limitToggle.addEventListener('change', function () {
+                    if (this.checked) {
+                        limitOptions?.classList.remove('hidden');
+                        limitStatusText?.classList.add('hidden');
+                        selectedSessionSize = parseInt(sizeSelect?.value || 10);
+                    } else {
+                        limitOptions?.classList.add('hidden');
+                        limitStatusText?.classList.remove('hidden');
+                        selectedSessionSize = 999999;
+                    }
+                    // Sync with mobile
+                    const mobileLimitToggle = document.getElementById('mobile-limit-toggle');
+                    if (mobileLimitToggle && mobileLimitToggle.checked !== this.checked) {
+                        mobileLimitToggle.checked = this.checked;
+                        mobileLimitToggle.dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+
             if (sizeSelect) {
-                sizeSelect.value = selectedSessionSize;
-                sizeSelect.addEventListener('change', function () { selectedSessionSize = parseInt(this.value); });
+                sizeSelect.addEventListener('change', function () {
+                    if (limitToggle && limitToggle.checked) {
+                        selectedSessionSize = parseInt(this.value);
+                        // Sync with mobile
+                        const mobileSelect = document.getElementById('mobile-session-size-select');
+                        if (mobileSelect) mobileSelect.value = this.value;
+                    }
+                });
+            }
+
+            if (turnToggle) {
+                // Initialize Turn Toggle
+                if (selectedTurnSize > 1) {
+                    turnToggle.checked = true;
+                    turnOptions?.classList.remove('hidden');
+                    turnStatusText?.classList.add('hidden');
+                    if (turnSelect) turnSelect.value = selectedTurnSize;
+                } else {
+                    turnToggle.checked = false;
+                    turnOptions?.classList.add('hidden');
+                    turnStatusText?.classList.remove('hidden');
+                }
+
+                turnToggle.addEventListener('change', function () {
+                    if (this.checked) {
+                        turnOptions?.classList.remove('hidden');
+                        turnStatusText?.classList.add('hidden');
+                        selectedTurnSize = parseInt(turnSelect?.value || 1);
+                    } else {
+                        turnOptions?.classList.add('hidden');
+                        turnStatusText?.classList.remove('hidden');
+                        selectedTurnSize = 1;
+                    }
+                    // Sync with mobile
+                    const mobileTurnToggle = document.getElementById('mobile-turn-toggle');
+                    if (mobileTurnToggle && mobileTurnToggle.checked !== this.checked) {
+                        mobileTurnToggle.checked = this.checked;
+                        mobileTurnToggle.dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+
+            if (turnSelect) {
+                turnSelect.addEventListener('change', function () {
+                    if (turnToggle && turnToggle.checked) {
+                        selectedTurnSize = parseInt(this.value);
+                        // Sync with mobile
+                        const mobileSelect = document.getElementById('mobile-turn-size-select');
+                        if (mobileSelect) mobileSelect.value = this.value;
+                    }
+                });
             }
 
             // Xử lý Click Mode
@@ -1321,7 +1574,9 @@
 
         // ... existing start logic ...
         let startUrl;
-        const batchSize = selectedSessionSize || 10;
+        const sessionSize = selectedSessionSize || 10;
+        const turnSize = selectedTurnSize || 1;
+
         if (selectedQuizSetIds.length === 1 && selectedQuizSetIds[0] === 'all') {
             startUrl = new URL(startQuizSessionBaseUrlAllTemplate.replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
         } else if (selectedQuizSetIds.length === 1) {
@@ -1330,7 +1585,8 @@
             startUrl = new URL(startQuizSessionBaseUrlMultiTemplate.replace('MODE_PLACEHOLDER', selectedQuizMode), window.location.origin);
             startUrl.searchParams.append('set_ids', selectedQuizSetIds.join(','));
         }
-        startUrl.searchParams.append('batch_size', batchSize);
+        startUrl.searchParams.append('session_size', sessionSize);
+        startUrl.searchParams.append('turn_size', turnSize);
         localStorage.removeItem('selectedQuizSetIds');
         window.location.href = startUrl.toString();
     });

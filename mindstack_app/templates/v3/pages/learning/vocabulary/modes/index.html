@@ -50,16 +50,7 @@
         transition: all 0.3s ease;
     }
 
-    /* Subtle gradient accent bar at top of header */
-    .wizard-header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ec4899);
-    }
+
 
     .nav-btn {
         width: 38px;
@@ -349,7 +340,9 @@
             </div>
             <div class="header-title">{{ container.title }}</div>
         </div>
-        <div style="width: 40px;"></div> <!-- Spacer -->
+        <a href="/dashboard" class="nav-btn" title="Về trang chủ">
+            <i class="fas fa-home"></i>
+        </a>
     </div>
 
     <div class="modes-content">

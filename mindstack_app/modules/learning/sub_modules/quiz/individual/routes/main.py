@@ -183,13 +183,14 @@ def get_quiz_custom_options(set_id):
 def start_quiz_session_all(mode):
     """Bắt đầu một phiên học Quiz cho TẤT CẢ các bộ câu hỏi với chế độ và kích thước nhóm câu đã chọn."""
     set_ids = 'all'
-    batch_size = request.args.get('batch_size', type=int)
+    session_size = request.args.get('session_size', type=int) or request.args.get('batch_size', type=int)
+    turn_size = request.args.get('turn_size', type=int, default=1)
 
-    if not batch_size:
-        flash('Lỗi: Thiếu kích thước nhóm câu hỏi.', 'danger')
+    if not session_size:
+        flash('Lỗi: Thiếu kích thước phiên học.', 'danger')
         return redirect(url_for('learning.quiz_learning.dashboard'))
 
-    if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
+    if QuizSessionManager.start_new_quiz_session(set_ids, mode, session_size, turn_size):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
         flash('Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
@@ -201,10 +202,11 @@ def start_quiz_session_all(mode):
 def start_quiz_session_multi(mode):
     """Bắt đầu một phiên học Quiz cho nhiều bộ câu hỏi với chế độ và kích thước nhóm câu đã chọn."""
     set_ids_str = request.args.get('set_ids')
-    batch_size = request.args.get('batch_size', type=int)
+    session_size = request.args.get('session_size', type=int) or request.args.get('batch_size', type=int)
+    turn_size = request.args.get('turn_size', type=int, default=1)
 
-    if not set_ids_str or not batch_size:
-        flash('Lỗi: Thiếu thông tin bộ câu hỏi hoặc kích thước nhóm.', 'danger')
+    if not set_ids_str or not session_size:
+        flash('Lỗi: Thiếu thông tin bộ câu hỏi hoặc kích thước phiên.', 'danger')
         return redirect(url_for('learning.quiz_learning.dashboard'))
 
     try:
@@ -213,7 +215,7 @@ def start_quiz_session_multi(mode):
         flash('Lỗi: Định dạng ID bộ quiz không hợp lệ.', 'danger')
         return redirect(url_for('learning.quiz_learning.dashboard'))
 
-    if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
+    if QuizSessionManager.start_new_quiz_session(set_ids, mode, session_size, turn_size):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
         flash('Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
@@ -224,7 +226,8 @@ def start_quiz_session_multi(mode):
 @login_required
 def start_quiz_session_by_id(set_id, mode):
     """Bắt đầu một phiên học Quiz cho một bộ câu hỏi cụ thể với chế độ và kích thước nhóm câu đã chọn."""
-    batch_size = request.args.get('batch_size', type=int)
+    session_size = request.args.get('session_size', type=int) or request.args.get('batch_size', type=int)
+    turn_size = request.args.get('turn_size', type=int, default=1)
     
     custom_pairs_str = request.args.get('custom_pairs')
     custom_pairs = None
@@ -235,21 +238,21 @@ def start_quiz_session_by_id(set_id, mode):
             current_app.logger.warning("Failed to parse custom_pairs JSON")
             pass
 
-    if not batch_size:
-        flash('Lỗi: Thiếu kích thước nhóm câu hỏi.', 'danger')
+    if not session_size:
+        flash('Lỗi: Thiếu kích thước phiên học.', 'danger')
         return redirect(url_for('learning.quiz_learning.dashboard'))
 
-    # [NEW] Save batch size preference for next time
+    # [NEW] Save session size preference for next time
     try:
         from mindstack_app import db
         if current_user.last_preferences is None:
             current_user.last_preferences = {}
-        current_user.last_preferences = {**current_user.last_preferences, 'quiz_question_count': batch_size}
+        current_user.last_preferences = {**current_user.last_preferences, 'quiz_question_count': session_size, 'quiz_turn_size': turn_size}
         db.session.commit()
     except Exception as e:
         current_app.logger.warning(f"Failed to save quiz batch size preference: {e}")
 
-    if QuizSessionManager.start_new_quiz_session(set_id, mode, batch_size, custom_pairs=custom_pairs):
+    if QuizSessionManager.start_new_quiz_session(set_id, mode, session_size, turn_size, custom_pairs=custom_pairs):
         return redirect(url_for('learning.quiz_learning.quiz_session'))
     else:
         flash('Không có câu hỏi nào để bắt đầu phiên học với các lựa chọn này.', 'warning')

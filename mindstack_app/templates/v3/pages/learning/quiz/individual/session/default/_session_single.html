@@ -10,6 +10,11 @@
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="{{ url_for('learning.quiz_learning.static', filename='css/session_single.css') }}">
+<style>
+    .hidden {
+        display: none !important;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -95,7 +100,8 @@
         style="max-width: 900px; margin: 0 auto; height: 90vh; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
         <div class="qb-hub-header">
             <h3 class="font-bold text-slate-800 text-lg"><i
-                    class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i>Chỉnh sửa câu hỏi</h3>
+                    class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i>Chỉnh
+                sửa câu hỏi</h3>
             <button id="close-edit-modal-btn"
                 class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
                     class="fa-solid fa-xmark"></i></button>
@@ -358,7 +364,10 @@
             // Reset UI
             toggleClass('.js-result-panel', 'hidden', true);
             toggleClass('#desktop-insights-area', 'hidden', true);
+
+            // Hide lightbulb buttons
             if (dom.openHubBtn) dom.openHubBtn.classList.add('hidden');
+            if (dom.openHubDesktopBtn) dom.openHubDesktopBtn.classList.add('hidden');
 
             updateActionButtons(true, '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án', 'submit');
 
@@ -533,11 +542,12 @@
                 if (elKey === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
             });
 
-            // Force show lightbulb button
+            // Force show lightbulb buttons
             if (dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
+            if (dom.openHubDesktopBtn) dom.openHubDesktopBtn.classList.remove('hidden');
 
-            toggleClass('.js-result-panel', 'hidden', false);
-            toggleClass('#desktop-insights-area', 'hidden', false);
+            // toggleClass('.js-result-panel', 'hidden', false);
+            // toggleClass('#desktop-insights-area', 'hidden', false);
 
             if (result.is_correct) {
                 setText('.js-feedback-icon', '🎉');

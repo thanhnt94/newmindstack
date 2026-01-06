@@ -5,6 +5,11 @@
 
 {% block head %}
 {{ super() }}
+<style>
+    .hidden {
+        display: none !important;
+    }
+</style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     /* CRITICAL: Hide global header/footer on mobile */
@@ -500,7 +505,7 @@
                 autocomplete="off">
         </div>
         <div class="footer-actions">
-            <button class="lightbulb-btn" id="hint-btn" title="Gợi ý" style="display:none;">
+            <button class="lightbulb-btn hidden" id="hint-btn" title="Gợi ý">
                 <i class="fas fa-lightbulb"></i>
             </button>
             <button class="next-btn" id="submit-btn" disabled>
@@ -614,7 +619,8 @@
             // Hide Hint Button initially (only show after answering)
             const hintBtn = document.getElementById('hint-btn');
             if (hintBtn) {
-                hintBtn.style.display = 'none';
+                hintBtn.classList.add('hidden');
+                hintBtn.style.display = 'none'; // Fallback
                 hintBtn.onclick = () => {
                     if (window.openVocabularyItemStats && window.currentItemId) {
                         window.openVocabularyItemStats(window.currentItemId);
@@ -747,7 +753,10 @@
 
                     // Show lightbulb button after answering
                     const hintBtn = document.getElementById('hint-btn');
-                    if (hintBtn) hintBtn.style.display = 'flex';
+                    if (hintBtn) {
+                        hintBtn.classList.remove('hidden');
+                        hintBtn.style.display = 'flex';
+                    }
                 });
         }
 

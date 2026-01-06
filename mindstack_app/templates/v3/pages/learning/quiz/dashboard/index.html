@@ -612,6 +612,36 @@
         color: #475569;
     }
 
+    /* Toggle Styles for Dashboard */
+    .toggle-bg {
+        transition: background-color 0.2s ease;
+    }
+
+    #limit-toggle:checked~.toggle-bg {
+        background-color: var(--quiz-primary);
+    }
+
+    #limit-toggle:checked~.dot {
+        transform: translateX(100%);
+    }
+
+    .config-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .config-card {
+        background: #f8fafc;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 0.75rem;
+    }
+
     .session-size-select {
         padding: 0.5rem 2rem 0.5rem 0.75rem;
         font-size: 0.875rem;
@@ -841,6 +871,9 @@
             <i class="fas fa-arrow-left"></i>
         </a>
         <span class="quiz-title">Học Quiz</span>
+        <a href="/dashboard" class="quiz-back-btn" title="Về trang chủ" style="margin-left: auto;">
+            <i class="fas fa-home"></i>
+        </a>
     </div>
 
     <div class="quiz-search-wrap">
@@ -895,7 +928,7 @@
                 <span class="js-header-count">0</span> câu hỏi
             </div>
         </div>
-        <a href="{{ url_for('stats.dashboard') }}" class="step-home-btn">
+        <a href="/dashboard" class="step-home-btn" title="Về trang chủ">
             <i class="fas fa-home"></i>
         </a>
     </div>
@@ -952,7 +985,7 @@
         <div class="step-header-info">
             <div class="step-header-title">Chọn chế độ học</div>
         </div>
-        <a href="{{ url_for('learning.learning_dashboard') }}" class="step-home-btn">
+        <a href="/dashboard" class="step-home-btn" title="Về trang chủ">
             <i class="fas fa-home"></i>
         </a>
     </div>
@@ -964,19 +997,73 @@
     </div>
 
     <div class="quiz-footer">
-        <!-- Session Size Selector -->
-        <div class="session-size-row">
-            <label for="session-size-select">Số câu/phiên:</label>
-            <select id="session-size-select" class="session-size-select">
-                <option value="1" {% if user_default_batch_size==1 %}selected{% endif %}>1 câu</option>
-                <option value="5" {% if user_default_batch_size==5 %}selected{% endif %}>5 câu</option>
-                <option value="10" {% if user_default_batch_size==10 or not user_default_batch_size %}selected{% endif
-                    %}>10 câu</option>
-                <option value="15" {% if user_default_batch_size==15 %}selected{% endif %}>15 câu</option>
-                <option value="20" {% if user_default_batch_size==20 %}selected{% endif %}>20 câu</option>
-                <option value="30" {% if user_default_batch_size==30 %}selected{% endif %}>30 câu</option>
-                <option value="50" {% if user_default_batch_size==50 %}selected{% endif %}>50 câu</option>
-            </select>
+        <!-- Count Config -->
+        <div class="config-card">
+            <div class="flex justify-between items-center">
+                <div class="config-header">
+                    <i class="fas fa-sort-numeric-up"></i> Số lượng: <span id="limit-status-text"
+                        class="text-blue-500 font-semibold">Tất cả</span>
+                </div>
+                <!-- Limit Toggle -->
+                <label class="flex items-center cursor-pointer">
+                    <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                    <div class="relative">
+                        <input type="checkbox" id="limit-toggle" class="sr-only">
+                        <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                        <div
+                            class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Count Select (Hidden by default) -->
+            <div id="limit-options" class="hidden mt-3">
+                <div class="relative w-full">
+                    <select id="session-size-select" class="session-size-select w-full">
+                        <option value="5">5 câu</option>
+                        <option value="10" selected>10 câu</option>
+                        <option value="20">20 câu</option>
+                        <option value="30">30 câu</option>
+                        <option value="50">50 câu</option>
+                        <option value="100">100 câu</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Turn Size Config (Batch Mode) -->
+        <div class="config-card mt-3">
+            <div class="flex justify-between items-center">
+                <div class="config-header">
+                    <i class="fas fa-layer-group"></i> Lượt: <span id="turn-status-text"
+                        class="text-blue-500 font-semibold">1 câu</span>
+                </div>
+                <!-- Turn Toggle -->
+                <label class="flex items-center cursor-pointer">
+                    <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                    <div class="relative">
+                        <input type="checkbox" id="turn-toggle" class="sr-only">
+                        <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                        <div
+                            class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Turn Select (Hidden by default) -->
+            <div id="turn-options" class="hidden mt-3">
+                <div class="relative w-full">
+                    <select id="turn-size-select" class="session-size-select w-full">
+                        <option value="1" selected>1 câu mỗi lượt</option>
+                        <option value="2">2 câu mỗi lượt</option>
+                        <option value="3">3 câu mỗi lượt</option>
+                        <option value="5">5 câu mỗi lượt</option>
+                        <option value="10">10 câu mỗi lượt</option>
+                    </select>
+                </div>
+            </div>
         </div>
         <button class="quiz-start-btn js-start-session" disabled>
             <i class="fas fa-play-circle"></i> Bắt đầu phiên học
@@ -1070,11 +1157,25 @@
     // Start Session button
     startSessionBtn?.addEventListener('click', () => {
         if (!selectedSetId || !selectedMode) return;
+
+        const limitToggle = document.getElementById('limit-toggle');
         const sessionSizeSelect = document.getElementById('session-size-select');
-        const batchSize = sessionSizeSelect ? parseInt(sessionSizeSelect.value) : 10;
+        const turnToggle = document.getElementById('turn-toggle');
+        const turnSizeSelect = document.getElementById('turn-size-select');
+
+        let sessionSize = 999999;
+        let turnSize = 1;
+
+        if (limitToggle && limitToggle.checked && sessionSizeSelect) {
+            sessionSize = parseInt(sessionSizeSelect.value) || 10;
+        }
+        if (turnToggle && turnToggle.checked && turnSizeSelect) {
+            turnSize = parseInt(turnSizeSelect.value) || 1;
+        }
+
         const url = startSessionUrl
             .replace('/0/', '/' + selectedSetId + '/')
-            .replace('/MODE', '/' + selectedMode) + '?batch_size=' + batchSize;
+            .replace('/MODE', '/' + selectedMode) + '?session_size=' + sessionSize + '&turn_size=' + turnSize;
 
         // Clear potential stale state from previous sessions
         sessionStorage.removeItem('quiz_session_single_state');
@@ -1082,6 +1183,68 @@
 
         window.location.href = url;
     });
+
+    // Toggle Logic for Dashboard
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'limit-toggle') {
+            const limitOptions = document.getElementById('limit-options');
+            const limitStatusText = document.getElementById('limit-status-text');
+            if (e.target.checked) {
+                limitOptions?.classList.remove('hidden');
+                limitStatusText?.classList.add('hidden');
+            } else {
+                limitOptions?.classList.add('hidden');
+                limitStatusText?.classList.remove('hidden');
+            }
+        }
+        if (e.target && e.target.id === 'turn-toggle') {
+            const turnOptions = document.getElementById('turn-options');
+            const turnStatusText = document.getElementById('turn-status-text');
+            if (e.target.checked) {
+                turnOptions?.classList.remove('hidden');
+                turnStatusText?.classList.add('hidden');
+            } else {
+                turnOptions?.classList.add('hidden');
+                turnStatusText?.classList.remove('hidden');
+            }
+        }
+    });
+
+    // Initial Toggle Setup
+    function initToggleState() {
+        const limitToggle = document.getElementById('limit-toggle');
+        const limitOptions = document.getElementById('limit-options');
+        const limitStatusText = document.getElementById('limit-status-text');
+        const sessionSizeSelect = document.getElementById('session-size-select');
+        const savedBatchSize = {{ user_default_batch_size|default (10) | int
+    }};
+
+    if (limitToggle) {
+        if (savedBatchSize && savedBatchSize < 999999) {
+            limitToggle.checked = true;
+            if (sessionSizeSelect) sessionSizeSelect.value = savedBatchSize;
+            limitOptions?.classList.remove('hidden');
+            limitStatusText?.classList.add('hidden');
+        } else {
+            limitToggle.checked = false;
+            limitOptions?.classList.add('hidden');
+            limitStatusText?.classList.remove('hidden');
+        }
+    }
+
+    const turnToggle = document.getElementById('turn-toggle');
+    const turnOptions = document.getElementById('turn-options');
+    const turnStatusText = document.getElementById('turn-status-text');
+    if (turnToggle) {
+        // Default to OFF (1 question per turn) for now
+        turnToggle.checked = false;
+        turnOptions?.classList.add('hidden');
+        turnStatusText?.classList.remove('hidden');
+    }
+    }
+
+    // Call init after loading steps or on DOMContentLoaded
+    initToggleState();
 
     function showStep(step) {
         stepBrowser?.classList.remove('active');

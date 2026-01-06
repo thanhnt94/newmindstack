@@ -310,6 +310,19 @@
         opacity: 0.6;
         cursor: not-allowed;
     }
+
+    /* Toggle Styles */
+    .toggle-bg {
+        transition: background-color 0.2s ease;
+    }
+
+    #limit-toggle:checked~.toggle-bg {
+        background-color: var(--primary);
+    }
+
+    #limit-toggle:checked~.dot {
+        transform: translateX(100%);
+    }
 </style>
 {% endblock %}
 
@@ -323,7 +336,9 @@
             <span class="mode-badge"><i class="fas fa-tasks"></i> Kiểm tra</span>
             <h1 class="set-title">{{ container.title }}</h1>
         </div>
-        <div style="width: 40px;"></div>
+        <a href="/dashboard" class="nav-btn" title="Về trang chủ">
+            <i class="fas fa-home"></i>
+        </a>
     </div>
 
     <div class="wizard-content">
@@ -349,16 +364,75 @@
             {% endfor %}
         </div>
 
+        <!-- Count Config -->
         <div class="config-card" style="margin-top: 1.5rem;">
-            <div class="config-header"><i class="fas fa-hashtag"></i> Số lượng câu hỏi</div>
-            <select id="count-select" class="modern-select">
-                <option value="1">1 câu</option>
-                <option value="5">5 câu</option>
-                <option value="10" selected>10 câu</option>
-                <option value="20">20 câu</option>
-                <option value="50">50 câu</option>
-                <option value="999999">Tất cả</option>
-            </select>
+            <div class="flex justify-between items-center">
+                <div class="config-header mb-0">
+                    <i class="fas fa-sort-numeric-up"></i> Số lượng câu hỏi <span id="limit-status-text"
+                        class="text-blue-500 font-semibold">Tất cả</span>
+                </div>
+                <!-- Limit Toggle -->
+                <label class="flex items-center cursor-pointer">
+                    <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                    <div class="relative">
+                        <input type="checkbox" id="limit-toggle" class="sr-only">
+                        <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                        <div
+                            class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Count Select (Hidden by default) -->
+            <div id="limit-options" class="hidden mt-4">
+                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn tổng số câu:</label>
+                <div class="relative w-full">
+                    <select id="count-select" class="modern-select">
+                        <option value="5">5 câu</option>
+                        <option value="10" selected>10 câu</option>
+                        <option value="20">20 câu</option>
+                        <option value="30">30 câu</option>
+                        <option value="50">50 câu</option>
+                        <option value="100">100 câu</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Turn Size Config (Batch Mode) -->
+        <div class="config-card" style="margin-top: 1.5rem;">
+            <div class="flex justify-between items-center">
+                <div class="config-header mb-0">
+                    <i class="fas fa-layer-group"></i> Số câu mỗi lượt <span id="turn-status-text"
+                        class="text-blue-500 font-semibold">1 câu</span>
+                </div>
+                <!-- Turn Toggle -->
+                <label class="flex items-center cursor-pointer">
+                    <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                    <div class="relative">
+                        <input type="checkbox" id="turn-toggle" class="sr-only">
+                        <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                        <div
+                            class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Turn Select (Hidden by default) -->
+            <div id="turn-options" class="hidden mt-4">
+                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn số câu mỗi lượt:</label>
+                <div class="relative w-full">
+                    <select id="turn-select" class="modern-select">
+                        <option value="1" selected>1 câu</option>
+                        <option value="2">2 câu</option>
+                        <option value="3">3 câu</option>
+                        <option value="5">5 câu</option>
+                        <option value="10">10 câu</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -378,16 +452,63 @@
     }};
     var dashboardUrl = "{{ url_for('learning.quiz_learning.dashboard') }}";
     var savedBatchSize = {{ user_default_batch_size|default (10) | int }};
+    var savedTurnSize = 1; // Default to 1 for Quiz
 
     var selectedMode = '';
     var selectedCount = savedBatchSize;
+    var selectedTurnSize = savedTurnSize;
 
     var startBtn = document.getElementById('start-btn');
     var modeCards = document.querySelectorAll('.mode-card');
     var countSelect = document.getElementById('count-select');
+    var limitToggle = document.getElementById('limit-toggle');
+    var limitOptions = document.getElementById('limit-options');
+    var limitStatusText = document.getElementById('limit-status-text');
 
-    // Set saved batch size in dropdown
-    countSelect.value = savedBatchSize;
+    var turnToggle = document.getElementById('turn-toggle');
+    var turnOptions = document.getElementById('turn-options');
+    var turnSelect = document.getElementById('turn-select');
+    var turnStatusText = document.getElementById('turn-status-text');
+
+    // Initial setup
+    if (savedBatchSize && savedBatchSize < 999999) {
+        limitToggle.checked = true;
+        countSelect.value = savedBatchSize;
+    } else {
+        limitToggle.checked = false;
+    }
+    updateLimitUI();
+    updateTurnUI();
+
+    function updateLimitUI() {
+        if (limitToggle.checked) {
+            limitOptions.classList.remove('hidden');
+            limitStatusText.classList.add('hidden');
+            selectedCount = Number(countSelect.value);
+        } else {
+            limitOptions.classList.add('hidden');
+            limitStatusText.classList.remove('hidden');
+            selectedCount = 999999;
+        }
+    }
+
+    function updateTurnUI() {
+        if (turnToggle && turnToggle.checked) {
+            turnOptions.classList.remove('hidden');
+            turnStatusText.classList.add('hidden');
+            selectedTurnSize = Number(turnSelect.value);
+        } else {
+            if (turnOptions) turnOptions.classList.add('hidden');
+            if (turnStatusText) turnStatusText.classList.remove('hidden');
+            selectedTurnSize = 1;
+        }
+    }
+
+    limitToggle.addEventListener('change', updateLimitUI);
+    countSelect.addEventListener('change', updateLimitUI);
+
+    if (turnToggle) turnToggle.addEventListener('change', updateTurnUI);
+    if (turnSelect) turnSelect.addEventListener('change', updateTurnUI);
 
     // Auto-select first valid mode
     var firstValidMode = null;
@@ -407,7 +528,11 @@
     // Mode selection
     modeCards.forEach(function (card) {
         if (card.classList.contains('disabled')) return;
-        card.addEventListener('click', function () { selectMode(card); });
+        card.addEventListener('click', function () {
+            modeCards.forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedMode = card.getAttribute('data-value');
+        });
     });
 
     function selectMode(cardElement) {
@@ -415,11 +540,6 @@
         cardElement.classList.add('selected');
         selectedMode = cardElement.dataset.value;
     }
-
-    // Count selection
-    countSelect.addEventListener('change', function () {
-        selectedCount = Number(countSelect.value);
-    });
 
     // Start session
     startBtn.addEventListener('click', function () {
@@ -431,8 +551,8 @@
         startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
         var sessionUrl = "{{ url_for('learning.quiz_learning.start_quiz_session_by_id', set_id=container.container_id, mode='MODE_PLACEHOLDER') }}";
         sessionUrl = sessionUrl.replace('MODE_PLACEHOLDER', selectedMode);
-        window.location.href = sessionUrl + '?batch_size=' + selectedCount;
+        window.location.href = sessionUrl + '?session_size=' + selectedCount + '&turn_size=' + selectedTurnSize;
     });
-}) ();
+    }) ();
 </script>
 {% endblock %}

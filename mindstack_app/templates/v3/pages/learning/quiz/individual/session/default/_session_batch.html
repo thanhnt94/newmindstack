@@ -10,6 +10,11 @@
 {{ super() }}
 {% include "v3/pages/content_management/shared/_shared_styles.html" %}
 <link rel="stylesheet" href="{{ url_for('learning.quiz_learning.static', filename='css/session_batch.css') }}">
+<style>
+    .hidden {
+        display: none !important;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -1415,8 +1420,11 @@
     function toggleControlButtons(state) {
         const submits = document.querySelectorAll('.js-submit-batch-btn');
         const nexts = document.querySelectorAll('.js-next-batch-btn');
+        const explains = document.querySelectorAll('.js-batch-explain-btn');
+
         submits.forEach(btn => btn.style.display = 'none');
         nexts.forEach(btn => btn.style.display = 'none');
+        explains.forEach(btn => btn.classList.add('hidden'));
 
         if (state === 'answering') {
             submits.forEach(btn => {
@@ -1435,6 +1443,7 @@
             });
         } else if (state === 'submitted') {
             nexts.forEach(btn => btn.style.display = 'inline-flex');
+            explains.forEach(btn => btn.classList.remove('hidden'));
         }
     }
 

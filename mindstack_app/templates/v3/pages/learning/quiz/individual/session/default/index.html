@@ -411,6 +411,10 @@
         }
     }
 
+    .hidden {
+        display: none !important;
+    }
+
     @keyframes fadeIn {
         from {
             opacity: 0;
@@ -567,7 +571,7 @@
                     <span class="font-bold text-slate-700">Công cụ</span>
                 </div>
                 <div class="cm-card-body flex flex-col gap-2">
-                    <button id="open-hub-desktop-btn" class="cm-btn cm-btn-primary w-full"><i
+                    <button id="open-hub-desktop-btn" class="cm-btn cm-btn-primary w-full hidden"><i
                             class="fa-solid fa-book-open"></i> Xem chi tiết & Ghi chú</button>
                     <a href="#" id="desktop-question-stats-link" target="_blank"
                         class="cm-btn w-full border border-slate-200 hover:bg-slate-50 text-center block text-slate-700 no-underline"><i
@@ -687,6 +691,7 @@
             // Hub
             hubModal: document.getElementById('explanation-hub-modal'),
             openHubBtn: document.getElementById('open-hub-btn'),
+            openHubDesktopBtn: document.getElementById('open-hub-desktop-btn'),
             closeHubBtn: document.getElementById('close-hub-btn'),
             hubExplText: document.getElementById('hub-explanation-text'),
             hubAiContent: document.getElementById('hub-ai-content'),
@@ -751,7 +756,14 @@
 
             // Reset UI
             dom.resultPanel.classList.add('hidden');
-            dom.openHubBtn.classList.add('hidden');
+            if (dom.openHubBtn) {
+                dom.openHubBtn.classList.add('hidden');
+                dom.openHubBtn.style.display = 'none';
+            }
+            if (dom.openHubDesktopBtn) {
+                dom.openHubDesktopBtn.classList.add('hidden');
+                dom.openHubDesktopBtn.style.display = 'none';
+            }
             dom.mobileActionBtn.disabled = true;
             dom.mobileActionBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án';
             dom.mobileActionBtn.dataset.action = 'submit';
@@ -816,7 +828,14 @@
                 dom.mobileActionBtn.dataset.action = 'next';
 
                 // Show Hub Button
-                dom.openHubBtn.classList.remove('hidden');
+                if (dom.openHubBtn) {
+                    dom.openHubBtn.classList.remove('hidden');
+                    dom.openHubBtn.style.display = 'flex';
+                }
+                if (dom.openHubDesktopBtn) {
+                    dom.openHubDesktopBtn.classList.remove('hidden');
+                    dom.openHubDesktopBtn.style.display = 'flex';
+                }
 
             } catch (e) {
                 alert('Lỗi gửi đáp án.');
