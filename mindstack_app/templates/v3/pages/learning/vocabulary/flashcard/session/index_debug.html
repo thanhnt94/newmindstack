@@ -1,0 +1,8 @@
+{# TEST PERSISTENCE 12345 #}
+{% block scripts %}
+<script>
+    window.FlashcardConfig = {
+        test: {{ "ok" | tojson }}
+  };
+</script>
+{% endblock %}

@@ -56,7 +56,7 @@
                         {# Card Stats Button (NEW) #}
                         <button
                             class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center hover:bg-indigo-100 js-fc-card-details-btn"
-                            title="Chi tiết & Thống kê thẻ">
+                            title="Stats của thẻ (Item Detail)">
                             <i class="fas fa-chart-bar text-[10px]"></i>
                         </button>
 
@@ -656,17 +656,18 @@
                     typeof window.currentFlashcardIndex !== 'undefined') {
                     const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
                     if (card && card.item_id) {
-                        // Use the template from FlashcardConfig if available, otherwise fallback
-                        const urlTemplate = window.FlashcardConfig.itemStatsUrlTemplate;
-                        if (urlTemplate) {
-                            const statsUrl = urlTemplate.replace('/0', '/' + card.item_id) + '?modal=true';
-
-                            if (typeof window.openModal === 'function') {
-                                window.openModal(statsUrl);
-                            } else if (window.parent && typeof window.parent.openModal === 'function') {
-                                window.parent.openModal(statsUrl);
-                            } else {
-                                window.location.href = statsUrl;
+                        if (typeof window.openVocabularyItemStats === 'function') {
+                            window.openVocabularyItemStats(card.item_id);
+                        } else {
+                            // Fallback using iframe if AJAX function fails
+                            const urlTemplate = window.FlashcardConfig.itemStatsUrlTemplate;
+                            if (urlTemplate) {
+                                const statsUrl = urlTemplate.replace('/0', '/' + card.item_id);
+                                if (typeof window.openModal === 'function') {
+                                    window.openModal(statsUrl);
+                                } else {
+                                    window.location.href = statsUrl;
+                                }
                             }
                         }
                     }

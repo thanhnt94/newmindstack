@@ -1,8 +1,8 @@
 {#
 # File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
-# Phiên bản: 74.0
-# ĐÃ SỬA: Đưa các biến Jinja ra ngoài object window.FlashcardConfig để tránh formatter làm hỏng syntax (insert space vào
-{{ }}).
+# Phiên bản: 70.0
+# MỤC ĐÍCH: Sửa lỗi syntax Jinja template triệt để.
+# ĐÃ SỬA: Remove spaces from Jinja braces {{ }} and filters.
 #}
 
 {% extends "v3/base.html" %}
@@ -95,23 +95,12 @@
 {# Nhúng modal Feedback #}
 {% include 'v3/pages/feedback/_feedback_modal.html' %}
 
-{# Nhúng modal Item Stats (Dùng chung với Dashboard) #}
-{% include 'v3/pages/learning/vocabulary/stats/_modal_stats.html' %}
-
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 
 <script>
-  // Define Jinja variables outside the config object to prevent the auto-formatter from inserting spaces into braces
-  const _userButtonCount = {{ user_button_count | default (4) }};
-  const _isAutoplaySession = {{ is_autoplay_session | default (false) | tojson }};
-  const _autoplayMode = "{{ autoplay_mode | default('') }}";
-  const _visualSettings = {{ (saved_visual_settings or { }) | tojson }};
-  const _autoSaveOn = {{ saved_auto_save | default (true) | tojson }};
-  const _currentUserTotalScore = {{ current_user.total_score | default (0) }};
-
   window.FlashcardConfig = {
     getFlashcardBatchUrl: "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}",
     flashcardItemApiUrlTemplate: "{{ url_for('learning.flashcard_learning.get_flashcard_item_api', item_id=0) }}",
@@ -123,13 +112,13 @@
     getNoteUrl: "{{ url_for('notes.get_note', item_id=0) }}",
     saveNoteUrl: "{{ url_for('notes.save_note', item_id=0) }}",
     editFlashcardUrlTemplate: "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}",
-    itemStatsUrlTemplate: "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}",
     csrfHeaders: { "X-CSRFToken": "{{ csrf_token() }}" },
-    userButtonCount: _userButtonCount,
-    isAutoplaySession: _isAutoplaySession,
-    autoplayMode: _autoplayMode,
-    visualSettings: _visualSettings,
-    autoSaveOn: _autoSaveOn
+    itemStatsUrlTemplate: "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}",
+    userButtonCount: {{ user_button_count | default (4) | tojson }},
+  isAutoplaySession: { { is_autoplay_session | default (false) | tojson } },
+  autoplayMode: { { autoplay_mode | default ('') | tojson } },
+  visualSettings: { { (saved_visual_settings or { }) | tojson } },
+  autoSaveOn: { { saved_auto_save | default (true) | tojson } }
   };
 
   const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
@@ -138,7 +127,7 @@
     window.FlashcardConfig.csrfHeaders = { "X-CSRFToken": csrfToken };
   }
 
-  window.currentUserTotalScoreInit = _currentUserTotalScore;
+  window.currentUserTotalScoreInit = {{ current_user.total_score | default (0) }};
   window.sessionScore = 0;
 </script>
 
