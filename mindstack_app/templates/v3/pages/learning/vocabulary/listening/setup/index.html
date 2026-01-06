@@ -1,18 +1,18 @@
-{# Typing Setup Template - Wizard Style #}
+{# Listening Setup Template - Wizard Style #}
 {% extends "v3/base.html" %}
-{% block title %}Luyện viết - {{ container.title }}{% endblock %}
+{% block title %}Luyện nghe - {{ container.title }}{% endblock %}
 {% block head %}
 {{ super() }}
 <style>
     :root {
-        --primary: #f59e0b;
-        --primary-bg: #fffbeb;
+        --primary: #8b5cf6;
+        --primary-bg: #f5f3ff;
         --surface: #ffffff;
         --background: #f8fafc;
         --text-main: #0f172a;
         --text-sub: #64748b;
         --border: #e2e8f0;
-        --border-focus: #f59e0b;
+        --border-focus: #8b5cf6;
         --radius: 24px;
         --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
         --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
@@ -34,7 +34,6 @@
         overflow: hidden;
     }
 
-    /* Minimal Header */
     .wizard-header {
         padding: 0.75rem 0.75rem;
         display: flex;
@@ -71,7 +70,6 @@
         background: var(--background);
     }
 
-    /* Center Info */
     .header-info {
         display: flex;
         flex-direction: column;
@@ -122,11 +120,9 @@
         border-radius: 12px;
     }
 
-    /* Steps Content */
     .wizard-content {
         flex: 1;
         padding: 75px 1.5rem 100px 1.5rem;
-        /* Space for fixed header and footer */
         display: flex;
         flex-direction: column;
         overflow-y: auto;
@@ -134,7 +130,6 @@
 
     .step-screen {
         display: none;
-        /* Hidden by default */
         animation: fadeIn 0.4s ease-out;
     }
 
@@ -173,7 +168,6 @@
         font-size: 1rem;
     }
 
-    /* Grid Options */
     .mode-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -196,13 +190,13 @@
 
     .mode-card:hover:not(.disabled) {
         transform: translateY(-2px);
-        border-color: rgba(245, 158, 11, 0.3);
+        border-color: rgba(139, 92, 246, 0.3);
     }
 
     .mode-card.selected {
         background: var(--primary-bg);
         border-color: var(--primary);
-        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+        box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
     }
 
     .mode-card.disabled {
@@ -249,7 +243,6 @@
         display: block;
     }
 
-    /* Config Step */
     .config-card {
         background: var(--surface);
         border-radius: 24px;
@@ -257,7 +250,20 @@
         box-shadow: var(--shadow-sm);
     }
 
-    /* Pairs Styling */
+    .config-header {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .config-header i {
+        color: var(--primary);
+    }
+
     .pair-container {
         display: flex;
         flex-direction: column;
@@ -320,20 +326,6 @@
         padding-top: 1.2rem;
     }
 
-    /* Small layout tweak for mobile to ensure arrow fits */
-    @media(max-width: 360px) {
-        .pair-connection {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .arrow-divider {
-            transform: rotate(90deg);
-            padding-top: 0;
-            padding: 0.5rem 0;
-        }
-    }
-
     .add-pair-btn {
         width: 100%;
         padding: 1rem;
@@ -380,8 +372,6 @@
         transform: scale(1.1);
     }
 
-
-    /* Footer */
     .wizard-footer {
         padding: 1rem 1.5rem;
         background: var(--surface);
@@ -408,18 +398,18 @@
         align-items: center;
         justify-content: center;
         gap: 0.75rem;
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
     }
 
     .btn-primary {
         background: var(--primary);
         color: white;
-        box-shadow: 0 8px 16px -4px rgba(245, 158, 11, 0.4);
+        box-shadow: 0 8px 16px -4px rgba(139, 92, 246, 0.4);
     }
 
     .btn-primary:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 12px 20px -4px rgba(245, 158, 11, 0.5);
+        box-shadow: 0 12px 20px -4px rgba(139, 92, 246, 0.5);
     }
 
     .btn-primary:disabled {
@@ -434,20 +424,16 @@
 {% block content %}
 <div class="wizard-container">
 
-    <!-- Top Header -->
     <div class="wizard-header">
-        <!-- Back Logic: Step 1 -> Dashboard, Step 2 -> Step 1 -->
         <a id="header-back-btn" href="#" class="nav-btn">
             <i class="fas fa-chevron-left"></i>
         </a>
 
-        <!-- Center Info: Set Title & Mode -->
         <div class="header-info">
-            <span class="mode-badge"><i class="fas fa-keyboard"></i> Luyện viết</span>
+            <span class="mode-badge"><i class="fas fa-headphones"></i> Luyện nghe</span>
             <h1 class="set-title">{{ container.title }}</h1>
         </div>
 
-        <!-- Step Indicators -->
         <div class="step-indicator">
             <div class="step-dot active" id="dot-1"></div>
             <div class="step-dot" id="dot-2"></div>
@@ -464,17 +450,14 @@
             </div>
 
             <div class="mode-grid">
-                <!-- New -->
                 <div class="mode-card {% if counts.new == 0 %}disabled{% endif %}" data-value="new">
                     <div class="mode-icon"><i class="fas fa-seedling"></i></div>
                     <div class="mode-info">
                         <span class="mode-title">Học từ mới</span>
                         <span class="mode-desc">{{ counts.new }} từ chưa học</span>
                     </div>
-                    {% if counts.new > 0 %}<i class="fas fa-arrow-right text-gray-400"></i>{% endif %}
                 </div>
 
-                <!-- Review -->
                 <div class="mode-card {% if counts.review == 0 %}disabled{% endif %}" data-value="review">
                     <div class="mode-icon"><i class="fas fa-history"></i></div>
                     <div class="mode-info">
@@ -483,7 +466,6 @@
                     </div>
                 </div>
 
-                <!-- Hard -->
                 <div class="mode-card {% if counts.hard == 0 %}disabled{% endif %}" data-value="hard">
                     <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
                     <div class="mode-info">
@@ -492,7 +474,6 @@
                     </div>
                 </div>
 
-                <!-- Learned (Review All) -->
                 <div class="mode-card {% if counts.learned == 0 %}disabled{% endif %}" data-value="learned">
                     <div class="mode-icon"><i class="fas fa-check-double"></i></div>
                     <div class="mode-info">
@@ -501,7 +482,6 @@
                     </div>
                 </div>
 
-                <!-- Random -->
                 <div class="mode-card {% if counts.random == 0 %}disabled{% endif %}" data-value="random">
                     <div class="mode-icon"><i class="fas fa-random"></i></div>
                     <div class="mode-info">
@@ -515,10 +495,10 @@
         <!-- STEP 2: CONFIGURATION -->
         <div class="step-screen" id="step-2">
             <div class="title-area">
-                <h2>Cấu hình bài viết</h2>
-                <p>Cấu hình cách hiển thị và gõ từ</p>
+                <h2>Cấu hình bài nghe</h2>
+                <p>Cấu hình cách phát âm thanh và gõ từ</p>
                 <div id="selected-mode-display"
-                    class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-100 rounded-lg text-amber-700 text-sm font-bold">
+                    class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-100 rounded-lg text-purple-700 text-sm font-bold">
                     <i class="fas fa-layer-group"></i> <span>...</span>
                 </div>
             </div>
@@ -528,9 +508,8 @@
                 <div class="flex justify-between items-center">
                     <div class="config-header mb-0">
                         <i class="fas fa-sort-numeric-up"></i> Số lượng câu hỏi <span id="limit-status-text"
-                            class="text-amber-500 font-semibold">Không giới hạn</span>
+                            class="text-purple-500 font-semibold">Không giới hạn</span>
                     </div>
-                    <!-- Limit Toggle -->
                     <label class="flex items-center cursor-pointer">
                         <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
                         <div class="relative">
@@ -543,12 +522,11 @@
                     </label>
                 </div>
 
-                <!-- Count Select (Hidden by default) -->
                 <div id="limit-options" class="hidden mt-4">
                     <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn số câu:</label>
                     <div class="relative w-full">
                         <select id="count-select"
-                            class="w-full p-2.5 appearance-none bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:outline-none focus:border-amber-500 transition-all">
+                            class="w-full p-2.5 appearance-none bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:outline-none focus:border-purple-500 transition-all">
                             <option value="5">5 câu</option>
                             <option value="10" selected>10 câu</option>
                             <option value="15">15 câu</option>
@@ -565,11 +543,11 @@
                 </div>
             </div>
 
+            <!-- Pair Config -->
             <div class="config-card">
                 <div class="flex justify-between items-center mb-3">
                     <div class="config-header" style="margin-bottom:0;"><i class="fas fa-sliders-h"></i> Cấu hình Bài
-                        viết</div>
-                    <!-- Custom Toggle -->
+                        nghe</div>
                     <label class="flex items-center cursor-pointer">
                         <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
                         <div class="relative">
@@ -583,7 +561,6 @@
                 </div>
 
                 <style>
-                    /* Toggle Styles */
                     #custom-config-toggle:checked~.toggle-bg {
                         background-color: var(--primary);
                     }
@@ -591,13 +568,18 @@
                     #custom-config-toggle:checked~.dot {
                         transform: translateX(100%);
                     }
+
+                    #limit-toggle:checked~.toggle-bg {
+                        background-color: var(--primary);
+                    }
+
+                    #limit-toggle:checked~.dot {
+                        transform: translateX(100%);
+                    }
                 </style>
 
-                <!-- Default View (Read Only) -->
                 <div id="default-config-view" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div id="default-summary" class="space-y-2">
-                        <!-- Injected via JS -->
-                    </div>
+                    <div id="default-summary" class="space-y-2"></div>
                     <p id="no-default-msg" class="text-sm text-red-500 italic hidden">
                         <i class="fas fa-exclamation-circle"></i> Bộ này chưa có cấu hình mặc định. Vui lòng bật "Tùy
                         chỉnh" để thiết lập.
@@ -605,32 +587,21 @@
                 </div>
 
                 <div id="custom-builder-view" class="hidden mt-4">
-                    <div class="pair-container" id="pairs-list">
-                        <!-- Pairs injected via JS -->
-                    </div>
-
+                    <div class="pair-container" id="pairs-list"></div>
                     <button type="button" class="add-pair-btn" id="add-pair-btn">
                         <i class="fas fa-plus-circle"></i> Thêm cấu hình khác
                     </button>
-
-                    <div class="flex justify-end mt-2">
-                        <button type="button" class="text-xs text-blue-600 hover:underline" id="reset-to-default-btn"
-                            style="display:none">
-                            <i class="fas fa-undo"></i> Khôi phục mặc định
-                        </button>
-                    </div>
                 </div>
             </div>
 
             <div style="margin-top: 1.5rem; text-align: center; color: var(--text-sub); font-size: 0.9rem;">
-                <p><i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Mẹo: Bạn nên chọn "Nghĩa" để nhìn thấy, và "Từ
-                    vựng" để gõ lại.</p>
+                <p><i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Mẹo: Chọn cột Audio để nghe, và từ vựng để gõ
+                    lại.</p>
             </div>
         </div>
 
     </div>
 
-    <!-- Footer Action -->
     <div class="wizard-footer">
         <button class="action-btn btn-primary" id="next-btn">
             Tiếp tục <i class="fas fa-arrow-right"></i>
@@ -648,17 +619,19 @@
         const setId = Number("{{ container.container_id }}");
         const counts = {{ counts | tojson
     }};
-    const availableKeys = {{ available_keys | tojson }} || [];
+    const audioKeys = {{ audio_keys | tojson }} || [];
+    const allKeys = {{ available_keys | tojson }} || [];
     const savedSettings = {{ saved_settings | tojson }} || {};
     const defaultSettings = {{ default_settings | tojson }} || {};
 
-    console.log('[Typing Setup] savedSettings:', savedSettings);
-    console.log('[Typing Setup] defaultSettings:', defaultSettings);
+    console.log('[Listening Setup] savedSettings:', savedSettings);
+    console.log('[Listening Setup] audioKeys:', audioKeys);
+    console.log('[Listening Setup] allKeys:', allKeys);
 
     // --- State ---
     let currentStep = 1;
-    let selectedMode = 'random'; // Default fallback
-    let selectedCount = 0; // 0 = Unlimited
+    let selectedMode = 'random';
+    let selectedCount = 0;
     let customPairs = [];
     let isCustomMode = false;
 
@@ -681,7 +654,6 @@
     const customView = document.getElementById('custom-builder-view');
     const defaultSummary = document.getElementById('default-summary');
     const noDefaultMsg = document.getElementById('no-default-msg');
-    const resetBtn = document.getElementById('reset-to-default-btn');
 
     // Count Toggle Elements
     const limitToggle = document.getElementById('limit-toggle');
@@ -696,20 +668,19 @@
         if (limitToggle.checked) {
             limitOptions.classList.remove('hidden');
             limitStatusText.classList.add('hidden');
-            toggleBg.classList.add('bg-amber-500');
+            toggleBg.classList.add('bg-purple-500');
             toggleBg.classList.remove('bg-gray-200');
             toggleDot.classList.add('translate-x-full');
             countSelect.disabled = false;
         } else {
             limitOptions.classList.add('hidden');
             limitStatusText.classList.remove('hidden');
-            toggleBg.classList.remove('bg-amber-500');
+            toggleBg.classList.remove('bg-purple-500');
             toggleBg.classList.add('bg-gray-200');
             toggleDot.classList.remove('translate-x-full');
             countSelect.disabled = true;
         }
     }
-
 
     // --- Initialize ---
 
@@ -724,13 +695,12 @@
     if (firstValidMode) {
         selectMode(firstValidMode);
     } else {
-        // All disabled? Edge case.
         nextBtn.disabled = true;
         nextBtn.innerHTML = "Không có từ nào để học";
         nextBtn.style.background = "#94a3b8";
     }
 
-    // Load Saved Mode (if available)
+    // Load Saved Mode
     if (savedSettings.mode) {
         const savedModeCard = document.querySelector(`.mode-card[data-value="${savedSettings.mode}"]`);
         if (savedModeCard && !savedModeCard.classList.contains('disabled')) {
@@ -738,14 +708,11 @@
         }
     }
 
-    // 2. Initialize Toggle State based on History
-    // Logic: Respect explicit 'use_custom_config' flag if present.
+    // 2. Initialize Custom Toggle
     let useCustomConfig = false;
-
     if (savedSettings.use_custom_config !== undefined) {
         useCustomConfig = savedSettings.use_custom_config;
     } else if (savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0) {
-        // Legacy fallback
         useCustomConfig = true;
     }
 
@@ -782,7 +749,6 @@
     renderConfigView();
     checkStartButtonState();
 
-
     function renderDefaultView() {
         defaultSummary.innerHTML = '';
         const defaults = defaultSettings.custom_pairs || [];
@@ -795,10 +761,10 @@
                 const el = document.createElement('div');
                 el.className = 'flex items-center text-sm text-gray-700 bg-white p-2 rounded border border-gray-100';
                 el.innerHTML = `
-                         <span class="text-xs text-gray-500 mr-2">Nhìn:</span>
+                        <span class="text-xs text-gray-500 mr-2">Nghe:</span>
                         <span class="font-bold bg-gray-100 px-2 py-0.5 rounded text-xs mr-2 uppercase">${p.q}</span>
                         <i class="fas fa-arrow-right text-gray-400 text-xs mx-1"></i>
-                         <span class="text-xs text-gray-500 ml-2 mr-1">Gõ:</span>
+                        <span class="text-xs text-gray-500 ml-2 mr-1">Gõ:</span>
                         <span class="font-bold bg-gray-100 px-2 py-0.5 rounded text-xs uppercase">${p.a}</span>
                     `;
                 defaultSummary.appendChild(el);
@@ -811,11 +777,17 @@
 
     renderDefaultView();
 
-    if (defaultSettings.custom_pairs && defaultSettings.custom_pairs.length > 0) {
-        resetBtn.style.display = 'inline-block';
+    // Check URL for initial step
+    const urlParams = new URLSearchParams(window.location.search);
+    let initialStep = parseInt(urlParams.get('step')) || 1;
+    if (initialStep === 2 && selectedMode) {
+        goToStep(2);
+    } else {
+        goToStep(1);
     }
 
     // --- Event Listeners ---
+
     customToggle.addEventListener('change', (e) => {
         isCustomMode = e.target.checked;
         renderConfigView();
@@ -833,24 +805,18 @@
         }
     }
 
-    resetBtn.addEventListener('click', () => {
-        loadDefaultsToBuilder();
-    });
-
     function loadDefaultsToBuilder() {
         pairsList.innerHTML = '';
         const defaults = defaultSettings.custom_pairs;
         if (defaults && defaults.length > 0) {
             defaults.forEach(p => addPairUI(p.q, p.a));
         } else {
-            // Fallback
-            const defQ = availableKeys.includes('front') ? 'front' : (availableKeys[0] || '');
-            const defA = availableKeys.includes('back') ? 'back' : (availableKeys[1] || '');
+            // Fallback: first audio key -> first text key
+            const defQ = audioKeys[0] || 'front_audio';
+            const defA = allKeys.includes('front') ? 'front' : (allKeys[0] || 'front');
             addPairUI(defQ, defA);
         }
     }
-
-
 
     function checkStartButtonState() {
         if (currentStep !== 2) return;
@@ -864,7 +830,7 @@
                 msg = 'Chưa có cấu hình mặc định';
             }
         } else {
-            const rows = document.querySelectorAll('.pair-row'); // Typing pairs don't have disable checkbox yet
+            const rows = document.querySelectorAll('.pair-row');
             if (rows.length === 0) {
                 isValid = false;
                 msg = 'Cần ít nhất 1 cấu hình';
@@ -877,13 +843,9 @@
         else nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
     }
 
-
-    // Mode Selection
     modeCards.forEach(card => {
         if (card.classList.contains('disabled')) return;
-        card.addEventListener('click', () => {
-            selectMode(card);
-        });
+        card.addEventListener('click', () => selectMode(card));
     });
 
     function selectMode(cardElement) {
@@ -892,7 +854,6 @@
         selectedMode = cardElement.dataset.value;
     }
 
-    // Navigation Logic
     nextBtn.addEventListener('click', () => {
         if (currentStep === 1) {
             goToStep(2);
@@ -902,7 +863,7 @@
     });
 
     backBtn.addEventListener('click', (e) => {
-        e.preventDefault(); // Prevent default link behavior
+        e.preventDefault();
         if (currentStep === 2) {
             goToStep(1);
         } else {
@@ -915,7 +876,6 @@
         checkStartButtonState();
     });
 
-    // Limit Toggle Logic
     limitToggle.addEventListener('change', (e) => {
         updateLimitUI();
         selectedCount = e.target.checked ? Number(countSelect.value) : 0;
@@ -928,7 +888,6 @@
     function goToStep(step) {
         currentStep = step;
 
-        // Update URL
         const url = new URL(window.location);
         url.searchParams.set('step', step);
         window.history.pushState({}, '', url);
@@ -948,7 +907,6 @@
             dot1.classList.remove('active');
             dot2.classList.add('active');
 
-            // Update Mode Display
             const modeNameInfo = {
                 'new': 'Học từ mới',
                 'review': 'Ôn tập tới hạn',
@@ -964,35 +922,33 @@
         }
     }
 
-    // Check URL for initial step
-    const urlParams = new URLSearchParams(window.location.search);
-    let initialStep = parseInt(urlParams.get('step')) || 1;
-    if (initialStep === 2 && selectedMode) {
-        goToStep(2);
-    } else {
-        goToStep(1);
-    }
-
     // --- Pair Logic ---
     function addPairUI(qVal = '', aVal = '') {
         const row = document.createElement('div');
         row.className = 'pair-row';
 
-        let optionsHtml = '';
-        availableKeys.forEach(k => {
-            optionsHtml += `<option value="${k}">${k}</option>`;
+        // Question (TTS will read this column) - all columns
+        let questionOptionsHtml = '';
+        allKeys.forEach(k => {
+            questionOptionsHtml += `<option value="${k}">${k}</option>`;
+        });
+
+        // Answer - all columns
+        let answerOptionsHtml = '';
+        allKeys.forEach(k => {
+            answerOptionsHtml += `<option value="${k}">${k}</option>`;
         });
 
         row.innerHTML = `
                 <div class="pair-connection">
                     <div class="pair-box">
-                        <label class="pair-label">Nhìn thấy</label>
-                        <select class="modern-select pair-q">${optionsHtml}</select>
+                        <label class="pair-label">Nghe (TTS đọc)</label>
+                        <select class="modern-select pair-q">${questionOptionsHtml}</select>
                     </div>
                     <div class="arrow-divider"><i class="fas fa-arrow-right"></i></div>
                     <div class="pair-box">
-                        <label class="pair-label">Gõ lại</label>
-                        <select class="modern-select pair-a">${optionsHtml}</select>
+                        <label class="pair-label">Gõ (Đáp án)</label>
+                        <select class="modern-select pair-a">${answerOptionsHtml}</select>
                     </div>
                 </div>
                 <button class="delete-pair"><i class="fas fa-times"></i></button>
@@ -1000,17 +956,14 @@
 
         pairsList.appendChild(row);
 
-        // Set values
         if (qVal) row.querySelector('.pair-q').value = qVal;
         if (aVal) row.querySelector('.pair-a').value = aVal;
 
-        // Bind Events
         row.querySelector('.delete-pair').addEventListener('click', () => {
             row.remove();
             checkStartButtonState();
         });
     }
-
 
     function updatePairsData() {
         customPairs = [];
@@ -1026,7 +979,6 @@
         });
     }
 
-    // --- Start Session ---
     function startSession() {
         updatePairsData();
 
@@ -1035,11 +987,10 @@
             return;
         }
 
-        // Loading State
         nextBtn.disabled = true;
         nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
 
-        const startUrl = "{{ url_for('learning.vocabulary.typing.start_session') }}";
+        const startUrl = "{{ url_for('learning.vocabulary.listening.start_session') }}";
 
         fetch(startUrl, {
             method: 'POST',
@@ -1073,6 +1024,6 @@
             });
     }
 
-}) ();
+    }) ();
 </script>
 {% endblock %}

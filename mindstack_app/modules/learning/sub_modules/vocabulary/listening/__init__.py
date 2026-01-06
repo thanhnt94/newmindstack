@@ -2,8 +2,7 @@ from flask import Blueprint
 
 listening_bp = Blueprint(
     'listening',
-    __name__,
-    url_prefix='/learn/vocabulary/listening'
+    __name__
 )
 
 from . import routes

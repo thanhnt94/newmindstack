@@ -112,6 +112,7 @@ def start_session():
         try:
             from mindstack_app.models import UserContainerState, db
             from mindstack_app.utils.db_session import safe_commit
+            from sqlalchemy.orm.attributes import flag_modified
             
             ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
             if not ucs:
@@ -120,13 +121,22 @@ def start_session():
             
             new_settings = dict(ucs.settings or {})
             if 'typing' not in new_settings: new_settings['typing'] = {}
+            
             new_settings['typing']['mode'] = mode
-            new_settings['typing']['count'] = count
-            new_settings['typing']['use_custom_config'] = use_custom_config
+            # Allow count=0 for unlimited. Only default to 10 if count is None.
+            if count is not None:
+                new_settings['typing']['count'] = int(count)
+            else:
+                new_settings['typing']['count'] = 10
+            new_settings['typing']['use_custom_config'] = bool(use_custom_config)
             if custom_pairs:
                 new_settings['typing']['custom_pairs'] = custom_pairs
             
             ucs.settings = new_settings
+            
+            # CRITICAL: Trigger SQLAlchemy change detection for JSON
+            flag_modified(ucs, "settings")
+            
             safe_commit(db.session)
         except Exception as e:
             import traceback

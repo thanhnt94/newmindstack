@@ -1,42 +1,50 @@
 # File: vocabulary/listening/logic.py
 # Listening Learning Mode Logic
 
-from mindstack_app.models import LearningItem
+from mindstack_app.models import LearningItem, LearningProgress
+from datetime import datetime, timezone
 
 
-def get_listening_eligible_items(container_id):
-    """Get all items eligible for Listening mode from a container."""
-    items = LearningItem.query.filter_by(
+def get_listening_eligible_items(container_id, mode='random', custom_pairs=None):
+    """Get all items eligible for Listening mode from a container with mode filtering.
+    With TTS, any item with text content is eligible (no audio URL required).
+    """
+    
+    base_query = LearningItem.query.filter_by(
         container_id=container_id,
         item_type='FLASHCARD'
-    ).all()
+    )
+    
+    # Apply mode filtering
+    if mode == 'new':
+        # Items without any progress records
+        base_query = base_query.filter(~LearningItem.progress_records.any())
+    elif mode == 'review':
+        # Items due for review
+        now = datetime.now(timezone.utc)
+        base_query = base_query.join(LearningProgress).filter(LearningProgress.due_time <= now)
+    elif mode == 'hard':
+        # Items with low easiness factor
+        base_query = base_query.join(LearningProgress).filter(LearningProgress.easiness_factor < 2.5)
+    elif mode == 'learned':
+        # All items with progress
+        base_query = base_query.join(LearningProgress)
+    # 'random' = no filtering
+    
+    items = base_query.all()
     
     eligible = []
     for item in items:
         content = item.content or {}
-        # Need back (answer) and audio for listening
-        # Front text is optional for display after answering, but audio is MUST.
-        if content.get('back') and (content.get('front_audio_url') or content.get('back_audio_url')):
-            # Prefer front audio for question, but can support back? 
-            # Usually Listening Dictation: Listen (Target Language) -> Write (Target Language) OR Listen (Target) -> Write (Native)?
-            # Dictation usually means: Hear X -> Write X.
-            # So if we have front_audio, answer is front text?
-            # Or if we have back_audio, answer is back text?
-            # Let's assume standard: Flashcard Front = Target Word. Back = Meaning.
-            # Dictation: Hear Target Word (Front Audio) -> Type Target Word (Front Text).
-            # So we check front audio and front text.
-            
-            if content.get('front') and content.get('front_audio_url'):
-                eligible.append({
-                    'item_id': item.item_id,
-                    'prompt': '???', # Audio only
-                    'answer': content.get('front'), # Type what you hear
-                    'audio_url': content.get('front_audio_url'),
-                    'meaning': content.get('back'), # Show after answer
-                    'content': content # Expose for remapping
-                })
-            # What if only back audio exists? (e.g. Listen English -> Write English?)
-            # Let's stick to Front=Target for now.
+        # With TTS, any item with front and back text is eligible
+        if content.get('front') and content.get('back'):
+            eligible.append({
+                'item_id': item.item_id,
+                'prompt': '???',
+                'answer': content.get('front'),
+                'meaning': content.get('back'),
+                'content': content
+            })
     
     return eligible
 

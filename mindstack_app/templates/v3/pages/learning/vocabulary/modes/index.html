@@ -392,15 +392,15 @@
                 <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
             </a>
 
-            <!-- Listening (Placeholder for future) -->
-            <a href="#" onclick="alert('Tính năng đang phát triển')" class="mode-card mode-listening"
-                style="opacity: 0.6;">
+            <!-- Listening -->
+            <a href="{{ url_for('learning.vocabulary.listening.setup', set_id=container.container_id) }}"
+                class="mode-card mode-listening">
                 <div class="mode-icon-box"><i class="fas fa-headphones"></i></div>
                 <div class="mode-info">
                     <span class="mode-name">Luyện nghe</span>
                     <span class="mode-desc">Nghe và chép lại (Dictation).</span>
                 </div>
-                <div class="mode-arrow"><i class="fas fa-lock"></i></div>
+                <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
             </a>
 
         </div>
