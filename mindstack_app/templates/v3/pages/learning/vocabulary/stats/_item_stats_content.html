@@ -62,7 +62,7 @@
             </button>
             <button class="sub-tab-btn" onclick="switchSubTab('sub-ai')"
                 style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
-                <i class="fas fa-sparkles"></i> AI
+                <i class="fas fa-sparkles"></i> AI Coach
             </button>
         </div>
     </div>
@@ -126,8 +126,9 @@
             <!-- SUB-TAB C: AI CONTENT -->
             <div id="sub-ai" class="sub-tab-content" style="display: none;">
                 {% if s.item.ai_explanation %}
-                <div class="ai-content-box" style="line-height: 1.6; color: #334155; font-size: 0.95rem;">
-                    <div style="white-space: pre-wrap;">{{ s.item.ai_explanation }}</div>
+                <div class="ai-content-box markdown-body js-markdown-content"
+                    style="line-height: 1.6; color: #334155; font-size: 0.95rem;">
+                    {{ s.item.ai_explanation }}
                 </div>
                 {% else %}
                 <div id="ai-placeholder" style="text-align: center; color: #94a3b8; padding: 2rem;">
@@ -141,7 +142,7 @@
                     </button>
                 </div>
                 <!-- Box for new content -->
-                <div id="ai-content-box" class="ai-content-box"
+                <div id="ai-content-box" class="ai-content-box markdown-body"
                     style="display: none; line-height: 1.6; color: #334155; font-size: 0.95rem;"></div>
                 {% endif %}
             </div>
@@ -150,8 +151,8 @@
 
         <!-- TAB 3: NOTES -->
         <div class="tab-content" id="tab-notes" style="display: none;">
-            <!-- Display Mode -->
-            <div id="note-display-mode" style="{% if s.item.note %}display: block;{% else %}display: none;{% endif %}">
+            <!-- Display Mode (Always show first) -->
+            <div id="note-display-mode" style="display: block;">
                 <div
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                     <label style="font-size: 0.85rem; font-weight: 700; color: #64748b;">
@@ -168,8 +169,8 @@
                 </div>
             </div>
 
-            <!-- Edit Mode -->
-            <div id="note-edit-mode" style="{% if s.item.note %}display: none;{% else %}display: block;{% endif %}">
+            <!-- Edit Mode (Hidden initially) -->
+            <div id="note-edit-mode" style="display: none;">
                 <div style="margin-bottom: 1rem;">
                     <label
                         style="display: block; font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem;">

@@ -499,3 +499,42 @@ def bulk_unarchive():
         db.session.rollback()
         current_app.logger.error(f"Lỗi khi bỏ lưu trữ hàng loạt: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi xử lý yêu cầu.'}), 500
+
+
+@quiz_learning_bp.route('/quiz/api/item/<int:item_id>/generate-ai', methods=['POST'])
+@login_required
+def api_generate_quiz_ai_explanation(item_id):
+    """Generate AI explanation for a quiz item."""
+    from mindstack_app.modules.ai_services.service_manager import get_ai_service
+    from mindstack_app.modules.ai_services.prompts import get_formatted_prompt
+    
+    item = LearningItem.query.get_or_404(item_id)
+    
+    try:
+        current_app.logger.info(f"Generating AI explanation for quiz item {item_id}")
+        ai_client = get_ai_service()
+        if not ai_client:
+            return jsonify({'success': False, 'message': 'Chưa cấu hình dịch vụ AI.'}), 503
+            
+        prompt = get_formatted_prompt(item, purpose="explanation")
+        if not prompt:
+            return jsonify({'success': False, 'message': 'Không thể tạo prompt cho học liệu này.'}), 400
+            
+        item_info = f"{item.item_type} ID {item.item_id}"
+        success, ai_response = ai_client.generate_content(prompt, item_info)
+        
+        if not success:
+            current_app.logger.error(f"AI Service error for quiz item {item_id}: {ai_response}")
+            return jsonify({'success': False, 'message': f'Lỗi từ AI: {ai_response}'}), 500
+            
+        item.ai_explanation = ai_response
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Đã tạo nội dung AI thành công.', 'explanation': ai_response})
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        error_details = traceback.format_exc()
+        current_app.logger.error(f"Error generating AI for quiz item {item_id}: {e}\n{error_details}")
+        return jsonify({'success': False, 'message': str(e), 'details': error_details}), 500

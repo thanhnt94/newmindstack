@@ -58,9 +58,9 @@
                 style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
                 <i class="fas fa-book-open"></i> Hướng dẫn
             </button>
-            <button class="sub-tab-btn" onclick="switchQuizSubTab('sub-ai')"
+            <button class="sub-tab-btn" onclick="switchQuizSubTab('quiz-sub-ai')"
                 style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
-                <i class="fas fa-sparkles"></i> AI
+                <i class="fas fa-sparkles"></i> AI Coach
             </button>
         </div>
     </div>
@@ -131,31 +131,34 @@
                 {% endif %}
             </div>
 
-            <!-- SUB-TAB C: AI -->
-            <div id="sub-ai" class="sub-tab-content" style="display: none;">
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                    <button id="generate-ai-btn" onclick="window.generateQuizAI({{ item.item_id }})"
-                        style="background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.5rem 1rem; border-radius: 0.75rem; cursor: pointer; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;">
+            <!-- SUB-TAB C: AI COACH -->
+            <div id="quiz-sub-ai" class="sub-tab-content" style="display: none;">
+                {% if item.ai_explanation %}
+                <div class="ai-content-box markdown-body js-markdown-content"
+                    style="line-height: 1.6; color: #334155; font-size: 0.95rem;">
+                    {{ item.ai_explanation }}
+                </div>
+                {% else %}
+                <div id="quiz-stats-ai-placeholder" style="text-align: center; color: #94a3b8; padding: 2rem;">
+                    <i class="fas fa-robot" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p style="margin-bottom: 1.5rem;">Chưa có nội dung từ AI.</p>
+
+                    <!-- Generate Button -->
+                    <button id="quiz-generate-ai-btn" onclick="window.generateQuizAI({{ item.item_id }})"
+                        style="background: #6366f1; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-sparkles"></i> Tạo nội dung AI
                     </button>
                 </div>
-                <div id="quiz-stats-ai-content"
-                    style="background: #f8fafc; border-radius: 0.75rem; border: 1px solid #f1f5f9; padding: 1.25rem; min-height: 120px; font-size: 0.95rem; color: #334155; line-height: 1.6; white-space: pre-wrap;">
-                    {% if item.ai_explanation %}
-                    {{ item.ai_explanation }}
-                    {% else %}
-                    <div style="text-align: center; color: #94a3b8; padding: 2rem;">
-                        <i class="fas fa-robot" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
-                        <p style="margin: 0;">Nhấn "Tạo nội dung AI" để phân tích câu hỏi</p>
-                    </div>
-                    {% endif %}
-                </div>
+                <!-- Box for new content -->
+                <div id="quiz-stats-ai-content" class="ai-content-box markdown-body"
+                    style="display: none; line-height: 1.6; color: #334155; font-size: 0.95rem;"></div>
+                {% endif %}
             </div>
         </div>
 
         <!-- TAB 2: NOTES -->
         <div class="tab-content" id="quiz-tab-notes" style="display: none;">
-            <!-- Display Mode (Always shown first) -->
+            <!-- Display Mode (Always show first) -->
             <div id="quiz-note-display-mode" style="display: block;">
                 <div
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
@@ -235,7 +238,7 @@
                 {% for log in stats.review_history %}
                 <div class="history-item js-history-item" data-log-idx="{{ loop.index0 }}"
                     style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; border: 2.5px solid transparent; box-shadow: 0 1px 2px rgba(0,0,0,0.05); padding: 2px;
-                    {% if log.is_correct %}background: #dcfce7; color: #16a34a;{% else %}background: #fee2e2; color: #dc2626;{% endif %}"
+                        {% if log.is_correct %}background: #dcfce7; color: #16a34a;{% else %}background: #fee2e2; color: #dc2626;{% endif %}"
                     onclick="selectQuizHistoryItem(this, {{ loop.index0 }})">
                     {% if log.is_correct %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-times"></i>{% endif %}
                 </div>
@@ -362,5 +365,3 @@
         }
     }
 </style>
-
-<!-- Functions are initialized in _modal_stats.html -->

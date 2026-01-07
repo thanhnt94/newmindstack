@@ -277,9 +277,9 @@
         };
 
         window.generateQuizAI = function (itemId) {
-            const btn = document.getElementById('generate-ai-btn');
+            const btn = document.getElementById('quiz-generate-ai-btn');
             const aiContent = document.getElementById('quiz-stats-ai-content');
-            if (!btn || !aiContent) return;
+            if (!btn) return;
 
             const originalText = btn.innerHTML;
             btn.disabled = true;
@@ -289,18 +289,30 @@
             const meta = document.querySelector('meta[name="csrf-token"]');
             if (meta) csrfToken = meta.getAttribute('content');
 
-            fetch('/ai/response', {
+            fetch('/learn/quiz/api/item/' + itemId + '/generate-ai', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({ item_id: itemId, prompt_type: 'explanation' })
+                }
             })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success || data.response || data.html_content) {
-                        aiContent.innerHTML = '<div style="white-space: pre-wrap;">' + (data.html_content || data.response || data.explanation) + '</div>';
+                    if (data.success) {
+                        const content = data.explanation;
+                        if (aiContent) {
+                            if (window.renderMarkdown) {
+                                aiContent.innerHTML = window.renderMarkdown(content.trim());
+                                aiContent.classList.add('markdown-body');
+                                aiContent.style.whiteSpace = 'normal';
+                            } else {
+                                aiContent.innerHTML = '<div style="white-space: pre-wrap;">' + content + '</div>';
+                            }
+                            aiContent.style.display = 'block';
+                        }
+                        const placeholder = document.getElementById('quiz-stats-ai-placeholder');
+                        if (placeholder) placeholder.style.display = 'none';
+
                         btn.innerHTML = originalText;
                         btn.disabled = false;
                     } else {
@@ -375,6 +387,17 @@
                                 };
                             }
                         }
+
+                        // [AI COACH] Render Markdown for existing explanation
+                        const mdContainers = statsContainer.querySelectorAll('.js-markdown-content');
+                        mdContainers.forEach(container => {
+                            if (window.renderMarkdown) {
+                                const rawText = container.textContent.trim();
+                                container.innerHTML = window.renderMarkdown(rawText);
+                                container.style.whiteSpace = 'normal';
+                            }
+                        });
+
                         if (window.initQuizStatsModalTabs) window.initQuizStatsModalTabs();
                     })
                     .catch(err => {

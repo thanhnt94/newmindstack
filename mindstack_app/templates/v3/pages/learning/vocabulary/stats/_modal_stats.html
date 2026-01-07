@@ -313,13 +313,24 @@
                 .then(data => {
                     if (data.success) {
                         if (placeholder) placeholder.style.display = 'none';
+                        const content = data.explanation;
                         if (contentBox) {
                             contentBox.style.display = 'block';
-                            contentBox.innerHTML = '<div style="white-space: pre-wrap;">' + data.explanation + '</div>';
+                            if (window.renderMarkdown) {
+                                contentBox.innerHTML = window.renderMarkdown(content.trim());
+                                contentBox.classList.add('markdown-body');
+                                contentBox.style.whiteSpace = 'normal';
+                            } else {
+                                contentBox.innerHTML = '<div style="white-space: pre-wrap;">' + content + '</div>';
+                            }
                         } else {
                             const tabAi = document.querySelector('#sub-ai');
                             if (tabAi) {
-                                tabAi.innerHTML = '<div class="ai-content-box" style="line-height: 1.6; color: #334155; font-size: 0.95rem;"><div style="white-space: pre-wrap;">' + data.explanation + '</div></div>';
+                                if (window.renderMarkdown) {
+                                    tabAi.innerHTML = '<div class="ai-content-box markdown-body" style="line-height: 1.6; color: #334155; font-size: 0.95rem; white-space: normal;">' + window.renderMarkdown(content.trim()) + '</div>';
+                                } else {
+                                    tabAi.innerHTML = '<div class="ai-content-box" style="line-height: 1.6; color: #334155; font-size: 0.95rem;"><div style="white-space: pre-wrap;">' + content + '</div></div>';
+                                }
                             }
                         }
                     } else {
@@ -394,6 +405,18 @@
                                 };
                             }
                         }
+
+                        // [AI COACH] Render Markdown for existing explanation
+                        const mdContainers = statsContainer.querySelectorAll('.js-markdown-content');
+                        mdContainers.forEach(container => {
+                            if (window.renderMarkdown) {
+                                // Important: We use textContent but remove pre-wrap for proper markdown list rendering
+                                const rawText = container.textContent.trim();
+                                container.innerHTML = window.renderMarkdown(rawText);
+                                container.style.whiteSpace = 'normal';
+                            }
+                        });
+
                         if (window.initStatsModalTabs) window.initStatsModalTabs();
                     })
                     .catch(err => {
