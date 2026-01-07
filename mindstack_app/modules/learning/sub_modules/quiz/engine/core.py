@@ -193,10 +193,18 @@ class QuizEngine:
         }
 
     @staticmethod
-    def check_answer(item_id, user_answer, user_id=None, answer_key=None, duration_ms=0):
+    def check_answer(item_id, user_answer, user_id=None, answer_key=None, duration_ms=0, user_answer_key=None):
         """
         Check if user's MCQ answer is correct.
         If user_id is provided, updates SRS progress and awards points.
+        
+        Args:
+            item_id: ID of the learning item
+            user_answer: The answer text user submitted (could be value or key)
+            user_id: Optional user ID for SRS/scoring updates
+            answer_key: The content key to use for finding correct answer
+            duration_ms: Response time in milliseconds
+            user_answer_key: The option key (A/B/C/D) that user selected - for storing in ReviewLog
         """
         item = LearningItem.query.get(item_id)
         if not item:
@@ -260,6 +268,27 @@ class QuizEngine:
                 item_id=item_id,
                 item_type='QUIZ_MCQ'
             )
+            
+            # Log to ReviewLog table with user_answer and response_time
+            from mindstack_app.models import ReviewLog
+            import datetime
+            now = datetime.datetime.now(datetime.timezone.utc)
+            # Use user_answer_key (A/B/C/D) if provided, else use user_answer
+            stored_answer = user_answer_key if user_answer_key else user_answer
+            log_entry = ReviewLog(
+                user_id=user_id,
+                item_id=item_id,
+                timestamp=now,
+                rating=1 if is_correct else 0,  # 1=correct, 0=incorrect for quiz
+                review_type='quiz',
+                user_answer=stored_answer,
+                is_correct=is_correct,
+                score_change=score_change,
+                duration_ms=duration_ms,
+                mastery_snapshot=getattr(srs_result, 'mastery', None)
+            )
+            db.session.add(log_entry)
+            
             safe_commit(db.session)
 
             new_mastery_pct = round((srs_result.mastery or 0.0) * 100, 1)

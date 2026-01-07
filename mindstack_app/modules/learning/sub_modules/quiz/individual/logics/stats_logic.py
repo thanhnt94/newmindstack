@@ -43,7 +43,8 @@ def get_quiz_item_statistics(user_id, item_id):
             'user_answer': log.user_answer,
             'is_correct': log.is_correct,
             'score_change': log.score_change,
-            'mastery_snapshot': log.mastery_snapshot
+            'mastery_snapshot': log.mastery_snapshot,
+            'duration_ms': log.duration_ms
         }
         formatted_review_history.append(entry)
 

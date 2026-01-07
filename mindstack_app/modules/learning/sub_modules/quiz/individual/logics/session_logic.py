@@ -676,7 +676,8 @@ class QuizSessionManager:
                     item_id=item_id,
                     user_answer=check_val, 
                     user_id=self.user_id,
-                    duration_ms=duration_ms
+                    duration_ms=duration_ms,
+                    user_answer_key=user_answer_text  # Pass original key (A/B/C/D) for ReviewLog
                 )
                 
             is_correct = result.get('correct', False)

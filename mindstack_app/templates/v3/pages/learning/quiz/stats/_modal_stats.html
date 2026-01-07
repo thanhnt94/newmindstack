@@ -364,10 +364,21 @@
             const histAnswer = document.getElementById('quiz-hist-answer');
             const histScore = document.getElementById('quiz-hist-score');
             const histMastery = document.getElementById('quiz-hist-mastery');
+            const histDuration = document.getElementById('quiz-hist-duration');
 
             if (histAnswer) histAnswer.textContent = log.user_answer || '-';
             if (histScore) histScore.textContent = (log.score_change > 0 ? '+' : '') + (log.score_change || 0);
-            if (histMastery) histMastery.textContent = (log.mastery_snapshot !== undefined && log.mastery_snapshot !== null) ? log.mastery_snapshot.toFixed(1) + '%' : '-';
+            if (histMastery) histMastery.textContent = (log.mastery_snapshot !== undefined && log.mastery_snapshot !== null) ? (log.mastery_snapshot * 100).toFixed(1) + '%' : '-';
+
+            // Display duration
+            if (histDuration) {
+                if (log.duration_ms && log.duration_ms > 0) {
+                    const seconds = (log.duration_ms / 1000).toFixed(1);
+                    histDuration.textContent = seconds + 's';
+                } else {
+                    histDuration.textContent = '-';
+                }
+            }
         };
 
         window.saveQuizNote = function (itemId) {
