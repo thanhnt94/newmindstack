@@ -4,8 +4,9 @@
 
 from datetime import datetime
 from sqlalchemy import func
-from mindstack_app.models import LearningItem, ReviewLog
+from mindstack_app.models import LearningItem, ReviewLog, User, ContainerContributor, LearningContainer
 from mindstack_app.models.learning_progress import LearningProgress
+from flask import url_for
 from mindstack_app.models import db
 
 class VocabularyItemStats:
@@ -134,10 +135,34 @@ class VocabularyItemStats:
             else:
                 status = 'learning'
                 
+        # Determine permissions
+        can_edit = False
+        edit_url = ""
+        user = User.query.get(user_id)
+        if user:
+            if user.user_role == User.ROLE_ADMIN:
+                can_edit = True
+            elif item.container and item.container.creator_user_id == user_id:
+                can_edit = True
+            else:
+                contributor = ContainerContributor.query.filter_by(
+                    container_id=item.container_id,
+                    user_id=user_id,
+                    permission_level='editor'
+                ).first()
+                if contributor:
+                    can_edit = True
+        
+        if can_edit:
+            edit_url = url_for('content_management.content_management_flashcards.edit_flashcard_item', 
+                               set_id=item.container_id, 
+                               item_id=item_id)
+
         return {
             'item': {
                 'id': item.item_id,
                 'container_title': item.container.title if item.container else 'Unknown Set',
+                'container_id': item.container_id,
                 'front': content.get('front', '?'),
                 'back': content.get('back', '?'),
                 'pronunciation': content.get('pronunciation'),
@@ -191,10 +216,17 @@ class VocabularyItemStats:
                     'mode': log.review_type,
                     'result': 'Correct' if _is_log_correct(log) else 'Incorrect',
                     'duration_ms': log.duration_ms,
-                    'user_answer': log.user_answer
+                    'user_answer': log.user_answer,
+                    'score_change': log.score_change,
+                    'rating': log.rating,
+                    'mastery_snapshot': log.mastery_snapshot
                 }
                 for log in logs[:50] # Limit history list
-            ]
+            ],
+            'permissions': {
+                'can_edit': can_edit,
+                'edit_url': edit_url
+            }
         }
 
 def _is_log_correct(log) -> bool:

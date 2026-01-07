@@ -1,8 +1,9 @@
-<div class="stats-container"
-    style="display: flex; flex-direction: column; height: 100%; width: 100%; background: white; overflow: hidden; border-radius: 1rem;">
-    {% set s = stats %}
-    {% set p = s.progress %}
-    {% set perf = s.performance %}
+{% set s = stats %}
+{% set p = s.progress %}
+{% set perf = s.performance %}
+<div class="stats-container" data-can-edit="{{ 'true' if s.permissions.can_edit else 'false' }}"
+    data-edit-url="{{ s.permissions.edit_url }}" data-history='{{ s.history | tojson | safe }}'
+    style="display: flex; flex-direction: column; height: 100%; width: 100%; background: white; overflow: hidden; border-radius: 1rem; position: relative;">
 
     <!-- FIXED TOP SECTION -->
     <div class="stats-fixed-header"
@@ -44,28 +45,24 @@
             style="display: flex; gap: 0.25rem; margin-top: 1rem; margin-bottom: 0.5rem; background: #f8fafc; padding: 0.25rem; border-radius: 0.75rem; border: 1px solid #f1f5f9; overflow-x: auto; scrollbar-width: none;">
             <button class="tab-btn active" data-tab="content" onclick="toggleSubTabs(true)"
                 style="flex: 1; min-width: 60px;">Nội dung</button>
-            <button class="tab-btn" data-tab="stats" onclick="toggleSubTabs(false)"
-                style="flex: 1; min-width: 60px;">Thống kê</button>
             <button class="tab-btn" data-tab="notes" onclick="toggleSubTabs(false)"
                 style="flex: 1; min-width: 60px;">Ghi chú</button>
+            <button class="tab-btn" data-tab="stats" onclick="toggleSubTabs(false)"
+                style="flex: 1; min-width: 60px;">Thống kê</button>
             <button class="tab-btn" data-tab="details" onclick="toggleSubTabs(false)"
                 style="flex: 1; min-width: 60px;">Chi tiết</button>
         </div>
 
-        <!-- [MOVED] SUB-NAVIGATION (Hidden by default unless Content tab active) -->
+        <!-- [MOVED] SUB-NAVIGATION (Only Flashcard and AI) -->
         <div id="header-sub-tabs" class="sub-tab-navigation"
-            style="display: flex; gap: 0.5rem; justify-content: center; padding-top: 0.5rem; border-top: 1px solid #f1f5f9;">
+            style="display: flex; gap: 0.75rem; justify-content: center; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; margin-top: 0.5rem;">
             <button class="sub-tab-btn active" onclick="switchSubTab('sub-flashcard')"
-                style="font-size: 0.8rem; font-weight: 700; color: #64748b; background: none; border: none; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 0.5rem; transition: all 0.2s;">
-                Flashcard
-            </button>
-            <button class="sub-tab-btn" onclick="switchSubTab('sub-custom')"
-                style="font-size: 0.8rem; font-weight: 700; color: #64748b; background: none; border: none; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 0.5rem; transition: all 0.2s;">
-                Thông tin thêm
+                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <i class="fas fa-layer-group"></i> Flashcard
             </button>
             <button class="sub-tab-btn" onclick="switchSubTab('sub-ai')"
-                style="font-size: 0.8rem; font-weight: 700; color: #64748b; background: none; border: none; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 0.5rem; transition: all 0.2s;">
-                AI
+                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <i class="fas fa-sparkles"></i> AI
             </button>
         </div>
     </div>
@@ -125,55 +122,6 @@
                 {% endif %}
             </div>
 
-            <!-- SUB-TAB B: CUSTOM DATA -->
-            <div id="sub-custom" class="sub-tab-content" style="display: none;">
-                {% set has_custom_data = false %}
-
-                {# Try explicit custom_data first #}
-                {% if s.item.custom_data %}
-                {% set has_custom_data = true %}
-                {% for key, val in s.item.custom_data.items() %}
-                <div class="custom-data-row" style="margin-bottom: 1.25rem;">
-                    <div
-                        style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        {{ key }}
-                    </div>
-                    <div
-                        style="background: #f8fafc; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #f1f5f9; color: #334155; font-size: 0.95rem;">
-                        {{ val }}
-                    </div>
-                </div>
-                {% endfor %}
-                {% endif %}
-
-                {# Fallback: Iterate full_content for unknown keys if custom_data empty or to supplement #}
-                {% if not has_custom_data %}
-                {% set exclude_keys = ['id', 'front', 'back', 'meaning', 'pronunciation', 'example', 'example_meaning',
-                'image', 'audio', 'custom_data', 'ai_explanation', 'note', 'full_content', 'container_title'] %}
-                {% for key, val in s.item.full_content.items() %}
-                {% if key not in exclude_keys and val %}
-                {% set has_custom_data = true %}
-                <div class="custom-data-row" style="margin-bottom: 1.25rem;">
-                    <div
-                        style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">
-                        {{ key|replace('_', ' ') }}
-                    </div>
-                    <div
-                        style="background: #f8fafc; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #f1f5f9; color: #334155; font-size: 0.95rem;">
-                        {{ val }}
-                    </div>
-                </div>
-                {% endif %}
-                {% endfor %}
-                {% endif %}
-
-                {% if not has_custom_data %}
-                <div style="text-align: center; color: #94a3b8; padding: 2rem;">
-                    <i class="fas fa-database" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                    <p>Không có dữ liệu cập nhật.</p>
-                </div>
-                {% endif %}
-            </div>
 
             <!-- SUB-TAB C: AI CONTENT -->
             <div id="sub-ai" class="sub-tab-content" style="display: none;">
@@ -199,7 +147,54 @@
             </div>
         </div>
 
-        <!-- TAB 2: STATS -->
+
+        <!-- TAB 3: NOTES -->
+        <div class="tab-content" id="tab-notes" style="display: none;">
+            <!-- Display Mode -->
+            <div id="note-display-mode" style="{% if s.item.note %}display: block;{% else %}display: none;{% endif %}">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #64748b;">
+                        Ghi chú cá nhân
+                    </label>
+                    <button onclick="toggleNoteEdit(true)"
+                        style="background: #eef2ff; color: #4f46e5; border: none; padding: 0.4rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.3rem;">
+                        <i class="fas fa-edit"></i> Sửa
+                    </button>
+                </div>
+                <div id="note-static-content"
+                    style="background: #f8fafc; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid #f1f5f9; color: #334155; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; min-height: 100px;">
+                    {{- s.item.note if s.item.note else "Chưa có ghi chú nào." -}}
+                </div>
+            </div>
+
+            <!-- Edit Mode -->
+            <div id="note-edit-mode" style="{% if s.item.note %}display: none;{% else %}display: block;{% endif %}">
+                <div style="margin-bottom: 1rem;">
+                    <label
+                        style="display: block; font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem;">
+                        Cập nhật ghi chú
+                    </label>
+                    <textarea id="item-note-input" rows="8"
+                        style="width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem; padding: 1rem; font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none; transition: all 0.2s;"
+                        placeholder="Viết ghi chú của bạn về từ này...">{{ s.item.note }}</textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="save-note-btn" onclick="saveItemNote({{ s.item.id }})"
+                        style="flex: 2; background: #4f46e5; color: white; border: none; padding: 0.75rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;">
+                        <i class="fas fa-save"></i> Lưu ghi chú
+                    </button>
+                    {% if s.item.note %}
+                    <button onclick="toggleNoteEdit(false)"
+                        style="flex: 1; background: #f1f5f9; color: #64748b; border: none; padding: 0.75rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.2s;">
+                        Hủy
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: STATS (Reordered) -->
         <div class="tab-content" id="tab-stats" style="display: none;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem;">
                 <!-- Existing indicator blocks -->
@@ -252,25 +247,8 @@
             </div>
         </div>
 
-        <!-- TAB 3: NOTES -->
-        <div class="tab-content" id="tab-notes" style="display: none;">
-            <div style="margin-bottom: 1rem;">
-                <label
-                    style="display: block; font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem;">
-                    Ghi chú cá nhân
-                </label>
-                <textarea id="item-note-input" rows="8"
-                    style="width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem; padding: 1rem; font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none; transition: all 0.2s;"
-                    placeholder="Viết ghi chú của bạn về từ này...">{{ s.item.note }}</textarea>
-            </div>
-            <button id="save-note-btn" onclick="saveItemNote({{ s.item.id }})"
-                style="width: 100%; background: #4f46e5; color: white; border: none; padding: 0.75rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;">
-                <i class="fas fa-save"></i> Lưu ghi chú
-            </button>
-        </div>
-
         <!-- TAB 4: DETAILS -->
-        <div class="tab-content" id="tab-details" style="display: none;">
+        <div class="tab-content" id="tab-details" style="display: none; padding-bottom: 7rem;">
             <!-- Mode Analysis -->
             <div style="margin-bottom: 1.5rem;">
                 <h3
@@ -315,16 +293,54 @@
             <!-- History Section -->
             <h3
                 style="font-size: 0.85rem; font-weight: 800; color: #475569; margin-bottom: 1rem; text-transform: uppercase;">
-                Lịch sử gần đây</h3>
-            <div style="display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 1rem; scrollbar-width: none;">
+                Lịch sử gần đây
+            </h3>
+
+            <div class="history-grid"
+                style="display: flex; gap: 0.75rem; overflow-x: auto; padding: 0.25rem; padding-bottom: 1.25rem; scrollbar-width: none; margin-bottom: 5rem;">
                 {% for log in s.history %}
-                <div
-                    style="flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
-                    {% if log.result == 'Correct' %}background: #dcfce7; color: #16a34a;{% else %}background: #fee2e2; color: #dc2626;{% endif %}">
+                <div class="history-item js-history-item" data-log-idx="{{ loop.index0 }}"
+                    style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; border: 2.5px solid transparent; box-shadow: 0 1px 2px rgba(0,0,0,0.05); padding: 2px;
+                    {% if log.result == 'Correct' %}background: #dcfce7; color: #16a34a;{% else %}background: #fee2e2; color: #dc2626;{% endif %}"
+                    onclick="selectHistoryItem(this, {{ loop.index0 }})">
                     {% if log.result == 'Correct' %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-times"></i>{%
                     endif %}
                 </div>
                 {% endfor %}
+            </div>
+
+            <!-- History Detail Bar (Enhanced) -->
+            <div id="history-detail-bar"
+                style="position: absolute; bottom: 0; left: 0; right: 0; background: #ffffff; border-top: 1px solid #e2e8f0; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 5; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; items-center; gap: 0.5rem;">
+                        <span id="hist-result"
+                            style="font-weight: 800; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">-</span>
+                        <span id="hist-mode-badge"
+                            style="background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">-</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;">
+                        <i class="far fa-clock" style="margin-right: 3px;"></i> <span id="hist-time">-</span>
+                    </div>
+                </div>
+                <div
+                    style="display: flex; gap: 1rem; border-top: 1px dashed #e2e8f0; pt: 0.5rem; padding-top: 0.5rem; font-size: 0.8rem;">
+                    <div style="flex: 1;">
+                        <div style="color: #94a3b8; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">
+                            Thời gian</div>
+                        <div id="hist-duration" style="color: #334155; font-weight: 700;">-</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="color: #94a3b8; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">
+                            Điểm số</div>
+                        <div id="hist-score" style="color: #334155; font-weight: 700;">-</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="color: #94a3b8; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">Độ
+                            thuộc</div>
+                        <div id="hist-mastery" style="color: #334155; font-weight: 700;">-</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -355,6 +371,12 @@
     .sub-tab-btn.active {
         background: #eef2ff !important;
         color: #4f46e5 !important;
+    }
+
+    .history-item.active {
+        border-color: #4f46e5 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
     }
 
     .stat-box {
@@ -406,13 +428,3 @@
         }
     }
 </style>
-
-<script>
-    function toggleSubTabs(show) {
-        const el = document.getElementById('header-sub-tabs');
-        if (el) el.style.display = show ? 'flex' : 'none';
-
-        // Also ensure the parent tab logic from _modal_stats works, 
-        // effectively this onclick handles the visual sub-nav only.
-    }
-</script>

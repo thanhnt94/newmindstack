@@ -8,7 +8,7 @@ import math
 
 from . import vocabulary_bp
 from mindstack_app.models import (
-    LearningContainer, LearningItem, User, UserContainerState, db
+    LearningContainer, LearningItem, User, UserContainerState, db, LearningProgress
 )
 
 # Import flashcard engine for session management
@@ -353,6 +353,7 @@ def api_generate_ai_explanation(item_id):
     item = LearningItem.query.get_or_404(item_id)
     
     try:
+        current_app.logger.info(f"Generating AI explanation for item {item_id}")
         ai_client = get_ai_service()
         if not ai_client:
             return jsonify({'success': False, 'message': 'Chưa cấu hình dịch vụ AI.'}), 503
@@ -365,6 +366,7 @@ def api_generate_ai_explanation(item_id):
         success, ai_response = ai_client.generate_content(prompt, item_info)
         
         if not success:
+            current_app.logger.error(f"AI Service error for item {item_id}: {ai_response}")
             return jsonify({'success': False, 'message': f'Lỗi từ AI: {ai_response}'}), 500
             
         item.ai_explanation = ai_response
@@ -374,5 +376,7 @@ def api_generate_ai_explanation(item_id):
         
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Error generating AI for item {item_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        import traceback
+        error_details = traceback.format_exc()
+        current_app.logger.error(f"Error generating AI for item {item_id}: {e}\n{error_details}")
+        return jsonify({'success': False, 'message': str(e), 'details': error_details}), 500
