@@ -42,7 +42,8 @@ def get_quiz_item_statistics(user_id, item_id):
             'timestamp_formatted': log.timestamp.strftime("%H:%M %d/%m/%Y") if log.timestamp else None,
             'user_answer': log.user_answer,
             'is_correct': log.is_correct,
-            'score_change': log.score_change
+            'score_change': log.score_change,
+            'mastery_snapshot': log.mastery_snapshot
         }
         formatted_review_history.append(entry)
 

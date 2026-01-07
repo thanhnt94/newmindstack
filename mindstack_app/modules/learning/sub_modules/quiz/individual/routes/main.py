@@ -10,7 +10,7 @@ from . import quiz_learning_bp
 from ..logics.session_logic import QuizSessionManager
 from ..logics.algorithms import get_quiz_mode_counts, get_filtered_quiz_sets
 from ..config import QuizLearningConfig
-from mindstack_app.models import LearningContainer, LearningItem, User, UserContainerState
+from mindstack_app.models import LearningContainer, LearningItem, User, UserContainerState, UserNote
 import json
 
 
@@ -504,6 +504,9 @@ def get_quiz_item_stats(item_id):
                 correct_answer_key = key
                 break
     
+    # [NEW] Get User Note
+    note = UserNote.query.filter_by(user_id=current_user.user_id, item_id=item_id).first()
+
     item_data = {
         'item_id': item.item_id,
         'container_id': item.container_id,
@@ -514,7 +517,7 @@ def get_quiz_item_stats(item_id):
         'explanation': item.content.get('explanation', ''),
         'question_image': question_image,
         'question_audio': question_audio,
-        'note_content': '',  # Will be loaded separately if needed
+        'note': note.content if note else '',  # Match Flashcard key
         'ai_explanation': item.content.get('ai_explanation', ''),
     }
     

@@ -377,12 +377,20 @@
                             const editUrl = contentEl.dataset.editUrl;
                             if (canEdit && editUrl) {
                                 editBtn.style.display = 'flex';
-                                editBtn.onclick = () => {
-                                    const w = 1000;
-                                    const h = 800;
+                                editBtn.onclick = function (e) {
+                                    if (e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                    }
+                                    const w = 1100;
+                                    const h = 850;
                                     const left = (screen.width / 2) - (w / 2);
                                     const top = (screen.height / 2) - (h / 2);
-                                    window.open(editUrl, 'vocabEdit', 'width=' + w + ',height=' + h + ',top=' + top + ',left=' + left);
+                                    const win = window.open(editUrl, 'vocabEdit',
+                                        'width=' + w + ',height=' + h + ',top=' + top + ',left=' + left +
+                                        ',scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no');
+                                    if (win) win.focus();
+                                    return false;
                                 };
                             }
                         }
