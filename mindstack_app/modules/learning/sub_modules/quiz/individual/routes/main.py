@@ -518,7 +518,7 @@ def get_quiz_item_stats(item_id):
         'question_image': question_image,
         'question_audio': question_audio,
         'note': note.content if note else '',  # Match Flashcard key
-        'ai_explanation': item.content.get('ai_explanation', ''),
+        'ai_explanation': item.ai_explanation or '',  # Direct column, not from content
     }
     
     # Default stats if none exist
