@@ -20,6 +20,15 @@
 | [Learning Modes](docs/LEARNING_MODES.md) | Các chế độ học |
 | [Database](docs/DATABASE.md) | Schema database |
 | [Contributing](docs/CONTRIBUTING.md) | Hướng dẫn đóng góp |
+| [Deployment](docs/DEPLOYMENT.md) | Hướng dẫn deploy production |
+| [Changelog](docs/CHANGELOG.md) | Lịch sử phiên bản |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | Xử lý lỗi thường gặp |
+| [AI Integration](docs/AI_INTEGRATION.md) | Tích hợp AI (Gemini, HuggingFace) |
+| [Session Management](docs/SESSION_MANAGEMENT.md) | Quản lý sessions học |
+| [Configuration](docs/CONFIGURATION.md) | Cấu hình môi trường |
+| [Testing](docs/TESTING.md) | Hướng dẫn testing |
+| [UI Components](docs/UI_COMPONENTS.md) | Thư viện UI components |
+| [Security](docs/SECURITY.md) | Bảo mật ứng dụng |
 
 ---
 

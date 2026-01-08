@@ -1,0 +1,131 @@
+# MindStack Changelog
+
+Tất cả thay đổi quan trọng của dự án được ghi nhận tại đây.
+
+Format dựa trên [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+và tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [Unreleased]
+
+### 🚀 Added
+- Thêm documentation toàn diện (DEPLOYMENT, CHANGELOG, TROUBLESHOOTING, ...)
+
+---
+
+## [1.5.0] - 2026-01-08
+
+### 🚀 Added
+- **Quiz Stats Enhancement**: Hiển thị `user_answer` và `duration_ms` trong history
+- **Edit Button**: Thêm nút "Edit Card" trong stats modal
+- **AI Markdown**: Markdown rendering cho AI explanations
+
+### 🐛 Fixed
+- Sửa lỗi Markdown rendering trong Quiz/Vocabulary modals
+- Sửa lỗi notes section hiển thị không đúng
+- Sửa `jinja2.exceptions.UndefinedError: 'permissions'`
+
+### ♻️ Changed
+- Refactor notification components thành HTML partials riêng biệt
+- Cải thiện mobile header buttons
+
+---
+
+## [1.4.0] - 2026-01-04
+
+### 🚀 Added
+- **Session Sync**: Hỗ trợ session synchronization và resume
+- **Short Session IDs**: Session IDs ngắn gọn hơn cho URL
+- **Active Batch Cache**: Cache batch data để tối ưu performance
+
+### 🐛 Fixed
+- Sửa `NameError: name 'datetime' is not defined` trong `session_logic.py`
+- Sửa lỗi default config không lưu được trong Set Editor
+
+### ♻️ Changed
+- Thêm dedicated "Lưu Cấu hình" button cho Set Editor
+
+---
+
+## [1.3.0] - 2026-01-03
+
+### 🚀 Added
+- **Cute Game Notifications**: Redesign score/mastery notifications với game-like aesthetic
+
+### 🐛 Fixed
+- Sửa MCQ layout shrinkage issue
+- Sửa `SyntaxError` trong flashcard session JavaScript
+
+### ♻️ Changed
+- Extract Memory Power và Score Toast thành reusable partials
+
+---
+
+## [1.2.0] - 2026-01-02
+
+### ♻️ Changed
+- **Flashcard Assets Refactor**: Extract inline CSS/JS thành external files
+- Tạo `mobile_ui.js` cho mobile interactions
+- Tổ chức lại folder structure cho flashcard templates
+
+### 🐛 Fixed
+- Sửa rating buttons không hiển thị trên card back
+- Sửa desktop card UI không load được
+- Sửa variable redeclaration trong JavaScript
+
+---
+
+## [1.1.0] - 2025-12-31
+
+### ♻️ Changed
+- **Codebase Cleanup**: Xóa legacy modules (`modules/main`)
+- Consolidate learning module structure
+- Synchronize template styles với Flashcard V2
+
+### 🐛 Fixed
+- Sửa blank dashboard page
+- Sửa CSS issues cho mobile/desktop views
+
+---
+
+## [1.0.0] - 2025-12-30
+
+### 🚀 Added
+- **Core Learning Modes**: Flashcard, Quiz, MCQ, Typing, Listening, Speed, Matching
+- **SRS System**: Hybrid SM-2 + Memory Power
+- **Gamification**: Points, streaks, badges, leaderboard
+- **AI Integration**: Gemini + HuggingFace cho AI explanations
+- **Statistics**: Dashboard, item stats, review history
+
+---
+
+## Version Legend
+
+| Type | Icon | Description |
+|------|------|-------------|
+| Added | 🚀 | Tính năng mới |
+| Changed | ♻️ | Thay đổi existing functionality |
+| Deprecated | ⚠️ | Tính năng sắp bị loại bỏ |
+| Removed | 🗑️ | Tính năng đã bị loại bỏ |
+| Fixed | 🐛 | Bug fixes |
+| Security | 🔒 | Security updates |
+
+---
+
+## How to Update Changelog
+
+1. Thêm changes mới vào section `[Unreleased]`
+2. Khi release version mới:
+   - Đổi `[Unreleased]` thành `[X.Y.Z] - YYYY-MM-DD`
+   - Tạo section `[Unreleased]` mới ở trên
+
+```markdown
+## [Unreleased]
+
+### 🚀 Added
+- New feature description
+
+## [1.6.0] - 2026-01-15
+...
+```
