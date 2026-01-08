@@ -68,3 +68,14 @@ logs/
 # config.ini
 # .secrets
 
+# --- Debug và temp files ---
+# Bỏ qua các file debug và temp được tạo trong quá trình development
+debug_*.txt
+debug_*.py
+temp_*.txt
+*_debug.txt
+found_files.txt
+grep_output.txt
+routes.txt
+routes_utf8.txt
+backup_*.html
