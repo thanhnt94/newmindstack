@@ -679,6 +679,54 @@ def end_session_flashcard():
     return jsonify(result)
 
 
+@flashcard_learning_bp.route('/api/check_active_vocab_session/<int:set_id>', methods=['GET'])
+@login_required
+def check_active_vocab_session(set_id):
+    """
+    Check if there is ANY active vocabulary session for this set.
+    Returns details of the active session if found.
+    """
+    active_session = LearningSessionService.get_any_active_vocabulary_session(current_user.user_id, set_id)
+    
+    if active_session:
+        # Determine URL to resume
+        resume_url = '#'
+        mode = active_session.learning_mode
+        if mode == 'flashcard':
+            resume_url = url_for('learning.flashcard_learning.flashcard_session')
+        elif mode == 'mcq':
+             # MCQ Session requires set_id
+             resume_url = url_for('learning.vocabulary.mcq.session', set_id=set_id)
+        elif mode == 'typing':
+             resume_url = url_for('learning.vocabulary.typing.session_page')
+        elif mode == 'listening':
+             # Listening Session requires set_id
+             resume_url = url_for('learning.vocabulary.listening.session', set_id=set_id)
+        elif mode == 'matching':
+             resume_url = url_for('learning.vocabulary.matching.session', set_id=set_id)
+        elif mode == 'speed':
+             resume_url = url_for('learning.vocabulary.speed.session_page', set_id=set_id)
+             
+        # Map nice names
+        mode_names = {
+            'flashcard': 'Flashcard',
+            'mcq': 'Trắc nghiệm (MCQ)',
+            'typing': 'Gõ từ (Typing)',
+            'listening': 'Luyện nghe',
+            'matching': 'Nối từ',
+            'speed': 'Ôn nhanh (Speed)'
+        }
+        
+        return jsonify({
+            'has_active': True,
+            'active_mode': mode,
+            'active_mode_display': mode_names.get(mode, mode),
+            'resume_url': resume_url
+        })
+    
+    return jsonify({'has_active': False})
+
+
 @flashcard_learning_bp.route('/api/learning/sessions/active', methods=['GET'])
 @login_required
 def get_active_learning_session():

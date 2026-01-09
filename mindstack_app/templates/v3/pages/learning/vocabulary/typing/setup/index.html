@@ -450,6 +450,12 @@
         <a href="/dashboard" class="nav-btn" title="Về trang chủ">
             <i class="fas fa-home"></i>
         </a>
+
+        <!-- Step Indicators (Absolute or Flex) -->
+        <div class="step-indicator" style="position: absolute; right: 60px;">
+            <div class="step-dot active" id="dot-1"></div>
+            <div class="step-dot" id="dot-2"></div>
+        </div>
     </div>
 
     <div class="wizard-content">
@@ -1037,38 +1043,57 @@
         nextBtn.disabled = true;
         nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
 
-        const startUrl = "{{ url_for('learning.vocabulary.typing.start_session') }}";
-
-        fetch(startUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                set_id: setId,
-                mode: selectedMode,
-                count: selectedCount,
-                use_custom_config: isCustomMode,
-                custom_pairs: customPairs
-            })
-        })
+        // Check for active session first (Conflict Warning)
+        fetch('/learn/api/check_active_vocab_session/' + setId)
             .then(r => r.json())
-            .then(data => {
-                if (data.success && data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                } else {
-                    alert(data.message || 'Lỗi không xác định');
+            .then(statusData => {
+                if (statusData.has_active && statusData.active_mode !== 'typing') {
+                    // Show Confirm
+                    if (!confirm(`Bạn đang có phiên học ${statusData.active_mode_display} đang dở. Nếu bắt đầu mới, phiên cũ sẽ bị hủy. Bạn có chắc chắn không?`)) {
+                        nextBtn.disabled = false;
+                        nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+                        return;
+                    }
+                }
+                // Proceed
+                runStartSession();
+            })
+            .catch(() => runStartSession()); // Fail safe
+
+        function runStartSession() {
+            const startUrl = "{{ url_for('learning.vocabulary.typing.start_session') }}";
+
+            fetch(startUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    set_id: setId,
+                    mode: selectedMode,
+                    count: selectedCount,
+                    use_custom_config: isCustomMode,
+                    custom_pairs: customPairs
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        alert(data.message || 'Lỗi không xác định');
+                        nextBtn.disabled = false;
+                        nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Lỗi kết nối máy chủ');
                     nextBtn.disabled = false;
                     nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Lỗi kết nối máy chủ');
-                nextBtn.disabled = false;
-                nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
-            });
+                });
+        }
     }
 
 }) ();

@@ -82,6 +82,42 @@ class LearningSessionService:
         return query.order_by(LearningSession.start_time.desc()).first()
 
     @staticmethod
+    def get_any_active_vocabulary_session(user_id, set_id_data):
+        """Get ANY active session within the vocabulary group for a specific set."""
+        # Include all relevant modes
+        VOCABULARY_MODES = ['flashcard', 'mcq', 'typing', 'listening', 'matching', 'speed']
+        
+        # 1. Fetch ALL active sessions for this user (robust against JSON query limitations)
+        candidates = LearningSession.query.filter_by(user_id=user_id, status='active').all()
+        
+        target_str = str(set_id_data)
+        
+        # 2. Filter in Python to handle JSON type variances (int vs str vs list)
+        valid_sessions = []
+        for sess in candidates:
+            if sess.learning_mode not in VOCABULARY_MODES:
+                continue
+                
+            stored = sess.set_id_data
+            
+            # Direct match (handling string/int diff)
+            if str(stored) == target_str:
+                valid_sessions.append(sess)
+                continue
+                
+            # Legacy list support (some old sessions might store [id])
+            if isinstance(stored, list) and len(stored) > 0 and str(stored[0]) == target_str:
+                valid_sessions.append(sess)
+                continue
+        
+        # Return the most recent one
+        if valid_sessions:
+            valid_sessions.sort(key=lambda x: x.start_time, reverse=True)
+            return valid_sessions[0]
+            
+        return None
+
+    @staticmethod
     def update_progress(session_id, item_id, result_type, points=0):
         """Update session progress and stats."""
         try:

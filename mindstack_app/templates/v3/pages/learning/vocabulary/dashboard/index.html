@@ -2786,6 +2786,8 @@
     </div>
 
     <div class="vocab-scroll">
+
+
         <div class="vocab-detail-hero js-detail-cover">
 
             <i class="fas fa-book-open"></i>
@@ -2795,6 +2797,31 @@
 
 
         <div class="vocab-detail-content" style="opacity: 0; transition: opacity 0.3s;">
+
+            <!-- [MOVED] Active Session Banner -->
+            <div id="active-session-banner-detail" style="display: none;"
+                class="mb-6 rounded-2xl bg-orange-50/80 backdrop-blur border border-orange-100 p-4 shadow-xl shadow-orange-500/10 animate-fadeIn">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+                        <i class="fas fa-history text-xl animate-pulse"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-sm font-bold text-orange-900 flex items-center gap-2 mb-1">
+                            <span class="truncate">Đang học dở:</span>
+                            <span
+                                class="js-active-mode-name text-orange-700 uppercase bg-white/50 px-2 py-0.5 rounded text-xs tracking-wider border border-orange-100">--</span>
+                        </h3>
+                        <div class="flex gap-3 mt-2">
+                            <button
+                                class="js-resume-session px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2 group">
+                                <span>Tiếp tục ngay</span> <i
+                                    class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <h1 class="vocab-detail-title js-detail-title-full">Tên bộ thẻ</h1>
 
@@ -3929,6 +3956,37 @@
 
 
 
+    // [NEW] Check active session within Set Detail
+    function checkSetActiveSession(setId) {
+        const banner = document.getElementById('active-session-banner-detail');
+        if (!banner) return;
+
+        fetch('/learn/api/check_active_vocab_session/' + setId)
+            .then(r => r.json())
+            .then(data => {
+                if (data.has_active) {
+                    banner.style.display = 'block';
+                    const nameEl = banner.querySelector('.js-active-mode-name');
+                    if (nameEl) nameEl.textContent = data.active_mode_display || data.active_mode;
+
+                    const btn = banner.querySelector('.js-resume-session');
+                    if (btn) {
+                        const newBtn = btn.cloneNode(true);
+                        btn.parentNode.replaceChild(newBtn, btn);
+
+                        newBtn.onclick = function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.location.href = data.resume_url;
+                        };
+                    }
+                } else {
+                    banner.style.display = 'none';
+                }
+            })
+            .catch(e => console.warn("Check Set Session Failed:", e));
+    }
+
     function renderSets(sets) {
 
         if (!setsGrid) return;
@@ -4136,6 +4194,9 @@
                     selectedSetData = data.set;
 
                     renderSetDetail(data.set, data.course_stats, false, data.pagination_html);
+
+                    // [NEW] Check for active session in this set
+                    checkSetActiveSession(setId);
 
                     // [NEW] Init settings modal for this set immediately
                     fetch('/learn/vocabulary/api/flashcard-modes/' + setId)
