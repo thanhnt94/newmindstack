@@ -10,6 +10,9 @@ và tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### 🚀 Added
+- **Database-Backed Session Management**: Chuyển đổi quản lý phiên học sang database để hỗ trợ cross-device persistence (resume session).
+- **LearningSession Model**: Model mới lưu trữ trạng thái chi tiết của từng phiên học.
+- **Active Session API**: Endpoint mới để kiểm tra phiên học đang hoạt động.
 - Thêm documentation toàn diện (DEPLOYMENT, CHANGELOG, TROUBLESHOOTING, ...)
 
 ---

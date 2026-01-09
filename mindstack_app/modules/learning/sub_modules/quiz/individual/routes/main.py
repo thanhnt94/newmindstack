@@ -264,8 +264,33 @@ def start_quiz_session_by_id(set_id, mode):
 def quiz_session():
     """Hiển thị giao diện làm bài Quiz."""
     if 'quiz_session' not in session:
-        flash('Không có phiên học Quiz nào đang hoạt động. Vui lòng chọn bộ Quiz để bắt đầu.', 'info')
-        return redirect(url_for('learning.quiz_learning.dashboard'))
+        from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+        active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='quiz')
+        if active_db_session:
+            # Reconstruct session manager from DB data
+            session_manager = QuizSessionManager(
+                user_id=active_db_session.user_id,
+                set_id=active_db_session.set_id_data,
+                mode=active_db_session.mode_config_id,
+                batch_size=1, # Default to 1 or try to recover from session_state
+                total_items_in_session=active_db_session.total_items,
+                processed_item_ids=active_db_session.processed_item_ids or [],
+                correct_answers=active_db_session.correct_count,
+                incorrect_answers=active_db_session.incorrect_count,
+                start_time=active_db_session.start_time.isoformat() if active_db_session.start_time else None,
+                common_pre_question_text_global=None, # Might lose some context but functional
+                db_session_id=active_db_session.session_id
+            )
+            # Try to get batch size from user preferences
+            if current_user.session_state and current_user.session_state.current_quiz_batch_size:
+                session_manager.batch_size = current_user.session_state.current_quiz_batch_size
+            
+            session['quiz_session'] = session_manager.to_dict()
+            session.modified = True
+            flash('Đã khôi phục phiên làm bài Quiz đang dở của bạn.', 'info')
+        else:
+            flash('Không có phiên học Quiz nào đang hoạt động. Vui lòng chọn bộ Quiz để bắt đầu.', 'info')
+            return redirect(url_for('learning.quiz_learning.dashboard'))
 
     try:
         session_manager = QuizSessionManager.from_dict(session['quiz_session'])
@@ -553,3 +578,20 @@ def get_quiz_item_stats(item_id):
         stats=stats,
         can_edit=container.creator_user_id == current_user.user_id if container else False
     )
+
+@quiz_learning_bp.route('/api/end_session', methods=['POST'])
+@login_required
+def end_session_quiz():
+    """End the quiz session."""
+    from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+
+    try:
+        session_data = session.get('quiz_session', {})
+        db_session_id = session_data.get('db_session_id')
+        
+        if db_session_id:
+            LearningSessionService.complete_session(db_session_id)
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

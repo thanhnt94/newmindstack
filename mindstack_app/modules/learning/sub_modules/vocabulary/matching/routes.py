@@ -25,10 +25,28 @@ def session_page(set_id):
     if not game_data:
         abort(400, description="Cần ít nhất 4 thẻ để chơi ghép đôi")
     
+    # Create DB Session
+    from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+    db_session_id = None
+    try:
+        # Matching doesn't have a fixed total_items in the same way, but let's assume 'count' is the pair count
+        db_session = LearningSessionService.create_session(
+            user_id=current_user.user_id,
+            learning_mode='matching',
+            mode_config_id='matching_game',
+            set_id_data=set_id,
+            total_items=6
+        )
+        if db_session:
+            db_session_id = db_session.session_id
+    except Exception as e:
+        print(f"Error creating DB session for matching: {e}")
+
     # Store correct pairs in session for validation
     session['matching_game'] = {
         'set_id': set_id,
-        'pairs': game_data['pairs']
+        'pairs': game_data['pairs'],
+        'db_session_id': db_session_id
     }
     
     return render_template(
@@ -49,10 +67,27 @@ def api_new_game(set_id):
     if not game_data:
         return jsonify({'success': False, 'message': 'Not enough items'}), 400
     
+    # Create DB Session
+    from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+    db_session_id = None
+    try:
+        db_session = LearningSessionService.create_session(
+            user_id=current_user.user_id,
+            learning_mode='matching',
+            mode_config_id='matching_game',
+            set_id_data=set_id,
+            total_items=count
+        )
+        if db_session:
+            db_session_id = db_session.session_id
+    except Exception as e:
+        print(f"Error creating DB session for matching: {e}")
+
     # Store in session
     session['matching_game'] = {
         'set_id': set_id,
-        'pairs': game_data['pairs']
+        'pairs': game_data['pairs'],
+        'db_session_id': db_session_id
     }
     
     return jsonify({
@@ -69,6 +104,8 @@ def api_new_game(set_id):
 @login_required
 def api_check_match():
     """API to check if a match is correct."""
+    from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+
     data = request.get_json()
     left_item_id = data.get('left_item_id')
     right_item_id = data.get('right_item_id')
@@ -113,8 +150,43 @@ def api_check_match():
              )
     
     safe_commit(db.session)
+
+    # Update DB Session
+    session_data = session.get('matching_game', {})
+    db_session_id = session_data.get('db_session_id')
     
+    if db_session_id and is_correct:
+        # Matching: only track correct matches as 'processed'
+        LearningSessionService.update_progress(
+            session_id=db_session_id,
+            item_id=left_item_id,
+            result_type='correct',
+            points=10
+        )
+        
+        # Check if game complete (simple check: if processed count matches total)
+        # However, matching game logic is stateless in DB session service. 
+        # Ideally we check stored session progress.
+        
     return jsonify({
         'correct': is_correct,
         'srs': srs_results
     })
+
+@matching_bp.route('/api/end_session', methods=['POST'])
+@login_required
+def end_session():
+    """End the matching session."""
+    from flask import session
+    from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+    
+    try:
+        session_data = session.get('matching_game', {})
+        db_session_id = session_data.get('db_session_id')
+        
+        if db_session_id:
+            LearningSessionService.complete_session(db_session_id)
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

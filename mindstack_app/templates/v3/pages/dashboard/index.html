@@ -51,6 +51,55 @@ Extends v3/base.html directly. Uses static v3/ paths.
         {% include 'v3/pages/dashboard/_mobile.html' %}
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.innerWidth < 1024) {
+                loadActiveSessionsMobile();
+            }
+        });
+
+        async function loadActiveSessionsMobile() {
+            const container = document.getElementById('active-sessions-mobile');
+            const list = document.getElementById('active-sessions-list-mobile');
+            if (!container || !list) return;
+
+            try {
+                const res = await fetch('/learn/api/active');
+                const sessions = await res.json();
+
+                if (sessions && sessions.length > 0) {
+                    container.classList.remove('hidden');
+                    list.innerHTML = sessions.map(s => {
+                        const isQuiz = s.learning_mode === 'quiz';
+                        const iconClass = isQuiz ? 'fa-bolt' : 'fa-layer-group';
+                        const iconBg = isQuiz ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600';
+                        const btnBg = isQuiz ? 'bg-amber-500' : 'bg-indigo-600';
+                        const label = isQuiz ? 'câu' : 'thẻ';
+
+                        return `
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center text-lg">
+                                    <i class="fa-solid ${iconClass}"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-800 line-clamp-1">${s.container_name}</h4>
+                                    <p class="text-[10px] text-slate-400 font-medium">${s.mode_name} • ${s.progress.done}/${s.progress.total} ${label}</p>
+                                </div>
+                            </div>
+                            <a href="${s.resume_url}" class="${btnBg} text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm shadow-indigo-100">
+                                Tiếp tục
+                            </a>
+                        </div>
+                    `;
+                    }).join('');
+                }
+            } catch (e) {
+                console.error('Failed to load active sessions', e);
+            }
+        }
+    </script>
+
     {# --- Giao diện Desktop (Grid Complex) --- #}
     <div class="hidden lg:block">
         {% include 'v3/pages/dashboard/_desktop.html' %}

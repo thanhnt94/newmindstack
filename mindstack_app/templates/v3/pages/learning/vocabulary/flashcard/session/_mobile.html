@@ -95,7 +95,7 @@
                         </a>
 
                         {# Exit Button #}
-                        <button
+                        <button onclick="showExitModal()"
                             class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
                             id="mobile-exit-btn">
                             <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
@@ -645,9 +645,11 @@
         // Exit button
         const exitBtn = document.getElementById('mobile-exit-btn');
         if (exitBtn) {
-            exitBtn.addEventListener('click', function () {
-                history.back();
-            });
+            // Remove previous listeners if any (though replaced onclick handles it primarily)
+            // But if there was logic before, ensure it calls showExitModal()
+            exitBtn.onclick = function () {
+                window.showExitModal();
+            };
         }
 
         // Card Details / Stats Button (New)

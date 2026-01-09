@@ -40,10 +40,10 @@ class QuizSessionManager:
 
     def __init__(self, user_id, set_id, mode, batch_size,
                  total_items_in_session, processed_item_ids,
-
                  correct_answers, incorrect_answers, start_time, common_pre_question_text_global,
                  *, total_question_groups_in_session=None,
-                 processed_question_count=0, group_numbering=None, group_sub_counters=None, custom_pairs=None, batch_options_mappings=None):
+                 processed_question_count=0, group_numbering=None, group_sub_counters=None, 
+                 custom_pairs=None, batch_options_mappings=None, db_session_id=None):
         """
         Khởi tạo một phiên QuizSessionManager.
         """
@@ -63,6 +63,7 @@ class QuizSessionManager:
         self.group_sub_counters = group_sub_counters or {}
         self.custom_pairs = custom_pairs or []
         self.batch_options_mappings = batch_options_mappings or {} 
+        self.db_session_id = db_session_id
         self._media_folders_cache: Optional[dict[str, str]] = None
         current_app.logger.debug(f"QuizSessionManager: Instance được khởi tạo/tải. User: {self.user_id}, Set: {self.set_id}, Mode: {self.mode}")
 
@@ -88,6 +89,7 @@ class QuizSessionManager:
             group_sub_counters=session_dict.get('group_sub_counters') or {},
             custom_pairs=session_dict.get('custom_pairs') or [],
             batch_options_mappings=session_dict.get('batch_options_mappings') or {},
+            db_session_id=session_dict.get('db_session_id')
         )
         instance._media_folders_cache = None
         return instance
@@ -114,6 +116,7 @@ class QuizSessionManager:
             'group_sub_counters': self.group_sub_counters,
             'custom_pairs': self.custom_pairs,
             'batch_options_mappings': self.batch_options_mappings,
+            'db_session_id': self.db_session_id
         }
 
     @classmethod
@@ -126,7 +129,23 @@ class QuizSessionManager:
         current_app.logger.debug(f"SessionManager: Bắt đầu start_new_quiz_session cho set_id={set_id}, mode={mode}, session_size={session_size}, turn_size={batch_size}")
         user_id = current_user.user_id
         
-        cls.end_quiz_session()
+        # [UPDATED] Smart Session Cleanup (Session Isolation)
+        # If switching to a DIFFERENT set, just clear Flask session (keep DB session active for resume).
+        # If restarting SAME set, complete the old session.
+        if cls.SESSION_KEY in session:
+            current_session_data = session.get(cls.SESSION_KEY)
+            current_set_id = current_session_data.get('set_id')
+            
+            # Helper to normalize for comparison
+            # Handle potential list vs int mismatch if applicable, though set_id usually int/list matches logic
+            is_same_set = str(current_set_id) == str(set_id)
+            
+            if is_same_set:
+                cls.end_quiz_session() # Restarting same set -> Complete old one
+            else:
+                session.pop(cls.SESSION_KEY, None) # Switching sets -> Detach, keep active in DB
+        
+        # OLD: cls.end_quiz_session()
 
         mode_config = next((m for m in QuizLearningConfig.QUIZ_MODES if m['id'] == mode), None)
         if not mode_config:
@@ -255,7 +274,21 @@ class QuizSessionManager:
             group_sub_counters={},
             custom_pairs=custom_pairs,
             batch_options_mappings={},
+            db_session_id=None
         )
+
+        # [NEW] Create session in database
+        from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+        db_session = LearningSessionService.create_session(
+            user_id=user_id,
+            learning_mode='quiz',
+            mode_config_id=mode,
+            set_id_data=normalized_set_id,
+            total_items=total_items_in_session
+        )
+        if db_session:
+            new_session_manager.db_session_id = db_session.session_id
+
         session[cls.SESSION_KEY] = new_session_manager.to_dict()
         session.modified = True
 
@@ -732,6 +765,26 @@ class QuizSessionManager:
         
         session[self.SESSION_KEY] = self.to_dict()
         session.modified = True 
+        
+        # [NEW] Update database session progress
+        if getattr(self, 'db_session_id', None):
+            from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+            # We use process_answer_batch for the whole batch
+            # We'll update the session metadata (counts) 
+            # and processed_item_ids in bulk via a custom service method or manual update
+            from mindstack_app.models import LearningSession, db
+            try:
+                db_sess = db.session.get(LearningSession, self.db_session_id)
+                if db_sess:
+                    db_sess.correct_count = self.correct_answers
+                    db_sess.incorrect_count = self.incorrect_answers
+                    db_sess.processed_item_ids = list(self.processed_item_ids) # Sync full list
+                    db.session.add(db_sess)
+                    from mindstack_app.utils.db_session import safe_commit
+                    safe_commit(db.session)
+            except Exception as e:
+                current_app.logger.error(f"Error syncing quiz session to DB: {e}")
+
         print(f">>> SESSION_MANAGER: Nhóm đáp án đã xử lý. Đã xử lý tổng cộng: {len(self.processed_item_ids)} câu. <<<")
 
         return results
@@ -741,11 +794,30 @@ class QuizSessionManager:
         """
         Kết thúc phiên học Quiz hiện tại và xóa dữ liệu khỏi session.
         """
+        result = {'message': 'Phiên học đã kết thúc.', 'stats': {}}
+        
         if cls.SESSION_KEY in session:
+            session_data = session.get(cls.SESSION_KEY)
+            db_session_id = session_data.get('db_session_id')
+            
+            # Gather stats
+            stats = {
+                'total_items': session_data.get('total_items_in_session', 0),
+                'processed_count': len(session_data.get('processed_item_ids', [])),
+                'correct_count': session_data.get('correct_answers', 0),
+                'incorrect_count': session_data.get('incorrect_answers', 0),
+            }
+            result['stats'] = stats
+
+            if db_session_id:
+                from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+                # Always mark as completed if user explicitly ends it, 
+                # or just use complete_session which sets status='completed'
+                LearningSessionService.complete_session(db_session_id)
+
             session.pop(cls.SESSION_KEY, None)
-            print(">>> SESSION_MANAGER: Phiên học đã kết thúc và xóa khỏi session. <<<")
-            current_app.logger.debug("SessionManager: Phiên học đã kết thúc và xóa khỏi session.")
-        return {'message': 'Phiên học đã kết thúc.'}
+            
+        return result
 
     @classmethod
     def get_session_status(cls):

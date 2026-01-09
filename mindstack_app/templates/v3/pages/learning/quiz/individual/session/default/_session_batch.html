@@ -1449,7 +1449,28 @@
 
     function handleSessionComplete(endMessage) {
         setText('.js-quiz-group-range', 'Hoàn thành');
-        const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Hoàn thành phiên học!</h3><p class="text-slate-500 mb-6">${formatTextForHtml(endMessage.message)}</p><a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> Về Dashboard</a></div>`;
+
+        let statsHtml = '';
+        if (endMessage.stats) {
+            statsHtml = `
+             <div class="grid grid-cols-2 gap-4 max-w-sm mx-auto mb-6 text-left">
+                <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                    <div class="text-xs text-slate-500 uppercase font-bold">Chính xác</div>
+                    <div class="text-2xl font-black text-emerald-600">${endMessage.stats.correct_count}</div>
+                </div>
+                <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                    <div class="text-xs text-slate-500 uppercase font-bold">Sai</div>
+                    <div class="text-2xl font-black text-red-600">${endMessage.stats.incorrect_count}</div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 col-span-2">
+                    <div class="text-xs text-slate-500 uppercase font-bold">Tiến độ</div>
+                    <div class="text-xl font-bold text-blue-700">${endMessage.stats.processed_count} / ${endMessage.stats.total_items} câu</div>
+                </div>
+             </div>
+             `;
+        }
+
+        const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Hoàn thành phiên học!</h3><p class="text-slate-500 mb-6">${formatTextForHtml(endMessage.message)}</p>${statsHtml}<a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> Về Dashboard</a></div>`;
         setHtml('.js-quiz-content', msgHtml);
         toggleControlButtons('complete');
         document.querySelectorAll('.js-end-session-btn').forEach(btn => btn.style.display = 'none');
@@ -1458,9 +1479,15 @@
     async function handleEndSession() {
         if (confirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?')) {
             try {
-                await fetch(endSessionUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders }, body: JSON.stringify({}) });
+                const res = await fetch(endSessionUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders }, body: JSON.stringify({}) });
+                const data = await res.json();
                 clearState();
-                window.location.href = quizDashboardUrl;
+
+                if (data.stats) {
+                    handleSessionComplete({ message: data.message, stats: data.stats });
+                } else {
+                    window.location.href = quizDashboardUrl;
+                }
             } catch (e) {
                 showCustomAlert('Lỗi kết thúc phiên.', 'error');
             }

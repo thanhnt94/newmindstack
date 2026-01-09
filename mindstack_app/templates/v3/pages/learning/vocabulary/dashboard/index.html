@@ -259,6 +259,99 @@
 
     }
 
+    /* Active Sessions Section */
+    .active-sessions-wrap {
+        padding: 1rem;
+        background: #fdf2f2;
+        border-bottom: 2px solid #fee2e2;
+        display: none;
+        /* Hidden by default if no active sessions */
+    }
+
+    .active-sessions-title {
+        font-weight: 800;
+        font-size: 0.75rem;
+        color: #b91c1c;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .active-session-card {
+        background: white;
+        border: 1px solid #fee2e2;
+        border-radius: 1rem;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 4px 12px rgba(185, 28, 28, 0.08);
+        margin-bottom: 0.75rem;
+        transition: transform 0.2s;
+    }
+
+    .active-session-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .active-session-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 0.75rem;
+        background: linear-gradient(135deg, #f87171, #ef4444);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+    }
+
+    .active-session-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .session-item-title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .session-details {
+        font-size: 0.75rem;
+        color: #64748b;
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .session-resume-btn {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .session-resume-btn:hover {
+        background: #dc2626;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+
 
 
     /* Category Tabs */
@@ -2607,6 +2700,17 @@
 
 
 
+
+    <div id="active-sessions-container" class="active-sessions-wrap">
+        <div class="active-sessions-title">
+            <i class="fas fa-history"></i>
+            Bạn đang học dở
+        </div>
+        <div id="active-sessions-list">
+            <!-- Rendered by JS -->
+        </div>
+    </div>
+
     <div class="vocab-scroll" style="padding-bottom: 80px;">
 
         <div id="sets-grid" class="vocab-grid">
@@ -3437,6 +3541,7 @@
             // Init
 
             loadSets();
+            loadActiveSessions();
 
 
 
@@ -3772,6 +3877,54 @@
 
             });
 
+    }
+
+
+
+    function loadActiveSessions() {
+        const container = document.getElementById('active-sessions-container');
+        const list = document.getElementById('active-sessions-list');
+        if (!container || !list) return;
+
+        fetch('/learn/api/learning/sessions/active?mode=flashcard')
+            .then(r => r.json())
+            .then(data => {
+                if (data.has_active) {
+                    container.style.display = 'block';
+                    renderActiveSession(data.session, list);
+                } else {
+                    container.style.display = 'none';
+                }
+            })
+            .catch(err => console.warn('Active session check failed:', err));
+    }
+
+    function renderActiveSession(session, targetList) {
+        const typeLabel = session.learning_mode === 'flashcard' ? 'Flashcard' : 'Học tập';
+        const progress = session.total_items > 0
+            ? Math.round((session.processed_item_ids.length / session.total_items) * 100)
+            : 0;
+
+        // Try to get title from session data if we can
+        const title = session.set_title || ('Bộ thẻ #' + session.set_id_data);
+
+        targetList.innerHTML = `
+            <div class="active-session-card animate-fadeIn">
+                <div class="active-session-icon">
+                    <i class="fas fa-play"></i>
+                </div>
+                <div class="active-session-info">
+                    <div class="session-item-title">${title}</div>
+                    <div class="session-details">
+                        <span><i class="fas fa-layer-group mr-1"></i>${typeLabel}</span>
+                        <span><i class="fas fa-tasks mr-1"></i>${progress}%</span>
+                    </div>
+                </div>
+                <a href="/learn/vocabulary/flashcard/session" class="session-resume-btn">
+                    Tiếp tục <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        `;
     }
 
 

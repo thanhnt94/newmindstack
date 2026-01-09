@@ -610,12 +610,19 @@
 
                     {# Action Buttons - MINIMAL #}
                     <div class="flex items-center gap-1.5 flex-shrink-0">
-                        {# Only Exit Button #}
-                        <a href="{{ url_for('learning.vocabulary.typing.setup', set_id=container.container_id) }}"
+                        {# Home Button #}
+                        <a href="{{ url_for('dashboard.dashboard') }}"
+                            class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100"
+                            title="Về trang chủ">
+                            <i class="fas fa-home text-[10px]"></i>
+                        </a>
+
+                        {# Exit Button #}
+                        <button onclick="endTypingSession()"
                             class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
                             title="Thoát">
                             <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -692,6 +699,33 @@
 {% include 'v3/includes/notification/_score_toast.html' %}
 {% include 'v3/includes/notification/_memory_power.html' %}
 {% include 'v3/pages/learning/vocabulary/stats/_modal_stats.html' %}
+<!-- Exit Confirmation Modal -->
+<div id="exit-confirm-modal"
+    class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    style="display: none;">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+        id="exit-modal-panel">
+        <div class="text-center">
+            <div
+                class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 ring-rose-50">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Kết thúc phiên học?</h3>
+            <p class="text-slate-500 text-sm mb-6 leading-relaxed">Kết quả hiện tại sẽ được lưu vào lịch sử. Bạn có muốn
+                xem thống kê ngay không?</p>
+            <div class="flex gap-3">
+                <button onclick="closeExitModal()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
+                    Ở lại
+                </button>
+                <button onclick="confirmExit()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">
+                    Kết thúc
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -737,6 +771,62 @@
                 inputEl.scrollIntoView({ behavior: "smooth", block: "center" });
             }
         }, 500);
+
+        // Modal Logic
+        const exitModal = document.getElementById('exit-confirm-modal');
+        const exitPanel = document.getElementById('exit-modal-panel');
+
+        window.endTypingSession = function () {
+            if (exitModal) {
+                exitModal.style.display = 'flex';
+                // Small delay to allow display:flex to apply before adding opacity class for animation
+                setTimeout(() => {
+                    exitModal.classList.remove('opacity-0', 'hidden');
+                    exitPanel.classList.remove('scale-95');
+                    exitPanel.classList.add('scale-100');
+                }, 10);
+            }
+        };
+
+        window.closeExitModal = function () {
+            if (exitModal) {
+                exitModal.classList.add('opacity-0');
+                exitPanel.classList.remove('scale-100');
+                exitPanel.classList.add('scale-95');
+                setTimeout(() => {
+                    exitModal.classList.add('hidden');
+                    exitModal.style.display = 'none';
+                }, 300);
+            }
+        };
+
+        window.confirmExit = function () {
+            const btn = document.querySelector('button[onclick="confirmExit()"]');
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
+                btn.disabled = true;
+            }
+
+            fetch("{{ url_for('learning.vocabulary.typing.end_session') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() if csrf_token else '' }}"
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Lỗi kết nối. Vui lòng thử lại.");
+                    if (btn) {
+                        btn.innerHTML = 'Kết thúc';
+                        btn.disabled = false;
+                    }
+                });
+        };
 
         // Fetch Items
         var fetchUrl = '/learn/vocabulary/typing/api/items/' + setId + '?count=' + count;

@@ -1289,6 +1289,70 @@
             });
         }
 
+        // --- End Session Logic ---
+        const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
+
+        function handleSessionComplete(endMessage) {
+            clearState();
+
+            let statsHtml = '';
+            if (endMessage.stats) {
+                statsHtml = `
+                 <div class="grid grid-cols-2 gap-4 max-w-sm mx-auto mb-6 text-left">
+                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                        <div class="text-xs text-slate-500 uppercase font-bold">Chính xác</div>
+                        <div class="text-2xl font-black text-emerald-600">${endMessage.stats.correct_count}</div>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                        <div class="text-xs text-slate-500 uppercase font-bold">Sai</div>
+                        <div class="text-2xl font-black text-red-600">${endMessage.stats.incorrect_count}</div>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 col-span-2">
+                        <div class="text-xs text-slate-500 uppercase font-bold">Tiến độ</div>
+                        <div class="text-xl font-bold text-blue-700">${endMessage.stats.processed_count} / ${endMessage.stats.total_items} câu</div>
+                    </div>
+                 </div>
+                 `;
+            }
+
+            const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Hoàn thành phiên học!</h3><p class="text-slate-500 mb-6">${endMessage.message || 'Phiên học đã kết thúc.'}</p>${statsHtml}<a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> Về Dashboard</a></div>`;
+
+            // Override content area
+            showLoading(false);
+            setHtml('.js-quiz-content', msgHtml);
+            document.querySelectorAll('.js-quiz-content').forEach(el => el.classList.remove('hidden')); // Ensure visible
+
+            // Hide controls
+            const actionBars = document.querySelectorAll('.desktop-action-bar, .qb-bottom-bar');
+            actionBars.forEach(el => el.style.display = 'none');
+
+            // Hide exit buttons
+            const exitBtns = document.querySelectorAll('#desktop-exit-btn, #mobile-exit-btn');
+            exitBtns.forEach(btn => btn.style.display = 'none');
+        }
+
+        async function handleEndSession() {
+            if (confirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?')) {
+                try {
+                    const res = await fetch(endSessionUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify({})
+                    });
+                    const data = await res.json();
+
+                    if (data.stats) {
+                        handleSessionComplete({ message: data.message, stats: data.stats });
+                    } else {
+                        clearState();
+                        window.location.href = quizDashboardUrl;
+                    }
+                } catch (e) {
+                    alert('Lỗi kết thúc phiên.');
+                }
+            }
+        }
+
         // --- Init ---
         function init() {
             // Load title immediately
@@ -1296,6 +1360,15 @@
 
             // Setup collapsible header
             setupHeaderToggle();
+
+            // Attach Exit Handlers
+            const exitBtns = document.querySelectorAll('#desktop-exit-btn, #mobile-exit-btn');
+            exitBtns.forEach(btn => {
+                if (btn) btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleEndSession();
+                });
+            });
 
             // Check for force new session flag from Dashboard
             if (localStorage.getItem('force_new_session') === 'true') {

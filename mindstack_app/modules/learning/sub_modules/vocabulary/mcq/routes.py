@@ -378,3 +378,30 @@ def api_check_answer():
             logging.error(f"SRS update failed for MCQ: {e}")
     
     return jsonify(result)
+
+@mcq_bp.route('/api/end_session', methods=['POST'])
+@login_required
+def end_session():
+    """End the MCQ session."""
+    from .mcq_session_manager import MCQSessionManager
+    try:
+        data = request.get_json(silent=True) or {}
+        set_id = data.get('set_id') or request.args.get('set_id')
+        
+        # If set_id not provided, try to find active session from DB helper
+        if not set_id:
+             # This might be tricky without set_id, but the frontend should send it.
+             # Alternatively, we can check Flask session for 'mcq_session_set_id' if we stored it?
+             # For now, require set_id or just fail gracefully.
+             return jsonify({'success': False, 'message': 'Missing set_id'}), 400
+
+        manager = MCQSessionManager.load_from_db(current_user.user_id, set_id)
+        if manager:
+            # Complete the session
+            from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+            if manager.db_session_id:
+                LearningSessionService.complete_session(manager.db_session_id)
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

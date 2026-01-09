@@ -448,7 +448,10 @@
         </div>
 
         <div class="flex gap-2">
-            <button id="mobile-exit-btn"
+            <a href="{{ url_for('dashboard.dashboard') }}"
+                class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"
+                title="Về trang chủ"><i class="fas fa-home"></i></a>
+            <button id="mobile-exit-btn" onclick="endQuizSession()"
                 class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
                     class="fa-solid fa-right-from-bracket"></i></button>
         </div>
@@ -473,7 +476,10 @@
             <p class="text-sm text-slate-500">Chế độ cá nhân</p>
         </div>
         <div class="flex gap-2">
-            <button id="desktop-exit-btn" class="cm-btn cm-btn-danger"><i class="fa-solid fa-right-from-bracket"></i>
+            <a href="{{ url_for('dashboard.dashboard') }}"
+                class="cm-btn bg-slate-100 text-slate-600 hover:bg-slate-200"><i class="fas fa-home"></i> Trang chủ</a>
+            <button id="desktop-exit-btn" onclick="endQuizSession()" class="cm-btn cm-btn-danger"><i
+                    class="fa-solid fa-right-from-bracket"></i>
                 Kết thúc</button>
         </div>
     </header>
@@ -649,6 +655,33 @@
     </div>
 </div>
 
+<!-- Exit Confirmation Modal -->
+<div id="exit-confirm-modal"
+    class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    style="display: none;">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+        id="exit-modal-panel">
+        <div class="text-center">
+            <div
+                class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 ring-rose-50">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Kết thúc phiên học?</h3>
+            <p class="text-slate-500 text-sm mb-6 leading-relaxed">Kết quả hiện tại sẽ được lưu vào lịch sử. Bạn có muốn
+                xem thống kê ngay không?</p>
+            <div class="flex gap-3">
+                <button onclick="closeExitModal()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
+                    Ở lại
+                </button>
+                <button onclick="confirmExit()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">
+                    Kết thúc
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -663,6 +696,64 @@
         const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
         const quizDashboardUrl = "{{ url_for('learning.quiz_learning.dashboard') }}";
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        // Modal Logic
+        const exitModal = document.getElementById('exit-confirm-modal');
+        const exitPanel = document.getElementById('exit-modal-panel');
+
+        window.endQuizSession = function () {
+            if (exitModal) {
+                exitModal.style.display = 'flex';
+                // Small delay to allow display:flex to apply before adding opacity class for animation
+                setTimeout(() => {
+                    exitModal.classList.remove('opacity-0', 'hidden');
+                    exitPanel.classList.remove('scale-95');
+                    exitPanel.classList.add('scale-100');
+                }, 10);
+            }
+        };
+
+        window.closeExitModal = function () {
+            if (exitModal) {
+                exitModal.classList.add('opacity-0');
+                exitPanel.classList.remove('scale-100');
+                exitPanel.classList.add('scale-95');
+                setTimeout(() => {
+                    exitModal.classList.add('hidden');
+                    exitModal.style.display = 'none';
+                }, 300);
+            }
+        };
+
+        window.confirmExit = function () {
+            const btn = document.querySelector('button[onclick="confirmExit()"]');
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
+                btn.disabled = true;
+            }
+
+            fetch(endSessionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Lỗi kết nối. Vui lòng thử lại.");
+                    if (btn) {
+                        btn.innerHTML = 'Kết thúc';
+                        btn.disabled = false;
+                    }
+                });
+        };
 
         // State
         let currentBatch = [];

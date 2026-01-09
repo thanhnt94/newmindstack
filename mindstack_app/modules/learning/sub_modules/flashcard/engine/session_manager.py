@@ -38,6 +38,7 @@ import datetime
 import os
 import asyncio
 from mindstack_app.modules.learning.sub_modules.flashcard.services.audio_service import AudioService
+from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
 from mindstack_app.utils.media_paths import build_relative_media_path
 
 audio_service = AudioService()
@@ -67,7 +68,7 @@ class FlashcardSessionManager:
     def __init__(self, user_id, set_id, mode,
                  total_items_in_session, processed_item_ids,
                  correct_answers, incorrect_answers, vague_answers, start_time,
-                 session_points=0):
+                 session_points=0, db_session_id=None):
         self.user_id = user_id
         self.set_id = set_id
         self.mode = mode
@@ -78,6 +79,7 @@ class FlashcardSessionManager:
         self.vague_answers = vague_answers
         self.start_time = start_time
         self.session_points = session_points  # Track points earned in this session
+        self.db_session_id = db_session_id # NEW: Link to database session
         self._media_folders_cache = None
         self._edit_permission_cache = {}
 
@@ -93,7 +95,8 @@ class FlashcardSessionManager:
             incorrect_answers=session_dict['incorrect_answers'],
             vague_answers=session_dict['vague_answers'],
             start_time=session_dict['start_time'],
-            session_points=session_dict.get('session_points', 0)
+            session_points=session_dict.get('session_points', 0),
+            db_session_id=session_dict.get('db_session_id')
         )
         instance._media_folders_cache = None
         instance._edit_permission_cache = {}
@@ -111,13 +114,29 @@ class FlashcardSessionManager:
             'incorrect_answers': self.incorrect_answers,
             'vague_answers': self.vague_answers,
             'start_time': self.start_time,
-            'session_points': self.session_points
+            'session_points': self.session_points,
+            'db_session_id': self.db_session_id
         }
 
     @classmethod
     def start_new_flashcard_session(cls, set_id, mode):
         user_id = current_user.user_id
-        cls.end_flashcard_session()
+        
+        # [UPDATED] Smart Session Cleanup
+        # If switching to a DIFFERENT set, just clear Flask session (keep DB session active for resume).
+        # If restarting SAME set, complete the old session.
+        if cls.SESSION_KEY in session:
+            current_session_data = session.get(cls.SESSION_KEY)
+            current_set_id = current_session_data.get('set_id')
+            
+            # Helper to normalize for comparison (handle list vs int cases if needed, though exact match is safer)
+            is_same_set = str(current_set_id) == str(set_id) 
+            
+            if is_same_set:
+                 cls.end_flashcard_session() # Complete old session for SAME set
+            else:
+                 session.pop(cls.SESSION_KEY, None) # Just detach, leave active in DB
+        
         # [FIX] Legacy Mode Mapping
         if mode == 'review_due': mode = 'due_only'
         if mode == 'hard_items': mode = 'hard_only'
@@ -196,6 +215,18 @@ class FlashcardSessionManager:
             incorrect_answers=0, vague_answers=0,
             start_time=datetime.datetime.now(datetime.timezone.utc).isoformat()
         )
+
+        # Create DB session for persistence
+        db_session = LearningSessionService.create_session(
+            user_id=user_id,
+            learning_mode='flashcard',
+            mode_config_id=mode,
+            set_id_data=normalized_set_id,
+            total_items=total_items_in_session
+        )
+        if db_session:
+            new_session_manager.db_session_id = db_session.session_id
+
         session[cls.SESSION_KEY] = new_session_manager.to_dict()
         session.modified = True
         return True, "Bắt đầu phiên học thành công."
@@ -431,6 +462,15 @@ class FlashcardSessionManager:
             if score_change and score_change > 0:
                 self.session_points += score_change
 
+            # [NEW] Sync with Database Session
+            if self.db_session_id:
+                LearningSessionService.update_progress(
+                    session_id=self.db_session_id,
+                    item_id=item_id,
+                    result_type=answer_result_type,
+                    points=score_change if score_change and score_change > 0 else 0
+                )
+
             session[self.SESSION_KEY] = self.to_dict()
             session.modified = True
             
@@ -452,6 +492,10 @@ class FlashcardSessionManager:
     @classmethod
     def end_flashcard_session(cls):
         if cls.SESSION_KEY in session:
+            session_data = session.get(cls.SESSION_KEY)
+            db_session_id = session_data.get('db_session_id') if session_data else None
+            if db_session_id:
+                LearningSessionService.complete_session(db_session_id)
             session.pop(cls.SESSION_KEY, None)
         return {'message': 'Phiên học đã kết thúc.'}
 

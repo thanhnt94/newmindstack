@@ -5,5 +5,6 @@
 
 from .audio_service import AudioService
 from .image_service import ImageService
+from .session_service import LearningSessionService
 
-__all__ = ['AudioService', 'ImageService']
+__all__ = ['AudioService', 'ImageService', 'LearningSessionService']

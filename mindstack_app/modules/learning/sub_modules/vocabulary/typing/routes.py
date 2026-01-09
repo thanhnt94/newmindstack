@@ -89,6 +89,8 @@ def start_session():
     """Start a typing session: Save settings and redirect."""
     try:
         from flask import session
+        from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+        
         data = request.get_json()
         
         set_id = data.get('set_id')
@@ -108,6 +110,20 @@ def start_session():
             'custom_pairs': custom_pairs
         }
         
+        # Create DB Session
+        try:
+            db_session = LearningSessionService.create_session(
+                user_id=current_user.user_id,
+                learning_mode='typing',
+                mode_config_id=mode,
+                set_id_data=set_id,
+                total_items=count if count else 0
+            )
+            if db_session:
+                session['typing_session']['db_session_id'] = db_session.session_id
+        except Exception as e:
+            print(f"Error creating DB session for typing: {e}")
+
         # Save preferences to DB (UserContainerState)
         try:
             from mindstack_app.models import UserContainerState, db
@@ -216,12 +232,36 @@ def api_get_items(set_id):
     mode = session_data.get('mode', 'custom')
 
     items = get_typing_eligible_items(set_id, custom_pairs=custom_pairs, mode=mode)
+    
+    # [NEW] Session Persistence Logic
+    from mindstack_app.models import LearningSession
+    db_session_id = session_data.get('db_session_id')
+    processed_ids = []
+    
+    # 1. Deterministic Shuffle (if we have a session)
+    import random
+    if db_session_id:
+        # Use session_id as seed to ensure same order every reload
+        random.Random(str(db_session_id)).shuffle(items)
+        
+        active_session = LearningSession.query.get(db_session_id)
+        if active_session and active_session.processed_item_ids:
+            processed_ids = active_session.processed_item_ids
+    else:
+        # Fallback random for stateless play
+        random.shuffle(items)
+
+    # 2. Filter out processed items
+    if processed_ids:
+        items = [i for i in items if i['id'] not in processed_ids]
+
     if len(items) < 1:
+        # Check if we are actually complete
+        if db_session_id:
+             return jsonify({'success': True, 'items': [], 'complete': True, 'message': 'Session complete'}), 200
         return jsonify({'success': False, 'message': 'No items available'}), 400
     
-    # Shuffle and pick items
-    import random
-    random.shuffle(items)
+    # 3. Limit count
     # count=0 means unlimited (all items), otherwise limit to count
     selected = items if count <= 0 else items[:min(count, len(items))]
     
@@ -236,6 +276,9 @@ def api_get_items(set_id):
 @login_required
 def api_check_answer():
     """API to check typed answer."""
+    from flask import session
+    from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+
     data = request.get_json()
     correct_answer = data.get('correct_answer', '')
     user_answer = data.get('user_answer', '')
@@ -260,5 +303,41 @@ def api_check_answer():
         )
         safe_commit(db.session)
         result['srs'] = srs_result
+        
+        # Update DB Session
+        session_data = session.get('typing_session', {})
+        db_session_id = session_data.get('db_session_id')
+        
+        if db_session_id:
+            result_type = 'correct' if result.get('correct') else 'incorrect'
+            # Calculate points (simple logic for now)
+            points = 10 if result.get('correct') else 0
+            
+            LearningSessionService.update_progress(
+                session_id=db_session_id,
+                item_id=item_id,
+                result_type=result_type,
+                points=points
+            )
 
-    return jsonify(result)
+
+@typing_bp.route('/api/end_session', methods=['POST'])
+@login_required
+def end_session():
+    """End the typing session."""
+    from flask import session
+    from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+    
+    try:
+        session_data = session.get('typing_session', {})
+        db_session_id = session_data.get('db_session_id')
+        
+        if db_session_id:
+            LearningSessionService.complete_session(db_session_id)
+            
+        # Optional: Clear session data if you want to force a fresh start next time
+        # session.pop('typing_session', None)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

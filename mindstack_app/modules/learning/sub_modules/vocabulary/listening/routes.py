@@ -82,6 +82,8 @@ def start_session():
     """Start a listening session: Save settings and redirect."""
     try:
         from flask import session
+        from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+
         data = request.get_json()
         
         set_id = data.get('set_id')
@@ -101,6 +103,20 @@ def start_session():
             'custom_pairs': custom_pairs
         }
         
+        # Create DB Session
+        try:
+            db_session = LearningSessionService.create_session(
+                user_id=current_user.user_id,
+                learning_mode='listening',
+                mode_config_id=mode,
+                set_id_data=set_id,
+                total_items=count if count else 0
+            )
+            if db_session:
+                session['listening_session']['db_session_id'] = db_session.session_id
+        except Exception as e:
+            print(f"Error creating DB session for listening: {e}")
+
         # Save preferences to DB (UserContainerState)
         try:
             from mindstack_app.models import UserContainerState, db
@@ -351,6 +367,9 @@ def api_get_items(set_id):
 @csrf_protect.exempt
 def api_check_answer():
     """API to check typed answer."""
+    from flask import session
+    from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+
     data = request.get_json()
     correct_answer = data.get('correct_answer', '')
     user_answer = data.get('user_answer', '')
@@ -376,6 +395,21 @@ def api_check_answer():
         safe_commit(db.session)
         # Flatten srs_result into main response
         result.update(srs_result)
+        
+        # Update DB Session
+        session_data = session.get('listening_session', {})
+        db_session_id = session_data.get('db_session_id')
+        
+        if db_session_id:
+            result_type = 'correct' if result.get('correct') else 'incorrect'
+            points = 10 if result.get('correct') else 0
+            
+            LearningSessionService.update_progress(
+                session_id=db_session_id,
+                item_id=item_id,
+                result_type=result_type,
+                points=points
+            )
         
     return jsonify(result)
 
@@ -470,4 +504,22 @@ def api_tts():
     except Exception as e:
         import traceback
         traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@listening_bp.route('/api/end_session', methods=['POST'])
+@login_required
+def end_session():
+    """End the listening session."""
+    from flask import session
+    from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+
+    try:
+        session_data = session.get('listening_session', {})
+        db_session_id = session_data.get('db_session_id')
+        
+        if db_session_id:
+            LearningSessionService.complete_session(db_session_id)
+            
+        return jsonify({'success': True})
+    except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

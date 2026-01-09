@@ -12,7 +12,7 @@ class MCQSessionManager:
     Persists data in the Database (UserContainerState.settings).
     """
     
-    def __init__(self, user_id, set_id, params=None, questions=None, currentIndex=0, stats=None, answers=None):
+    def __init__(self, user_id, set_id, params=None, questions=None, currentIndex=0, stats=None, answers=None, db_session_id=None):
         self.user_id = user_id
         self.set_id = set_id
         self.params = params or {}
@@ -21,6 +21,7 @@ class MCQSessionManager:
         # stats includes 'correct', 'wrong', and now 'points'
         self.stats = stats or {'correct': 0, 'wrong': 0, 'points': 0}
         self.answers = answers or {} # Map: currentIndex (str) -> {'user_answer_index': int, ...}
+        self.db_session_id = db_session_id
 
     def to_dict(self):
         return {
@@ -30,7 +31,8 @@ class MCQSessionManager:
             'questions': self.questions,
             'currentIndex': self.currentIndex,
             'stats': self.stats,
-            'answers': self.answers
+            'answers': self.answers,
+            'db_session_id': self.db_session_id
         }
 
     @classmethod
@@ -46,7 +48,8 @@ class MCQSessionManager:
             questions=data.get('questions'),
             currentIndex=data.get('currentIndex', 0),
             stats=stats,
-            answers=data.get('answers')
+            answers=data.get('answers'),
+            db_session_id=data.get('db_session_id')
         )
 
     @classmethod
@@ -127,6 +130,21 @@ class MCQSessionManager:
         self.stats = {'correct': 0, 'wrong': 0, 'points': 0}
         self.answers = {}
         
+        # [NEW] Create DB Session via Service
+        try:
+            from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+            db_session = LearningSessionService.create_session(
+                user_id=self.user_id,
+                learning_mode='mcq',
+                mode_config_id=mode,
+                set_id_data=self.set_id,
+                total_items=len(self.questions)
+            )
+            if db_session:
+                self.db_session_id = db_session.session_id
+        except Exception as e:
+            print(f"Error creating DB session for checking: {e}")
+
         self.save_to_db()
         return True, "Session initialized"
 
@@ -159,6 +177,30 @@ class MCQSessionManager:
             'user_answer_index': user_answer_index,
             'is_correct': is_correct
         }
+        
+        # [NEW] Update DB Session Progress
+        if self.db_session_id:
+            try:
+                from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+                
+                # Assume item_id is stored in the question object. 
+                # If not, we might need to adjust generate_mcq_question, 
+                # but typically MCQ questions retain item_id reference.
+                item_id = question.get('item_id') 
+                
+                LearningSessionService.update_progress(
+                    session_id=self.db_session_id,
+                    item_id=item_id,
+                    result_type='correct' if is_correct else 'incorrect',
+                    points=10 if is_correct else 0
+                )
+                
+                # Check for completion
+                if self.currentIndex >= len(self.questions) - 1:
+                    LearningSessionService.complete_session(self.db_session_id)
+                    
+            except Exception as e:
+                print(f"Error updating DB session for MCQ: {e}")
         
         self.save_to_db()
         

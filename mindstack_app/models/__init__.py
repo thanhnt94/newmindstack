@@ -33,6 +33,7 @@ from .user import (
 from .system import ApiKey, BackgroundTask, BackgroundTaskLog
 from .app_settings import AppSettings  # unified settings (replaces SiteSettings + SystemSetting)
 from .learning_progress import LearningProgress  # NEW: Unified progress model
+from .learning_session import LearningSession  # NEW: Database-backed sessions
 from .gamification import Badge, UserBadge
 
 __all__ = [
@@ -41,6 +42,7 @@ __all__ = [
     'LearningGroup',
     'LearningItem',
     'LearningProgress',  # NEW
+    'LearningSession',  # NEW
     'FlashcardCollabAnswer',
     'FlashcardCollabMessage',
     'FlashcardCollabParticipant',

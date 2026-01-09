@@ -22,7 +22,7 @@ from ..engine import (
 )
 
 # Import từ services module
-from ..services import AudioService, ImageService
+from ..services import AudioService, ImageService, LearningSessionService
 from mindstack_app.modules.learning.services.srs_service import SrsService
 
 from ..engine import FlashcardEngine
@@ -33,6 +33,7 @@ from mindstack_app.models import (
     LearningContainer,
     LearningItem,
     ContainerContributor,
+    LearningSession,
 )
 from sqlalchemy.sql import func
 from sqlalchemy.exc import OperationalError
@@ -282,9 +283,30 @@ def flashcard_session():
     Hiển thị giao diện học Flashcard.
     Sử dụng TemplateService để chọn template version từ admin settings.
     """
+    # [NEW] Attempt to resume session from database if Flask session is empty
     if 'flashcard_session' not in session:
-        flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
-        return redirect(url_for('learning.vocabulary.dashboard'))
+        active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='flashcard')
+        if active_db_session:
+            # Reconstruct session manager from DB data
+            session_manager = FlashcardSessionManager(
+                user_id=active_db_session.user_id,
+                set_id=active_db_session.set_id_data,
+                mode=active_db_session.mode_config_id,
+                total_items_in_session=active_db_session.total_items,
+                processed_item_ids=active_db_session.processed_item_ids or [],
+                correct_answers=active_db_session.correct_count,
+                incorrect_answers=active_db_session.incorrect_count,
+                vague_answers=active_db_session.vague_count,
+                start_time=active_db_session.start_time.isoformat() if active_db_session.start_time else None,
+                session_points=active_db_session.points_earned,
+                db_session_id=active_db_session.session_id
+            )
+            session['flashcard_session'] = session_manager.to_dict()
+            session.modified = True
+            flash('Đã khôi phục phiên học đang dở của bạn.', 'info')
+        else:
+            flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
+            return redirect(url_for('learning.vocabulary.dashboard'))
 
     # [UPDATED v4] Priority: session override > User.last_preferences > session_state > default
     user_button_count = 4  # Default
@@ -655,6 +677,44 @@ def end_session_flashcard():
     current_app.logger.info(f"Phiên học Flashcard cho người dùng {current_user.user_id} đã kết thúc theo yêu cầu. Kết quả: {result.get('message')}")
     current_app.logger.debug("--- Kết thúc end_session_flashcard ---")
     return jsonify(result)
+
+
+@flashcard_learning_bp.route('/api/learning/sessions/active', methods=['GET'])
+@login_required
+def get_active_learning_session():
+    """Check if there is an active learning session for the current user."""
+    mode = request.args.get('mode', 'flashcard')
+    active_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode=mode)
+    
+    if active_session:
+        data = active_session.to_dict()
+        
+        # [NEW] Add set title for UI display
+        try:
+            from mindstack_app.models import LearningContainer
+            set_id = active_session.set_id_data
+            if isinstance(set_id, int):
+                container = LearningContainer.query.get(set_id)
+                if container:
+                    data['set_title'] = container.title
+            elif isinstance(set_id, list):
+                if len(set_id) == 1:
+                    container = LearningContainer.query.get(set_id[0])
+                    if container:
+                        data['set_title'] = container.title
+                else:
+                    data['set_title'] = f"{len(set_id)} bộ thẻ"
+            elif set_id == 'all':
+                data['set_title'] = "Tất cả bộ thẻ"
+        except Exception as e:
+            current_app.logger.warning(f"Error getting set title for active session: {e}")
+            
+        return jsonify({
+            'has_active': True,
+            'session': data
+        })
+    
+    return jsonify({'has_active': False})
 
 
 @flashcard_learning_bp.route('/save_flashcard_settings', methods=['POST'])
