@@ -10,12 +10,30 @@ class LearningSessionService:
     """
 
     @staticmethod
+    @staticmethod
     def create_session(user_id, learning_mode, mode_config_id, set_id_data, total_items=0):
         """Create a new session in the database."""
         try:
-            # Cancel any existing active sessions of the same mode AND set for this user
-            # [UPDATED] Scoped to set_id to allow multiple active sessions for different sets
-            LearningSessionService.cancel_active_sessions(user_id, learning_mode, set_id_data)
+            # [UPDATED] Enforce Single Active Mode Policy for Vocabulary
+            # A user can only have ONE active vocabulary session per set at a time.
+            # (e.g. Cannot have Flashcard AND MCQ active for Set A simultaneously)
+            VOCABULARY_MODES = ['flashcard', 'mcq', 'typing', 'listening', 'matching']
+            
+            if learning_mode in VOCABULARY_MODES:
+                # Cancel ALL active vocabulary sessions for this set
+                LearningSessionService.cancel_active_sessions(
+                    user_id=user_id, 
+                    learning_mode=VOCABULARY_MODES, # Pass the list to cancel any of them
+                    set_id_data=set_id_data
+                )
+            else:
+                # Default behavior for non-vocab modes (e.g. Quiz) -> Just cancel same mode
+                LearningSessionService.cancel_active_sessions(
+                    user_id=user_id, 
+                    learning_mode=learning_mode, 
+                    set_id_data=set_id_data
+                )
+            # OLD: LearningSessionService.cancel_active_sessions(user_id, learning_mode, set_id_data)
 
             new_session = LearningSession(
                 user_id=user_id,
@@ -114,13 +132,21 @@ class LearningSessionService:
 
     @staticmethod
     def cancel_active_sessions(user_id, learning_mode, set_id_data=None):
-        """Cancel all active sessions for a user, mode, and optionally set."""
+        """
+        Cancel active sessions.
+        learning_mode: Can be a single string 'flashcard' OR a list ['flashcard', 'mcq']
+        """
         try:
             query = LearningSession.query.filter_by(
                 user_id=user_id, 
-                learning_mode=learning_mode, 
                 status='active'
             )
+            
+            # [UPDATED] Handle list of modes (IN clause) or single mode (Equal)
+            if isinstance(learning_mode, list):
+                query = query.filter(LearningSession.learning_mode.in_(learning_mode))
+            else:
+                query = query.filter(LearningSession.learning_mode == learning_mode)
             
             if set_id_data is not None:
                 query = query.filter(LearningSession.set_id_data == set_id_data)
