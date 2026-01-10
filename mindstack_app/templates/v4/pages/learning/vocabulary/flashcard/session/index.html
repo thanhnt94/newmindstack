@@ -1,0 +1,226 @@
+{#
+# File: mindstack_app/modules/learning/flashcard_learning/templates/flashcard_session.html
+# Phiên bản: 74.0
+# ĐÃ SỬA: Đưa các biến Jinja ra ngoài object window.FlashcardConfig để tránh formatter làm hỏng syntax (insert space vào
+{{ }}).
+#}
+
+{% set _v = template_version|default('v4') %}
+{% extends _v ~ '/base.html' %}
+{% from _v ~ '/includes/navbar/_navbar.html' import render_navbar %}
+{% block title %}Học Flashcard{% endblock %}
+
+{# CRITICAL: Add flashcard-session-active class to body to hide header/footer on mobile #}
+{% block body_class %} flashcard-session-active{% endblock %}
+
+{% block head %}
+{{ super() }}
+<script>
+  // Remove Tailwind padding from main on mobile viewport
+  (function () {
+    if (window.innerWidth <= 1023) {
+      document.addEventListener('DOMContentLoaded', function () {
+        var main = document.querySelector('body > main');
+        if (main) {
+          main.classList.remove('py-4', 'px-2', 'sm:py-2', 'sm:px-3', 'md:py-4');
+          main.style.padding = '0';
+          main.style.margin = '0';
+        }
+        var header = document.querySelector('body > header');
+        if (header) {
+          header.style.display = 'none';
+        }
+      });
+    }
+  })();
+</script>
+
+{# Flashcard Session CSS - External Files stored in template directory #}
+<link rel="stylesheet" href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/core.css') }}">
+<link rel="stylesheet"
+  href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/session.css') }}">
+<link rel="stylesheet" href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/card.css') }}">
+<link rel="stylesheet"
+  href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/components.css') }}">
+<link rel="stylesheet"
+  href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/desktop.css') }}">
+<link rel="stylesheet"
+  href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/mobile.css') }}">
+{% include _v ~ '/includes/assets/_markdown_assets.html' %}
+{% endblock %}
+
+{% block content %}
+{# Include Desktop và Mobile partials - visibility kiểm soát bởi CSS class #}
+
+{% include 'v3/pages/learning/vocabulary/flashcard/session/_desktop.html' %}
+{% include 'v3/pages/learning/vocabulary/flashcard/session/_mobile.html' %}
+
+{# === SHARED MODALS - Dùng chung cho cả Desktop và Mobile === #}
+
+<!-- Reusable Confirmation Modal -->
+<!-- Revert to inline modal as requested -->
+<div id="exit-confirm-modal"
+  class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+  style="display: none;">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+    id="exit-modal-panel">
+    <div class="text-center">
+      <div
+        class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 ring-rose-50">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </div>
+      <h3 class="text-xl font-bold text-slate-800 mb-2">Kết thúc phiên học?</h3>
+      <p class="text-slate-500 text-sm mb-6 leading-relaxed">Tiến độ của thẻ chưa trả lời sẽ không được lưu. Bạn có muốn
+        xem thống kê ngay không?</p>
+      <div class="flex gap-3">
+        <button onclick="closeExitModal()"
+          class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">Ở
+          lại</button>
+        <button onclick="confirmExit()"
+          class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">Kết
+          thúc</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="statsModal" class="stats-modal-overlay">
+  <div id="statsModalContent" class="stats-modal-content">
+    <header class="bg-white shadow-md">
+      {{ render_navbar(current_user, request) }}
+    </header>
+    <div class="stats-modal-header">
+      <h3>Thống kê phiên học</h3>
+      <button id="closeStatsModalBtn" class="stats-modal-close-btn">&times;</button>
+    </div>
+    <div id="statsModalBody" class="stats-modal-body">
+      {# Nội dung thống kê sẽ được render vào đây #}
+    </div>
+  </div>
+</div>
+
+{# Nhúng modal AI #}
+{% include _v ~ '/includes/ai_services/_ai_modal.html' %}
+
+{# Nhúng modal Ghi chú #}
+{% include 'v3/pages/notes/_note_panel.html' %}
+
+{# Nhúng modal Memory Power #}
+{% include _v ~ '/includes/notification/_memory_power.html' %}
+
+{# Nhúng modal Feedback #}
+{% include 'v3/pages/feedback/_feedback_modal.html' %}
+
+{# Nhúng modal Item Stats (Dùng chung với Dashboard) #}
+{% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+<script>
+  // Define Jinja variables outside the config object to prevent the auto-formatter from inserting spaces into braces
+  const _userButtonCount = {{ user_button_count | default (4) }};
+  const _isAutoplaySession = {{ is_autoplay_session | default (false) | tojson }};
+  const _autoplayMode = "{{ autoplay_mode | default('') }}";
+  const _visualSettings = {{ (saved_visual_settings or { }) | tojson }};
+  const _autoSaveOn = {{ saved_auto_save | default (true) | tojson }};
+  const _currentUserTotalScore = {{ current_user.total_score | default (0) }};
+
+  window.FlashcardConfig = {
+    getFlashcardBatchUrl: "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}",
+    flashcardItemApiUrlTemplate: "{{ url_for('learning.flashcard_learning.get_flashcard_item_api', item_id=0) }}",
+    submitAnswerUrl: "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}",
+    endSessionUrl: "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}",
+    regenerateAudioUrl: "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}",
+    saveSettingsUrl: "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}",
+    vocabDashboardUrl: "{{ url_for('learning.vocabulary.dashboard') }}",
+    getNoteUrl: "{{ url_for('notes.get_note', item_id=0) }}",
+    saveNoteUrl: "{{ url_for('notes.save_note', item_id=0) }}",
+    editFlashcardUrlTemplate: "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}",
+    itemStatsUrlTemplate: "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}",
+    csrfHeaders: { "X-CSRFToken": "{{ csrf_token() }}" },
+    userButtonCount: _userButtonCount,
+    isAutoplaySession: _isAutoplaySession,
+    autoplayMode: _autoplayMode,
+    visualSettings: _visualSettings,
+    autoSaveOn: _autoSaveOn,
+    modeDisplayName: "{{ mode_display_text }}"
+  };
+
+  const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+  const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+  if (csrfToken) {
+    window.FlashcardConfig.csrfHeaders = { "X-CSRFToken": csrfToken };
+  }
+
+  window.currentUserTotalScoreInit = _currentUserTotalScore;
+  window.sessionScore = 0;
+
+  // Global Exit Modal Logic for Flashcard
+  // Global Exit Modal Logic for Flashcard
+  window.showExitModal = function () {
+    const exitModal = document.getElementById('exit-confirm-modal');
+    const exitPanel = document.getElementById('exit-modal-panel');
+    if (exitModal) {
+      exitModal.style.display = 'flex';
+      setTimeout(() => {
+        exitModal.classList.remove('opacity-0', 'hidden');
+        exitPanel.classList.remove('scale-95');
+        exitPanel.classList.add('scale-100');
+      }, 10);
+    }
+  };
+
+  window.closeExitModal = function () {
+    const exitModal = document.getElementById('exit-confirm-modal');
+    const exitPanel = document.getElementById('exit-modal-panel');
+    if (exitModal) {
+      exitModal.classList.add('opacity-0');
+      exitPanel.classList.remove('scale-100');
+      exitPanel.classList.add('scale-95');
+      setTimeout(() => {
+        exitModal.classList.add('hidden');
+        exitModal.style.display = 'none';
+      }, 300);
+    }
+  };
+
+  // window.closeExitModal no longer needed
+
+  window.confirmExit = function () {
+    // We can rely on MindStackModal handling the UI close.
+    // Proceed with logic.
+    fetch(window.FlashcardConfig.endSessionUrl, {
+      method: 'POST',
+      headers: window.FlashcardConfig.csrfHeaders
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.session_id) {
+          window.location.href = `/learn/session/${data.session_id}/summary`;
+        } else {
+          window.location.href = "{{ url_for('learning.manage_sessions') }}";
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Lỗi kết nối. Vui lòng thử lại.");
+      });
+  };
+</script>
+
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/render_card_desktop.js') }}"></script>
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/render_card_mobile.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/utils.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/audio_manager.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/ui_manager.js') }}"></script>
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/session_manager.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/index.js') }}"></script>
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/flashcard_viewport.js') }}"></script>
+{% endblock %}

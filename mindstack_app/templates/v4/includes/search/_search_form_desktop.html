@@ -1,0 +1,36 @@
+{# File: mindstack_app/modules/shared/templates/includes/_search_form_desktop.html #}
+{# Desktop version of search form #}
+
+{% macro render_search_form_desktop(search_query=None, search_field='all', placeholder="Tìm kiếm...", set_id=None,
+search_options=None) %}
+<form method="GET" action="{{ url_for(request.endpoint, **({'set_id': set_id} if set_id is not none else {})) }}"
+    class="flex items-stretch space-x-2 w-full">
+
+    {# Ô chọn trường tìm kiếm #}
+    <select name="search_field"
+        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 cursor-pointer hover:bg-gray-100 transition-colors">
+        {% if search_options %}
+        {% for value, display_text in search_options.items() %}
+        <option value="{{ value }}" {% if search_field==value %}selected{% endif %}>{{ display_text }}</option>
+        {% endfor %}
+        {% else %}
+        <option value="all" {% if search_field=='all' %}selected{% endif %}>Tất cả</option>
+        {% endif %}
+    </select>
+
+    {# Ô nhập liệu #}
+    <div class="relative flex-grow">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+            <i class="fas fa-search"></i>
+        </span>
+        <input type="text" name="q" value="{{ search_query if search_query else '' }}" placeholder="{{ placeholder }}"
+            class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0">
+    </div>
+
+    {# Nút tìm kiếm #}
+    <button type="submit"
+        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300 flex items-center font-medium shadow-sm active:transform active:scale-95">
+        Tìm kiếm
+    </button>
+</form>
+{% endmacro %}

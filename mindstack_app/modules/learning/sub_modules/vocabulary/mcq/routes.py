@@ -3,6 +3,7 @@
 
 import json
 from flask import render_template, request, jsonify, abort
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
 from . import mcq_bp
@@ -50,8 +51,7 @@ def setup(set_id):
     except Exception as e:
         pass
     
-    return render_template(
-        'v3/pages/learning/vocabulary/mcq/setup/index.html',
+    return render_dynamic_template('pages/learning/vocabulary/mcq/setup/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -151,8 +151,7 @@ def session(set_id):
         traceback.print_exc()
         # Non-blocking error
     
-    return render_template(
-        'v3/pages/learning/vocabulary/mcq/session/index.html',
+    return render_dynamic_template('pages/learning/vocabulary/mcq/session/index.html',
         container=container,
         total_items=len(items),
         mode=mode,

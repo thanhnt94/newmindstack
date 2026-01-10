@@ -42,6 +42,22 @@ class SimplePagination:
                 last = num
 
 
+@vocabulary_bp.route('/api/dashboard-global-stats')
+@login_required
+def api_get_dashboard_stats():
+    """API to get global vocabulary dashboard statistics."""
+    from ..stats.container_stats import VocabularyContainerStats
+    try:
+        stats = VocabularyContainerStats.get_global_stats(current_user.user_id)
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error getting dashboard stats: {e}")
+        return error_response(str(e), 'SERVER_ERROR', 500)
+
+
 @vocabulary_bp.route('/api/sets')
 @login_required  
 def api_get_sets():

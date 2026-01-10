@@ -3,6 +3,7 @@
 # Mục đích: Chứa các route và logic cho tính năng ghi chú của người dùng.
 
 from flask import render_template, redirect, url_for, flash, request, jsonify
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from . import notes_bp
 from .forms import NoteForm
@@ -68,4 +69,4 @@ def manage_notes():
         UserNote.user_id == current_user.user_id
     ).order_by(UserNote.created_at.desc()).all()
 
-    return render_template('v3/pages/notes/manage_notes.html', notes_with_items=notes)
+    return render_dynamic_template('pages/notes/manage_notes.html', notes_with_items=notes)

@@ -4,7 +4,7 @@
 
 from datetime import datetime
 from sqlalchemy import func
-from mindstack_app.models import LearningItem, ReviewLog
+from mindstack_app.models import LearningItem, ReviewLog, LearningContainer
 from mindstack_app.models.learning_progress import LearningProgress
 
 
@@ -15,6 +15,51 @@ class VocabularyContainerStats:
     
     MIGRATED: Uses LearningProgress instead of FlashcardProgress.
     """
+    
+    @staticmethod
+    def get_global_stats(user_id: int) -> dict:
+        """
+        Get global vocabulary statistics for a user.
+        Calculates total sets, total cards, mastered items, and due items across all sets.
+        """
+        # 1. Total Sets created by user
+        total_sets = LearningContainer.query.filter(
+            LearningContainer.creator_user_id == user_id,
+            LearningContainer.container_type == 'FLASHCARD_SET'
+        ).count()
+        
+        # 2. Total Cards (Total items in all FLASHCARD_SET containers of the user)
+        total_cards = LearningItem.query.join(
+            LearningContainer, LearningItem.container_id == LearningContainer.container_id
+        ).filter(
+            LearningContainer.creator_user_id == user_id,
+            LearningContainer.container_type == 'FLASHCARD_SET',
+            LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
+        ).count()
+        
+        # 3. Mastered & Due (from LearningProgress)
+        now = datetime.utcnow()
+        
+        # Mastered: mastery >= 0.8
+        mastered = LearningProgress.query.filter(
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
+            LearningProgress.mastery >= 0.8
+        ).count()
+        
+        # Due: due_time <= now
+        due = LearningProgress.query.filter(
+            LearningProgress.user_id == user_id,
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
+            LearningProgress.due_time <= now
+        ).count()
+        
+        return {
+            'total_sets': total_sets,
+            'total_cards': total_cards,
+            'mastered': mastered,
+            'due': due
+        }
     
     @staticmethod
     def get_full_stats(user_id: int, container_id: int) -> dict:

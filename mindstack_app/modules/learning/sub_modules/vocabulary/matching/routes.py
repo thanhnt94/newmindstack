@@ -2,6 +2,7 @@
 # Matching Learning Mode Routes
 
 from flask import render_template, request, jsonify, abort, session
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
 from . import matching_bp
@@ -49,8 +50,7 @@ def session_page(set_id):
         'db_session_id': db_session_id
     }
     
-    return render_template(
-        'v3/pages/learning/vocabulary/matching/session/index.html',
+    return render_dynamic_template('pages/learning/vocabulary/matching/session/index.html',
         container=container,
         game=game_data
     )

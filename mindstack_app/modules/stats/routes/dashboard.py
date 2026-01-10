@@ -1,4 +1,5 @@
 from flask import render_template, request
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from datetime import datetime, timedelta, date
@@ -176,8 +177,7 @@ def dashboard():
         item_type='LESSON',
     )
 
-    return render_template(
-        'v3/pages/analytics/dashboard.html',
+    return render_dynamic_template('pages/analytics/dashboard.html',
         leaderboard_data=leaderboard_data,
         dashboard_data=dashboard_data,
         current_sort_by=initial_sort_by,

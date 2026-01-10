@@ -2,6 +2,7 @@
 # Vocabulary Hub - Dashboard and HTML Page Routes
 
 from flask import render_template, request, abort, current_app, redirect, url_for
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
 from . import vocabulary_bp
@@ -13,7 +14,7 @@ from mindstack_app.models import LearningContainer, User
 @login_required
 def dashboard():
     """Main vocabulary learning hub dashboard."""
-    return render_template('v3/pages/learning/vocabulary/dashboard/index.html')
+    return render_dynamic_template('pages/learning/vocabulary/dashboard/index.html')
 
 
 @vocabulary_bp.route('/set/<int:set_id>')
@@ -24,7 +25,7 @@ def set_detail_page(set_id):
     can_edit_set = (current_user.user_role == User.ROLE_ADMIN or 
                     container.creator_user_id == current_user.user_id)
     
-    return render_template('v3/pages/learning/vocabulary/dashboard/index.html', 
+    return render_dynamic_template('pages/learning/vocabulary/dashboard/index.html', 
                           active_set_id=set_id, 
                           active_step='detail',
                           can_edit_set=can_edit_set,
@@ -61,7 +62,7 @@ def modes_selection_page(set_id):
     New URL: /learn/vocabulary/modes/<set_id>
     """
     container = LearningContainer.query.get_or_404(set_id)
-    return render_template('v3/pages/learning/vocabulary/modes/index.html', container=container)
+    return render_dynamic_template('pages/learning/vocabulary/modes/index.html', container=container)
 
 
 @vocabulary_bp.route('/set/<int:set_id>/flashcard')
@@ -92,6 +93,27 @@ def item_stats_page(item_id):
         abort(404, description="Item not found")
 
     if request.args.get('modal') == 'true':
-        return render_template('v3/pages/learning/vocabulary/stats/_item_stats_content.html', stats=stats)
+        return render_dynamic_template('pages/learning/vocabulary/stats/_item_stats_content.html', stats=stats)
         
-    return render_template('v3/pages/learning/vocabulary/stats/item_detail.html', stats=stats)
+    return render_dynamic_template('pages/learning/vocabulary/stats/item_detail.html', stats=stats)
+
+
+@vocabulary_bp.route('/assets/<path:filename>')
+def serve_dashboard_asset(filename):
+    """Serve static assets from the dashboard template directory."""
+    import os
+    from flask import send_from_directory
+    
+    # Base directory for dashboard templates
+    # This assumes standard structure: mindstack_app/templates/v4/pages/learning/vocabulary/dashboard
+    # We need to construct the absolute path carefully.
+    
+    # option 1: hardcode relative to app root
+    # root = os.path.join(current_app.root_path, 'templates', 'v4', 'pages', 'learning', 'vocabulary', 'dashboard')
+    
+    # option 2: Safer dynamic detection based on version could be complex, sticking to v4 for now as per context
+    # Use template_folder from blueprint if available, but blueprints don't always have one set or it's global.
+    
+    # Let's use current_app.root_path
+    directory = os.path.join(current_app.root_path, 'templates', 'v4', 'pages', 'learning', 'vocabulary', 'dashboard')
+    return send_from_directory(directory, filename)

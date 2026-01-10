@@ -1,0 +1,798 @@
+{# Flashcard Setup Template - Wizard Style #}
+{% set _v = template_version|default('v4') %}
+{% extends _v ~ '/base.html' %}
+{% block title %}Học Flashcard - {{ container_title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary: #10b981;
+        /* Green 500 */
+        --primary-bg: #ecfdf5;
+        /* Green 50 */
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #0f172a;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --radius: 24px;
+        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+
+    body {
+        background: var(--background);
+        font-family: 'Outfit', 'Inter', sans-serif;
+    }
+
+    .wizard-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 600px;
+        margin: 0 auto;
+        background: var(--background);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Minimal Header */
+    .wizard-header {
+        padding: 0.75rem 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        border: 1px solid var(--border);
+    }
+
+    .nav-btn:hover {
+        background: var(--background);
+    }
+
+    /* Center Info */
+    .header-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .set-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mode-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .step-indicator {
+        display: flex;
+        gap: 6px;
+        width: 40px;
+        justify-content: flex-end;
+    }
+
+    .step-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--border);
+        transition: background 0.3s;
+    }
+
+    .step-dot.active {
+        background: var(--primary);
+        width: 16px;
+        border-radius: 12px;
+    }
+
+    /* Steps Content */
+    .wizard-content {
+        flex: 1;
+        padding: 70px 1.5rem 100px 1.5rem;
+        /* Space for fixed header and footer */
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .step-screen {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .step-screen.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .title-area {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .title-area h2 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0 0 0.5rem 0;
+        line-height: 1.2;
+    }
+
+    .title-area p {
+        color: var(--text-sub);
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    /* Mode Grid */
+    .mode-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .mode-card {
+        background: var(--surface);
+        border: 2px solid transparent;
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .mode-card:hover:not(.disabled) {
+        transform: translateY(-2px);
+        border-color: rgba(37, 99, 235, 0.3);
+    }
+
+    .mode-card.selected {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    .mode-card.disabled {
+        opacity: 0.5;
+        filter: grayscale(1);
+        cursor: not-allowed;
+        background: var(--background);
+    }
+
+    .mode-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 16px;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--text-sub);
+        transition: all 0.3s;
+    }
+
+    .mode-card.selected .mode-icon {
+        background: var(--primary);
+        color: white;
+        transform: scale(1.1) rotate(-5deg);
+    }
+
+    .mode-info {
+        flex: 1;
+    }
+
+    .mode-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-main);
+        display: block;
+    }
+
+    .mode-desc {
+        font-size: 0.9rem;
+        color: var(--text-sub);
+        margin-top: 2px;
+        display: block;
+    }
+
+    /* Config Cards */
+    .config-card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+    }
+
+    .config-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .config-header i {
+        color: var(--primary);
+        opacity: 0.8;
+    }
+
+    /* Chips */
+    .options-row {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .option-chip {
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--background);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .option-chip:hover {
+        background: white;
+        border-color: var(--primary);
+    }
+
+    .option-chip.selected {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Footer */
+    .wizard-footer {
+        padding: 1rem 1.5rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .action-btn {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 16px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 20px -4px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+
+    <!-- Top Header -->
+    <div class="wizard-header">
+        <a id="header-back-btn" href="#" class="nav-btn">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+
+        <div class="header-info">
+            <span class="mode-badge"><i class="fas fa-clone"></i> Flashcard</span>
+            <h1 class="set-title">{{ container_title }}</h1>
+        </div>
+
+        <a href="/dashboard" class="nav-btn" title="Về trang chủ">
+            <i class="fas fa-home"></i>
+        </a>
+    </div>
+
+    <div class="wizard-content">
+
+        <!-- STEP 1: MODE SELECTION -->
+        <div class="step-screen active" id="step-1">
+            <div class="title-area">
+                <h2>Chọn chế độ học</h2>
+                <p>Bạn muốn ôn tập theo cách nào?</p>
+            </div>
+
+            <div class="mode-grid">
+                <!-- New -->
+                <div class="mode-card {% if mode_counts.new == 0 %}disabled{% endif %}" data-value="new">
+                    <div class="mode-icon"><i class="fas fa-seedling"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Học từ mới</span>
+                        <span class="mode-desc">{{ mode_counts.new }} từ chưa học</span>
+                    </div>
+                </div>
+
+                <!-- Review -->
+                <div class="mode-card {% if mode_counts.due == 0 %}disabled{% endif %}" data-value="review">
+                    <div class="mode-icon"><i class="fas fa-history"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ôn tập tới hạn</span>
+                        <span class="mode-desc">{{ mode_counts.due }} từ cần ôn lại</span>
+                    </div>
+                </div>
+
+                <!-- Hard -->
+                <div class="mode-card {% if mode_counts.hard == 0 %}disabled{% endif %}" data-value="hard">
+                    <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Từ khó</span>
+                        <span class="mode-desc">{{ mode_counts.hard }} từ hay sai</span>
+                    </div>
+                </div>
+
+                <!-- Random / Learn ALL -->
+                <div class="mode-card {% if mode_counts.total == 0 %}disabled{% endif %}" data-value="random">
+                    <div class="mode-icon"><i class="fas fa-random"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ôn ngẫu nhiên</span>
+                        <span class="mode-desc">{{ mode_counts.total }} từ trong bộ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: CONFIGURATION -->
+        <div class="step-screen" id="step-2">
+            <div class="title-area">
+                <h2>Thiết lập thẻ</h2>
+                <p>Tùy chỉnh trải nghiệm học tập</p>
+                <!-- Display Selected Mode Here -->
+                <div id="selected-mode-display"
+                    class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-700 text-sm font-semibold">
+                    <i class="fas fa-info-circle"></i> <span>...</span>
+                </div>
+            </div>
+
+            <!-- Button Count -->
+            <div class="config-card">
+                <div class="config-header"><i class="fas fa-gamepad"></i> Chế độ đánh giá</div>
+                <div class="options-row" id="button-options">
+                    <div class="option-chip" data-value="3">3 nút</div>
+                    <div class="option-chip selected" data-value="4">4 nút</div>
+                    <div class="option-chip" data-value="6">6 nút</div>
+                </div>
+                <!-- Descriptive Note -->
+                <div id="rating-mode-desc"
+                    class="mt-3 p-3 bg-slate-50 rounded-xl text-[13px] text-slate-600 border border-slate-100 flex items-start gap-2">
+                    <i class="fas fa-info-circle mt-0.5 text-emerald-500"></i>
+                    <span id="rating-desc-text"><b>Hệ thống Anki:</b> 4 nút (Lại, Khó, Tốt, Dễ). Phù hợp nhất cho đa số
+                        người học.</span>
+                </div>
+            </div>
+
+            <!-- Visual Settings -->
+            <div class="config-card">
+                <div class="config-header"><i class="fas fa-eye"></i> Tùy chỉnh hiển thị & âm thanh</div>
+                <div class="options-row">
+                    <!-- Show Image Toggle -->
+                    <label class="option-chip selected" id="show-image-option">
+                        <input type="checkbox" id="show-image-check" style="display:none;" checked />
+                        <i class="fas fa-image"></i> Hiển thị ảnh
+                    </label>
+
+                    <!-- Autoplay Toggle -->
+                    <label class="option-chip" id="autoplay-option">
+                        <input type="checkbox" id="autoplay-check" style="display:none;" />
+                        <i class="fas fa-volume-up"></i> Tự động phát loa
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Footer Action -->
+    <div class="wizard-footer">
+        <button class="action-btn btn-primary" id="next-btn">
+            Tiếp tục <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        // --- Data ---
+        const setId = Number("{{ set_id }}");
+        const modeCounts = {{ mode_counts | tojson
+    }};
+    const savedSettings = {{ saved_settings | tojson }} || {};
+
+    // --- State ---
+    let currentStep = 1;
+    let selectedMode = 'random'; // Default fallback
+    let selectedButtonCount = 4;
+    let isAutoplay = false;
+    let isShowImage = true;
+
+    // --- DOM Elements ---
+    const step1 = document.getElementById('step-1');
+    const step2 = document.getElementById('step-2');
+    const nextBtn = document.getElementById('next-btn');
+    const backBtn = document.getElementById('header-back-btn');
+    const modeCards = document.querySelectorAll('.mode-card');
+    const dashboardUrl = "{{ url_for('learning.vocabulary.dashboard') }}";
+    const selectedModeDisplay = document.getElementById('selected-mode-display');
+
+    // Config Options
+    const buttonChips = document.querySelectorAll('#button-options .option-chip');
+    const autoplayOption = document.getElementById('autoplay-option');
+    const autoplayCheck = document.getElementById('autoplay-check');
+    const showImageOption = document.getElementById('show-image-option');
+    const showImageCheck = document.getElementById('show-image-check');
+
+    // --- Initialize ---
+
+    // 1. Auto-select mode logic (internal)
+    let firstValidMode = null;
+    let modeMap = {}; // Map value to UI text/icon for display
+
+    modeCards.forEach(card => {
+        const val = card.dataset.value;
+        const title = card.querySelector('.mode-title').innerText;
+        const iconClass = card.querySelector('.mode-icon i').className;
+
+        modeMap[val] = { title, iconClass };
+
+        if (!card.classList.contains('disabled')) {
+            if (!firstValidMode) firstValidMode = card;
+        }
+    });
+
+    // 2. Load Saved Settings
+    if (savedSettings.button_count) {
+        selectedButtonCount = Number(savedSettings.button_count);
+        updateChipSelection(buttonChips, selectedButtonCount);
+        updateRatingDescription(selectedButtonCount);
+    }
+
+    if (savedSettings.autoplay !== undefined) {
+        isAutoplay = Boolean(savedSettings.autoplay);
+        autoplayCheck.checked = isAutoplay;
+        if (isAutoplay) autoplayOption.classList.add('selected');
+        else autoplayOption.classList.remove('selected');
+    }
+
+    if (savedSettings.show_image !== undefined) {
+        isShowImage = Boolean(savedSettings.show_image);
+        showImageCheck.checked = isShowImage;
+        if (isShowImage) showImageOption.classList.add('selected');
+        else showImageOption.classList.remove('selected');
+    }
+
+    // 3. Check URL for State Recovery (Persistence)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlStep = parseInt(urlParams.get('step'));
+    const urlMode = urlParams.get('mode');
+
+    if (firstValidMode) {
+        // Default selection
+        selectMode(firstValidMode);
+    } else {
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = "Không có từ nào";
+    }
+
+    // Restore if URL valid
+    if (urlStep === 2 && urlMode && modeMap[urlMode]) {
+        // Find card for this mode
+        const targetCard = document.querySelector(`.mode-card[data-value="${urlMode}"]`);
+        if (targetCard && !targetCard.classList.contains('disabled')) {
+            selectMode(targetCard);
+            goToStep(2, false); // Don't push history again on load
+        }
+    }
+
+
+    // --- Event Listeners ---
+
+    // Mode Selection
+    modeCards.forEach(card => {
+        if (card.classList.contains('disabled')) return;
+        card.addEventListener('click', () => selectMode(card));
+    });
+
+    function selectMode(cardElement) {
+        modeCards.forEach(c => c.classList.remove('selected'));
+        cardElement.classList.add('selected');
+        selectedMode = cardElement.dataset.value;
+    }
+
+    // Button Count Selection
+    buttonChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const val = Number(chip.dataset.value);
+            updateChipSelection(buttonChips, val);
+            selectedButtonCount = val;
+            updateRatingDescription(val);
+        });
+    });
+
+    function updateRatingDescription(value) {
+        const descText = document.getElementById('rating-desc-text');
+        if (!descText) return;
+
+        const descriptions = {
+            3: "<b>Hệ thống MindStack (3 nút):</b> Quên, Mơ hồ, Nhớ. Đơn giản và nhanh chóng cho việc học từ vựng cơ bản.",
+            4: "<b>Hệ thống Anki (4 nút):</b> Lại, Khó, Tốt, Dễ. Cân bằng tốt nhất giữa tốc độ và độ chính xác của SRS.",
+            6: "<b>Hệ thống SM-2 (6 nút):</b> Đánh giá từ 0-5. Dành cho người muốn kiểm soát tỉ mỉ quá trình học."
+        };
+
+        descText.innerHTML = descriptions[value] || "";
+    }
+
+    function updateChipSelection(chipList, value) {
+        chipList.forEach(c => {
+            c.classList.remove('selected');
+            if (Number(c.dataset.value) === value) {
+                c.classList.add('selected');
+            }
+        });
+    }
+
+    // Autoplay Toggle
+    autoplayOption.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'INPUT') {
+            e.preventDefault();
+            autoplayCheck.checked = !autoplayCheck.checked;
+        }
+        isAutoplay = autoplayCheck.checked;
+        if (isAutoplay) autoplayOption.classList.add('selected');
+        else autoplayOption.classList.remove('selected');
+    });
+
+    // Show Image Toggle
+    showImageOption.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'INPUT') {
+            e.preventDefault();
+            showImageCheck.checked = !showImageCheck.checked;
+        }
+        isShowImage = showImageCheck.checked;
+        if (isShowImage) showImageOption.classList.add('selected');
+        else showImageOption.classList.remove('selected');
+    });
+
+    // Navigation Logic
+    nextBtn.addEventListener('click', () => {
+        if (currentStep === 1) {
+            goToStep(2, true);
+        } else {
+            startSession();
+        }
+    });
+
+    backBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentStep === 2) {
+            // If we have history state, we can go back, else simulate
+            if (window.history.state && window.history.state.step === 2) {
+                window.history.back();
+            } else {
+                goToStep(1, true);
+            }
+        } else {
+            window.location.href = dashboardUrl;
+        }
+    });
+
+    // Handle Browser Back/Forward buttons
+    window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.step) {
+            // Restore logic for visual sync (url is already updated by browser)
+            const s = event.state.step;
+            const m = event.state.mode;
+
+            if (s === 1) {
+                showStep1_UI();
+            } else if (s === 2) {
+                if (m && modeMap[m]) {
+                    // Ensure mode is re-selected internally if needed, though usually state is enough
+                    const targetCard = document.querySelector(`.mode-card[data-value="${m}"]`);
+                    if (targetCard) selectMode(targetCard);
+                    showStep2_UI();
+                } else {
+                    // Invalid mode in history, fallback
+                    showStep1_UI();
+                }
+            }
+            currentStep = s;
+
+        } else {
+            // Initial state or no state
+            showStep1_UI();
+            currentStep = 1;
+        }
+    });
+
+    function goToStep(step, updateHistory = false) {
+        currentStep = step;
+
+        if (step === 1) {
+            showStep1_UI();
+            if (updateHistory) {
+                const url = new URL(window.location);
+                url.searchParams.delete('step');
+                url.searchParams.delete('mode');
+                window.history.pushState({ step: 1 }, '', url);
+            }
+        } else {
+            showStep2_UI();
+            if (updateHistory) {
+                const url = new URL(window.location);
+                url.searchParams.set('step', '2');
+                url.searchParams.set('mode', selectedMode);
+                window.history.pushState({ step: 2, mode: selectedMode }, '', url);
+            }
+        }
+    }
+
+    // Split UI logic from State logic for reuse
+    function showStep1_UI() {
+        step1.classList.add('active');
+        step2.classList.remove('active');
+        nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+    }
+
+    function showStep2_UI() {
+        step1.classList.remove('active');
+        step2.classList.add('active');
+        nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+        updateModeDisplay();
+    }
+
+    function updateModeDisplay() {
+        if (selectedModeDisplay && modeMap[selectedMode]) {
+            const info = modeMap[selectedMode];
+            selectedModeDisplay.innerHTML = `<i class="${info.iconClass}"></i> <span>${info.title}</span>`;
+        }
+    }
+
+    // --- Start Session ---
+    function startSession() {
+        // Prepare settings payload to save
+        const settingsPayload = {
+            button_count: selectedButtonCount,
+            visual_settings: {
+                autoplay: isAutoplay,
+                show_image: isShowImage
+            }
+        };
+
+        // Save settings first
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
+
+        fetch("{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(settingsPayload)
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Determine start URL based on mode
+                    // Mapping: new -> 'new_only', review -> 'due_only', hard -> 'hard_only', random -> 'mixed_srs'
+                    let backendMode = 'mixed_srs';
+                    if (selectedMode === 'new') backendMode = 'new_only';
+                    else if (selectedMode === 'review') backendMode = 'due_only';
+                    else if (selectedMode === 'hard') backendMode = 'hard_only';
+
+                    // Construct URL manually or use a helper if available. 
+                    // The pattern is /start_flashcard_session/<set_id>/<mode>
+                    const url = `{{ url_for('learning.flashcard_learning.start_flashcard_session_by_id', set_id=set_id, mode='placeholder') }}`.replace('placeholder', backendMode);
+                    window.location.href = url;
+                } else {
+                    alert('Lỗi lưu cài đặt: ' + data.message);
+                    nextBtn.disabled = false;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Lỗi kết nối máy chủ');
+                nextBtn.disabled = false;
+            });
+    }
+
+    }) ();
+</script>
+{% endblock %}

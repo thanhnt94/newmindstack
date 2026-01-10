@@ -3,6 +3,7 @@
 # Entry point for flashcard practice - delegates to flashcard engine.
 
 from flask import render_template, request, redirect, url_for, flash, jsonify
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
 from . import practice_bp
@@ -21,7 +22,7 @@ from ..flashcard.engine import (
 @login_required
 def practice_hub():
     """Hub trang chính cho Practice - chọn Flashcard hoặc Quiz."""
-    return render_template('v3/pages/learning/practice/default/hub.html')
+    return render_dynamic_template('pages/learning/practice/default/hub.html')
 
 
 @practice_bp.route('/flashcard')
@@ -34,8 +35,7 @@ def flashcard_dashboard():
     if current_user.session_state:
         user_button_count = current_user.session_state.flashcard_button_count
 
-    return render_template(
-        'v3/pages/learning/practice/default/dashboard.html',
+    return render_dynamic_template('pages/learning/practice/default/dashboard.html',
         user_button_count=user_button_count,
         flashcard_modes=FlashcardLearningConfig.FLASHCARD_MODES,
     )
@@ -65,8 +65,7 @@ def flashcard_setup():
     set_identifier = selected_sets[0] if len(selected_sets) == 1 else selected_sets if selected_sets else 'all'
     modes = get_flashcard_mode_counts(current_user.user_id, set_identifier)
 
-    return render_template(
-        'v3/pages/learning/practice/setup.html',
+    return render_dynamic_template('pages/learning/practice/setup.html',
         selected_sets=selected_sets,
         selected_mode=mode,
         modes=modes,
@@ -126,8 +125,7 @@ def flashcard_session():
     autoplay_mode = session_mode if is_autoplay_session else ''
 
     # Sử dụng template từ flashcard engine (shared)
-    return render_template(
-        'v3/pages/learning/flashcard/session/index.html',
+    return render_dynamic_template('pages/learning/flashcard/session/index.html',
         user_button_count=user_button_count,
         is_autoplay_session=is_autoplay_session,
         autoplay_mode=autoplay_mode,
@@ -211,7 +209,7 @@ def api_get_modes(set_identifier):
 @login_required
 def quiz_dashboard():
     """Dashboard cho chế độ luyện tập Quiz đa bộ."""
-    return render_template('v3/pages/learning/practice/default/quiz_dashboard.html')
+    return render_dynamic_template('pages/learning/practice/default/quiz_dashboard.html')
 
 
 @practice_bp.route('/quiz/start', methods=['GET', 'POST'])

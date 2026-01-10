@@ -245,8 +245,14 @@ def dashboard():
     # If the current user is missing from top 5, we can fetch their rank separately if needed, 
     # but for now let's use the service output directly to simplify.
 
+    # Get dynamic template path from TemplateService
+    from mindstack_app.services.template_service import TemplateService
+    template_path = TemplateService.get_template_path('dashboard')
+    template_context = TemplateService.get_template_context('dashboard')
+    
     return render_template(
-        'v3/pages/dashboard/index.html',
+        template_path,
+        **template_context,
         flashcard_summary=flashcard_summary,
         quiz_summary=quiz_summary,
         course_summary=metrics_mimic['course_summary'], # Use mimic for consistency in keys if template expects it

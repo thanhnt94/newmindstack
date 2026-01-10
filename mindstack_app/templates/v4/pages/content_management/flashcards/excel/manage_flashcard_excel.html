@@ -1,0 +1,460 @@
+{% set _v = template_version|default('v4') %}
+{% extends _v ~ '/base.html' %}
+
+{% block title %}Quản lý Excel - {{ flashcard_set.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-wrap justify-between items-start gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-semibold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-database text-purple-500"></i>
+                <span>Quản lý Excel cho bộ thẻ</span>
+            </h1>
+            <p class="text-gray-600 mt-1">{{ flashcard_set.title }}</p>
+            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 mt-3">
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-layer-group text-purple-400"></i>
+                    {{ "{:,}".format(item_count) }} thẻ hiện có
+                </span>
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-history text-purple-400"></i>
+                    Cập nhật lần cuối: {{ flashcard_set.updated_at.strftime('%d/%m/%Y %H:%M') if
+                    flashcard_set.updated_at else 'Chưa xác định' }}
+                </span>
+            </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ template_url }}"
+                class="bg-white text-purple-600 border border-purple-200 px-4 py-2 rounded-md hover:bg-purple-50 transition duration-300 flex items-center shadow-sm">
+                <i class="fas fa-file-download mr-2"></i> Tải file mẫu
+            </a>
+            <a href="{{ export_excel_url }}"
+                class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-300 flex items-center shadow-md">
+                <i class="fas fa-file-export mr-2"></i> Xuất file Excel
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="xl:col-span-2 space-y-6">
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-800">Nhập dữ liệu từ Excel</h2>
+                        <p class="text-sm text-gray-500 mt-1">Kéo thả file Excel (.xlsx) đã chỉnh sửa để cập nhật nhanh
+                            toàn bộ bộ thẻ.</p>
+                    </div>
+                    <div class="flex items-center text-sm text-blue-600 gap-2">
+                        <i class="fas fa-info-circle"></i>
+                        <span>File được xử lý hoàn toàn trên máy chủ của bạn.</span>
+                    </div>
+                </div>
+
+                <form id="excelImportForm" method="post" enctype="multipart/form-data" class="space-y-5">
+                    <div data-role="excel-drop-zone"
+                        class="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 px-6 py-10 text-center transition duration-200 cursor-pointer">
+                        <input type="file" name="excel_file" id="excel_file" accept=".xlsx" class="hidden" required>
+                        <div class="flex flex-col items-center gap-3 pointer-events-none">
+                            <span
+                                class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 text-purple-500">
+                                <i class="fas fa-file-excel text-xl"></i>
+                            </span>
+                            <div>
+                                <p class="text-lg font-medium text-gray-800">Thả file Excel vào đây hoặc bấm để chọn</p>
+                                <p class="text-sm text-gray-500" data-role="excel-helper">Hỗ trợ định dạng .xlsx, dung
+                                    lượng tối đa 10MB.</p>
+                            </div>
+                        </div>
+                        <button type="button"
+                            class="absolute top-3 right-3 text-xs text-gray-500 hover:text-red-500 transition hidden"
+                            data-role="excel-clear" aria-label="Xóa file đã chọn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="bg-purple-50 border border-purple-100 rounded-lg px-4 py-3 hidden"
+                        data-role="excel-file-summary">
+                        <p class="text-sm font-medium text-purple-700 flex items-center gap-2">
+                            <i class="fas fa-check-circle"></i>
+                            <span data-role="excel-file-name">Chưa chọn file</span>
+                        </p>
+                        <p class="text-xs text-purple-600 mt-1" data-role="excel-file-meta"></p>
+                    </div>
+
+                    <p class="text-sm hidden" data-role="excel-status"></p>
+
+                    <div class="flex flex-wrap items-center justify-end gap-3">
+                        <button type="submit" data-role="excel-submit"
+                            class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                            <i class="fas fa-file-import mr-2"></i> Nhập Excel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Các cột quan trọng trong sheet <code
+                        class="bg-gray-100 px-2 py-1 rounded text-sm">Data</code></h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-50">
+                            <tr class="text-left text-gray-600">
+                                <th class="px-4 py-3 font-medium">Cột</th>
+                                <th class="px-4 py-3 font-medium">Ý nghĩa</th>
+                                <th class="px-4 py-3 font-medium">Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">front / back</td>
+                                <td class="px-4 py-3 text-gray-600">Nội dung mặt trước và mặt sau của thẻ.</td>
+                                <td class="px-4 py-3 text-gray-500">Bắt buộc phải có dữ liệu.</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">item_id</td>
+                                <td class="px-4 py-3 text-gray-600">Định danh duy nhất của thẻ hiện có.</td>
+                                <td class="px-4 py-3 text-gray-500">Để trống để tạo thẻ mới.</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">order_in_container</td>
+                                <td class="px-4 py-3 text-gray-600">Vị trí mong muốn của thẻ trong bộ.</td>
+                                <td class="px-4 py-3 text-gray-500">Số nguyên; bỏ trống để giữ nguyên.</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">action</td>
+                                <td class="px-4 py-3 text-gray-600">Kiểm soát thao tác cần thực hiện với từng dòng.</td>
+                                <td class="px-4 py-3 text-gray-500 space-y-1">
+                                    <div><code>update</code> hoặc để trống: cập nhật thẻ đã có <code>item_id</code>.
+                                    </div>
+                                    <div><code>keep</code>/<code>skip</code>: giữ nguyên nội dung hiện tại (vẫn có thể
+                                        đổi thứ tự).</div>
+                                    <div><code>create</code>/<code>new</code>: luôn tạo thẻ mới.</div>
+                                    <div><code>delete</code>: xóa thẻ tương ứng.</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">front_img / back_img</td>
+                                <td class="px-4 py-3 text-gray-600">Đường dẫn hoặc URL hình ảnh minh họa.</td>
+                                <td class="px-4 py-3 text-gray-500">Hỗ trợ URL tuyệt đối hoặc dạng
+                                    <code>uploads/...</code>.</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">front_audio_url / back_audio_url</td>
+                                <td class="px-4 py-3 text-gray-600">Đường dẫn file audio đọc nội dung.</td>
+                                <td class="px-4 py-3 text-gray-500">Có thể kết hợp với nội dung AI để tái tạo.</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">supports_*</td>
+                                <td class="px-4 py-3 text-gray-600">Đánh dấu chế độ học hỗ trợ.</td>
+                                <td class="px-4 py-3 text-gray-500">Nhập <code>true</code>/<code>false</code> hoặc để
+                                    trống.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Tóm tắt cách xuất dữ liệu</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-50">
+                            <tr class="text-left text-gray-600">
+                                <th class="px-4 py-3 font-medium">Vị trí nút hành động</th>
+                                <th class="px-4 py-3 font-medium">Mục đích</th>
+                                <th class="px-4 py-3 font-medium">Lưu ý Media trong Excel</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">Trong trang Cập nhật Excel</td>
+                                <td class="px-4 py-3 text-gray-600">Xuất file Excel để chỉnh sửa và nhập lại nhanh
+                                    chóng.</td>
+                                <td class="px-4 py-3 text-gray-500">Đường dẫn/URL giữ nguyên như trong CSDL; không sao
+                                    chép media đi kèm.</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-gray-800">Trong trang Danh sách bộ thẻ</td>
+                                <td class="px-4 py-3 text-gray-600">Tạo gói ZIP dùng để di chuyển hoặc sao lưu (Excel +
+                                    media).</td>
+                                <td class="px-4 py-3 text-gray-500 space-y-1">
+                                    <div>Media tương đối được chuẩn hoá về thư mục gốc (ví dụ:
+                                        <code>uploads/&lt;thư_mục&gt;/...</code>).</div>
+                                    <div>Đường dẫn tuyệt đối sẽ được sao chép vào gói ZIP và Excel chỉ còn lại tên file.
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-sm text-purple-600">
+                    <i class="fas fa-external-link-alt mr-1"></i>
+                    Nút xuất ZIP hiển thị tại trang <a
+                        href="{{ url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=flashcard_set.container_id) }}"
+                        class="text-purple-600 underline">Danh sách thẻ</a> (liên kết trực tiếp: <a
+                        href="{{ export_zip_url }}" class="underline">{{ export_zip_url }}</a>).
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-3">Hướng dẫn nhanh</h2>
+                <ul class="list-disc list-inside text-gray-700 space-y-2 text-sm">
+                    <li>Sử dụng file mẫu hoặc file Excel mới xuất để đảm bảo đúng cấu trúc.</li>
+                    <li>Cột <strong>action</strong> hỗ trợ các giá trị <code>update</code>,
+                        <code>keep</code>/<code>skip</code>, <code>create</code> và <code>delete</code> để thao tác
+                        nhanh.</li>
+                    <li>Các đường dẫn media nội bộ có thể sử dụng dạng <code>uploads/images/...</code> hoặc
+                        <code>uploads/audio/...</code>.</li>
+                    <li>Giữ nguyên cột <strong>item_id</strong> để cập nhật thẻ hiện có, bỏ trống để tạo thẻ mới.</li>
+                    <li>Các trường <code>image_base_folder</code> và <code>audio_base_folder</code> trong sheet
+                        <code>Info</code> sẽ được áp dụng tự động cho lần nhập.</li>
+                    <li>Sau khi nhập thành công hệ thống sẽ tự động sắp xếp lại thứ tự thẻ.</li>
+                </ul>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 space-y-4">
+                <div class="flex items-start gap-3">
+                    <span
+                        class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-500 mt-1">
+                        <i class="fas fa-shield-alt"></i>
+                    </span>
+                    <div class="text-sm text-gray-600">
+                        <h3 class="text-base font-semibold text-gray-800 mb-1">Sao lưu trước khi nhập</h3>
+                        <p>Tải về gói dữ liệu hiện tại trước khi cập nhật để có thể hoàn tác nhanh nếu cần.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span
+                        class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-green-500 mt-1">
+                        <i class="fas fa-robot"></i>
+                    </span>
+                    <div class="text-sm text-gray-600">
+                        <h3 class="text-base font-semibold text-gray-800 mb-1">Tự động xử lý media</h3>
+                        <p>Đường dẫn hình ảnh/audio tương đối sẽ được ánh xạ sang thư mục tĩnh của hệ thống.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <a href="{{ url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=flashcard_set.container_id) }}"
+            class="text-blue-600 hover:text-blue-800 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Quay lại danh sách thẻ
+        </a>
+    </div>
+</div>
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('excelImportForm');
+        if (!form) {
+            return;
+        }
+
+        const dropZone = form.querySelector('[data-role="excel-drop-zone"]');
+        const fileInput = form.querySelector('#excel_file');
+        const helper = form.querySelector('[data-role="excel-helper"]');
+        const summaryBox = form.querySelector('[data-role="excel-file-summary"]');
+        const fileNameLabel = form.querySelector('[data-role="excel-file-name"]');
+        const fileMetaLabel = form.querySelector('[data-role="excel-file-meta"]');
+        const clearButton = form.querySelector('[data-role="excel-clear"]');
+        const submitButton = form.querySelector('[data-role="excel-submit"]');
+        const statusLabel = form.querySelector('[data-role="excel-status"]');
+
+        const formatBytes = (bytes) => {
+            if (!bytes && bytes !== 0) {
+                return '';
+            }
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            if (bytes === 0) {
+                return '0 B';
+            }
+            const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
+            const value = bytes / Math.pow(1024, i);
+            return `${value.toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`;
+        };
+
+        const formatDate = (timestamp) => {
+            if (!timestamp) {
+                return '';
+            }
+            const date = new Date(timestamp);
+            if (Number.isNaN(date.getTime())) {
+                return '';
+            }
+            return date.toLocaleString('vi-VN');
+        };
+
+        const resetState = () => {
+            fileInput.value = '';
+            submitButton.disabled = true;
+            if (statusLabel) {
+                statusLabel.textContent = '';
+                statusLabel.classList.add('hidden');
+                statusLabel.classList.remove('text-red-600', 'text-green-600', 'text-blue-600');
+            }
+            if (helper) {
+                helper.classList.remove('hidden');
+            }
+            if (summaryBox) {
+                summaryBox.classList.add('hidden');
+            }
+            if (clearButton) {
+                clearButton.classList.add('hidden');
+            }
+            if (dropZone) {
+                dropZone.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-50');
+            }
+        };
+
+        const showStatus = (message, type) => {
+            if (!statusLabel) {
+                return;
+            }
+            statusLabel.textContent = message || '';
+            statusLabel.classList.remove('text-red-600', 'text-green-600', 'text-blue-600', 'hidden');
+            if (!message) {
+                statusLabel.classList.add('hidden');
+                return;
+            }
+            if (type === 'error') {
+                statusLabel.classList.add('text-red-600');
+            } else if (type === 'success') {
+                statusLabel.classList.add('text-green-600');
+            } else {
+                statusLabel.classList.add('text-blue-600');
+            }
+        };
+
+        const updateSummary = (file) => {
+            if (!summaryBox || !file) {
+                return;
+            }
+            summaryBox.classList.remove('hidden');
+            fileNameLabel.textContent = file.name;
+            const metaParts = [];
+            if (file.size) {
+                metaParts.push(`Dung lượng ${formatBytes(file.size)}`);
+            }
+            if (file.lastModified) {
+                metaParts.push(`Chỉnh sửa lần cuối ${formatDate(file.lastModified)}`);
+            }
+            fileMetaLabel.textContent = metaParts.join(' · ');
+        };
+
+        const applyFile = (file) => {
+            if (!file) {
+                resetState();
+                return;
+            }
+
+            const valid = file.name.toLowerCase().endsWith('.xlsx');
+            if (!valid) {
+                resetState();
+                showStatus('Định dạng tệp không hợp lệ. Vui lòng chọn file .xlsx.', 'error');
+                return;
+            }
+
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size && file.size > maxSize) {
+                resetState();
+                showStatus('Dung lượng tệp vượt quá 10MB. Vui lòng tối ưu hoặc tách nhỏ dữ liệu.', 'error');
+                return;
+            }
+
+            if (typeof DataTransfer !== 'undefined') {
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+            }
+
+            submitButton.disabled = false;
+            if (helper) {
+                helper.classList.add('hidden');
+            }
+            if (clearButton) {
+                clearButton.classList.remove('hidden');
+            }
+            if (dropZone) {
+                dropZone.classList.add('ring-2', 'ring-purple-500', 'bg-purple-50');
+            }
+            updateSummary(file);
+            showStatus('Tệp đã được chuẩn bị. Bấm "Nhập Excel" để tải lên.', 'info');
+        };
+
+        resetState();
+
+        if (dropZone) {
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dropZone.classList.add('ring-2', 'ring-purple-500', 'bg-purple-50');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (eventName === 'dragleave') {
+                        dropZone.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-50');
+                    }
+                });
+            });
+
+            dropZone.addEventListener('drop', (event) => {
+                const files = event.dataTransfer?.files;
+                if (files && files.length) {
+                    if (typeof DataTransfer === 'undefined') {
+                        try {
+                            fileInput.files = files;
+                        } catch (error) {
+                            console.warn('Không thể gán FileList cho input:', error);
+                        }
+                    }
+                    applyFile(files[0]);
+                }
+            });
+        }
+
+        fileInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            if (files && files.length) {
+                applyFile(files[0]);
+            } else {
+                resetState();
+            }
+        });
+
+        if (clearButton) {
+            clearButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                resetState();
+            });
+        }
+
+        form.addEventListener('submit', () => {
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-75');
+                const originalHtml = submitButton.dataset.originalHtml || submitButton.innerHTML;
+                if (!submitButton.dataset.originalHtml) {
+                    submitButton.dataset.originalHtml = originalHtml;
+                }
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang tải lên';
+            }
+            showStatus('Đang xử lý file, vui lòng không rời khỏi trang...', 'info');
+        });
+    });
+</script>
+{% endblock %}

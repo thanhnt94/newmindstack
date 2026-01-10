@@ -1,0 +1,2806 @@
+{% set _v = template_version|default('v4') %}
+{% extends 'base.html' %}
+{% block title %}Phòng học Flashcard chung - {{ room_payload.room_code }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+  :root {
+    --flashcard-shell-gap: clamp(16px, 2vw, 24px);
+    --flashcard-header-height: 0px;
+    --flashcard-footer-height: 0px;
+  }
+
+  /* --- 1. GLOBAL LAYOUT RESET (Application Mode) --- */
+  html {
+    height: 100%;
+    overflow: hidden;
+    /* Chặn scroll ở root */
+    box-sizing: border-box;
+  }
+
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    /* Chặn scroll ở body */
+    background-color: #f9fafb;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+
+  /* Ngăn scroll còn sót lại khi kích hoạt chế độ học chung */
+  body.flashcard-session-active {
+    height: 100vh;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Ép footer xuống đáy, main chiếm hết phần còn lại */
+  body>footer {
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  /* Main container của base.html */
+  body>main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* Quan trọng để flex con scroll được */
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  body.flashcard-session-active>main {
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden !important;
+  }
+
+  /* --- 2. PAGE SHELL (Lớp vỏ) --- */
+  .page-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    /* Fill 100% main */
+    padding: calc(var(--flashcard-shell-gap) * 0.65) 0;
+    gap: 1rem;
+    background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08), transparent 25%),
+      radial-gradient(circle at 90% 30%, rgba(59, 130, 246, 0.06), transparent 25%),
+      #f8fafc;
+    overflow: hidden;
+    /* Không scroll ở đây */
+    box-sizing: border-box;
+    min-height: calc(100vh - var(--flashcard-header-height, 0px) - var(--flashcard-footer-height, 0px));
+  }
+
+  @media (max-width: 1024px) {
+    .page-shell {
+      top: var(--header-h, 0px);
+      bottom: 0;
+      padding: 0.05rem 0.05rem 0;
+      height: calc(var(--vh, 1vh) * 100);
+      min-height: calc(var(--vh, 1vh) * 100);
+      gap: 0;
+      background: #f8fafc;
+    }
+
+    body>footer {
+      display: none !important;
+    }
+  }
+
+  body.flashcard-session-active .page-shell {
+    min-height: 0;
+    height: 100vh;
+  }
+
+  /* --- 3. SESSION LAYOUT (Content Chính) --- */
+  .session-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(360px, 2fr);
+    gap: 1.25rem;
+
+    /* Layout Fill */
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: calc(var(--flashcard-shell-gap) * 0.85) clamp(18px, 1.8vw, 28px) calc(var(--flashcard-shell-gap) * 1.4) clamp(18px, 1.8vw, 28px);
+    flex: 1;
+    /* Chiếm toàn bộ chiều cao còn lại */
+    min-height: 0;
+    /* Cho phép con scroll */
+    overflow: hidden;
+    /* Chặn scroll tràn ra ngoài */
+    box-sizing: border-box;
+    min-height: calc(100vh - var(--flashcard-header-height, 0px) - var(--flashcard-footer-height, 0px) - var(--flashcard-shell-gap));
+  }
+
+  @media (max-width: 1024px) {
+    .session-layout {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+      padding: 0.1rem 0.15rem 0.2rem !important;
+      overflow: hidden;
+      /* Quan trọng: Loại bỏ cuộn trên layout chính */
+    }
+  }
+
+  .flashcard-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* --- 4. LEFT COLUMN: FLASHCARD --- */
+  .card-surface {
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
+    overflow: hidden;
+  }
+
+  .flashcard-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Fill cột trái */
+    padding: 1rem;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+    gap: 1rem;
+    min-height: 0;
+    /* Fix flex overflow */
+  }
+
+  @media (max-width: 1024px) {
+    .flashcard-panel {
+      padding: 1rem;
+      gap: 0.75rem;
+    }
+  }
+
+  .flashcard-card-container {
+    perspective: 1200px;
+    width: 100%;
+    flex: 1;
+    /* Fill phần còn lại của panel */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* Fix flex overflow */
+    position: relative;
+  }
+
+  .flashcard-card {
+    width: 100%;
+    height: 100%;
+    /* Card chiếm hết container */
+    position: relative;
+    background-color: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 18px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+    transform-style: preserve-3d;
+    transition: box-shadow .3s ease, transform .3s ease;
+    /* Vars */
+    --card-accent-bg: linear-gradient(135deg, #6366f1, #2563eb);
+    --card-accent-hover-bg: linear-gradient(135deg, #4f46e5, #1d4ed8);
+    --card-accent-rgb: 37, 99, 235;
+    --card-accent-shadow: 0 16px 32px rgba(var(--card-accent-rgb), 0.22);
+    --card-accent-hover-shadow: 0 20px 40px rgba(var(--card-accent-rgb), 0.3);
+  }
+
+  .face {
+    position: absolute;
+    inset: 0;
+    padding: 60px 1.5rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+    backface-visibility: hidden;
+    transition: transform .6s ease-in-out, opacity .3s ease-in-out;
+    z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .front {
+    transform: rotateY(0deg);
+  }
+
+  .back {
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-card:not(.flipped) .front {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .flashcard-card:not(.flipped) .back {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .flashcard-card.flipped .front {
+    transform: rotateY(180deg);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .flashcard-card.flipped .back {
+    transform: rotateY(360deg);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  ._card-container {
+    justify-content: flex-start;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 0.85rem;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .text-area {
+    flex-grow: 1;
+    min-height: 0;
+    width: 100%;
+    overflow-y: auto;
+    /* Scroll nội dung thẻ nếu dài */
+    padding: 1rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  ._card-container.media-hidden .text-area {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .back ._card-container.media-hidden .text-area,
+  .text-area.has-scroll {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .back .text-area .flashcard-content-text {
+    text-align: left;
+  }
+
+  .back .text-area .flashcard-content-text {
+    text-align: left;
+  }
+
+  /* --- 5. RIGHT COLUMN: SIDEBAR (MODERN REDESIGN) --- */
+  .session-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.05);
+    overflow: hidden;
+  }
+
+  .modern-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  /* Header Compact */
+  .sidebar-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    background: #ffffff;
+    flex-shrink: 0;
+  }
+
+  .room-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+
+  .room-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .room-code-badge {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: #f1f5f9;
+    color: #475569;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .room-code-badge:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  .room-subtitle {
+    font-size: 0.8rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Tabs */
+  .sidebar-tabs {
+    display: flex;
+    padding: 0.25rem 1.25rem 0;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+    gap: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 0.75rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+  }
+
+  .tab-btn:hover {
+    color: #334155;
+  }
+
+  .tab-btn.active {
+    color: #4f46e5;
+  }
+
+  .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #4f46e5;
+    border-radius: 2px 2px 0 0;
+  }
+
+  /* Content Area */
+  .sidebar-content-area {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    background: #f8fafc;
+  }
+
+  .tab-pane {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+  }
+
+  .tab-pane.active {
+    display: flex;
+  }
+
+  /* Chat Specifics Overrides */
+  .chat-box-integrated {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .chat-messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    /* Reduced gap for grouped messages feel */
+  }
+
+  /* Messenger Style */
+  .chat-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    width: 100%;
+  }
+
+  .chat-row.me {
+    justify-content: flex-end;
+  }
+
+  .chat-row.other {
+    justify-content: flex-start;
+  }
+
+  .chat-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .chat-bubble-modern {
+    max-width: 75%;
+    padding: 0.6rem 0.9rem;
+    border-radius: 18px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    position: relative;
+    word-break: break-word;
+  }
+
+  .chat-row.me .chat-bubble-modern {
+    background: #4f46e5;
+    /* Indigo 600 */
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .chat-row.other .chat-bubble-modern {
+    background: #f1f5f9;
+    /* Slate 100 */
+    color: #1e293b;
+    border-bottom-left-radius: 4px;
+  }
+
+  .chat-meta-tiny {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    margin-bottom: 0.1rem;
+    margin-left: 0.5rem;
+  }
+
+  .chat-row.me .chat-meta-tiny {
+    text-align: right;
+    margin-right: 0.5rem;
+    display: none;
+  }
+
+  /* Hide time for self usually */
+
+  .chat-input-area {
+    padding: 0.75rem;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .chat-input-wrapper {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .chat-input-modern {
+    flex: 1;
+    background: #f1f5f9;
+    border: 1px solid transparent;
+    border-radius: 99px;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .chat-input-modern:focus {
+    background: #fff;
+    border-color: #cbd5e1;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.3);
+  }
+
+  .chat-send-btn-modern {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: #4f46e5;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .chat-send-btn-modern:hover {
+    transform: scale(1.05);
+    background: #4338ca;
+  }
+
+  /* Participants List Styling */
+  .participants-list-container {
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .participant-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+    transition: border-color 0.2s;
+  }
+
+  .participant-item:hover {
+    border-color: #cbd5e1;
+  }
+
+  .participant-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    background: #e0e7ff;
+    color: #4f46e5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .kick-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid #fecdd3;
+    background: #fff1f2;
+    color: #e11d48;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .kick-btn:hover {
+    background: #e11d48;
+    color: white;
+    border-color: #e11d48;
+  }
+
+  /* --- MOBILE CHAT OVERLAY STYLES --- */
+  #collab-chat-panel.mobile-view {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 9990;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
+    flex-direction: column;
+    justify-content: flex-end;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.3s ease;
+  }
+
+  #collab-chat-panel.mobile-view.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  #collab-chat-panel.mobile-view .chat-messages-area {
+    background: #ffffff;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    height: 75vh;
+    /* Max height on mobile */
+    flex: 0 1 auto;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  #collab-chat-panel.mobile-view .chat-input-area {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    background: #ffffff;
+  }
+
+  /* Mobile Close Button inside Chat */
+  .mobile-chat-close-bar {
+    display: none;
+    background: #ffffff;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    justify-content: space-between;
+    align-items: center;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+  }
+
+  #collab-chat-panel.mobile-view .mobile-chat-close-bar {
+    display: flex;
+  }
+
+  #collab-chat-panel.mobile-view .chat-messages-area {
+    border-radius: 0;
+    /* Reset radius as header takes it */
+  }
+
+  @media (max-width: 1024px) {
+    .session-sidebar {
+      display: none !important;
+    }
+  }
+
+  /* --- OTHER UI --- */
+  .card-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    backdrop-filter: blur(8px);
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-right {
+    justify-content: flex-end;
+  }
+
+  .card-toolbar .mobile-info-btn {
+    display: none !important;
+  }
+
+  .card-toolbar .label {
+    text-transform: uppercase;
+    text-align: center;
+    font-weight: 700;
+    color: #475569;
+    letter-spacing: 0.08em;
+    font-size: 0.95rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    flex: 1;
+    min-width: 120px;
+    max-width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .card-toolbar .icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background-color: #f8fafc;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    cursor: pointer;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .toolbar-settings {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .toolbar-settings .settings-panel {
+    position: absolute;
+    right: calc(100% + 0.35rem);
+    top: 50%;
+    transform: translateY(-50%) translateX(8px);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    padding: 0.35rem 0.45rem;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 15;
+  }
+
+  .toolbar-settings.is-open .settings-panel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(-50%) translateX(0);
+  }
+
+  .card-toolbar .icon-btn:hover {
+    background-color: #eef2ff;
+    color: rgba(var(--card-accent-rgb), 1);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(var(--card-accent-rgb), 0.12);
+  }
+
+  .card-toolbar .icon-btn.is-active {
+    color: rgba(var(--card-accent-rgb), 1);
+    background: #eef2ff;
+  }
+
+  .card-toolbar .icon-btn.is-disabled {
+    background-color: #f1f5f9;
+    color: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .card-toolbar .play-audio-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: none;
+    background: var(--card-accent-bg);
+    color: #ffffff;
+    font-size: 1rem;
+    box-shadow: var(--card-accent-shadow);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .card-toolbar .play-audio-btn:hover {
+    background: var(--card-accent-hover-bg);
+    color: #ffffff;
+    box-shadow: var(--card-accent-hover-shadow);
+    transform: translateY(-1px);
+  }
+
+  .card-toolbar .play-audio-btn.is-disabled {
+    background-color: rgba(148, 163, 184, 0.35);
+    color: #e5e7eb;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .flashcard-content-text {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1f2937;
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .back .flashcard-content-text {
+    font-size: 22px;
+    line-height: 1.5;
+    color: #111827;
+    text-align: left;
+    white-space: pre-wrap;
+  }
+
+  .media-container {
+    flex-shrink: 0;
+    padding: 1rem;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    max-height: 40%;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+
+  .media-container img {
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    margin: auto;
+  }
+
+  .media-container.hidden {
+    display: none;
+  }
+
+  .card-toolbar .image-toggle-btn.is-active {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: rgba(3, 105, 161, 0.4);
+    box-shadow: 0 10px 24px rgba(3, 105, 161, 0.12);
+  }
+
+  .actions {
+    display: none;
+    gap: 1rem;
+    justify-content: center;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%);
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.08);
+    flex-shrink: 0;
+    z-index: 2;
+  }
+
+  .actions.visible {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+  }
+
+  .actions.visible[data-button-count="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .actions.visible[data-button-count="4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .actions.visible[data-button-count="6"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .btn {
+    border: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border-radius: 0.9rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+    text-decoration: none;
+  }
+
+  .btn:focus {
+    outline: none;
+  }
+
+  .actions .btn {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    padding: 0.9rem 1.25rem;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+  }
+
+  .actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+  }
+
+  .actions .btn:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28);
+  }
+
+  .actions .btn:active {
+    transform: translateY(0);
+    filter: saturate(1.08);
+  }
+
+  .rating-btn {
+    color: #fff;
+    border-radius: 0.9rem;
+    padding: 0.75rem 1rem;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    gap: 0.5rem;
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .rating-btn .rating-btn__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 1.1rem;
+  }
+
+  .rating-btn .rating-btn__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+
+  .rating-btn--again {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    box-shadow: 0 18px 36px rgba(220, 38, 38, 0.32);
+  }
+
+  .rating-btn--fail {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    box-shadow: 0 18px 36px rgba(220, 38, 38, 0.32);
+  }
+
+  .rating-btn--very-hard {
+    background: linear-gradient(135deg, #fb923c, #ea580c);
+    box-shadow: 0 18px 36px rgba(234, 88, 12, 0.28);
+  }
+
+  .rating-btn--hard {
+    background: linear-gradient(135deg, #f59e0b, #b45309);
+    color: #1f2937;
+  }
+
+  .rating-btn--hard .rating-btn__icon {
+    background: rgba(15, 23, 42, 0.12);
+    color: #1f2937;
+  }
+
+  .rating-btn--medium {
+    background: linear-gradient(135deg, #38bdf8, #2563eb);
+    box-shadow: 0 18px 36px rgba(37, 99, 235, 0.28);
+  }
+
+  .rating-btn--easy {
+    background: linear-gradient(135deg, #34d399, #059669);
+    box-shadow: 0 18px 36px rgba(5, 150, 105, 0.28);
+  }
+
+  .rating-btn--good {
+    background: linear-gradient(135deg, #34d399, #059669);
+    box-shadow: 0 18px 36px rgba(5, 150, 105, 0.28);
+  }
+
+  .rating-btn--very-easy {
+    background: linear-gradient(135deg, #6ee7b7, #0d9488);
+    box-shadow: 0 18px 36px rgba(13, 148, 136, 0.26);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    padding: 0.4rem 0.85rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  .flip-card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1.75rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+    box-shadow: 0 14px 30px rgba(249, 115, 22, 0.25);
+    border: none;
+    letter-spacing: 0.02em;
+  }
+
+  .flip-card-btn:hover {
+    background: linear-gradient(135deg, #ea580c, #f97316);
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(234, 88, 12, 0.35);
+  }
+
+  .flip-card-btn:focus-visible {
+    outline: 3px solid rgba(244, 114, 182, 0.35);
+    outline-offset: 3px;
+  }
+
+  .mobile-chat-toggle {
+    display: none;
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 80;
+    box-shadow: 0 14px 30px rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    padding: 0.65rem;
+    gap: 0.4rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    min-width: 0;
+    width: 3.25rem;
+    height: 3.25rem;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+
+  .mobile-chat-toggle i {
+    font-size: 1.05rem;
+  }
+
+  .mobile-chat-label {
+    display: none;
+  }
+
+  .chat-unread-indicator {
+    position: absolute;
+    top: -0.1rem;
+    right: -0.1rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 999px;
+    background: #ef4444;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
+  }
+
+  .chat-unread-indicator.is-visible {
+    display: inline-flex;
+  }
+
+  @media (min-width: 520px) and (max-width: 1024px) {
+    .mobile-chat-toggle {
+      width: auto;
+      height: auto;
+      padding: 0.65rem 0.95rem;
+      border-radius: 999px;
+      gap: 0.5rem;
+    }
+
+    .mobile-chat-label {
+      display: inline;
+    }
+  }
+
+  .mobile-chat-toggle:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 18px 38px rgba(37, 99, 235, 0.32);
+    filter: brightness(1.03);
+  }
+
+  .mobile-chat-toggle:active {
+    transform: translateY(0);
+    filter: brightness(0.98);
+  }
+
+  .mobile-chat-toggle.is-active {
+    box-shadow: 0 16px 32px rgba(37, 99, 235, 0.35);
+  }
+
+  .chat-panel .close-chat-btn {
+    display: none;
+  }
+
+  .mobile-score-banner {
+    display: none;
+  }
+
+  .mobile-info-panel {
+    display: none;
+  }
+
+  @media (max-width: 1024px) {
+    .card-toolbar {
+      padding: calc(0.3rem + env(safe-area-inset-top, 0px)) 0.4rem 0.4rem;
+      gap: 0.35rem;
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+      gap: 0.2rem;
+      flex-wrap: nowrap;
+    }
+
+    .card-toolbar .label {
+      font-size: 0.74rem;
+      min-width: 76px;
+      padding: 0.25rem 0.4rem;
+      letter-spacing: 0.04em;
+      flex: 0 1 auto;
+    }
+
+    .card-toolbar .icon-btn {
+      width: 34px;
+      height: 34px;
+      font-size: 0.9rem;
+    }
+
+    .card-toolbar .play-audio-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      padding: 0;
+    }
+
+    .session-sidebar {
+      display: none !important;
+    }
+
+    /* Ẩn cột phải ở mobile */
+    .flashcard-wrapper {
+      flex: 1;
+      padding: 0 !important;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .flashcard-panel {
+      padding: 0.35rem 0.25rem 0.45rem;
+      gap: 0.55rem;
+    }
+
+    .flashcard-card-container,
+    .flashcard-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .face {
+      padding: calc(64px + env(safe-area-inset-top, 0px)) 0.1rem 0.2rem 0.1rem !important;
+    }
+
+    ._card-container {
+      padding: 0.05rem !important;
+    }
+
+    .text-area {
+      flex: 1;
+      padding: 0.1rem 0.05rem !important;
+    }
+
+    .actions {
+      margin-top: 0.5rem !important;
+      padding: 0.15rem 0.15rem !important;
+      gap: 0.15rem;
+      justify-content: center;
+      width: 100%;
+      position: sticky;
+      bottom: 0;
+    }
+
+    .flashcard-card {
+      padding: 0.05rem !important;
+    }
+
+    .flashcard-card-container {
+      min-height: 60vh;
+    }
+
+    .card-toolbar .mobile-info-btn {
+      display: inline-flex !important;
+    }
+
+    /* Chat Panel Mobile Overlay */
+    .chat-panel {
+      display: flex;
+      position: fixed;
+      inset: 0;
+      z-index: 9990;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(8px);
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0.75rem;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    .chat-panel .chat-box {
+      width: 100%;
+      max-width: 720px;
+      height: 90vh !important;
+      background: #ffffff;
+      border-radius: 18px 18px 0 0;
+      padding-bottom: 1.5rem;
+      transform: translateY(12%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .chat-panel.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .chat-panel.open .chat-box {
+      transform: translateY(0);
+    }
+
+    .chat-panel .close-chat-btn {
+      display: inline-flex;
+    }
+
+    /* Hiện nút đóng ở mobile */
+
+    .mobile-chat-toggle {
+      display: flex;
+    }
+
+    .mobile-info-panel {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(15, 23, 42, 0.4);
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .mobile-info-panel.open {
+      display: flex;
+    }
+
+    .mobile-info-sheet {
+      width: 100%;
+      max-width: 720px;
+      background: #ffffff;
+      border-radius: 18px 18px 0 0;
+      padding: 1.25rem;
+      overflow-y: auto;
+      max-height: 78vh;
+    }
+
+    .mobile-score-banner {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 0.75rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .card-toolbar {
+      padding: 0.35rem 0.4rem;
+      gap: 0.3rem;
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+      gap: 0.2rem;
+    }
+
+    .card-toolbar .label {
+      font-size: 0.74rem;
+      padding: 0.2rem 0.4rem;
+      min-width: 76px;
+    }
+
+    .card-toolbar .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+  <div class="session-layout">
+    <!-- CỘT TRÁI: FLASHCARD -->
+    <div class="flashcard-wrapper">
+      <div class="card-surface flashcard-panel" id="collab-learning-card">
+        <div class="flex items-start justify-between gap-3 collab-room-meta hidden lg:flex">
+          <div>
+            <p class="text-sm text-slate-500">Thẻ tiếp theo sẽ xuất hiện khi tất cả thành viên đã trả lời.</p>
+            <div class="flex items-center gap-2 mt-2 text-sm text-slate-600">
+              <span class="pill bg-amber-50 text-amber-700"><i class="fas fa-circle-notch animate-spin"></i> Đang tải
+                thẻ đầu tiên...</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="text-right">
+              <p class="text-xs text-slate-500">Điểm của bạn</p>
+              <p class="text-2xl font-extrabold text-indigo-600" id="collab-user-score">{{ current_user.total_score or 0
+                }}</p>
+            </div>
+            <button type="button" id="collab-refresh-round"
+              class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold bg-white shadow-sm hover:bg-slate-50">
+              <i class="fas fa-rotate"></i> Làm mới thẻ
+            </button>
+          </div>
+        </div>
+
+        <div class="flashcard-card-container">
+          <div class="flashcard-card" id="collab-card">
+            <div class="face front">
+              <div class="card-toolbar">
+                <div class="toolbar-left">
+                  <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i
+                      class="fas fa-bars"></i></button>
+                  <button type="button" class="icon-btn collab-ai-btn" title="Mindstack AI"><i
+                      class="fas fa-robot"></i></button>
+                  <button type="button" class="icon-btn collab-note-btn" title="Ghi chú"><i
+                      class="fas fa-sticky-note"></i></button>
+                </div>
+                <span class="label">MẶT TRƯỚC</span>
+                <div class="toolbar-right">
+                  <button type="button" class="icon-btn play-audio-btn collab-audio-btn" data-side="front"
+                    data-audio-target="#collab-front-audio" title="Nghe nội dung"><i
+                      class="fas fa-volume-up"></i></button>
+                  <div class="toolbar-settings">
+                    <div class="settings-panel">
+                      <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i
+                          class="fas fa-flag"></i></button>
+                      {% if can_edit_flashcards %}
+                      <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i
+                          class="fas fa-pencil-alt"></i></button>
+                      {% endif %}
+                      <button type="button" class="icon-btn image-toggle-btn collab-image-toggle-btn"
+                        aria-pressed="false" title="Tắt ảnh"><i class="fas fa-image"></i></button>
+                      <button type="button" class="icon-btn collab-autoplay-toggle-btn" aria-pressed="true"
+                        title="Tắt tự động phát audio"><i class="fas fa-volume-up"></i></button>
+                    </div>
+                    <button type="button" class="icon-btn settings-toggle-btn" aria-expanded="false"
+                      title="Mở cài đặt"><i class="fas fa-ellipsis-v"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="_card-container">
+                <div class="text-area">
+                  <div id="collab-card-front" class="flashcard-content-text">—</div>
+                </div>
+                <div class="media-container hidden" id="collab-card-front-media"></div>
+                <audio id="collab-front-audio" class="hidden"></audio>
+              </div>
+              <div class="flex justify-center p-4">
+                <button type="button" id="collab-flip-btn" class="flip-card-btn">
+                  <i class="fas fa-sync-alt"></i> Lật thẻ
+                </button>
+              </div>
+            </div>
+            <div class="face back">
+              <div class="card-toolbar">
+                <div class="toolbar-left">
+                  <button type="button" class="icon-btn mobile-info-btn open-mobile-info-btn" title="Mở menu phòng"><i
+                      class="fas fa-bars"></i></button>
+                  <button type="button" class="icon-btn collab-ai-btn" title="Mindstack AI"><i
+                      class="fas fa-robot"></i></button>
+                  <button type="button" class="icon-btn collab-note-btn" title="Ghi chú"><i
+                      class="fas fa-sticky-note"></i></button>
+                </div>
+                <span class="label">MẶT SAU</span>
+                <div class="toolbar-right">
+                  <button type="button" class="icon-btn play-audio-btn collab-audio-btn" data-side="back"
+                    data-audio-target="#collab-back-audio" title="Nghe nội dung"><i
+                      class="fas fa-volume-up"></i></button>
+                  <div class="toolbar-settings">
+                    <div class="settings-panel">
+                      <button type="button" class="icon-btn collab-feedback-btn" title="Phản hồi"><i
+                          class="fas fa-flag"></i></button>
+                      {% if can_edit_flashcards %}
+                      <button type="button" class="icon-btn collab-edit-btn" title="Chỉnh sửa"><i
+                          class="fas fa-pencil-alt"></i></button>
+                      {% endif %}
+                      <button type="button" class="icon-btn image-toggle-btn collab-image-toggle-btn"
+                        aria-pressed="false" title="Tắt ảnh"><i class="fas fa-image"></i></button>
+                      <button type="button" class="icon-btn collab-autoplay-toggle-btn" aria-pressed="true"
+                        title="Tắt tự động phát audio"><i class="fas fa-volume-up"></i></button>
+                    </div>
+                    <button type="button" class="icon-btn settings-toggle-btn" aria-expanded="false"
+                      title="Mở cài đặt"><i class="fas fa-ellipsis-v"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="_card-container">
+                <div class="text-area">
+                  <div id="collab-card-back" class="flashcard-content-text">—</div>
+                </div>
+                <div class="media-container hidden" id="collab-card-back-media"></div>
+                <audio id="collab-back-audio" class="hidden"></audio>
+              </div>
+              <div class="actions" id="collab-answer-actions" data-button-count="{{ room_payload.button_count or 3 }}">
+              </div>
+              <p id="collab-answer-feedback" class="text-xs text-slate-600 px-6 pb-2"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CỘT PHẢI: SIDEBAR (MODERN) -->
+    <div class="session-sidebar" id="sidebar-container">
+      <div class="modern-sidebar">
+        <!-- 1. Header Compact -->
+        <div class="sidebar-header">
+          <div class="room-title-row">
+            <h2 class="room-title" title="{{ room_payload.title }}">{{ room_payload.title }}</h2>
+            <a href="{{ url_for('learning.flashcard.flashcard_dashboard.dashboard') }}"
+              class="text-slate-400 hover:text-rose-500 transition-colors" title="Thoát phòng">
+              <i class="fas fa-sign-out-alt"></i>
+            </a>
+          </div>
+          <div class="room-subtitle">
+            <button type="button" id="copy-room-code" class="room-code-badge" title="Sao chép mã phòng">
+              {{ room_payload.room_code }} <i class="fas fa-copy ml-1 text-[10px]"></i>
+            </button>
+            <span>•</span>
+            <span class="text-xs font-medium text-slate-500">Thẻ #<span id="collab-round-step">1</span></span>
+            <span>•</span>
+            <span class="text-xs font-medium text-slate-500" id="collab-participant-count">{{
+              room_payload.participants|length }} người</span>
+          </div>
+        </div>
+
+        <!-- 2. Tabs -->
+        <div class="sidebar-tabs">
+          <button type="button" class="tab-btn active" onclick="switchSidebarTab('chat')">Thảo luận</button>
+          <button type="button" class="tab-btn" onclick="switchSidebarTab('members')">Thành viên</button>
+        </div>
+
+        <!-- 3. Content Area -->
+        <div class="sidebar-content-area">
+          <!-- Tab: Chat -->
+          <div id="tab-chat" class="tab-pane active">
+            <!-- Wrapper ID cũ để JS chat logic hoạt động -->
+            <div id="collab-chat-panel" class="chat-box-integrated">
+              <!-- Mobile Header -->
+              <div class="mobile-chat-close-bar">
+                <span class="text-sm font-bold text-slate-700">Trò chuyện</span>
+                <button type="button" class="close-chat-btn p-1 text-slate-400 hover:text-slate-600">
+                  <i class="fas fa-times text-lg"></i>
+                </button>
+              </div>
+
+              <div id="collab-chat-messages" class="chat-messages-area">
+                <p class="text-center text-slate-400 text-sm mt-4">Đang tải tin nhắn...</p>
+              </div>
+              <form id="collab-chat-form" class="chat-input-area">
+                <div class="chat-input-wrapper">
+                  <input id="collab-chat-input" type="text" class="chat-input-modern" placeholder="Nhập tin nhắn..."
+                    autocomplete="off">
+                  <button type="submit" class="chat-send-btn-modern">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Tab: Members -->
+          <div id="tab-members" class="tab-pane">
+            <div class="participants-list-container">
+              <div id="collab-round-participants" class="space-y-2">
+                <!-- JS sẽ render list ở đây -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE INFO PANEL -->
+  <div id="collab-mobile-info-panel" class="mobile-info-panel">
+    <div class="mobile-info-sheet space-y-4">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Phòng học Flashcard</p>
+          <p class="text-xl font-bold text-slate-900">{{ room_payload.title or 'Phòng học chung' }}</p>
+          <p class="text-sm text-slate-600">Chế độ: {{ room_payload.mode }} · {{ room_payload.button_count or 3 }} nút ·
+            Mã: {{ room_payload.room_code }}</p>
+        </div>
+        <button type="button" class="icon-btn close-mobile-info-btn" title="Đóng"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+        <p class="text-sm text-slate-600">Thẻ tiếp theo sẽ xuất hiện khi tất cả thành viên đã trả lời.</p>
+        <div id="collab-round-status-mobile" class="flex flex-wrap items-center gap-2 text-sm text-slate-700">
+          <span class="pill bg-amber-50 text-amber-700"><i class="fas fa-circle-notch animate-spin"></i> Đang tải thẻ
+            đầu tiên...</span>
+        </div>
+        <div class="flex items-center justify-between gap-3 pt-2 border-t border-slate-200">
+          <div>
+            <p class="text-xs text-slate-500">Điểm của bạn</p>
+            <p class="text-2xl font-extrabold text-indigo-600" id="collab-user-score-mobile-menu">{{
+              current_user.total_score or 0 }}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-slate-500">Thứ tự thẻ</p>
+            <p class="text-sm font-semibold text-slate-800" id="collab-round-step-mobile">—</p>
+          </div>
+          <button type="button" id="collab-refresh-round-mobile"
+            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold bg-white shadow-sm hover:bg-slate-50">
+            <i class="fas fa-rotate"></i> Làm mới thẻ
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-sm text-slate-700">
+        <div class="bg-slate-50 rounded-lg p-3">
+          <p class="text-xs text-slate-500">Chủ phòng</p>
+          <p class="font-semibold">{{ room_payload.host_username or '—' }}</p>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-3">
+          <p class="text-xs text-slate-500">Trạng thái</p>
+          <p class="font-semibold capitalize">{{ room_payload.status }}</p>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-3">
+          <p class="text-xs text-slate-500">Mã phòng</p>
+          <p class="font-mono tracking-widest text-sm">{{ room_payload.room_code }}</p>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-3">
+          <p class="text-xs text-slate-500">Tổng thành viên</p>
+          <p class="font-semibold" id="collab-participant-count-mobile">{{ room_payload.participants | length }}</p>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <p class="text-sm font-semibold text-slate-800">Danh sách tham gia</p>
+        <ul id="collab-round-participants-mobile" class="divide-y divide-slate-200 text-sm text-slate-700"></ul>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" id="open-chat-btn" class="mobile-chat-toggle" aria-label="Mở chat">
+    <i class="fas fa-comments" aria-hidden="true"></i>
+    <span id="collab-chat-unread" class="chat-unread-indicator" aria-hidden="true">•</span>
+  </button>
+
+  {% include 'v3/pages/notes/_note_panel.html' %}
+  {% include _v ~ '/includes/ai_services/_ai_modal.html' %}
+  {% include 'v3/pages/feedback/_feedback_modal.html' %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% include _v ~ '/includes/chat/chat_widget.html' %}
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='v2/static/js/flashcard_viewport.js') }}"></script>
+<script>
+  const refreshViewportSizing = () => {
+    if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
+      window.flashcardViewport.refresh();
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('flashcard-session-active');
+    refreshViewportSizing();
+  });
+  window.addEventListener('beforeunload', () => {
+    document.body.classList.remove('flashcard-session-active');
+  });
+  window.addEventListener('orientationchange', refreshViewportSizing, { passive: true });
+  window.addEventListener('resize', refreshViewportSizing, { passive: true });
+
+  document.getElementById('copy-room-code')?.addEventListener('click', () => {
+    const code = {{ room_payload.room_code | tojson
+  }};
+  navigator.clipboard.writeText(code).catch(() => { });
+    });
+
+  // --- NEW: TAB SWITCHING LOGIC ---
+  window.switchSidebarTab = (tabName) => {
+    // Update buttons
+    document.querySelectorAll('.sidebar-tabs .tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('onclick').includes(tabName));
+    });
+
+    // Update panes
+    document.querySelectorAll('.sidebar-content-area .tab-pane').forEach(pane => {
+      pane.classList.remove('active');
+    });
+    const activePane = document.getElementById(`tab-${tabName}`);
+    if (activePane) activePane.classList.add('active');
+
+    // Auto scroll chat if opened
+    if (tabName === 'chat') {
+      const msgs = document.getElementById('collab-chat-messages');
+      if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    }
+  };
+
+  // --- FIX: LOGIC TỰ ĐỘNG CHUYỂN VỊ TRÍ KHUNG CHAT ---
+  (() => {
+    const chatPanel = document.getElementById('collab-chat-panel');
+    const tabChatContainer = document.getElementById('tab-chat');
+    const pageShell = document.querySelector('.page-shell') || document.body; // Prefer page-shell for scoping
+
+    const repositionChat = () => {
+      if (!chatPanel || !tabChatContainer) return;
+
+      const isMobile = window.innerWidth <= 1024;
+
+      if (isMobile) {
+        // Move to Body/Shell for overlay mode
+        if (chatPanel.parentElement !== document.body) {
+          document.body.appendChild(chatPanel);
+          chatPanel.classList.add('mobile-view');
+        }
+      } else {
+        // Move back to Sidebar Tab
+        if (chatPanel.parentElement !== tabChatContainer) {
+          tabChatContainer.appendChild(chatPanel);
+          chatPanel.classList.remove('mobile-view');
+          // Ensure it's visible in desktop mode
+          chatPanel.style.opacity = '';
+          chatPanel.style.visibility = '';
+          chatPanel.classList.remove('open');
+        }
+      }
+    };
+
+    repositionChat();
+    window.addEventListener('resize', repositionChat);
+  })();
+
+  // Flashcard Logic
+  (() => {
+    const nextCardUrl = {{ url_for('learning.flashcard_collab.get_next_card', room_code = room_payload.room_code) | tojson
+  }};
+  const submitAnswerUrl = {{ url_for('learning.flashcard_collab.submit_collab_answer', room_code = room_payload.room_code) | tojson }};
+  const roomButtonCount = Number({{ room_payload.button_count or 3 }}) || 3;
+  const regenerateAudioUrl = {{ url_for('learning.flashcard_learning.regenerate_audio_from_content') | tojson }};
+  const currentUserId = {{ current_user.user_id }};
+  const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+  const csrfHeaders = csrfTokenMeta ? { 'X-CSRFToken': csrfTokenMeta.getAttribute('content') } : {};
+
+  const cardFrontEl = document.getElementById('collab-card-front');
+  const cardBackEl = document.getElementById('collab-card-back');
+  const cardFrontMediaEl = document.getElementById('collab-card-front-media');
+  const cardBackMediaEl = document.getElementById('collab-card-back-media');
+  const frontAudioEl = document.getElementById('collab-front-audio');
+  const backAudioEl = document.getElementById('collab-back-audio');
+  const cardEl = document.getElementById('collab-card');
+  const mediaContainers = [cardFrontMediaEl, cardBackMediaEl].filter(Boolean);
+  const cardContainers = Array.from(document.querySelectorAll('#collab-card ._card-container'));
+  const frontLabel = cardEl?.querySelector('.front .card-toolbar .label');
+  const backLabel = cardEl?.querySelector('.back .card-toolbar .label');
+  const statusEl = document.getElementById('collab-round-status');
+  const participantsEl = document.getElementById('collab-round-participants');
+  let answerButtons = [];
+  const answerActionsEl = document.getElementById('collab-answer-actions');
+  const feedbackEl = document.getElementById('collab-answer-feedback');
+  const refreshBtn = document.getElementById('collab-refresh-round');
+  const refreshBtnMobile = document.getElementById('collab-refresh-round-mobile');
+  const flipBtn = document.getElementById('collab-flip-btn');
+  const roundStepEl = document.getElementById('collab-round-step');
+  const userScoreEl = document.getElementById('collab-user-score');
+  const mobileUserScoreMenuEl = document.getElementById('collab-user-score-mobile-menu');
+
+  const chatRoundStatusEl = document.getElementById('collab-chat-round-status');
+  const chatParticipantsEl = document.getElementById('collab-chat-participants');
+  const chatParticipantCountEl = document.getElementById('collab-chat-participant-count');
+
+  const participantCountEls = [
+    document.getElementById('collab-participant-count'),
+    document.getElementById('collab-participant-count-mobile'),
+  ].filter(Boolean);
+  const noteButtons = document.querySelectorAll('.collab-note-btn');
+  const aiButtons = document.querySelectorAll('.collab-ai-btn');
+  const feedbackButtons = document.querySelectorAll('.collab-feedback-btn');
+  const editButtons = document.querySelectorAll('.collab-edit-btn');
+  const imageToggleButtons = document.querySelectorAll('.collab-image-toggle-btn');
+  const audioButtons = document.querySelectorAll('.collab-audio-btn');
+  const notePanel = document.getElementById('note-panel');
+  const noteTextarea = document.getElementById('note-textarea');
+  const saveNoteBtn = document.getElementById('save-note-btn');
+  const cancelNoteBtn = document.getElementById('cancel-note-btn');
+  const mobileInfoPanel = document.getElementById('collab-mobile-info-panel');
+  const openMobileInfoBtns = document.querySelectorAll('.open-mobile-info-btn');
+  const closeMobileInfoBtn = document.querySelector('.close-mobile-info-btn');
+  const mobileRoundStatusEl = document.getElementById('collab-round-status-mobile');
+  const mobileRoundParticipantsEl = document.getElementById('collab-round-participants-mobile');
+  const mobileRoundStepEl = document.getElementById('collab-round-step-mobile');
+  const autoplayToggleButtons = document.querySelectorAll('.collab-autoplay-toggle-btn');
+
+  const editUrlTemplate = {{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id = room_payload.container_id, item_id = 0) | tojson }};
+
+  let isMediaHidden = false;
+  let isAudioAutoplayEnabled = true;
+  let storedAudioAutoplay = null;
+  try {
+    const storedState = localStorage.getItem('flashcardHideImages');
+    if (storedState === 'true') {
+      isMediaHidden = true;
+    }
+    storedAudioAutoplay = localStorage.getItem('flashcardAutoPlayAudio');
+  } catch (err) {
+    console.warn('Không thể đọc trạng thái hiển thị ảnh:', err);
+  }
+
+  if (storedAudioAutoplay === 'false') {
+    isAudioAutoplayEnabled = false;
+  }
+
+  let currentRound = null;
+  let currentCardId = null;
+  let isFetching = false;
+  let pollHandle = null;
+  let hasAnsweredCurrentCard = false;
+  let frontAutoplayedItemId = null;
+  let backAutoplayedItemId = null;
+  let currentFrontAudioUrl = '';
+  let currentBackAudioUrl = '';
+
+  const toggleMobileInfoPanel = (isOpen) => {
+    if (!mobileInfoPanel) return;
+    mobileInfoPanel.classList.toggle('open', isOpen);
+  };
+
+  const adjustCardLayout = () => {
+    const textAreas = cardEl?.querySelectorAll('.text-area') || [];
+
+    textAreas.forEach((scrollArea) => {
+      const txt = scrollArea.querySelector('.flashcard-content-text');
+      if (!txt) return;
+
+      txt.style.fontSize = '';
+      scrollArea.classList.remove('has-scroll');
+      scrollArea.parentElement?.classList?.remove('has-scroll');
+
+      setTimeout(() => {
+        const hasScroll = scrollArea.scrollHeight > scrollArea.clientHeight;
+
+        if (hasScroll) {
+          scrollArea.classList.add('has-scroll');
+          scrollArea.parentElement?.classList?.add('has-scroll');
+          scrollArea.scrollTop = 0;
+        }
+
+        let current = parseFloat(getComputedStyle(txt).fontSize) || 22;
+        const min = 18;
+        while (scrollArea.scrollHeight > scrollArea.clientHeight && current > min) {
+          current -= 1;
+          txt.style.fontSize = `${current}px`;
+        }
+      }, 0);
+    });
+  };
+
+  const applyMediaVisibility = () => {
+    mediaContainers.forEach((container) => {
+      const hasMedia = container?.dataset.hasMedia === 'true';
+      container?.classList.toggle('hidden', isMediaHidden || !hasMedia);
+    });
+
+    cardContainers.forEach((container) => {
+      container.classList.toggle('media-hidden', isMediaHidden);
+    });
+
+    imageToggleButtons.forEach((btn) => {
+      btn.classList.toggle('is-active', isMediaHidden);
+      btn.setAttribute('aria-pressed', isMediaHidden ? 'true' : 'false');
+      btn.title = isMediaHidden ? 'Bật ảnh' : 'Tắt ảnh';
+      const icon = btn.querySelector('i');
+      if (icon) {
+        icon.className = `fas ${isMediaHidden ? 'fa-image-slash' : 'fa-image'}`;
+      }
+    });
+
+    adjustCardLayout();
+  };
+
+  const setMediaHiddenState = (hidden) => {
+    isMediaHidden = hidden;
+    try {
+      localStorage.setItem('flashcardHideImages', hidden ? 'true' : 'false');
+    } catch (err) {
+      console.warn('Không thể lưu trạng thái hiển thị ảnh:', err);
+    }
+
+    applyMediaVisibility();
+  };
+
+  const persistAudioAutoplayPreference = (enabled) => {
+    try {
+      localStorage.setItem('flashcardAutoPlayAudio', enabled ? 'true' : 'false');
+    } catch (err) {
+      console.warn('Không thể lưu cấu hình tự động phát audio:', err);
+    }
+  };
+
+  const updateAudioAutoplayToggleButtons = () => {
+    autoplayToggleButtons.forEach((btn) => {
+      btn.classList.toggle('is-active', isAudioAutoplayEnabled);
+      btn.setAttribute('aria-pressed', isAudioAutoplayEnabled ? 'true' : 'false');
+      btn.title = isAudioAutoplayEnabled ? 'Tắt tự động phát audio' : 'Bật tự động phát audio';
+      const icon = btn.querySelector('i');
+      if (icon) {
+        icon.className = `fas ${isAudioAutoplayEnabled ? 'fa-volume-up' : 'fa-volume-mute'}`;
+      }
+    });
+  };
+
+  const setAudioAutoplayEnabled = (enabled) => {
+    isAudioAutoplayEnabled = enabled;
+    persistAudioAutoplayPreference(enabled);
+    updateAudioAutoplayToggleButtons();
+    if (!enabled) {
+      stopAllFlashcardAudio();
+    }
+  };
+
+  const closeAllSettingsMenus = () => {
+    document.querySelectorAll('.toolbar-settings').forEach((menu) => {
+      menu.classList.remove('is-open');
+      const toggleBtn = menu.querySelector('.settings-toggle-btn');
+      if (toggleBtn) {
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  };
+
+  const toggleSettingsMenu = (menuEl) => {
+    if (!menuEl) return;
+    const isOpen = menuEl.classList.contains('is-open');
+    closeAllSettingsMenus();
+    menuEl.classList.toggle('is-open', !isOpen);
+    const toggleBtn = menuEl.querySelector('.settings-toggle-btn');
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', (!isOpen).toString());
+    }
+  };
+
+  document.addEventListener('click', (evt) => {
+    const settingsToggle = evt.target.closest('.settings-toggle-btn');
+    if (settingsToggle) {
+      evt.stopPropagation();
+      toggleSettingsMenu(settingsToggle.closest('.toolbar-settings'));
+      return;
+    }
+
+    const autoplayToggle = evt.target.closest('.collab-autoplay-toggle-btn');
+    if (autoplayToggle) {
+      evt.stopPropagation();
+      setAudioAutoplayEnabled(!isAudioAutoplayEnabled);
+      return;
+    }
+
+    if (!evt.target.closest('.toolbar-settings')) {
+      closeAllSettingsMenus();
+    }
+  });
+
+  function stopAllFlashcardAudio(exceptAudio = null) {
+    const audioElements = document.querySelectorAll('#collab-card audio');
+    audioElements.forEach((audioEl) => {
+      if (exceptAudio && audioEl === exceptAudio) return;
+      try {
+        if (!audioEl.paused) {
+          audioEl.pause();
+        }
+        audioEl.currentTime = 0;
+      } catch (err) {
+        console.warn('Không thể dừng audio:', err);
+      }
+    });
+  }
+
+  function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = false } = {}) {
+    return new Promise((resolve) => {
+      if (!audioPlayer) {
+        resolve();
+        return;
+      }
+
+      const cleanup = () => {
+        audioPlayer.removeEventListener('canplay', onCanPlay);
+        if (awaitCompletion) {
+          audioPlayer.removeEventListener('ended', onEnded);
+          audioPlayer.removeEventListener('error', onError);
+        }
+      };
+
+      const onEnded = () => {
+        cleanup();
+        resolve();
+      };
+
+      const onError = () => {
+        cleanup();
+        resolve();
+      };
+
+      const onCanPlay = () => {
+        audioPlayer.removeEventListener('canplay', onCanPlay);
+        if (restart) {
+          try {
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+          } catch (err) {
+            console.warn('Không thể đặt lại audio:', err);
+          }
+        }
+
+        const playPromise = audioPlayer.play();
+        if (!awaitCompletion) {
+          cleanup();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => { });
+          }
+          resolve();
+        } else if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => {
+            cleanup();
+            resolve();
+          });
+        }
+      };
+
+      if (awaitCompletion) {
+        audioPlayer.addEventListener('ended', onEnded, { once: true });
+        audioPlayer.addEventListener('error', onError, { once: true });
+      }
+
+      if (audioPlayer.readyState >= 2) {
+        onCanPlay();
+      } else {
+        audioPlayer.addEventListener('canplay', onCanPlay);
+        try {
+          audioPlayer.load();
+        } catch (err) {
+          cleanup();
+          resolve();
+        }
+      }
+    });
+  }
+
+  async function generateAndPlayAudio(button, audioPlayer, options = {}) {
+    const itemId = button.dataset.itemId;
+    const side = button.dataset.side;
+    const contentToRead = button.dataset.contentToRead;
+    const awaitCompletion = options.awaitCompletion === true;
+    const suppressLoadingUi = options.suppressLoadingUi === true;
+    const restart = options.restart !== false;
+
+    const originalHtml = button.dataset.originalHtml || button.innerHTML;
+    if (!button.dataset.originalHtml) {
+      button.dataset.originalHtml = originalHtml;
+    }
+
+    if (!suppressLoadingUi) {
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    button.classList.add('is-disabled');
+    let playbackPromise = Promise.resolve();
+
+    try {
+      const response = await fetch(regenerateAudioUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        body: JSON.stringify({ item_id: itemId, side, content_to_read: contentToRead }),
+      });
+      const result = await response.json();
+      if (result.success && result.audio_url) {
+        audioPlayer.src = result.audio_url;
+        playbackPromise = playAudioAfterLoad(audioPlayer, { restart, awaitCompletion });
+        if (awaitCompletion) {
+          await playbackPromise;
+        }
+      } else {
+        const message = result.message || 'Lỗi khi tạo audio.';
+        if (window.showFlashMessage) {
+          window.showFlashMessage(message, 'danger');
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi tạo audio:', error);
+      if (window.showFlashMessage) {
+        window.showFlashMessage('Không thể kết nối đến máy chủ để tạo audio.', 'danger');
+      }
+    } finally {
+      button.classList.remove('is-disabled');
+      if (!suppressLoadingUi) {
+        button.innerHTML = button.dataset.originalHtml || '<i class="fas fa-volume-up"></i>';
+      }
+    }
+
+    return playbackPromise;
+  }
+
+  function playAudioForButton(button, options = {}) {
+    if (!button) return Promise.resolve();
+    const audioPlayer = document.querySelector(button.dataset.audioTarget);
+    if (!audioPlayer || button.classList.contains('is-disabled')) {
+      return Promise.resolve();
+    }
+
+    const awaitCompletion = options.await === true;
+    const restart = options.restart !== false;
+    const suppressLoadingUi = options.suppressLoadingUi === true;
+    const hasAudioSource = audioPlayer.src && audioPlayer.src !== window.location.href;
+
+    if (hasAudioSource) {
+      stopAllFlashcardAudio(audioPlayer);
+      return playAudioAfterLoad(audioPlayer, { restart, awaitCompletion });
+    }
+
+    stopAllFlashcardAudio(audioPlayer);
+    return generateAndPlayAudio(button, audioPlayer, { awaitCompletion, suppressLoadingUi, restart });
+  }
+
+  function autoPlaySide(side) {
+    if (!isAudioAutoplayEnabled) return;
+    const button = document.querySelector(`.collab-audio-btn[data-side="${side}"]`);
+    if (!button) return;
+    playAudioForButton(button, { suppressLoadingUi: true }).catch(() => { });
+  }
+
+  updateAudioAutoplayToggleButtons();
+  closeAllSettingsMenus();
+
+  const setCardContent = (textEl, mediaEl, rawText, imageUrl, fallbackText, altLabel) => {
+    if (textEl) {
+      const cleanedText = (rawText || '').trim();
+      textEl.textContent = cleanedText || fallbackText;
+    }
+
+    if (!mediaEl) return;
+
+    if (imageUrl) {
+      mediaEl.innerHTML = `<img src="${imageUrl}" alt="${altLabel || 'Flashcard image'}" onerror="this.onerror=null;this.src='https://placehold.co/240x160?text=Anh+loi';">`;
+      mediaEl.dataset.hasMedia = 'true';
+    } else {
+      mediaEl.innerHTML = '';
+      mediaEl.dataset.hasMedia = 'false';
+    }
+
+    applyMediaVisibility();
+  };
+
+  applyMediaVisibility();
+
+  imageToggleButtons.forEach((btn) => {
+    btn.addEventListener('click', () => setMediaHiddenState(!isMediaHidden));
+  });
+
+  const syncAnswerButtonsAvailability = () => {
+    const shouldDisable = hasAnsweredCurrentCard || !cardEl?.classList.contains('flipped');
+    answerButtons.forEach((btn) => {
+      btn.disabled = shouldDisable;
+      btn.classList.toggle('opacity-60', shouldDisable);
+    });
+  };
+
+  const generateAnswerButtons = (buttonCount) => {
+    const presets = {
+      3: [
+        { variant: 'again', value: 'quên', title: 'Quên', icon: 'fas fa-redo-alt' },
+        { variant: 'hard', value: 'mơ_hồ', title: 'Mơ hồ', icon: 'fas fa-question-circle' },
+        { variant: 'easy', value: 'nhớ', title: 'Nhớ', icon: 'fas fa-check-circle' },
+      ],
+      4: [
+        { variant: 'again', value: 'again', title: 'Học lại', icon: 'fas fa-undo' },
+        { variant: 'very-hard', value: 'hard', title: 'Khó', icon: 'fas fa-fire' },
+        { variant: 'good', value: 'good', title: 'Bình thường', icon: 'fas fa-thumbs-up' },
+        { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-smile' },
+      ],
+      6: [
+        { variant: 'fail', value: 'fail', title: 'Rất khó', icon: 'fas fa-exclamation-circle' },
+        { variant: 'very-hard', value: 'very_hard', title: 'Khó', icon: 'fas fa-fire' },
+        { variant: 'hard', value: 'hard', title: 'Trung bình', icon: 'fas fa-adjust' },
+        { variant: 'medium', value: 'medium', title: 'Dễ', icon: 'fas fa-leaf' },
+        { variant: 'good', value: 'good', title: 'Rất dễ', icon: 'fas fa-thumbs-up' },
+        { variant: 'very-easy', value: 'very_easy', title: 'Dễ dàng', icon: 'fas fa-star' },
+      ],
+    };
+
+    const buttons = presets[buttonCount] || presets[3];
+    return buttons
+      .map(
+        (btn) => `
+              <button type="button" data-answer="${btn.value}" class="collab-answer-btn btn rating-btn rating-btn--${btn.variant}">
+                <span class="rating-btn__icon"><i class="${btn.icon}"></i></span>
+                <span class="rating-btn__title">${btn.title}</span>
+              </button>
+            `,
+      )
+      .join('');
+  };
+
+  const renderAnswerButtons = (buttonCount) => {
+    if (!answerActionsEl) return;
+    answerActionsEl.dataset.buttonCount = buttonCount;
+    answerActionsEl.innerHTML = generateAnswerButtons(buttonCount);
+    answerButtons = Array.from(answerActionsEl.querySelectorAll('.collab-answer-btn'));
+    syncAnswerButtonsAvailability();
+    answerButtons.forEach((btn) => {
+      btn.addEventListener('click', () => submitAnswer(btn.dataset.answer));
+    });
+  };
+
+  const showFrontSide = () => {
+    if (!cardEl) return;
+    cardEl.classList.remove('flipped');
+    answerActionsEl?.classList.remove('visible');
+    flipBtn?.classList.remove('hidden');
+    feedbackEl.textContent = '';
+    hasAnsweredCurrentCard = false;
+    syncAnswerButtonsAvailability();
+  };
+
+  const showBackSide = () => {
+    if (!cardEl) return;
+    cardEl.classList.add('flipped');
+    answerActionsEl?.classList.add('visible');
+    flipBtn?.classList.add('hidden');
+    syncAnswerButtonsAvailability();
+    if (isAudioAutoplayEnabled && currentCardId && backAutoplayedItemId !== currentCardId) {
+      autoPlaySide('back');
+      backAutoplayedItemId = currentCardId;
+    }
+  };
+
+  const setLoadingState = (message) => {
+    const content = message || 'Đang tải...';
+    const loadingHtml = `<span class="text-slate-600">${content}</span>`;
+
+    if (statusEl) statusEl.innerHTML = content;
+    if (mobileRoundStatusEl) mobileRoundStatusEl.innerHTML = loadingHtml;
+    if (chatRoundStatusEl) chatRoundStatusEl.innerHTML = loadingHtml;
+  };
+
+  const kickUrlTemplate = {{ url_for('learning.flashcard_collab.kick_participant', room_code = room_payload.room_code) | tojson }};
+  const hostId = {{ room_payload.host_user_id }};
+
+  // Kick Logic
+  window.kickUser = async (userId, username) => {
+    if (!confirm(`Bạn có chắc muốn mời thành viên "${username}" ra khỏi phòng?`)) return;
+
+    try {
+      const response = await fetch(kickUrlTemplate, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        if (window.showFlashMessage) window.showFlashMessage('Đã mời thành viên ra khỏi phòng.', 'success');
+        // Refresh list immediately
+        fetchRound(false);
+      } else {
+        alert(data.description || 'Không thể kick thành viên này.');
+      }
+    } catch (e) {
+      alert('Lỗi kết nối.');
+    }
+  };
+
+  const renderParticipants = (participants = []) => {
+    const isHost = currentUserId === hostId;
+
+    if (!participants.length) {
+      const emptyHtml = '<div class="text-center py-4 text-slate-500 italic">Chưa có thành viên nào.</div>';
+      participantsEl.innerHTML = emptyHtml;
+      if (mobileRoundParticipantsEl) mobileRoundParticipantsEl.innerHTML = emptyHtml;
+      participantCountEls.forEach((el) => el.textContent = '0');
+      return;
+    }
+
+    const generateListHtml = (isMobile = false) => participants.map((p) => {
+      const isMe = Number(p.user_id) === Number(currentUserId);
+      const isUserHost = Number(p.user_id) === Number(hostId);
+      const statusColor = p.has_answered ? 'text-emerald-600' : 'text-slate-400';
+      const statusIcon = p.has_answered ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-circle"></i>';
+
+      let actionBtn = '';
+      if (isHost && !isMe) { // Host can kick others
+        actionBtn = `
+               <button onclick="kickUser(${p.user_id}, '${p.username}')" class="kick-btn" title="Mời ra khỏi phòng">
+                 <i class="fas fa-user-times"></i>
+               </button>
+             `;
+      }
+
+      // Logic render khác nhau xíu giữa mobile/desktop nếu cần, nhưng ở đây ta dùng chung class
+      if (isMobile) {
+        return `
+              <li class="py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                   <div class="avatar-placeholder">${p.username.charAt(0).toUpperCase()}</div>
+                   <div>
+                     <p class="font-semibold text-slate-900 ${isMe ? 'text-indigo-600' : ''}">${p.username} ${isMe ? '(Bạn)' : ''}</p>
+                     <p class="text-xs text-slate-500">${isUserHost ? 'Chủ phòng' : 'Thành viên'}</p>
+                   </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="${statusColor} text-lg">${statusIcon}</span>
+                  ${actionBtn}
+                </div>
+              </li>
+             `;
+      }
+
+      return `
+            <div class="participant-item">
+              <div class="participant-info">
+                <div class="avatar-placeholder">${p.username.charAt(0).toUpperCase()}</div>
+                <div>
+                  <p class="font-bold text-slate-800 text-sm ${isMe ? 'text-indigo-600' : ''}">
+                    ${p.username} ${isMe ? '(Bạn)' : ''}
+                  </p>
+                  <p class="text-xs text-slate-500 flex items-center gap-1">
+                    <span class="${statusColor}">${statusIcon}</span> ${p.has_answered ? 'Đã trả lời' : 'Đang suy nghĩ...'}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-slate-700 text-sm">${p.total_score || 0} đ</span>
+                ${actionBtn}
+              </div>
+            </div>
+          `;
+    }).join('');
+
+    participantsEl.innerHTML = generateListHtml(false); // Desktop
+    if (mobileRoundParticipantsEl) mobileRoundParticipantsEl.innerHTML = generateListHtml(true); // Mobile uses list
+
+    // Chat participant list (if still used in mobile modal)
+    if (chatParticipantsEl) {
+      chatParticipantsEl.innerHTML = participants.map(p => `
+             <li class="flex items-center justify-between bg-slate-50 rounded px-2 py-1">
+               <span class="truncate text-xs font-medium">${p.username}</span>
+               <span class="text-xs font-bold">${p.total_score}</span>
+             </li>
+           `).join('');
+    }
+
+    participantCountEls.forEach((el) => el.textContent = participants.length);
+    if (chatParticipantCountEl) chatParticipantCountEl.textContent = `${participants.length} thành viên`;
+  };
+
+  const renderRound = (roundPayload) => {
+    currentRound = roundPayload;
+    const { item, participants = [], all_answered: allAnswered, status } = roundPayload;
+    // Use button count from the round payload, fallback to room default
+    const buttonCount = Number(roundPayload?.button_count || roomButtonCount) || 3;
+    renderAnswerButtons(buttonCount);
+
+    const itemId = item?.item_id || null;
+    const isNewCard = itemId && itemId !== currentCardId;
+
+    if (isNewCard) {
+      currentCardId = itemId;
+      showFrontSide();
+      frontAutoplayedItemId = null;
+      backAutoplayedItemId = null;
+      stopAllFlashcardAudio();
+    }
+
+    setCardContent(
+      cardFrontEl,
+      cardFrontMediaEl,
+      item?.content?.front,
+      item?.content?.front_img,
+      'Không có nội dung mặt trước',
+      'Mặt trước'
+    );
+    setCardContent(
+      cardBackEl,
+      cardBackMediaEl,
+      item?.content?.back,
+      item?.content?.back_img,
+      'Không có nội dung mặt sau',
+      'Mặt sau'
+    );
+
+    const frontAudioUrl = item?.content?.front_audio_url || '';
+    const backAudioUrl = item?.content?.back_audio_url || '';
+    const frontAudioContent = item?.content?.front_audio_content || '';
+    const backAudioContent = item?.content?.back_audio_content || '';
+
+    const normalizedFrontAudioUrl = frontAudioUrl || '';
+    const normalizedBackAudioUrl = backAudioUrl || '';
+
+    if (frontAudioEl && (isNewCard || normalizedFrontAudioUrl !== currentFrontAudioUrl)) {
+      frontAudioEl.src = normalizedFrontAudioUrl;
+      currentFrontAudioUrl = normalizedFrontAudioUrl;
+    }
+    if (backAudioEl && (isNewCard || normalizedBackAudioUrl !== currentBackAudioUrl)) {
+      backAudioEl.src = normalizedBackAudioUrl;
+      currentBackAudioUrl = normalizedBackAudioUrl;
+    }
+
+    const hasFrontAudio = Boolean(frontAudioUrl || frontAudioContent);
+    const hasBackAudio = Boolean(backAudioUrl || backAudioContent);
+
+    audioButtons.forEach((btn) => {
+      const side = btn.dataset.side;
+      const hasAudio = side === 'front' ? hasFrontAudio : hasBackAudio;
+      const contentToRead = side === 'front' ? frontAudioContent : backAudioContent;
+      btn.dataset.itemId = itemId || '';
+      btn.dataset.contentToRead = contentToRead || '';
+      btn.classList.toggle('is-disabled', !hasAudio);
+      if (!hasAudio) {
+        btn.setAttribute('disabled', 'true');
+      } else {
+        btn.removeAttribute('disabled');
+      }
+    });
+
+    adjustCardLayout();
+    renderParticipants(participants);
+
+    const currentUserParticipation = participants.find((p) => Number(p.user_id) === Number(currentUserId));
+    hasAnsweredCurrentCard = !!currentUserParticipation?.has_answered;
+    feedbackEl.textContent = hasAnsweredCurrentCard ? 'Bạn đã trả lời, vui lòng chờ mọi người hoàn tất.' : '';
+    if (hasAnsweredCurrentCard) {
+      showBackSide();
+    } else {
+      syncAnswerButtonsAvailability();
+    }
+
+    let statusHtml = '';
+    if (status === 'completed' && allAnswered) {
+      statusHtml = '<span class="pill bg-emerald-50 text-emerald-700"><i class="fas fa-check-circle"></i> Tất cả thành viên đã trả lời. Đang chuẩn bị thẻ tiếp theo...</span>';
+    } else if (!allAnswered) {
+      statusHtml = '<span class="pill bg-amber-50 text-amber-700"><i class="fas fa-hourglass-half"></i> Đang chờ tất cả thành viên trả lời...</span>';
+    } else {
+      statusHtml = '<span class="pill bg-indigo-50 text-indigo-700"><i class="fas fa-circle"></i> Đang hiển thị thẻ mới.</span>';
+    }
+
+    if (statusEl) statusEl.innerHTML = statusHtml;
+    if (mobileRoundStatusEl) mobileRoundStatusEl.innerHTML = statusHtml;
+    if (chatRoundStatusEl) chatRoundStatusEl.innerHTML = statusHtml;
+
+    roundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
+    if (mobileRoundStepEl) mobileRoundStepEl.textContent = `Thẻ #${item?.item_id || '—'}`;
+
+    if (
+      isNewCard &&
+      isAudioAutoplayEnabled &&
+      itemId &&
+      frontAutoplayedItemId !== itemId &&
+      !cardEl?.classList.contains('flipped')
+    ) {
+      autoPlaySide('front');
+      frontAutoplayedItemId = itemId;
+    }
+  };
+
+  const fetchRound = async (showLoader = false) => {
+    if (isFetching) return;
+    isFetching = true;
+    if (showLoader) setLoadingState('Đang tải thẻ...');
+    try {
+      const response = await fetch(nextCardUrl, { credentials: 'same-origin' });
+
+      // Handle Kicked User (403)
+      if (response.status === 403) {
+        alert('Bạn đã bị mời ra khỏi phòng học này.');
+        window.location.href = "{{ url_for('learning.flashcard.flashcard_dashboard.dashboard') }}";
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Không thể tải thẻ.');
+      }
+      const payload = await response.json();
+      if (payload) {
+        renderRound(payload);
+      }
+    } catch (err) {
+      const errorHtml = `<span class="text-rose-600">${err.message || 'Không thể tải thẻ.'}</span>`;
+      if (statusEl) statusEl.innerHTML = errorHtml;
+      if (mobileRoundStatusEl) mobileRoundStatusEl.innerHTML = errorHtml;
+      if (chatRoundStatusEl) chatRoundStatusEl.innerHTML = errorHtml;
+    } finally {
+      isFetching = false;
+    }
+  };
+
+  const submitAnswer = async (answerLabel) => {
+    if (!currentRound?.item?.item_id || isFetching) return;
+    isFetching = true;
+    feedbackEl.textContent = 'Đang gửi câu trả lời...';
+
+    if (cardEl && !cardEl.classList.contains('flipped')) {
+      showBackSide();
+    }
+
+    try {
+      const response = await fetch(submitAnswerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          item_id: currentRound.item.item_id,
+          answer: answerLabel,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        throw new Error(errorPayload?.description || 'Không thể gửi câu trả lời.');
+      }
+
+      const payload = await response.json();
+      if (payload?.round) {
+        renderRound(payload.round);
+      }
+
+      const result = payload?.result;
+      if (result && typeof result.updated_total_score === 'number') {
+        if (userScoreEl) userScoreEl.textContent = result.updated_total_score;
+        if (mobileUserScoreMenuEl) mobileUserScoreMenuEl.textContent = result.updated_total_score;
+      }
+      if (result?.answer_result === 'correct') {
+        feedbackEl.textContent = 'Bạn đã trả lời đúng. Chờ các thành viên khác để chuyển thẻ.';
+      } else if (result?.answer_result === 'incorrect') {
+        feedbackEl.textContent = 'Bạn đã trả lời sai. Chờ các thành viên khác để chuyển thẻ.';
+      } else {
+        feedbackEl.textContent = 'Đã ghi nhận câu trả lời của bạn.';
+      }
+      hasAnsweredCurrentCard = true;
+      syncAnswerButtonsAvailability();
+    } catch (err) {
+      feedbackEl.textContent = err.message || 'Có lỗi xảy ra.';
+      fetchRound(true);
+    } finally {
+      isFetching = false;
+    }
+  };
+
+  const startPolling = () => {
+    if (pollHandle) return;
+    pollHandle = setInterval(() => fetchRound(false), 4000);
+  };
+
+  const stopPolling = () => {
+    if (!pollHandle) return;
+    clearInterval(pollHandle);
+    pollHandle = null;
+  };
+
+  frontLabel?.addEventListener('click', (evt) => {
+    evt.stopPropagation();
+    showBackSide();
+  });
+
+  backLabel?.addEventListener('click', (evt) => {
+    evt.stopPropagation();
+    showFrontSide();
+  });
+
+  flipBtn?.addEventListener('click', showBackSide);
+
+  refreshBtn?.addEventListener('click', () => fetchRound(true));
+  refreshBtnMobile?.addEventListener('click', () => fetchRound(true));
+
+  openMobileInfoBtns.forEach((btn) => btn.addEventListener('click', () => toggleMobileInfoPanel(true)));
+  closeMobileInfoBtn?.addEventListener('click', () => toggleMobileInfoPanel(false));
+  mobileInfoPanel?.addEventListener('click', (evt) => {
+    if (evt.target === mobileInfoPanel) toggleMobileInfoPanel(false);
+  });
+
+  audioButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      playAudioForButton(btn).catch(() => { });
+    });
+  });
+
+  // Note Panel elements
+  const noteViewSection = document.getElementById('note-view-section');
+  const noteEditSection = document.getElementById('note-edit-section');
+  const noteDisplay = document.getElementById('note-display');
+  const editNoteBtn = document.getElementById('edit-note-btn');
+  const closeNoteBtn = document.getElementById('close-note-btn');
+
+  const toggleNotePanel = (isOpen) => {
+    if (!notePanel) return;
+    notePanel.classList.toggle('open', isOpen);
+    if (!isOpen) {
+      editNoteBtn?.classList.add('hidden');
+    }
+  };
+
+  const loadNote = async (itemId) => {
+    if (!itemId || !noteTextarea) return;
+    noteTextarea.value = 'Đang tải ghi chú...';
+    noteDisplay.innerHTML = '<div class="flex items-center justify-center h-full"><i class="fas fa-spinner fa-spin text-xl text-blue-500"></i><span class="ml-2 text-gray-600">Đang tải...</span></div>';
+    try {
+      const response = await fetch(`{{ url_for('notes.get_note', item_id=0) }}`.replace('0', itemId), { credentials: 'same-origin' });
+      const payload = await response.json();
+      const noteContent = payload?.content || '';
+      noteTextarea.value = noteContent;
+      noteDisplay.innerHTML = noteContent ? window.escapeTextWithBreaks(noteContent) : '<span class="italic text-gray-500">Chưa có ghi chú.</span>';
+
+      if (noteContent) {
+        noteViewSection.classList.remove('hidden');
+        noteEditSection.classList.add('hidden');
+        editNoteBtn?.classList.remove('hidden');
+      } else {
+        noteViewSection.classList.add('hidden');
+        noteEditSection.classList.remove('hidden');
+        editNoteBtn?.classList.add('hidden');
+      }
+    } catch (err) {
+      noteTextarea.value = 'Không thể tải ghi chú.';
+      noteDisplay.innerHTML = '<span class="italic text-red-500">Không thể tải ghi chú.</span>';
+      noteViewSection.classList.remove('hidden');
+      noteEditSection.classList.add('hidden');
+      editNoteBtn?.classList.add('hidden');
+    }
+  };
+
+  const saveNote = async (itemId) => {
+    if (!itemId || !noteTextarea) return;
+    const originalSaveBtnText = saveNoteBtn.innerHTML;
+    saveNoteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+    saveNoteBtn.disabled = true;
+
+    try {
+      const response = await fetch(`{{ url_for('notes.save_note', item_id=0) }}`.replace('0', itemId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        credentials: 'same-origin',
+        body: JSON.stringify({ content: noteTextarea.value || '' }),
+      });
+      const payload = await response.json();
+      if (payload.success) {
+        noteDisplay.innerHTML = noteTextarea.value ? window.escapeTextWithBreaks(noteTextarea.value) : '<span class="italic text-gray-500">Chưa có ghi chú.</span>';
+        noteViewSection.classList.remove('hidden');
+        noteEditSection.classList.add('hidden');
+        editNoteBtn?.classList.remove('hidden');
+        if (window.showFlashMessage) {
+          window.showFlashMessage('Ghi chú đã được lưu.', 'success');
+        }
+      } else {
+        if (window.showFlashMessage) {
+          window.showFlashMessage(payload.message || 'Lỗi khi lưu ghi chú.', 'danger');
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi khi lưu ghi chú:', err);
+      if (window.showFlashMessage) {
+        window.showFlashMessage('Không thể kết nối đến máy chủ để lưu ghi chú.', 'danger');
+      }
+    } finally {
+      saveNoteBtn.innerHTML = originalSaveBtnText;
+      saveNoteBtn.disabled = false;
+    }
+  };
+
+  const switchToEditMode = () => {
+    noteViewSection.classList.add('hidden');
+    noteEditSection.classList.remove('hidden');
+    editNoteBtn?.classList.add('hidden');
+    noteTextarea.focus();
+  };
+
+  noteButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!currentCardId) {
+        feedbackEl.textContent = 'Chưa có thẻ để tạo ghi chú.';
+        return;
+      }
+      toggleNotePanel(true);
+      loadNote(currentCardId);
+    });
+  });
+
+  closeNoteBtn?.addEventListener('click', () => toggleNotePanel(false));
+  editNoteBtn?.addEventListener('click', switchToEditMode);
+  cancelNoteBtn?.addEventListener('click', () => {
+    loadNote(currentCardId);
+  });
+  saveNoteBtn?.addEventListener('click', () => saveNote(currentCardId));
+
+  aiButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!currentCardId) return;
+      openAiModal(currentCardId, cardFrontEl.textContent || '');
+    });
+  });
+
+  feedbackButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!currentCardId || !window.openFeedbackModal) return;
+      openFeedbackModal(currentCardId, cardFrontEl.textContent || '');
+    });
+  });
+
+  editButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!currentCardId || !editUrlTemplate) return;
+      const url = editUrlTemplate.replace('/0', `/${currentCardId}`);
+      if (window.parent && typeof window.parent.openModal === 'function') {
+        window.parent.openModal(url);
+      } else {
+        window.open(url, '_blank');
+      }
+    });
+  });
+
+  fetchRound(true);
+  startPolling();
+
+  window.addEventListener('beforeunload', stopPolling);
+    }) ();
+
+  // Chat Logic (shared controller)
+  document.addEventListener('DOMContentLoaded', () => {
+    const chatMessages = document.getElementById('collab-chat-messages');
+    const chatForm = document.getElementById('collab-chat-form');
+    const chatInput = document.getElementById('collab-chat-input');
+    const chatPanel = document.getElementById('collab-chat-panel');
+    const openChatBtn = document.getElementById('open-chat-btn');
+    const closeChatBtn = chatPanel?.querySelector('.close-chat-btn');
+    const unreadBadge = document.getElementById('collab-chat-unread');
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta?.getAttribute('content') || '';
+    const currentUserIdNum = Number({{ current_user.user_id }});
+
+  const chatController = window.sharedChat?.initChat({
+    messagesUrl: {{ url_for('shared.list_chat_messages', room_type = 'flashcard-collab', room_code = room_payload.room_code) | tojson }},
+  postMessageUrl: { { url_for('shared.post_chat_message', room_type = 'flashcard-collab', room_code = room_payload.room_code) | tojson } },
+  currentUserId: currentUserIdNum,
+    pollInterval: 7000,
+      csrfToken,
+      elements: {
+    messages: chatMessages,
+      form: chatForm,
+        input: chatInput,
+          panel: chatPanel,
+            openButton: openChatBtn,
+              closeButton: closeChatBtn,
+                unreadBadge,
+        },
+  renderMessages: (messages = []) => {
+    chatMessages.innerHTML = '';
+
+    if (!messages.length) {
+      chatMessages.innerHTML = '<p class="text-center text-slate-400 text-sm mt-8">Hãy bắt đầu cuộc trò chuyện...</p>';
+      return;
+    }
+
+    messages.forEach((message) => {
+      const isMe = Number(message.user_id) === currentUserIdNum;
+      const row = document.createElement('div');
+      row.className = `chat-row ${isMe ? 'me' : 'other'}`;
+
+      if (!isMe) {
+        const avatar = document.createElement('div');
+        avatar.className = 'chat-avatar';
+        avatar.textContent = (message.username || '?').charAt(0).toUpperCase();
+        avatar.title = message.username;
+        row.appendChild(avatar);
+      }
+
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble-modern';
+      bubble.textContent = message.content;
+
+      const timeStr = message.created_at
+        ? new Date(message.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+        : '';
+      bubble.title = `${message.username} - ${timeStr}`;
+
+      row.appendChild(bubble);
+      chatMessages.appendChild(row);
+    });
+
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  },
+      });
+
+  chatPanel?.addEventListener('click', (event) => {
+    if (chatPanel.classList.contains('mobile-view') && event.target === chatPanel) {
+      chatController?.setOpen(false);
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      chatController?.setOpen(false);
+    }
+  });
+
+  window.addEventListener('beforeunload', () => chatController?.stopPolling());
+    });
+</script>
+{% endblock %}

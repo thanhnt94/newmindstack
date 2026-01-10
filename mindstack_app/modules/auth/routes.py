@@ -1,6 +1,7 @@
 # Tệp: web/mindstack_app/modules/auth/routes.py
 # Version: 1.0
 from flask import render_template, flash, redirect, url_for, request
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_user, logout_user, current_user
 from . import auth_bp
 from .forms import LoginForm, RegistrationForm
@@ -57,7 +58,7 @@ def login():
             next_page = url_for('dashboard.dashboard')
         return redirect(next_page)
         
-    return render_template('v3/pages/auth/login/login.html', form=form)
+    return render_dynamic_template('pages/auth/login/login.html', form=form)
 
 @auth_bp.route('/logout', methods=['GET', 'POST'])
 def logout():
@@ -88,4 +89,4 @@ def register():
         flash('Chúc mừng, bạn đã đăng ký thành công! Vui lòng đăng nhập.', 'success')
         return redirect(url_for('auth.login'))
         
-    return render_template('v3/pages/auth/register/register.html', form=form)
+    return render_dynamic_template('pages/auth/register/register.html', form=form)

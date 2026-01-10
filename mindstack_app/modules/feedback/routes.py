@@ -4,6 +4,7 @@
 # ĐÃ SỬA: Thêm logic .strip() để loại bỏ khoảng trắng ở đầu và cuối chuỗi feedback trước khi kiểm tra và lưu vào database.
 
 from flask import render_template, request, jsonify, flash, redirect, url_for, abort
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
@@ -42,7 +43,7 @@ def manage_feedback():
             )
         ).order_by(UserFeedback.timestamp.desc()).all()
 
-    return render_template('v3/pages/feedback/manage_feedback.html',
+    return render_dynamic_template('pages/feedback/manage_feedback.html',
                             received_feedbacks=received_feedbacks,
                             sent_feedbacks=sent_feedbacks,
                             users=User.query.order_by(User.username).all())

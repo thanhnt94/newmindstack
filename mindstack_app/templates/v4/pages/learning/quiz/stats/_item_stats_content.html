@@ -1,0 +1,391 @@
+<div class="stats-container" {% if can_edit %}data-can-edit="true"
+    data-edit-url="/content/quizzes/{{ item.container_id }}/items/edit/{{ item.item_id }}" {% else
+    %}data-can-edit="false" {% endif %} data-history='{{ stats.review_history | tojson | safe }}'
+    style="display: flex; flex-direction: column; height: 100%; width: 100%; background: white; overflow: hidden; border-radius: 1rem; position: relative;">
+
+    <!-- FIXED TOP SECTION -->
+    <div class="stats-fixed-header"
+        style="background: white; border-bottom: 1px solid #f1f5f9; padding: 1.25rem 1.25rem 0.5rem 1.25rem; flex-shrink: 0; text-align: center;">
+
+        <!-- Set Name Header -->
+        <div
+            style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em;">
+            <i class="fas fa-layer-group" style="margin-right: 4px;"></i> {{ item.container_title }}
+        </div>
+
+        <div class="stats-header-info">
+            <h1 style="font-size: 1.1rem; font-weight: 800; margin: 0; color: #0f172a; line-height: 1.3;">
+                {{ item.question | truncate(60) }}
+            </h1>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
+                Câu hỏi #{{ item.item_id }}
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; justify-content: center;">
+                <span class="status-badge"
+                    style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700; font-size: 0.6rem; text-transform: uppercase; 
+                {% if stats.status == 'new' %}background: #f0f9ff; color: #0369a1;{% elif stats.status == 'learning' %}background: #fffbeb; color: #b45309;{% elif stats.status == 'mastered' %}background: #f0fdf4; color: #15803d;{% elif stats.status == 'hard' %}background: #fef2f2; color: #b91c1c;{% else %}background: #f1f5f9; color: #64748b;{% endif %}">
+                    {% if stats.status == 'mastered' %}THUỘC
+                    {% elif stats.status == 'hard' %}KHÓ
+                    {% elif stats.status == 'learning' %}HỌC
+                    {% else %}MỚI
+                    {% endif %}
+                </span>
+            </div>
+
+            <!-- MARKERS -->
+            <div class="stats-markers" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+                <button class="marker-btn {% if 'difficult' in stats.markers %}active{% endif %}" title="Đánh dấu Khó"
+                    onclick="toggleQuizMarker({{ item.item_id }}, 'difficult', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'difficult' in stats.markers %}#fff7ed{% else %}white{% endif %}; color: {% if 'difficult' in stats.markers %}#f97316{% else %}#cbd5e1{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-fire"></i>
+                </button>
+                <button class="marker-btn {% if 'ignored' in stats.markers %}active{% endif %}" title="Bỏ qua từ này"
+                    onclick="toggleQuizMarker({{ item.item_id }}, 'ignored', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'ignored' in stats.markers %}#f1f5f9{% else %}white{% endif %}; color: {% if 'ignored' in stats.markers %}#64748b{% else %}#cbd5e1{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-eye-slash"></i>
+                </button>
+                <button class="marker-btn {% if 'favorite' in stats.markers %}active{% endif %}" title="Yêu thích"
+                    onclick="toggleQuizMarker({{ item.item_id }}, 'favorite', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'favorite' in stats.markers %}#fff1f2{% else %}white{% endif %}; color: {% if 'favorite' in stats.markers %}#f43f5e{% else %}#cbd5e1{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-heart"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN TAB NAVIGATION -->
+        <div class="tab-navigation"
+            style="display: flex; gap: 0.35rem; margin-top: 1rem; margin-bottom: 0.75rem; background: #f8fafc; padding: 0.3rem; border-radius: 1rem; border: 1px solid #f1f5f9; overflow-x: auto; scrollbar-width: none;">
+            <button class="tab-btn active" data-tab="content" onclick="toggleQuizSubTabs(true)"
+                style="flex: 1; min-width: 60px;">Nội dung</button>
+            <button class="tab-btn" data-tab="notes" onclick="toggleQuizSubTabs(false)"
+                style="flex: 1; min-width: 60px;">Ghi chú</button>
+            <button class="tab-btn" data-tab="stats" onclick="toggleQuizSubTabs(false)"
+                style="flex: 1; min-width: 60px;">Thống kê</button>
+            <button class="tab-btn" data-tab="details" onclick="toggleQuizSubTabs(false)"
+                style="flex: 1; min-width: 60px;">Chi tiết</button>
+        </div>
+
+        <!-- SUB-NAVIGATION (Guide and AI) -->
+        <div id="quiz-header-sub-tabs" class="sub-tab-navigation"
+            style="display: flex; gap: 0.75rem; justify-content: center; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; margin-top: 0.5rem;">
+            <button class="sub-tab-btn active" onclick="switchQuizSubTab('sub-question')"
+                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <i class="fas fa-question-circle"></i> Câu hỏi
+            </button>
+            <button class="sub-tab-btn" onclick="switchQuizSubTab('sub-guide')"
+                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <i class="fas fa-book-open"></i> Hướng dẫn
+            </button>
+            <button class="sub-tab-btn" onclick="switchQuizSubTab('quiz-sub-ai')"
+                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <i class="fas fa-sparkles"></i> AI Coach
+            </button>
+        </div>
+    </div>
+
+    <!-- SCROLLABLE BODY -->
+    <div class="stats-scroll-body" style="flex: 1; overflow-y: auto; padding: 1.25rem; background: white;">
+
+        <!-- TAB 1: CONTENT -->
+        <div class="tab-content active" id="quiz-tab-content">
+
+            <!-- SUB-TAB A: QUESTION -->
+            <div id="sub-question" class="sub-tab-content active">
+                <div
+                    style="background: #f8fafc; border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.25rem; border: 1px solid #f1f5f9;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #1e293b; line-height: 1.5;">
+                        {{ item.question }}
+                    </div>
+                </div>
+
+                {% if item.question_image or item.question_audio %}
+                <div style="margin-bottom: 1.25rem; text-align: center;">
+                    {% if item.question_image %}
+                    <img src="{{ item.question_image }}"
+                        style="display: block; margin: 0 auto 1rem auto; max-width: 100%; max-height: 180px; object-fit: contain; border-radius: 0.75rem; border: 1px solid #f1f5f9; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    {% endif %}
+                    {% if item.question_audio %}
+                    <audio controls style="width: 100%; border-radius: 99px;">
+                        <source src="{{ item.question_audio }}" type="audio/mpeg">
+                    </audio>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div style="display: grid; gap: 0.6rem;">
+                    {% for key, value in item.options.items() %}
+                    {% set is_correct = (key|string == item.correct_answer|string) %}
+                    <div
+                        style="display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; border-radius: 0.75rem; 
+                        {% if is_correct %}background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border: 2px solid #22c55e; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);{% else %}background: #f8fafc; border: 1px solid #f1f5f9;{% endif %}">
+                        <span
+                            style="width: 1.75rem; height: 1.75rem; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 800; font-size: 0.8rem; flex-shrink: 0;
+                            {% if is_correct %}background: #22c55e; color: white;{% else %}background: #e2e8f0; color: #64748b;{% endif %}">{{
+                            key }}</span>
+                        <span
+                            style="font-size: 0.95rem; line-height: 1.4; flex: 1; {% if is_correct %}color: #15803d; font-weight: 700;{% else %}color: #334155;{% endif %}">{{
+                            value }}</span>
+                        {% if is_correct %}
+                        <i class="fas fa-check-circle" style="color: #22c55e; font-size: 1.15rem;"></i>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- SUB-TAB B: GUIDE -->
+            <div id="sub-guide" class="sub-tab-content" style="display: none;">
+                {% if item.explanation %}
+                <div
+                    style="background: #f0f9ff; padding: 1.25rem; border-radius: 0.75rem; border-left: 4px solid #3b82f6; border: 1px solid #e0f2fe;">
+                    <div style="font-size: 0.95rem; color: #1e40af; line-height: 1.6; white-space: pre-wrap;">{{
+                        item.explanation }}</div>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                    <i class="fas fa-book-open" style="font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                    <p style="font-weight: 600;">Chưa có hướng dẫn cho câu hỏi này</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- SUB-TAB C: AI COACH -->
+            <div id="quiz-sub-ai" class="sub-tab-content" style="display: none;">
+                {% if item.ai_explanation %}
+                <div class="ai-content-box markdown-body js-markdown-content"
+                    style="line-height: 1.6; color: #334155; font-size: 0.95rem;">
+                    {{ item.ai_explanation }}
+                </div>
+                {% else %}
+                <div id="quiz-stats-ai-placeholder" style="text-align: center; color: #94a3b8; padding: 2rem;">
+                    <i class="fas fa-robot" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p style="margin-bottom: 1.5rem;">Chưa có nội dung từ AI.</p>
+
+                    <!-- Generate Button -->
+                    <button id="quiz-generate-ai-btn" onclick="window.generateQuizAI({{ item.item_id }})"
+                        style="background: #6366f1; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-sparkles"></i> Tạo nội dung AI
+                    </button>
+                </div>
+                <!-- Box for new content -->
+                <div id="quiz-stats-ai-content" class="ai-content-box markdown-body"
+                    style="display: none; line-height: 1.6; color: #334155; font-size: 0.95rem;"></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- TAB 2: NOTES -->
+        <div class="tab-content" id="quiz-tab-notes" style="display: none;">
+            <!-- Display Mode (Always show first) -->
+            <div id="quiz-note-display-mode" style="display: block;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #64748b;">Ghi chú cá nhân</label>
+                    <button onclick="toggleQuizNoteEdit(true)"
+                        style="background: #eef2ff; color: #4f46e5; border: none; padding: 0.4rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.3rem;">
+                        <i class="fas fa-edit"></i> Sửa
+                    </button>
+                </div>
+                <div id="quiz-note-static-content"
+                    style="background: #f8fafc; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid #f1f5f9; color: #334155; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; min-height: 100px;">
+                    {{- item.note if item.note else "Chưa có ghi chú nào." -}}
+                </div>
+            </div>
+
+            <!-- Edit Mode (Hidden initially) -->
+            <div id="quiz-note-edit-mode" style="display: none;">
+                <div style="margin-bottom: 1rem;">
+                    <label
+                        style="display: block; font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem;">Cập
+                        nhật ghi chú</label>
+                    <textarea id="quiz-item-note-input" rows="8"
+                        style="width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem; padding: 1rem; font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none; transition: all 0.2s;"
+                        placeholder="Viết ghi chú của bạn về câu hỏi này...">{{ item.note }}</textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="quiz-save-note-btn" onclick="window.saveQuizNote({{ item.item_id }})"
+                        style="flex: 2; background: #4f46e5; color: white; border: none; padding: 0.75rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;">
+                        <i class="fas fa-save"></i> Lưu ghi chú
+                    </button>
+                    <button onclick="toggleQuizNoteEdit(false)"
+                        style="flex: 1; background: #f1f5f9; color: #64748b; border: none; padding: 0.75rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.2s;">
+                        Hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: STATS -->
+        <div class="tab-content" id="quiz-tab-stats" style="display: none;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+                <div class="stat-box">
+                    <div class="stat-label">SỐ LẦN</div>
+                    <div class="stat-value" style="color: #6366f1;">{{ stats.total_attempts }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">CHÍNH XÁC</div>
+                    <div class="stat-value" style="color: #10b981;">{{ stats.correct_percentage }}%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">ĐÚNG</div>
+                    <div class="stat-value" style="color: #22c55e;">{{ stats.times_correct }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">SAI</div>
+                    <div class="stat-value" style="color: #ef4444;">{{ stats.times_incorrect }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">CHUỖI ĐÚNG</div>
+                    <div class="stat-value" style="color: #f59e0b;">{{ stats.correct_streak }} 🔥</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">PHÂN LOẠI</div>
+                    <div class="stat-value" style="color: #8b5cf6; font-size: 1rem;">{{ stats.status | upper }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: DETAILS -->
+        <div class="tab-content" id="quiz-tab-details" style="display: none; padding-bottom: 7rem;">
+            <h3
+                style="font-size: 0.85rem; font-weight: 800; color: #475569; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                Lịch sử gần đây</h3>
+
+            <div class="history-grid"
+                style="display: flex; gap: 0.75rem; overflow-x: auto; padding: 0.25rem; padding-bottom: 1.25rem; scrollbar-width: none; margin-bottom: 5rem;">
+                {% for log in stats.review_history %}
+                <div class="history-item js-history-item" data-log-idx="{{ loop.index0 }}"
+                    style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; border: 2.5px solid transparent; box-shadow: 0 1px 2px rgba(0,0,0,0.05); padding: 2px;
+                        {% if log.is_correct %}background: #dcfce7; color: #16a34a;{% else %}background: #fee2e2; color: #dc2626;{% endif %}"
+                    onclick="selectQuizHistoryItem(this, {{ loop.index0 }})">
+                    {% if log.is_correct %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-times"></i>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- History Detail Bar -->
+            <div id="quiz-history-detail-bar"
+                style="position: absolute; bottom: 0; left: 0; right: 0; background: #ffffff; border-top: 1px solid #e2e8f0; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 5; box-shadow: 0 -4px 10px rgba(0,0,0,0.05);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; items-center; gap: 0.5rem;">
+                        <span id="quiz-hist-result"
+                            style="font-weight: 800; font-size: 0.75rem; padding: 3px 10px; border-radius: 6px; text-transform: uppercase;">-</span>
+                        <span id="quiz-hist-mode-badge"
+                            style="background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.75rem; padding: 3px 10px; border-radius: 6px; text-transform: uppercase;">-</span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #64748b; font-weight: 600;">
+                        <i class="far fa-clock" style="margin-right: 4px;"></i> <span id="quiz-hist-time">-</span>
+                    </div>
+                </div>
+                <div
+                    style="display: flex; gap: 1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem; font-size: 0.85rem;">
+                    <div style="flex: 1;">
+                        <div style="color: #94a3b8; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">
+                            Đáp án</div>
+                        <div id="quiz-hist-answer" style="color: #334155; font-weight: 700;">-</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="color: #94a3b8; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">
+                            Thời gian</div>
+                        <div id="quiz-hist-duration" style="color: #334155; font-weight: 700;">-</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="color: #94a3b8; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">
+                            Điểm số</div>
+                        <div id="quiz-hist-score" style="color: #334155; font-weight: 700;">-</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="color: #94a3b8; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">Độ
+                            thuộc</div>
+                        <div id="quiz-hist-mastery" style="color: #334155; font-weight: 700;">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tab-btn {
+        padding: 0.5rem;
+        border-radius: 0.6rem;
+        font-weight: 700;
+        font-size: 0.75rem;
+        border: none;
+        transition: all 0.2s;
+        cursor: pointer;
+        text-align: center;
+        background: transparent;
+        color: #64748b;
+        white-space: nowrap;
+    }
+
+    .tab-btn.active {
+        background: white;
+        color: #4f46e5;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        border: none !important;
+    }
+
+    .sub-tab-btn.active {
+        background: #eef2ff !important;
+        color: #4f46e5 !important;
+    }
+
+    .history-item.active {
+        border-color: #4f46e5 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+    }
+
+    .stat-box {
+        background: #f8fafc;
+        border-radius: 0.8rem;
+        padding: 0.85rem;
+        text-align: center;
+        border: 1px solid #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .stat-label {
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        margin-bottom: 0.35rem;
+        letter-spacing: 0.02em;
+    }
+
+    .stat-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .tab-content {
+        animation: fadeIn 0.25s ease;
+        width: 100%;
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>

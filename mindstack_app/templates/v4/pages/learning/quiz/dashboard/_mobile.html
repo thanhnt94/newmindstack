@@ -1,0 +1,62 @@
+{# ================= QUIZ DASHBOARD MOBILE - NAVBAR ONLY ================= #}
+{% set _v = template_version|default('v4') %}
+{# This file only handles mobile specific styles and wrappers, no navbars #}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+{# === TOP NAVBAR (Mobile Only) === #}
+<div id="quiz-mobile-navbar" class="lg:hidden">
+    {% include _v ~ '/includes/navbar/_navbar_mobile.html' %}
+</div>
+
+{# === BOTTOM NAV (Mobile Only) === #}
+<div id="quiz-mobile-bottom-nav" class="lg:hidden fixed bottom-0 left-0 right-0 z-[200]"
+    style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+    {% set active_page = '' %}
+    {% include _v ~ '/includes/navbar/_bottom_nav_mobile.html' %}
+</div>
+
+<style>
+    /* Mobile quiz dashboard adjustments */
+    @media (max-width: 1023px) {
+
+        /* Hide ONLY base.html header/footer, not quiz content */
+        body>header:not(.mobile-dashboard header),
+        body>nav:first-of-type,
+        body>footer:last-of-type {
+            display: none !important;
+        }
+
+        /* Adjust main content area to fill screen */
+        main {
+            margin: 0 !important;
+            padding: 0 !important;
+            min-height: 100vh !important;
+        }
+
+        /* Remove padding for bottom nav */
+        body {
+            padding-bottom: 90px !important;
+            /* Re-added padding for step nav */
+            padding-top: 0px !important;
+            /* Ensure top padding is 0 */
+        }
+
+        /* Fixed Footer for Mobile Steps */
+        .mobile-fixed-footer {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 1000 !important;
+            background-color: white !important;
+            border-top: 1px solid #e2e8f0 !important;
+            padding: 1rem !important;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05) !important;
+        }
+
+
+    }
+</style>

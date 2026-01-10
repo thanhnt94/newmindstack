@@ -3,6 +3,7 @@
 # Unified entry point for collaborative learning modes.
 
 from flask import render_template, redirect, url_for
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required
 
 from . import collab_bp
@@ -12,4 +13,4 @@ from . import collab_bp
 @login_required
 def dashboard():
     """Dashboard cho các chế độ học cộng tác."""
-    return render_template('v3/pages/learning/collab/default/dashboard.html')
+    return render_dynamic_template('pages/learning/collab/default/dashboard.html')

@@ -1,0 +1,771 @@
+{# ================= GOALS MOBILE - ENHANCED APP-LIKE INTERFACE ================= #}
+{% set _v = template_version|default('v4') %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<script>
+    // Initialize goal data safely
+    window._goalData = {{ goal_progress | tojson | safe }};
+
+    // Define Alpine.js data function BEFORE the HTML that uses it
+    window.goalWizardMobileData = function () {
+        return {
+            step: 1,
+            scope: 'global',
+            domain: 'general',
+            metric: 'points',
+            reference_id: '',
+            target_value: '',
+            title: '',
+            showDates: false,
+            domainsGlobal: [
+                { value: 'general', label: 'Điểm số & XP', icon: 'fa-solid fa-star', desc: 'Tích luỹ điểm kinh nghiệm toàn hệ thống' },
+                { value: 'flashcard', label: 'Flashcard', icon: 'fa-solid fa-clone', desc: 'Thống kê số lượng thẻ đã học' },
+                { value: 'quiz', label: 'Quiz', icon: 'fa-solid fa-circle-question', desc: 'Thống kê số câu hỏi đã làm' }
+            ],
+            metricsMap: {
+                'general': [{ value: 'points', label: 'Tổng điểm kinh nghiệm (XP)' }],
+                'flashcard': [
+                    { value: 'items_reviewed', label: 'Số thẻ đã ôn (lượt)' },
+                    { value: 'new_items', label: 'Học thẻ mới (số lượng)' },
+                    { value: 'mastered', label: 'Thẻ đạt mức thuần thục' }
+                ],
+                'quiz': [
+                    { value: 'items_answered', label: 'Số câu hỏi đã làm' },
+                    { value: 'items_correct', label: 'Số câu trả lời đúng' },
+                    { value: 'points', label: 'Điểm số Quiz' }
+                ]
+            },
+            get availableMetrics() {
+                return this.metricsMap[this.domain] || [];
+            },
+            setScope(val) {
+                this.scope = val;
+                this.domain = 'general';
+                this.reference_id = '';
+                if (this.metricsMap[this.domain] && this.metricsMap[this.domain].length > 0) {
+                    this.metric = this.metricsMap[this.domain][0].value;
+                }
+            },
+            setDomain(val) {
+                this.domain = val;
+                if (this.metricsMap[val] && this.metricsMap[val].length > 0) {
+                    this.metric = this.metricsMap[val][0].value;
+                }
+            },
+            setContainer(type, id) {
+                this.reference_id = id;
+                this.domain = type;
+                if (this.metricsMap[type] && this.metricsMap[type].length > 0) {
+                    this.metric = this.metricsMap[type][0].value;
+                }
+            },
+            nextStep() {
+                if (this.step === 1) {
+                    if (!this.scope) return;
+                }
+                if (this.step === 2) {
+                    if (this.scope === 'container' && !this.reference_id) {
+                        alert('Vui lòng chọn một bộ học liệu.');
+                        return;
+                    }
+                    if (this.scope === 'global' && !this.domain) {
+                        alert('Vui lòng chọn một chỉ số.');
+                        return;
+                    }
+                }
+                if (this.step === 3) {
+                    if (!this.target_value) {
+                        alert('Vui lòng nhập số lượng cần đạt.');
+                        return;
+                    }
+                }
+                if (this.step < 4) this.step++;
+            },
+            prevStep() {
+                if (this.step > 1) this.step--;
+            },
+            submitForm(e) {
+                if (!this.title.trim()) {
+                    e.preventDefault();
+                    alert('Vui lòng đặt tên cho mục tiêu của bạn.');
+                    return false;
+                }
+                return true;
+            }
+        };
+    };
+    // List Logic for Analytics
+    window.goalListLogic = function () {
+        return {
+            showAnalytics: false,
+            selectedGoal: null,
+            goals: window._goalData || [],
+            selectGoal(id) {
+                // Find goal by ID
+                this.selectedGoal = this.goals.find(g => g.id == id);
+                if (this.selectedGoal) {
+                    this.showAnalytics = true;
+                }
+            },
+            get last7Days() {
+                const days = [];
+                const now = new Date();
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(now.getDate() - i);
+                    // Fix: getDay() returns 0 for Sunday, 1 for Monday... 6 for Saturday.
+                    // Vietnamese: T2 (Mon), T3 (Tue)... T7 (Sat), CN (Sun).
+                    // So map: 1->T2, 2->T3... 6->T7, 0->CN.
+                    const map = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+                    days.push(map[d.getDay()]);
+                }
+                return days;
+            },
+            get remaining() {
+                if (!this.selectedGoal) return 0;
+                return Math.max(0, this.selectedGoal.target_value - this.selectedGoal.current_value);
+            },
+            get progressColor() {
+                if (!this.selectedGoal) return 'gray';
+                return this.selectedGoal.is_completed ? 'emerald' : 'indigo';
+            }
+        }
+    }
+</script>
+
+<div class="lg:hidden fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard"
+    style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;" x-data="goalListLogic()">
+
+    {# === CLEAN BACKGROUND === #}
+    <div class="fixed inset-0 bg-gradient-to-b from-slate-50 to-slate-100 -z-10"></div>
+
+    {# === TOP NAVBAR === #}
+    {% include _v ~ '/includes/navbar/_navbar_mobile.html' %}
+
+    {# === MAIN CONTENT === #}
+    <div class="flex-grow overflow-y-auto overflow-x-hidden p-5 space-y-5 pb-24 relative">
+
+        {% set total = goal_progress|length %}
+        {% set completed = goal_progress|selectattr('is_completed')|list|length %}
+        {% set percent = (completed / total * 100)|round|int if total > 0 else 0 %}
+
+        {# Hero Summary Widget #}
+        <div class="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl shadow-indigo-200 relative overflow-hidden animate-fade-in-up"
+            style="animation-delay: 0.1s">
+            <!-- Decorative Background -->
+            <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10 blur-xl"></div>
+            <div class="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-10 -mb-10 blur-xl">
+            </div>
+
+            <div class="flex justify-between items-center relative z-10">
+                <div>
+                    <p class="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <i class="fa-solid fa-calendar-day"></i> Hôm nay
+                    </p>
+                    <div class="flex items-baseline gap-1">
+                        <h2 class="text-4xl font-black">{{ completed }}</h2>
+                        <span class="text-lg text-indigo-200 font-bold">/{{ total }}</span>
+                    </div>
+                    <p class="text-indigo-100 text-sm font-medium mt-1">Mục tiêu hoàn thành</p>
+                </div>
+
+                <!-- Ring Chart -->
+                <div class="relative w-20 h-20 flex items-center justify-center">
+                    <svg class="transform -rotate-90 w-20 h-20">
+                        <circle cx="40" cy="40" r="36" stroke="currentColor" stroke-width="8" fill="transparent"
+                            class="text-indigo-500" />
+                        <circle cx="40" cy="40" r="36" stroke="currentColor" stroke-width="8" fill="transparent"
+                            class="text-white transition-all duration-1000 ease-out" stroke-dasharray="226"
+                            stroke-dashoffset="{{ 226 - (226 * percent) / 100 }}" stroke-linecap="round" />
+                    </svg>
+                    <span class="absolute text-sm font-black">{{ percent }}%</span>
+                </div>
+            </div>
+        </div>
+
+        {# Floating Action Button (FAB) #}
+        <button onclick="document.getElementById('addGoalModal').classList.remove('hidden')"
+            class="fixed bottom-24 right-5 w-14 h-14 bg-slate-900 text-white rounded-full shadow-2xl shadow-slate-400/50 flex items-center justify-center z-40 animate-fade-in-up active:scale-90 transition-transform hover:bg-slate-800"
+            style="animation-delay: 0.2s">
+            <i class="fa-solid fa-plus text-xl"></i>
+        </button>
+
+        <div class="flex items-center justify-between animate-fade-in-up" style="animation-delay: 0.2s">
+            <h3 class="text-lg font-bold text-slate-800">Danh sách</h3>
+            <!-- Filter or other actions could go here -->
+        </div>
+
+        {# Goals List #}
+        <div class="space-y-4">
+            {% for goal in goal_progress %}
+            <div class="bg-white rounded-2xl border border-slate-100 p-3 shadow-sm relative overflow-hidden transition-all active:scale-[0.99]"
+                :class="'{{ 'border-emerald-500 bg-emerald-50/30' if goal.is_completed else '' }}'"
+                style="animation-delay: {{ 0.3 + loop.index0 * 0.1 }}s">
+
+                <div class="flex gap-3">
+                    {# Left: Icon #}
+                    <div class="shrink-0">
+                        <div
+                            class="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm
+                             {{ 'bg-gradient-to-br from-emerald-500 to-teal-600' if goal.is_completed else ('bg-gradient-to-br from-indigo-500 to-purple-600' if goal.domain == 'general' else ('bg-gradient-to-br from-blue-500 to-cyan-600' if goal.domain == 'flashcard' else 'bg-gradient-to-br from-orange-500 to-amber-600')) }}">
+                            {% if goal.domain == 'flashcard' %}
+                            <i class="fa-solid fa-clone text-sm"></i>
+                            {% elif goal.domain == 'quiz' %}
+                            <i class="fa-solid fa-circle-question text-sm"></i>
+                            {% else %}
+                            <i class="fa-solid fa-star text-sm"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# Center: Content #}
+                    <div class="flex-1 min-w-0 flex flex-col justify-center">
+                        {# Top: Title & Actions #}
+                        <div class="flex items-start justify-between">
+                            <h3
+                                class="font-bold text-slate-800 text-sm truncate pr-2 {{ 'text-emerald-900' if goal.is_completed else '' }}">
+                                {{ goal.title }}
+                            </h3>
+
+                            {# Actions (Chart, Delete) #}
+                            <div class="flex items-center gap-1 shrink-0 -mt-1 -mr-1">
+                                <button type="button" @click="selectGoal({{ goal.id }})"
+                                    class="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                                    <i class="fa-solid fa-chart-simple text-xs"></i>
+                                </button>
+                                <form action="{{ url_for('goals.delete_goal', goal_id=goal.id) }}" method="POST"
+                                    onsubmit="return confirm('Bạn có chắc chắn muốn xóa mục tiêu này?');"
+                                    class="inline-block">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                    <button type="submit"
+                                        class="w-7 h-7 flex items-center justify-center rounded-full text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors">
+                                        <i class="fa-solid fa-trash text-[0.65rem]"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {# Middle: Info (Period • Metric • Scope) #}
+                        <div class="flex items-center gap-1 text-[0.65rem] text-slate-500 mb-2 truncate">
+                            <span
+                                class="font-bold uppercase {{ 'text-emerald-600' if goal.is_completed else 'text-indigo-600' }}">{{
+                                goal.period_label }}</span>
+                            <span class="text-slate-300">•</span>
+                            <span>{{ goal.metric_label }}</span>
+                            {% if goal.display_scope != 'Toàn hệ thống' %}
+                            <span class="text-slate-300">•</span>
+                            <span class="truncate max-w-[80px]">{{ goal.display_scope }}</span>
+                            {% endif %}
+                        </div>
+
+                        {# Bottom: Progress & Play #}
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between items-end mb-1">
+                                    <span class="text-[0.65rem] font-medium text-slate-500">
+                                        <span class="text-slate-900 font-bold">{{ goal.current_value }}</span>/{{
+                                        goal.target_value }} {{ goal.unit }}
+                                    </span>
+                                    <span
+                                        class="text-[0.65rem] font-bold {{ 'text-emerald-600' if goal.is_completed else 'text-indigo-600' }}">
+                                        {{ goal.percent }}%
+                                    </span>
+                                </div>
+                                <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-1000 {{ 'bg-emerald-500' if goal.is_completed else 'bg-indigo-500' }}"
+                                        style="width: {{ goal.percent }}%"></div>
+                                </div>
+                            </div>
+
+                            {# Play Button #}
+                            <a href="{{ goal.url }}"
+                                class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95
+                                      {{ 'bg-emerald-100 text-emerald-600' if goal.is_completed else 'bg-indigo-600 text-white shadow-indigo-200' }}">
+                                <i
+                                    class="fa-solid {{ 'fa-check' if goal.is_completed else 'fa-play text-[0.65rem] ml-0.5' }}"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white border border-slate-200 rounded-3xl p-8 text-center animate-fade-in-up"
+                style="animation-delay: 0.3s">
+                <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-bullseye text-3xl text-slate-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">Chưa có mục tiêu</h3>
+                <p class="text-sm text-slate-600">Tạo mục tiêu đầu tiên để bắt đầu hành trình.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# === BOTTOM NAV === #}
+    {% set active_page = 'goals' %}
+    {% include _v ~ '/includes/navbar/_bottom_nav_mobile.html' %}
+
+    {# === ANALYTICS MODAL === #}
+    <div x-show="showAnalytics" class="fixed inset-0 z-[200] flex items-end lg:hidden" style="display: none;">
+
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity" @click="showAnalytics = false"
+            x-transition.opacity></div>
+
+        <div
+            class="relative bg-white rounded-t-3xl w-full max-h-[85vh] overflow-y-auto animate-slide-up p-6 pb-12 shadow-2xl">
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 shrink-0"></div>
+
+            <template x-if="selectedGoal">
+                <div class="space-y-6">
+                    <!-- Title & Icon -->
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white mx-auto mb-3 text-2xl shadow-lg"
+                            :class="selectedGoal.is_completed ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-indigo-500 to-purple-600'">
+                            <i :class="'fa-solid fa-' + selectedGoal.icon"></i>
+                        </div>
+                        <h2 class="text-xl font-black text-slate-900 px-4" x-text="selectedGoal.title"></h2>
+                        <div class="flex flex-wrap justify-center gap-2 mt-2">
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full border"
+                                :class="selectedGoal.is_completed ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-500 bg-slate-50 border-slate-200'"
+                                x-text="selectedGoal.period_label"></span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full border"
+                                :class="selectedGoal.is_completed ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-purple-600 bg-purple-50 border-purple-200'"
+                                x-text="selectedGoal.metric_label"></span>
+                        </div>
+                    </div>
+
+                    <!-- Main Progress Circle -->
+                    <div class="flex justify-center py-2">
+                        <div class="relative w-40 h-40">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12"
+                                    fill="transparent" class="text-slate-100" />
+                                <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12"
+                                    fill="transparent"
+                                    :class="selectedGoal.is_completed ? 'text-emerald-500' : 'text-indigo-600'"
+                                    :stroke-dasharray="440"
+                                    :stroke-dashoffset="440 - (440 * selectedGoal.percent) / 100"
+                                    class="transition-all duration-1000 ease-out" stroke-linecap="round" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-3xl font-black text-slate-900"
+                                    x-text="selectedGoal.percent + '%'"></span>
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Hoàn thành</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Hiện tại</div>
+                            <div class="text-xl font-black text-slate-800">
+                                <span x-text="selectedGoal.current_value"></span>
+                                <span class="text-xs font-medium text-slate-400 ml-0.5"
+                                    x-text="selectedGoal.unit"></span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Mục tiêu</div>
+                            <div class="text-xl font-black text-slate-800">
+                                <span x-text="selectedGoal.target_value"></span>
+                                <span class="text-xs font-medium text-slate-400 ml-0.5"
+                                    x-text="selectedGoal.unit"></span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Còn lại</div>
+                            <div class="text-xl font-black text-rose-500">
+                                <span x-text="remaining"></span>
+                                <span class="text-xs font-medium text-rose-300 ml-0.5"
+                                    x-text="selectedGoal.unit"></span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Thời gian</div>
+                            <div class="text-xl font-black text-indigo-600">
+                                <span x-text="selectedGoal.days_since_start"></span>
+                                <span class="text-xs font-medium text-indigo-300 ml-0.5">ngày</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Container Link -->
+                    <template x-if="selectedGoal.container_url">
+                        <a :href="selectedGoal.container_url"
+                            class="block w-full py-3 bg-indigo-50 text-indigo-700 font-bold text-center rounded-xl border border-indigo-200 hover:bg-indigo-100 transition-colors">
+                    </template>
+
+                    <!-- History Calendar -->
+                    <div class="border-t border-slate-100 pt-6">
+                        <div class="flex items-center justify-between mb-3 ml-1">
+                            <h4 class="text-sm font-bold text-slate-900">Lịch sử 7 ngày qua</h4>
+                        </div>
+                        <div class="flex justify-between">
+                            <template x-for="(met, index) in selectedGoal.history_7_days">
+                                <div class="flex flex-col items-center gap-1">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm transition-all"
+                                        :class="met ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-300'">
+                                        <i class="fa-solid fa-check" x-show="met"></i>
+                                        <span x-show="!met" class="text-[0.6rem] scale-75">•</span>
+                                    </div>
+                                    <span class="text-[0.6rem] text-slate-400 font-bold"
+                                        x-text="last7Days[index]"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Dates -->
+                    <template x-if="selectedGoal.start_date || selectedGoal.due_date">
+                        <div
+                            class="bg-indigo-50 rounded-xl p-4 flex items-center justify-between text-sm border border-indigo-100">
+                            <div class="text-indigo-900 font-medium">
+                                <i class="fa-regular fa-calendar mr-2"></i>
+                                <span x-text="selectedGoal.start_date ? selectedGoal.start_date : '...'"></span>
+                                -
+                                <span x-text="selectedGoal.due_date ? selectedGoal.due_date : '...'"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
+{# === ADD GOAL MODAL (WIZARD) === #}
+<div id="addGoalModal" class="hidden fixed inset-0 z-[200] flex items-end lg:hidden" x-data="goalWizardMobileData()">
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        onclick="document.getElementById('addGoalModal').classList.add('hidden')"></div>
+
+    <div class="relative bg-white rounded-t-3xl w-full max-h-[90vh] flex flex-col animate-slide-up h-auto pb-safe">
+
+        <!-- Header -->
+        <div
+            class="sticky top-0 bg-white border-b border-slate-100 px-5 py-4 flex items-center justify-between z-10 shrink-0 rounded-t-3xl">
+            <div>
+                <h2 class="text-xl font-black text-slate-900">Mục tiêu mới</h2>
+                <div class="flex items-center gap-1 mt-1">
+                    <span class="text-xs font-semibold text-slate-500">Bước <span x-text="step">1</span>/4</span>
+                    <div class="flex gap-1">
+                        <template x-for="i in 4">
+                            <div class="h-1 rounded-full transition-all"
+                                :class="i <= step ? 'w-4 bg-indigo-600' : 'w-2 bg-slate-200'"></div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <button onclick="document.getElementById('addGoalModal').classList.add('hidden')"
+                class="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100">
+                <i class="fa-solid fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Wizard Body -->
+        <form method="post" class="flex flex-col flex-1 overflow-y-auto px-5 py-6" novalidate
+            @submit="submitForm($event)">
+            {{ form.csrf_token }}
+
+            <!-- Hidden Fields for Alpine Data Binding -->
+            <input type="hidden" name="scope" x-model="scope">
+            <select name="domain" x-model="domain" class="hidden">
+                <option value="general">General</option>
+                <option value="flashcard">Flashcard</option>
+                <option value="quiz">Quiz</option>
+            </select>
+            <input type="hidden" name="reference_id" x-model="reference_id">
+
+            <!-- STEP 1: Scope -->
+            <div x-show="step === 1" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-x-10" x-transition:enter-end="opacity-100 translate-x-0"
+                class="space-y-6">
+                <h3 class="text-lg font-bold text-slate-900">Mục tiêu của bạn là gì?</h3>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Global -->
+                    <div @click="setScope('global')"
+                        class="rounded-2xl border-2 p-4 flex flex-col items-center gap-3 transition-all active:scale-95"
+                        :class="scope === 'global' ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 bg-white'">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+                            :class="scope === 'global' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'">
+                            <i class="fa-solid fa-earth-asia"></i>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-sm font-bold text-slate-900"
+                                :class="scope === 'global' ? 'text-indigo-900' : ''">Toàn hệ thống</span>
+                        </div>
+                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'global'"></i>
+                    </div>
+
+                    <!-- Container -->
+                    <div @click="setScope('container')"
+                        class="rounded-2xl border-2 p-4 flex flex-col items-center gap-3 transition-all active:scale-95"
+                        :class="scope === 'container' ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 bg-white'">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+                            :class="scope === 'container' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'">
+                            <i class="fa-solid fa-box-open"></i>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-sm font-bold text-slate-900"
+                                :class="scope === 'container' ? 'text-indigo-900' : ''">Bộ cụ thể</span>
+                        </div>
+                        <i class="fa-solid fa-circle-check text-indigo-600 mt-auto" x-show="scope === 'container'"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Context Selection -->
+            <div x-show="step === 2" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-x-10" x-transition:enter-end="opacity-100 translate-x-0"
+                class="space-y-6" style="display: none;">
+
+                <!-- IF GLOBAL: Choose Domain -->
+                <div x-show="scope === 'global'" class="space-y-4">
+                    <h3 class="text-lg font-bold text-slate-900">Chọn chỉ số theo dõi</h3>
+                    <div class="grid grid-cols-1 gap-3">
+                        <template x-for="item in domainsGlobal" :key="item.value">
+                            <div @click="setDomain(item.value)"
+                                class="rounded-2xl p-4 flex items-center gap-4 transition-all border-2 active:scale-95"
+                                :class="domain === item.value ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 bg-white'">
+                                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0"
+                                    :class="domain === item.value ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'">
+                                    <i :class="item.icon"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-base text-slate-900" x-text="item.label"></h4>
+                                    <p class="text-xs text-slate-500 mt-0.5" x-text="item.desc"></p>
+                                </div>
+                                <div class="ml-auto" x-show="domain === item.value">
+                                    <i class="fa-solid fa-check-circle text-indigo-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- IF CONTAINER: Choose Container -->
+                <div x-show="scope === 'container'" class="space-y-6">
+                    <h3 class="text-lg font-bold text-slate-900">Chọn bộ học liệu</h3>
+
+                    <!-- Type Tabs -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div @click="setDomain('flashcard'); reference_id = ''"
+                            class="rounded-xl border p-3 flex flex-col items-center gap-2 cursor-pointer transition-all active:scale-95"
+                            :class="domain === 'flashcard' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-500'">
+                            <i class="fa-solid fa-clone text-xl"></i>
+                            <span class="text-sm font-bold">Flashcard</span>
+                        </div>
+                        <div @click="setDomain('quiz'); reference_id = ''"
+                            class="rounded-xl border p-3 flex flex-col items-center gap-2 cursor-pointer transition-all active:scale-95"
+                            :class="domain === 'quiz' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-500'">
+                            <i class="fa-solid fa-circle-question text-xl"></i>
+                            <span class="text-sm font-bold">Quiz</span>
+                        </div>
+                    </div>
+
+                    <!-- Lists -->
+                    <div class="max-h-[40vh] overflow-y-auto pr-1">
+                        <!-- Flashcard List -->
+                        <div x-show="domain === 'flashcard'" class="space-y-3 animate-slide-up">
+                            {% if flashcard_sets %}
+                            <div class="space-y-2">
+                                {% for c in flashcard_sets %}
+                                <div @click="setContainer('flashcard', '{{ c.container_id }}')"
+                                    class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3 active:bg-indigo-50 transition-colors"
+                                    :class="reference_id == '{{ c.container_id }}' ? 'ring-2 ring-indigo-500 border-transparent bg-indigo-50' : ''">
+                                    <i class="fa-solid fa-clone text-slate-400"></i>
+                                    <div class="flex-grow">
+                                        <span class="font-bold text-slate-700 text-sm block line-clamp-1">{{ c.title
+                                            }}</span>
+                                        <span class="text-xs text-slate-400 block mt-0.5">Đã học</span>
+                                    </div>
+                                    <i class="fa-solid fa-check text-indigo-600"
+                                        x-show="reference_id == '{{ c.container_id }}'"></i>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                <p class="text-slate-500 text-sm">Bạn chưa học bộ Flashcard nào.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Quiz List -->
+                        <div x-show="domain === 'quiz'" class="space-y-3 animate-slide-up">
+                            {% if quiz_sets %}
+                            <div class="space-y-2">
+                                {% for c in quiz_sets %}
+                                <div @click="setContainer('quiz', '{{ c.container_id }}')"
+                                    class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3 active:bg-indigo-50 transition-colors"
+                                    :class="reference_id == '{{ c.container_id }}' ? 'ring-2 ring-indigo-500 border-transparent bg-indigo-50' : ''">
+                                    <i class="fa-solid fa-circle-question text-slate-400"></i>
+                                    <div class="flex-grow">
+                                        <span class="font-bold text-slate-700 text-sm block line-clamp-1">{{ c.title
+                                            }}</span>
+                                        <span class="text-xs text-slate-400 block mt-0.5">Đã học</span>
+                                    </div>
+                                    <i class="fa-solid fa-check text-indigo-600"
+                                        x-show="reference_id == '{{ c.container_id }}'"></i>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                <p class="text-slate-500 text-sm">Bạn chưa học bộ Quiz nào.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: Metrics & Parameters -->
+            <div x-show="step === 3" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-x-10" x-transition:enter-end="opacity-100 translate-x-0"
+                class="space-y-6" style="display: none;">
+
+                <h3 class="text-lg font-bold text-slate-900 mb-4">Mục tiêu cụ thể</h3>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">Tiêu chí đo lường</label>
+                        <select name="metric" x-model="metric"
+                            class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-0">
+                            <template x-for="m in availableMetrics" :key="m.value">
+                                <option :value="m.value" x-text="m.label"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">Chu kỳ</label>
+                        {{ form.period(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm
+                        font-medium focus:border-indigo-500 focus:ring-0') }}
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">Số lượng cần đạt</label>
+                        {{ form.target_value(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3
+                        text-xl font-bold text-center focus:border-indigo-500 focus:ring-0', placeholder='0',
+                        **{'x-model': 'target_value'}) }}
+                        <p class="text-xs text-slate-400 text-center mt-2">Ví dụ: 50 từ vựng / ngày</p>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- STEP 4: Finalize -->
+            <div x-show="step === 4" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-x-10" x-transition:enter-end="opacity-100 translate-x-0"
+                class="space-y-6" style="display: none;">
+                <div class="text-center py-6">
+                    <div
+                        class="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 animate-bounce">
+                        <i class="fa-solid fa-check text-4xl"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-900">Hoàn tất!</h3>
+                    <p class="text-sm text-slate-500 px-6">Hãy đặt một cái tên thật ý nghĩa để nhắc nhở bản thân.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block flex items-center gap-1">
+                            {{ form.title.label.text }} <span class="text-rose-500">*</span>
+                        </label>
+                        {{ form.title(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-bold
+                        focus:border-indigo-500 focus:ring-0', placeholder='Ví dụ: Chinh phục TOEIC 900', **{'x-model':
+                        'title'}) }}
+                        <p class="text-xs text-rose-500 mt-1" x-show="!title && step===4">Vui lòng nhập tên mục tiêu</p>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">{{ form.notes.label.text
+                            }}</label>
+                        {{ form.notes(class_='w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-medium
+                        focus:border-indigo-500 focus:ring-0', rows='2', placeholder='Ghi chú quan trọng...') }}
+                    </div>
+
+                    <div class="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                        <label class="flex items-center gap-3 cursor-pointer" @click="showDates = !showDates">
+                            <div class="w-10 h-6 rounded-full bg-white border border-slate-200 relative transition-colors"
+                                :class="showDates ? 'bg-indigo-600 border-indigo-600' : ''">
+                                <div class="w-4 h-4 rounded-full bg-slate-400 absolute top-0.5 left-1 transition-transform bg-white shadow-sm"
+                                    :class="showDates ? 'translate-x-4' : ''"></div>
+                            </div>
+                            <span class="text-sm font-bold text-indigo-900">Giới hạn thời gian (Tùy chọn)</span>
+                        </label>
+
+                        <div x-show="showDates" x-transition
+                            class="mt-4 grid grid-cols-2 gap-3 pt-3 border-t border-indigo-100/50">
+                            <div>
+                                <label
+                                    class="text-[0.65rem] font-bold text-indigo-400 uppercase mb-1 block">Bắtđầu</label>
+                                {{ form.start_date(class_='w-full rounded-lg border border-indigo-200 px-2 py-2
+                                text-xs font-medium focus:border-indigo-500 focus:ring-0') }}
+                            </div>
+                            <div>
+                                <label class="text-[0.65rem] font-bold text-indigo-400 uppercase mb-1 block">Kết
+                                    thúc</label>
+                                {{ form.due_date(class_='w-full rounded-lg border border-indigo-200 px-2 py-2
+                                text-xs font-medium focus:border-indigo-500 focus:ring-0') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="mt-auto pt-6 flex gap-3">
+                <button type="button" @click="prevStep()" x-show="step > 1"
+                    class="w-1/3 py-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+                    Quay lại
+                </button>
+                <button type="button" @click="nextStep()" x-show="step < 4"
+                    class="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/30 transition-all active:scale-95">
+                    Tiếp theo
+                </button>
+                <button type="submit" x-show="step === 4"
+                    class="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="!title">
+                    Hoàn thành
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    @keyframes fade-in-up {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slide-up {
+        from {
+            transform: translateY(100%);
+        }
+
+        to {
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fade-in-up 0.6s ease-out backwards;
+    }
+
+    .animate-slide-up {
+        animation: slide-up 0.3s ease-out;
+    }
+</style>

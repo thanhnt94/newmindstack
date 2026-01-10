@@ -1,0 +1,1029 @@
+{# Listening Setup Template - Wizard Style #}
+{% set _v = template_version|default('v4') %}
+{% extends _v ~ '/base.html' %}
+{% block title %}Luyện nghe - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary: #8b5cf6;
+        --primary-bg: #f5f3ff;
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #0f172a;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --border-focus: #8b5cf6;
+        --radius: 24px;
+        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+
+    body {
+        background: var(--background);
+        font-family: 'Outfit', 'Inter', sans-serif;
+    }
+
+    .wizard-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 600px;
+        margin: 0 auto;
+        background: var(--background);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .wizard-header {
+        padding: 0.75rem 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        border: 1px solid var(--border);
+    }
+
+    .nav-btn:hover {
+        background: var(--background);
+    }
+
+    .header-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .set-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mode-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .step-indicator {
+        display: flex;
+        gap: 6px;
+        width: 40px;
+        justify-content: flex-end;
+    }
+
+    .step-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--border);
+        transition: background 0.3s;
+    }
+
+    .step-dot.active {
+        background: var(--primary);
+        width: 16px;
+        border-radius: 12px;
+    }
+
+    .wizard-content {
+        flex: 1;
+        padding: 75px 1.5rem 100px 1.5rem;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .step-screen {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .step-screen.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .title-area {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .title-area h2 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0 0 0.5rem 0;
+        line-height: 1.2;
+    }
+
+    .title-area p {
+        color: var(--text-sub);
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .mode-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .mode-card {
+        background: var(--surface);
+        border: 2px solid transparent;
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-sm);
+        position: relative;
+    }
+
+    .mode-card:hover:not(.disabled) {
+        transform: translateY(-2px);
+        border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .mode-card.selected {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+    }
+
+    .mode-card.disabled {
+        opacity: 0.5;
+        filter: grayscale(1);
+        cursor: not-allowed;
+        background: var(--background);
+    }
+
+    .mode-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 16px;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--text-sub);
+        transition: all 0.3s;
+    }
+
+    .mode-card.selected .mode-icon {
+        background: var(--primary);
+        color: white;
+        transform: scale(1.1) rotate(-5deg);
+    }
+
+    .mode-info {
+        flex: 1;
+    }
+
+    .mode-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-main);
+        display: block;
+    }
+
+    .mode-desc {
+        font-size: 0.9rem;
+        color: var(--text-sub);
+        margin-top: 2px;
+        display: block;
+    }
+
+    .config-card {
+        background: var(--surface);
+        border-radius: 24px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .config-header {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .config-header i {
+        color: var(--primary);
+    }
+
+    .pair-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .pair-row {
+        background: var(--background);
+        border-radius: 16px;
+        padding: 0.75rem;
+        position: relative;
+        border: 1px solid var(--border);
+    }
+
+    .pair-connection {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        justify-content: space-between;
+    }
+
+    .pair-box {
+        flex: 1;
+    }
+
+    .pair-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-sub);
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    .modern-select {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-main);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1.25rem;
+        transition: border-color 0.2s;
+    }
+
+    .modern-select:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    .arrow-divider {
+        color: var(--text-sub);
+        font-size: 1.2rem;
+        padding-top: 1.2rem;
+    }
+
+    .add-pair-btn {
+        width: 100%;
+        padding: 1rem;
+        border: 2px dashed var(--border);
+        background: transparent;
+        border-radius: 16px;
+        color: var(--primary);
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        transition: all 0.2s;
+    }
+
+    .add-pair-btn:hover {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+    }
+
+    .delete-pair {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 28px;
+        height: 28px;
+        background: var(--danger, #ef4444);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        border: 2px solid var(--background);
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+
+    .delete-pair:hover {
+        transform: scale(1.1);
+    }
+
+    .wizard-footer {
+        padding: 1rem 1.5rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .action-btn {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 16px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 8px 16px -4px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 20px -4px rgba(139, 92, 246, 0.5);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+
+    <div class="wizard-header">
+        <a id="header-back-btn" href="#" class="nav-btn">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+
+        <div class="header-info">
+            <span class="mode-badge"><i class="fas fa-headphones"></i> Luyện nghe</span>
+            <h1 class="set-title">{{ container.title }}</h1>
+        </div>
+
+        <a href="/dashboard" class="nav-btn" title="Về trang chủ">
+            <i class="fas fa-home"></i>
+        </a>
+    </div>
+
+    <div class="wizard-content">
+
+        <!-- STEP 1: MODE SELECTION -->
+        <div class="step-screen active" id="step-1">
+            <div class="title-area">
+                <h2>Chọn chế độ học</h2>
+                <p>Bạn muốn ôn tập từ vựng theo cách nào?</p>
+            </div>
+
+            <div class="mode-grid">
+                <div class="mode-card {% if counts.new == 0 %}disabled{% endif %}" data-value="new">
+                    <div class="mode-icon"><i class="fas fa-seedling"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Học từ mới</span>
+                        <span class="mode-desc">{{ counts.new }} từ chưa học</span>
+                    </div>
+                </div>
+
+                <div class="mode-card {% if counts.review == 0 %}disabled{% endif %}" data-value="review">
+                    <div class="mode-icon"><i class="fas fa-history"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ôn tập tới hạn</span>
+                        <span class="mode-desc">{{ counts.review }} từ cần ôn lại</span>
+                    </div>
+                </div>
+
+                <div class="mode-card {% if counts.hard == 0 %}disabled{% endif %}" data-value="hard">
+                    <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Từ khó</span>
+                        <span class="mode-desc">{{ counts.hard }} từ hay sai</span>
+                    </div>
+                </div>
+
+                <div class="mode-card {% if counts.learned == 0 %}disabled{% endif %}" data-value="learned">
+                    <div class="mode-icon"><i class="fas fa-check-double"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ôn tất cả</span>
+                        <span class="mode-desc">{{ counts.learned }} từ đã học</span>
+                    </div>
+                </div>
+
+                <div class="mode-card {% if counts.random == 0 %}disabled{% endif %}" data-value="random">
+                    <div class="mode-icon"><i class="fas fa-random"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ngẫu nhiên</span>
+                        <span class="mode-desc">{{ counts.random }} từ trong bộ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: CONFIGURATION -->
+        <div class="step-screen" id="step-2">
+            <div class="title-area">
+                <h2>Cấu hình bài nghe</h2>
+                <p>Cấu hình cách phát âm thanh và gõ từ</p>
+                <div id="selected-mode-display"
+                    class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-100 rounded-lg text-purple-700 text-sm font-bold">
+                    <i class="fas fa-layer-group"></i> <span>...</span>
+                </div>
+            </div>
+
+            <!-- Count Config -->
+            <div class="config-card" style="margin-bottom: 1rem;">
+                <div class="flex justify-between items-center">
+                    <div class="config-header mb-0">
+                        <i class="fas fa-sort-numeric-up"></i> Số lượng câu hỏi <span id="limit-status-text"
+                            class="text-purple-500 font-semibold">Không giới hạn</span>
+                    </div>
+                    <label class="flex items-center cursor-pointer">
+                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <div class="relative">
+                            <input type="checkbox" id="limit-toggle" class="sr-only">
+                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                            <div
+                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="limit-options" class="hidden mt-4">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn số câu:</label>
+                    <div class="relative w-full">
+                        <select id="count-select"
+                            class="w-full p-2.5 appearance-none bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:outline-none focus:border-purple-500 transition-all">
+                            <option value="5">5 câu</option>
+                            <option value="10" selected>10 câu</option>
+                            <option value="15">15 câu</option>
+                            <option value="20">20 câu</option>
+                            <option value="25">25 câu</option>
+                            <option value="30">30 câu</option>
+                            <option value="40">40 câu</option>
+                            <option value="50">50 câu</option>
+                            <option value="100">100 câu</option>
+                        </select>
+                        <i
+                            class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pair Config -->
+            <div class="config-card">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="config-header" style="margin-bottom:0;"><i class="fas fa-sliders-h"></i> Cấu hình Bài
+                        nghe</div>
+                    <label class="flex items-center cursor-pointer">
+                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <div class="relative">
+                            <input type="checkbox" id="custom-config-toggle" class="sr-only">
+                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                            <div
+                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <style>
+                    #custom-config-toggle:checked~.toggle-bg {
+                        background-color: var(--primary);
+                    }
+
+                    #custom-config-toggle:checked~.dot {
+                        transform: translateX(100%);
+                    }
+
+                    #limit-toggle:checked~.toggle-bg {
+                        background-color: var(--primary);
+                    }
+
+                    #limit-toggle:checked~.dot {
+                        transform: translateX(100%);
+                    }
+                </style>
+
+                <div id="default-config-view" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div id="default-summary" class="space-y-2"></div>
+                    <p id="no-default-msg" class="text-sm text-red-500 italic hidden">
+                        <i class="fas fa-exclamation-circle"></i> Bộ này chưa có cấu hình mặc định. Vui lòng bật "Tùy
+                        chỉnh" để thiết lập.
+                    </p>
+                </div>
+
+                <div id="custom-builder-view" class="hidden mt-4">
+                    <div class="pair-container" id="pairs-list"></div>
+                    <button type="button" class="add-pair-btn" id="add-pair-btn">
+                        <i class="fas fa-plus-circle"></i> Thêm cấu hình khác
+                    </button>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; text-align: center; color: var(--text-sub); font-size: 0.9rem;">
+                <p><i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Mẹo: Chọn cột Audio để nghe, và từ vựng để gõ
+                    lại.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="wizard-footer">
+        <button class="action-btn btn-primary" id="next-btn">
+            Tiếp tục <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        // --- Data ---
+        const setId = Number("{{ container.container_id }}");
+        const counts = {{ counts | tojson
+    }};
+    const audioKeys = {{ audio_keys | tojson }} || [];
+    const allKeys = {{ available_keys | tojson }} || [];
+    const savedSettings = {{ saved_settings | tojson }} || {};
+    const defaultSettings = {{ default_settings | tojson }} || {};
+
+    console.log('[Listening Setup] savedSettings:', savedSettings);
+    console.log('[Listening Setup] audioKeys:', audioKeys);
+    console.log('[Listening Setup] allKeys:', allKeys);
+
+    // --- State ---
+    let currentStep = 1;
+    let selectedMode = 'random';
+    let selectedCount = 0;
+    let customPairs = [];
+    let isCustomMode = false;
+
+    // --- DOM Elements ---
+    const step1 = document.getElementById('step-1');
+    const step2 = document.getElementById('step-2');
+    const dot1 = document.getElementById('dot-1');
+    const dot2 = document.getElementById('dot-2');
+    const nextBtn = document.getElementById('next-btn');
+    const backBtn = document.getElementById('header-back-btn');
+    const modeCards = document.querySelectorAll('.mode-card');
+    const pairsList = document.getElementById('pairs-list');
+    const addPairBtn = document.getElementById('add-pair-btn');
+    const dashboardUrl = "{{ url_for('learning.vocabulary.dashboard') }}";
+    const selectedModeDisplay = document.getElementById('selected-mode-display');
+
+    // Toggle Elements
+    const customToggle = document.getElementById('custom-config-toggle');
+    const defaultView = document.getElementById('default-config-view');
+    const customView = document.getElementById('custom-builder-view');
+    const defaultSummary = document.getElementById('default-summary');
+    const noDefaultMsg = document.getElementById('no-default-msg');
+
+    // Count Toggle Elements
+    const limitToggle = document.getElementById('limit-toggle');
+    const limitOptions = document.getElementById('limit-options');
+    const limitStatusText = document.getElementById('limit-status-text');
+    const countSelect = document.getElementById('count-select');
+    const toggleBg = limitToggle.nextElementSibling;
+    const toggleDot = toggleBg.nextElementSibling;
+
+    // Count UI Helper
+    function updateLimitUI() {
+        if (limitToggle.checked) {
+            limitOptions.classList.remove('hidden');
+            limitStatusText.classList.add('hidden');
+            toggleBg.classList.add('bg-purple-500');
+            toggleBg.classList.remove('bg-gray-200');
+            toggleDot.classList.add('translate-x-full');
+            countSelect.disabled = false;
+        } else {
+            limitOptions.classList.add('hidden');
+            limitStatusText.classList.remove('hidden');
+            toggleBg.classList.remove('bg-purple-500');
+            toggleBg.classList.add('bg-gray-200');
+            toggleDot.classList.remove('translate-x-full');
+            countSelect.disabled = true;
+        }
+    }
+
+    // --- Initialize ---
+
+    // 1. Auto-select first valid mode
+    let firstValidMode = null;
+    modeCards.forEach(card => {
+        if (!card.classList.contains('disabled')) {
+            if (!firstValidMode) firstValidMode = card;
+        }
+    });
+
+    if (firstValidMode) {
+        selectMode(firstValidMode);
+    } else {
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = "Không có từ nào để học";
+        nextBtn.style.background = "#94a3b8";
+    }
+
+    // Load Saved Mode
+    if (savedSettings.mode) {
+        const savedModeCard = document.querySelector(`.mode-card[data-value="${savedSettings.mode}"]`);
+        if (savedModeCard && !savedModeCard.classList.contains('disabled')) {
+            selectMode(savedModeCard);
+        }
+    }
+
+    // 2. Initialize Custom Toggle
+    let useCustomConfig = false;
+    if (savedSettings.use_custom_config !== undefined) {
+        useCustomConfig = savedSettings.use_custom_config;
+    } else if (savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0) {
+        useCustomConfig = true;
+    }
+
+    if (useCustomConfig && savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0) {
+        isCustomMode = true;
+        customToggle.checked = true;
+        savedSettings.custom_pairs.forEach(p => addPairUI(p.q, p.a));
+    } else {
+        isCustomMode = false;
+        customToggle.checked = false;
+        loadDefaultsToBuilder();
+    }
+
+    // 3. Load Count Settings
+    if (savedSettings.count !== undefined) {
+        let sc = Number(savedSettings.count);
+        if (sc <= 0) {
+            limitToggle.checked = false;
+            selectedCount = 0;
+            countSelect.value = "10";
+        } else {
+            limitToggle.checked = true;
+            const exists = [...countSelect.options].some(o => o.value == sc);
+            countSelect.value = exists ? String(sc) : "10";
+            selectedCount = Number(countSelect.value);
+        }
+    } else {
+        limitToggle.checked = false;
+        countSelect.value = "10";
+        selectedCount = 0;
+    }
+    updateLimitUI();
+
+    renderConfigView();
+    checkStartButtonState();
+
+    function renderDefaultView() {
+        defaultSummary.innerHTML = '';
+        const defaults = defaultSettings.custom_pairs || [];
+
+        if (defaults.length > 0) {
+            noDefaultMsg.classList.add('hidden');
+            defaultSummary.classList.remove('hidden');
+
+            defaults.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'flex items-center text-sm text-gray-700 bg-white p-2 rounded border border-gray-100';
+                el.innerHTML = `
+                        <span class="text-xs text-gray-500 mr-2">Nghe:</span>
+                        <span class="font-bold bg-gray-100 px-2 py-0.5 rounded text-xs mr-2 uppercase">${p.q}</span>
+                        <i class="fas fa-arrow-right text-gray-400 text-xs mx-1"></i>
+                        <span class="text-xs text-gray-500 ml-2 mr-1">Gõ:</span>
+                        <span class="font-bold bg-gray-100 px-2 py-0.5 rounded text-xs uppercase">${p.a}</span>
+                    `;
+                defaultSummary.appendChild(el);
+            });
+        } else {
+            defaultSummary.classList.add('hidden');
+            noDefaultMsg.classList.remove('hidden');
+        }
+    }
+
+    renderDefaultView();
+
+    // Check URL for initial step
+    const urlParams = new URLSearchParams(window.location.search);
+    let initialStep = parseInt(urlParams.get('step')) || 1;
+    if (initialStep === 2 && selectedMode) {
+        goToStep(2);
+    } else {
+        goToStep(1);
+    }
+
+    // --- Event Listeners ---
+
+    customToggle.addEventListener('change', (e) => {
+        isCustomMode = e.target.checked;
+        renderConfigView();
+        checkStartButtonState();
+    });
+
+    function renderConfigView() {
+        if (isCustomMode) {
+            defaultView.classList.add('hidden');
+            customView.classList.remove('hidden');
+            if (pairsList.children.length === 0) loadDefaultsToBuilder();
+        } else {
+            defaultView.classList.remove('hidden');
+            customView.classList.add('hidden');
+        }
+    }
+
+    function loadDefaultsToBuilder() {
+        pairsList.innerHTML = '';
+        const defaults = defaultSettings.custom_pairs;
+        if (defaults && defaults.length > 0) {
+            defaults.forEach(p => addPairUI(p.q, p.a));
+        } else {
+            // Fallback: first audio key -> first text key
+            const defQ = audioKeys[0] || 'front_audio';
+            const defA = allKeys.includes('front') ? 'front' : (allKeys[0] || 'front');
+            addPairUI(defQ, defA);
+        }
+    }
+
+    function checkStartButtonState() {
+        if (currentStep !== 2) return;
+
+        let isValid = true;
+        let msg = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+
+        if (!isCustomMode) {
+            if (!defaultSettings.custom_pairs || defaultSettings.custom_pairs.length === 0) {
+                isValid = false;
+                msg = 'Chưa có cấu hình mặc định';
+            }
+        } else {
+            const rows = document.querySelectorAll('.pair-row');
+            if (rows.length === 0) {
+                isValid = false;
+                msg = 'Cần ít nhất 1 cấu hình';
+            }
+        }
+
+        nextBtn.disabled = !isValid;
+        nextBtn.innerHTML = msg;
+        if (isValid) nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        else nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
+    modeCards.forEach(card => {
+        if (card.classList.contains('disabled')) return;
+        card.addEventListener('click', () => selectMode(card));
+    });
+
+    function selectMode(cardElement) {
+        modeCards.forEach(c => c.classList.remove('selected'));
+        cardElement.classList.add('selected');
+        selectedMode = cardElement.dataset.value;
+    }
+
+    nextBtn.addEventListener('click', () => {
+        if (currentStep === 1) {
+            goToStep(2);
+        } else {
+            startSession();
+        }
+    });
+
+    backBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentStep === 2) {
+            goToStep(1);
+        } else {
+            window.location.href = dashboardUrl;
+        }
+    });
+
+    addPairBtn.addEventListener('click', () => {
+        addPairUI();
+        checkStartButtonState();
+    });
+
+    limitToggle.addEventListener('change', (e) => {
+        updateLimitUI();
+        selectedCount = e.target.checked ? Number(countSelect.value) : 0;
+    });
+
+    countSelect.addEventListener('change', (e) => {
+        selectedCount = Number(e.target.value);
+    });
+
+    function goToStep(step) {
+        currentStep = step;
+
+        const url = new URL(window.location);
+        url.searchParams.set('step', step);
+        window.history.pushState({}, '', url);
+
+        if (step === 1) {
+            step1.classList.add('active');
+            step2.classList.remove('active');
+            if (dot1) dot1.classList.add('active');
+            if (dot2) dot2.classList.remove('active');
+
+            nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('opacity-50');
+        } else {
+            step1.classList.remove('active');
+            step2.classList.add('active');
+            if (dot1) dot1.classList.remove('active');
+            if (dot2) dot2.classList.add('active');
+
+            const modeNameInfo = {
+                'new': 'Học từ mới',
+                'review': 'Ôn tập tới hạn',
+                'hard': 'Từ khó',
+                'learned': 'Ôn tất cả',
+                'random': 'Ngẫu nhiên'
+            };
+            if (selectedModeDisplay) {
+                selectedModeDisplay.innerHTML = `<i class="fas fa-layer-group"></i> <span>Chế độ: ${modeNameInfo[selectedMode] || selectedMode}</span>`;
+            }
+
+            checkStartButtonState();
+        }
+    }
+
+    // --- Pair Logic ---
+    function addPairUI(qVal = '', aVal = '') {
+        const row = document.createElement('div');
+        row.className = 'pair-row';
+
+        // Question (TTS will read this column) - all columns
+        let questionOptionsHtml = '';
+        allKeys.forEach(k => {
+            questionOptionsHtml += `<option value="${k}">${k}</option>`;
+        });
+
+        // Answer - all columns
+        let answerOptionsHtml = '';
+        allKeys.forEach(k => {
+            answerOptionsHtml += `<option value="${k}">${k}</option>`;
+        });
+
+        row.innerHTML = `
+                <div class="pair-connection">
+                    <div class="pair-box">
+                        <label class="pair-label">Nghe (TTS đọc)</label>
+                        <select class="modern-select pair-q">${questionOptionsHtml}</select>
+                    </div>
+                    <div class="arrow-divider"><i class="fas fa-arrow-right"></i></div>
+                    <div class="pair-box">
+                        <label class="pair-label">Gõ (Đáp án)</label>
+                        <select class="modern-select pair-a">${answerOptionsHtml}</select>
+                    </div>
+                </div>
+                <button class="delete-pair"><i class="fas fa-times"></i></button>
+            `;
+
+        pairsList.appendChild(row);
+
+        if (qVal) row.querySelector('.pair-q').value = qVal;
+        if (aVal) row.querySelector('.pair-a').value = aVal;
+
+        row.querySelector('.delete-pair').addEventListener('click', () => {
+            row.remove();
+            checkStartButtonState();
+        });
+    }
+
+    function updatePairsData() {
+        customPairs = [];
+        if (!isCustomMode) {
+            if (defaultSettings.custom_pairs) customPairs = defaultSettings.custom_pairs;
+            return;
+        }
+
+        document.querySelectorAll('.pair-row').forEach(row => {
+            const q = row.querySelector('.pair-q').value;
+            const a = row.querySelector('.pair-a').value;
+            if (q && a) customPairs.push({ q, a });
+        });
+    }
+
+    function startSession() {
+        updatePairsData();
+
+        if (customPairs.length === 0) {
+            alert('Vui lòng kiểm tra lại cấu hình câu hỏi!');
+            return;
+        }
+
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
+
+        const startUrl = "{{ url_for('learning.vocabulary.listening.start_session') }}";
+
+        fetch(startUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                set_id: setId,
+                mode: selectedMode,
+                count: selectedCount,
+                use_custom_config: isCustomMode,
+                custom_pairs: customPairs
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert(data.message || 'Lỗi không xác định');
+                    nextBtn.disabled = false;
+                    nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Lỗi kết nối máy chủ');
+                nextBtn.disabled = false;
+                nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+            });
+    }
+
+    }) ();
+</script>
+{% endblock %}

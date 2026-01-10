@@ -3,6 +3,7 @@
 # ĐÃ SỬA: Khắc phục lỗi 404 bằng cách loại bỏ url_prefix khi đăng ký các blueprint con.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 from ...models import db, LearningContainer, ContainerContributor, User
@@ -100,7 +101,7 @@ def content_dashboard():
     # Check if user is admin, render within admin layout
     if current_user.user_role == 'admin':
         return render_template('admin/content_management.html')
-    return render_template('v3/pages/content_management/index.html')
+    return render_dynamic_template('pages/content_management/index.html')
 
 @content_management_bp.route('/manage_contributors/<int:container_id>', methods=['GET', 'POST'])
 @login_required
@@ -189,7 +190,7 @@ def manage_contributors(container_id):
     )
     username_suggestions = [username for (username,) in eligible_usernames]
 
-    return render_template('v3/pages/content_management/manage_contributors.html',
+    return render_dynamic_template('pages/content_management/manage_contributors.html',
                            container=container,
                            contributors=contributors,
                            form=form,

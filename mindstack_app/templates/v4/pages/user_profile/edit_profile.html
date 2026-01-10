@@ -1,0 +1,12 @@
+{% set _v = template_version|default('v4') %}
+{% extends _v ~ '/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+{# Mobile Version #}
+{% include _v ~ '/pages/user_profile/_edit_profile_mobile.html' %}
+
+{# Desktop Version #}
+{% include _v ~ '/pages/user_profile/_edit_profile_desktop.html' %}
+{% endblock %}

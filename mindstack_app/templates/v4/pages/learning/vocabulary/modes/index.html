@@ -1,0 +1,523 @@
+{# Modes Selection Template - Wizard Style #}
+{% set _v = template_version|default('v4') %}
+{% extends _v ~ '/base.html' %}
+{% block title %}Chọn chế độ học - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary: #4f46e5;
+        /* Indigo 600 */
+        --primary-bg: #eef2ff;
+        /* Indigo 50 */
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #0f172a;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --radius: 24px;
+        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+
+    body {
+        background: var(--background);
+        font-family: 'Outfit', 'Inter', sans-serif;
+    }
+
+    .wizard-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 800px;
+        /* Slightly wider for grid */
+        margin: 0 auto;
+        background: var(--background);
+    }
+
+    /* Header with Visual Interest */
+    .wizard-header {
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        transition: all 0.3s ease;
+    }
+
+
+
+    .nav-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .nav-btn:hover {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px -4px rgba(79, 70, 229, 0.2);
+    }
+
+    .header-title-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1.2;
+        gap: 2px;
+    }
+
+    .header-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #3b82f6;
+        /* Blue like the image */
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .header-badge i {
+        font-size: 0.8em;
+    }
+
+    .header-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -0.01em;
+        max-width: 300px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
+    }
+
+    /* Content */
+    .modes-content {
+        padding: 1.5rem;
+        flex: 1;
+        max-width: 900px;
+        margin: 0 auto;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .hero-text {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .hero-text h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0 0 0.5rem 0;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #0f172a 0%, #4f46e5 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .hero-text p {
+        color: var(--text-sub);
+        font-size: 1rem;
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    /* Grid */
+    .modes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .mode-card {
+        background: var(--surface);
+        border-radius: 16px;
+        border: 1px solid transparent;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        text-decoration: none;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .mode-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .mode-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: white;
+        flex-shrink: 0;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .mode-card:hover .mode-icon-box {
+        transform: scale(1.1) rotate(-8deg);
+    }
+
+    .mode-info {
+        flex: 1;
+    }
+
+    .mode-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-main);
+        display: block;
+        margin-bottom: 0.15rem;
+        transition: color 0.2s;
+    }
+
+    .mode-desc {
+        font-size: 0.95rem;
+        color: var(--text-sub);
+        line-height: 1.5;
+    }
+
+    .mode-arrow {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-sub);
+        transition: all 0.3s;
+        opacity: 0.6;
+    }
+
+    .mode-card:hover .mode-arrow {
+        opacity: 1;
+        transform: translateX(4px);
+        color: white;
+    }
+
+    /* --- MODE COLOR THEMES --- */
+
+    /* 1. Flashcard - Green (Sync with Session) */
+    .mode-flashcard .mode-icon-box {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.4);
+    }
+
+    .mode-flashcard:hover {
+        border-color: #10b981;
+        box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.25);
+    }
+
+    .mode-flashcard:hover .mode-name {
+        color: #059669;
+    }
+
+    .mode-flashcard:hover .mode-arrow {
+        background: #10b981;
+    }
+
+    /* 2. MCQ - Indigo (Sync with Session) */
+    .mode-mcq .mode-icon-box {
+        background: linear-gradient(135deg, #6366f1, #818cf8);
+        box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.4);
+    }
+
+    .mode-mcq:hover {
+        border-color: #4f46e5;
+        box-shadow: 0 20px 40px -10px rgba(79, 70, 229, 0.25);
+    }
+
+    .mode-mcq:hover .mode-name {
+        color: #4f46e5;
+    }
+
+    .mode-mcq:hover .mode-arrow {
+        background: #4f46e5;
+    }
+
+    /* 3. Typing - Amber/Orange */
+    .mode-typing .mode-icon-box {
+        background: linear-gradient(135deg, #d97706, #fbbf24);
+        box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.4);
+    }
+
+    .mode-typing:hover {
+        border-color: #f59e0b;
+        box-shadow: 0 20px 40px -10px rgba(245, 158, 11, 0.25);
+    }
+
+    .mode-typing:hover .mode-name {
+        color: #d97706;
+    }
+
+    .mode-typing:hover .mode-arrow {
+        background: #f59e0b;
+    }
+
+    /* 4. Listening - Purple */
+    .mode-listening .mode-icon-box {
+        background: linear-gradient(135deg, #7c3aed, #a78bfa);
+        box-shadow: 0 8px 20px -4px rgba(139, 92, 246, 0.4);
+    }
+
+    .mode-listening:hover {
+        border-color: #8b5cf6;
+        box-shadow: 0 20px 40px -10px rgba(139, 92, 246, 0.25);
+    }
+
+    .mode-listening:hover .mode-name {
+        color: #7c3aed;
+    }
+
+    .mode-listening:hover .mode-arrow {
+        background: #8b5cf6;
+    }
+
+    /* 5. Speed - Orange Red */
+    .mode-speed .mode-icon-box {
+        background: linear-gradient(135deg, #ea580c, #fb923c);
+        box-shadow: 0 8px 20px -4px rgba(249, 115, 22, 0.4);
+    }
+
+    .mode-speed:hover {
+        border-color: #f97316;
+        box-shadow: 0 20px 40px -10px rgba(249, 115, 22, 0.25);
+    }
+
+    .mode-speed:hover .mode-name {
+        color: #ea580c;
+    }
+
+    .mode-speed:hover .mode-arrow {
+        background: #f97316;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+    <div class="wizard-header">
+        <a href="{{ url_for('learning.vocabulary.set_detail_page', set_id=container.container_id) }}" class="nav-btn">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        <div class="header-title-box">
+            <div class="header-badge">
+                <i class="fas fa-layer-group"></i> CHẾ ĐỘ HỌC
+            </div>
+            <div class="header-title">{{ container.title }}</div>
+        </div>
+        <a href="/dashboard" class="nav-btn" title="Về trang chủ">
+            <i class="fas fa-home"></i>
+        </a>
+    </div>
+
+    <div class="modes-content">
+        <div class="hero-text">
+            <h1>Chọn cách học của bạn</h1>
+            <p>Khám phá các phương pháp ghi nhớ hiệu quả</p>
+        </div>
+
+        <div class="modes-grid">
+            <!-- Flashcard -->
+            <div onclick="checkSession('flashcard', '{{ url_for('learning.flashcard_learning.setup', set_id=container.container_id) }}')"
+                class="mode-card mode-flashcard">
+                <div class="mode-icon-box"><i class="fas fa-clone"></i></div>
+                <div class="mode-info">
+                    <span class="mode-name">Flashcard</span>
+                    <span class="mode-desc">Lật thẻ truyền thống, phù hợp để ghi nhớ mặt chữ.</span>
+                </div>
+                <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+            </div>
+
+            <!-- MCQ -->
+            <div onclick="checkSession('mcq', '{{ url_for('learning.vocabulary.set_mcq_page', set_id=container.container_id) }}')"
+                class="mode-card mode-mcq">
+                <div class="mode-icon-box"><i class="fas fa-list-ul"></i></div>
+                <div class="mode-info">
+                    <span class="mode-name">Trắc nghiệm</span>
+                    <span class="mode-desc">Chọn đáp án đúng, kiểm tra phản xạ nhanh.</span>
+                </div>
+                <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+            </div>
+
+            <!-- Typing (New URL pattern) -->
+            <div onclick="checkSession('typing', '{{ url_for('learning.vocabulary.typing.setup', set_id=container.container_id) }}')"
+                class="mode-card mode-typing">
+                <div class="mode-icon-box"><i class="fas fa-keyboard"></i></div>
+                <div class="mode-info">
+                    <span class="mode-name">Luyện viết</span>
+                    <span class="mode-desc">Luyện viết chính tả chính xác từng ký tự.</span>
+                </div>
+                <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+            </div>
+
+            <!-- Listening -->
+            <div onclick="checkSession('listening', '{{ url_for('learning.vocabulary.listening.setup', set_id=container.container_id) }}')"
+                class="mode-card mode-listening">
+                <div class="mode-icon-box"><i class="fas fa-headphones"></i></div>
+                <div class="mode-info">
+                    <span class="mode-name">Luyện nghe</span>
+                    <span class="mode-desc">Nghe và chép lại (Dictation).</span>
+                </div>
+                <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Custom Session Alert Modal -->
+    <div id="session-alert-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="modal-backdrop"></div>
+
+        <!-- Modal Card -->
+        <div class="relative bg-white rounded-3xl p-6 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300"
+            id="modal-card">
+
+            <div
+                class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center text-red-500 mx-auto mb-4 border-4 border-red-100">
+                <i class="fas fa-exclamation-triangle text-2xl"></i>
+            </div>
+
+            <h3 class="text-xl font-bold text-gray-800 text-center mb-2">Phiên học đang diễn ra</h3>
+
+            <p class="text-gray-500 text-center text-sm mb-6 leading-relaxed" id="modal-message">
+                Bạn đang có phiên học chưa hoàn thành. Nếu bắt đầu mới, phiên cũ sẽ bị hủy.
+            </p>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button id="modal-btn-cancel"
+                    class="px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">
+                    Hủy bỏ
+                </button>
+                <button id="modal-btn-confirm"
+                    class="px-4 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all">
+                    Bắt đầu mới
+                </button>
+            </div>
+
+            <!-- Optional: Resume Link -->
+            <div id="modal-resume-container" class="mt-4 text-center hidden">
+                <a href="#" id="modal-resume-link" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+                    Hoặc tiếp tục phiên cũ <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Modal Elements
+    const modal = document.getElementById('session-alert-modal');
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const modalCard = document.getElementById('modal-card');
+    const modalMsg = document.getElementById('modal-message');
+    const btnCancel = document.getElementById('modal-btn-cancel');
+    const btnConfirm = document.getElementById('modal-btn-confirm');
+    const resumeContainer = document.getElementById('modal-resume-container');
+    const resumeLink = document.getElementById('modal-resume-link');
+
+    let pendingTargetUrl = null;
+
+    function showModal(message, targetUrl, resumeUrl = null) {
+        modalMsg.textContent = message;
+        pendingTargetUrl = targetUrl;
+
+        // Resume logic
+        if (resumeUrl) {
+            resumeContainer.classList.remove('hidden');
+            resumeLink.href = resumeUrl;
+        } else {
+            resumeContainer.classList.add('hidden');
+        }
+
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modalCard.classList.remove('scale-95');
+        modalCard.classList.add('scale-100');
+    }
+
+    function hideModal() {
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modalCard.classList.remove('scale-100');
+        modalCard.classList.add('scale-95');
+        pendingTargetUrl = null;
+    }
+
+    // Bind Events
+    btnCancel.addEventListener('click', hideModal);
+    modalBackdrop.addEventListener('click', hideModal);
+
+    btnConfirm.addEventListener('click', () => {
+        if (pendingTargetUrl) window.location.href = pendingTargetUrl;
+    });
+
+    function checkSession(mode, targetUrl) {
+        const setId = "{{ container.container_id }}";
+
+        fetch('/learn/api/check_active_vocab_session/' + setId)
+            .then(r => r.json())
+            .then(data => {
+                if (data.has_active) {
+                    // Different Mode or Same Mode - Prompt User
+                    if (data.active_mode !== mode) {
+                        const msg = `Bạn đang học dở bài "${data.active_mode_display}". Nếu chuyển sang "${mode}", bài cũ sẽ bị hủy.`;
+                        showModal(msg, targetUrl, data.resume_url);
+                    } else {
+                        // Same mode
+                        const msg = `Bạn đang có một bài ${data.active_mode_display} chưa xong. Bạn muốn tạo bài mới hay tiếp tục?`;
+                        showModal(msg, targetUrl, data.resume_url);
+                    }
+                } else {
+                    window.location.href = targetUrl;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                window.location.href = targetUrl;
+            });
+    }
+</script>
+{% endblock %}
+```

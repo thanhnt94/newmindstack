@@ -1,4 +1,5 @@
 from flask import render_template, request
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import current_user, login_required
 from . import dashboard_bp
 from ..individual.config import FlashcardLearningConfig
@@ -37,4 +38,4 @@ def dashboard():
     template_vars = _build_dashboard_context(current_user)
     # Using 'dashboard/index.html' relative to the dashboard module's template folder
     # which maps to .../dashboard/templates/dashboard/index.html
-    return render_template('v3/pages/learning/collab/flashcard/index.html', **template_vars)
+    return render_dynamic_template('pages/learning/collab/flashcard/index.html', **template_vars)

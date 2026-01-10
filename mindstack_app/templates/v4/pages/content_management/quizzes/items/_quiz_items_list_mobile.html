@@ -1,0 +1,186 @@
+{% set _v = template_version|default('v4') %}
+<!-- File: _quiz_items_list_mobile.html -->
+<!-- Phiên bản: 1.0 -->
+<!-- Mobile version: shown on mobile, hidden on lg+ -->
+
+{% from _v ~ '/includes/search/_search_form.html' import render_search_form %}
+{% from _v ~ '/includes/pagination/_pagination.html' import render_pagination %}
+
+<div class="lg:hidden cm-container space-y-6">
+    <div class="cm-section-header">
+        <div class="cm-heading-group">
+            <a href="{{ url_for('content_management.content_dashboard', tab='quizzes') }}" class="cm-link text-sm">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Quay lại bảng điều khiển</span>
+            </a>
+            <span class="cm-eyebrow">Bộ câu hỏi</span>
+            <h1 class="cm-heading">{{ quiz_set.title }}</h1>
+            <p class="cm-subheading">{{ (quiz_set.description or 'Quản lý câu hỏi luyện tập, chỉnh sửa đáp án và giữ
+                trải nghiệm kiểm tra mạch lạc.') | truncate(110, True, '…') }}</p>
+            <div class="cm-chip-row">
+                <span class="cm-pill cm-pill--accent">
+                    <i class="fa-solid fa-circle-question"></i>
+                    {{ pagination.total }} câu hỏi
+                </span>
+            </div>
+        </div>
+        {% if can_edit %}
+        <div class="cm-actions">
+            <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}"
+                data-modal-url="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}"
+                class="open-modal-btn cm-action cm-action--primary">
+                <i class="fas fa-plus-circle"></i>
+                <span>Thêm câu hỏi</span>
+            </a>
+            <a href="{{ url_for('content_management.content_management_quizzes.export_quiz_set', set_id=quiz_set.container_id) }}"
+                class="cm-action cm-action--ghost">
+                <i class="fas fa-file-export"></i>
+                <span>Xuất gói ZIP</span>
+            </a>
+            <a href="{{ url_for('content_management.content_management_quizzes.manage_quiz_excel', set_id=quiz_set.container_id) }}"
+                class="cm-action cm-action--ghost">
+                <i class="fas fa-table"></i>
+                <span>Cập nhật Excel</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="cm-card cm-card--padded">
+        {% set display_item_search_options = {
+        'question': 'Câu hỏi',
+        'option_a': 'Lựa chọn A',
+        'option_b': 'Lựa chọn B',
+        'option_c': 'Lựa chọn C',
+        'option_d': 'Lựa chọn D',
+        'correct_answer': 'Đáp án đúng',
+        'guidance': 'Giải thích/Gợi ý',
+        'pre_question_text': 'Văn bản trước câu hỏi',
+        'question_image_file': 'Ảnh câu hỏi (URL)',
+        'question_audio_file': 'Audio câu hỏi (URL)',
+        'group_id': 'Group ID',
+        'group_item_order': 'Thứ tự trong group'
+        } %}
+        <div class="cm-search-header">
+            <div class="cm-heading-group">
+                <h2 class="text-lg font-semibold text-slate-800">Tìm kiếm câu hỏi</h2>
+                <p class="cm-subheading text-sm">Kết hợp bộ lọc để cập nhật nội dung và đáp án phù hợp.</p>
+            </div>
+            <div class="w-full md:w-auto md:min-w-[320px]">
+                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm câu hỏi...",
+                set_id=quiz_set.container_id, search_field=search_field, search_options=display_item_search_options) }}
+            </div>
+        </div>
+    </div>
+
+    {% if quiz_items %}
+    <div class="cm-grid cm-grid--three">
+        {% for item in quiz_items %}
+        <article class="cm-collection-card">
+            <div class="flex items-start justify-between gap-4">
+                <div class="space-y-3">
+                    <div class="cm-chip-row text-xs font-semibold">
+                        <span class="cm-pill cm-pill--accent">
+                            <i class="fa-solid fa-circle-question"></i>
+                            Câu hỏi #<span data-order-label>{{ item.order_in_container }}</span>
+                        </span>
+                        <span class="cm-pill cm-pill--neutral">
+                            <i class="fa-solid fa-id-card-clip"></i>
+                            ID {{ item.item_id }}
+                        </span>
+                    </div>
+                    <h3 class="text-base font-semibold text-slate-900">{{ item.content.question }}</h3>
+                    <div class="space-y-1 text-sm text-slate-600">
+                        <p><span class="font-semibold text-slate-500">Đáp án đúng:</span> {{
+                            item.resolved_correct_answer or item.content.correct_answer }}</p>
+                        <ul class="list-disc space-y-1 pl-5 text-xs text-slate-500">
+                            <li><span class="font-semibold text-slate-600">A:</span> {{ item.content.options.A }}</li>
+                            <li><span class="font-semibold text-slate-600">B:</span> {{ item.content.options.B }}</li>
+                            {% if item.content.options.C %}<li><span class="font-semibold text-slate-600">C:</span> {{
+                                item.content.options.C }}</li>{% endif %}
+                            {% if item.content.options.D %}<li><span class="font-semibold text-slate-600">D:</span> {{
+                                item.content.options.D }}</li>{% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 space-y-2 text-xs text-slate-500">
+                {% if item.content.question_image_file %}
+                <span class="cm-tag">
+                    <i class="fa-solid fa-image text-slate-400"></i>
+                    Hình ảnh đính kèm
+                </span>
+                {% endif %}
+                {% if item.content.question_audio_file %}
+                <span class="cm-tag">
+                    <i class="fa-solid fa-volume-high text-slate-400"></i>
+                    Audio câu hỏi
+                </span>
+                {% endif %}
+                {% if item.content.explanation %}
+                <p class="rounded-2xl bg-slate-50 px-4 py-2 text-[0.75rem] text-slate-500">
+                    <span class="font-semibold text-slate-600">Gợi ý/Giải thích:</span>
+                    {{ item.content.explanation | truncate(160, True, '…') }}
+                </p>
+                {% endif %}
+                {% if item.ai_explanation %}
+                <p class="rounded-2xl bg-slate-50 px-4 py-2 text-[0.75rem] text-slate-500">
+                    <span class="font-semibold text-slate-600">Giải thích AI:</span>
+                    {{ item.ai_explanation | truncate(160, True, '…') }}
+                </p>
+                {% endif %}
+            </div>
+
+            <div class="cm-divider"></div>
+            <div class="flex items-center justify-between">
+                <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}"
+                    data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}"
+                    class="open-modal-btn cm-link">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Mở trình chỉnh sửa</span>
+                </a>
+                {% if can_edit %}
+                <div class="cm-inline-actions">
+                    <button type="button"
+                        data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}"
+                        class="open-modal-btn cm-icon-button" title="Chỉnh sửa">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <form
+                        action="{{ url_for('content_management.content_management_quizzes.delete_quiz_item', set_id=quiz_set.container_id, item_id=item.item_id) }}"
+                        method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa câu hỏi này?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="cm-icon-button" title="Xoá câu hỏi">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    <div class="pt-6">
+        {{ render_pagination(pagination=pagination, search_query=search_query, set_id=quiz_set.container_id,
+        search_field=search_field) }}
+    </div>
+
+    {% else %}
+    <div class="cm-empty">
+        <span class="cm-empty-icon">
+            <i class="fa-solid fa-circle-question"></i>
+        </span>
+        <p class="text-sm">Bộ quiz này chưa có câu hỏi nào hoặc không tìm thấy kết quả phù hợp.</p>
+        {% if can_edit %}
+        <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}"
+            data-modal-url="{{ url_for('content_management.content_management_quizzes.add_quiz_item', set_id=quiz_set.container_id) }}"
+            class="open-modal-btn cm-action cm-action--primary">
+            <i class="fas fa-plus-circle"></i>
+            <span>Thêm câu hỏi đầu tiên</span>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

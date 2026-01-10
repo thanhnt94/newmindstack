@@ -1,0 +1,209 @@
+{# ================= PROFILE MOBILE - APP-LIKE INTERFACE ================= #}
+{% set _v = template_version|default('v4') %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<div class="lg:hidden fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard"
+    style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+
+    {# === CLEAN BACKGROUND === #}
+    <div class="fixed inset-0 bg-gradient-to-b from-slate-50 to-slate-100 -z-10"></div>
+
+    {# === TOP NAVBAR === #}
+    {% include _v ~ '/includes/navbar/_navbar_mobile.html' %}
+
+    {# === MAIN CONTENT === #}
+    <div class="flex-grow overflow-y-auto overflow-x-hidden p-5 space-y-5 pb-24 relative">
+
+        {# Header #}
+        <div class="animate-fade-in-up" style="animation-delay: 0.1s">
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Cá nhân</h1>
+            <p class="text-sm text-slate-600 mt-1">Thông tin tài khoản và thành tích của bạn</p>
+        </div>
+
+        {# Profile Card #}
+        <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl animate-fade-in-up"
+            style="animation-delay: 0.2s">
+            <div class="flex items-center gap-4 mb-6">
+                <div
+                    class="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-4 border-white/30">
+                    <i class="fa-solid fa-user text-4xl text-white"></i>
+                </div>
+                <div class="flex-grow">
+                    <h2 class="text-2xl font-black">{{ user.username }}</h2>
+                    <p class="text-sm opacity-90 mt-1">{{ user.user_role }}</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                    <p class="text-xs opacity-80 uppercase tracking-wide font-bold mb-1">Tổng điểm</p>
+                    <p class="text-3xl font-black">{{ "{:,}".format(user.total_score if user.total_score is not none
+                        else 0) }}</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                    <p class="text-xs opacity-80 uppercase tracking-wide font-bold mb-1">Vai trò</p>
+                    <p class="text-base font-bold mt-2">{{ user.user_role }}</p>
+                </div>
+            </div>
+        </div>
+
+        {# Info Cards #}
+        <div class="space-y-3">
+            {# Username #}
+            <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+                style="animation-delay: 0.3s">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-user text-xl"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Tên đăng nhập</p>
+                        <p class="text-base font-bold text-slate-900 mt-1">{{ user.username }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {# Role #}
+            <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+                style="animation-delay: 0.4s">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-id-badge text-xl"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Vai trò</p>
+                        <p class="text-base font-bold text-slate-900 mt-1">{{ user.user_role }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {# Last Seen #}
+            <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+                style="animation-delay: 0.5s">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-calendar-alt text-xl"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Lần cuối hoạt động</p>
+                        <p class="text-base font-bold text-slate-900 mt-1">{{ user.last_seen.strftime('%Y-%m-%d
+                            %H:%M:%S') if user.last_seen else 'Chưa có' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {# Total Score #}
+            <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+                style="animation-delay: 0.6s">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-star text-xl"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Tổng điểm</p>
+                        <p class="text-2xl font-black text-slate-900 mt-1">{{ "{:,}".format(user.total_score if
+                            user.total_score is not none else 0) }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {# Telegram #}
+            <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+                style="animation-delay: 0.62s">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white">
+                        <i class="fab fa-telegram-plane text-2xl"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Telegram Bot</p>
+                        {% if user.telegram_chat_id %}
+                        <p class="text-base font-bold text-green-600 mt-1 flex items-center">
+                            <i class="fa-solid fa-check-circle mr-1"></i> Đã kết nối
+                        </p>
+                        {% else %}
+                        <a href="{{ telegram_link }}" target="_blank"
+                            class="inline-block mt-1 text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
+                            Kết nối ngay <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Badges #}
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm animate-fade-in-up"
+            style="animation-delay: 0.65s">
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-medal text-yellow-500"></i> Bộ sưu tập huy hiệu
+            </h3>
+
+            {% if badges %}
+            <div class="grid grid-cols-4 gap-4">
+                {% for ub in badges %}
+                <div class="flex flex-col items-center active:scale-95 transition-transform cursor-pointer"
+                    onclick="alert('{{ ub.badge.name }}\n{{ ub.badge.description }}')">
+                    <div
+                        class="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-50 to-amber-100 flex items-center justify-center border border-amber-200 shadow-sm mb-2">
+                        <i class="{{ ub.badge.icon_class }} text-2xl text-amber-600"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-center text-slate-700 leading-tight w-full line-clamp-2">{{
+                        ub.badge.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <i class="fa-solid fa-shield-cat text-4xl text-slate-300 mb-3"></i>
+                <p class="text-sm text-slate-500 font-medium">Chưa có huy hiệu nào</p>
+                <p class="text-xs text-slate-400 mt-1">Hãy chăm chỉ học tập nhé!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Edit Button #}
+        <a href="{{ url_for('user_profile.edit_profile') }}"
+            class="flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all font-bold text-base animate-fade-in-up"
+            style="animation-delay: 0.7s">
+            <i class="fa-solid fa-edit text-xl"></i>
+            <span>Chỉnh sửa Profile</span>
+        </a>
+
+        {# Logout Button #}
+        <a href="{{ url_for('auth.logout') }}"
+            class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-red-500 to-rose-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all font-bold text-base animate-fade-in-up"
+            style="animation-delay: 0.8s">
+            <i class="fa-solid fa-right-from-bracket text-xl"></i>
+            <span>Đăng xuất</span>
+        </a>
+    </div>
+
+    {# === BOTTOM NAV === #}
+    {% set active_page = 'profile' %}
+    {% include _v ~ '/includes/navbar/_bottom_nav_mobile.html' %}
+</div>
+
+<style>
+    @keyframes fade-in-up {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fade-in-up 0.6s ease-out backwards;
+    }
+</style>

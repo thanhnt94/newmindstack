@@ -3,6 +3,7 @@
 # Mục đích: Chứa các route và logic cho việc quản lý profile cá nhân của người dùng.
 
 from flask import render_template, redirect, url_for, flash, request
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
 # Import Blueprint từ __init__.py của module này
@@ -36,7 +37,7 @@ def view_profile():
         telegram_link = '#'
         print(f"Error generating telegram link: {e}")
 
-    return render_template('v3/pages/user_profile/profile.html', user=current_user, badges=badges, telegram_link=telegram_link)
+    return render_dynamic_template('pages/user_profile/profile.html', user=current_user, badges=badges, telegram_link=telegram_link)
 
 # Route để chỉnh sửa profile cá nhân
 @user_profile_bp.route('/edit', methods=['GET', 'POST'])
@@ -58,7 +59,7 @@ def edit_profile():
             # Kiểm tra mật khẩu khớp nếu có nhập mật khẩu mới
             if form.password.data != form.password2.data:
                 form.password2.errors.append('Mật khẩu không khớp.')
-                return render_template('v3/pages/user_profile/edit_profile.html', form=form, title='Sửa Profile', user=user)
+                return render_dynamic_template('pages/user_profile/edit_profile.html', form=form, title='Sửa Profile', user=user)
             user.set_password(form.password.data)
         
         db.session.commit()
@@ -72,7 +73,7 @@ def edit_profile():
         form.email.data = user.email
         form.timezone.data = user.timezone or 'UTC' # Default to UTC if not set
 
-    return render_template('v3/pages/user_profile/edit_profile.html', form=form, title='Sửa Profile', user=user)
+    return render_dynamic_template('pages/user_profile/edit_profile.html', form=form, title='Sửa Profile', user=user)
 
 # Route API để lấy và lưu preferences
 @user_profile_bp.route('/api/preferences', methods=['GET', 'POST'])

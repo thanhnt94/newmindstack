@@ -1,4 +1,5 @@
 from flask import render_template, request, jsonify, abort, url_for
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
 from . import listening_bp
@@ -58,8 +59,7 @@ def setup(set_id):
     except Exception as e:
         pass
 
-    return render_template(
-        'v3/pages/learning/vocabulary/listening/setup/index.html',
+    return render_dynamic_template('pages/learning/vocabulary/listening/setup/index.html',
         container=container,
         counts={
             'new': count_new,
@@ -177,8 +177,7 @@ def session_page():
     custom_pairs = session_data.get('custom_pairs')
     count = session_data.get('count', 10)
     
-    return render_template(
-        'v3/pages/learning/vocabulary/listening/session/index.html',
+    return render_dynamic_template('pages/learning/vocabulary/listening/session/index.html',
         container=container,
         custom_pairs=custom_pairs,
         count=count
@@ -230,8 +229,7 @@ def session(set_id):
         traceback.print_exc()
         pass
 
-    return render_template(
-        'v3/pages/learning/vocabulary/listening/session/index.html',
+    return render_dynamic_template('pages/learning/vocabulary/listening/session/index.html',
         container=container,
         total_items=len(items)
     )

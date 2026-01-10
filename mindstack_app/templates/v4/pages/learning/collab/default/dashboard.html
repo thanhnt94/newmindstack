@@ -1,0 +1,222 @@
+{% set _v = template_version|default('v4') %}
+{% extends _v ~ '/base.html' %}
+{% block title %}Học Chung - MindStack{% endblock %}
+
+{% block content %}
+{# === MOBILE NAVIGATION === #}
+{# Top Navbar (Mobile Only) #}
+<div class="lg:hidden">
+    {% include _v ~ '/includes/navbar/_navbar_mobile.html' %}
+</div>
+
+{# Bottom Nav (Mobile Only) #}
+<div class="lg:hidden fixed bottom-0 left-0 right-0 z-[200]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+    {% set active_page = '' %}
+    {% include _v ~ '/includes/navbar/_bottom_nav_mobile.html' %}
+</div>
+
+<style>
+    /* Mobile collab dashboard adjustments */
+    @media (max-width: 1023px) {
+
+        /* Hide ONLY base.html header/footer */
+        body>header,
+        body>nav:first-of-type,
+        body>footer:last-of-type {
+            display: none !important;
+        }
+
+        /* Lock viewport - no scroll */
+        html,
+        body {
+            height: 100dvh !important;
+            overflow: hidden !important;
+        }
+
+        /* Main fills available space */
+        main {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+    }
+
+    .collab-page {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+        padding: 1.5rem;
+        padding-bottom: 100px;
+    }
+
+    @media (min-width: 1024px) {
+        .collab-page {
+            min-height: 60vh;
+            padding-bottom: 2rem;
+        }
+    }
+
+    .collab-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .collab-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .collab-icon i {
+        font-size: 2.5rem;
+        color: white;
+    }
+
+    .collab-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #1a202c;
+        margin-bottom: 0.5rem;
+    }
+
+    .collab-subtitle {
+        color: #718096;
+        font-size: 1rem;
+    }
+
+    .collab-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .collab-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: white;
+        padding: 1.25rem;
+        border-radius: 16px;
+        text-decoration: none;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+        border: 1px solid #e2e8f0;
+    }
+
+    .collab-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        border-color: #cbd5e0;
+    }
+
+    .collab-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .collab-card-icon.emerald {
+        background: #d1fae5;
+    }
+
+    .collab-card-icon.emerald i {
+        color: #10b981;
+        font-size: 1.25rem;
+    }
+
+    .collab-card-icon.blue {
+        background: #dbeafe;
+    }
+
+    .collab-card-icon.blue i {
+        color: #3b82f6;
+        font-size: 1.25rem;
+    }
+
+    .collab-card-content {
+        flex: 1;
+    }
+
+    .collab-card-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 0.125rem;
+    }
+
+    .collab-card-desc {
+        font-size: 0.875rem;
+        color: #718096;
+    }
+
+    .collab-card-arrow {
+        color: #cbd5e0;
+        font-size: 0.875rem;
+    }
+
+    .collab-card:hover .collab-card-arrow {
+        color: #667eea;
+    }
+</style>
+
+<div class="collab-page">
+    <div class="collab-header">
+        <div class="collab-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <h1 class="collab-title">Học Chung</h1>
+        <p class="collab-subtitle">Chọn chế độ học cộng tác của bạn</p>
+    </div>
+
+    <div class="collab-cards">
+        <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}" class="collab-card">
+            <div class="collab-card-icon emerald">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="collab-card-content">
+                <div class="collab-card-title">Quiz Battle</div>
+                <div class="collab-card-desc">Thi đấu trắc nghiệm theo nhóm</div>
+            </div>
+            <i class="fas fa-chevron-right collab-card-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('learning.flashcard_collab.dashboard') }}" class="collab-card">
+            <div class="collab-card-icon blue">
+                <i class="fas fa-clone"></i>
+            </div>
+            <div class="collab-card-content">
+                <div class="collab-card-title">Flashcard Collab</div>
+                <div class="collab-card-desc">Học thẻ nhớ cùng bạn bè</div>
+            </div>
+            <i class="fas fa-chevron-right collab-card-arrow"></i>
+        </a>
+    </div>
+</div>
+{% endblock %}

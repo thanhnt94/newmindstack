@@ -1,0 +1,162 @@
+{% set _v = template_version|default('v4') %}
+{% extends _v ~ '/base.html' %}
+
+{% block title %}Bảng xếp hạng{% endblock %}
+
+{% block content %}
+<div class="h-full flex flex-col bg-slate-50">
+    <!-- Header -->
+    <div class="bg-white border-b px-4 py-3 sticky top-0 z-10 shadow-sm">
+        <div class="flex items-center mb-3">
+            <button onclick="history.back()" class="mr-3 text-slate-600 hover:text-blue-600">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </button>
+            <h1 class="text-lg font-bold text-slate-800">Bảng xếp hạng</h1>
+        </div>
+
+        <!-- Timeframe Tabs -->
+        <div class="flex bg-slate-100 p-1 rounded-xl">
+            <button onclick="switchTab('week')" id="tab-week"
+                class="flex-1 py-1.5 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 transition-all">Tuần
+                này</button>
+            <button onclick="switchTab('month')" id="tab-month"
+                class="flex-1 py-1.5 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 transition-all">Tháng
+                này</button>
+            <button onclick="switchTab('all_time')" id="tab-all_time"
+                class="flex-1 py-1.5 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 transition-all">Tổng
+                điểm</button>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-4" id="leaderboard-container">
+        <div id="loading-spinner" class="flex justify-center py-10">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+        </div>
+
+        <!-- Top 3 Podium (Optional, can be added later) -->
+
+        <!-- List -->
+        <div id="leaderboard-list" class="space-y-3 pb-20"></div>
+    </div>
+</div>
+
+<template id="rank-item-template">
+    <div
+        class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex items-center space-x-3 transition-colors">
+        <div class="w-8 flex justify-center font-bold text-lg rank-number"></div>
+        <div
+            class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold overflow-hidden avatar-container">
+            <!-- Avatar or Initials -->
+        </div>
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-slate-800 username truncate"></p>
+            <p class="text-xs text-slate-500">Học viên</p>
+        </div>
+        <div class="text-right">
+            <div class="font-bold text-blue-600 text-base score-value"></div>
+            <div class="text-[10px] text-slate-400 uppercase">Điểm</div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    let currentTimeframe = 'month';
+
+    function switchTab(timeframe) {
+        currentTimeframe = timeframe;
+        updateTabs();
+        loadLeaderboard();
+    }
+
+    function updateTabs() {
+        ['week', 'month', 'all_time'].forEach(t => {
+            const btn = document.getElementById(`tab-${t}`);
+            if (t === currentTimeframe) {
+                btn.className = 'flex-1 py-1.5 text-sm font-bold rounded-lg bg-white text-blue-600 shadow-sm transition-all';
+            } else {
+                btn.className = 'flex-1 py-1.5 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 transition-all';
+            }
+        });
+    }
+
+    async function loadLeaderboard() {
+        const listContainer = document.getElementById('leaderboard-list');
+        const spinner = document.getElementById('loading-spinner');
+
+        listContainer.innerHTML = '';
+        spinner.classList.remove('hidden');
+
+        try {
+            const response = await fetch(`{{ url_for('gamification_api.get_leaderboard_api') }}?timeframe=${currentTimeframe}&limit=50`);
+            const data = await response.json();
+
+            if (data.success) {
+                renderLeaderboard(data.leaderboard);
+            }
+        } catch (error) {
+            console.error('Error loading leaderboard:', error);
+            listContainer.innerHTML = '<div class="text-center text-red-500 py-4">Có lỗi xảy ra khi tải bảng xếp hạng.</div>';
+        } finally {
+            spinner.classList.add('hidden');
+        }
+    }
+
+    function renderLeaderboard(items) {
+        const listContainer = document.getElementById('leaderboard-list');
+        const template = document.getElementById('rank-item-template');
+
+        if (items.length === 0) {
+            listContainer.innerHTML = `
+                <div class="text-center py-10 text-slate-400">
+                    <i class="fas fa-trophy text-4xl mb-3 opacity-30"></i>
+                    <p>Chưa có dữ liệu xếp hạng.</p>
+                </div>
+            `;
+            return;
+        }
+
+        items.forEach((item, index) => {
+            const rank = index + 1;
+            const clone = template.content.cloneNode(true);
+            const el = clone.querySelector('div'); // Root div
+
+            // Highlight current user
+            if (item.is_current) {
+                el.classList.add('bg-blue-50', 'border-blue-200');
+                el.classList.remove('bg-white', 'border-slate-100');
+            }
+
+            // Rank Styling
+            const rankEl = clone.querySelector('.rank-number');
+            rankEl.textContent = rank;
+            if (rank === 1) rankEl.classList.add('text-yellow-500', 'text-2xl');
+            else if (rank === 2) rankEl.classList.add('text-slate-400', 'text-xl');
+            else if (rank === 3) rankEl.classList.add('text-amber-700', 'text-xl');
+            else rankEl.classList.add('text-slate-500', 'text-sm');
+
+            // Avatar
+            const avatarParams = new URLParams({
+                name: item.username,
+                background: 'random',
+                color: 'fff',
+                size: '128'
+            });
+            const avatarUrl = `https://ui-avatars.com/api/?${avatarParams.toString()}`;
+            clone.querySelector('.avatar-container').innerHTML = `<img src="${avatarUrl}" alt="${item.username}" class="w-full h-full object-cover">`;
+
+            // Info
+            clone.querySelector('.username').textContent = item.username;
+            clone.querySelector('.score-value').textContent = item.score.toLocaleString();
+
+            listContainer.appendChild(clone);
+        });
+    }
+
+    // Init
+    switchTab('month'); // Default tab
+</script>
+{% endblock %}

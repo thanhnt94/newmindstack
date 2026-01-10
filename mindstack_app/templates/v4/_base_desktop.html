@@ -1,0 +1,28 @@
+{# ================= DESKTOP COMPONENTS MACROS ================= #}
+
+{% macro header(current_user, request) %}
+{# Import the navbar rendering macro - use template_version from context or fallback #}
+{% set _v = template_version|default('v4') %}
+{% from _v ~ '/includes/navbar/_navbar.html' import render_navbar %}
+
+<header class="bg-white border-b border-slate-100 relative z-50 hidden lg:block">
+    {{ render_navbar(current_user, request) }}
+</header>
+{% endmacro %}
+
+{% macro footer() %}
+{% set _v = template_version|default('v4') %}
+<footer class="bg-white border-t border-slate-100 py-6 hidden lg:block mt-auto">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <i class="fa-solid fa-brain text-indigo-500 text-sm"></i>
+            </div>
+            <span class="font-semibold text-slate-600">Mindstack</span>
+            <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{{ _v|upper }}</span>
+        </div>
+        <p class="text-sm text-slate-400">© 2025 Mindstack. All rights reserved. | Current theme: MindStack {{ _v|upper
+            }}</p>
+    </div>
+</footer>
+{% endmacro %}

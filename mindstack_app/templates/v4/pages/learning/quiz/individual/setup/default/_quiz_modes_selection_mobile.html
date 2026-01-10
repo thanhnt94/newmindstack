@@ -1,0 +1,31 @@
+<div class="w-full space-y-3">
+    {% if modes %}
+    {% for mode in modes %}
+    {# Chỉ hiển thị các mode được yêu cầu #}
+    {% if mode.id in ['new_only', 'due_only', 'hard_only'] %}
+    {% set is_disabled_mode = (mode.count == 0) %}
+    <div class="quiz-mode-item bg-white p-4 rounded-lg border border-gray-200 transition-colors duration-200 flex justify-between items-center 
+                        {% if is_disabled_mode %}opacity-40 grayscale pointer-events-none{% else %}cursor-pointer{% endif %}"
+        data-mode-id="{{ mode.id }}" data-count="{{ mode.count }}">
+        <h3 class="font-semibold text-gray-800">{{ mode.name }}</h3>
+        <div class="flex items-center">
+            {# THAY ĐỔI: Loại bỏ nền, padding và bo tròn, tăng kích thước font để đồng bộ với giao diện phẳng #}
+            <span class="text-lg font-semibold text-gray-700">{{ mode.count }}</span>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% else %}
+    <div class="text-center py-12 px-6 text-gray-600">
+        <i class="fas fa-info-circle text-5xl text-gray-300 mb-4"></i>
+        <p>Không có chế độ học nào khả dụng.</p>
+    </div>
+    {% endif %}
+
+    <div class="step-bottom-bar">
+        <button type="button" class="step-continue-btn js-quiz-continue" disabled>
+            <span>Bắt đầu kiểm tra</span>
+            <i class="fas fa-play"></i>
+        </button>
+    </div>
+</div>

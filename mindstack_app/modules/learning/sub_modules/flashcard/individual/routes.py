@@ -4,6 +4,7 @@
 # Routes này sử dụng engine module như dependency.
 
 from flask import render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 import traceback
 from . import flashcard_learning_bp
@@ -142,8 +143,7 @@ def setup(set_id):
     except Exception:
         pass
 
-    return render_template(
-        'v3/pages/learning/vocabulary/flashcard/setup/index.html',
+    return render_dynamic_template('pages/learning/vocabulary/flashcard/setup/index.html',
         set_id=set_id,
         container_title=container.title,
         mode_counts=mode_counts,
@@ -199,7 +199,7 @@ def get_flashcard_options_partial(set_identifier):
             return '<p class="text-red-500 text-center">Lỗi: Không tìm thấy ID bộ thẻ.</p>', 400
 
 
-    return render_template('v3/pages/learning/collab/flashcard/_modes_list.html',
+    return render_dynamic_template('pages/learning/collab/flashcard/_modes_list.html',
                            modes=modes,
                            selected_set_id=set_identifier,
                            selected_flashcard_mode_id=selected_mode,
@@ -880,7 +880,7 @@ def get_flashcard_sets_partial():
         }
 
         current_app.logger.debug("<<< Kết thúc thực thi get_flashcard_sets_partial (Thành công) >>>")
-        return render_template('v3/pages/learning/collab/flashcard/_sets_list.html', **template_vars)
+        return render_dynamic_template('pages/learning/collab/flashcard/_sets_list.html', **template_vars)
 
     except Exception as e:
         print(f">>> PYTHON LỖI: Đã xảy ra lỗi trong get_flashcard_sets_partial: {e}")

@@ -4,6 +4,7 @@
 # ĐÃ THÊM: Import và đăng ký course_learning_bp.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer
 from .sub_modules.flashcard.services.session_service import LearningSessionService
@@ -218,7 +219,7 @@ def manage_sessions():
         })
     
     current_app.logger.debug("Rendering v3/pages/learning/sessions.html")
-    return render_template('v3/pages/learning/sessions.html', sessions=session_list, history=history_list)
+    return render_dynamic_template('pages/learning/sessions.html', sessions=session_list, history=history_list)
 
 
 @learning_bp.route('/session/<session_id>/summary')
@@ -268,8 +269,7 @@ def session_summary(session_id):
     else:
         summary_data['accuracy'] = 0
 
-    return render_template(
-        'v3/pages/learning/session_summary.html',
+    return render_dynamic_template('pages/learning/session_summary.html',
         summary=summary_data,
         set_id=session.set_id_data if isinstance(session.set_id_data, int) else None
     )

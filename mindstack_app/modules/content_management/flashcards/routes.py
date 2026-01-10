@@ -19,6 +19,7 @@ from flask import (
     current_app,
     send_file,
 )
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
@@ -752,9 +753,9 @@ def list_flashcard_sets():
 
     # Trả về template phù hợp (ajax hoặc đầy đủ)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('v3/pages/content_management/flashcards/sets/_flashcard_sets_list.html', **template_vars)
+        return render_dynamic_template('pages/content_management/flashcards/sets/_flashcard_sets_list.html', **template_vars)
     else:
-        return render_template('v3/pages/content_management/flashcards/sets/flashcard_sets.html', **template_vars)
+        return render_dynamic_template('pages/content_management/flashcards/sets/flashcard_sets.html', **template_vars)
 
 
 @flashcards_bp.route('/flashcards/<int:set_id>/export', methods=['GET'])
@@ -953,8 +954,7 @@ def manage_flashcard_excel(set_id):
     export_zip_url = url_for('content_management.content_management_flashcards.export_flashcard_set', set_id=set_id)
     template_url = url_for('content_management.content_management_flashcards.download_flashcard_excel_template')
     item_count = LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD').count()
-    return render_template(
-        'v3/pages/content_management/flashcards/excel/manage_flashcard_excel.html',
+    return render_dynamic_template('pages/content_management/flashcards/excel/manage_flashcard_excel.html',
         flashcard_set=flashcard_set,
         export_excel_url=export_excel_url,
         export_zip_url=export_zip_url,
@@ -1052,8 +1052,8 @@ def add_flashcard_set():
     
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('v3/pages/content_management/flashcards/sets/_add_edit_flashcard_set_bare.html', form=form, title='Thêm Bộ thẻ ghi nhớ', template_url=template_url)
-    return render_template('v3/pages/content_management/flashcards/sets/add_edit_flashcard_set.html', form=form, title='Thêm Bộ thẻ ghi nhớ', template_url=template_url)
+        return render_dynamic_template('pages/content_management/flashcards/sets/_add_edit_flashcard_set_bare.html', form=form, title='Thêm Bộ thẻ ghi nhớ', template_url=template_url)
+    return render_dynamic_template('pages/content_management/flashcards/sets/add_edit_flashcard_set.html', form=form, title='Thêm Bộ thẻ ghi nhớ', template_url=template_url)
 
 @flashcards_bp.route('/flashcards/edit/<int:set_id>', methods=['GET', 'POST'])
 @login_required
@@ -1181,8 +1181,7 @@ def edit_flashcard_set(set_id):
             
         return redirect(url_for('content_management.flashcards.sets.list_flashcard_sets'))
 
-    return render_template(
-        'v3/pages/content_management/flashcards/sets/_add_edit_flashcard_set_bare.html',
+    return render_dynamic_template('pages/content_management/flashcards/sets/_add_edit_flashcard_set_bare.html',
         form=form,
         is_edit=True,
         flashcard_set=flashcard_set,
@@ -1322,7 +1321,7 @@ def list_flashcard_items(set_id):
         _has_editor_access(set_id)
     )
     
-    return render_template('v3/pages/content_management/flashcards/items/flashcard_items.html',
+    return render_dynamic_template('pages/content_management/flashcards/items/flashcard_items.html',
                            flashcard_set=flashcard_set,
                            flashcard_items=flashcard_items,
                            can_edit=can_edit,
@@ -1570,8 +1569,8 @@ def add_flashcard_item(set_id):
 
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('v3/pages/content_management/flashcards/items/_add_edit_flashcard_item_bare.html', **context)
-    return render_template('v3/pages/content_management/flashcards/items/add_edit_flashcard_item.html', **context)
+        return render_dynamic_template('pages/content_management/flashcards/items/_add_edit_flashcard_item_bare.html', **context)
+    return render_dynamic_template('pages/content_management/flashcards/items/add_edit_flashcard_item.html', **context)
 
 @flashcards_bp.route('/flashcards/edit/<int:set_id>/items/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
@@ -1731,8 +1730,8 @@ def edit_flashcard_item(set_id, item_id):
 
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_template('v3/pages/content_management/flashcards/items/_add_edit_flashcard_item_bare.html', **context)
-    return render_template('v3/pages/content_management/flashcards/items/add_edit_flashcard_item.html', **context)
+        return render_dynamic_template('pages/content_management/flashcards/items/_add_edit_flashcard_item_bare.html', **context)
+    return render_dynamic_template('pages/content_management/flashcards/items/add_edit_flashcard_item.html', **context)
 
 
 @flashcards_bp.route('/flashcards/edit/<int:set_id>/items/<int:item_id>/move', methods=['POST'])

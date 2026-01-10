@@ -1,0 +1,559 @@
+{# Quiz Setup Template - Wizard Style #}
+{% set _v = template_version|default('v4') %}
+{% extends _v ~ '/base.html' %}
+{% block title %}Kiểm tra - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary: #3b82f6;
+        --primary-bg: #eff6ff;
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #0f172a;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+    }
+
+    body {
+        background: var(--background);
+        font-family: 'Outfit', 'Inter', sans-serif;
+    }
+
+    .wizard-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 800px;
+        margin: 0 auto;
+        background: var(--background);
+        padding: 0 1rem;
+    }
+
+    .wizard-header {
+        padding: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        max-width: 800px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        font-size: 1.1rem;
+        cursor: pointer;
+        text-decoration: none;
+        border: 1px solid var(--border);
+    }
+
+    .header-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .set-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mode-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .step-indicator {
+        display: flex;
+        gap: 6px;
+        width: 40px;
+        justify-content: flex-end;
+    }
+
+    .step-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--border);
+    }
+
+    .step-dot.active {
+        background: var(--primary);
+        width: 16px;
+        border-radius: 12px;
+    }
+
+    .wizard-content {
+        flex: 1;
+        padding: 75px 1.5rem 100px 1.5rem;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .step-screen {
+        display: none;
+    }
+
+    .step-screen.active {
+        display: block;
+    }
+
+    .title-area {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .title-area h2 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0 0 0.5rem 0;
+    }
+
+    .title-area p {
+        color: var(--text-sub);
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .mode-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .mode-card {
+        background: var(--surface);
+        border: 2px solid transparent;
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mode-card.selected {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+    }
+
+    .mode-card.disabled {
+        opacity: 0.5;
+        filter: grayscale(1);
+        cursor: not-allowed;
+    }
+
+    .mode-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 16px;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--text-sub);
+    }
+
+    .mode-card.selected .mode-icon {
+        background: var(--primary);
+        color: white;
+    }
+
+    .mode-info {
+        flex: 1;
+    }
+
+    .mode-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-main);
+        display: block;
+    }
+
+    .mode-desc {
+        font-size: 0.9rem;
+        color: var(--text-sub);
+        display: block;
+    }
+
+    .config-card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+    }
+
+    .config-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .config-header i {
+        color: var(--primary);
+    }
+
+    .options-row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .option-chip {
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--background);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        cursor: pointer;
+    }
+
+    .option-chip.selected {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .modern-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-main);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    .modern-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .wizard-footer {
+        padding: 1rem 1.5rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 800px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .action-btn {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 16px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.4);
+    }
+
+    .action-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Toggle Styles */
+    .toggle-bg {
+        transition: background-color 0.2s ease;
+    }
+
+    #limit-toggle:checked~.toggle-bg {
+        background-color: var(--primary);
+    }
+
+    #limit-toggle:checked~.dot {
+        transform: translateX(100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+    <div class="wizard-header">
+        <a id="header-back-btn" href="{{ url_for('learning.quiz_learning.dashboard') }}" class="nav-btn">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        <div class="header-info">
+            <span class="mode-badge"><i class="fas fa-tasks"></i> Kiểm tra</span>
+            <h1 class="set-title">{{ container.title }}</h1>
+        </div>
+        <a href="/dashboard" class="nav-btn" title="Về trang chủ">
+            <i class="fas fa-home"></i>
+        </a>
+    </div>
+
+    <div class="wizard-content">
+        <div class="title-area">
+            <h2>Thiết lập kiểm tra</h2>
+            <p>Chọn chế độ và số lượng câu hỏi</p>
+        </div>
+
+        <div class="mode-grid">
+            {% for m in modes %}
+            <div class="mode-card {% if m.count == 0 %}disabled{% endif %}" data-value="{{ m.id }}">
+                <div class="mode-icon">
+                    {% if m.id == 'new_only' %}<i class="fas fa-seedling"></i>
+                    {% elif m.id == 'due_only' %}<i class="fas fa-history"></i>
+                    {% elif m.id == 'hard_only' %}<i class="fas fa-fire-alt"></i>
+                    {% else %}<i class="fas fa-random"></i>{% endif %}
+                </div>
+                <div class="mode-info">
+                    <span class="mode-title">{{ m.name }}</span>
+                    <span class="mode-desc">{{ m.count }} câu hỏi khả dụng</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Count Config -->
+        <div class="config-card" style="margin-top: 1.5rem;">
+            <div class="flex justify-between items-center">
+                <div class="config-header mb-0">
+                    <i class="fas fa-sort-numeric-up"></i> Số lượng câu hỏi <span id="limit-status-text"
+                        class="text-blue-500 font-semibold">Tất cả</span>
+                </div>
+                <!-- Limit Toggle -->
+                <label class="flex items-center cursor-pointer">
+                    <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                    <div class="relative">
+                        <input type="checkbox" id="limit-toggle" class="sr-only">
+                        <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                        <div
+                            class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Count Select (Hidden by default) -->
+            <div id="limit-options" class="hidden mt-4">
+                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn tổng số câu:</label>
+                <div class="relative w-full">
+                    <select id="count-select" class="modern-select">
+                        <option value="5">5 câu</option>
+                        <option value="10" selected>10 câu</option>
+                        <option value="20">20 câu</option>
+                        <option value="30">30 câu</option>
+                        <option value="50">50 câu</option>
+                        <option value="100">100 câu</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Turn Size Config (Batch Mode) -->
+        <div class="config-card" style="margin-top: 1.5rem;">
+            <div class="flex justify-between items-center">
+                <div class="config-header mb-0">
+                    <i class="fas fa-layer-group"></i> Số câu mỗi lượt <span id="turn-status-text"
+                        class="text-blue-500 font-semibold">1 câu</span>
+                </div>
+                <!-- Turn Toggle -->
+                <label class="flex items-center cursor-pointer">
+                    <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                    <div class="relative">
+                        <input type="checkbox" id="turn-toggle" class="sr-only">
+                        <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                        <div
+                            class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Turn Select (Hidden by default) -->
+            <div id="turn-options" class="hidden mt-4">
+                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn số câu mỗi lượt:</label>
+                <div class="relative w-full">
+                    <select id="turn-select" class="modern-select">
+                        <option value="1" selected>1 câu</option>
+                        <option value="2">2 câu</option>
+                        <option value="3">3 câu</option>
+                        <option value="5">5 câu</option>
+                        <option value="10">10 câu</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="wizard-footer">
+        <button class="action-btn" id="start-btn">
+            Bắt đầu học ngay <i class="fas fa-rocket"></i>
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        var setId = {{ container.container_id| int
+    }};
+    var dashboardUrl = "{{ url_for('learning.quiz_learning.dashboard') }}";
+    var savedBatchSize = {{ user_default_batch_size|default (10) | int }};
+    var savedTurnSize = 1; // Default to 1 for Quiz
+
+    var selectedMode = '';
+    var selectedCount = savedBatchSize;
+    var selectedTurnSize = savedTurnSize;
+
+    var startBtn = document.getElementById('start-btn');
+    var modeCards = document.querySelectorAll('.mode-card');
+    var countSelect = document.getElementById('count-select');
+    var limitToggle = document.getElementById('limit-toggle');
+    var limitOptions = document.getElementById('limit-options');
+    var limitStatusText = document.getElementById('limit-status-text');
+
+    var turnToggle = document.getElementById('turn-toggle');
+    var turnOptions = document.getElementById('turn-options');
+    var turnSelect = document.getElementById('turn-select');
+    var turnStatusText = document.getElementById('turn-status-text');
+
+    // Initial setup
+    if (savedBatchSize && savedBatchSize < 999999) {
+        limitToggle.checked = true;
+        countSelect.value = savedBatchSize;
+    } else {
+        limitToggle.checked = false;
+    }
+    updateLimitUI();
+    updateTurnUI();
+
+    function updateLimitUI() {
+        if (limitToggle.checked) {
+            limitOptions.classList.remove('hidden');
+            limitStatusText.classList.add('hidden');
+            selectedCount = Number(countSelect.value);
+        } else {
+            limitOptions.classList.add('hidden');
+            limitStatusText.classList.remove('hidden');
+            selectedCount = 999999;
+        }
+    }
+
+    function updateTurnUI() {
+        if (turnToggle && turnToggle.checked) {
+            turnOptions.classList.remove('hidden');
+            turnStatusText.classList.add('hidden');
+            selectedTurnSize = Number(turnSelect.value);
+        } else {
+            if (turnOptions) turnOptions.classList.add('hidden');
+            if (turnStatusText) turnStatusText.classList.remove('hidden');
+            selectedTurnSize = 1;
+        }
+    }
+
+    limitToggle.addEventListener('change', updateLimitUI);
+    countSelect.addEventListener('change', updateLimitUI);
+
+    if (turnToggle) turnToggle.addEventListener('change', updateTurnUI);
+    if (turnSelect) turnSelect.addEventListener('change', updateTurnUI);
+
+    // Auto-select first valid mode
+    var firstValidMode = null;
+    modeCards.forEach(function (card) {
+        if (!card.classList.contains('disabled')) {
+            if (!firstValidMode) firstValidMode = card;
+        }
+    });
+
+    if (firstValidMode) {
+        selectMode(firstValidMode);
+    } else {
+        startBtn.disabled = true;
+        startBtn.innerHTML = "Không có câu hỏi nào";
+    }
+
+    // Mode selection
+    modeCards.forEach(function (card) {
+        if (card.classList.contains('disabled')) return;
+        card.addEventListener('click', function () {
+            modeCards.forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedMode = card.getAttribute('data-value');
+        });
+    });
+
+    function selectMode(cardElement) {
+        modeCards.forEach(function (c) { c.classList.remove('selected'); });
+        cardElement.classList.add('selected');
+        selectedMode = cardElement.dataset.value;
+    }
+
+    // Start session
+    startBtn.addEventListener('click', function () {
+        if (!selectedMode) {
+            alert('Vui lòng chọn chế độ học!');
+            return;
+        }
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
+        var sessionUrl = "{{ url_for('learning.quiz_learning.start_quiz_session_by_id', set_id=container.container_id, mode='MODE_PLACEHOLDER') }}";
+        sessionUrl = sessionUrl.replace('MODE_PLACEHOLDER', selectedMode);
+        window.location.href = sessionUrl + '?session_size=' + selectedCount + '&turn_size=' + selectedTurnSize;
+    });
+    }) ();
+</script>
+{% endblock %}

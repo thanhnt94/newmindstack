@@ -6,6 +6,7 @@ import os
 from typing import Optional
 
 from flask import Blueprint, abort, jsonify, render_template, request
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.sql import func
@@ -59,7 +60,7 @@ quiz_battle_bp.jinja_loader = ChoiceLoader(
 def quiz_battle_dashboard():
     """Simple landing page that explains the quiz battle feature."""
 
-    return render_template('v3/pages/learning/quiz/battle/index.html')
+    return render_dynamic_template('pages/learning/quiz/battle/index.html')
 
 
 def _get_room_or_404(room_code: str) -> QuizBattleRoom:
@@ -377,8 +378,7 @@ def view_room(room_code: str):
         include_round_history=True,
         user_id=current_user.user_id,
     )
-    return render_template(
-        'v3/pages/learning/quiz/battle/room/index.html',
+    return render_dynamic_template('pages/learning/quiz/battle/room/index.html',
         room_code=room.room_code,
         room_title=room.title,
         initial_room=room_payload,
