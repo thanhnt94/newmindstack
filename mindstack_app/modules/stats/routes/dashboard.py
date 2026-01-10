@@ -158,6 +158,7 @@ def dashboard():
     dashboard_data['average_daily_score_recent'] = round(breakdown_30['total_score'] / 30, 1) if breakdown_30['total_score'] else 0
 
     recent_activity = LearningMetricsService.get_recent_activity(current_user.user_id)
+    recent_sessions = LearningMetricsService.get_recent_sessions(current_user.user_id)
 
     flashcard_sets = flashcard_sets_list # reused from above
     quiz_sets = get_user_container_options(
@@ -185,4 +186,5 @@ def dashboard():
         quiz_sets=quiz_sets,
         course_sets=course_sets,
         recent_activity=recent_activity,
+        recent_sessions=recent_sessions,
     )

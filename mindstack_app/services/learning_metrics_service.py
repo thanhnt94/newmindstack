@@ -447,3 +447,48 @@ class LearningMetricsService:
             }
             for log in logs
         ]
+
+    @classmethod
+    def get_recent_sessions(cls, user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get recent learning sessions.
+        Used for displaying session history with links to summary.
+        """
+        from mindstack_app.models import LearningSession
+        
+        sessions = (
+            LearningSession.query.filter_by(user_id=user_id)
+            .order_by(LearningSession.start_time.desc())
+            .limit(limit)
+            .all()
+        )
+        
+        results = []
+        for session in sessions:
+            # Format mode name
+            mode_display = session.learning_mode.title()
+            if session.learning_mode == 'flashcard':
+                mode_display = 'Flashcard'
+            elif session.learning_mode == 'quiz':
+                mode_display = 'Trắc nghiệm'
+            elif session.learning_mode == 'course':
+                mode_display = 'Khóa học'
+            
+            # Determine success/color based on points or accuracy
+            # Simple heuristic: if points > 0, green.
+            is_positive = (session.points_earned or 0) > 0
+            
+            results.append({
+                'session_id': session.session_id,
+                'learning_mode': session.learning_mode,
+                'mode_display': mode_display,
+                'start_time': session.start_time.isoformat() if session.start_time else None,
+                'time_display': session.start_time.strftime('%H:%M %d/%m') if session.start_time else '',
+                'total_items': session.total_items,
+                'points_earned': session.points_earned,
+                'is_active': session.status == 'active',
+                'status': session.status,
+                'is_positive': is_positive
+            })
+            
+        return results

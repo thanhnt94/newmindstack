@@ -333,3 +333,27 @@ class ReviewLog(db.Model):
     )
 
     item = db.relationship('LearningItem', backref=db.backref('review_logs', cascade='all, delete-orphan'))
+
+
+class UserItemMarker(db.Model):
+    """
+    [NEW] Stores user-specific markers for learning items.
+    Used for 'Difficult', 'Ignored', 'Favorite' status.
+    """
+    __tablename__ = 'user_item_markers'
+
+    marker_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
+    
+    # Marker Type: 'difficult', 'ignored', 'favorite'
+    marker_type = db.Column(db.String(50), nullable=False)
+    
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'item_id', 'marker_type', name='_user_item_marker_uc'),
+        db.Index('ix_user_item_markers_user_type', 'user_id', 'marker_type'),
+    )
+
+    item = db.relationship('LearningItem', backref=db.backref('user_markers', cascade='all, delete-orphan'))

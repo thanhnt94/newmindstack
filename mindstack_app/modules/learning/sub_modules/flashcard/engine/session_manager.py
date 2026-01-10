@@ -12,6 +12,7 @@ from mindstack_app.models import (
     User,
     LearningContainer,
     ContainerContributor,
+    UserItemMarker,
 )
 from mindstack_app.models.learning_progress import LearningProgress
 from .algorithms import (
@@ -295,9 +296,18 @@ class FlashcardSessionManager:
         if self.processed_item_ids:
             exclusion_condition = LearningItem.item_id.notin_(self.processed_item_ids)
 
+        # [NEW] Exclude items marked as 'ignored' by this user
+        ignored_subquery = db.session.query(UserItemMarker.item_id).filter(
+            UserItemMarker.user_id == self.user_id,
+            UserItemMarker.marker_type == 'ignored'
+        )
+
         def apply_exclusion(query):
+            # 1. Exclude processed
             if exclusion_condition is not None:
-                return query.filter(exclusion_condition)
+                query = query.filter(exclusion_condition)
+            # 2. Exclude ignored
+            query = query.filter(LearningItem.item_id.notin_(ignored_subquery))
             return query
 
         if self.mode == 'new_only':
@@ -377,6 +387,15 @@ class FlashcardSessionManager:
         except Exception:
             container_capabilities = set()
 
+        try:
+            markers = db.session.query(UserItemMarker.marker_type).filter_by(
+                user_id=self.user_id,
+                item_id=next_item.item_id
+            ).all()
+            marker_list = [m[0] for m in markers]
+        except Exception:
+            marker_list = []
+
         item_dict = {
             'item_id': next_item.item_id,
             'container_id': next_item.container_id,
@@ -410,7 +429,8 @@ class FlashcardSessionManager:
             },
             'ai_explanation': next_item.ai_explanation,
             'initial_stats': initial_stats,  # Gửi kèm thống kê
-            'can_edit': self._can_edit_container(next_item.container_id)
+            'can_edit': self._can_edit_container(next_item.container_id),
+            'markers': marker_list # [NEW] List of markers e.g. ['difficult', 'favorite']
         }
         
         # REMOVED: self.processed_item_ids.append(next_item.item_id) - Move to process_flashcard_answer

@@ -12,6 +12,7 @@ from mindstack_app.models import (
     User,
     UserNote,
     ContainerContributor,
+    UserItemMarker,
     db,
 )
 from mindstack_app.models.learning_progress import LearningProgress
@@ -375,6 +376,13 @@ class QuizSessionManager:
             LearningItem.item_id.notin_(self.processed_item_ids)
         )
         
+        # [NEW] Exclude items marked as 'ignored' by this user
+        ignored_subquery = db.session.query(UserItemMarker.item_id).filter(
+            UserItemMarker.user_id == self.user_id,
+            UserItemMarker.marker_type == 'ignored'
+        )
+        unprocessed_items_query = unprocessed_items_query.filter(LearningItem.item_id.notin_(ignored_subquery))
+        
         unprocessed_items = unprocessed_items_query.order_by(func.random()).all()
 
         if not unprocessed_items:
@@ -560,6 +568,16 @@ class QuizSessionManager:
                 item_dict['content']['question_audio_file'] = self._get_media_absolute_url(
                     item_dict['content']['question_audio_file'], 'audio', container=container_obj
                 )
+
+            # [NEW] Fetch markers for this item
+            try:
+                markers = db.session.query(UserItemMarker.marker_type).filter_by(
+                    user_id=self.user_id,
+                    item_id=item.item_id
+                ).all()
+                item_dict['markers'] = [m[0] for m in markers]
+            except Exception:
+                item_dict['markers'] = []
 
             # Calculate User Stats for this question
             # Note: This might cause N+1 query issue if batch is large. For generic batch size (10-20) it's acceptable.

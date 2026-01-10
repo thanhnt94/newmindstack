@@ -242,6 +242,99 @@
             if (iframe) iframe.src = '';
         };
 
+        // [MARKER FUNCTION]
+        window.toggleQuizMarker = function (itemId, markerType, btnElement) {
+            // Optimistic update
+            const isActive = btnElement.classList.contains('active');
+            const originalColor = btnElement.style.color;
+            const originalBg = btnElement.style.background;
+
+            // Toggle Visuals temporarily
+            /* Logic: 
+               Difficult: Orange #f97316 / #fff7ed
+               Ignored: Slate #64748b / #f1f5f9
+               Favorite: Rose #f43f5e / #fff1f2
+               Inactive: #cbd5e1 / white
+            */
+            const styles = {
+                'difficult': { color: '#f97316', bg: '#fff7ed' },
+                'ignored': { color: '#64748b', bg: '#f1f5f9' },
+                'favorite': { color: '#f43f5e', bg: '#fff1f2' }
+            };
+            const style = styles[markerType];
+
+            if (!isActive) {
+                // Activate
+                btnElement.classList.add('active');
+                btnElement.style.color = style.color;
+                btnElement.style.background = style.bg;
+            } else {
+                // Deactivate
+                btnElement.classList.remove('active');
+                btnElement.style.color = '#cbd5e1';
+                btnElement.style.background = 'white';
+            }
+
+            let csrfToken = '';
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) csrfToken = meta.getAttribute('content');
+
+            fetch('/api/v3/learning/markers/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    item_id: itemId,
+                    marker_type: markerType
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log(`Marker ${markerType} toggled: ${data.is_marked}`);
+                        // Ensure final state matches backend
+                        if (data.is_marked) {
+                            btnElement.classList.add('active');
+                            btnElement.style.color = style.color;
+                            btnElement.style.background = style.bg;
+                        } else {
+                            btnElement.classList.remove('active');
+                            btnElement.style.color = '#cbd5e1';
+                            btnElement.style.background = 'white';
+                        }
+                        if (window.showToast) window.showToast('success', data.message);
+                    } else {
+                        console.error('Marker toggle failed:', data.message);
+                        // Revert
+                        if (isActive) {
+                            btnElement.classList.add('active');
+                            btnElement.style.color = originalColor;
+                            btnElement.style.background = originalBg;
+                        } else {
+                            btnElement.classList.remove('active');
+                            btnElement.style.color = '#cbd5e1';
+                            btnElement.style.background = 'white';
+                        }
+                        alert("Lỗi: " + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error toggling marker:', err);
+                    // Revert
+                    if (isActive) {
+                        btnElement.classList.add('active');
+                        btnElement.style.color = originalColor;
+                        btnElement.style.background = originalBg;
+                    } else {
+                        btnElement.classList.remove('active');
+                        btnElement.style.color = '#cbd5e1';
+                        btnElement.style.background = 'white';
+                    }
+                });
+        };
+
         // [GLOBAL FUNCTIONS] Defined early for inline onclicks
         window.toggleQuizNoteEdit = function (showEdit) {
             const displayMode = document.getElementById('quiz-note-display-mode');

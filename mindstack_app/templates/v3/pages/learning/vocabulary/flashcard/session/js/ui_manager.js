@@ -1209,3 +1209,169 @@ window.updateCardHudStats = function (stats) {
         el.textContent = (stats.incorrect_count || 0) + (stats.vague_count || 0);
     });
 };
+// --- Marker Interactions (Difficult, Ignore, Favorite) ---
+
+function setupMarkerHandlers() {
+    // 1. Toggle Dropdown
+    document.addEventListener('click', function (e) {
+        const toggleBtn = e.target.closest('.js-fc-marker-toggle');
+        if (toggleBtn) {
+            e.stopPropagation();
+            const container = toggleBtn.closest('.marker-dropdown-container') || toggleBtn.closest('.relative');
+            const dropdown = container.querySelector('.marker-dropdown') || container.querySelector('.js-fc-marker-menu');
+
+            // Close other open markers
+            document.querySelectorAll('.marker-dropdown, .js-fc-marker-menu').forEach(d => {
+                if (d !== dropdown) d.classList.add('hidden')
+                if (d !== dropdown) d.classList.remove('show'); // Mobile uses 'show'
+            });
+
+            if (dropdown) {
+                if (dropdown.classList.contains('js-fc-marker-menu')) {
+                    dropdown.classList.toggle('show'); // Mobile
+                } else {
+                    dropdown.classList.toggle('hidden'); // Desktop
+                }
+            }
+        } else {
+            // Click outside - close all
+            if (!e.target.closest('.marker-dropdown') && !e.target.closest('.js-fc-marker-menu')) {
+                document.querySelectorAll('.marker-dropdown').forEach(d => d.classList.add('hidden'));
+                document.querySelectorAll('.js-fc-marker-menu').forEach(d => d.classList.remove('show'));
+            }
+        }
+    });
+
+    // 2. Handle Marker Actions
+    const markerTypes = ['difficult', 'ignored', 'favorite'];
+    markerTypes.forEach(type => {
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest(`.js-fc-mark-${type}`);
+            if (btn) {
+                e.stopPropagation();
+                if (window.currentFlashcardBatch && typeof window.currentFlashcardIndex !== 'undefined') {
+                    const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
+                    if (card && card.item_id) {
+                        toggleMarker(card.item_id, type, btn);
+                    }
+                }
+                // Close dropdowns
+                document.querySelectorAll('.marker-dropdown').forEach(d => d.classList.add('hidden'));
+                document.querySelectorAll('.js-fc-marker-menu').forEach(d => d.classList.remove('show'));
+            }
+        });
+    });
+}
+
+function toggleMarker(itemId, markerType, btnElement) {
+    if (!itemId || !markerType) return;
+
+    // Optimistic UI Update (optional, but API is fast enough usually)
+    // Send API Request
+    fetch('/api/v3/learning/markers/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': window.csrfToken || '' // Ensure CSRF if needed
+        },
+        body: JSON.stringify({ item_id: itemId, marker_type: markerType })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log(`Marker ${markerType} toggled: ${data.is_marked}`);
+                updateMarkerUI(markerType, data.is_marked);
+                // Show toast/notification
+                if (window.showToast) {
+                    const action = data.is_marked ? 'Đã đánh dấu' : 'Đã bỏ đánh dấu';
+                    let label = markerType;
+                    if (markerType === 'difficult') label = 'Khó';
+                    if (markerType === 'ignored') label = 'Bỏ qua';
+                    if (markerType === 'favorite') label = 'Yêu thích';
+                    window.showToast(`${action} ${label}`, 'success');
+                }
+            } else {
+                console.error('Marker toggle failed:', data.message);
+            }
+        })
+        .catch(err => console.error('Error toggling marker:', err));
+}
+
+function updateMarkerUI(markerType, isMarked) {
+    // Determine visuals based on type
+    let iconClass = '';
+    let activeClass = ''; // Class to add to the button if active
+
+    if (markerType === 'difficult') {
+        iconClass = 'fa-fire text-orange-500';
+        activeClass = 'bg-orange-100 font-bold';
+    } else if (markerType === 'ignored') {
+        iconClass = 'fa-eye-slash text-slate-500';
+        activeClass = 'bg-slate-200 font-bold';
+    } else if (markerType === 'favorite') {
+        iconClass = 'fa-heart text-rose-500';
+        activeClass = 'bg-rose-100 font-bold';
+    }
+
+    // Update buttons in dropdown
+    const btns = document.querySelectorAll(`.js-fc-mark-${markerType}`);
+    btns.forEach(btn => {
+        if (isMarked) {
+            btn.classList.add(...activeClass.split(' '));
+            // Change icon to solid if applicable
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+            }
+        } else {
+            btn.classList.remove(...activeClass.split(' '));
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fas');
+                icon.classList.add('far'); // Back to regular
+                if (markerType === 'difficult') icon.className = 'far fa-tired text-orange-500 mr-2 w-4'; // Reset specific classes if needed
+                if (markerType === 'ignored') icon.className = 'far fa-eye-slash text-slate-400 mr-2 w-4';
+                if (markerType === 'favorite') icon.className = 'far fa-heart text-rose-500 mr-2 w-4';
+            }
+        }
+    });
+
+    // Update main toggle button icon if any marker is active (prioritize difficult > favorite > ignored)
+    updateMainMarkerIcon();
+}
+
+function updateMainMarkerIcon() {
+    // This is tricky because we need to know the state of ALL markers for the current card.
+    // We should probably fetch or store this state.
+    // simpler: If user just clicked, we know that one changed.
+    // But for full sync, we need item state.
+}
+
+// Call init
+setupMarkerHandlers();
+
+function applyMarkers(markers) {
+    // Reset all first
+    ['difficult', 'ignored', 'favorite'].forEach(type => updateMarkerUI(type, false));
+
+    if (Array.isArray(markers)) {
+        markers.forEach(type => updateMarkerUI(type, true));
+    }
+    updateMainMarkerIcon();
+}
+
+// Hook into flashcard loading
+document.addEventListener('flashcardStatsUpdated', function (e) {
+    // Note: 'flashcardStatsUpdated' usually passes stats, not full item data.
+    // We need to access the current batch item.
+    if (window.currentFlashcardBatch && typeof window.currentFlashcardIndex !== 'undefined') {
+        const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
+        if (card && card.markers) {
+            applyMarkers(card.markers);
+        } else {
+            applyMarkers([]);
+        }
+    }
+});
+

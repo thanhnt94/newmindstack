@@ -17,6 +17,7 @@ from .sub_modules.flashcard.collab.routes import flashcard_collab_bp
 from .sub_modules.vocabulary import vocabulary_bp
 from .sub_modules.practice import practice_bp
 from .sub_modules.collab import collab_bp
+from .api.markers import markers_bp  # NEW: Markers API
 # from .sub_modules.stats import stats_bp
 # Note: stats_api_bp is registered globally in module_registry.py
 
@@ -34,6 +35,7 @@ learning_bp.register_blueprint(flashcard_collab_bp, url_prefix='/collab/flashcar
 learning_bp.register_blueprint(vocabulary_bp)
 learning_bp.register_blueprint(practice_bp)  # NEW: Practice module
 learning_bp.register_blueprint(collab_bp)  # NEW: Collab module
+# learning_bp.register_blueprint(markers_bp)  # MOVED: Registered globally in module_registry
 # learning_bp.register_blueprint(stats_bp)  # Stats dashboard (HTML only, API is global)
 
 
@@ -126,8 +128,14 @@ def get_mode_description(session):
 @login_required
 def manage_sessions():
     """ Trang quản lý các phiên học đang hoạt động. """
-    sessions = LearningSessionService.get_active_sessions(current_user.user_id)
-    
+    print(f"DEBUG: Accessing manage_sessions for user {current_user.user_id}")
+    try:
+        sessions = LearningSessionService.get_active_sessions(current_user.user_id)
+        print(f"DEBUG: Found {len(sessions)} active sessions")
+    except Exception as e:
+        print(f"DEBUG: Error fetching active sessions: {e}")
+        sessions = []
+
     session_list = []
     for s in sessions:
         container_name = "Bộ học tập"
@@ -137,7 +145,9 @@ def manage_sessions():
                 if container: container_name = container.title
             elif isinstance(s.set_id_data, list):
                 container_name = f"{len(s.set_id_data)} bộ học tập"
-        except: pass
+        except Exception as e:
+             print(f"DEBUG: Error resolving container: {e}")
+             pass
         
         # Determine Resume URL
         if s.learning_mode == 'quiz':
@@ -166,7 +176,13 @@ def manage_sessions():
         })
     
     # Fetch History
-    history_raw = LearningSessionService.get_session_history(current_user.user_id)
+    try:
+        history_raw = LearningSessionService.get_session_history(current_user.user_id)
+        print(f"DEBUG: Found {len(history_raw)} history sessions")
+    except Exception as e:
+        print(f"DEBUG: Error fetching history: {e}")
+        history_raw = []
+
     history_list = []
     for h in history_raw:
         container_name = "Bộ học tập"
@@ -176,12 +192,20 @@ def manage_sessions():
                 if container: container_name = container.title
             elif isinstance(h.set_id_data, list):
                 container_name = f"{len(h.set_id_data)} bộ học tập"
-        except: pass
+        except Exception as e:
+             print(f"DEBUG: Error resolving container for history: {e}")
+             pass
         
+        try:
+            desc = get_mode_description(h)
+        except Exception as e:
+             print(f"DEBUG: Error getting mode description: {e}")
+             desc = "Phiên học"
+
         history_list.append({
             'session_id': h.session_id,
             'learning_mode': h.learning_mode,
-            'mode_name': get_mode_description(h),
+            'mode_name': desc,
             'container_name': container_name,
             'start_time': h.start_time,
             'end_time': h.end_time,
@@ -192,7 +216,8 @@ def manage_sessions():
             'total': h.total_items,
             'points': h.points_earned
         })
-
+    
+    print("DEBUG: Rendering v3/pages/learning/sessions.html")
     return render_template('v3/pages/learning/sessions.html', sessions=session_list, history=history_list)
 
 

@@ -29,6 +29,7 @@ from .user import (
     UserFeedback,
     ContainerContributor,
     ReviewLog,
+    UserItemMarker,
 )
 from .system import ApiKey, BackgroundTask, BackgroundTaskLog
 from .app_settings import AppSettings  # unified settings (replaces SiteSettings + SystemSetting)
@@ -63,7 +64,9 @@ __all__ = [
     'UserNote',
     'UserFeedback',
     'ContainerContributor',
+    'ContainerContributor',
     'ReviewLog',
+    'UserItemMarker',
     'BackgroundTask',
     'BackgroundTaskLog',
     'ApiKey',

@@ -182,26 +182,43 @@
             </div>
         </div>
 
-        {# Hoạt động gần đây #}
+        {# Lịch sử phiên học #}
         <div class="px-5 mt-6 pb-6">
-            <h3 class="text-base font-bold text-slate-800 mb-4">Hoạt động gần đây</h3>
+            <h3 class="text-base font-bold text-slate-800 mb-4">Lịch sử phiên học</h3>
             <div class="space-y-3">
-                {% for entry in recent_activity[:5] %}
-                <div class="flex items-start gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                {% for session in recent_sessions[:5] %}
+                <a href="/learn/session/{{ session.session_id }}/summary" class="block">
                     <div
-                        class="w-2 h-2 mt-2 rounded-full {% if entry.score_change > 0 %}bg-green-500{% else %}bg-slate-300{% endif %}">
+                        class="flex items-start gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-300 transition-colors">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg
+                            {% if session.learning_mode == 'flashcard' %}bg-indigo-500
+                            {% elif session.learning_mode == 'quiz' %}bg-emerald-500
+                            {% else %}bg-amber-500{% endif %}">
+                            {% if session.learning_mode == 'flashcard' %}<i class="fas fa-clone"></i>
+                            {% elif session.learning_mode == 'quiz' %}<i class="fas fa-question"></i>
+                            {% else %}<i class="fas fa-graduation-cap"></i>{% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold text-slate-900 truncate">{{ session.mode_display }}</p>
+                            <p class="text-xs text-slate-500 mt-0.5">{{ session.time_display }} • {{ session.total_items
+                                }} mục</p>
+                        </div>
+                        <div class="text-right">
+                            <span
+                                class="block text-sm font-black {% if session.points_earned > 0 %}text-green-600{% else %}text-slate-400{% endif %}">
+                                {{ '+' if session.points_earned > 0 }}{{ session.points_earned }}
+                            </span>
+                            <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded
+                                {% if session.status == 'active' %}bg-blue-50 text-blue-600
+                                {% elif session.status == 'completed' %}bg-green-50 text-green-600
+                                {% else %}bg-slate-100 text-slate-500{% endif %}">
+                                {{ session.status }}
+                            </span>
+                        </div>
                     </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-bold text-slate-900">{{ entry.reason }}</p>
-                        <p class="text-xs text-slate-500 mt-1">{{ entry.timestamp }}</p>
-                    </div>
-                    <span
-                        class="text-sm font-black {% if entry.score_change > 0 %}text-green-600{% else %}text-slate-400{% endif %}">
-                        {{ '+' if entry.score_change > 0 }}{{ entry.score_change }}
-                    </span>
-                </div>
+                </a>
                 {% else %}
-                <p class="text-center text-sm text-slate-400 py-8">Chưa có hoạt động nào.</p>
+                <p class="text-center text-sm text-slate-400 py-8">Chưa có phiên học nào gần đây.</p>
                 {% endfor %}
             </div>
         </div>

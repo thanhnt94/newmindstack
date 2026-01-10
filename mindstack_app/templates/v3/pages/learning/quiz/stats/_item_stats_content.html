@@ -24,13 +24,32 @@
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; justify-content: center;">
                 <span class="status-badge"
                     style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700; font-size: 0.6rem; text-transform: uppercase; 
-                    {% if stats.status == 'new' %}background: #f0f9ff; color: #0369a1;{% elif stats.status == 'learning' %}background: #fffbeb; color: #b45309;{% elif stats.status == 'mastered' %}background: #f0fdf4; color: #15803d;{% elif stats.status == 'hard' %}background: #fef2f2; color: #b91c1c;{% else %}background: #f1f5f9; color: #64748b;{% endif %}">
+                {% if stats.status == 'new' %}background: #f0f9ff; color: #0369a1;{% elif stats.status == 'learning' %}background: #fffbeb; color: #b45309;{% elif stats.status == 'mastered' %}background: #f0fdf4; color: #15803d;{% elif stats.status == 'hard' %}background: #fef2f2; color: #b91c1c;{% else %}background: #f1f5f9; color: #64748b;{% endif %}">
                     {% if stats.status == 'mastered' %}THUỘC
                     {% elif stats.status == 'hard' %}KHÓ
                     {% elif stats.status == 'learning' %}HỌC
                     {% else %}MỚI
                     {% endif %}
                 </span>
+            </div>
+
+            <!-- MARKERS -->
+            <div class="stats-markers" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+                <button class="marker-btn {% if 'difficult' in stats.markers %}active{% endif %}" title="Đánh dấu Khó"
+                    onclick="toggleQuizMarker({{ item.item_id }}, 'difficult', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'difficult' in stats.markers %}#fff7ed{% else %}white{% endif %}; color: {% if 'difficult' in stats.markers %}#f97316{% else %}#cbd5e1{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-fire"></i>
+                </button>
+                <button class="marker-btn {% if 'ignored' in stats.markers %}active{% endif %}" title="Bỏ qua từ này"
+                    onclick="toggleQuizMarker({{ item.item_id }}, 'ignored', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'ignored' in stats.markers %}#f1f5f9{% else %}white{% endif %}; color: {% if 'ignored' in stats.markers %}#64748b{% else %}#cbd5e1{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-eye-slash"></i>
+                </button>
+                <button class="marker-btn {% if 'favorite' in stats.markers %}active{% endif %}" title="Yêu thích"
+                    onclick="toggleQuizMarker({{ item.item_id }}, 'favorite', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'favorite' in stats.markers %}#fff1f2{% else %}white{% endif %}; color: {% if 'favorite' in stats.markers %}#f43f5e{% else %}#cbd5e1{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-heart"></i>
+                </button>
             </div>
         </div>
 

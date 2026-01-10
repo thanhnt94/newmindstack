@@ -88,6 +88,29 @@
                             </div>
                         </div>
 
+                        {# Marker Button (NEW) #}
+                        <div class="relative inline-block">
+                            <button
+                                class="w-7 h-7 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center hover:bg-amber-100 js-fc-marker-toggle">
+                                <i class="far fa-bookmark text-[10px]"></i>
+                            </button>
+                            <div class="fc-settings-menu js-fc-marker-menu z-50"
+                                style="right: 0; top: 100%; min-width: 140px;">
+                                <button class="fc-settings-item js-fc-mark-difficult" data-type="difficult">
+                                    <i class="far fa-tired text-orange-500"></i>
+                                    <span>Khó (Difficult)</span>
+                                </button>
+                                <button class="fc-settings-item js-fc-mark-ignored" data-type="ignored">
+                                    <i class="far fa-eye-slash text-slate-400"></i>
+                                    <span>Bỏ qua (Ignore)</span>
+                                </button>
+                                <button class="fc-settings-item js-fc-mark-favorite" data-type="favorite">
+                                    <i class="far fa-heart text-rose-500"></i>
+                                    <span>Yêu thích</span>
+                                </button>
+                            </div>
+                        </div>
+
                         {# Home Button #}
                         <a href="/"
                             class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100">

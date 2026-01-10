@@ -85,6 +85,8 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.learning.routes", "learning_bp", url_prefix="/learn", version="1.0"),
     
     # Learning Stats API (Global - not nested under learning_bp)
+    ModuleDefinition("mindstack_app.modules.learning.api.markers", "markers_bp", version="1.0"), # URL prefix defined in blueprint
+
 
     
     ModuleDefinition("mindstack_app.modules.goals.routes", "goals_bp", url_prefix="/goals", version="1.0"),

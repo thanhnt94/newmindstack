@@ -254,6 +254,60 @@
             if (iframe) iframe.src = '';
         };
 
+        // [MARKER FUNCTION]
+        window.toggleVocabMarker = function (itemId, markerType, btn) {
+            if (!btn) return;
+            // Optimistic UI interaction
+            const icon = btn.querySelector('i');
+
+            // Disable temp
+            btn.disabled = true;
+
+            fetch('/api/v3/learning/markers/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({ item_id: itemId, marker_type: markerType })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    btn.disabled = false;
+                    if (data.success) {
+                        const isMarked = data.is_marked;
+                        // Update UI based on type
+                        if (isMarked) {
+                            icon.classList.remove('far');
+                            icon.classList.add('fas');
+                            btn.classList.add('active');
+                            if (markerType === 'difficult') {
+                                btn.style.background = '#ffedd5';
+                                btn.style.color = '#ea580c';
+                            } else if (markerType === 'ignored') {
+                                btn.style.background = '#f1f5f9';
+                                btn.style.color = '#64748b';
+                            } else if (markerType === 'favorite') {
+                                btn.style.background = '#ffe4e6';
+                                btn.style.color = '#e11d48';
+                            }
+                        } else {
+                            icon.classList.remove('fas');
+                            icon.classList.add('far');
+                            btn.classList.remove('active');
+                            btn.style.background = 'white';
+                            btn.style.color = '#94a3b8';
+                        }
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    btn.disabled = false;
+                });
+        };
+
         // [GLOBAL FUNCTIONS] Defined early for inline onclicks
         window.toggleNoteEdit = function (showEdit) {
             const displayMode = document.getElementById('note-display-mode');

@@ -38,6 +38,25 @@
                     {% endif %}
                 </span>
             </div>
+
+            <!-- [NEW] Marker Toggles -->
+            <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem;">
+                <button class="marker-btn js-toggle-vocab-marker {% if 'difficult' in s.markers %}active{% endif %}"
+                    onclick="toggleVocabMarker({{ s.item.id }}, 'difficult', this)" title="Đánh dấu là Khó"
+                    style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'difficult' in s.markers %}#ffedd5{% else %}white{% endif %}; color: {% if 'difficult' in s.markers %}#ea580c{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="{% if 'difficult' in s.markers %}fas{% else %}far{% endif %} fa-fire"></i>
+                </button>
+                <button class="marker-btn js-toggle-vocab-marker {% if 'ignored' in s.markers %}active{% endif %}"
+                    onclick="toggleVocabMarker({{ s.item.id }}, 'ignored', this)" title="Bỏ qua từ này"
+                    style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'ignored' in s.markers %}#f1f5f9{% else %}white{% endif %}; color: {% if 'ignored' in s.markers %}#64748b{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="{% if 'ignored' in s.markers %}fas{% else %}far{% endif %} fa-eye-slash"></i>
+                </button>
+                <button class="marker-btn js-toggle-vocab-marker {% if 'favorite' in s.markers %}active{% endif %}"
+                    onclick="toggleVocabMarker({{ s.item.id }}, 'favorite', this)" title="Yêu thích"
+                    style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'favorite' in s.markers %}#ffe4e6{% else %}white{% endif %}; color: {% if 'favorite' in s.markers %}#e11d48{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="{% if 'favorite' in s.markers %}fas{% else %}far{% endif %} fa-heart"></i>
+                </button>
+            </div>
         </div>
 
         <!-- MAIN TAB NAVIGATION -->

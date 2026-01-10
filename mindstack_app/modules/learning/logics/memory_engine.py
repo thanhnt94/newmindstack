@@ -143,7 +143,11 @@ class MemoryEngine:
         elif status == 'learning':
             # Base: 10%, each rep adds 6%, max 52% (at 7 reps)
             # Streak bonus: extra 1% per streak after 3
-            base = 0.10 + min(repetitions, 7) * 0.06
+            if repetitions == 0:
+                base = 0.0
+            else:
+                base = 0.10 + min(repetitions, 7) * 0.06
+            
             streak_bonus = max(0, (correct_streak - 3)) * 0.01
             mastery = min(0.52, base + streak_bonus)
             
@@ -161,8 +165,8 @@ class MemoryEngine:
         if incorrect_streak > 0:
             # Each incorrect reduces mastery, but high mastery has buffer
             penalty_per_error = 0.15 if mastery > 0.7 else 0.20
-            penalty = min(incorrect_streak * penalty_per_error, mastery - 0.10)
-            mastery = max(0.10, mastery - penalty)
+            penalty = min(incorrect_streak * penalty_per_error, mastery)
+            mastery = max(0.0, mastery - penalty)
 
         return round(mastery, 4)
 

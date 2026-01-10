@@ -10,6 +10,7 @@ from mindstack_app.models import (
     ContainerContributor,
     UserContainerState,
     User,
+    UserItemMarker,
 )
 from mindstack_app.models.learning_progress import LearningProgress
 from flask_login import current_user
@@ -385,8 +386,13 @@ def get_hard_items(user_id, container_id, session_size):
     print(f">>> ALGORITHMS: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
     base_items_query = _get_base_items_query(user_id, container_id)
 
-    # MIGRATED: Sử dụng LearningProgress thay vì FlashcardProgress
-    hard_items_query = base_items_query.join(
+    # [NEW] Include items marked as 'difficult' by user
+    user_difficult_subquery = db.session.query(UserItemMarker.item_id).filter(
+        UserItemMarker.user_id == user_id,
+        UserItemMarker.marker_type == 'difficult'
+    )
+
+    hard_items_query = base_items_query.outerjoin(
         LearningProgress,
         and_(
             LearningProgress.item_id == LearningItem.item_id,
@@ -397,7 +403,8 @@ def get_hard_items(user_id, container_id, session_size):
         or_(
             LearningProgress.status == 'hard',
             LearningProgress.mastery < 0.5,
-            LearningProgress.incorrect_streak >= 2
+            LearningProgress.incorrect_streak >= 2,
+            LearningItem.item_id.in_(user_difficult_subquery)  # [NEW] Include user marked
         )
     )
     

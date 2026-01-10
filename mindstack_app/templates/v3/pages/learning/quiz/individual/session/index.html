@@ -894,7 +894,111 @@
             const dStats = document.getElementById('desktop-question-stats-link');
             if (mStats) mStats.href = statsUrl;
             if (dStats) dStats.href = statsUrl;
+
+            // [NEW] Update Marker UI
+            const markers = q.markers || [];
+            updateQuizMarkerUI(markers);
         }
+
+        // --- Marker Logic ---
+        function updateQuizMarkerUI(markers) {
+            // Reset state
+            const buttons = document.querySelectorAll('.js-quiz-marker-toggle');
+            buttons.forEach(btn => {
+                btn.innerHTML = '<i class="far fa-bookmark"></i>';
+                btn.className = 'text-slate-400 hover:text-blue-500 transition text-lg js-quiz-marker-toggle'; // Default style
+            });
+
+            // Update based on markers
+            const markerMap = {
+                'difficult': { icon: '<i class="fas fa-fire"></i>', class: 'text-orange-500' },
+                'ignored': { icon: '<i class="fas fa-eye-slash"></i>', class: 'text-slate-500' },
+                'favorite': { icon: '<i class="fas fa-heart"></i>', class: 'text-rose-500' }
+            };
+
+            // Priority: Favorite > Difficult > Ignored
+            let activeType = null;
+            if (markers.includes('favorite')) activeType = 'favorite';
+            else if (markers.includes('difficult')) activeType = 'difficult';
+            else if (markers.includes('ignored')) activeType = 'ignored';
+
+            if (activeType) {
+                const style = markerMap[activeType];
+                buttons.forEach(btn => {
+                    btn.innerHTML = style.icon;
+                    btn.className = `${style.class} transition text-lg js-quiz-marker-toggle`;
+                });
+            }
+        }
+
+        function toggleQuizMarker(markerType) {
+            if (!currentQuestion) return;
+            const itemId = currentQuestion.item_id;
+
+            // Close dropdowns
+            document.querySelectorAll('.marker-dropdown').forEach(d => d.classList.add('hidden'));
+
+            fetch('/api/v3/learning/markers/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ item_id: itemId, marker_type: markerType })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log(`Marker ${markerType} toggled: ${data.is_marked}`);
+                        // Optimistic update logic could be simpler, but let's re-fetch or manual update
+                        // Manual update currentQuestion markers
+                        let markers = currentQuestion.markers || [];
+                        if (data.is_marked) {
+                            if (!markers.includes(markerType)) markers.push(markerType);
+                            // Behave like toggle: some markers might be exclusive in UI but backend allows multiple?
+                            // UI favors specific priority, so simple push is fine.
+                        } else {
+                            markers = markers.filter(m => m !== markerType);
+                        }
+                        currentQuestion.markers = markers;
+                        updateQuizMarkerUI(markers);
+
+                        // Show small toast/notify if needed
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                    }
+                })
+                .catch(err => console.error("Marker toggle error", err));
+        }
+
+        // Setup Marker Listeners
+        document.addEventListener('click', function (e) {
+            // Toggle Dropdown
+            const toggleBtn = e.target.closest('.js-quiz-marker-toggle');
+            if (toggleBtn) {
+                e.stopPropagation();
+                const container = toggleBtn.closest('.marker-dropdown-container');
+                if (container) {
+                    const dropdown = container.querySelector('.marker-dropdown');
+                    // Hide all others
+                    document.querySelectorAll('.marker-dropdown').forEach(d => {
+                        if (d !== dropdown) d.classList.add('hidden');
+                    });
+                    if (dropdown) dropdown.classList.toggle('hidden');
+                }
+                return;
+            }
+
+            // Marker Actions
+            const actionBtn = e.target.closest('button[class*="js-quiz-mark-"]');
+            if (actionBtn) {
+                e.stopPropagation();
+                const type = actionBtn.dataset.type;
+                if (type) toggleQuizMarker(type);
+            }
+
+            // Click outside
+            if (!e.target.closest('.marker-dropdown-container')) {
+                document.querySelectorAll('.marker-dropdown').forEach(d => d.classList.add('hidden'));
+            }
+        });
 
         function selectOption(key) {
             dom.qOptions.querySelectorAll('.qb-option-label').forEach(el => {

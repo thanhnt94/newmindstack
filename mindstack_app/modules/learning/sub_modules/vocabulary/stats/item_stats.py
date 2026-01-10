@@ -158,7 +158,16 @@ class VocabularyItemStats:
                                set_id=item.container_id, 
                                item_id=item_id)
 
+        # [NEW] Get User Item Markers
+        from mindstack_app.models.user import UserItemMarker
+        markers = UserItemMarker.query.filter_by(
+            user_id=user_id,
+            item_id=item_id
+        ).all()
+        marker_list = [m.marker_type for m in markers]
+
         return {
+            'markers': marker_list, # [NEW]
             'item': {
                 'id': item.item_id,
                 'container_title': item.container.title if item.container else 'Unknown Set',
