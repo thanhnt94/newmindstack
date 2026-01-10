@@ -1,0 +1,39 @@
+/* Mobile full-screen steps */
+@media (max-width: 1023px) {
+
+    body>header,
+    body>footer {
+        display: none !important;
+    }
+
+    body>main {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
+
+    .vocab-step {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: #f8fafc;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .vocab-step.active {
+        display: flex;
+    }
+}
+
+@media (min-width: 1024px) {
+    .vocab-step {
+        display: none !important;
+        position: static !important;
+    }
+
+    .vocab-step.active {
+        display: block !important;
+    }
+}
