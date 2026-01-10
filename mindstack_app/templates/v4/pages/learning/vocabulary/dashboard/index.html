@@ -2637,11 +2637,17 @@
 {# Mobile View - Step Browser only - Hidden on lg+ #}
 {% include _v ~ '/pages/learning/vocabulary/dashboard/_mobile.html' %}
 
-<!-- STEP 2: Set Detail -->
+<!-- STEP 2: Set Detail - Desktop (hidden on mobile) -->
+<div class="hidden lg:block">
+    <div id="step-detail-desktop" class="vocab-step">
+        {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_detail_desktop.html' %}
+    </div>
+</div>
 
-<div id="step-detail" class="vocab-step">
+<!-- STEP 2: Set Detail - Mobile (hidden on desktop via CSS in step-header) -->
+<div id="step-detail" class="vocab-step lg:hidden">
 
-    <div class="step-header-left lg:hidden">
+    <div class="step-header-left">
 
         <a href="/learn/vocabulary/" class="step-back-btn">
 
@@ -2813,7 +2819,6 @@
     </div>
 
 </div>
-
 
 
 <!-- STEP 3: Mode Selector - Select Then Submit -->
@@ -3510,7 +3515,7 @@
 
         // But better to show *something*.
 
-        if (setsGrid) setsGrid.innerHTML = '<div class="vocab-loading" style="grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i><p>Đang chuẩn bị...</p></div>';
+        setsGrids.forEach(grid => grid.innerHTML = '<div class="vocab-loading" style="grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i><p>Đang chuẩn bị...</p></div>');
 
 
 
