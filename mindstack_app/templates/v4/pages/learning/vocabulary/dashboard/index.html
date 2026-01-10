@@ -3491,10 +3491,11 @@
 
 
 
+            // Global State for Responsive Step Tracking - MUST be declared before showStep calls
+            let currentActiveStep = 'browser';
+
             // Check for active set ID and step from server template
-
             const activeSetId = {{ active_set_id|default ('null')
-
         }};
 
     const activeStep = '{{ active_step|default("browser") }}';
@@ -3711,8 +3712,7 @@
     });
 
 
-    // Global State for Responsive Step Tracking
-    let currentActiveStep = 'browser';
+    // Note: currentActiveStep is declared earlier, before showStep calls
 
     // Handle Window Resize
     window.addEventListener('resize', function () {
