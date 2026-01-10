@@ -65,14 +65,14 @@ def _get_base_items_query(user_id, container_id):
     Returns:
         sqlalchemy.orm.query.Query: Đối tượng truy vấn LearningItem cơ sở.
     """
-    print(f">>> ALGORITHMS: Bắt đầu _get_base_items_query cho user_id={user_id}, container_id={container_id} <<<")
+    current_app.logger.debug(f"Algorithms: Bắt đầu _get_base_items_query cho user_id={user_id}, container_id={container_id}")
     # THAY ĐỔI: Hỗ trợ cả QUIZ_MCQ và FLASHCARD để module Quiz có thể hoạt động với bộ thẻ Flashcard
     items_query = LearningItem.query.filter(LearningItem.item_type.in_(['QUIZ_MCQ', 'FLASHCARD']))
     
     accessible_set_ids = set(get_accessible_quiz_set_ids(user_id))
 
     if isinstance(container_id, list):
-        print(f">>> ALGORITHMS: Chế độ Multi-selection, IDs: {container_id} <<<")
+        current_app.logger.debug(f"Algorithms: Chế độ Multi-selection, IDs: {container_id}")
         normalized_ids = []
         for set_id in container_id:
             try:
@@ -84,30 +84,30 @@ def _get_base_items_query(user_id, container_id):
 
         if not normalized_ids:
             items_query = items_query.filter(False)
-            print(">>> ALGORITHMS: Không có bộ quiz khả dụng sau khi lọc multi-selection. <<<")
+            current_app.logger.info("Algorithms: Không có bộ quiz khả dụng sau khi lọc multi-selection.")
         else:
             items_query = items_query.filter(LearningItem.container_id.in_(normalized_ids))
     elif container_id == 'all':
         if not accessible_set_ids:
             items_query = items_query.filter(False)
-            print(">>> ALGORITHMS: Không có bộ quiz nào có thể truy cập ở chế độ 'all'. <<<")
+            current_app.logger.info("Algorithms: Không có bộ quiz nào có thể truy cập ở chế độ 'all'.")
         else:
             items_query = items_query.filter(LearningItem.container_id.in_(accessible_set_ids))
-            print(f">>> ALGORITHMS: 'all' mode, items_query after filtering by accessible sets: {items_query} <<<")
+            current_app.logger.debug(f"Algorithms: 'all' mode, items_query after filtering by accessible sets: {items_query}")
     else:
         try:
             set_id_int = int(container_id)
             if set_id_int in accessible_set_ids:
                 items_query = items_query.filter_by(container_id=set_id_int)
-                print(f">>> ALGORITHMS: Cụ thể container_id={set_id_int}, items_query: {items_query} <<<")
+                current_app.logger.debug(f"Algorithms: Cụ thể container_id={set_id_int}, items_query: {items_query}")
             else:
                 items_query = items_query.filter(False)
-                print(f">>> ALGORITHMS: Người dùng không có quyền với container_id={set_id_int}, truy vấn trả về rỗng. <<<")
+                current_app.logger.warning(f"Algorithms: Người dùng không có quyền với container_id={set_id_int}, truy vấn trả về rỗng.")
         except ValueError:
             items_query = items_query.filter(False)
-            print(f">>> ALGORITHMS: container_id '{container_id}' không hợp lệ, truy vấn trả về rỗng. <<<")
+            current_app.logger.error(f"Algorithms: container_id '{container_id}' không hợp lệ, truy vấn trả về rỗng.")
     
-    print(f">>> ALGORITHMS: Kết thúc _get_base_items_query. Query: {items_query} <<<")
+    current_app.logger.debug(f"Algorithms: Kết thúc _get_base_items_query. Query: {items_query}")
     return items_query
 
 def get_new_only_items(user_id, container_id, session_size):
@@ -116,7 +116,7 @@ def get_new_only_items(user_id, container_id, session_size):
     Hàm này sẽ loại trừ các bộ quiz đã được archive.
     TRẢ VỀ: Một đối tượng truy vấn nếu session_size là None, hoặc một danh sách các item nếu session_size được chỉ định.
     """
-    print(f">>> ALGORITHMS: Bắt đầu get_new_only_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
+    current_app.logger.debug(f"Algorithms: Bắt đầu get_new_only_items cho user_id={user_id}, container_id={container_id}, session_size={session_size}")
     base_items_query = _get_base_items_query(user_id, container_id)
     
     # Query new items using LearningProgress
@@ -137,14 +137,14 @@ def get_new_only_items(user_id, container_id, session_size):
         or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
     )
     
-    print(f">>> ALGORITHMS: new_items_query (chỉ làm mới): {new_items_query} <<<")
+    current_app.logger.debug(f"Algorithms: new_items_query (chỉ làm mới): {new_items_query}")
     
     if session_size is None or session_size == 999999:
         return new_items_query
     else:
         items = new_items_query.order_by(func.random()).limit(session_size).all()
     
-    print(f">>> ALGORITHMS: get_new_only_items tìm thấy {len(items)} câu hỏi. <<<")
+    current_app.logger.debug(f"Algorithms: get_new_only_items tìm thấy {len(items)} câu hỏi.")
     return items
 
 def get_reviewed_items(user_id, container_id, session_size):
@@ -153,7 +153,7 @@ def get_reviewed_items(user_id, container_id, session_size):
     Hàm này sẽ loại trừ các bộ quiz đã được archive.
     TRẢ VỀ: Một đối tượng truy vấn nếu session_size là None, hoặc một danh sách các item nếu session_size được chỉ định.
     """
-    print(f">>> ALGORITHMS: Bắt đầu get_reviewed_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
+    current_app.logger.debug(f"Algorithms: Bắt đầu get_reviewed_items cho user_id={user_id}, container_id={container_id}, session_size={session_size}")
     base_items_query = _get_base_items_query(user_id, container_id)
     
     # Query reviewed items using LearningProgress
@@ -175,14 +175,14 @@ def get_reviewed_items(user_id, container_id, session_size):
         or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
     )
 
-    print(f">>> ALGORITHMS: reviewed_items_query (đã làm): {reviewed_items_query} <<<")
+    current_app.logger.debug(f"Algorithms: reviewed_items_query (đã làm): {reviewed_items_query}")
     
     if session_size is None or session_size == 999999:
         return reviewed_items_query
     else:
         items = reviewed_items_query.order_by(func.random()).limit(session_size).all()
     
-    print(f">>> ALGORITHMS: get_reviewed_items tìm thấy {len(items)} câu hỏi. <<<")
+    current_app.logger.debug(f"Algorithms: get_reviewed_items tìm thấy {len(items)} câu hỏi.")
     return items
 
 def get_hard_items(user_id, container_id, session_size):
@@ -191,7 +191,7 @@ def get_hard_items(user_id, container_id, session_size):
     Hàm này sẽ loại trừ các bộ quiz đã được archive.
     TRẢ VỀ: Một đối tượng truy vấn nếu session_size là None, hoặc một danh sách các item nếu session_size được chỉ định.
     """
-    print(f">>> ALGORITHMS: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
+    current_app.logger.debug(f"Algorithms: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size}")
     base_items_query = _get_base_items_query(user_id, container_id)
 
     # Query hard items using LearningProgress
@@ -214,14 +214,14 @@ def get_hard_items(user_id, container_id, session_size):
         or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
     )
 
-    print(f">>> ALGORITHMS: hard_items_query (câu khó): {hard_items_query} <<<")
+    current_app.logger.debug(f"Algorithms: hard_items_query (câu khó): {hard_items_query}")
     
     if session_size is None or session_size == 999999:
         return hard_items_query
     else:
         items = hard_items_query.order_by(func.random()).limit(session_size).all()
     
-    print(f">>> ALGORITHMS: get_hard_items tìm thấy {len(items)} câu hỏi. <<<")
+    current_app.logger.debug(f"Algorithms: get_hard_items tìm thấy {len(items)} câu hỏi.")
     return items
 
 def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, page, per_page=QuizLearningConfig.DEFAULT_ITEMS_PER_PAGE):
@@ -229,7 +229,7 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
     Lấy danh sách các bộ Quiz đã được lọc và phân trang dựa trên các tiêu chí.
     Bây giờ có thể lọc theo trạng thái archive và sắp xếp theo last_accessed.
     """
-    print(f">>> ALGORITHMS: Bắt đầu get_filtered_quiz_sets cho user_id={user_id}, filter={current_filter} <<<")
+    current_app.logger.debug(f"Algorithms: Bắt đầu get_filtered_quiz_sets cho user_id={user_id}, filter={current_filter}")
 
     base_query = LearningContainer.query.filter_by(container_type='QUIZ_SET')
     user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
@@ -346,7 +346,7 @@ def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, 
         set_item.last_accessed = user_state.last_accessed if user_state else None
 
 
-    print(f">>> ALGORITHMS: Kết thúc get_filtered_quiz_sets. Tổng số bộ: {pagination.total} <<<")
+    current_app.logger.debug(f"Algorithms: Kết thúc get_filtered_quiz_sets. Tổng số bộ: {pagination.total}")
     return pagination
 
 def get_quiz_mode_counts(user_id, set_identifier):
@@ -354,7 +354,7 @@ def get_quiz_mode_counts(user_id, set_identifier):
     Tính toán số lượng câu hỏi cho các chế độ học Quiz.
     Hàm này sẽ loại trừ các bộ quiz đã được archive.
     """
-    print(f">>> ALGORITHMS: Bắt đầu get_quiz_mode_counts cho user_id={user_id}, set_identifier={set_identifier} <<<")
+    current_app.logger.debug(f"Algorithms: Bắt đầu get_quiz_mode_counts cho user_id={user_id}, set_identifier={set_identifier}")
     
     modes_with_counts = []
     mode_function_map = {
@@ -375,5 +375,5 @@ def get_quiz_mode_counts(user_id, set_identifier):
             current_app.logger.warning(f"Không tìm thấy hàm thuật toán cho chế độ Quiz: {mode_id}")
             modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': 0})
 
-    print(f">>> ALGORITHMS: Kết thúc get_quiz_mode_counts. Modes: {modes_with_counts} <<<")
+    current_app.logger.debug(f"Algorithms: Kết thúc get_quiz_mode_counts. Modes: {modes_with_counts}")
     return modes_with_counts

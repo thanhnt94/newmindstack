@@ -12,9 +12,10 @@ from flask_login import current_user
 from sqlalchemy import inspect, or_, text
 
 from ..config import BASE_DIR
-from ..extensions import csrf_protect, db, login_manager, scheduler
+from ..extensions import csrf_protect, db, login_manager, scheduler, migrate
 from mindstack_app.utils.bbcode_parser import bbcode_to_html
 from .module_registry import register_default_modules
+from .error_handlers import register_error_handlers
 
 
 def configure_logging(app: Flask) -> None:
@@ -36,6 +37,7 @@ def register_extensions(app: Flask) -> None:
     """Initialize shared extensions with the Flask app instance."""
 
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf_protect.init_app(app)
 
@@ -224,43 +226,7 @@ def initialize_database(app: Flask) -> None:
 
     inspector = inspect(db.engine)
     
-    # Migrate flashcard_collab_rooms
-    room_columns = {column['name'] for column in inspector.get_columns('flashcard_collab_rooms')}
-    if 'button_count' not in room_columns:
-        with db.engine.begin() as connection:
-            connection.execute(
-                text(
-                    "ALTER TABLE flashcard_collab_rooms "
-                    "ADD COLUMN button_count INTEGER NOT NULL DEFAULT 3"
-                )
-            )
-        app.logger.info("Đã thêm cột button_count vào flashcard_collab_rooms (migrate in place).")
-
-    # Migrate api_keys
-    api_key_columns = {column['name'] for column in inspector.get_columns('api_keys')}
-    if 'provider' not in api_key_columns:
-        with db.engine.begin() as connection:
-            # SQLite doesn't support adding a non-null column without a default value in a simple way 
-            # if there are existing rows. We add it with a default.
-            connection.execute(
-                text(
-                    "ALTER TABLE api_keys "
-                    "ADD COLUMN provider VARCHAR(50) NOT NULL DEFAULT 'gemini'"
-                )
-            )
-        app.logger.info("Đã thêm cột provider vào api_keys (migrate in place).")
-
-    # Migrate users (timezone)
-    user_columns = {column['name'] for column in inspector.get_columns('users')}
-    if 'timezone' not in user_columns:
-        with db.engine.begin() as connection:
-            connection.execute(
-                text(
-                    "ALTER TABLE users "
-                    "ADD COLUMN timezone VARCHAR(50) DEFAULT 'UTC'"
-                )
-            )
-        app.logger.info("Đã thêm cột timezone vào users (migrate in place).")
+    # MANUAL MIGRATIONS REMOVED - Using Flask-Migrate instead.
 
     admin_user = User.query.filter(
         or_(

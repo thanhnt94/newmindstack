@@ -1,7 +1,8 @@
-from flask import request, jsonify
-from flask_login import login_required, current_user
+from flask import request
+from flask_login import login_required
 from . import translator_bp
 from .services import TranslatorService
+from ...core.error_handlers import error_response, success_response
 
 @translator_bp.route('/api/translate', methods=['POST'])
 @login_required
@@ -12,11 +13,11 @@ def translate():
     """
     data = request.get_json()
     if not data or 'text' not in data:
-        return jsonify({'error': 'Missing text'}), 400
+        return error_response('Missing text', 'BAD_REQUEST', 400)
 
     text = data['text']
     if len(text) > 1000: # Simple limit
-        return jsonify({'error': 'Text too long'}), 400
+        return error_response('Text too long', 'BAD_REQUEST', 400)
 
     source = data.get('source', 'auto')
     target = data.get('target', 'vi')
@@ -27,6 +28,6 @@ def translate():
     result = TranslatorService.translate_text(text, source, target)
     
     if result:
-        return jsonify({'translated': result, 'source': source, 'original': text})
+        return success_response(data={'translated': result, 'source': source, 'original': text})
     else:
-        return jsonify({'error': 'Translation failed'}), 500
+        return error_response('Translation failed', 'SERVER_ERROR', 500)

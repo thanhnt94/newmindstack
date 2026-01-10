@@ -16,6 +16,7 @@ from flask import (
     send_file,
     after_this_request,
 )
+from ...core.error_handlers import error_response, success_response
 from flask_login import login_required, current_user
 from sqlalchemy import or_, nullslast
 from ...models import (
@@ -1155,7 +1156,7 @@ def toggle_task(task_id):
     task = BackgroundTask.query.get_or_404(task_id)
     task.is_enabled = not task.is_enabled
     db.session.commit()
-    return jsonify({'success': True, 'is_enabled': task.is_enabled})
+    return success_response(data={'is_enabled': task.is_enabled})
 
 @admin_bp.route('/tasks/start/<int:task_id>', methods=['POST'])
 def start_task(task_id):
@@ -1164,10 +1165,10 @@ def start_task(task_id):
     """
     task = BackgroundTask.query.get_or_404(task_id)
     if task.status == 'running':
-        return jsonify({'success': False, 'message': 'Tác vụ đang chạy, vui lòng dừng trước khi khởi động lại.'})
+        return error_response('Tác vụ đang chạy, vui lòng dừng trước khi khởi động lại.', 'CONFLICT', 409)
 
     if not task.is_enabled:
-        return jsonify({'success': False, 'message': 'Tác vụ đang bị tắt, hãy bật công tắc trước khi bắt đầu.'})
+        return error_response('Tác vụ đang bị tắt, hãy bật công tắc trước khi bắt đầu.', 'BAD_REQUEST', 400)
 
     data = request.get_json(silent=True) or {}
     container_id = data.get('container_id') if isinstance(data, dict) else None
@@ -1185,7 +1186,7 @@ def start_task(task_id):
         try:
             container_id_int = int(container_id)
         except (TypeError, ValueError):
-            return jsonify({'success': False, 'message': 'Giá trị container_id không hợp lệ.'}), 400
+            return error_response('Giá trị container_id không hợp lệ.', 'BAD_REQUEST', 400)
 
         query = LearningContainer.query.filter_by(container_id=container_id_int)
         if container_type:
@@ -1193,7 +1194,7 @@ def start_task(task_id):
 
         selected_container = query.first()
         if not selected_container:
-            return jsonify({'success': False, 'message': 'Không tìm thấy học liệu được chọn.'}), 404
+            return error_response('Không tìm thấy học liệu được chọn.', 'NOT_FOUND', 404)
 
         container_scope_ids = [selected_container.container_id]
         type_labels = {
@@ -1231,7 +1232,7 @@ def start_task(task_id):
             delay_seconds=delay_seconds,
         )
 
-    return jsonify({'success': True, 'scope_label': scope_label})
+    return success_response(data={'scope_label': scope_label})
 
 @admin_bp.route('/tasks/stop/<int:task_id>', methods=['POST'])
 def stop_task(task_id):
@@ -1243,8 +1244,8 @@ def stop_task(task_id):
         task.stop_requested = True
         task.message = 'Đã nhận yêu cầu dừng, sẽ kết thúc sau bước hiện tại.'
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Yêu cầu dừng đã được gửi.'})
-    return jsonify({'success': False, 'message': 'Tác vụ không chạy.'})
+        return success_response(message='Yêu cầu dừng đã được gửi.')
+    return error_response('Tác vụ không chạy.', 'BAD_REQUEST', 400)
 
 
 @admin_bp.route('/tasks/<int:task_id>/logs', methods=['GET'])
@@ -1278,8 +1279,7 @@ def fetch_task_logs(task_id: int):
         .all()
     )
 
-    return jsonify(
-        {
+    return success_response(data={
             'task': {
                 'task_id': task.task_id,
                 'task_name': task.task_name,
@@ -2078,7 +2078,7 @@ def fetch_gemini_models_api():
     API nội bộ để lấy danh sách model mới nhất từ Google.
     """
     result = GeminiClient.get_available_models()
-    return jsonify(result)
+    return success_response(data=result)
 
 @admin_bp.route('/settings/fetch-hf-models', methods=['GET'])
 def fetch_hf_models_api():
@@ -2086,7 +2086,7 @@ def fetch_hf_models_api():
     API nội bộ để lấy danh sách model mới nhất từ Hugging Face.
     """
     result = HuggingFaceClient.get_available_models()
-    return jsonify(result)
+    return success_response(data=result)
 
 
 @admin_bp.route('/settings/browse-directories', methods=['GET'])
@@ -2103,12 +2103,7 @@ def browse_directories_api():
     
     # Đảm bảo path tồn tại và là thư mục
     if not os.path.exists(base_path) or not os.path.isdir(base_path):
-        return jsonify({
-            'success': False,
-            'message': 'Đường dẫn không tồn tại hoặc không phải thư mục.',
-            'directories': [],
-            'current_path': base_path,
-        })
+        return error_response('Đường dẫn không tồn tại hoặc không phải thư mục.', 'BAD_REQUEST', 400, details={'directories': [], 'current_path': base_path})
     
     try:
         directories = []
@@ -2131,27 +2126,16 @@ def browse_directories_api():
         if parent_path == base_path:
             parent_path = None
         
-        return jsonify({
-            'success': True,
+        return success_response(data={
             'directories': directories,
             'current_path': base_path.replace('\\', '/'),
             'parent_path': parent_path.replace('\\', '/') if parent_path else None,
         })
     except PermissionError:
-        return jsonify({
-            'success': False,
-            'message': 'Không có quyền truy cập thư mục này.',
-            'directories': [],
-            'current_path': base_path,
-        })
+        return error_response('Không có quyền truy cập thư mục này.', 'FORBIDDEN', 403, details={'directories': [], 'current_path': base_path})
     except Exception as e:
         current_app.logger.error(f"Lỗi khi duyệt thư mục: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Lỗi: {str(e)}',
-            'directories': [],
-            'current_path': base_path,
-        })
+        return error_response(f'Lỗi: {str(e)}', 'SERVER_ERROR', 500, details={'directories': [], 'current_path': base_path})
 
 
 @admin_bp.route('/settings/create-directory', methods=['POST'])
@@ -2164,55 +2148,33 @@ def create_directory_api():
     folder_name = (data.get('folder_name') or '').strip()
     
     if not folder_name:
-        return jsonify({
-            'success': False,
-            'message': 'Tên thư mục không được để trống.',
-        })
+        return error_response('Tên thư mục không được để trống.', 'BAD_REQUEST', 400)
     
     # Loại bỏ ký tự không hợp lệ
     import re
     folder_name = re.sub(r'[<>:"/\\|?*]', '', folder_name)
     if not folder_name:
-        return jsonify({
-            'success': False,
-            'message': 'Tên thư mục chứa ký tự không hợp lệ.',
-        })
+        return error_response('Tên thư mục chứa ký tự không hợp lệ.', 'BAD_REQUEST', 400)
     
     if not parent_path:
         parent_path = current_app.root_path
     
     if not os.path.exists(parent_path) or not os.path.isdir(parent_path):
-        return jsonify({
-            'success': False,
-            'message': 'Thư mục cha không tồn tại.',
-        })
+        return error_response('Thư mục cha không tồn tại.', 'BAD_REQUEST', 400)
     
     new_path = os.path.join(parent_path, folder_name)
     
     if os.path.exists(new_path):
-        return jsonify({
-            'success': False,
-            'message': 'Thư mục đã tồn tại.',
-        })
+        return error_response('Thư mục đã tồn tại.', 'CONFLICT', 409)
     
     try:
         os.makedirs(new_path, exist_ok=True)
-        return jsonify({
-            'success': True,
-            'message': f'Đã tạo thư mục "{folder_name}".',
-            'new_path': new_path.replace('\\', '/'),
-        })
+        return success_response(message=f'Đã tạo thư mục "{folder_name}".', data={'new_path': new_path.replace('\\', '/')})
     except PermissionError:
-        return jsonify({
-            'success': False,
-            'message': 'Không có quyền tạo thư mục.',
-        })
+        return error_response('Không có quyền tạo thư mục.', 'FORBIDDEN', 403)
     except Exception as e:
         current_app.logger.error(f"Lỗi khi tạo thư mục: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Lỗi: {str(e)}',
-        })
+        return error_response(f'Lỗi: {str(e)}', 'SERVER_ERROR', 500)
 
 
 # ==================== TEMPLATE MANAGEMENT ====================
@@ -2245,7 +2207,7 @@ def update_template_settings():
     API endpoint để lưu cài đặt template.
     """
     if current_user.user_role != User.ROLE_ADMIN:
-        return jsonify({'success': False, 'message': 'Không có quyền.'}), 403
+        return error_response('Không có quyền.', 'FORBIDDEN', 403)
     
     from ...services.template_service import TemplateService
     from ...models import db
@@ -2255,7 +2217,7 @@ def update_template_settings():
         updates = data.get('updates', {})
         
         if not updates:
-            return jsonify({'success': False, 'message': 'Không có thay đổi.'})
+            return error_response('Không có thay đổi.', 'BAD_REQUEST', 400)
         
         for template_type, version in updates.items():
             if template_type and version:
@@ -2268,17 +2230,11 @@ def update_template_settings():
                     f"Template updated by {current_user.username}: {template_type} -> {version}"
                 )
         
-        return jsonify({
-            'success': True,
-            'message': 'Đã cập nhật cài đặt giao diện.',
-        })
+        return success_response(message='Đã cập nhật cài đặt giao diện.')
     
     except Exception as e:
         current_app.logger.error(f"Error updating template settings: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Lỗi: {str(e)}',
-        }), 500
+        return error_response(f'Lỗi: {str(e)}', 'SERVER_ERROR', 500)
 
 
 # =====================================================================
@@ -2316,7 +2272,7 @@ def save_srs_config():
     API endpoint để lưu cấu hình SRS / Memory Power.
     """
     if current_user.user_role != User.ROLE_ADMIN:
-        return jsonify({'success': False, 'message': 'Không có quyền.'}), 403
+        return error_response('Không có quyền.', 'FORBIDDEN', 403)
 
     from ...services.memory_power_config_service import MemoryPowerConfigService
 
@@ -2325,7 +2281,7 @@ def save_srs_config():
         settings = data.get('settings', {})
 
         if not settings:
-            return jsonify({'success': False, 'message': 'Không có thay đổi.'})
+            return error_response('Không có thay đổi.', 'BAD_REQUEST', 400)
 
         # Parse and validate each setting
         parsed_settings = {}
@@ -2350,27 +2306,15 @@ def save_srs_config():
             f"SRS config updated by {current_user.username}: {list(parsed_settings.keys())}"
         )
 
-        return jsonify({
-            'success': True,
-            'message': 'Đã lưu cấu hình Memory Power.',
-        })
+        return success_response(message='Đã lưu cấu hình Memory Power.')
 
     except json.JSONDecodeError as e:
-        return jsonify({
-            'success': False,
-            'message': f'Lỗi JSON không hợp lệ: {str(e)}',
-        }), 400
+        return error_response(f'Lỗi JSON không hợp lệ: {str(e)}', 'BAD_REQUEST', 400)
     except ValueError as e:
-        return jsonify({
-            'success': False,
-            'message': f'Giá trị không hợp lệ: {str(e)}',
-        }), 400
+        return error_response(f'Giá trị không hợp lệ: {str(e)}', 'BAD_REQUEST', 400)
     except Exception as e:
         current_app.logger.error(f"Error saving SRS config: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Lỗi: {str(e)}',
-        }), 500
+        return error_response(f'Lỗi: {str(e)}', 'SERVER_ERROR', 500)
 
 
 @admin_bp.route('/srs-config/reset', methods=['POST'])
@@ -2380,7 +2324,7 @@ def reset_srs_config():
     Reset tất cả cấu hình SRS về giá trị mặc định.
     """
     if current_user.user_role != User.ROLE_ADMIN:
-        return jsonify({'success': False, 'message': 'Không có quyền.'}), 403
+        return error_response('Không có quyền.', 'FORBIDDEN', 403)
 
     from ...services.memory_power_config_service import MemoryPowerConfigService
 
@@ -2391,14 +2335,8 @@ def reset_srs_config():
             f"SRS config reset to defaults by {current_user.username}"
         )
 
-        return jsonify({
-            'success': True,
-            'message': 'Đã khôi phục cấu hình về mặc định.',
-        })
+        return success_response(message='Đã khôi phục cấu hình về mặc định.')
 
     except Exception as e:
         current_app.logger.error(f"Error resetting SRS config: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Lỗi: {str(e)}',
-        }), 500
+        return error_response(f'Lỗi: {str(e)}', 'SERVER_ERROR', 500)

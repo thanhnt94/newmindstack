@@ -2,7 +2,7 @@
 # Phiên bản: 1.1
 # Mục đích: Chứa các route và logic cho việc quản lý API keys.
 
-from flask import abort, render_template, redirect, url_for, flash, request, jsonify
+from flask import abort, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from sqlalchemy import desc, func
 from datetime import datetime, timedelta
@@ -10,6 +10,7 @@ from . import api_key_management_bp
 from .forms import ApiKeyForm
 from ....models import db, ApiKey, BackgroundTask, AppSettings
 from ....models.system import AILog
+from ....core.error_handlers import error_response, success_response
 
 @api_key_management_bp.before_request
 def admin_required():
@@ -215,7 +216,7 @@ def get_sets_for_autogen(content_type):
     from .autogen_service import get_sets_with_missing_content
     
     result = get_sets_with_missing_content(content_type)
-    return jsonify(result)
+    return success_response(data=result)
 
 
 @api_key_management_bp.route('/autogen/start', methods=['POST'])
@@ -235,7 +236,7 @@ def start_autogen():
         max_items = int(data.get('max_items', 25))
         
         if not content_type or not set_id:
-            return jsonify({'success': False, 'message': 'Missing required parameters'}), 400
+            return error_response('Missing required parameters', 'BAD_REQUEST', 400)
         
         # Check for existing task record (Singleton pattern for this task name)
         task = BackgroundTask.query.filter_by(task_name='autogen_content').first()
@@ -243,7 +244,7 @@ def start_autogen():
         if task:
             # If exists, check if running
             if task.status == 'running':
-                 return jsonify({'success': False, 'message': 'A task is already running', 'task_id': task.task_id}), 409
+                 return error_response('A task is already running', 'CONFLICT', 409, details={'task_id': task.task_id})
             
             # Reset existing task for new run
             task.status = 'pending'
@@ -279,11 +280,11 @@ def start_autogen():
         thread.daemon = True
         thread.start()
         
-        return jsonify({'success': True, 'message': 'Task started', 'task_id': task.task_id})
+        return success_response(message='Task started', data={'task_id': task.task_id})
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return error_response(str(e), 'SERVER_ERROR', 500)
 
 @api_key_management_bp.route('/autogen/status', methods=['GET'])
 def get_autogen_status():
@@ -294,7 +295,7 @@ def get_autogen_status():
     task = BackgroundTask.query.filter_by(task_name='autogen_content').order_by(BackgroundTask.task_id.desc()).first()
     
     if not task:
-        return jsonify({'active': False})
+        return success_response(data={'active': False})
     
     # Check if task is technically "running" but thread is gone (server restart/crash)
     if task.status in ['running', 'pending']:
@@ -310,7 +311,7 @@ def get_autogen_status():
             task.message = f"Task interrupted (server restart or crash). Last state: {task.message}"
             db.session.commit()
     
-    return jsonify({
+    return success_response(data={
         'active': True,
         'task_id': task.task_id,
         'status': task.status,
@@ -329,7 +330,7 @@ def get_autogen_logs():
     task = BackgroundTask.query.filter_by(task_name='autogen_content').order_by(BackgroundTask.task_id.desc()).first()
     
     if not task:
-        return jsonify({'success': False, 'logs': []})
+        return success_response(data={'logs': []})
     
     # Get logs for this task
     # We use the relationship if available, or query directly
@@ -351,7 +352,7 @@ def get_autogen_logs():
             'status': log.status
         })
         
-    return jsonify({'success': True, 'logs': log_data})
+    return success_response(data={'logs': log_data})
 
 
 @api_key_management_bp.route('/redirect-item/<int:item_id>', methods=['GET'])

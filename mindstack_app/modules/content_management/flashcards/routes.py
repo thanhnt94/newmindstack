@@ -49,6 +49,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 # THÊM MỚI: Import AudioService
 from ...learning.sub_modules.flashcard.services import AudioService, ImageService
 from .services import FlashcardExcelService
+from ....core.error_handlers import error_response, success_response
 
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
                             template_folder='templates') # Đã cập nhật đường dẫn template
@@ -620,10 +621,10 @@ def process_excel_info():
     và trích xuất dữ liệu từ đó, trả về dưới dạng JSON.
     """
     if 'excel_file' not in request.files:
-        return jsonify({'success': False, 'message': 'Không tìm thấy file.'}), 400
+        return error_response('Không tìm thấy file.', 'BAD_REQUEST', 400)
     file = request.files['excel_file']
     if file.filename == '':
-        return jsonify({'success': False, 'message': 'Chưa chọn file nào.'}), 400
+        return error_response('Chưa chọn file nào.', 'BAD_REQUEST', 400)
     if file and file.filename.endswith('.xlsx'):
         temp_filepath = None
         try:
@@ -638,28 +639,26 @@ def process_excel_info():
             
             if not info_data and info_warnings:
                 message = format_info_warnings(info_warnings)
-                return jsonify({'success': False, 'message': message}), 400
+                return error_response(message, 'BAD_REQUEST', 400)
 
             message = 'Đã đọc thông tin từ file Excel.'
             if info_warnings:
                 message += ' ' + format_info_warnings(info_warnings)
                 
-            return jsonify({
-                'success': True, 
+            return success_response(message=message, data={
                 'data': info_data, 
-                'column_analysis': column_analysis,  # Return analysis data
-                'message': message
+                'column_analysis': column_analysis
             })
         except Exception as e:
             # Xử lý các lỗi khác khi đọc file Excel
             current_app.logger.error(f"Lỗi khi xử lý sheet Info (Flashcard): {e}")
-            return jsonify({'success': False, 'message': f'Lỗi đọc file Excel: {e}'}), 500
+            return error_response(f'Lỗi đọc file Excel: {e}', 'SERVER_ERROR', 500)
         finally:
             # Đảm bảo xóa file tạm thời
             if temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
     # Trả về lỗi nếu file không hợp lệ
-    return jsonify({'success': False, 'message': 'File không hợp lệ. Vui lòng chọn file .xlsx'}), 400
+    return error_response('File không hợp lệ. Vui lòng chọn file .xlsx', 'BAD_REQUEST', 400)
 
 @flashcards_bp.route('/flashcards')
 @login_required
@@ -1042,14 +1041,14 @@ def add_flashcard_set():
         
         # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': flash_category == 'success', 'message': flash_message})
+            return success_response(message=flash_message)
         else:
             flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
     
     # Xử lý lỗi form validation cho AJAX
     if (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('is_modal') == 'true') and request.method == 'POST':
-        return jsonify({'success': False, 'errors': form.errors}), 400
+        return error_response('Dữ liệu không hợp lệ', 'VALIDATION_ERROR', 400, details=form.errors)
     
     # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
@@ -1160,7 +1159,7 @@ def edit_flashcard_set(set_id):
                 try:
                     flashcard_set.settings = json.loads(form.settings.data)
                 except Exception as e:
-                    print(f"Error parsing settings JSON: {e}")
+                    current_app.logger.error(f"Error parsing settings JSON: {e}")
             
             safe_commit(db.session)
             
@@ -1175,10 +1174,10 @@ def edit_flashcard_set(set_id):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             if flash_message:
                  flash(flash_message, flash_category)
-            return jsonify({
-                'success': flash_category == 'success',
-                'message': flash_message
-            })
+            if flash_category == 'success':
+                return success_response(message=flash_message)
+            else:
+                return error_response(flash_message)
             
         return redirect(url_for('content_management.flashcards.sets.list_flashcard_sets'))
 
@@ -1202,7 +1201,7 @@ def update_flashcard_set_settings(set_id):
     """
     flashcard_set = db.session.get(LearningContainer, set_id)
     if not flashcard_set:
-        return jsonify({'success': False, 'message': 'Không tìm thấy bộ thẻ.'}), 404
+        return error_response('Không tìm thấy bộ thẻ.', 'NOT_FOUND', 404)
         
     # Check permission (contributor or admin)
     if flashcard_set.creator_user_id != current_user.user_id and current_user.user_role not in ['admin', 'manager']:
@@ -1212,12 +1211,12 @@ def update_flashcard_set_settings(set_id):
             user_id=current_user.user_id
          ).first() is not None
          if not is_contrib:
-            return jsonify({'success': False, 'message': 'Bạn không có quyền sửa bộ thẻ này.'}), 403
+            return error_response('Bạn không có quyền sửa bộ thẻ này.', 'FORBIDDEN', 403)
 
     try:
         data = request.get_json()
         if not data or 'settings' not in data:
-            return jsonify({'success': False, 'message': 'Dữ liệu không hợp lệ.'}), 400
+            return error_response('Dữ liệu không hợp lệ.', 'BAD_REQUEST', 400)
             
         new_settings = data['settings']
         
@@ -1243,15 +1242,12 @@ def update_flashcard_set_settings(set_id):
         
         safe_commit(db.session)
         
-        return jsonify({
-            'success': True, 
-            'message': 'Đã lưu cấu hình mặc định thành công!'
-        })
+        return success_response(message='Đã lưu cấu hình mặc định thành công!')
         
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error updating flashcard set settings: {e}")
-        return jsonify({'success': False, 'message': f'Lỗi server: {str(e)}'}), 500
+        return error_response(f'Lỗi server: {str(e)}', 'SERVER_ERROR', 500)
 
 @flashcards_bp.route('/flashcards/delete/<int:set_id>', methods=['POST'])
 @login_required
@@ -1349,7 +1345,7 @@ def reorder_flashcard_items(set_id):
     payload = request.get_json(silent=True) or {}
     order_payload = payload.get('order')
     if not isinstance(order_payload, list) or not order_payload:
-        return jsonify({'success': False, 'message': 'Dữ liệu sắp xếp không hợp lệ.'}), 400
+        return error_response('Dữ liệu sắp xếp không hợp lệ.', 'BAD_REQUEST', 400)
 
     order_map = {}
     try:
@@ -1358,10 +1354,10 @@ def reorder_flashcard_items(set_id):
             order_value = int(entry['order'])
             order_map[item_id] = order_value
     except (KeyError, TypeError, ValueError):
-        return jsonify({'success': False, 'message': 'Định dạng dữ liệu không hợp lệ.'}), 400
+        return error_response('Định dạng dữ liệu không hợp lệ.', 'BAD_REQUEST', 400)
 
     if len(order_map) != len(set(order_map.values())):
-        return jsonify({'success': False, 'message': 'Thứ tự mới không hợp lệ.'}), 400
+        return error_response('Thứ tự mới không hợp lệ.', 'BAD_REQUEST', 400)
 
     items = LearningItem.query.filter(
         LearningItem.container_id == set_id,
@@ -1370,7 +1366,7 @@ def reorder_flashcard_items(set_id):
     ).all()
 
     if len(items) != len(order_map):
-        return jsonify({'success': False, 'message': 'Không tìm thấy một số thẻ cần sắp xếp.'}), 404
+        return error_response('Không tìm thấy một số thẻ cần sắp xếp.', 'NOT_FOUND', 404)
 
     for item in items:
         new_position = order_map.get(item.item_id)
@@ -1378,7 +1374,8 @@ def reorder_flashcard_items(set_id):
             item.order_in_container = new_position
 
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Thứ tự thẻ đã được cập nhật.'})
+    db.session.commit()
+    return success_response(message='Thứ tự thẻ đã được cập nhật.')
 
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items/<int:item_id>/search-image', methods=['POST'])
@@ -1394,7 +1391,7 @@ def search_flashcard_image(set_id, item_id):
         or flashcard_set.creator_user_id == current_user.user_id
         or _has_editor_access(set_id)
     ):
-        return jsonify({'success': False, 'message': 'Bạn không có quyền thực hiện thao tác này.'}), 403
+        return error_response('Bạn không có quyền thực hiện thao tác này.', 'FORBIDDEN', 403)
 
     if item_id:
         flashcard_item = LearningItem.query.filter_by(
@@ -1402,23 +1399,24 @@ def search_flashcard_image(set_id, item_id):
             container_id=set_id,
             item_type='FLASHCARD'
         ).first()
+
         if not flashcard_item:
-            return jsonify({'success': False, 'message': 'Không tìm thấy thẻ phù hợp.'}), 404
+            return error_response('Không tìm thấy thẻ phù hợp.', 'NOT_FOUND', 404)
 
     payload = request.get_json(silent=True) or {}
     side = (payload.get('side') or 'front').lower()
     query = (payload.get('query') or '').strip()
 
     if side not in {'front', 'back'}:
-        return jsonify({'success': False, 'message': 'Mặt thẻ không hợp lệ.'}), 400
+        return error_response('Mặt thẻ không hợp lệ.', 'BAD_REQUEST', 400)
 
     if not query:
-        return jsonify({'success': False, 'message': 'Vui lòng nhập nội dung để tìm kiếm ảnh.'}), 400
+        return error_response('Vui lòng nhập nội dung để tìm kiếm ảnh.', 'BAD_REQUEST', 400)
 
     try:
         absolute_path, success, message = image_service.get_cached_or_download_image(query)
         if not success or not absolute_path:
-            return jsonify({'success': False, 'message': message or 'Không tìm thấy ảnh phù hợp.'}), 404
+            return error_response(message or 'Không tìm thấy ảnh phù hợp.', 'NOT_FOUND', 404)
 
         image_folder = _get_media_folders_from_container(flashcard_set).get('image')
         if not image_folder:
@@ -1430,7 +1428,7 @@ def search_flashcard_image(set_id, item_id):
             current_app.logger.error(
                 "Không thể tạo thư mục ảnh %s: %s", image_folder, folder_exc, exc_info=True
             )
-            return jsonify({'success': False, 'message': 'Không thể chuẩn bị thư mục lưu ảnh.'}), 500
+            return error_response('Không thể chuẩn bị thư mục lưu ảnh.', 'SERVER_ERROR', 500)
 
         filename = os.path.basename(absolute_path)
         destination = os.path.join(current_app.static_folder, image_folder, filename)
@@ -1444,18 +1442,16 @@ def search_flashcard_image(set_id, item_id):
             current_app.logger.error(
                 "Lỗi khi di chuyển ảnh vào thư mục %s: %s", image_folder, move_exc, exc_info=True
             )
-            return jsonify({'success': False, 'message': 'Không thể lưu file ảnh.'}), 500
+            return error_response('Không thể lưu file ảnh.', 'SERVER_ERROR', 500)
 
         stored_value = normalize_media_value_for_storage(filename, image_folder)
         relative_path = build_relative_media_path(stored_value, image_folder)
 
         if not relative_path:
-            return jsonify({'success': False, 'message': 'Không thể xử lý đường dẫn ảnh.'}), 500
+            return error_response('Không thể xử lý đường dẫn ảnh.', 'SERVER_ERROR', 500)
 
         image_url = url_for('static', filename=relative_path)
-        return jsonify({
-            'success': True,
-            'message': 'Đã tìm thấy ảnh minh họa.',
+        return success_response(message='Đã tìm thấy ảnh minh họa.', data={
             'relative_path': relative_path,
             'stored_value': stored_value,
             'image_url': image_url
@@ -1464,7 +1460,7 @@ def search_flashcard_image(set_id, item_id):
         current_app.logger.error(
             "Lỗi khi tìm ảnh minh họa cho bộ thẻ %s: %s", set_id, exc, exc_info=True
         )
-        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi tìm kiếm ảnh.'}), 500
+        return error_response('Đã xảy ra lỗi khi tìm kiếm ảnh.', 'SERVER_ERROR', 500)
 
 @flashcards_bp.route('/flashcards/<int:set_id>/items/add', methods=['GET', 'POST'])
 @login_required
@@ -1542,19 +1538,16 @@ def add_flashcard_item(set_id):
         db.session.commit() # Lưu thay đổi
         
         # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
+        # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': True,
-                'message': 'Thẻ mới đã được thêm!',
-                'item_id': new_item.item_id
-            })
+            return success_response(message='Thẻ mới đã được thêm!', data={'item_id': new_item.item_id})
         else:
             flash('Thẻ mới đã được thêm!', 'success')
             return redirect(url_for('.list_flashcard_items', set_id=set_id))
     
     # Xử lý lỗi form validation cho AJAX
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
-        return jsonify({'success': False, 'errors': form.errors}), 400
+        return error_response('Dữ liệu không hợp lệ', 'VALIDATION_ERROR', 400, details=form.errors)
     
     context = {
         'form': form,
@@ -1686,12 +1679,9 @@ def edit_flashcard_item(set_id, item_id):
         db.session.commit() # Lưu thay đổi
         
         # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
+        # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': True,
-                'message': 'Thẻ đã được cập nhật!',
-                'item_id': flashcard_item.item_id
-            })
+            return success_response(message='Thẻ đã được cập nhật!', data={'item_id': flashcard_item.item_id})
         else:
             flash('Thẻ đã được cập nhật!', 'success')
             return redirect(url_for('.list_flashcard_items', set_id=set_id))
@@ -1812,8 +1802,9 @@ def delete_flashcard_item(set_id, item_id):
     db.session.commit() # Lưu thay đổi
     
     # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
+    # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': True, 'message': 'Thẻ đã được xóa.'})
+        return success_response(message='Thẻ đã được xóa.')
     else:
         flash('Thẻ đã được xóa.', 'success')
         return redirect(url_for('.list_flashcard_items', set_id=set_id))

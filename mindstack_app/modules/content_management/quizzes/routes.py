@@ -22,6 +22,7 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import QuizSetForm, QuizItemForm
 from ....models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User, UserNote
+from ....core.error_handlers import error_response, success_response
 from ....config import Config
 from ....services.config_service import get_runtime_config
 import pandas as pd
@@ -1246,10 +1247,10 @@ def process_excel_info():
     Xử lý file Excel được tải lên để trích xuất thông tin từ sheet 'Info'.
     """
     if 'excel_file' not in request.files:
-        return jsonify({'success': False, 'message': 'Không tìm thấy file.'}), 400
+        return error_response('Không tìm thấy file.', 'BAD_REQUEST', 400)
     file = request.files['excel_file']
     if file.filename == '':
-        return jsonify({'success': False, 'message': 'Chưa chọn file nào.'}), 400
+        return error_response('Chưa chọn file nào.', 'BAD_REQUEST', 400)
     if file and file.filename.endswith('.xlsx'):
         temp_filepath = None
         try:
@@ -1259,18 +1260,18 @@ def process_excel_info():
             info_data, info_warnings = extract_info_sheet_mapping(temp_filepath)
             if not info_data and info_warnings:
                 message = format_info_warnings(info_warnings)
-                return jsonify({'success': False, 'message': message}), 400
+                return error_response(message, 'BAD_REQUEST', 400)
             message = 'Đã đọc thông tin từ sheet Info.'
             if info_warnings:
                 message += ' ' + format_info_warnings(info_warnings)
-            return jsonify({'success': True, 'data': info_data, 'message': message})
+            return success_response(message=message, data={'data': info_data})
         except Exception as e:
             current_app.logger.error(f"Lỗi khi xử lý sheet Info: {e}")
-            return jsonify({'success': False, 'message': f'Lỗi đọc file Excel: {e}'}), 500
+            return error_response(f'Lỗi đọc file Excel: {e}', 'SERVER_ERROR', 500)
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
-    return jsonify({'success': False, 'message': 'File không hợp lệ. Vui lòng chọn file .xlsx'}), 400
+    return error_response('File không hợp lệ. Vui lòng chọn file .xlsx', 'BAD_REQUEST', 400)
 
 @quizzes_bp.route('/quizzes')
 @login_required

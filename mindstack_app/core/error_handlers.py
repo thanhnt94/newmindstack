@@ -31,7 +31,7 @@ class MindStackError(Exception):
         """Convert error to dictionary for JSON response."""
         return {
             'success': False,
-            'error': self.message,
+            'message': self.message,
             'code': self.code,
             'details': self.details
         }
@@ -93,7 +93,7 @@ def error_response(
     """Create a standardized error response."""
     response = {
         'success': False,
-        'error': message,
+        'message': message,
         'code': code
     }
     if details:

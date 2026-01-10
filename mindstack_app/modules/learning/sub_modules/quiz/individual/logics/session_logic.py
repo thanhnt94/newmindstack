@@ -126,7 +126,6 @@ class QuizSessionManager:
         Khởi tạo một phiên học Quiz mới.
         Lấy danh sách câu hỏi dựa trên chế độ và số lượng yêu cầu.
         """
-        print(f">>> SESSION_MANAGER: Bắt đầu start_new_quiz_session cho set_id={set_id}, mode={mode}, session_size={session_size}, turn_size={batch_size} <<<")
         current_app.logger.debug(f"SessionManager: Bắt đầu start_new_quiz_session cho set_id={set_id}, mode={mode}, session_size={session_size}, turn_size={batch_size}")
         user_id = current_user.user_id
         
@@ -150,7 +149,6 @@ class QuizSessionManager:
 
         mode_config = next((m for m in QuizLearningConfig.QUIZ_MODES if m['id'] == mode), None)
         if not mode_config:
-            print(f">>> SESSION_MANAGER: LỖI - Chế độ học không hợp lệ hoặc không được định nghĩa: {mode} <<<")
             current_app.logger.error(f"SessionManager: Chế độ học không hợp lệ hoặc không được định nghĩa: {mode}")
             return False
         
@@ -177,7 +175,6 @@ class QuizSessionManager:
             from .algorithms import _get_base_items_query
         
         if not algorithm_func:
-            print(f">>> SESSION_MANAGER: LỖI - Không tìm thấy hàm thuật toán cho chế độ: {mode} <<<")
             current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {mode}")
             return False
         
@@ -242,7 +239,6 @@ class QuizSessionManager:
 
         if total_items_in_session == 0:
             cls.end_quiz_session()
-            print(">>> SESSION_MANAGER: Không có câu hỏi nào được tìm thấy cho phiên học mới. <<<")
             current_app.logger.warning("SessionManager: Không có câu hỏi nào được tìm thấy cho phiên học mới.")
             return False
 
@@ -254,7 +250,7 @@ class QuizSessionManager:
             common_pre_question_text_global = None
             if global_pre_texts and all(p == global_pre_texts[0] for p in global_pre_texts):
                 common_pre_question_text_global = global_pre_texts[0]
-                print(f">>> SESSION_MANAGER: Phát hiện common_pre_question_text_global: '{common_pre_question_text_global}' <<<")
+                current_app.logger.debug(f"SessionManager: Phát hiện common_pre_question_text_global: '{common_pre_question_text_global}'")
         else:
             common_pre_question_text_global = None
 
@@ -293,7 +289,6 @@ class QuizSessionManager:
         session[cls.SESSION_KEY] = new_session_manager.to_dict()
         session.modified = True
 
-        print(f">>> SESSION_MANAGER: Phiên học mới đã được khởi tạo với {total_items_in_session} câu hỏi. Batch size: {batch_size} <<<")
         current_app.logger.debug(f"SessionManager: Phiên học mới đã được khởi tạo với {total_items_in_session} câu hỏi. Batch size: {batch_size}")
         return True
 
@@ -669,7 +664,6 @@ class QuizSessionManager:
         """
         Xử lý một danh sách các câu trả lời của người dùng cho một nhóm câu hỏi.
         """
-        print(f">>> SESSION_MANAGER: Bắt đầu process_answer_batch với {len(answers)} đáp án. <<<")
         current_app.logger.debug(f"SessionManager: Bắt đầu process_answer_batch với {len(answers)} đáp án.")
         
         results = []
@@ -755,8 +749,8 @@ class QuizSessionManager:
                             break
                 
                 if not correct_option_char:
-                    print(f"!!! SESSION_MANAGER: WARNING - Không tìm thấy key cho đáp án '{correct_text}' trong options_mapping cho item {item_id}")
-                    print(f"Mapping hiện tại: {options_mapping}")
+                    current_app.logger.warning(f"SessionManager: Không tìm thấy key cho đáp án '{correct_text}' trong options_mapping cho item {item_id}")
+                    current_app.logger.debug(f"Mapping hiện tại: {options_mapping}")
 
             item_stats = get_quiz_item_statistics(self.user_id, item_id)
             

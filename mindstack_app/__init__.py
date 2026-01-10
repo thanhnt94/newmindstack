@@ -12,6 +12,7 @@ from .core.bootstrap import (
     register_blueprints,
     register_context_processors,
     register_extensions,
+    register_error_handlers,
 )
 from .extensions import db
 from .services.config_service import init_config_service
@@ -27,6 +28,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     app.config.from_object(config_class)
 
     configure_logging(app)
+    register_error_handlers(app)
     register_extensions(app)
     configure_static_uploads(app)
     register_context_processors(app)

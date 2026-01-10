@@ -14,10 +14,10 @@ import os
 from ...config import Config
 from ...services.config_service import get_runtime_config
 
-# Import các blueprint con
 from .courses.routes import courses_bp
 from .flashcards.routes import flashcards_bp
 from .quizzes.routes import quizzes_bp
+from ...core.error_handlers import error_response, success_response
 
 # Định nghĩa Blueprint chính cho content_management
 content_management_bp = Blueprint('content_management', __name__,
@@ -45,27 +45,28 @@ def upload_rich_text_media():
     """Tải file media sử dụng trong trình soạn thảo WYSIWYG."""
 
     if current_user.user_role == User.ROLE_FREE:
-        return jsonify({'success': False, 'message': 'Tài khoản của bạn không có quyền tải media.'}), 403
+        return error_response('Tài khoản của bạn không có quyền tải media.', 'FORBIDDEN', 403)
 
     upload_root = get_runtime_config('UPLOAD_FOLDER', Config.UPLOAD_FOLDER)
     if not upload_root:
         current_app.logger.error('UPLOAD_FOLDER chưa được cấu hình.')
-        return jsonify({'success': False, 'message': 'Máy chủ chưa cấu hình thư mục lưu trữ.'}), 500
+        return error_response('Máy chủ chưa cấu hình thư mục lưu trữ.', 'SERVER_ERROR', 500)
 
     if 'media_file' not in request.files:
-        return jsonify({'success': False, 'message': 'Không tìm thấy file tải lên.'}), 400
+        return error_response('Không tìm thấy file tải lên.', 'BAD_REQUEST', 400)
 
     file = request.files['media_file']
     if not file or file.filename == '':
-        return jsonify({'success': False, 'message': 'Không có file nào được chọn.'}), 400
+        return error_response('Không có file nào được chọn.', 'BAD_REQUEST', 400)
 
     filename = secure_filename(file.filename)
     if not filename:
-        return jsonify({'success': False, 'message': 'Tên file không hợp lệ.'}), 400
+        return error_response('Tên file không hợp lệ.', 'BAD_REQUEST', 400)
 
     ext = os.path.splitext(filename)[1].lower()
+    ext = os.path.splitext(filename)[1].lower()
     if ext not in ALLOWED_RICH_TEXT_EXTENSIONS:
-        return jsonify({'success': False, 'message': f'Định dạng file "{ext}" không được hỗ trợ.'}), 400
+        return error_response(f'Định dạng file "{ext}" không được hỗ trợ.', 'BAD_REQUEST', 400)
 
     media_type = request.form.get('media_type', 'file')
     target_dir = os.path.join(upload_root, 'content', _select_media_subdir(media_type))
@@ -82,12 +83,12 @@ def upload_rich_text_media():
         file.save(candidate_path)
     except Exception as exc:  # pragma: no cover - phòng lỗi IO hiếm gặp
         current_app.logger.exception('Không thể lưu file media: %s', exc)
-        return jsonify({'success': False, 'message': 'Không thể lưu file media trên máy chủ.'}), 500
+        return error_response('Không thể lưu file media trên máy chủ.', 'SERVER_ERROR', 500)
 
     relative_path = os.path.relpath(candidate_path, upload_root).replace('\\', '/')
     file_url = url_for('static', filename=relative_path, _external=False)
 
-    return jsonify({'success': True, 'location': file_url, 'filename': candidate_name})
+    return success_response(message='File uploaded successfully', data={'location': file_url, 'filename': candidate_name})
 
 
 @content_management_bp.route('/')

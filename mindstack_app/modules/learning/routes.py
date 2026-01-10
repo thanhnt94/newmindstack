@@ -3,7 +3,7 @@
 # Mục đích: Đăng ký blueprint cho module học Course.
 # ĐÃ THÊM: Import và đăng ký course_learning_bp.
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer
 from .sub_modules.flashcard.services.session_service import LearningSessionService
@@ -128,12 +128,12 @@ def get_mode_description(session):
 @login_required
 def manage_sessions():
     """ Trang quản lý các phiên học đang hoạt động. """
-    print(f"DEBUG: Accessing manage_sessions for user {current_user.user_id}")
+    current_app.logger.debug(f"Accessing manage_sessions for user {current_user.user_id}")
     try:
         sessions = LearningSessionService.get_active_sessions(current_user.user_id)
-        print(f"DEBUG: Found {len(sessions)} active sessions")
+        current_app.logger.debug(f"Found {len(sessions)} active sessions")
     except Exception as e:
-        print(f"DEBUG: Error fetching active sessions: {e}")
+        current_app.logger.error(f"Error fetching active sessions: {e}")
         sessions = []
 
     session_list = []
@@ -146,7 +146,7 @@ def manage_sessions():
             elif isinstance(s.set_id_data, list):
                 container_name = f"{len(s.set_id_data)} bộ học tập"
         except Exception as e:
-             print(f"DEBUG: Error resolving container: {e}")
+             current_app.logger.warning(f"Error resolving container: {e}")
              pass
         
         # Determine Resume URL
@@ -178,9 +178,9 @@ def manage_sessions():
     # Fetch History
     try:
         history_raw = LearningSessionService.get_session_history(current_user.user_id)
-        print(f"DEBUG: Found {len(history_raw)} history sessions")
+        current_app.logger.debug(f"Found {len(history_raw)} history sessions")
     except Exception as e:
-        print(f"DEBUG: Error fetching history: {e}")
+        current_app.logger.error(f"Error fetching history: {e}")
         history_raw = []
 
     history_list = []
@@ -193,13 +193,13 @@ def manage_sessions():
             elif isinstance(h.set_id_data, list):
                 container_name = f"{len(h.set_id_data)} bộ học tập"
         except Exception as e:
-             print(f"DEBUG: Error resolving container for history: {e}")
+             current_app.logger.warning(f"Error resolving container for history: {e}")
              pass
         
         try:
             desc = get_mode_description(h)
         except Exception as e:
-             print(f"DEBUG: Error getting mode description: {e}")
+             current_app.logger.warning(f"Error getting mode description: {e}")
              desc = "Phiên học"
 
         history_list.append({
@@ -217,7 +217,7 @@ def manage_sessions():
             'points': h.points_earned
         })
     
-    print("DEBUG: Rendering v3/pages/learning/sessions.html")
+    current_app.logger.debug("Rendering v3/pages/learning/sessions.html")
     return render_template('v3/pages/learning/sessions.html', sessions=session_list, history=history_list)
 
 

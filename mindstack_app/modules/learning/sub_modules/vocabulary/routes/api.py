@@ -7,6 +7,7 @@ from sqlalchemy import or_
 import math
 
 from . import vocabulary_bp
+from mindstack_app.core.error_handlers import error_response, success_response
 from mindstack_app.models import (
     LearningContainer, LearningItem, User, UserContainerState, db, LearningProgress
 )
@@ -158,10 +159,7 @@ def api_get_flashcard_modes(set_id):
             'settings': uc_state.settings if (uc_state and uc_state.settings) else {}
         })
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+        return error_response(str(e), 'SERVER_ERROR', 500)
 
 
 @vocabulary_bp.route('/api/settings/container/<int:set_id>', methods=['POST', 'DELETE'])
@@ -185,7 +183,7 @@ def api_container_settings(set_id):
         return jsonify({'success': True, 'settings': new_settings})
     except Exception as e:
         current_app.logger.error(f"Error managing settings for set {set_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return error_response(str(e), 'SERVER_ERROR', 500)
 
 
 @vocabulary_bp.route('/api/set/<int:set_id>')
@@ -238,11 +236,7 @@ def api_get_set_detail(set_id):
 
     except Exception as e:
         import traceback
-        with open('debug_vocab.txt', 'a', encoding='utf-8') as f:
-            f.write(f"ERROR calculating course stats for set {set_id}: {e}\n")
-            f.write(traceback.format_exc())
-            f.write("\n--------------------------------\n")
-        print(f"ERROR calculating course stats for set {set_id}: {e}")
+        current_app.logger.error(f"ERROR calculating course stats for set {set_id}: {e}\n{traceback.format_exc()}")
         # Don't fail - just return empty stats
         course_stats = None
 
@@ -295,13 +289,9 @@ def api_get_container_stats(container_id):
             'chart_data': chart_data
         })
     except Exception as e:
-        print(f"Error getting container stats: {e}")
         import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        current_app.logger.error(f"Error getting container stats: {e}\n{traceback.format_exc()}")
+        return error_response(str(e), 'SERVER_ERROR', 500)
 
 
 @vocabulary_bp.route('/api/progress/<int:item_id>/note', methods=['POST'])
@@ -344,7 +334,7 @@ def api_save_item_note(item_id):
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error saving note for item {item_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return error_response(str(e), 'SERVER_ERROR', 500)
 
 @vocabulary_bp.route('/api/item/<int:item_id>/generate-ai', methods=['POST'])
 @login_required
@@ -379,4 +369,4 @@ def api_generate_ai_explanation(item_id):
         import traceback
         error_details = traceback.format_exc()
         current_app.logger.error(f"Error generating AI for item {item_id}: {e}\n{error_details}")
-        return jsonify({'success': False, 'message': str(e), 'details': error_details}), 500
+        return error_response(str(e), 'SERVER_ERROR', 500, details={'trace': error_details})

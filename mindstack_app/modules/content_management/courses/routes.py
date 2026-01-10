@@ -11,6 +11,7 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import CourseForm, LessonForm # Đã sửa từ CourseSetForm
 from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
+from ....core.error_handlers import error_response, success_response
 import pandas as pd
 import tempfile
 import os
@@ -410,10 +411,10 @@ def process_excel_info():
     và trích xuất dữ liệu từ đó, trả về dưới dạng JSON.
     """
     if 'excel_file' not in request.files:
-        return jsonify({'success': False, 'message': 'Không tìm thấy file.'}), 400
+        return error_response('Không tìm thấy file.', 'BAD_REQUEST', 400)
     file = request.files['excel_file']
     if file.filename == '':
-        return jsonify({'success': False, 'message': 'Chưa chọn file nào.'}), 400
+        return error_response('Chưa chọn file nào.', 'BAD_REQUEST', 400)
     if file and file.filename.endswith('.xlsx'):
         temp_filepath = None
         try:
@@ -423,18 +424,18 @@ def process_excel_info():
             info_data, info_warnings = extract_info_sheet_mapping(temp_filepath)
             if not info_data and info_warnings:
                 message = format_info_warnings(info_warnings)
-                return jsonify({'success': False, 'message': message}), 400
+                return error_response(message, 'BAD_REQUEST', 400)
             message = 'Đã đọc thông tin từ sheet Info.'
             if info_warnings:
                 message += ' ' + format_info_warnings(info_warnings)
-            return jsonify({'success': True, 'data': info_data, 'message': message})
+            return success_response(message=message, data={'data': info_data})
         except Exception as e:
             current_app.logger.error(f"Lỗi khi xử lý sheet Info (Course): {e}")
-            return jsonify({'success': False, 'message': f'Lỗi đọc file Excel: {e}'}), 500
+            return error_response(f'Lỗi đọc file Excel: {e}', 'SERVER_ERROR', 500)
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
-    return jsonify({'success': False, 'message': 'File không hợp lệ. Vui lòng chọn file .xlsx'}), 400
+    return error_response('File không hợp lệ. Vui lòng chọn file .xlsx', 'BAD_REQUEST', 400)
 
 
 @courses_bp.route('/courses/<int:set_id>/export-excel', methods=['GET'])
@@ -657,13 +658,13 @@ def add_course_set():
             flash_category = 'danger'
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': flash_category == 'success', 'message': flash_message})
+            return success_response(message=flash_message)
         else:
             flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='courses'))
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
-        return jsonify({'success': False, 'errors': form.errors}), 400
+        return error_response('Dữ liệu không hợp lệ', 'VALIDATION_ERROR', 400, details=form.errors)
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('v3/pages/content_management/courses/sets/_add_edit_course_set_bare.html', form=form, title='Thêm Bộ khóa học mới')
@@ -706,13 +707,13 @@ def edit_course_set(set_id):
             flash_category = 'danger'
             
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': flash_category == 'success', 'message': flash_message})
+            return success_response(message=flash_message)
         else:
             flash(flash_message, flash_category)
             return redirect(url_for('content_management.content_dashboard', tab='courses'))
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
-        return jsonify({'success': False, 'errors': form.errors}), 400
+        return error_response('Dữ liệu không hợp lệ', 'VALIDATION_ERROR', 400, details=form.errors)
     
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('v3/pages/content_management/courses/sets/_add_edit_course_set_bare.html', form=form, title='Chỉnh sửa Bộ khóa học')
@@ -803,10 +804,10 @@ def reorder_lessons(set_id):
             order_value = int(entry['order'])
             order_map[item_id] = order_value
     except (KeyError, TypeError, ValueError):
-        return jsonify({'success': False, 'message': 'Định dạng dữ liệu không hợp lệ.'}), 400
+        return error_response('Định dạng dữ liệu không hợp lệ.', 'BAD_REQUEST', 400)
 
     if len(order_map) != len(set(order_map.values())):
-        return jsonify({'success': False, 'message': 'Thứ tự mới không hợp lệ.'}), 400
+        return error_response('Thứ tự mới không hợp lệ.', 'BAD_REQUEST', 400)
 
     items = LearningItem.query.filter(
         LearningItem.container_id == set_id,
@@ -815,7 +816,7 @@ def reorder_lessons(set_id):
     ).all()
 
     if len(items) != len(order_map):
-        return jsonify({'success': False, 'message': 'Không tìm thấy một số bài học cần sắp xếp.'}), 404
+        return error_response('Không tìm thấy một số bài học cần sắp xếp.', 'NOT_FOUND', 404)
 
     for item in items:
         new_position = order_map.get(item.item_id)
@@ -823,7 +824,7 @@ def reorder_lessons(set_id):
             item.order_in_container = new_position
 
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Thứ tự bài học đã được cập nhật.'})
+    return success_response(message='Thứ tự bài học đã được cập nhật.')
 
 @courses_bp.route('/courses/<int:set_id>/lessons/add', methods=['GET', 'POST'])
 @login_required
@@ -876,13 +877,13 @@ def add_lesson(set_id):
         db.session.commit()
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': 'Bài học mới đã được thêm!'})
+            return success_response(message='Bài học mới đã được thêm!')
         else:
             flash('Bài học đã được thêm!', 'success')
             return redirect(url_for('.list_lessons', set_id=set_id))
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
-        return jsonify({'success': False, 'errors': form.errors}), 400
+        return error_response('Dữ liệu không hợp lệ', 'VALIDATION_ERROR', 400, details=form.errors)
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_template('v3/pages/content_management/courses/lessons/add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
@@ -939,7 +940,7 @@ def edit_lesson(set_id, item_id):
         db.session.commit()
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': 'Bài học đã được cập nhật!'})
+            return success_response(message='Bài học đã được cập nhật!')
         else:
             flash('Bài học đã được cập nhật!', 'success')
             return redirect(url_for('.list_lessons', set_id=set_id))
@@ -976,7 +977,7 @@ def delete_lesson(set_id, item_id):
     db.session.commit()
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': True, 'message': 'Bài học đã được xóa.'})
+        return success_response(message='Bài học đã được xóa.')
     else:
         flash('Bài học đã được xóa.', 'success')
         return redirect(url_for('.list_lessons', set_id=set_id))
