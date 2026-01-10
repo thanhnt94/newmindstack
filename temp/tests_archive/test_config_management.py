@@ -4,7 +4,7 @@ import pytest
 from flask import current_app
 
 from mindstack_app import db
-from mindstack_app.models import SystemSetting
+from mindstack_app.models import AppSettings
 from mindstack_app.services.config_service import ConfigService
 import mindstack_app.modules.admin.routes as admin_routes
 
@@ -27,13 +27,17 @@ def test_config_service_loads_and_applies_settings(monkeypatch, app):
         @staticmethod
         def all():
             return [
-                SystemSetting(key="FEATURE_ENABLED", value="true", data_type="bool"),
-                SystemSetting(key="REQUEST_LIMIT", value="15", data_type="int"),
-                SystemSetting(key="STORAGE_PATH", value="./runtime", data_type="path"),
-                SystemSetting(key="SECRET_KEY", value="should_ignore", data_type="string"),
+                AppSettings(key="FEATURE_ENABLED", value="true", data_type="bool"),
+                AppSettings(key="REQUEST_LIMIT", value="15", data_type="int"),
+                AppSettings(key="STORAGE_PATH", value="./runtime", data_type="path"),
+                AppSettings(key="SECRET_KEY", value="should_ignore", data_type="string"),
             ]
 
-    monkeypatch.setattr(SystemSetting, "query", DummyQuery)
+        @staticmethod
+        def filter(*args, **kwargs):
+            return DummyQuery
+
+    monkeypatch.setattr(AppSettings, "query", DummyQuery)
 
     with app.app_context():
         original_secret = current_app.config.get("SECRET_KEY")
@@ -48,14 +52,14 @@ def test_config_service_loads_and_applies_settings(monkeypatch, app):
 
 def test_update_setting_applies_to_current_app_config(app, client):
     with app.app_context():
-        setting = SystemSetting(key="MAX_ITEMS", value=5, data_type="int")
+        setting = AppSettings(key="MAX_ITEMS", value=5, data_type="int")
         db.session.add(setting)
         db.session.commit()
-        setting_id = setting.setting_id
+        setting_key = setting.key
 
     login_as_admin(client)
     response = client.post(
-        f"/admin/settings/{setting_id}/update",
+        f"/admin/settings/{setting_key}/update",
         data={"data_type": "int", "description": "", "value": "25"},
         follow_redirects=True,
     )

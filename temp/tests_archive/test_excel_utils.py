@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from mindstack_app.modules.shared.utils.excel import (
+from mindstack_app.utils.excel import (
     extract_info_sheet_mapping,
     format_info_warnings,
 )

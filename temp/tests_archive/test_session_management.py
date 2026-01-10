@@ -77,7 +77,7 @@ def test_cancel_old_sessions(app):
         assert active1 is not None
         
         # Create second session
-        LearningSessionService.create_session(user_id, 'flashcard', 'due_only', 2)
+        LearningSessionService.create_session(user_id, 'flashcard', 'due_only', 1)
         
         # First one should be cancelled
         db.session.refresh(active1)

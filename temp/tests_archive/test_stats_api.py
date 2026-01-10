@@ -6,9 +6,7 @@ from mindstack_app.models import (
     User,
     LearningContainer,
     LearningItem,
-    FlashcardProgress,
-    QuizProgress,
-    CourseProgress,
+    LearningProgress,
     ScoreLog,
 )
 
@@ -88,102 +86,100 @@ def stats_data(app):
         db.session.flush()
 
         flashcard_progress = [
-            FlashcardProgress(
+            LearningProgress(
+                learning_mode='flashcard',
                 user_id=user.user_id,
                 item_id=flashcard_items[0].item_id,
                 status='mastered',
                 times_correct=5,
                 last_reviewed=now - timedelta(days=1),
                 due_time=now - timedelta(hours=2),
-                review_history=[
+                mode_data={'review_history': [
                     {'timestamp': (now - timedelta(days=5)).isoformat(), 'type': 'preview'},
                     {'timestamp': (now - timedelta(days=4)).isoformat(), 'user_answer_quality': 5},
-                ],
+                ]},
             ),
-            FlashcardProgress(
+            LearningProgress(
+                learning_mode='flashcard',
                 user_id=user.user_id,
                 item_id=flashcard_items[1].item_id,
                 status='mastered',
                 times_correct=3,
                 last_reviewed=now - timedelta(days=2),
                 due_time=now - timedelta(hours=5),
-                review_history=[
-                    {'timestamp': (now - timedelta(days=3)).isoformat(), 'type': 'preview'},
-                    {'timestamp': (now - timedelta(days=2)).isoformat(), 'user_answer_quality': 3},
-                ],
             ),
-            FlashcardProgress(
+            LearningProgress(
+                learning_mode='flashcard',
                 user_id=user.user_id,
                 item_id=flashcard_items[2].item_id,
                 status='learning',
                 times_correct=1,
                 times_incorrect=2,
                 due_time=now - timedelta(hours=1),
-                review_history=[
-                    {'timestamp': (now - timedelta(days=1)).isoformat(), 'user_answer_quality': 2},
-                ],
             ),
-            FlashcardProgress(
+            LearningProgress(
+                learning_mode='flashcard',
                 user_id=user.user_id,
                 item_id=flashcard_items[3].item_id,
                 status='new',
                 times_correct=0,
                 due_time=now + timedelta(days=1),
-                review_history=[],
             ),
         ]
 
         quiz_progress = [
-            QuizProgress(
+            LearningProgress(
+                learning_mode='quiz',
                 user_id=user.user_id,
                 item_id=quiz_items[0].item_id,
                 status='mastered',
                 times_correct=4,
                 last_reviewed=now - timedelta(days=1),
-                review_history=[
-                    {'timestamp': (now - timedelta(days=4)).isoformat(), 'is_correct': True, 'score_change': 25},
-                    {'timestamp': (now - timedelta(days=1)).isoformat(), 'is_correct': True, 'score_change': 20},
-                ],
+                mode_data={'review_history': [
+                     {'timestamp': (now - timedelta(days=4)).isoformat(), 'is_correct': True, 'score_change': 25},
+                     {'timestamp': (now - timedelta(days=1)).isoformat(), 'is_correct': True, 'score_change': 20},
+                ]},
             ),
-            QuizProgress(
+            LearningProgress(
+                learning_mode='quiz',
                 user_id=user.user_id,
                 item_id=quiz_items[1].item_id,
                 status='learning',
                 times_correct=1,
                 times_incorrect=3,
                 last_reviewed=now - timedelta(days=3),
-                review_history=[
-                    {'timestamp': (now - timedelta(days=2)).isoformat(), 'is_correct': False, 'score_change': -5},
-                ],
             ),
-            QuizProgress(
+            LearningProgress(
+                learning_mode='quiz',
                 user_id=user.user_id,
                 item_id=quiz_items[2].item_id,
                 status='hard',
                 times_correct=0,
                 times_incorrect=4,
-                review_history=[],
             ),
         ]
 
         course_progress = [
-            CourseProgress(
+            LearningProgress(
+                learning_mode='course',
                 user_id=user.user_id,
                 item_id=course_items[0].item_id,
-                completion_percentage=100,
-                last_updated=now - timedelta(days=1),
+                mastery=1.0, # 100%
+                last_reviewed=now - timedelta(days=1), # mapped from last_updated
             ),
-            CourseProgress(
+            LearningProgress(
+                learning_mode='course',
                 user_id=user.user_id,
                 item_id=course_items[1].item_id,
-                completion_percentage=55,
-                last_updated=now - timedelta(hours=5),
+                mastery=0.55,
+                last_reviewed=now - timedelta(hours=5),
             ),
-            CourseProgress(
+            LearningProgress(
+                learning_mode='course',
                 user_id=user.user_id,
                 item_id=course_items[2].item_id,
                 completion_percentage=0,
-                last_updated=now - timedelta(days=2),
+                last_reviewed=now - timedelta(days=2),
             ),
         ]
 

@@ -3,6 +3,9 @@
 # MỤC ĐÍCH: Thêm cấu hình cho thư mục BACKUP_FOLDER.
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Xác định thư mục gốc của dự án (thư mục Mindstack)
 # File config.py này nằm ở Mindstack/web/mindstack_app/
@@ -17,7 +20,9 @@ class Config:
     Lớp cấu hình cho ứng dụng Flask.
     """
     # Khóa bí mật để bảo vệ session (luôn ưu tiên biến môi trường)
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'a_very_secret_key_for_the_new_app'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise ValueError("No SECRET_KEY set for Flask application. Please check your .env file.")
 
     # Cấu hình đường dẫn đến cơ sở dữ liệu (ưu tiên biến môi trường)
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or f'sqlite:///{DATABASE_PATH}'
@@ -59,9 +64,9 @@ class Config:
     os.makedirs(FLASHCARD_IMAGE_CACHE_DIR, exist_ok=True)
     
     # VAPID Keys for Web Push
-    VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY') or 'vBQf0zqOP5TLHh-c2WHtDtDTXiu1Ob8u-C7trsxJovM'
-    VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY') or 'BIoWOOLv0kTB0pee0MDsAOFrS0HdQoJOntmlwXOGRt84vh46XJns0lYspcAm5lPo82u3gbcHBEcVUqwJgAEODaQ'
-    VAPID_EMAIL = os.environ.get('VAPID_EMAIL') or 'mailto:admin@mindstack.app'
+    VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')
+    VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY')
+    VAPID_EMAIL = os.environ.get('VAPID_EMAIL')
 
     # THÊM MỚI: Đảm bảo thư mục backup tồn tại khi ứng dụng khởi chạy
     os.makedirs(BACKUP_FOLDER, exist_ok=True)

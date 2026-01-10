@@ -20,7 +20,7 @@ def test_register_default_modules_registers_everything():
 
 
 def test_module_definition_validates_blueprint_type():
-    module = ModuleDefinition("tests.conftest", "app")
+    module = ModuleDefinition("mindstack_app.models", "User")
 
     with pytest.raises(TypeError):
         module.load_blueprint()

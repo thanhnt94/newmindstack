@@ -374,7 +374,7 @@ def _apply_flashcard_category_filter(query, status):
 
 def paginate_flashcard_items(user_id, container_id=None, status=None, page=1, per_page=10):
     # MIGRATED: Use LearningProgress instead of FlashcardProgress
-    page, per_page = _sanitize_pagination_args(page, per_page)
+    page, per_page = sanitize_pagination_args(page, per_page)
     query = _build_flashcard_items_query(user_id)
 
     if container_id is not None:
@@ -463,7 +463,7 @@ def _apply_quiz_category_filter(query, status):
 
 def paginate_quiz_items(user_id, container_id=None, status=None, page=1, per_page=10):
     # MIGRATED: Use LearningProgress instead of QuizProgress
-    page, per_page = _sanitize_pagination_args(page, per_page)
+    page, per_page = sanitize_pagination_args(page, per_page)
     query = _build_quiz_items_query(user_id)
 
     if container_id is not None:
@@ -550,7 +550,7 @@ def _apply_course_category_filter(query, status):
 
 def paginate_course_items(user_id, container_id=None, status=None, page=1, per_page=10):
     # MIGRATED: Use LearningProgress instead of CourseProgress
-    page, per_page = _sanitize_pagination_args(page, per_page)
+    page, per_page = sanitize_pagination_args(page, per_page)
     query = _build_course_items_query(user_id)
 
     if container_id is not None:

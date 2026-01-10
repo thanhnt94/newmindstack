@@ -27,7 +27,7 @@ if "duckduckgo_search" not in sys.modules:
 from duckduckgo_search.exceptions import DuckDuckGoSearchException
 
 from mindstack_app.config import Config
-from mindstack_app.modules.learning.sub_modules.flashcard_learning.image_service import ImageService
+from mindstack_app.modules.learning.sub_modules.flashcard.services.image_service import ImageService
 
 
 class _FailingContextManager:
@@ -53,7 +53,7 @@ def test_get_cached_or_download_image_retries_on_duckduckgo_exception(monkeypatc
 
         failure = DuckDuckGoSearchException("Rate limit reached")
         monkeypatch.setattr(
-            "mindstack_app.modules.learning.flashcard_learning.image_service.DDGS",
+            "mindstack_app.modules.learning.sub_modules.flashcard.services.image_service.DDGS",
             lambda: _FailingContextManager(failure),
         )
 
@@ -63,7 +63,7 @@ def test_get_cached_or_download_image_retries_on_duckduckgo_exception(monkeypatc
             sleep_calls["count"] += 1
 
         monkeypatch.setattr(
-            "mindstack_app.modules.learning.flashcard_learning.image_service.time.sleep",
+            "mindstack_app.modules.learning.sub_modules.flashcard.services.image_service.time.sleep",
             fake_sleep,
         )
 

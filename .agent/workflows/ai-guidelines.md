@@ -150,6 +150,11 @@ except Exception as e:
 if mode == 'review_due': mode = 'due_only'
 ```
 
+### 6. Quản lý file tạm (Temporary Files)
+- **Quy tắc**: Mọi file tạm (logs, debug scripts, test artifacts, archived code) **PHẢI** được đặt trong thư mục `temp/`.
+- **Tuyệt đối không** để file rác (log, tmp script) ở root directory.
+- Các file tests cũ/unused hoặc migrations cũ cần archive phải move vào `temp/tests_archive` hoặc `temp/migrations_archive`.
+
 ---
 
 ## 📊 CHANGELOG UPDATE TEMPLATE

@@ -9,16 +9,16 @@ from mindstack_app.models import (
     LearningItem,
     User,
 )
-from mindstack_app.modules.learning.sub_modules.flashcard_learning.algorithms import (
+from mindstack_app.modules.learning.sub_modules.flashcard.engine.algorithms import (
     get_filtered_flashcard_sets,
 )
-from mindstack_app.modules.learning.sub_modules.quiz_learning.algorithms import (
+from mindstack_app.modules.learning.sub_modules.quiz.individual.logics.algorithms import (
     get_filtered_quiz_sets,
 )
-from mindstack_app.modules.learning.sub_modules.flashcard_learning.session_manager import (
+from mindstack_app.modules.learning.sub_modules.flashcard.engine.session_manager import (
     FlashcardSessionManager,
 )
-from mindstack_app.modules.learning.sub_modules.quiz_learning.session_manager import (
+from mindstack_app.modules.learning.sub_modules.quiz.individual.logics.session_logic import (
     QuizSessionManager,
 )
 
@@ -256,9 +256,9 @@ def test_session_managers_respect_access_controls(app, seeded_data):
 
         assert not FlashcardSessionManager.start_new_flashcard_session(
             [other_flashcard_id], 'new_only'
-        )
+        )[0]
         assert not QuizSessionManager.start_new_quiz_session(
-            [other_quiz_id], 'new_only', batch_size=5
+            [other_quiz_id], 'new_only', session_size=5
         )
 
         logout_user()
@@ -267,8 +267,8 @@ def test_session_managers_respect_access_controls(app, seeded_data):
         empty_user = User.query.get(seeded_data['free_empty_user_id'])
         login_user(empty_user)
 
-        assert not FlashcardSessionManager.start_new_flashcard_session('all', 'new_only')
-        assert not QuizSessionManager.start_new_quiz_session('all', 'new_only', batch_size=5)
+        assert not FlashcardSessionManager.start_new_flashcard_session('all', 'new_only')[0]
+        assert not QuizSessionManager.start_new_quiz_session('all', 'new_only', session_size=5)
 
         logout_user()
 
