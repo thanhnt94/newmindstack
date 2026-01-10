@@ -688,8 +688,9 @@
             <button class="next-btn" onclick="location.reload()">Luyện tập lại</button>
             <button class="next-btn"
                 style="background: var(--bg); color: var(--text-sub); box-shadow: none; border: 1px solid var(--border);"
-                onclick="location.href='{{ url_for('learning.vocabulary.typing.setup', set_id=container.container_id) }}'">
-                Quay lại Setup
+                style="background: var(--bg); color: var(--text-sub); box-shadow: none; border: 1px solid var(--border);"
+                onclick="goToSummary()">
+                Xem Báo Cáo
             </button>
         </div>
     </div>
@@ -744,6 +745,7 @@
         var sessionPoints = 0;
         var answered = false;
         var startTime = 0;
+        var dbSessionId = null;
 
         // UI Elements
         var promptEl = document.getElementById('prompt');
@@ -816,7 +818,11 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                    if (data.success && data.session_id) {
+                        window.location.href = `/learn/session/${data.session_id}/summary`;
+                    } else {
+                        window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                    }
                 })
                 .catch(err => {
                     console.error(err);
@@ -970,6 +976,15 @@
                                 srs.memory_power.memory_power
                             );
                         }
+                        if (srs.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
+                            await window.showMemoryPowerFeedback(
+                                srs.memory_power.old_memory_power,
+                                srs.memory_power.memory_power
+                            );
+                        }
+                    }
+                    if (data.session_id) {
+                        dbSessionId = data.session_id;
                     }
                 });
 
@@ -1006,6 +1021,17 @@
                     current++;
                     showItem();
                 }
+            }
+        };
+
+
+
+        // Helper
+        window.goToSummary = function () {
+            if (dbSessionId) {
+                window.location.href = `/learn/session/${dbSessionId}/summary`;
+            } else {
+                location.href = "{{ url_for('learning.vocabulary.typing.setup', set_id=container.container_id) }}";
             }
         };
 

@@ -376,6 +376,10 @@ def api_check_answer():
         except Exception as e:
             import logging
             logging.error(f"SRS update failed for MCQ: {e}")
+            
+    # Include session_id for frontend redirection
+    if manager.db_session_id:
+        result['session_id'] = manager.db_session_id
     
     return jsonify(result)
 
@@ -401,6 +405,7 @@ def end_session():
             from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
             if manager.db_session_id:
                 LearningSessionService.complete_session(manager.db_session_id)
+                return jsonify({'success': True, 'session_id': manager.db_session_id})
             
         return jsonify({'success': True})
     except Exception as e:

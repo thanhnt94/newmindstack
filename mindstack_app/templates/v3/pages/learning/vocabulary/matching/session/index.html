@@ -212,7 +212,11 @@
         <div class="match-complete-icon"><i class="fas fa-check-circle"></i></div>
         <div class="match-complete-title">Hoàn thành!</div>
         <div class="match-complete-stats">Bạn đã ghép đúng <span id="final-score">0</span> cặp</div>
-        <button class="match-complete-btn" onclick="location.reload()">Chơi lại</button>
+        <div style="display: flex; gap: 0.5rem; justify-content: center;">
+            <button class="match-complete-btn" onclick="location.reload()">Chơi lại</button>
+            <button class="match-complete-btn" style="background: #e2e8f0; color: #475569;" onclick="goToSummary()">Xem
+                Báo Cáo</button>
+        </div>
     </div>
 </div>
 <!-- Exit Confirmation Modal -->
@@ -250,6 +254,7 @@
         var score = 0;
         var total = {{ game.total }
     };
+    var dbSessionId = {{ session.get('matching_game', {}).get('db_session_id') | tojson if session.get('matching_game', {}).get('db_session_id') else 'null' }};
     var selectedLeft = null;
     var selectedRight = null;
     var startTime = Date.now();
@@ -365,7 +370,11 @@
         })
             .then(response => response.json())
             .then(data => {
-                window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                if (data.success && data.session_id) {
+                    window.location.href = `/learn/session/${data.session_id}/summary`;
+                } else {
+                    window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                }
             })
             .catch(err => {
                 console.error(err);
@@ -375,6 +384,15 @@
                     btn.disabled = false;
                 }
             });
+    };
+    };
+
+    window.goToSummary = function () {
+        if (dbSessionId) {
+            window.location.href = `/learn/session/${dbSessionId}/summary`;
+        } else {
+            location.href = "{{ url_for('learning.vocabulary.matching.setup', set_id=container.container_id) }}";
+        }
     };
 }) ();
 </script>

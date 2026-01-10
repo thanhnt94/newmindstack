@@ -641,6 +641,33 @@
         </button>
     </div>
 
+    <!-- Conflict Warning Modal -->
+    <div id="conflict-modal"
+        class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+        style="display: none;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+            id="conflict-modal-panel">
+            <div class="text-center">
+                <div
+                    class="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 ring-amber-50">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Cảnh báo phiên học</h3>
+                <p id="conflict-msg" class="text-slate-500 text-sm mb-6 leading-relaxed">...</p>
+                <div class="flex gap-3">
+                    <button id="conflict-cancel-btn"
+                        class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
+                        Hủy
+                    </button>
+                    <button id="conflict-confirm-btn"
+                        class="flex-1 py-2.5 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/30 transition-all">
+                        Tiếp tục
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
@@ -1030,6 +1057,62 @@
         });
     }
 
+
+
+
+        }
+    }
+
+    // Modal Logic
+    function openConflictModal(msg, onConfirm) {
+        const modal = document.getElementById('conflict-modal');
+        const panel = document.getElementById('conflict-modal-panel');
+        const msgEl = document.getElementById('conflict-msg');
+        const confirmBtn = document.getElementById('conflict-confirm-btn');
+        const cancelBtn = document.getElementById('conflict-cancel-btn');
+
+        if (!modal) return onConfirm(); // Fallback
+
+        msgEl.textContent = msg;
+
+        // Open
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.classList.remove('opacity-0', 'hidden');
+            panel.classList.remove('scale-95');
+            panel.classList.add('scale-100');
+        }, 10);
+
+        // Close Helper
+        const close = () => {
+            modal.classList.add('opacity-0');
+            panel.classList.remove('scale-100');
+            panel.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }, 300);
+        };
+
+        // Reset Listeners
+        const newConfirm = confirmBtn.cloneNode(true);
+        const newCancel = cancelBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+        // Bind
+        newConfirm.addEventListener('click', () => {
+            close();
+            onConfirm();
+        });
+
+        newCancel.addEventListener('click', () => {
+            close();
+            nextBtn.disabled = false;
+            nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+        });
+    }
+
     // --- Start Session ---
     function startSession() {
         updatePairsData();
@@ -1048,14 +1131,17 @@
             .then(r => r.json())
             .then(statusData => {
                 if (statusData.has_active && statusData.active_mode !== 'typing') {
-                    // Show Confirm
-                    if (!confirm(`Bạn đang có phiên học ${statusData.active_mode_display} đang dở. Nếu bắt đầu mới, phiên cũ sẽ bị hủy. Bạn có chắc chắn không?`)) {
-                        nextBtn.disabled = false;
-                        nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
-                        return;
-                    }
+                    // Show Custom Modal
+                    const msg = `Bạn đang có phiên học ${statusData.active_mode_display} đang dở. Nếu bắt đầu mới, phiên cũ sẽ bị hủy. Bạn có chắc chắn không?`;
+
+                    openConflictModal(msg, () => {
+                        // User Confirmed -> Proceed
+                        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+                        runStartSession();
+                    });
+                    return;
                 }
-                // Proceed
+                // No conflict or self-conflict (handled by backend usually, or just overwrite) -> Proceed
                 runStartSession();
             })
             .catch(() => runStartSession()); // Fail safe
@@ -1084,14 +1170,14 @@
                     } else {
                         alert(data.message || 'Lỗi không xác định');
                         nextBtn.disabled = false;
-                        nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+                        nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
                     }
                 })
                 .catch(err => {
                     console.error(err);
                     alert('Lỗi kết nối máy chủ');
                     nextBtn.disabled = false;
-                    nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+                    nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
                 });
         }
     }

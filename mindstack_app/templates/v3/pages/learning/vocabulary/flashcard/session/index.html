@@ -56,9 +56,10 @@
 
 {# === SHARED MODALS - Dùng chung cho cả Desktop và Mobile === #}
 
-<!-- Standardized Exit Confirmation Modal -->
+<!-- Reusable Confirmation Modal -->
+<!-- Revert to inline modal as requested -->
 <div id="exit-confirm-modal"
-  class="fixed inset-0 bg-slate-900/40 z-[9999] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+  class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
   style="display: none;">
   <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
     id="exit-modal-panel">
@@ -72,13 +73,11 @@
         xem thống kê ngay không?</p>
       <div class="flex gap-3">
         <button onclick="closeExitModal()"
-          class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
-          Ở lại
-        </button>
+          class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">Ở
+          lại</button>
         <button onclick="confirmExit()"
-          class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">
-          Kết thúc
-        </button>
+          class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">Kết
+          thúc</button>
       </div>
     </div>
   </div>
@@ -159,6 +158,7 @@
   window.sessionScore = 0;
 
   // Global Exit Modal Logic for Flashcard
+  // Global Exit Modal Logic for Flashcard
   window.showExitModal = function () {
     const exitModal = document.getElementById('exit-confirm-modal');
     const exitPanel = document.getElementById('exit-modal-panel');
@@ -186,28 +186,26 @@
     }
   };
 
-  window.confirmExit = function () {
-    const btn = document.querySelector('button[onclick="confirmExit()"]');
-    if (btn) {
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
-      btn.disabled = true;
-    }
+  // window.closeExitModal no longer needed
 
+  window.confirmExit = function () {
+    // We can rely on MindStackModal handling the UI close.
+    // Proceed with logic.
     fetch(window.FlashcardConfig.endSessionUrl, {
       method: 'POST',
       headers: window.FlashcardConfig.csrfHeaders
     })
       .then(response => response.json())
       .then(data => {
-        window.location.href = "{{ url_for('learning.manage_sessions') }}";
+        if (data.session_id) {
+          window.location.href = `/learn/session/${data.session_id}/summary`;
+        } else {
+          window.location.href = "{{ url_for('learning.manage_sessions') }}";
+        }
       })
       .catch(err => {
         console.error(err);
         alert("Lỗi kết nối. Vui lòng thử lại.");
-        if (btn) {
-          btn.innerHTML = 'Kết thúc';
-          btn.disabled = false;
-        }
       });
   };
 </script>

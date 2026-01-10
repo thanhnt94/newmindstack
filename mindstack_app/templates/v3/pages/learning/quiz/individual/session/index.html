@@ -655,7 +655,7 @@
     </div>
 </div>
 
-<!-- Exit Confirmation Modal -->
+<!-- Exit Confirmation Modal based on Tailwind -->
 <div id="exit-confirm-modal"
     class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
     style="display: none;">
@@ -695,8 +695,6 @@
         const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
         const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
         const quizDashboardUrl = "{{ url_for('learning.quiz_learning.dashboard') }}";
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         // Modal Logic
@@ -743,7 +741,11 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                    if (data.success && data.session_id) {
+                        window.location.href = `/learn/session/${data.session_id}/summary`;
+                    } else {
+                        window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                    }
                 })
                 .catch(err => {
                     console.error(err);
@@ -761,6 +763,7 @@
         let userAnswers = {};
         let sessionStats = { total: 0, correct: 0, total_questions: 0 };
         let currentQuestion = null;
+        let dbSessionId = null;
 
         // Elements
         const dom = {
@@ -794,15 +797,27 @@
         };
 
         // --- Core Logic ---
-
-        async function loadBatch() {
-            showLoading(true);
+        async function loadQuestionBatch() {
             try {
+                showLoading(true);
+
                 const res = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+
                 if (!res.ok) {
-                    if (res.status === 404) return finishSession();
+                    if (res.status === 404) {
+                        // End session logic
+                        const data = await res.json();
+                        if (data.session_id) {
+                            window.location.href = `/learn/session/${data.session_id}/summary`;
+                        } else {
+                            alert("Hoàn thành tất cả câu hỏi!");
+                            window.location.href = quizDashboardUrl;
+                        }
+                        return;
+                    }
                     throw new Error('Load failed');
                 }
+
                 const data = await res.json();
                 currentBatch = data.items || [];
                 currentIndex = 0;
@@ -819,6 +834,7 @@
                     finishSession();
                 }
             } catch (e) {
+                console.error(e);
                 alert('Lỗi tải câu hỏi. Vui lòng thử lại.');
             } finally {
                 showLoading(false);
@@ -1086,13 +1102,25 @@
         });
 
         // Exit
-        const exitHandler = () => { if (confirm('Kết thúc phiên làm bài?')) finishSession(); };
-        document.getElementById('mobile-exit-btn').addEventListener('click', exitHandler);
-        document.getElementById('desktop-exit-btn').addEventListener('click', exitHandler);
+        const exitHandler = () => { window.endQuizSession(); };
+        const mobileExitBtn = document.getElementById('mobile-exit-btn');
+        if (mobileExitBtn) mobileExitBtn.addEventListener('click', exitHandler);
+
+        const desktopExitBtn = document.getElementById('desktop-exit-btn');
+        if (desktopExitBtn) desktopExitBtn.addEventListener('click', exitHandler);
 
         // Init
-        loadBatch();
+        loadQuestionBatch();
 
-    })();
+    };
+
+    window.goToSummary = function () {
+        // Quiz doesn't usually allow jumping to summary mid-session without ending it essentially.
+        // But if we have a dbSessionId, we could.
+        // However, typical flow is endSession -> Summary.
+        // We just ensure endSession redirects correctly.
+    };
+
+    }) ();
 </script>
 {% endblock %}

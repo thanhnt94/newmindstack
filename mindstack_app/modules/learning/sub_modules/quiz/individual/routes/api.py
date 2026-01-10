@@ -136,10 +136,20 @@ def get_question_batch():
         session['quiz_session'] = session_manager.to_dict()
 
         if question_batch is None:
+            # Capture Session ID before ending
+            db_session_id = None
+            if 'quiz_session' in session:
+                db_session_id = session['quiz_session'].get('db_session_id')
+
             session_manager.end_quiz_session()
             current_app.logger.info(f"Phiên học Quiz cho người dùng {current_user.user_id} đã kết thúc do hết câu hỏi.")
             current_app.logger.debug("--- Kết thúc get_question_batch (Hết câu hỏi) ---")
-            return jsonify({'message': 'Bạn đã hoàn thành tất cả các câu hỏi trong phiên học này!'}), 404
+            
+            response = {'message': 'Bạn đã hoàn thành tất cả các câu hỏi trong phiên học này!'}
+            if db_session_id:
+                response['session_id'] = db_session_id
+                
+            return jsonify(response), 404
 
         question_batch['session_correct_answers'] = session_manager.correct_answers
         question_batch['session_total_answered'] = session_manager.correct_answers + session_manager.incorrect_answers
@@ -383,7 +393,17 @@ def submit_answer_batch():
 def end_session():
     """Kết thúc phiên học Quiz hiện tại."""
     current_app.logger.debug("--- Bắt đầu end_session ---")
+    
+    # Capture Session ID before ending
+    db_session_id = None
+    if 'quiz_session' in session:
+        db_session_id = session['quiz_session'].get('db_session_id')
+    
     result = QuizSessionManager.end_quiz_session()
+    
+    if db_session_id:
+        result['session_id'] = db_session_id
+        
     current_app.logger.info(f"Phiên học Quiz cho người dùng {current_user.user_id} đã kết thúc theo yêu cầu. Kết quả: {result.get('message')}")
     current_app.logger.debug("--- Kết thúc end_session ---")
     return jsonify(result)

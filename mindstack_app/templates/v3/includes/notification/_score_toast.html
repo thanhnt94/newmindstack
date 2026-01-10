@@ -21,12 +21,14 @@
             1px 1px 0 #fff,
             0 8px 20px rgba(0, 0, 0, 0.3);
         pointer-events: none;
-        z-index: 10000;
+        pointer-events: none;
+        z-index: 999999;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 0.5rem;
-        animation: scoreFloatUpGame 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        /* Matches MP duration: ~2.1s */
+        animation: scoreFloatUpGame 2.1s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
     }
 
     .score-toast-icon {
@@ -58,15 +60,19 @@
             opacity: 0;
         }
 
-        50% {
+        /* Entrance done around 20% (~0.4s) */
+        20% {
             transform: translate(-50%, -50%) scale(1.2) rotate(5deg);
             opacity: 1;
         }
 
-        70% {
+        /* Hold phase matching MP display time */
+        80% {
             transform: translate(-50%, -55%) scale(1) rotate(-3deg);
+            opacity: 1;
         }
 
+        /* Exit phase */
         100% {
             transform: translate(-50%, -120%) scale(0.9) rotate(0deg);
             opacity: 0;
@@ -98,31 +104,40 @@
 
 <script>
     // Gamified Score Notification
-    window.showScoreToast = function (points) {
-        // Only show if positive points
-        if (points <= 0) return;
+    window.showScoreToast = function (pointsInput) {
+        return new Promise((resolve) => {
+            const points = Number(pointsInput);
+            // Only show if positive points
+            if (!points || points <= 0) {
+                resolve();
+                return;
+            }
 
-        const el = document.createElement('div');
-        el.className = 'score-toast-game';
+            const el = document.createElement('div');
+            el.className = 'score-toast-game';
 
-        // Random encouraging emoji sometimes?
-        const emojis = ['⭐', '💎', '🎉', '🔥'];
-        const icon = emojis[Math.floor(Math.random() * emojis.length)];
+            // Random encouraging emoji sometimes?
+            const emojis = ['⭐', '💎', '🎉', '🔥'];
+            const icon = emojis[Math.floor(Math.random() * emojis.length)];
 
-        el.innerHTML = `
+            el.innerHTML = `
             <div class="score-burst"></div>
             <i class="fas fa-gem score-toast-icon"></i> 
             <span>+${points}</span>
         `;
 
-        document.body.appendChild(el);
+            document.body.appendChild(el);
 
-        // Haptic feedback if available (mobile)
-        if (navigator.vibrate) {
-            navigator.vibrate([50, 30, 50]); // Pulse pattern
-        }
+            // Haptic feedback if available (mobile)
+            if (navigator.vibrate) {
+                navigator.vibrate([50, 30, 50]); // Pulse pattern
+            }
 
-        // Cleanup
-        setTimeout(() => el.remove(), 1200);
+            // Cleanup
+            setTimeout(() => {
+                el.remove();
+                resolve();
+            }, 2200);
+        });
     };
 </script>

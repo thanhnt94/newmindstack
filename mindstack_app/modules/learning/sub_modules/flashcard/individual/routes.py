@@ -673,7 +673,17 @@ def end_session_flashcard():
     Kết thúc phiên học Flashcard hiện tại.
     """
     current_app.logger.debug("--- Bắt đầu end_session_flashcard ---")
+    
+    # Capture Session ID before ending
+    db_session_id = None
+    if 'flashcard_session' in session:
+        db_session_id = session['flashcard_session'].get('db_session_id')
+        
     result = FlashcardSessionManager.end_flashcard_session()
+    
+    if db_session_id:
+        result['session_id'] = db_session_id
+        
     current_app.logger.info(f"Phiên học Flashcard cho người dùng {current_user.user_id} đã kết thúc theo yêu cầu. Kết quả: {result.get('message')}")
     current_app.logger.debug("--- Kết thúc end_session_flashcard ---")
     return jsonify(result)

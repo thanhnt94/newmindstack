@@ -196,6 +196,60 @@ def manage_sessions():
     return render_template('v3/pages/learning/sessions.html', sessions=session_list, history=history_list)
 
 
+@learning_bp.route('/session/<session_id>/summary')
+@login_required
+def session_summary(session_id):
+    """
+    Displays the summary page for a specific (completed) session.
+    """
+    session = LearningSessionService.get_session_by_id(session_id)
+    if not session or session.user_id != current_user.user_id:
+        abort(404)
+        
+    container_name = "Bộ học tập"
+    try:
+        if isinstance(session.set_id_data, int):
+            container = LearningContainer.query.get(session.set_id_data)
+            if container: container_name = container.title
+        elif isinstance(session.set_id_data, list) and len(session.set_id_data) > 0:
+            container_name = f"{len(session.set_id_data)} bộ học tập"
+    except: pass
+    
+    # Calculate duration
+    duration_str = "0m"
+    if session.start_time and session.end_time:
+        delta = session.end_time - session.start_time
+        minutes = int(delta.total_seconds() // 60)
+        seconds = int(delta.total_seconds() % 60)
+        duration_str = f"{minutes}m {seconds}s"
+        
+    summary_data = {
+        'session_id': session.session_id,
+        'mode_name': get_mode_description(session),
+        'container_name': container_name,
+        'start_time': session.start_time,
+        'end_time': session.end_time,
+        'duration': duration_str,
+        'correct': session.correct_count,
+        'wrong': session.incorrect_count,
+        'points': session.points_earned,
+        'total': session.total_items or (session.correct_count + session.incorrect_count + session.vague_count)
+    }
+    
+    # Calculate accuracy
+    total_answered = summary_data['correct'] + summary_data['wrong']
+    if total_answered > 0:
+        summary_data['accuracy'] = round((summary_data['correct'] / total_answered) * 100)
+    else:
+        summary_data['accuracy'] = 0
+
+    return render_template(
+        'v3/pages/learning/session_summary.html',
+        summary=summary_data,
+        set_id=session.set_id_data if isinstance(session.set_id_data, int) else None
+    )
+
+
 @learning_bp.route('/api/active')
 @login_required
 def api_active_sessions():

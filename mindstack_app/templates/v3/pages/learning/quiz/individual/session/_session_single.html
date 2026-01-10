@@ -19,8 +19,8 @@
 
 {% block content %}
 {# Include BOTH partials, visibility controlled by CSS classes in files (lg:hidden vs hidden lg:block) #}
-{% include "v3/pages/learning/quiz/individual/session/default/_quiz_session_single_mobile.html" %}
-{% include "v3/pages/learning/quiz/individual/session/default/_quiz_session_single_desktop.html" %}
+{% include "v3/pages/learning/quiz/individual/session/_quiz_session_single_mobile.html" %}
+{% include "v3/pages/learning/quiz/individual/session/_quiz_session_single_desktop.html" %}
 
 {# Hub Modal (Shared structure but styled for Desktop via CSS overrides) #}
 <div id="explanation-hub-modal" class="qb-modal-overlay">

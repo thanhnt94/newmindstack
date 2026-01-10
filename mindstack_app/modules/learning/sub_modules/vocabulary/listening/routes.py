@@ -178,7 +178,7 @@ def session_page():
     count = session_data.get('count', 10)
     
     return render_template(
-        'v3/pages/learning/vocabulary/listening/session/default/index.html',
+        'v3/pages/learning/vocabulary/listening/session/index.html',
         container=container,
         custom_pairs=custom_pairs,
         count=count
@@ -229,9 +229,9 @@ def session(set_id):
         import traceback
         traceback.print_exc()
         pass
-    
+
     return render_template(
-        'v3/pages/learning/vocabulary/listening/session/default/index.html',
+        'v3/pages/learning/vocabulary/listening/session/index.html',
         container=container,
         total_items=len(items)
     )
@@ -519,6 +519,7 @@ def end_session():
         
         if db_session_id:
             LearningSessionService.complete_session(db_session_id)
+            return jsonify({'success': True, 'session_id': db_session_id})
             
         return jsonify({'success': True})
     except Exception as e:

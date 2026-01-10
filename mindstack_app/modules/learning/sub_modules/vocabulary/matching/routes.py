@@ -50,7 +50,7 @@ def session_page(set_id):
     }
     
     return render_template(
-        'v3/pages/learning/vocabulary/matching/session/default/index.html',
+        'v3/pages/learning/vocabulary/matching/session/index.html',
         container=container,
         game=game_data
     )
@@ -186,6 +186,7 @@ def end_session():
         
         if db_session_id:
             LearningSessionService.complete_session(db_session_id)
+            return jsonify({'success': True, 'session_id': db_session_id})
             
         return jsonify({'success': True})
     except Exception as e:

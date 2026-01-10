@@ -1,0 +1,147 @@
+{#
+Reusable Confirmation Modal
+Usage:
+1. Include this file: {% include "v3/includes/modals/_confirmation_modal.html" %}
+2. Call JS: MindStackModal.confirm({ ...options })
+#}
+
+<div id="ms-confirm-modal"
+    class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+        id="ms-confirm-panel">
+        <div class="text-center">
+            <!-- Icon -->
+            <div id="ms-modal-icon-bg"
+                class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 transition-colors">
+                <i id="ms-modal-icon" class="fas"></i>
+            </div>
+
+            <!-- Content -->
+            <h3 id="ms-modal-title" class="text-xl font-bold text-slate-800 mb-2"></h3>
+            <p id="ms-modal-message" class="text-slate-500 text-sm mb-6 leading-relaxed"></p>
+
+            <!-- Actions -->
+            <div class="flex gap-3">
+                <button id="ms-modal-cancel"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
+                    Hủy
+                </button>
+                <button id="ms-modal-confirm"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-white shadow-lg transition-all">
+                    Đồng ý
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.MindStackModal = (function () {
+        // Elements
+        const modal = document.getElementById('ms-confirm-modal');
+        const panel = document.getElementById('ms-confirm-panel');
+        const titleEl = document.getElementById('ms-modal-title');
+        const msgEl = document.getElementById('ms-modal-message');
+        const iconBg = document.getElementById('ms-modal-icon-bg');
+        const icon = document.getElementById('ms-modal-icon');
+        const confirmBtn = document.getElementById('ms-modal-confirm');
+        const cancelBtn = document.getElementById('ms-modal-cancel');
+
+        // Configs
+        const TYPES = {
+            danger: {
+                icon: 'fa-right-from-bracket',
+                colorClass: 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30',
+                iconColor: 'text-rose-500 bg-rose-50 ring-rose-50'
+            },
+            warning: {
+                icon: 'fa-exclamation-triangle',
+                colorClass: 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30',
+                iconColor: 'text-amber-500 bg-amber-50 ring-amber-50'
+            },
+            info: {
+                icon: 'fa-info-circle',
+                colorClass: 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/30',
+                iconColor: 'text-blue-500 bg-blue-50 ring-blue-50'
+            }
+        };
+
+        function show(options) {
+            const config = {
+                title: 'Xác nhận',
+                message: 'Bạn có chắc chắn muốn thực hiện hành động này?',
+                confirmText: 'Đồng ý',
+                cancelText: 'Hủy',
+                type: 'info',
+                onConfirm: () => { },
+                onCancel: () => { },
+                ...options
+            };
+
+            // Update Content
+            titleEl.textContent = config.title;
+            msgEl.textContent = config.message;
+            confirmBtn.textContent = config.confirmText;
+            cancelBtn.textContent = config.cancelText;
+
+            // Update Style based on Type
+            const theme = TYPES[config.type] || TYPES.info;
+
+            // Icon Reset & Set
+            iconBg.className = `w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 transition-colors ${theme.iconColor}`;
+            icon.className = `fas ${theme.icon}`;
+
+            // Button Reset & Set
+            confirmBtn.className = `flex-1 py-2.5 rounded-xl font-bold text-white shadow-lg transition-all ${theme.colorClass}`;
+
+            // Handlers
+            const handleConfirm = () => {
+                close();
+                config.onConfirm();
+            };
+            const handleCancel = () => {
+                close();
+                config.onCancel();
+            };
+
+            // Clone buttons to strip old listeners
+            const newConfirm = confirmBtn.cloneNode(true);
+            const newCancel = cancelBtn.cloneNode(true);
+
+            confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+            // Re-assign references
+            const activeConfirm = document.getElementById('ms-modal-confirm');
+            const activeCancel = document.getElementById('ms-modal-cancel');
+
+            activeConfirm.addEventListener('click', handleConfirm);
+            activeCancel.addEventListener('click', handleCancel);
+
+            // Animate In
+            modal.style.display = 'flex';
+            // Force Reflow
+            void modal.offsetWidth;
+
+            modal.classList.remove('hidden', 'opacity-0');
+            panel.classList.remove('scale-95');
+            panel.classList.add('scale-100');
+        }
+
+        function close() {
+            modal.classList.add('opacity-0');
+            panel.classList.remove('scale-100');
+            panel.classList.add('scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        return {
+            confirm: show,
+            close: close
+        };
+    })();
+</script>

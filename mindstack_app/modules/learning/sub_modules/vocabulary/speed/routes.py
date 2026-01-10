@@ -38,7 +38,7 @@ def setup(set_id):
         pass
     
     return render_template(
-        'v3/pages/learning/vocabulary/speed/setup/default/index.html',
+        'v3/pages/learning/vocabulary/speed/setup/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -100,7 +100,7 @@ def session_page(set_id):
         pass
     
     return render_template(
-        'v3/pages/learning/vocabulary/speed/session/default/index.html',
+        'v3/pages/learning/vocabulary/speed/session/index.html',
         container=container,
         count=count,
         time_limit=time_limit,

@@ -544,8 +544,8 @@
         <div class="flex flex-col gap-3">
             <button class="next-btn !bg-purple-600" onclick="location.reload()">Luyện tập lại</button>
             <button class="next-btn !bg-slate-100 !text-slate-600 !shadow-none !border !border-slate-200"
-                onclick="location.href='{{ url_for('learning.vocabulary.listening.setup', set_id=container.container_id) }}'">
-                Quay lại Setup
+                onclick="goToSummary()">
+                Xem Báo Cáo
             </button>
         </div>
     </div>
@@ -598,6 +598,7 @@
         let answered = false;
         let startTime = 0;
         let tts_base_url = '';
+        let dbSessionId = null;
 
         // Elements
         const centerAudioBtn = document.getElementById('center-audio-btn');
@@ -776,6 +777,9 @@
                             result.memory_power.memory_power
                         );
                     }
+                    if (result.session_id) {
+                        dbSessionId = result.session_id;
+                    }
                     if (result.updated_total_score !== undefined) {
                         const scoreEl = document.getElementById('total-score-display');
                         if (scoreEl) scoreEl.textContent = result.updated_total_score.toLocaleString();
@@ -800,64 +804,74 @@
             document.getElementById('final-total').textContent = items.length;
             document.getElementById('complete-modal').classList.add('active');
         }
-        document.getElementById('complete-modal').classList.add('active');
-    }
 
         // Modal Logic
         const exitModal = document.getElementById('exit-confirm-modal');
-    const exitPanel = document.getElementById('exit-modal-panel');
+        const exitPanel = document.getElementById('exit-modal-panel');
 
-    window.endListeningSession = function () {
-        if (exitModal) {
-            exitModal.style.display = 'flex';
-            // Small delay to allow display:flex to apply before adding opacity class for animation
-            setTimeout(() => {
-                exitModal.classList.remove('opacity-0', 'hidden');
-                exitPanel.classList.remove('scale-95');
-                exitPanel.classList.add('scale-100');
-            }, 10);
-        }
-    };
-
-    window.closeExitModal = function () {
-        if (exitModal) {
-            exitModal.classList.add('opacity-0');
-            exitPanel.classList.remove('scale-100');
-            exitPanel.classList.add('scale-95');
-            setTimeout(() => {
-                exitModal.classList.add('hidden');
-                exitModal.style.display = 'none';
-            }, 300);
-        }
-    };
-
-    window.confirmExit = function () {
-        const btn = document.querySelector('button[onclick="confirmExit()"]');
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
-            btn.disabled = true;
-        }
-
-        fetch("{{ url_for('learning.vocabulary.listening.end_session') }}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        window.endListeningSession = function () {
+            if (exitModal) {
+                exitModal.style.display = 'flex';
+                // Small delay to allow display:flex to apply before adding opacity class for animation
+                setTimeout(() => {
+                    exitModal.classList.remove('opacity-0', 'hidden');
+                    exitPanel.classList.remove('scale-95');
+                    exitPanel.classList.add('scale-100');
+                }, 10);
             }
-        })
-            .then(response => response.json())
-            .then(data => {
-                window.location.href = "{{ url_for('learning.manage_sessions') }}";
-            })
-            .catch(err => {
-                console.error(err);
-                alert("Lỗi kết nối. Vui lòng thử lại.");
-                if (btn) {
-                    btn.innerHTML = 'Kết thúc';
-                    btn.disabled = false;
+        };
+
+        window.closeExitModal = function () {
+            if (exitModal) {
+                exitModal.classList.add('opacity-0');
+                exitPanel.classList.remove('scale-100');
+                exitPanel.classList.add('scale-95');
+                setTimeout(() => {
+                    exitModal.classList.add('hidden');
+                    exitModal.style.display = 'none';
+                }, 300);
+            }
+        };
+
+        window.confirmExit = function () {
+            const btn = document.querySelector('button[onclick="confirmExit()"]');
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
+                btn.disabled = true;
+            }
+
+            fetch("{{ url_for('learning.vocabulary.listening.end_session') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 }
-            });
-    };
-    }) ();
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.session_id) {
+                        window.location.href = `/learn/session/${data.session_id}/summary`;
+                    } else {
+                        window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Lỗi kết nối. Vui lòng thử lại.");
+                    if (btn) {
+                        btn.innerHTML = 'Kết thúc';
+                        btn.disabled = false;
+                    }
+                });
+        };
+
+        window.goToSummary = function () {
+            if (dbSessionId) {
+                window.location.href = `/learn/session/${dbSessionId}/summary`;
+            } else {
+                location.href = "{{ url_for('learning.vocabulary.listening.setup', set_id=container.container_id) }}";
+            }
+        };
+    })();
 </script>
 {% endblock %}

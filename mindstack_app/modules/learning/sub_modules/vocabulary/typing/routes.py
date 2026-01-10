@@ -334,6 +334,7 @@ def end_session():
         
         if db_session_id:
             LearningSessionService.complete_session(db_session_id)
+            return jsonify({'success': True, 'session_id': db_session_id})
             
         # Optional: Clear session data if you want to force a fresh start next time
         # session.pop('typing_session', None)
