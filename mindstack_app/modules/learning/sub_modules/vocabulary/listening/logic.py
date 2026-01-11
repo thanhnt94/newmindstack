@@ -2,6 +2,7 @@
 # Listening Learning Mode Logic
 
 from mindstack_app.models import LearningItem, LearningProgress
+from mindstack_app.utils.content_renderer import render_text_field
 from datetime import datetime, timezone
 
 
@@ -41,8 +42,8 @@ def get_listening_eligible_items(container_id, mode='random', custom_pairs=None)
             eligible.append({
                 'item_id': item.item_id,
                 'prompt': '???',
-                'answer': content.get('front'),
-                'meaning': content.get('back'),
+                'answer': content.get('front'),  # Keep original for validation
+                'meaning': render_text_field(content.get('back')),  # BBCode rendering
                 'content': content
             })
     

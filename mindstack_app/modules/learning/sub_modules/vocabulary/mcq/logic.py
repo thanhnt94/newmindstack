@@ -3,6 +3,7 @@
 
 import random
 from mindstack_app.models import LearningItem
+from mindstack_app.utils.content_renderer import render_text_field
 
 
 def get_available_content_keys(container_id: int) -> list:
@@ -150,11 +151,11 @@ def generate_mcq_question(item: dict, all_items: list, num_choices: int = 4,
     
     return {
         'item_id': item['item_id'],
-        'question': question_text,
-        'choices': choices,
+        'question': render_text_field(question_text),
+        'choices': [render_text_field(c) for c in choices],
         'choice_item_ids': choice_item_ids,
         'correct_index': correct_index,
-        'correct_answer': correct_answer,
+        'correct_answer': render_text_field(correct_answer),
         'question_key': question_key,
         'answer_key': answer_key
     }

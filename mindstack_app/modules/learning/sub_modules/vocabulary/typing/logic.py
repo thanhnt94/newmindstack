@@ -2,6 +2,7 @@
 # Typing Learning Mode Logic
 
 from mindstack_app.models import LearningItem
+from mindstack_app.utils.content_renderer import render_text_field
 
 
 def get_typing_eligible_items(container_id, custom_pairs=None, mode='random'):
@@ -69,8 +70,8 @@ def get_typing_eligible_items(container_id, custom_pairs=None, mode='random'):
             if valid_q and valid_a:
                  eligible.append({
                     'item_id': item.item_id,
-                    'prompt': valid_q,
-                    'answer': valid_a,
+                    'prompt': render_text_field(valid_q),  # BBCode rendering
+                    'answer': valid_a,  # Keep original for answer validation
                     'audio_url': content.get('front_audio_url') if 'front' in [q_key, a_key] else None, 
                 })
         return eligible
@@ -82,8 +83,8 @@ def get_typing_eligible_items(container_id, custom_pairs=None, mode='random'):
         if content.get('front') and content.get('back'):
             eligible.append({
                 'item_id': item.item_id,
-                'prompt': content.get('front'),
-                'answer': content.get('back'),
+                'prompt': render_text_field(content.get('front')),  # BBCode rendering
+                'answer': content.get('back'),  # Keep original for answer validation
                 'audio_url': content.get('front_audio_url'),
             })
     

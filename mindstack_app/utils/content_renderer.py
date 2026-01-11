@@ -1,0 +1,121 @@
+# mindstack_app/utils/content_renderer.py
+# Phiên bản: 1.0
+# Mục đích: Centralized BBCode rendering for learning content fields.
+# Tự động render BBCode → HTML cho các text fields, skip IDs/URLs/metadata.
+
+from .bbcode_parser import bbcode_to_html
+
+# Fields to skip (không render BBCode)
+SKIP_FIELDS = {
+    # IDs
+    'item_id', 'container_id', 'group_id', 'user_id', 'external_id', 'log_id',
+    'session_id', 'progress_id', 'set_id',
+    
+    # URLs và paths
+    'front_audio_url', 'back_audio_url', 'front_img', 'back_img',
+    'audio_url', 'image_url', 'question_audio_file', 'question_image_file',
+    'memrise_audio_url', 'video_url',
+    
+    # Metadata numbers
+    'order_in_container', 'item_type', 'correct_answer', 'correct_index',
+    'display_number', 'main_number', 'sub_index',
+    
+    # Booleans và flags
+    'supports_pronunciation', 'supports_writing', 'supports_quiz',
+    'supports_essay', 'supports_listening', 'supports_speaking',
+    'can_edit', 'is_correct', 'has_data',
+    
+    # Keys cho options (A, B, C, D là keys, values sẽ được render)
+    # Không skip 'A', 'B', 'C', 'D' vì ta muốn render values của chúng
+}
+
+
+def render_text_field(value, field_name=None):
+    """
+    Render BBCode trong một text field đơn lẻ.
+    
+    Args:
+        value: Giá trị cần render
+        field_name: Tên field (để check skip list)
+        
+    Returns:
+        str: HTML đã render hoặc value gốc nếu không phải string
+    """
+    if field_name and field_name.lower() in SKIP_FIELDS:
+        return value
+    if not isinstance(value, str):
+        return value
+    if not value.strip():
+        return value
+    return bbcode_to_html(value)
+
+
+def render_content_dict(content_dict, parent_key=None):
+    """
+    Render BBCode trong tất cả text fields của một content dict.
+    Hỗ trợ nested dicts (như 'options': {'A': '...', 'B': '...'}).
+    
+    Args:
+        content_dict: Dict chứa content cần render
+        parent_key: Key của parent dict (để xử lý nested)
+        
+    Returns:
+        dict: Content đã được render BBCode
+    """
+    if not isinstance(content_dict, dict):
+        return content_dict
+    
+    result = {}
+    for key, value in content_dict.items():
+        key_lower = key.lower() if isinstance(key, str) else key
+        
+        # Skip fields trong skip list
+        if key_lower in SKIP_FIELDS:
+            result[key] = value
+            continue
+            
+        if isinstance(value, dict):
+            # Recursive cho nested dicts (như options, shared_values)
+            result[key] = render_content_dict(value, parent_key=key)
+        elif isinstance(value, list):
+            # Handle lists (render each string item)
+            result[key] = [
+                bbcode_to_html(item) if isinstance(item, str) else item
+                for item in value
+            ]
+        elif isinstance(value, str) and value.strip():
+            # Render text fields
+            result[key] = bbcode_to_html(value)
+        else:
+            # Keep as-is (numbers, booleans, None, empty strings)
+            result[key] = value
+            
+    return result
+
+
+def render_item_content(item_dict):
+    """
+    Render BBCode cho toàn bộ item dict (flashcard hoặc quiz item).
+    Áp dụng cho item_dict['content'] và các text fields ở top level.
+    
+    Args:
+        item_dict: Dict chứa item data
+        
+    Returns:
+        dict: Item dict đã được render
+    """
+    if not isinstance(item_dict, dict):
+        return item_dict
+        
+    result = dict(item_dict)  # Shallow copy
+    
+    # Render content dict nếu có
+    if 'content' in result and isinstance(result['content'], dict):
+        result['content'] = render_content_dict(result['content'])
+    
+    # Render các text fields ở top level
+    for field in ['ai_explanation', 'note_content', 'explanation']:
+        if field in result and isinstance(result[field], str):
+            result[field] = bbcode_to_html(result[field])
+    
+    return result
