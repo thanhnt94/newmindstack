@@ -4011,9 +4011,8 @@
 
             card.addEventListener('click', function () {
 
-                selectedSetId = card.dataset.setId;
-
-                loadSetDetail(selectedSetId, true); // true = push state
+                var setId = card.dataset.setId;
+                window.location.href = '/learn/vocabulary/set/' + setId;
 
             });
 
