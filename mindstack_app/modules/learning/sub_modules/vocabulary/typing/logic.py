@@ -93,7 +93,10 @@ def get_typing_eligible_items(container_id, custom_pairs=None, mode='random'):
 
 def check_typing_answer(correct_answer, user_answer):
     """Check if user's typed answer is close enough to correct."""
-    correct = correct_answer.strip().lower()
+    from mindstack_app.utils.content_renderer import strip_bbcode
+    
+    # Strip BBCode from correct_answer before comparison
+    correct = strip_bbcode(correct_answer).strip().lower()
     user = user_answer.strip().lower()
     
     # Exact match

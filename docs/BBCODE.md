@@ -98,3 +98,7 @@ Các field sau sẽ giữ nguyên, không xử lý BBCode:
    - `https://youtube.com/shorts/VIDEO_ID`
    - Hoặc chỉ `VIDEO_ID` (11 ký tự)
 3. **Nested tags**: Có thể lồng tags: `[b][i]bold italic[/i][/b]`
+4. **Answer Validation**: Khi so sánh đáp án (Typing, Listening), BBCode sẽ được tự động loại bỏ:
+   - Đáp án lưu: `[b]hehe[/b]`
+   - User nhập: `hehe`
+   - Kết quả: ✅ Đúng (BBCode được strip trước khi so sánh)

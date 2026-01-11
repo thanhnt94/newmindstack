@@ -1,9 +1,30 @@
 # mindstack_app/utils/content_renderer.py
-# Phiên bản: 1.0
+# Phiên bản: 1.1
 # Mục đích: Centralized BBCode rendering for learning content fields.
 # Tự động render BBCode → HTML cho các text fields, skip IDs/URLs/metadata.
+# NEW: strip_bbcode() để loại bỏ BBCode khi so sánh đáp án.
 
+import re
 from .bbcode_parser import bbcode_to_html
+
+# Regex pattern để loại bỏ tất cả BBCode tags
+BBCODE_PATTERN = re.compile(r'\[/?(?:b|i|u|s|color|size|url|quote|code|img|youtube|list|\*)(?:=[^\]]+)?\]', re.IGNORECASE)
+
+
+def strip_bbcode(text):
+    """
+    Loại bỏ tất cả BBCode tags từ text.
+    Dùng để so sánh đáp án: user nhập 'hehe' phải match với '[b]hehe[/b]'.
+    
+    Args:
+        text: Text có thể chứa BBCode
+        
+    Returns:
+        str: Text đã loại bỏ BBCode tags
+    """
+    if not text or not isinstance(text, str):
+        return text or ''
+    return BBCODE_PATTERN.sub('', text).strip()
 
 # Fields to skip (không render BBCode)
 SKIP_FIELDS = {
