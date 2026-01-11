@@ -7,13 +7,13 @@
 
 {% block head %}
 {{ super() }}
-{% include 'v3/pages/content_management/shared/_shared_styles.html' %}
+{% include _v ~ '/pages/content_management/shared/_shared_styles.html' %}
 {% endblock %}
 
 {% block content %}
 <div class="cm-shell">
-    {% include 'v3/pages/content_management/quizzes/items/_quiz_items_list_mobile.html' %}
-    {% include 'v3/pages/content_management/quizzes/items/_quiz_items_list_desktop.html' %}
+    {% include _v ~ '/pages/content_management/quizzes/items/_quiz_items_list_mobile.html' %}
+    {% include _v ~ '/pages/content_management/quizzes/items/_quiz_items_list_desktop.html' %}
 </div>
 {% endblock %}
 

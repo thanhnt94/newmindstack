@@ -5,14 +5,14 @@
 
 {% block head %}
 {{ super() }}
-{% include 'v3/pages/content_management/shared/_shared_styles.html' %}
+{% include _v ~ '/pages/content_management/shared/_shared_styles.html' %}
 {% endblock %}
 
 {% block content %}
 <div class="cm-shell" data-accent="rose">
     <div class="cm-container space-y-6">
-        {% include 'v3/pages/content_management/quizzes/sets/_quiz_sets_list_mobile.html' %}
-        {% include 'v3/pages/content_management/quizzes/sets/_quiz_sets_list_desktop.html' %}
+        {% include _v ~ '/pages/content_management/quizzes/sets/_quiz_sets_list_mobile.html' %}
+        {% include _v ~ '/pages/content_management/quizzes/sets/_quiz_sets_list_desktop.html' %}
 
         <div class="text-center">
             <a href="{{ url_for('content_management.content_dashboard') }}" class="cm-link">

@@ -1,6 +1,7 @@
+{% set _v = template_version|default('v4') %}
 <div class="lg:hidden">
-    {% include 'v3/pages/learning/collab/flashcard/_sets_list_mobile.html' %}
+    {% include _v ~ '/pages/learning/collab/flashcard/_sets_list_mobile.html' %}
 </div>
 <div class="hidden lg:block">
-    {% include 'v3/pages/learning/collab/flashcard/_sets_list_desktop.html' %}
+    {% include _v ~ '/pages/learning/collab/flashcard/_sets_list_desktop.html' %}
 </div>

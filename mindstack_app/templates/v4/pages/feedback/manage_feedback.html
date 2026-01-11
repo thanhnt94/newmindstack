@@ -32,7 +32,7 @@
             <div id="pane-received" class="tab-pane">
                 {% if received_feedbacks %}
                 {% with feedbacks=received_feedbacks, table_id='received', is_owner=True %}
-                {% include 'v3/pages/feedback/_feedback_table.html' %}
+                {% include _v ~ '/pages/feedback/_feedback_table.html' %}
                 {% endwith %}
                 {% else %}
                 <p class="text-gray-500">Bạn chưa nhận được phản hồi nào.</p>
@@ -42,7 +42,7 @@
             <div id="pane-sent" class="tab-pane hidden">
                 {% if sent_feedbacks %}
                 {% with feedbacks=sent_feedbacks, table_id='sent', is_owner=False %}
-                {% include 'v3/pages/feedback/_feedback_table.html' %}
+                {% include _v ~ '/pages/feedback/_feedback_table.html' %}
                 {% endwith %}
                 {% else %}
                 <p class="text-gray-500">Bạn chưa gửi phản hồi nào.</p>
@@ -51,7 +51,7 @@
         </div>
     </div>
 </div>
-{% include 'v3/pages/feedback/_general_feedback_modal.html' %}
+{% include _v ~ '/pages/feedback/_general_feedback_modal.html' %}
 {% endblock %}
 
 {% block scripts %}

@@ -10,12 +10,12 @@
 <div class="bg-transparent">
     {# --- Giao diện Mobile (App-like) --- #}
     <div class="lg:hidden">
-        {% include 'v3/pages/analytics/_statistics_mobile.html' %}
+        {% include _v ~ '/pages/analytics/_statistics_mobile.html' %}
     </div>
 
     {# --- Giao diện Desktop (Full Charts) --- #}
     <div class="hidden lg:block">
-        {% include 'v3/pages/analytics/_statistics_desktop.html' %}
+        {% include _v ~ '/pages/analytics/_statistics_desktop.html' %}
     </div>
 </div>
 {% endblock %}

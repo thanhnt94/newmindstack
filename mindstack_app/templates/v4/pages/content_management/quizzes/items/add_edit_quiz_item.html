@@ -300,7 +300,7 @@
 
 {% block scripts %}
 {{ super() }}
-{% include 'v3/pages/content_management/quizzes/shared/_quiz_media_scripts.html' %}
+{% include _v ~ '/pages/content_management/quizzes/shared/_quiz_media_scripts.html' %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         if (window.initializeQuizMediaControls) {
