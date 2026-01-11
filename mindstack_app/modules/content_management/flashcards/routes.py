@@ -683,12 +683,30 @@ def process_excel_info():
                 message = format_info_warnings(info_warnings)
                 return error_response(message, 'BAD_REQUEST', 400)
 
+            # Normalize info_data keys and clean values
+            normalized_data = {}
+            for k, v in info_data.items():
+                # Clean Key
+                clean_key = str(k).strip().lower().replace(' ', '_')
+                
+                # Map Legacy Keys
+                if clean_key == 'quiz_pairs':
+                    clean_key = 'mcq_pairs'
+                
+                # Clean Value
+                if isinstance(v, str):
+                    clean_val = v.replace('_x000D_', '\n')
+                else:
+                    clean_val = v
+                
+                normalized_data[clean_key] = clean_val
+
             message = 'Đã đọc thông tin từ file Excel.'
             if info_warnings:
                 message += ' ' + format_info_warnings(info_warnings)
                 
             return success_response(message=message, data={
-                'data': info_data, 
+                'data': normalized_data, 
                 'column_analysis': column_analysis
             })
         except Exception as e:

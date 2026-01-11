@@ -4,6 +4,7 @@
 
 {% set previous_set_id = previous_set_id | default(None) %}
 {% set next_set_id = next_set_id | default(None) %}
+{% set set_id = set_id | default(None) %}
 {% set is_modal_view = request.args.get('is_modal') == 'true' %}
 {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
 
@@ -326,242 +327,7 @@
                         </div>
 
                         <div class="border-t border-gray-200 pt-6">
-                            <script>
-                                (function () {
-                                    const currentScript = document.currentScript;
-                                    const wrapper = currentScript.closest('.edit-modal-content-wrapper');
-                                    // available_keys is passed from backend. If not, fallback to default.
-                                    const availableKeys = {{ available_keys | default (['front', 'back']) | tojson | safe
-                                }};
-
-                                // Use wrapper to find scoped elements
-                                const settingsInput = wrapper.querySelector('input[name="settings"]');
-                                const csrfInput = wrapper.querySelector('input[name="csrf_token"]');
-                                const csrfToken = csrfInput ? csrfInput.value : '';
-                                const configTabs = wrapper.querySelector('#config-tabs'); // ID might still be duplicated but querySelector on wrapper finds first *inside* it? No, querySelector traverses down. It should be fine if unique inside wrapper. better to use class or direct relationship.
-                                // Actually, IDs must be unique globally. Having duplicate IDs is invalid HTML.
-                                // We should use classes for 'config-tabs' and others, but for now scoping getElementById is impossible.
-                                // We will rely on wrapper.querySelector which finds the first descendant. Since standard querySelectorAll returns all, querySelector returns first.
-                                // If multiple modals exist, and they all have #settings, wrapper.querySelector('#settings') will find the one inside THIS wrapper. 
-                                // Wait, #id selector behavior with duplicates is undefined or returns first in DOM.
-                                // SAFEST: Select by attributes or structure.
-
-                                let currentSettings = {};
-
-                                try {
-                                    currentSettings = JSON.parse(settingsInput.value || '{}');
-                                } catch (e) { console.error("Error parsing settings", e); }
-
-                                // Initialize structure if missing
-                                ['mcq', 'typing', 'listening'].forEach(mode => {
-                                    if (!currentSettings[mode]) currentSettings[mode] = {};
-                                    if (!currentSettings[mode].pairs) currentSettings[mode].pairs = [];
-                                });
-
-                                // DOM Elements scoped to this modal
-                                const tabButtons = wrapper.querySelectorAll('button[data-tab]');
-                                const tabContents = wrapper.querySelectorAll('.config-tab-content');
-
-                                // Helper: Generate Options HTML for Select
-                                const generateOptions = (selected) => {
-                                    return availableKeys.map(k =>
-                                        `<option value="${k}" ${k === selected ? 'selected' : ''}>${k}</option>`
-                                    ).join('');
-                                };
-
-                                // Render a single pair row
-                                const createPairRow = (mode, pair, index) => {
-                                    const isEnabled = pair.enabled !== false; // default true
-                                    const div = document.createElement('div');
-                                    div.className = `flex items-center gap-3 p-3 rounded-lg border ${isEnabled ? 'bg-gray-50 border-gray-200' : 'bg-gray-100 border-dashed border-gray-300 opacity-70'} transition-all`;
-                                    div.dataset.index = index;
-
-                                    div.innerHTML = `
-                                            <div class="flex items-center h-full">
-                                                <input type="checkbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer pair-enable" ${isEnabled ? 'checked' : ''}>
-                                            </div>
-                                            <div class="grid grid-cols-2 gap-2 flex-1">
-                                                <div class="flex flex-col">
-                                                    <span class="text-[10px] text-gray-500 font-medium ml-1 mb-0.5">Câu hỏi</span>
-                                                    <select class="pair-q block w-full text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 py-1.5 pl-2 pr-6">
-                                                        ${generateOptions(pair.q)}
-                                                    </select>
-                                                </div>
-                                                <div class="flex items-center gap-2">
-                                                     <i class="fas fa-arrow-right text-gray-300 text-xs mt-4"></i>
-                                                     <div class="flex flex-col w-full">
-                                                        <span class="text-[10px] text-gray-500 font-medium ml-1 mb-0.5">Đáp án</span>
-                                                        <select class="pair-a block w-full text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 py-1.5 pl-2 pr-6">
-                                                            ${generateOptions(pair.a)}
-                                                        </select>
-                                                     </div>
-                                                </div>
-                                            </div>
-                                            <button type="button" class="text-gray-400 hover:text-red-500 transition px-2 pair-delete">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        `;
-
-                                    // Events
-                                    div.querySelector('.pair-enable').addEventListener('change', (e) => {
-                                        currentSettings[mode].pairs[index].enabled = e.target.checked;
-                                        renderPairs(mode);
-                                        saveToInput();
-                                    });
-
-                                    div.querySelector('.pair-q').addEventListener('change', (e) => {
-                                        currentSettings[mode].pairs[index].q = e.target.value;
-                                        saveToInput();
-                                    });
-
-                                    div.querySelector('.pair-a').addEventListener('change', (e) => {
-                                        currentSettings[mode].pairs[index].a = e.target.value;
-                                        saveToInput();
-                                    });
-
-                                    div.querySelector('.pair-delete').addEventListener('click', () => {
-                                        currentSettings[mode].pairs.splice(index, 1);
-                                        renderPairs(mode);
-                                        saveToInput();
-                                    });
-
-                                    return div;
-                                };
-
-                                // Render all pairs for a mode
-                                const renderPairs = (mode) => {
-                                    // Find container scoped to wrapper
-                                    const container = wrapper.querySelector(`#${mode}-pairs-list`);
-                                    if (!container) return; // safety
-
-                                    const list = currentSettings[mode].pairs;
-                                    container.innerHTML = '';
-
-                                    if (list.length === 0) {
-                                        container.innerHTML = `<p class="text-sm text-gray-400 italic text-center py-4 empty-msg">Chưa có cấu hình nào.</p>`;
-                                    } else {
-                                        list.forEach((pair, idx) => {
-                                            container.appendChild(createPairRow(mode, pair, idx));
-                                        });
-                                    }
-                                };
-
-                                // Save to hidden input
-                                const saveToInput = () => {
-                                    settingsInput.value = JSON.stringify(currentSettings);
-                                };
-
-                                // Tab Switching
-                                tabButtons.forEach(btn => {
-                                    btn.addEventListener('click', () => {
-                                        const target = btn.dataset.tab;
-
-                                        // Update Buttons
-                                        tabButtons.forEach(b => {
-                                            if (b.dataset.tab === target) {
-                                                b.className = "px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 focus:outline-none whitespace-nowrap";
-                                            } else {
-                                                b.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none whitespace-nowrap";
-                                            }
-                                        });
-
-                                        // Update Contents
-                                        tabContents.forEach(c => {
-                                            if (c.id === `tab-${target}`) {
-                                                c.classList.remove('hidden');
-                                                c.classList.add('block');
-                                            } else {
-                                                c.classList.add('hidden');
-                                                c.classList.remove('block');
-                                            }
-                                        });
-                                    });
-                                });
-
-                                // Add Pair Event
-                                // Add Pair Event
-                                wrapper.querySelectorAll('.add-pair-btn').forEach(btn => {
-                                    btn.addEventListener('click', () => {
-                                        const mode = btn.dataset.mode;
-                                        // Defaults per mode
-                                        let newPair = { enabled: true };
-                                        if (mode === 'mcq') { newPair.q = 'front'; newPair.a = 'back'; }
-                                        else if (mode === 'typing') { newPair.q = 'back'; newPair.a = 'front'; }
-                                        else if (mode === 'listening') { newPair.q = 'front_audio_url'; newPair.a = 'front'; }
-
-                                        currentSettings[mode].pairs.push(newPair);
-                                        renderPairs(mode);
-                                        saveToInput();
-                                    });
-                                });
-
-                                // Save Dedicated Button Logic
-                                const saveConfigBtn = wrapper.querySelector('.save-config-btn');
-                                if (saveConfigBtn) {
-                                    saveConfigBtn.addEventListener('click', async () => {
-                                        // Show loading
-                                        const originalText = saveConfigBtn.innerHTML;
-                                        saveConfigBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
-                                        saveConfigBtn.disabled = true;
-
-                                        try {
-                                            const setId = {{ set_id | default (0)
-                                        }};
-                                    if (!setId) {
-                                        alert("Không tìm thấy ID bộ thẻ. Vui lòng tải lại trang.");
-                                        // Restore
-                                        saveConfigBtn.innerHTML = originalText;
-                                        saveConfigBtn.disabled = false;
-                                        return;
-                                    }
-
-                                    // Prepare payload
-                                    const payload = { settings: currentSettings };
-
-                                    // Dynamic URL generation to avoid prefix mismatch
-                                    const updateUrl = "{{ url_for('content_management.content_management_flashcards.update_flashcard_set_settings', set_id=set_id) }}";
-
-                                    const response = await fetch(updateUrl, {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'X-Requested-With': 'XMLHttpRequest',
-                                            'X-CSRFToken': csrfToken
-                                        },
-                                        body: JSON.stringify(payload)
-                                    });
-
-                                    const result = await response.json();
-
-                                    if (result.success) {
-                                        if (window.parent && window.parent.showFlashMessage) {
-                                            window.parent.showFlashMessage(result.message, 'success');
-                                        } else {
-                                            alert(result.message);
-                                        }
-                                    } else {
-                                        alert(result.message || "Lỗi khi lưu cấu hình.");
-                                    }
-                                } catch (err) {
-                                    console.error(err);
-                                    alert("Lỗi kết nối máy chủ.");
-                                } finally {
-                                    saveConfigBtn.innerHTML = originalText;
-                                    saveConfigBtn.disabled = false;
-                                }
-                                    });
-                                }
-
-                                // Initial Render
-                                renderPairs('mcq');
-                                renderPairs('typing');
-                                renderPairs('listening');
-
-                                // Save initial state
-                                saveToInput();
-
-                            }) ();
-                            </script>
+                            <!-- Script moved to bottom for better integration -->
                         </div>
                         <div class="border-t border-gray-200 pt-6">
                             {{ form.ai_prompt.label(class="block text-sm font-medium text-gray-700") }}
@@ -593,572 +359,659 @@
 <script>
     (function () {
         const currentScript = document.currentScript;
-        // If script is executed via eval or simple insertion, currentScript might be null or point to the script tag being executed.
-        // In standard innerHTML insertion where script tags are re-created and appended, currentScript works.
-        // Let's assume standard behavior. Fallback: document.lastChild? No.
         const wrapper = currentScript.closest('.edit-modal-content-wrapper');
         const form = wrapper.querySelector('form'); // The form inside THIS wrapper
-        const fileInput = wrapper.querySelector('input[type="file"]'); // The file input inside THIS wrapper
+        const fileInput = wrapper.querySelector('input[type="file"]');
 
-        // Define closeModal if not exists in parent for standalone testing
-        if (!window.parent.closeModal) {
-            window.parent.closeModal = function () {
-                console.log("Mock close modal");
-            };
+        // --- Settings UI Logic Integration ---
+        const settingsInput = form.querySelector('input[name="settings"]');
+        const csrfInput = form.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
+        const availableKeys = {{ available_keys | default (['front', 'back']) | tojson | safe
+    }};
+
+    let currentSettings = {};
+
+    try {
+        currentSettings = JSON.parse(settingsInput.value || '{}');
+    } catch (e) { console.error("Error parsing settings", e); }
+
+    // Initialize structure if missing or empty, apply defaults
+    const defaultPairs = {
+        mcq: [{ q: 'front', a: 'back', enabled: true }],
+        typing: [{ q: 'back', a: 'front', enabled: true }],
+        listening: [{ q: 'front_audio_url', a: 'front', enabled: true }]
+    };
+
+    ['mcq', 'typing', 'listening'].forEach(mode => {
+        if (!currentSettings[mode]) currentSettings[mode] = {};
+        if (!currentSettings[mode].pairs || currentSettings[mode].pairs.length === 0) {
+            currentSettings[mode].pairs = JSON.parse(JSON.stringify(defaultPairs[mode]));
         }
+    });
 
-        wrapper.querySelectorAll('[data-role="close-editor"]').forEach(button => {
-            button.addEventListener('click', () => {
-                if (window.parent && typeof window.parent.closeModal === 'function') {
-                    window.parent.closeModal();
+    // Helper: Generate Options HTML for Select
+    const generateOptions = (selected) => {
+        return availableKeys.map(k =>
+            `<option value="${k}" ${k === selected ? 'selected' : ''}>${k}</option>`
+        ).join('');
+    };
+
+    // Render a single pair row
+    const createPairRow = (mode, pair, index) => {
+        const isEnabled = pair.enabled !== false; // default true
+        const div = document.createElement('div');
+        div.className = `flex items-center gap-3 p-3 rounded-lg border ${isEnabled ? 'bg-gray-50 border-gray-200' : 'bg-gray-100 border-dashed border-gray-300 opacity-70'} transition-all`;
+        div.dataset.index = index;
+
+        div.innerHTML = `
+                    <div class="flex items-center h-full">
+                        <input type="checkbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer pair-enable" ${isEnabled ? 'checked' : ''}>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 flex-1">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-500 font-medium ml-1 mb-0.5">Câu hỏi</span>
+                            <select class="pair-q block w-full text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 py-1.5 pl-2 pr-6">
+                                ${generateOptions(pair.q)}
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                                <i class="fas fa-arrow-right text-gray-300 text-xs mt-4"></i>
+                                <div class="flex flex-col w-full">
+                                <span class="text-[10px] text-gray-500 font-medium ml-1 mb-0.5">Đáp án</span>
+                                <select class="pair-a block w-full text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 py-1.5 pl-2 pr-6">
+                                    ${generateOptions(pair.a)}
+                                </select>
+                                </div>
+                        </div>
+                    </div>
+                    <button type="button" class="text-gray-400 hover:text-red-500 transition px-2 pair-delete">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+
+        // Events
+        div.querySelector('.pair-enable').addEventListener('change', (e) => {
+            currentSettings[mode].pairs[index].enabled = e.target.checked;
+            renderPairs(mode);
+            saveToInput();
+        });
+        div.querySelector('.pair-q').addEventListener('change', (e) => {
+            currentSettings[mode].pairs[index].q = e.target.value;
+            saveToInput();
+        });
+        div.querySelector('.pair-a').addEventListener('change', (e) => {
+            currentSettings[mode].pairs[index].a = e.target.value;
+            saveToInput();
+        });
+        div.querySelector('.pair-delete').addEventListener('click', () => {
+            currentSettings[mode].pairs.splice(index, 1);
+            renderPairs(mode);
+            saveToInput();
+        });
+        return div;
+    };
+
+    // Render all pairs for a mode
+    const renderPairs = (mode) => {
+        const container = wrapper.querySelector(`#${mode}-pairs-list`);
+        if (!container) return;
+
+        const list = currentSettings[mode].pairs;
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+            container.innerHTML = `<p class="text-sm text-gray-400 italic text-center py-4 empty-msg">Chưa có cấu hình nào.</p>`;
+        } else {
+            list.forEach((pair, idx) => {
+                container.appendChild(createPairRow(mode, pair, idx));
+            });
+        }
+    };
+
+    const saveToInput = () => {
+        settingsInput.value = JSON.stringify(currentSettings);
+    };
+
+    // Initialize Tabs
+    const tabButtons = wrapper.querySelectorAll('button[data-tab]');
+    const tabContents = wrapper.querySelectorAll('.config-tab-content');
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.tab;
+            tabButtons.forEach(b => {
+                if (b.dataset.tab === target) {
+                    b.className = "px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 focus:outline-none whitespace-nowrap";
                 } else {
-                    window.history.back();
+                    b.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none whitespace-nowrap";
+                }
+            });
+            tabContents.forEach(c => {
+                if (c.id === `tab-${target}`) {
+                    c.classList.remove('hidden');
+                    c.classList.add('block');
+                } else {
+                    c.classList.add('hidden');
+                    c.classList.remove('block');
                 }
             });
         });
+    });
 
-        if (!form || !fileInput) {
-            console.warn("Flashcard form elements not found in scoped wrapper - aborting script.");
+    // Initialize Add Buttons
+    wrapper.querySelectorAll('.add-pair-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            let newPair = { enabled: true };
+            if (mode === 'mcq') { newPair.q = 'front'; newPair.a = 'back'; }
+            else if (mode === 'typing') { newPair.q = 'back'; newPair.a = 'front'; }
+            else if (mode === 'listening') { newPair.q = 'front_audio_url'; newPair.a = 'front'; }
+
+            currentSettings[mode].pairs.push(newPair);
+            renderPairs(mode);
+            saveToInput();
+        });
+    });
+
+    // Initial Render of default settings
+    renderPairs('mcq');
+    renderPairs('typing');
+    renderPairs('listening');
+
+    // Logic to Parse Excel Mappings
+    const updateSettingsFromExcel = (data) => {
+        if (!data) return;
+        let updated = false;
+
+        ['mcq', 'typing', 'listening'].forEach(mode => {
+            // Key format: "mcq_pairs", "typing_pairs"...
+            const pairsStr = data[`${mode}_pairs`];
+            let newPairs = [];
+
+            if (pairsStr) {
+                const rawPairs = pairsStr.split('|');
+                rawPairs.forEach(raw => {
+                    const parts = raw.split(':');
+                    if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
+                        newPairs.push({ q: parts[0].trim(), a: parts[1].trim(), enabled: true });
+                    }
+                });
+            }
+
+            if (newPairs.length > 0) {
+                // Excel has pairs -> Override
+                currentSettings[mode].pairs = newPairs;
+                renderPairs(mode);
+                updated = true;
+            } else {
+                // Excel has NO pairs -> If current is empty, fill defaults
+                if (!currentSettings[mode].pairs || currentSettings[mode].pairs.length === 0) {
+                    currentSettings[mode].pairs = JSON.parse(JSON.stringify(defaultPairs[mode]));
+                    renderPairs(mode);
+                    updated = true;
+                }
+            }
+        });
+
+        if (updated) {
+            saveToInput();
+        }
+    };
+
+    // --- Existing File Logic ---
+
+    // Define closeModal if not exists in parent for standalone testing
+    if (!window.parent.closeModal) {
+        window.parent.closeModal = function () {
+            console.log("Mock close modal");
+        };
+    }
+
+    wrapper.querySelectorAll('[data-role="close-editor"]').forEach(button => {
+        button.addEventListener('click', () => {
+            if (window.parent && typeof window.parent.closeModal === 'function') {
+                window.parent.closeModal();
+            } else {
+                window.history.back();
+            }
+        });
+    });
+
+    if (!form || !fileInput) {
+        console.warn("Flashcard form elements not found in scoped wrapper - aborting script.");
+        return;
+    }
+
+    const dropZone = form.querySelector('[data-role="excel-drop-zone"]');
+    const placeholder = form.querySelector('[data-role="excel-placeholder"]');
+    const helper = form.querySelector('[data-role="excel-helper"]');
+    const summaryBox = form.querySelector('[data-role="excel-file-summary"]');
+    const fileNameLabel = form.querySelector('[data-role="excel-file-name"]');
+    const fileMetaLabel = form.querySelector('[data-role="excel-file-meta"]');
+    const clearButton = form.querySelector('[data-role="excel-clear"]');
+    const statusLabel = form.querySelector('[data-role="excel-status"]');
+    const analysisReport = form.querySelector('[data-role="excel-analysis-report"]');
+    const analysisGrid = form.querySelector('[data-role="analysis-grid"]');
+
+    const formatBytes = (bytes) => {
+        if (!bytes && bytes !== 0) {
+            return '';
+        }
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        if (bytes === 0) {
+            return '0 B';
+        }
+        const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
+        const value = bytes / Math.pow(1024, i);
+        return `${value.toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`;
+    };
+
+    const formatDate = (timestamp) => {
+        if (!timestamp) {
+            return '';
+        }
+        const date = new Date(timestamp);
+        if (Number.isNaN(date.getTime())) {
+            return '';
+        }
+        return date.toLocaleString('vi-VN');
+    };
+
+    const showStatus = (message, type) => {
+        if (!statusLabel) {
+            return;
+        }
+        statusLabel.textContent = message || '';
+        statusLabel.classList.remove('text-red-600', 'text-green-600', 'text-blue-600', 'hidden');
+        if (!message) {
+            statusLabel.classList.add('hidden');
+            return;
+        }
+        if (type === 'error') {
+            statusLabel.classList.add('text-red-600');
+        } else if (type === 'success') {
+            statusLabel.classList.add('text-green-600');
+        } else {
+            statusLabel.classList.add('text-blue-600');
+        }
+    };
+
+    const resetUploadState = ({ keepStatus = false } = {}) => {
+        fileInput.value = '';
+        if (helper) {
+            helper.classList.remove('hidden');
+        }
+        if (placeholder) {
+            placeholder.classList.remove('hidden');
+        }
+        if (summaryBox) {
+            summaryBox.classList.add('hidden');
+        }
+        if (analysisReport) {
+            analysisReport.classList.add('hidden');
+        }
+        if (clearButton) {
+            clearButton.classList.add('hidden');
+        }
+        if (dropZone) {
+            dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50');
+        }
+        if (!keepStatus && statusLabel) {
+            statusLabel.textContent = '';
+            statusLabel.classList.add('hidden');
+            statusLabel.classList.remove('text-red-600', 'text-green-600', 'text-blue-600');
+        }
+    };
+
+    const updateSummary = (file) => {
+        if (!summaryBox || !file) {
+            return;
+        }
+        summaryBox.classList.remove('hidden');
+        if (fileNameLabel) {
+            fileNameLabel.textContent = file.name;
+        }
+        if (fileMetaLabel) {
+            const metaParts = [];
+            if (file.size) {
+                metaParts.push(`Dung lượng ${formatBytes(file.size)}`);
+            }
+            if (file.lastModified) {
+                metaParts.push(`Chỉnh sửa lần cuối ${formatDate(file.lastModified)}`);
+            }
+            fileMetaLabel.textContent = metaParts.join(' · ');
+        }
+    };
+
+    const renderAnalysis = (analysis) => {
+        if (!analysisReport || !analysisGrid) return;
+        console.log("Column Analysis Result:", analysis);
+
+        if (!analysis) {
+            analysisReport.classList.add('hidden');
+            return;
+        }
+        analysisReport.classList.remove('hidden');
+        let html = '';
+
+        if (!analysis.success) {
+            const errorMsg = analysis.error || 'Lỗi không xác định khi đọc cột.';
+            html = `<div class="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-2"><i class="fas fa-times-circle"></i><span><strong>Lỗi phân tích:</strong> ${errorMsg}</span></div>`;
+            analysisGrid.innerHTML = html;
             return;
         }
 
-        const dropZone = form.querySelector('[data-role="excel-drop-zone"]');
-        const placeholder = form.querySelector('[data-role="excel-placeholder"]');
-        const helper = form.querySelector('[data-role="excel-helper"]');
-        const summaryBox = form.querySelector('[data-role="excel-file-summary"]');
-        const fileNameLabel = form.querySelector('[data-role="excel-file-name"]');
-        const fileMetaLabel = form.querySelector('[data-role="excel-file-meta"]');
-        const clearButton = form.querySelector('[data-role="excel-clear"]');
-        const statusLabel = form.querySelector('[data-role="excel-status"]');
-        const analysisReport = form.querySelector('[data-role="excel-analysis-report"]');
-        const analysisGrid = form.querySelector('[data-role="analysis-grid"]');
-        const csrfInput = form.querySelector('input[name="csrf_token"]');
-        const csrfToken = csrfInput ? csrfInput.value : '';
-
-        const formatBytes = (bytes) => {
-            if (!bytes && bytes !== 0) {
-                return '';
-            }
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            if (bytes === 0) {
-                return '0 B';
-            }
-            const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
-            const value = bytes / Math.pow(1024, i);
-            return `${value.toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`;
-        };
-
-        const formatDate = (timestamp) => {
-            if (!timestamp) {
-                return '';
-            }
-            const date = new Date(timestamp);
-            if (Number.isNaN(date.getTime())) {
-                return '';
-            }
-            return date.toLocaleString('vi-VN');
-        };
-
-        const showStatus = (message, type) => {
-            if (!statusLabel) {
-                return;
-            }
-            statusLabel.textContent = message || '';
-            statusLabel.classList.remove('text-red-600', 'text-green-600', 'text-blue-600', 'hidden');
-            if (!message) {
-                statusLabel.classList.add('hidden');
-                return;
-            }
-            if (type === 'error') {
-                statusLabel.classList.add('text-red-600');
-            } else if (type === 'success') {
-                statusLabel.classList.add('text-green-600');
-            } else {
-                statusLabel.classList.add('text-blue-600');
-            }
-        };
-
-        const resetUploadState = ({ keepStatus = false } = {}) => {
-            fileInput.value = '';
-            if (helper) {
-                helper.classList.remove('hidden');
-            }
-            if (placeholder) {
-                placeholder.classList.remove('hidden');
-            }
-            if (summaryBox) {
-                summaryBox.classList.add('hidden');
-            }
-            if (analysisReport) {
-                analysisReport.classList.add('hidden');
-            }
-            if (clearButton) {
-                clearButton.classList.add('hidden');
-            }
-            if (dropZone) {
-                dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50');
-            }
-            if (!keepStatus && statusLabel) {
-                statusLabel.textContent = '';
-                statusLabel.classList.add('hidden');
-                statusLabel.classList.remove('text-red-600', 'text-green-600', 'text-blue-600');
-            }
-        };
-
-        const updateSummary = (file) => {
-            if (!summaryBox || !file) {
-                return;
-            }
-            summaryBox.classList.remove('hidden');
-            if (fileNameLabel) {
-                fileNameLabel.textContent = file.name;
-            }
-            if (fileMetaLabel) {
-                const metaParts = [];
-                if (file.size) {
-                    metaParts.push(`Dung lượng ${formatBytes(file.size)}`);
-                }
-                if (file.lastModified) {
-                    metaParts.push(`Chỉnh sửa lần cuối ${formatDate(file.lastModified)}`);
-                }
-                fileMetaLabel.textContent = metaParts.join(' · ');
-            }
-        };
-
-        const renderAnalysis = (analysis) => {
-            if (!analysisReport || !analysisGrid) return;
-
-            console.log("Column Analysis Result:", analysis); // Debug
-
-            if (!analysis) {
-                // Backward compatibility or network issue
-                analysisReport.classList.add('hidden');
-                return;
-            }
-
-            // Show report box even if failed, to show error
-            analysisReport.classList.remove('hidden');
-            let html = '';
-
-            if (!analysis.success) {
-                const errorMsg = analysis.error || 'Lỗi không xác định khi đọc cột.';
-                html = `<div class="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-2">
-    <i class="fas fa-times-circle"></i>
-    <span><strong>Lỗi phân tích:</strong> ${errorMsg}</span>
-</div>`;
-                analysisGrid.innerHTML = html;
-                return;
-            }
-
-            // Missing Required
-            if (analysis.missing_required && analysis.missing_required.length > 0) {
-                html += `<div class="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-start gap-2">
-    <i class="fas fa-exclamation-triangle mt-0.5"></i>
-    <div>
-        <strong>Thiếu cột bắt buộc:</strong> ${analysis.missing_required.join(', ')}
-        <p class="text-[10px] mt-0.5 opacity-80">File sẽ không thể trích xuất nếu thiếu các cột này.</p>
-    </div>
-</div>`;
-            } else {
-                html += `<div class="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center gap-2">
-    <i class="fas fa-check-circle"></i>
-    <span>Đủ cột bắt buộc (Front, Back).</span>
-</div>`;
-            }
-
-            // Standard Columns
-            if (analysis.standard_columns && analysis.standard_columns.length > 0) {
-                html += `
-<div class="flex flex-col gap-1 mt-2">
-    <span class="text-xs text-gray-500 font-medium">Cột tiêu chuẩn (đã khớp):</span>
-    <div class="flex flex-wrap gap-1">`;
-                analysis.standard_columns.forEach(col => {
-                    html += `<span
-            class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs border border-green-200">${col}</span>`;
-                });
-                html += `</div>
-</div>`;
-            }
-
-            // AI Columns
-            if (analysis.ai_columns && analysis.ai_columns.length > 0) {
-                html += `
-<div class="flex flex-col gap-1 mt-2">
-    <span class="text-xs text-gray-500 font-medium">Cột AI:</span>
-    <div class="flex flex-wrap gap-1">`;
-                analysis.ai_columns.forEach(col => {
-                    html += `<span
-            class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs border border-purple-200">${col}</span>`;
-                });
-                html += `</div>
-</div>`;
-            }
-
-            // Custom Columns
-            if (analysis.custom_columns && analysis.custom_columns.length > 0) {
-                html += `
-<div class="flex flex-col gap-1 pt-2 mt-2 border-t border-dashed border-gray-200">
-    <div class="flex justify-between items-center">
-        <span class="text-xs text-blue-600 font-bold">Custom Data (Sẽ được lưu):</span>
-        <span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded-full">${analysis.custom_columns.length}</span>
-    </div>
-    <div class="flex flex-wrap gap-1">`;
-                analysis.custom_columns.forEach(col => {
-                    html += `<span
-            class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs border border-blue-100">${col}</span>`;
-                });
-                html += `</div>
-</div>`;
-            } else {
-                html += `
-<div class="flex flex-col gap-1 pt-2 mt-2 border-t border-dashed border-gray-200">
-    <span class="text-xs text-gray-400">Không tìm thấy cột Custom nào.</span>
-</div>`;
-            }
-
-            analysisGrid.innerHTML = html;
-        };
-
-        const populateFormFields = (data = {}) => {
-            if (!data) {
-                return;
-            }
-            if (data.title) {
-                form.querySelector('[name="title"]').value = data.title;
-            }
-            if (data.description) {
-                form.querySelector('[name="description"]').value = data.description;
-            }
-            if (data.tags) {
-                form.querySelector('[name="tags"]').value = data.tags;
-            }
-            if (data.ai_prompt) {
-                form.querySelector('[name="ai_prompt"]').value = data.ai_prompt;
-            }
-
-            const imageFolderField = form.querySelector('[name="image_base_folder"]');
-            if (imageFolderField) {
-                imageFolderField.value = data.image_base_folder || '';
-            }
-
-            const audioFolderField = form.querySelector('[name="audio_base_folder"]');
-            if (audioFolderField) {
-                audioFolderField.value = data.audio_base_folder || '';
-            }
-
-            const isPublicCheckbox = form.querySelector('[name="is_public"]');
-            if (isPublicCheckbox) {
-                if (data.is_public !== undefined && data.is_public !== null) {
-                    const isPublicValue = String(data.is_public).toLowerCase();
-                    isPublicCheckbox.checked = ['true', '1', 'yes'].includes(isPublicValue);
-                } else {
-                    isPublicCheckbox.checked = false;
-                }
-            }
-
-            const capabilityFields = [
-                { key: 'supports_flashcard', selector: '[name="supports_flashcard"]' },
-                { key: 'supports_quiz', selector: '[name="supports_quiz"]' },
-                { key: 'supports_writing', selector: '[name="supports_writing"]' },
-                { key: 'supports_matching', selector: '[name="supports_matching"]' },
-                { key: 'supports_speed', selector: '[name="supports_speed"]' },
-                { key: 'supports_listening', selector: '[name="supports_listening"]' },
-                { key: 'supports_pronunciation', selector: '[name="supports_pronunciation"]' },
-                { key: 'supports_essay', selector: '[name="supports_essay"]' },
-                { key: 'supports_listening', selector: '[name="supports_listening"]' },
-                { key: 'supports_speaking', selector: '[name="supports_speaking"]' },
-            ];
-
-            capabilityFields.forEach(({ key, selector }) => {
-                if (Object.prototype.hasOwnProperty.call(data, key)) {
-                    const checkbox = form.querySelector(selector);
-                    if (checkbox) {
-                        const rawValue = String(data[key]).toLowerCase();
-                        checkbox.checked = ['true', '1', 'yes', 'y', 'on'].includes(rawValue);
-                    }
-                }
-            });
-        };
-
-        const processExcelFile = async (file) => {
-            if (!file) {
-                return;
-            }
-
-            showStatus('Đang xử lý file Excel, vui lòng chờ...', 'info');
-            const formData = new FormData();
-            formData.append('excel_file', file);
-            if (csrfToken) {
-                formData.append('csrf_token', csrfToken);
-            }
-
-            try {
-                const headers = { 'X-Requested-With': 'XMLHttpRequest' };
-                if (csrfToken) {
-                    headers['X-CSRFToken'] = csrfToken;
-                }
-
-                const processExcelUrl = new URL(
-                    "{{ url_for('content_management.content_management_flashcards.process_excel_info') }}",
-                    window.location.origin
-                ).toString();
-
-                const response = await fetch(processExcelUrl, {
-                    method: 'POST',
-                    body: formData,
-                    headers,
-                    credentials: 'same-origin'
-                });
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    populateFormFields(result.data || {});
-                    renderAnalysis(result.column_analysis); // [NEW] Render Analysis
-                    showStatus(result.message || 'Đã đọc thông tin từ file.', 'success');
-                } else {
-                    const message = (result && result.message) ? result.message : 'Không thể đọc sheet Info từ file.';
-                    showStatus(message, 'error');
-                }
-            } catch (error) {
-                console.error('Lỗi khi xử lý file Excel:', error);
-                showStatus('Lỗi khi xử lý file Excel. Vui lòng thử lại.', 'error');
-            }
-        };
-
-        const handleFile = (file) => {
-            if (!file) {
-                resetUploadState();
-                return;
-            }
-
-            const name = file.name ? file.name.toLowerCase() : '';
-            if (!name.endsWith('.xlsx')) {
-                resetUploadState({ keepStatus: true });
-                showStatus('Định dạng tệp không hợp lệ. Vui lòng chọn file .xlsx.', 'error');
-                return;
-            }
-
-            const maxSize = 10 * 1024 * 1024; // 10MB
-            if (file.size && file.size > maxSize) {
-                resetUploadState({ keepStatus: true });
-                showStatus('Dung lượng tệp vượt quá 10MB. Vui lòng tối ưu hoặc tách nhỏ dữ liệu.', 'error');
-                return;
-            }
-
-            if (placeholder) {
-                placeholder.classList.add('hidden');
-            }
-            if (helper) {
-                helper.classList.add('hidden');
-            }
-            if (summaryBox) {
-                summaryBox.classList.remove('hidden');
-            }
-            if (clearButton) {
-                clearButton.classList.remove('hidden');
-            }
-            if (dropZone) {
-                dropZone.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50');
-            }
-
-            updateSummary(file);
-            processExcelFile(file);
-        };
-
-        const syncInputWithFile = (file) => {
-            if (!file) {
-                return;
-            }
-            if (typeof DataTransfer !== 'undefined') {
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                fileInput.files = dataTransfer.files;
-            } else {
-                try {
-                    fileInput.files = [file];
-                } catch (error) {
-                    console.warn('Không thể gán FileList cho input:', error);
-                }
-            }
-        };
-
-        resetUploadState();
-
-        if (dropZone) {
-            dropZone.addEventListener('click', () => fileInput.click());
-            dropZone.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    fileInput.click();
-                }
-            });
-
-            ['dragenter', 'dragover'].forEach((eventName) => {
-                dropZone.addEventListener(eventName, (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    dropZone.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50');
-                });
-            });
-
-            ['dragleave', 'drop'].forEach((eventName) => {
-                dropZone.addEventListener(eventName, (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (eventName === 'dragleave' && !fileInput.files.length) {
-                        dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50');
-                    }
-                });
-            });
-
-            dropZone.addEventListener('drop', (event) => {
-                const files = event.dataTransfer?.files;
-                if (files && files.length) {
-                    const file = files[0];
-                    syncInputWithFile(file);
-                    handleFile(file);
-                }
-            });
+        if (analysis.missing_required && analysis.missing_required.length > 0) {
+            html += `<div class="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-start gap-2"><i class="fas fa-exclamation-triangle mt-0.5"></i><div><strong>Thiếu cột bắt buộc:</strong> ${analysis.missing_required.join(', ')}<p class="text-[10px] mt-0.5 opacity-80">File sẽ không thể trích xuất nếu thiếu các cột này.</p></div></div>`;
+        } else {
+            html += `<div class="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center gap-2"><i class="fas fa-check-circle"></i><span>Đủ cột bắt buộc (Front, Back).</span></div>`;
         }
 
-        fileInput.addEventListener('change', (event) => {
-            const files = event.target.files;
-            if (files && files.length) {
-                handleFile(files[0]);
+        if (analysis.standard_columns && analysis.standard_columns.length > 0) {
+            html += `<div class="flex flex-col gap-1 mt-2"><span class="text-xs text-gray-500 font-medium">Cột tiêu chuẩn (đã khớp):</span><div class="flex flex-wrap gap-1">`;
+            analysis.standard_columns.forEach(col => {
+                html += `<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs border border-green-200">${col}</span>`;
+            });
+            html += `</div></div>`;
+        }
+
+        if (analysis.ai_columns && analysis.ai_columns.length > 0) {
+            html += `<div class="flex flex-col gap-1 mt-2"><span class="text-xs text-gray-500 font-medium">Cột AI:</span><div class="flex flex-wrap gap-1">`;
+            analysis.ai_columns.forEach(col => {
+                html += `<span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs border border-purple-200">${col}</span>`;
+            });
+            html += `</div></div>`;
+        }
+
+        if (analysis.custom_columns && analysis.custom_columns.length > 0) {
+            html += `<div class="flex flex-col gap-1 pt-2 mt-2 border-t border-dashed border-gray-200"><div class="flex justify-between items-center"><span class="text-xs text-blue-600 font-bold">Custom Data (Sẽ được lưu):</span><span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded-full">${analysis.custom_columns.length}</span></div><div class="flex flex-wrap gap-1">`;
+            analysis.custom_columns.forEach(col => {
+                html += `<span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs border border-blue-100">${col}</span>`;
+            });
+            html += `</div></div>`;
+        } else {
+            html += `<div class="flex flex-col gap-1 pt-2 mt-2 border-t border-dashed border-gray-200"><span class="text-xs text-gray-400">Không tìm thấy cột Custom nào.</span></div>`;
+        }
+
+        analysisGrid.innerHTML = html;
+    };
+
+    const populateFormFields = (data = {}) => {
+        if (!data) return;
+        // Update Text inputs
+        ['title', 'description', 'tags', 'ai_prompt', 'image_base_folder', 'audio_base_folder'].forEach(name => {
+            const field = form.querySelector(`[name="${name}"]`);
+            if (field && data[name]) field.value = data[name];
+        });
+
+        // Update Is Public
+        const isPublicCheckbox = form.querySelector('[name="is_public"]');
+        if (isPublicCheckbox) {
+            if (data.is_public !== undefined && data.is_public !== null) {
+                isPublicCheckbox.checked = ['true', '1', 'yes'].includes(String(data.is_public).toLowerCase());
             } else {
-                resetUploadState();
+                isPublicCheckbox.checked = false;
+            }
+        }
+
+        // Update Capabilities
+        ['supports_flashcard', 'supports_quiz', 'supports_writing', 'supports_matching', 'supports_speed', 'supports_listening', 'supports_pronunciation', 'supports_essay', 'supports_speaking'].forEach(key => {
+            const checkbox = form.querySelector(`[name="${key}"]`);
+            if (checkbox && Object.prototype.hasOwnProperty.call(data, key)) {
+                const rawValue = String(data[key]).toLowerCase();
+                checkbox.checked = ['true', '1', 'yes', 'y', 'on'].includes(rawValue);
             }
         });
 
-        if (clearButton) {
-            clearButton.addEventListener('click', (event) => {
-                event.preventDefault();
-                resetUploadState();
-                showStatus('Đã bỏ chọn file Excel.', 'info');
+        // [NEW] Update Settings Pairs from Excel
+        updateSettingsFromExcel(data);
+    };
+
+    const processExcelFile = async (file) => {
+        if (!file) return;
+
+        showStatus('Đang xử lý file Excel, vui lòng chờ...', 'info');
+        const formData = new FormData();
+        formData.append('excel_file', file);
+        if (csrfToken) formData.append('csrf_token', csrfToken);
+
+        try {
+            const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+            if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+
+            const processExcelUrl = new URL(
+                "{{ url_for('content_management.content_management_flashcards.process_excel_info') }}",
+                window.location.origin
+            ).toString();
+
+            const response = await fetch(processExcelUrl, {
+                method: 'POST',
+                body: formData,
+                headers,
+                credentials: 'same-origin'
             });
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                const responseData = result.data || {};
+                populateFormFields(responseData.data || {});
+                renderAnalysis(responseData.column_analysis);
+                showStatus(result.message || 'Đã đọc thông tin từ file.', 'success');
+            } else {
+                const message = (result && result.message) ? result.message : 'Không thể đọc sheet Info từ file.';
+                showStatus(message, 'error');
+            }
+        } catch (error) {
+            console.error('Lỗi khi xử lý file Excel:', error);
+            showStatus('Lỗi khi xử lý file Excel. Vui lòng thử lại.', 'error');
+        }
+    };
+
+    const handleFile = (file) => {
+        if (!file) {
+            resetUploadState();
+            return;
         }
 
-        form.addEventListener('submit', async function (event) {
-            console.log("Submit event triggered!");
-            if (!form.checkValidity()) {
-                console.error("Form is invalid!");
-                // Find invalid fields
-                for (const el of form.elements) {
-                    if (!el.checkValidity()) {
-                        console.error("Invalid field:", el.name, el.validationMessage);
-                    }
-                }
-                return; // Let browser show validation error? No, default prevents it?
-            }
+        const name = file.name ? file.name.toLowerCase() : '';
+        if (!name.endsWith('.xlsx')) {
+            resetUploadState({ keepStatus: true });
+            showStatus('Định dạng tệp không hợp lệ. Vui lòng chọn file .xlsx.', 'error');
+            return;
+        }
 
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size && file.size > maxSize) {
+            resetUploadState({ keepStatus: true });
+            showStatus('Dung lượng tệp vượt quá 10MB. Vui lòng tối ưu hoặc tách nhỏ dữ liệu.', 'error');
+            return;
+        }
+
+        if (placeholder) { placeholder.classList.add('hidden'); }
+        if (helper) { helper.classList.add('hidden'); }
+        if (summaryBox) { summaryBox.classList.remove('hidden'); }
+        if (clearButton) { clearButton.classList.remove('hidden'); }
+        if (dropZone) { dropZone.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50'); }
+
+        updateSummary(file);
+        processExcelFile(file);
+    };
+
+    const syncInputWithFile = (file) => {
+        if (!file) return;
+        if (typeof DataTransfer !== 'undefined') {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
+        } else {
+            try {
+                fileInput.files = [file];
+            } catch (error) { console.warn('Không thể gán FileList cho input:', error); }
+        }
+    };
+
+    resetUploadState();
+
+    if (dropZone) {
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                fileInput.click();
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            dropZone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                dropZone.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach((eventName) => {
+            dropZone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (eventName === 'dragleave' && !fileInput.files.length) {
+                    dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50');
+                }
+            });
+        });
+
+        dropZone.addEventListener('drop', (event) => {
+            const files = event.dataTransfer?.files;
+            if (files && files.length) {
+                const file = files[0];
+                syncInputWithFile(file);
+                handleFile(file);
+            }
+        });
+    }
+
+    fileInput.addEventListener('change', (event) => {
+        const files = event.target.files;
+        if (files && files.length) {
+            handleFile(files[0]);
+        } else {
+            resetUploadState();
+        }
+    });
+
+    if (clearButton) {
+        clearButton.addEventListener('click', (event) => {
             event.preventDefault();
-            console.log("Submit default prevented. Starting fetch...");
+            resetUploadState();
+            showStatus('Đã bỏ chọn file Excel.', 'info');
+        });
+    }
 
-            // --- Collect Settings Logic ---
-            const settingsInput = form.querySelector('input[name="settings"]');
-            if (settingsInput) {
-                const settings = {};
-
-                // 1. MCQ Settings
-                const mcqPairs = [];
-                const mcqRows = form.querySelectorAll('#mcq_pair_list .pair-row');
-                mcqRows.forEach(row => {
-                    const qObj = row.querySelector('.pair-q');
-                    const aObj = row.querySelector('.pair-a');
-                    if (qObj && aObj) {
-                        mcqPairs.push({ q: qObj.value, a: aObj.value });
-                    }
-                });
-                if (mcqPairs.length > 0) {
-                    settings.mcq = { custom_pairs: mcqPairs };
-                }
-
-                // 2. Typing Settings
-                const typingPairs = [];
-                const typingRows = form.querySelectorAll('#typing_pair_list .pair-row');
-                typingRows.forEach(row => {
-                    const qObj = row.querySelector('.pair-q');
-                    const aObj = row.querySelector('.pair-a');
-                    if (qObj && aObj) {
-                        typingPairs.push({ q: qObj.value, a: aObj.value });
-                    }
-                });
-                if (typingPairs.length > 0) {
-                    settings.typing = { custom_pairs: typingPairs };
-                }
-
-                // 3. Listening Settings
-                const listeningPairs = [];
-                const listeningRows = form.querySelectorAll('#listening_pair_list .pair-row');
-                listeningRows.forEach(row => {
-                    const qObj = row.querySelector('.pair-q');
-                    const aObj = row.querySelector('.pair-a');
-                    if (qObj && aObj) {
-                        listeningPairs.push({ q: qObj.value, a: aObj.value });
-                    }
-                });
-                if (listeningPairs.length > 0) {
-                    settings.listening = { custom_pairs: listeningPairs };
-                }
-
-                console.log("Collected Settings:", settings);
-                settingsInput.value = JSON.stringify(settings);
-            }
-            // ------------------------------
-
-            const formData = new FormData(form);
-            const actionUrl = form.action;
+    // Save Dedicated Button Logic
+    const saveConfigBtn = wrapper.querySelector('.save-config-btn');
+    if (saveConfigBtn) {
+        saveConfigBtn.addEventListener('click', async () => {
+            const originalText = saveConfigBtn.innerHTML;
+            saveConfigBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+            saveConfigBtn.disabled = true;
 
             try {
-                const response = await fetch(actionUrl, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    credentials: 'same-origin'
-                });
-                const result = await response.json();
-                console.log("Fetch result:", result);
+                {% if set_id %}
+                const updateUrl = "{{ url_for('content_management.content_management_flashcards.update_flashcard_set_settings', set_id=set_id) }}";
+                const payload = { settings: currentSettings };
 
-                if (response.ok && result.success) {
+                const response = await fetch(updateUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (result.success) {
                     if (window.parent && window.parent.showFlashMessage) {
                         window.parent.showFlashMessage(result.message, 'success');
-                    } else if (result.message) {
+                    } else {
                         alert(result.message);
                     }
-
-                    if (window.parent && window.parent.closeModal) {
-                        window.parent.closeModal();
-                        setTimeout(() => {
-                            if (window.parent.location) window.parent.location.reload();
-                        }, 500);
-                    }
                 } else {
-                    if (result.errors) {
-                        console.error("Server validation errors:", result.errors);
-                        for (const fieldName in result.errors) {
-                            const fieldElement = form.querySelector(`[name="${fieldName}"]`);
-                            if (fieldElement) {
-                                fieldElement.classList.add('border-red-500');
-                            }
-                        }
-                    } else {
-                        if (window.parent && window.parent.showFlashMessage) {
-                            window.parent.showFlashMessage(result.message || 'Có lỗi xảy ra.', 'danger');
-                        } else {
-                            alert(result.message || 'Có lỗi xảy ra.');
-                        }
-                    }
+                    alert(result.message || "Lỗi khi lưu cấu hình.");
                 }
-            } catch (error) {
-                console.error("Fetch error:", error);
-                if (window.parent && window.parent.showFlashMessage) {
-                    window.parent.showFlashMessage('Không thể kết nối đến máy chủ.', 'danger');
-                } else {
-                    alert('Không thể kết nối đến máy chủ.');
-                }
+                {% else %}
+                alert("Không thể lưu cấu hình khi đang tạo mới bộ thẻ. Vui lòng tạo bộ thẻ trước.");
+                {% endif %}
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi kết nối máy chủ.");
+            } finally {
+                saveConfigBtn.innerHTML = originalText;
+                saveConfigBtn.disabled = false;
             }
         });
+    }
 
-        console.log("Flashcard Form Script Loaded Successfully");
-    })();
+    form.addEventListener('submit', async function (event) {
+        if (!form.checkValidity()) {
+            console.error("Form is invalid!");
+            return;
+        }
+
+        event.preventDefault();
+
+        // NOTE: Settings are already synced to input via saveToInput() calls.
+        // No need to manually rebuild them here (which was causing bugs).
+
+        const formData = new FormData(form);
+        const actionUrl = form.action;
+
+        try {
+            const response = await fetch(actionUrl, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                if (window.parent && window.parent.showFlashMessage) {
+                    window.parent.showFlashMessage(result.message, 'success');
+                } else if (result.message) {
+                    alert(result.message);
+                }
+
+                if (window.parent && window.parent.closeModal) {
+                    window.parent.closeModal();
+                    setTimeout(() => {
+                        if (window.parent.location) window.parent.location.reload();
+                    }, 500);
+                }
+            } else {
+                if (result.errors) {
+                    // Handle server errors
+                    if (window.parent && window.parent.showFlashMessage) {
+                        window.parent.showFlashMessage('Lỗi xác thực dữ liệu.', 'danger');
+                    }
+                } else {
+                    if (window.parent && window.parent.showFlashMessage) {
+                        window.parent.showFlashMessage(result.message || 'Có lỗi xảy ra.', 'danger');
+                    } else {
+                        alert(result.message || 'Có lỗi xảy ra.');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            if (window.parent && window.parent.showFlashMessage) {
+                window.parent.showFlashMessage('Không thể kết nối đến máy chủ.', 'danger');
+            } else {
+                alert('Không thể kết nối đến máy chủ.');
+            }
+        }
+    });
+
+    console.log("Flashcard Form Script Loaded Successfully with Integrated Settings Logic");
+    }) ();
 </script>
