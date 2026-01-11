@@ -93,7 +93,16 @@ review_logs
 ├── user_answer
 ├── duration_ms
 ├── score_change
-└── easiness_factor
+├── easiness_factor
+├── is_correct
+├── mastery_snapshot
+├── memory_power_snapshot
+│
+├── # Session Context (v1.6.0)
+├── session_id (FK → learning_sessions, nullable)
+├── container_id (FK → learning_containers, nullable)
+├── mode (learning mode string, nullable)
+└── streak_position (default: 0)
 ```
 
 ---
