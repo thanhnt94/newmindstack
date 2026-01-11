@@ -68,7 +68,8 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        animation: vocabScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        /* animation: vocabScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); */
+        animation: none !important;
         margin: auto;
         /* Ensure centering */
     }
@@ -564,12 +565,29 @@
 
 
             window.openVocabularyItemStats = function (itemId) {
+                console.log('openVocabularyItemStats called with itemId:', itemId);
+                console.log('statsModal element:', statsModal);
+                console.log('statsContainer element:', statsContainer);
+
                 if (!statsModal || !statsContainer) {
                     console.error("Modal elements not found");
                     return;
                 }
 
-                statsModal.style.cssText = 'display: flex !important;';
+                console.log('Setting modal display to flex [FORCE V2]');
+
+                // Force wrapper visibility
+                statsModal.style.cssText = 'display: flex !important; position: fixed !important; inset: 0 !important; z-index: 99999 !important; align-items: center !important; justify-content: center !important; opacity: 1 !important; visibility: visible !important; background-color: rgba(0,0,0,0.5) !important;';
+
+                // Force content visibility
+                const content = statsModal.querySelector('.vocab-modal-content');
+                if (content) {
+                    content.style.cssText = 'display: flex !important; opacity: 1 !important; visibility: visible !important; animation: none !important;';
+                }
+
+                console.log('Modal style after set:', statsModal.style.cssText);
+
+
                 statsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 16rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6366f1;"></i></div>';
 
                 const editBtn = statsModal.querySelector('.js-edit-item-stats');

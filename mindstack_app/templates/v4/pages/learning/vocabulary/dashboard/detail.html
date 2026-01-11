@@ -216,10 +216,13 @@
                 onclick="document.getElementById('editSetModal').classList.remove('active')"><i
                     class="fas fa-times"></i></button>
         </div>
-        <div class="edit-modal-body" id="editSetModalContent"></div>
     </div>
 </div>
+
+<!-- Item Stats Modal -->
+{% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}
 {% endblock %}
+
 
 {% block scripts %}
 {{ super() }}

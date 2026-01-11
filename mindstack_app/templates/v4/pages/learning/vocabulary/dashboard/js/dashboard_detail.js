@@ -185,8 +185,16 @@ document.addEventListener('DOMContentLoaded', function () {
                             card.onclick = function (e) {
                                 if (e.target.closest('button') || e.target.closest('a')) return;
                                 const itemId = this.dataset.itemId;
-                                if (itemId && window.openVocabularyItemStats) {
-                                    window.openVocabularyItemStats(itemId);
+                                console.log('Word card clicked, itemId:', itemId);
+                                // Try both function names for compatibility
+                                if (itemId) {
+                                    if (typeof window.openVocabularyItemStats === 'function') {
+                                        window.openVocabularyItemStats(itemId);
+                                    } else if (typeof window.openStatsModal === 'function') {
+                                        window.openStatsModal(itemId);
+                                    } else {
+                                        console.error('No stats modal function found! Available:', Object.keys(window).filter(k => k.includes('open')));
+                                    }
                                 }
                             };
                         });
