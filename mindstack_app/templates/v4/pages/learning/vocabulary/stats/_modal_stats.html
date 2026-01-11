@@ -551,16 +551,17 @@
             if (closeBtns) {
                 closeBtns.forEach(btn => {
                     btn.addEventListener('click', function () {
-                        if (statsModal) statsModal.style.display = 'none';
+                        if (statsModal) statsModal.style.cssText = 'display: none !important;';
                     });
                 });
             }
 
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && statsModal && statsModal.style.display !== 'none') {
-                    statsModal.style.display = 'none';
+                if (e.key === 'Escape' && statsModal && !statsModal.style.cssText.includes('none')) {
+                    statsModal.style.cssText = 'display: none !important;';
                 }
             });
+
 
             window.openVocabularyItemStats = function (itemId) {
                 if (!statsModal || !statsContainer) {
@@ -568,11 +569,12 @@
                     return;
                 }
 
-                statsModal.style.display = 'flex';
+                statsModal.style.cssText = 'display: flex !important;';
                 statsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 16rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6366f1;"></i></div>';
 
                 const editBtn = statsModal.querySelector('.js-edit-item-stats');
                 if (editBtn) editBtn.style.display = 'none';
+
 
                 fetch('/learn/vocabulary/item/' + itemId + '/stats?modal=true&_cb=' + new Date().getTime())
                     .then(r => r.text())
