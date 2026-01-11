@@ -460,7 +460,11 @@ class FlashcardSessionManager:
                 current_user_total_score=current_user_total_score,
                 mode=self.mode,
                 duration_ms=duration_ms,
-                user_answer_text=user_answer_text
+                user_answer_text=user_answer_text,
+                # Session context fields
+                session_id=getattr(self, 'db_session_id', None),
+                container_id=self.set_id if isinstance(self.set_id, int) else None,
+                learning_mode=self.mode
             )
             
             # [UPDATED] Add to processed list ONLY after answer (prevent skip on reload)

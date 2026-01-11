@@ -193,7 +193,8 @@ class QuizEngine:
         }
 
     @staticmethod
-    def check_answer(item_id, user_answer, user_id=None, answer_key=None, duration_ms=0, user_answer_key=None):
+    def check_answer(item_id, user_answer, user_id=None, answer_key=None, duration_ms=0, user_answer_key=None,
+                     session_id=None, container_id=None, mode=None, streak_position=0):
         """
         Check if user's MCQ answer is correct.
         If user_id is provided, updates SRS progress and awards points.
@@ -205,6 +206,10 @@ class QuizEngine:
             answer_key: The content key to use for finding correct answer
             duration_ms: Response time in milliseconds
             user_answer_key: The option key (A/B/C/D) that user selected - for storing in ReviewLog
+            session_id: Learning session ID for context
+            container_id: Container ID for faster queries
+            mode: Learning mode ('new', 'review', 'difficult', etc.)
+            streak_position: Position in correct answer streak
         """
         item = LearningItem.query.get(item_id)
         if not item:
@@ -285,7 +290,12 @@ class QuizEngine:
                 is_correct=is_correct,
                 score_change=score_change,
                 duration_ms=duration_ms,
-                mastery_snapshot=getattr(srs_result, 'mastery', None)
+                mastery_snapshot=getattr(srs_result, 'mastery', None),
+                # Session context fields
+                session_id=session_id,
+                container_id=container_id or item.container_id,
+                mode=mode,
+                streak_position=streak_position
             )
             db.session.add(log_entry)
             

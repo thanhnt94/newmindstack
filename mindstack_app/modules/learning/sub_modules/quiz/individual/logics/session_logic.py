@@ -722,7 +722,12 @@ class QuizSessionManager:
                     user_answer=check_val, 
                     user_id=self.user_id,
                     duration_ms=duration_ms,
-                    user_answer_key=user_answer_text  # Pass original key (A/B/C/D) for ReviewLog
+                    user_answer_key=user_answer_text,  # Pass original key (A/B/C/D) for ReviewLog
+                    # Session context fields for ReviewLog
+                    session_id=getattr(self, 'db_session_id', None),
+                    container_id=item.container_id if item else None,
+                    mode=self.mode,
+                    streak_position=0  # Will be calculated inside check_answer
                 )
                 
             is_correct = result.get('correct', False)

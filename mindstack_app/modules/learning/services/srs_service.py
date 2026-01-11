@@ -40,7 +40,12 @@ class SrsService:
         is_first_time: bool = False,
         response_time_seconds: Optional[float] = None,
         duration_ms: int = 0,
-        is_cram: bool = False  # NEW: Cram mode support
+        is_cram: bool = False,  # Cram mode support
+        # Session context fields
+        session_id: int = None,
+        container_id: int = None,
+        learning_mode: str = None,
+        streak_position: int = 0
     ) -> tuple[LearningProgress, SrsResult]:
         """
         NEW: Update progress using UnifiedSrsSystem (Hybrid approach).
@@ -57,6 +62,10 @@ class SrsService:
             response_time_seconds: Time taken to answer
             duration_ms: Response time in milliseconds (for stats)
             is_cram: If True, only update stats/history, NOT schedule (unless new)
+            session_id: Learning session ID for context
+            container_id: Container ID for faster queries
+            learning_mode: Learning mode string for ReviewLog
+            streak_position: Position in correct stream
         
         Returns:
             Tuple of (updated_progress, srs_result)
@@ -145,7 +154,12 @@ class SrsService:
             mastery_snapshot=result.mastery,
             memory_power_snapshot=result.memory_power,
             score_change=result.score_points,
-            is_correct=(quality >= 3)
+            is_correct=(quality >= 3),
+            # Session context fields
+            session_id=session_id,
+            container_id=container_id,
+            mode=learning_mode or mode,
+            streak_position=streak_position or result.correct_streak
         )
         db.session.add(log_entry)
         
@@ -300,7 +314,12 @@ class SrsService:
             duration_ms=duration_ms,
             user_answer=user_answer,
             score_change=score_change,
-            is_correct=is_correct
+            is_correct=is_correct,
+            # Session context - populated as None for legacy calls
+            session_id=None,
+            container_id=None,
+            mode=source_mode,
+            streak_position=progress.correct_streak if is_correct else 0 if hasattr(progress, 'correct_streak') else 0
         )
         db.session.add(log_entry)
 
@@ -404,7 +423,12 @@ class SrsService:
             duration_ms=duration_ms,
             user_answer=user_answer,
             score_change=score_change,
-            is_correct=is_correct
+            is_correct=is_correct,
+            # Session context - populated as None for legacy calls
+            session_id=None,
+            container_id=None,
+            mode=source_mode,
+            streak_position=new_state.correct_streak if is_correct else 0
         )
         db.session.add(log_entry)
         

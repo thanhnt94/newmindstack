@@ -325,11 +325,19 @@ class ReviewLog(db.Model):
     # NEW: State snapshots
     mastery_snapshot = db.Column(db.Float)   # Mastery level at time of review
     memory_power_snapshot = db.Column(db.Float)  # Memory power at time of review
+    
+    # NEW: Session Context Fields (2026-01)
+    session_id = db.Column(db.Integer, db.ForeignKey('learning_sessions.session_id'), nullable=True)
+    container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
+    mode = db.Column(db.String(50), nullable=True)  # "new", "review", "difficult", "speed"
+    streak_position = db.Column(db.Integer, default=0)  # Position in correct streak
 
     __table_args__ = (
         db.Index('ix_review_logs_user_item', 'user_id', 'item_id'),
         db.Index('ix_review_logs_user_timestamp', 'user_id', 'timestamp'),
         db.Index('ix_review_logs_timestamp', 'timestamp'),
+        db.Index('ix_review_logs_session', 'session_id'),
+        db.Index('ix_review_logs_container', 'container_id'),
     )
 
     item = db.relationship('LearningItem', backref=db.backref('review_logs', cascade='all, delete-orphan'))

@@ -400,7 +400,11 @@ class FlashcardSessionManager:
                 item_id=item_id,
                 quality=user_answer_quality,
                 current_user_total_score=current_user_total_score,
-                mode=self.mode
+                mode=self.mode,
+                # Session context fields
+                session_id=None,  # Legacy manager doesn't have db_session_id
+                container_id=self.set_id if isinstance(self.set_id, int) else None,
+                learning_mode=self.mode
             )
             
             if answer_result_type == 'correct':

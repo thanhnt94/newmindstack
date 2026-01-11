@@ -22,7 +22,8 @@ def _get_score_value(key: str, default: int) -> int:
     except (TypeError, ValueError):
         return default
 
-def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_score):
+def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_score,
+                        session_id=None, container_id=None, mode=None):
     """
     Xử lý một câu trả lời Quiz của người dùng, cập nhật QuizProgress,
     tính điểm và ghi log điểm số.
@@ -32,6 +33,9 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
         item_id (int): ID của câu hỏi Quiz.
         user_answer_text (str): Đáp án mà người dùng đã chọn (ký tự lựa chọn: 'A', 'B', 'C', 'D').
         current_user_total_score (int): Tổng điểm hiện tại của người dùng trước khi xử lý câu này.
+        session_id (int): ID của phiên học để lưu context.
+        container_id (int): ID của container/bộ học.
+        mode (str): Chế độ học (new, review, difficult, etc.).
 
     Returns:
         tuple: (score_change, updated_total_score, is_correct, correct_option_char, explanation)
@@ -125,7 +129,12 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
         review_type='quiz',
         user_answer=user_answer_text,
         is_correct=is_correct,
-        score_change=score_change
+        score_change=score_change,
+        # Session context fields
+        session_id=session_id,
+        container_id=container_id or item.container_id,
+        mode=mode,
+        streak_position=progress.correct_streak if is_correct else 0
     )
     db.session.add(log_entry)
 
