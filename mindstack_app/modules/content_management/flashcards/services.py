@@ -115,6 +115,43 @@ class FlashcardExcelService:
                     media_overrides['image'] = image_folder_override
                 if audio_folder_override:
                     media_overrides['audio'] = audio_folder_override
+
+                # [NEW] Process Column Mappings for Learning Modes (Multiple Pairs)
+                # Format: "question_col:answer_col | question_col2:answer_col2"
+                modes = ['mcq', 'typing', 'matching', 'listening', 'speaking']
+                new_settings = dict(flashcard_set.settings) if flashcard_set.settings else {}
+                settings_updated = False
+                
+                for mode in modes:
+                    pairs_key = f"{mode}_pairs"
+                    pairs_val = info_mapping.get(pairs_key)
+                    
+                    if pairs_val:
+                        if mode not in new_settings:
+                            new_settings[mode] = {}
+                        
+                        # Parse string format: "q1:a1 | q2:a2"
+                        pairs_list = []
+                        raw_pairs = str(pairs_val).split('|')
+                        for raw_pair in raw_pairs:
+                            parts = raw_pair.split(':')
+                            if len(parts) == 2:
+                                q_col = parts[0].strip()
+                                a_col = parts[1].strip()
+                                if q_col and a_col:
+                                    pairs_list.append({'q': q_col, 'a': a_col})
+                        
+                        if pairs_list:
+                            new_settings[mode]['pairs'] = pairs_list
+                            # Also update legacy/fallback fields for single-pair compatibility
+                            new_settings[mode]['question_column'] = pairs_list[0]['q']
+                            new_settings[mode]['answer_column'] = pairs_list[0]['a']
+                            settings_updated = True
+                
+                if settings_updated:
+                    flashcard_set.settings = new_settings
+                    flag_modified(flashcard_set, 'settings')
+
             if info_warnings:
                 info_notices.extend(info_warnings)
 
