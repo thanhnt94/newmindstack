@@ -1,6 +1,6 @@
 <!-- File: newmindstack/mindstack_app/modules/content_management/flashcards/templates/sets/_add_edit_flashcard_set_bare.html -->
-<!-- Phiên bản: 1.4 -->
-<!-- ĐÃ SỬA: Chuyển thành Partial View cho Modal (Loại bỏ Header cố định & thẻ HTML full page) -->
+<!-- Phiên bản: 1.5 -->
+<!-- ĐÃ SỬA: Khôi phục nội dung bị mất, Layout chuẩn với Navbar -->
 
 {% set previous_set_id = previous_set_id | default(None) %}
 {% set next_set_id = next_set_id | default(None) %}
@@ -18,6 +18,15 @@
         font-family: 'Inter', sans-serif;
         background-color: transparent;
         width: 100%;
+        /* Use min-height to allow centering, but let height grow with content */
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        /* Vertically center */
+        align-items: center;
+        /* Horizontally center */
+        padding: 1rem;
     }
 
     /* Ensure tailwind doesn't conflict too much */
@@ -26,96 +35,196 @@
     .edit-modal-content-wrapper ::after {
         box-sizing: border-box;
     }
+
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
 </style>
 
 <div class="edit-modal-content-wrapper">
-    <!-- NO FIXED HEADER HERE - Removed to prevent overlap -->
 
-    <div class="p-0 sm:p-2">
-        <div class="w-full">
-            <div class="bg-white p-4 rounded-xl shadow-none border-0 sm:p-6">
-                <!-- Title hidden as Modal already has one -->
-                <h2 class="text-2xl font-bold text-center mb-6 hidden">{{ title }}</h2>
+    <!-- Modal Card Container - No fixed height, use max-height -->
+    <div
+        class="w-full max-w-2xl bg-white rounded-xl shadow-xl flex flex-col max-h-[90vh] relative overflow-hidden ring-1 ring-gray-200">
 
-                <form id="flashcardSetForm" action="" method="post" enctype="multipart/form-data" class="space-y-6">
-                    {{ form.csrf_token }}
-                    {{ form.settings }}
+        <form id="flashcardSetForm" action="" method="post" enctype="multipart/form-data"
+            class="flex flex-col h-auto bg-white overflow-hidden min-h-0">
+            {{ form.csrf_token }}
+            {{ form.settings }}
 
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between flex-wrap gap-3">
-                            <div>
-                                {{ form.excel_file.label(class="block text-sm font-medium text-gray-700") }}
-                                <span class="text-xs text-green-600 font-bold ml-2">(MỚI - Đã cập nhật)</span>
-                                <p class="text-xs text-gray-500" data-role="excel-helper">{{ form.excel_file.description
-                                    }}</p>
-                                {% if template_url %}
-                                <a href="{{ template_url }}" target="_blank"
-                                    class="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 mt-2">
-                                    <i class="fas fa-download"></i>
-                                    <span>Tải template mẫu (Excel)</span>
-                                </a>
-                                {% endif %}
-                            </div>
-                            <button type="button" class="text-sm text-gray-500 hover:text-red-500 transition hidden"
-                                data-role="excel-clear">
-                                Xóa file
-                            </button>
-                        </div>
-                        <div data-role="excel-drop-zone" role="button" tabindex="0"
-                            class="relative border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/60 px-6 py-8 text-center transition duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
-                            <input id="excel_file_input" type="file" name="{{ form.excel_file.name }}" class="hidden"
-                                accept=".xlsx">
-                            <div class="flex flex-col items-center gap-2 pointer-events-none"
-                                data-role="excel-placeholder">
+            <!-- Top Navbar (Fixed Actions) -->
+            <div class="flex-none flex items-center justify-between py-3 px-4 border-b border-gray-100 bg-white z-20">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-lg font-bold text-gray-800">Thông tin bộ thẻ</h2>
+                    {% if template_url %}
+                    <a href="{{ template_url }}" target="_blank"
+                        class="hidden sm:inline-flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors font-medium">
+                        <i class="fas fa-file-download"></i>
+                        <span>Template Excel</span>
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.parent.closeModal()"
+                        class="text-gray-500 hover:text-gray-700 hover:bg-gray-100 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                        Hủy
+                    </button>
+                    <button type="submit"
+                        class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 text-sm font-bold transition-colors shadow-sm flex items-center gap-2">
+                        <i class="fas fa-save"></i>
+                        Lưu
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Content Area -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-6 py-4">
+
+                <!-- Global Excel Upload Section -->
+                <div class="flex-none mb-6 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-sm font-semibold text-gray-700">
+                            {{ form.excel_file.label.text }}
+                            <span
+                                class="text-xs text-green-600 font-bold ml-1 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Auto-fill</span>
+                        </label>
+                        <button type="button"
+                            class="text-xs text-red-500 hover:text-red-700 transition hidden font-medium"
+                            data-role="excel-clear">
+                            <i class="fas fa-trash-alt mr-1"></i>Xóa file
+                        </button>
+                    </div>
+
+                    <div data-role="excel-drop-zone" role="button" tabindex="0"
+                        class="relative group border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl bg-gray-50 hover:bg-blue-50/30 px-6 py-6 text-center transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                        <input id="excel_file_input" type="file" name="{{ form.excel_file.name }}" class="hidden"
+                            accept=".xlsx">
+                        <div class="flex items-center justify-center gap-4 pointer-events-none transition-transform group-hover:scale-105"
+                            data-role="excel-placeholder">
+                            <div class="relative flex-none">
                                 <span
-                                    class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-500">
+                                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm border border-gray-100 text-green-600">
                                     <i class="fas fa-file-excel text-xl"></i>
                                 </span>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-800">Kéo thả file Excel vào đây hoặc bấm để
-                                        chọn</p>
-                                    <p class="text-xs text-gray-500">Hỗ trợ định dạng .xlsx, dung lượng tối đa 10MB.</p>
-                                </div>
+                                <span
+                                    class="absolute -bottom-1 -right-1 h-4 w-4 bg-blue-500 rounded-full text-white flex items-center justify-center text-[10px] shadow-md">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                            </div>
+
+                            <div class="text-left">
+                                <p class="text-sm font-semibold text-gray-700">Tải lên file Excel</p>
+                                <p class="text-xs text-gray-500 mt-0.5">Kéo thả hoặc bấm để chọn file .xlsx</p>
                             </div>
                         </div>
-                        <div class="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 hidden"
-                            data-role="excel-file-summary">
-                            <p class="text-sm font-medium text-blue-700 flex items-center gap-2">
-                                <i class="fas fa-check-circle"></i>
-                                <span data-role="excel-file-name">Chưa chọn file</span>
+                    </div>
+
+                    <div class="bg-white border border-blue-100 shadow-sm rounded-xl p-3 hidden flex items-start gap-3"
+                        data-role="excel-file-summary">
+                        <div
+                            class="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                            <i class="fas fa-file-alt text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-800 flex items-center gap-2"
+                                data-role="excel-file-name">
+                                Chưa chọn file
                             </p>
-                            <p class="text-xs text-blue-600 mt-1" data-role="excel-file-meta"></p>
+                            <p class="text-xs text-gray-500 mt-0.5" data-role="excel-file-meta"></p>
                         </div>
+                    </div>
 
-                        <!-- Column Analysis Report -->
-                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 hidden space-y-2"
-                            data-role="excel-analysis-report">
-                            <div class="flex justify-between items-center border-b border-gray-200 pb-2 mb-2">
-                                <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wide">Phân tích Sheet
-                                    'Data'</h4>
-                                <span class="text-xs text-gray-500" data-role="column-count"></span>
-                            </div>
-                            <div data-role="analysis-grid" class="space-y-3 text-sm">
-                                <!-- Dynamic content -->
-                            </div>
+                    <!-- Column Analysis Report -->
+                    <div class="bg-white border border-gray-200 shadow-sm rounded-xl p-3 hidden space-y-2"
+                        data-role="excel-analysis-report">
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Kết quả phân tích</h4>
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium"
+                                data-role="column-count"></span>
                         </div>
+                        <div data-role="analysis-grid" class="space-y-2 text-sm">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
 
-                        <p class="text-sm hidden" data-role="excel-status"></p>
+                    <p class="text-sm hidden text-center font-medium" data-role="excel-status"></p>
+                </div>
+
+                <!-- Modern Segmented Tab Navigation -->
+                <div class="sticky top-0 bg-white/95 backdrop-blur z-10 py-2 mb-4 border-b border-gray-100">
+                    <div class="bg-gray-100/80 p-1 rounded-xl flex gap-1 overflow-x-auto">
+                        <button type="button" data-main-tab="info"
+                            class="flex-1 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm bg-white text-blue-600 ring-1 ring-black/5">
+                            <i class="fas fa-info-circle text-blue-500"></i>
+                            Thông tin
+                        </button>
+                        <button type="button" data-main-tab="resources"
+                            class="flex-1 px-4 py-2 text-sm font-medium text-gray-500 rounded-lg hover:bg-gray-200/50 hover:text-gray-700 transition-all duration-200 flex items-center justify-center gap-2">
+                            <i class="fas fa-layer-group"></i>
+                            Tài nguyên
+                        </button>
+                        <button type="button" data-main-tab="modes"
+                            class="flex-1 px-4 py-2 text-sm font-medium text-gray-500 rounded-lg hover:bg-gray-200/50 hover:text-gray-700 transition-all duration-200 flex items-center justify-center gap-2">
+                            <i class="fas fa-toggle-on"></i>
+                            Chế độ
+                        </button>
+                        <button type="button" data-main-tab="config"
+                            class="flex-1 px-4 py-2 text-sm font-medium text-gray-500 rounded-lg hover:bg-gray-200/50 hover:text-gray-700 transition-all duration-200 flex items-center justify-center gap-2">
+                            <i class="fas fa-sliders-h"></i>
+                            Cấu hình
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 1: Info Only -->
+                <div id="tab-main-info" class="main-tab-content space-y-5 block animate-fade-in">
+                    <div>
+                        {{ form.title.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                        {{ form.title(class="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl
+                        focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all
+                        outline-none", placeholder="VD: Bộ thẻ N5...") }}
                     </div>
 
                     <div>
-                        {{ form.title.label(class="block text-sm font-medium text-gray-700") }}
-                        {{ form.title(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm
-                        focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="Tiêu đề bộ thẻ") }}
+                        {{ form.description.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                        {{ form.description(class="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
+                        focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all
+                        outline-none resize-none", rows="3", placeholder="Mô tả nội dung...") }}
                     </div>
 
                     <div>
-                        {{ form.description.label(class="block text-sm font-medium text-gray-700") }}
-                        {{ form.description(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md
-                        shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", rows="3", placeholder="Mô tả bộ
-                        thẻ") }}
+                        {{ form.tags.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                        {{ form.tags(class="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl
+                        focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all
+                        outline-none", placeholder="VD: Kanji, N5, Từ vựng") }}
                     </div>
 
+                    {% if current_user.user_role != 'free' %}
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        {{ form.is_public(class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500
+                        cursor-pointer") }}
+                        {{ form.is_public.label(class="text-sm font-medium text-gray-700 cursor-pointer select-none") }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tab 2: Resources -->
+                <div id="tab-main-resources" class="main-tab-content space-y-6 hidden animate-fade-in">
                     {% set current_cover = form.cover_image.data or '' %}
                     <div>
                         {{ form.cover_image.label(class="block text-sm font-medium text-gray-700") }}
@@ -142,225 +251,203 @@
                         </div>
                     </div>
 
-                    <div>
-                        {{ form.tags.label(class="block text-sm font-medium text-gray-700") }}
-                        {{ form.tags(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm
-                        focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="ví dụ: Kanji, N5, Tiếng
-                        Nhật") }}
-                    </div>
-
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             {{ form.image_base_folder.label(class="block text-sm font-medium text-gray-700") }}
                             <p class="text-xs text-gray-500 mb-1">{{ form.image_base_folder.description }}</p>
                             {{ form.image_base_folder(class="mt-1 block w-full px-4 py-2 border border-gray-300
-                            rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="vd:
+                            rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                            placeholder="vd:
                             flashcard/n5/images") }}
                         </div>
                         <div>
                             {{ form.audio_base_folder.label(class="block text-sm font-medium text-gray-700") }}
                             <p class="text-xs text-gray-500 mb-1">{{ form.audio_base_folder.description }}</p>
                             {{ form.audio_base_folder(class="mt-1 block w-full px-4 py-2 border border-gray-300
-                            rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="vd:
+                            rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                            placeholder="vd:
                             flashcard/n5/audio") }}
                         </div>
                     </div>
+                </div>
 
-                    {% if current_user.user_role != 'free' %}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Trạng thái công khai:</label>
-                        <div class="flex items-center mt-2">
-                            {{ form.is_public(class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500")
-                            }}
-                            {{ form.is_public.label(class="ml-2 block text-sm text-gray-900") }}
+                <!-- Tab 3: Modes -->
+                <div id="tab-main-modes" class="main-tab-content space-y-6 hidden animate-fade-in">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Chế độ học (Bật/Tắt)</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <label
+                            class="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition">
+                            {{ form.supports_flashcard(class="mt-1 h-5 w-5 text-blue-600 rounded
+                            focus:ring-blue-500") }}
+                            <span>
+                                <span class="block text-sm font-bold text-gray-800">Flashcard (Lật thẻ)</span>
+                                <span class="block text-xs text-gray-600 mt-1">Chế độ ôn tập cơ bản nhất.</span>
+                            </span>
+                        </label>
+                        <label
+                            class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                            {{ form.supports_quiz(class="mt-1 h-5 w-5 text-blue-600 rounded
+                            focus:ring-blue-500") }}
+                            <span>
+                                <span class="block text-sm font-bold text-gray-800">Trắc nghiệm</span>
+                                <span class="block text-xs text-gray-500 mt-1">Chọn đáp án đúng (MCQ).</span>
+                            </span>
+                        </label>
+                        <label
+                            class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                            {{ form.supports_writing(class="mt-1 h-5 w-5 text-blue-600 rounded
+                            focus:ring-blue-500") }}
+                            <span>
+                                <span class="block text-sm font-bold text-gray-800">Gõ đáp án</span>
+                                <span class="block text-xs text-gray-500 mt-1">Luyện chính tả (Typing).</span>
+                            </span>
+                        </label>
+                        <label
+                            class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                            {{ form.supports_matching(class="mt-1 h-5 w-5 text-blue-600 rounded
+                            focus:ring-blue-500") }}
+                            <span>
+                                <span class="block text-sm font-bold text-gray-800">Ghép đôi</span>
+                                <span class="block text-xs text-gray-500 mt-1">Game nối từ với nghĩa.</span>
+                            </span>
+                        </label>
+                        <label
+                            class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                            {{ form.supports_speed(class="mt-1 h-5 w-5 text-blue-600 rounded
+                            focus:ring-blue-500") }}
+                            <span>
+                                <span class="block text-sm font-bold text-gray-800">Ôn nhanh</span>
+                                <span class="block text-xs text-gray-500 mt-1">Review tốc độ cao.</span>
+                            </span>
+                        </label>
+                        <label
+                            class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                            {{ form.supports_listening(class="mt-1 h-5 w-5 text-blue-600 rounded
+                            focus:ring-blue-500") }}
+                            <span>
+                                <span class="block text-sm font-bold text-gray-800">Luyện nghe
+                                    (Dictation)</span>
+                                <span class="block text-xs text-gray-500 mt-1">Nghe audio và gõ chính tả.</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Config & AI -->
+                <div id="tab-main-config" class="main-tab-content space-y-6 hidden animate-fade-in">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Cấu hình Mặc định</h3>
+                        {% if set_id %}
+                        <button type="button"
+                            class="save-config-btn bg-teal-600 text-white px-3 py-1.5 rounded-md hover:bg-teal-700 text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                            <i class="fas fa-save"></i> Lưu Cấu hình
+                        </button>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4">Thiết lập các cặp câu hỏi/đáp án mặc định cho các chế
+                        độ học. Học viên sẽ sử dụng cấu hình này nếu chưa có cài đặt cá nhân.</p>
+
+                    <div class="bg-white border boundary-gray-200 rounded-lg overflow-hidden">
+                        <!-- Tabs -->
+                        <div class="flex border-b border-gray-200 bg-gray-50 overflow-x-auto" id="config-tabs">
+                            <button type="button" data-tab="mcq"
+                                class="px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 focus:outline-none whitespace-nowrap">
+                                <i class="fas fa-list-ul mr-2"></i>Trắc nghiệm (MCQ)
+                            </button>
+                            <button type="button" data-tab="typing"
+                                class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none whitespace-nowrap">
+                                <i class="fas fa-keyboard mr-2"></i>Luyện viết (Typing)
+                            </button>
+                            <button type="button" data-tab="listening"
+                                class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none whitespace-nowrap">
+                                <i class="fas fa-headphones mr-2"></i>Luyện nghe (Listening)
+                            </button>
+                        </div>
+
+                        <!-- Tab Contents -->
+                        <div class="p-6">
+                            <!-- MCQ Config -->
+                            <div id="tab-mcq" class="config-tab-content block">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-sm font-bold text-gray-700">Cặp câu hỏi Trắc nghiệm</h4>
+                                    <button type="button"
+                                        class="add-pair-btn text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-200 transition"
+                                        data-mode="mcq">
+                                        <i class="fas fa-plus mr-1"></i>Thêm cặp
+                                    </button>
+                                </div>
+                                <div class="space-y-3" id="mcq-pairs-list">
+                                    <!-- Pairs will be rendered here -->
+                                    <p class="text-sm text-gray-400 italic text-center py-4 empty-msg">Chưa có
+                                        cấu hình nào.</p>
+                                </div>
+                            </div>
+
+                            <!-- Typing Config -->
+                            <div id="tab-typing" class="config-tab-content hidden">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-sm font-bold text-gray-700">Cặp câu hỏi Luyện viết</h4>
+                                    <button type="button"
+                                        class="add-pair-btn text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-200 transition"
+                                        data-mode="typing">
+                                        <i class="fas fa-plus mr-1"></i>Thêm cặp
+                                    </button>
+                                </div>
+                                <div class="space-y-3" id="typing-pairs-list">
+                                    <p class="text-sm text-gray-400 italic text-center py-4 empty-msg">Chưa có
+                                        cấu hình nào.</p>
+                                </div>
+                            </div>
+
+                            <!-- Listening Config -->
+                            <div id="tab-listening" class="config-tab-content hidden">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-sm font-bold text-gray-700">Cặp câu hỏi Luyện nghe</h4>
+                                    <button type="button"
+                                        class="add-pair-btn text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full hover:bg-green-200 transition"
+                                        data-mode="listening">
+                                        <i class="fas fa-plus mr-1"></i>Thêm cặp
+                                    </button>
+                                </div>
+                                <div class="space-y-3" id="listening-pairs-list">
+                                    <p class="text-sm text-gray-400 italic text-center py-4 empty-msg">Chưa có
+                                        cấu hình nào.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    {% endif %}
 
                     <div class="border-t border-gray-200 pt-6">
-                        <div class="border-t border-gray-200 pt-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Chế độ học (Bật/Tắt)</h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                                <label
-                                    class="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition">
-                                    {{ form.supports_flashcard(class="mt-1 h-5 w-5 text-blue-600 rounded
-                                    focus:ring-blue-500") }}
-                                    <span>
-                                        <span class="block text-sm font-bold text-gray-800">Flashcard (Lật thẻ)</span>
-                                        <span class="block text-xs text-gray-600 mt-1">Chế độ ôn tập cơ bản nhất.</span>
-                                    </span>
-                                </label>
-                                <label
-                                    class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                                    {{ form.supports_quiz(class="mt-1 h-5 w-5 text-blue-600 rounded
-                                    focus:ring-blue-500") }}
-                                    <span>
-                                        <span class="block text-sm font-bold text-gray-800">Trắc nghiệm</span>
-                                        <span class="block text-xs text-gray-500 mt-1">Chọn đáp án đúng (MCQ).</span>
-                                    </span>
-                                </label>
-                                <label
-                                    class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                                    {{ form.supports_writing(class="mt-1 h-5 w-5 text-blue-600 rounded
-                                    focus:ring-blue-500") }}
-                                    <span>
-                                        <span class="block text-sm font-bold text-gray-800">Gõ đáp án</span>
-                                        <span class="block text-xs text-gray-500 mt-1">Luyện chính tả (Typing).</span>
-                                    </span>
-                                </label>
-                                <label
-                                    class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                                    {{ form.supports_matching(class="mt-1 h-5 w-5 text-blue-600 rounded
-                                    focus:ring-blue-500") }}
-                                    <span>
-                                        <span class="block text-sm font-bold text-gray-800">Ghép đôi</span>
-                                        <span class="block text-xs text-gray-500 mt-1">Game nối từ với nghĩa.</span>
-                                    </span>
-                                </label>
-                                <label
-                                    class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                                    {{ form.supports_speed(class="mt-1 h-5 w-5 text-blue-600 rounded
-                                    focus:ring-blue-500") }}
-                                    <span>
-                                        <span class="block text-sm font-bold text-gray-800">Ôn nhanh</span>
-                                        <span class="block text-xs text-gray-500 mt-1">Review tốc độ cao.</span>
-                                    </span>
-                                </label>
-                                <label
-                                    class="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                                    {{ form.supports_listening(class="mt-1 h-5 w-5 text-blue-600 rounded
-                                    focus:ring-blue-500") }}
-                                    <span>
-                                        <span class="block text-sm font-bold text-gray-800">Luyện nghe
-                                            (Dictation)</span>
-                                        <span class="block text-xs text-gray-500 mt-1">Nghe audio và gõ chính tả.</span>
-                                    </span>
-                                </label>
-                            </div>
-                        </div>
+                        {{ form.ai_prompt.label(class="block text-sm font-medium text-gray-700") }}
+                        <p class="text-xs text-gray-500 mb-2">{{ form.ai_prompt.description }}</p>
+                        {{ form.ai_prompt(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md
+                        shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", rows="3",
+                        placeholder="Ví
+                        dụ: Tạo câu ví dụ cho mỗi từ vựng.") }}
+                    </div>
+                </div>
 
-                        <div class="border-t border-gray-200 pt-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-800">Cấu hình Mặc định</h3>
-                                {% if set_id %}
-                                <button type="button"
-                                    class="save-config-btn bg-teal-600 text-white px-3 py-1.5 rounded-md hover:bg-teal-700 text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
-                                    <i class="fas fa-save"></i> Lưu Cấu hình
-                                </button>
-                                {% endif %}
-                            </div>
-                            <p class="text-sm text-gray-500 mb-4">Thiết lập các cặp câu hỏi/đáp án mặc định cho các chế
-                                độ học. Học viên sẽ sử dụng cấu hình này nếu chưa có cài đặt cá nhân.</p>
-
-                            <!-- Hidden input for settings -->
-                            {{ form.settings() }}
-
-                            <div class="bg-white border boundary-gray-200 rounded-lg overflow-hidden">
-                                <!-- Tabs -->
-                                <div class="flex border-b border-gray-200 bg-gray-50 overflow-x-auto" id="config-tabs">
-                                    <button type="button" data-tab="mcq"
-                                        class="px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 focus:outline-none whitespace-nowrap">
-                                        <i class="fas fa-list-ul mr-2"></i>Trắc nghiệm (MCQ)
-                                    </button>
-                                    <button type="button" data-tab="typing"
-                                        class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none whitespace-nowrap">
-                                        <i class="fas fa-keyboard mr-2"></i>Luyện viết (Typing)
-                                    </button>
-                                    <button type="button" data-tab="listening"
-                                        class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none whitespace-nowrap">
-                                        <i class="fas fa-headphones mr-2"></i>Luyện nghe (Listening)
-                                    </button>
-                                </div>
-
-                                <!-- Tab Contents -->
-                                <div class="p-6">
-                                    <!-- MCQ Config -->
-                                    <div id="tab-mcq" class="config-tab-content block">
-                                        <div class="flex justify-between items-center mb-4">
-                                            <h4 class="text-sm font-bold text-gray-700">Cặp câu hỏi Trắc nghiệm</h4>
-                                            <button type="button"
-                                                class="add-pair-btn text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-200 transition"
-                                                data-mode="mcq">
-                                                <i class="fas fa-plus mr-1"></i>Thêm cặp
-                                            </button>
-                                        </div>
-                                        <div class="space-y-3" id="mcq-pairs-list">
-                                            <!-- Pairs will be rendered here -->
-                                            <p class="text-sm text-gray-400 italic text-center py-4 empty-msg">Chưa có
-                                                cấu hình nào.</p>
-                                        </div>
-                                    </div>
-
-                                    <!-- Typing Config -->
-                                    <div id="tab-typing" class="config-tab-content hidden">
-                                        <div class="flex justify-between items-center mb-4">
-                                            <h4 class="text-sm font-bold text-gray-700">Cặp câu hỏi Luyện viết</h4>
-                                            <button type="button"
-                                                class="add-pair-btn text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-200 transition"
-                                                data-mode="typing">
-                                                <i class="fas fa-plus mr-1"></i>Thêm cặp
-                                            </button>
-                                        </div>
-                                        <div class="space-y-3" id="typing-pairs-list">
-                                            <p class="text-sm text-gray-400 italic text-center py-4 empty-msg">Chưa có
-                                                cấu hình nào.</p>
-                                        </div>
-                                    </div>
-
-                                    <!-- Listening Config -->
-                                    <div id="tab-listening" class="config-tab-content hidden">
-                                        <div class="flex justify-between items-center mb-4">
-                                            <h4 class="text-sm font-bold text-gray-700">Cặp câu hỏi Luyện nghe</h4>
-                                            <button type="button"
-                                                class="add-pair-btn text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full hover:bg-green-200 transition"
-                                                data-mode="listening">
-                                                <i class="fas fa-plus mr-1"></i>Thêm cặp
-                                            </button>
-                                        </div>
-                                        <div class="space-y-3" id="listening-pairs-list">
-                                            <p class="text-sm text-gray-400 italic text-center py-4 empty-msg">Chưa có
-                                                cấu hình nào.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-gray-200 pt-6">
-                            <!-- Script moved to bottom for better integration -->
-                        </div>
-                        <div class="border-t border-gray-200 pt-6">
-                            {{ form.ai_prompt.label(class="block text-sm font-medium text-gray-700") }}
-                            <p class="text-xs text-gray-500 mb-2">{{ form.ai_prompt.description }}</p>
-                            {{ form.ai_prompt(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md
-                            shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", rows="3", placeholder="Ví
-                            dụ: Tạo câu ví dụ cho mỗi từ vựng.") }}
-                        </div>
-
-                        <div class="flex justify-end pt-4 gap-3">
-                            <button type="button" onclick="window.parent.closeModal()"
-                                class="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-200 text-sm font-medium transition-colors">
-                                Hủy bỏ
-                            </button>
-                            <button type="submit"
-                                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
-                                <i class="fas fa-save"></i>
-                                Lưu lại
-                            </button>
-                        </div>
-                </form>
             </div>
-        </div>
+        </form>
     </div>
+</div>
+</div>
 </div>
 
 {% include 'v3/pages/content_management/shared/_cover_preview_script.html' %}
 
 <script>
     (function () {
-        const currentScript = document.currentScript;
-        const wrapper = currentScript.closest('.edit-modal-content-wrapper');
-        const form = wrapper.querySelector('form'); // The form inside THIS wrapper
+        // Robust Scope Resolution: Find the specific form by ID
+        const form = document.getElementById('flashcardSetForm');
+
+        // If form not found, retry or fallback (though it should be there)
+        if (!form) {
+            console.error("Flashcard Set Form not found in DOM.");
+            return;
+        }
+
+        const wrapper = form; // Reuse wrapper variable to minimize churn in existing logic
         const fileInput = wrapper.querySelector('input[type="file"]');
 
         // --- Settings UI Logic Integration ---
@@ -388,6 +475,48 @@
         if (!currentSettings[mode].pairs || currentSettings[mode].pairs.length === 0) {
             currentSettings[mode].pairs = JSON.parse(JSON.stringify(defaultPairs[mode]));
         }
+    });
+
+    // --- Main Tabs Logic ---
+    const mainTabButtons = wrapper.querySelectorAll('button[data-main-tab]');
+    const mainTabContents = wrapper.querySelectorAll('.main-tab-content');
+
+    // Function to switch main tabs
+    const switchMainTab = (targetTab) => {
+        // Update Buttons
+        mainTabButtons.forEach(btn => {
+            const isActive = btn.dataset.mainTab === targetTab;
+            const icon = btn.querySelector('i');
+
+            // Allow icon to inherit color by removing specific color classes
+            if (icon) icon.classList.remove('text-blue-500');
+
+            if (isActive) {
+                btn.className = "flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm bg-white text-blue-600 ring-1 ring-black/5";
+                // Optionally add specific color to active icon if needed, or let it inherit
+                if (icon) icon.classList.add('text-blue-500');
+            } else {
+                btn.className = "flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 rounded-lg hover:bg-gray-200/50 hover:text-gray-700 transition-all duration-200 flex items-center justify-center gap-2";
+            }
+        });
+
+        // Update Content
+        mainTabContents.forEach(content => {
+            if (content.id === `tab-main-${targetTab}`) {
+                content.classList.remove('hidden');
+                content.classList.add('block');
+            } else {
+                content.classList.add('hidden');
+                content.classList.remove('block');
+            }
+        });
+    };
+
+    // Initialize Main Tabs
+    mainTabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchMainTab(btn.dataset.mainTab);
+        });
     });
 
     // Helper: Generate Options HTML for Select
