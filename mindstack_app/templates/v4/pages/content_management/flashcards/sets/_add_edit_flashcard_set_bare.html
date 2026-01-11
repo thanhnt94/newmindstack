@@ -13,6 +13,14 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
+    /* Force iframe background to be transparent */
+    html,
+    body {
+        background-color: transparent !important;
+        margin: 0;
+        padding: 0;
+    }
+
     /* Scoped styles for the modal content */
     .edit-modal-content-wrapper {
         font-family: 'Inter', sans-serif;
@@ -783,13 +791,46 @@
             clearButton.classList.add('hidden');
         }
         if (dropZone) {
-            dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50');
+            dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50', 'hidden');
         }
         if (!keepStatus && statusLabel) {
             statusLabel.textContent = '';
             statusLabel.classList.add('hidden');
             statusLabel.classList.remove('text-red-600', 'text-green-600', 'text-blue-600');
         }
+    };
+
+    // Clear all auto-filled form fields when Excel file is removed
+    const clearFormFields = () => {
+        // Clear text fields that were auto-filled
+        ['title', 'description', 'tags', 'ai_prompt', 'image_base_folder', 'audio_base_folder'].forEach(name => {
+            const field = form.querySelector(`[name="${name}"]`);
+            if (field) field.value = '';
+        });
+
+        // Uncheck is_public
+        const isPublicCheckbox = form.querySelector('[name="is_public"]');
+        if (isPublicCheckbox) isPublicCheckbox.checked = false;
+
+        // Reset capability checkboxes to default (all checked except listening/pronunciation/essay/speaking)
+        const defaultEnabled = ['supports_flashcard', 'supports_quiz', 'supports_writing', 'supports_matching', 'supports_speed'];
+        const defaultDisabled = ['supports_listening', 'supports_pronunciation', 'supports_essay', 'supports_speaking'];
+
+        defaultEnabled.forEach(key => {
+            const checkbox = form.querySelector(`[name="${key}"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+        defaultDisabled.forEach(key => {
+            const checkbox = form.querySelector(`[name="${key}"]`);
+            if (checkbox) checkbox.checked = false;
+        });
+
+        // Reset mode settings (MCQ, Typing, Listening pairs) to defaults
+        ['mcq', 'typing', 'listening'].forEach(mode => {
+            currentSettings[mode] = { pairs: JSON.parse(JSON.stringify(defaultPairs[mode])) };
+            renderPairs(mode);
+        });
+        saveToInput();
     };
 
     const updateSummary = (file) => {
@@ -960,7 +1001,8 @@
         if (helper) { helper.classList.add('hidden'); }
         if (summaryBox) { summaryBox.classList.remove('hidden'); }
         if (clearButton) { clearButton.classList.remove('hidden'); }
-        if (dropZone) { dropZone.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50'); }
+        // Hide the drop zone completely when file is selected (no empty white box)
+        if (dropZone) { dropZone.classList.add('hidden'); }
 
         updateSummary(file);
         processExcelFile(file);
@@ -1031,7 +1073,8 @@
         clearButton.addEventListener('click', (event) => {
             event.preventDefault();
             resetUploadState();
-            showStatus('Đã bỏ chọn file Excel.', 'info');
+            clearFormFields();
+            showStatus('Đã xóa file và reset các trường dữ liệu.', 'info');
         });
     }
 
