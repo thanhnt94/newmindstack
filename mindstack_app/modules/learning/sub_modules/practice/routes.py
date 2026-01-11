@@ -123,6 +123,11 @@ def flashcard_session():
     session_mode = session_data.get('mode')
     is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
     autoplay_mode = session_mode if is_autoplay_session else ''
+    
+    # Get active version
+    from mindstack_app.services.template_service import TemplateService
+    version = TemplateService.get_active_version()
+    template_base_path = f'{version}/pages/learning/flashcard/session'
 
     # Sử dụng template từ flashcard engine (shared)
     return render_dynamic_template('pages/learning/flashcard/session/index.html',
@@ -132,7 +137,7 @@ def flashcard_session():
         # Context để biết đang ở practice mode
         practice_mode=True,
         # Template base path for includes
-        template_base_path='v3/pages/learning/flashcard/session',
+        template_base_path=template_base_path,
     )
 
 
