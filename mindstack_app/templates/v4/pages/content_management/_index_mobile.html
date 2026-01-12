@@ -25,7 +25,8 @@
                         {# === MODE BREADCRUMB === #}
                         <p id="mobile-mode-breadcrumb"
                             class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                            CONTENT <span class="text-slate-300 mx-1">›</span> <span id="current-mode-label">...</span>
+                            CONTENT <span class="text-slate-300 mx-1">›</span> <span
+                                id="current-mode-label">VOCABULARY</span>
                         </p>
                     </div>
                 </div>
@@ -81,23 +82,23 @@
     <div class="fixed bottom-0 left-0 right-0 z-[200] bg-white border-t border-slate-200 h-[60px]"
         style="padding-bottom: env(safe-area-inset-bottom, 0px);">
         <div class="flex w-full h-full">
-            <button id="mobile-tab-courses" data-target="courses"
-                class="mobile-tab-btn flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all duration-200 active:scale-95"
-                aria-selected="false">
-                <i class="fa-solid fa-book"></i>
-                <span>Course</span>
-            </button>
             <button id="mobile-tab-flashcards" data-target="flashcards"
                 class="mobile-tab-btn flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all duration-200 active:scale-95"
                 aria-selected="false">
                 <i class="fa-solid fa-clone"></i>
-                <span>Flashcard</span>
+                <span>Vocabulary</span>
             </button>
             <button id="mobile-tab-quizzes" data-target="quizzes"
                 class="mobile-tab-btn flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all duration-200 active:scale-95"
                 aria-selected="false">
                 <i class="fa-solid fa-circle-question"></i>
                 <span>Quiz</span>
+            </button>
+            <button id="mobile-tab-courses" data-target="courses"
+                class="mobile-tab-btn flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all duration-200 active:scale-95"
+                aria-selected="false">
+                <i class="fa-solid fa-book"></i>
+                <span>Course</span>
             </button>
         </div>
     </div>
@@ -185,11 +186,11 @@
         const mobileFixedPaginationBar = document.getElementById('mobile-fixed-pagination-bar');
         const mobileFixedPaginationSlot = document.getElementById('mobile-fixed-pagination-slot');
 
-        const validTabs = ['courses', 'flashcards', 'quizzes'];
+        const validTabs = ['flashcards', 'quizzes', 'courses'];
         const SESSION_KEY = 'activeContentTab';
-        let currentTab = 'courses';
+        let currentTab = 'flashcards';
 
-        const modeLabelMap = { 'courses': 'COURSE', 'flashcards': 'FLASHCARD', 'quizzes': 'QUIZ' };
+        const modeLabelMap = { 'courses': 'COURSE', 'flashcards': 'VOCABULARY', 'quizzes': 'QUIZ' };
         const addUrlMap = { 'courses': addCourseUrl, 'flashcards': addFlashcardUrl, 'quizzes': addQuizUrl };
 
         // Search toggle functionality

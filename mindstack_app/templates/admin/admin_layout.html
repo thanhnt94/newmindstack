@@ -164,6 +164,9 @@
                     {% if item.key == 'settings' and admin_sidebar_metrics.maintenance_mode %}
                     <span class="ml-auto admin-chip bg-rose-100 text-rose-700">Bảo trì</span>
                     {% endif %}
+                    {% if item.key == 'templates' %}
+                    <span class="ml-auto admin-chip bg-indigo-100 text-indigo-700">{{ template_version|upper }}</span>
+                    {% endif %}
                 </a>
                 {% endfor %}
             </nav>

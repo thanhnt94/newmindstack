@@ -1299,10 +1299,8 @@ def manage_system_settings():
     """
     Mô tả: Quản lý các cài đặt hệ thống (ví dụ: chế độ bảo trì).
     """
-    system_status = AppSettings.get('system_status')
-    maintenance_mode = False
-    if system_status and isinstance(system_status, dict):
-        maintenance_mode = system_status.get('maintenance_mode', False)
+    maintenance_mode = AppSettings.get('MAINTENANCE_MODE', False)
+    maintenance_end_time = AppSettings.get('MAINTENANCE_END_TIME', '')
         
     telegram_token_setting = AppSettings.query.get('telegram_bot_token')
 
@@ -1352,32 +1350,26 @@ def manage_system_settings():
         data_type_options=data_type_options,
         users=users,
         quiz_sets=quiz_sets,
+        maintenance_end_time=maintenance_end_time
     )
 
 @admin_bp.route('/settings', methods=['POST'])
 def save_maintenance_mode():
     """Lưu chế độ bảo trì."""
     maintenance_mode = 'maintenance_mode' in request.form
+    maintenance_end_time = request.form.get('maintenance_end_time', '')
 
-    setting = AppSettings.query.get('system_status')
-    previous_value = setting.value.copy() if setting and isinstance(setting.value, dict) else setting.value if setting else None
-    if setting:
-        setting.value['maintenance_mode'] = maintenance_mode
-        setting.data_type = 'json' # Changed to JSON to correctly store dict
-        flag_modified(setting, 'value')
-    else:
-        setting = AppSettings(
-            key='system_status', value={'maintenance_mode': maintenance_mode}, 
-            category='system', data_type='json'
-        )
-        db.session.add(setting)
-
-    db.session.commit()
-    _log_setting_change(
-        "update", key="system_status", old_value=previous_value, new_value=setting.value
-    )
-    _refresh_runtime_settings()
-    flash('Cài đặt hệ thống đã được cập nhật thành công!', 'success')
+    try:
+        AppSettings.set('MAINTENANCE_MODE', maintenance_mode, category='system', description='Chế độ bảo trì')
+        AppSettings.set('MAINTENANCE_END_TIME', maintenance_end_time, category='system', description='Thời gian kết thúc bảo trì')
+        db.session.commit()
+        
+        _refresh_runtime_settings()
+        flash('Cài đặt hệ thống đã được cập nhật thành công!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Lỗi cập nhật: {str(e)}', 'danger')
+        
     return redirect(url_for('admin.manage_system_settings'))
 
 

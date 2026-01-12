@@ -10,16 +10,16 @@
     style="--cm-accent:#0284c7; --cm-accent-soft:rgba(14,165,233,0.15); --cm-accent-strong:rgba(2,132,199,0.18);">
     <div class="cm-section-header">
         <div class="cm-heading-group">
-            <span class="cm-eyebrow">Thẻ ghi nhớ</span>
-            <h2 class="cm-heading text-3xl">Bộ thẻ ghi nhớ</h2>
-            <p class="cm-subheading">Tổ chức và chỉnh sửa mọi bộ thẻ ở cùng một nơi.</p>
+            <span class="cm-eyebrow">Từ vựng</span>
+            <h2 class="cm-heading text-3xl">Bộ từ vựng</h2>
+            <p class="cm-subheading">Tổ chức và chỉnh sửa mọi bộ từ vựng ở cùng một nơi.</p>
         </div>
         <div class="cm-actions">
             <button type="button"
                 data-modal-url="{{ url_for('content_management.content_management_flashcards.add_flashcard_set') }}"
                 class="open-modal-btn cm-action cm-action--primary">
                 <i class="fas fa-plus-circle"></i>
-                <span>Thêm bộ thẻ</span>
+                <span>Thêm bộ từ vựng</span>
             </button>
         </div>
     </div>
@@ -36,7 +36,7 @@
                 <p class="cm-subheading text-sm">Lọc theo tiêu đề, mô tả hoặc thẻ để tìm nội dung cần chỉnh sửa.</p>
             </div>
             <div class="w-full md:w-auto md:min-w-[320px]">
-                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ thẻ...",
+                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ từ vựng...",
                 search_field=search_field, search_options=display_search_options) }}
             </div>
         </div>
@@ -50,7 +50,7 @@
                 <div class="min-w-0 space-y-2">
                     <h3 class="truncate text-lg font-semibold text-slate-900">{{ set.title }}</h3>
                     <p class="line-clamp-2 text-sm text-slate-500">{{ set.description if set.description else 'Chưa có
-                        mô tả cho bộ thẻ này.' }}</p>
+                        mô tả cho bộ từ vựng này.' }}</p>
                 </div>
                 <span class="cm-icon-button" aria-hidden="true">
                     <i class="fa-solid fa-clone"></i>
@@ -65,7 +65,7 @@
                 </span>
                 <span class="cm-tag">
                     <i class="fa-solid fa-layer-group text-slate-400"></i>
-                    <span>{{ set.item_count }} thẻ</span>
+                    <span>{{ set.item_count }} từ vựng</span>
                 </span>
                 <span class="cm-tag" title="{{ set.creator_display_name }}">
                     <i class="fa-solid fa-user-pen text-slate-400"></i>
@@ -85,7 +85,7 @@
             <div class="flex items-center justify-between">
                 <a href="{{ url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=set.container_id) }}"
                     class="cm-link">
-                    <span>Quản lý thẻ</span>
+                    <span>Quản lý từ vựng</span>
                     <i class="fa-solid fa-arrow-right"></i>
                 </a>
                 <div class="cm-inline-actions">
@@ -137,8 +137,8 @@
         <span class="cm-empty-icon">
             <i class="fas fa-clone"></i>
         </span>
-        <h3 class="text-lg font-semibold text-slate-700">Chưa có bộ thẻ nào</h3>
-        <p class="text-sm">Tạo bộ thẻ đầu tiên để bắt đầu luyện ghi nhớ.</p>
+        <h3 class="text-lg font-semibold text-slate-700">Chưa có bộ từ vựng nào</h3>
+        <p class="text-sm">Tạo bộ từ vựng đầu tiên để bắt đầu luyện tập.</p>
     </div>
     {% endif %}
 </div>

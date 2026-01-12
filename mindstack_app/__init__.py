@@ -16,6 +16,7 @@ from .core.bootstrap import (
 )
 from .extensions import db
 from .services.config_service import init_config_service
+from .core.maintenance import init_maintenance_mode
 
 __all__ = ["create_app", "app", "db"]
 
@@ -37,6 +38,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     with app.app_context():
         initialize_database(app)
         init_config_service(app)
+        init_maintenance_mode(app)
 
     return app
 

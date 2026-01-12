@@ -17,7 +17,7 @@
                 <div class="min-w-0 space-y-2">
                     <h3 class="truncate text-lg font-semibold text-slate-900">{{ set.title }}</h3>
                     <p class="line-clamp-2 text-sm text-slate-500">{{ set.description if set.description else 'Chưa có
-                        mô tả cho bộ thẻ này.' }}</p>
+                        mô tả cho bộ từ vựng này.' }}</p>
                 </div>
                 <span class="cm-icon-button" aria-hidden="true">
                     <i class="fa-solid fa-clone"></i>
@@ -32,7 +32,7 @@
                 </span>
                 <span class="cm-tag">
                     <i class="fa-solid fa-layer-group text-slate-400"></i>
-                    <span>{{ set.item_count }} thẻ</span>
+                    <span>{{ set.item_count }} từ vựng</span>
                 </span>
                 <span class="cm-tag" title="{{ set.creator_display_name }}">
                     <i class="fa-solid fa-user-pen text-slate-400"></i>
@@ -52,7 +52,7 @@
             <div class="flex items-center justify-between">
                 <a href="{{ url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=set.container_id) }}"
                     class="cm-link">
-                    <span>Quản lý thẻ</span>
+                    <span>Quản lý từ vựng</span>
                     <i class="fa-solid fa-arrow-right"></i>
                 </a>
                 <div class="cm-inline-actions">
@@ -83,10 +83,10 @@
                     <form
                         action="{{ url_for('content_management.content_management_flashcards.delete_flashcard_set', set_id=set.container_id) }}"
                         method="post"
-                        onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ thẻ này và tất cả các thẻ của nó?');"
+                        onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ từ vựng này và tất cả các từ vựng của nó?');"
                         class="inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                        <button type="submit" class="cm-icon-button" title="Xoá bộ thẻ">
+                        <button type="submit" class="cm-icon-button" title="Xoá bộ từ vựng">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </form>
@@ -104,8 +104,8 @@
         <span class="cm-empty-icon">
             <i class="fas fa-clone"></i>
         </span>
-        <h3 class="text-lg font-semibold text-slate-700">Chưa có bộ thẻ nào</h3>
-        <p class="text-sm">Tạo bộ thẻ đầu tiên để bắt đầu luyện ghi nhớ.</p>
+        <h3 class="text-lg font-semibold text-slate-700">Chưa có bộ từ vựng nào</h3>
+        <p class="text-sm">Tạo bộ từ vựng đầu tiên để bắt đầu luyện tập.</p>
     </div>
     {% endif %}
 </div>

@@ -66,10 +66,7 @@ def build_admin_sidebar_metrics() -> dict[str, Any]:
         active_api_keys = ApiKey.query.filter_by(is_active=True, is_exhausted=False).count()
         running_tasks = BackgroundTask.query.filter_by(status="running").count()
 
-        system_status = AppSettings.get('system_status')
-        maintenance_mode = False
-        if system_status and isinstance(system_status, dict):
-            maintenance_mode = bool(system_status.get("maintenance_mode", False))
+        maintenance_mode = bool(AppSettings.get('MAINTENANCE_MODE', False))
 
         return {
             "total_users": total_users,

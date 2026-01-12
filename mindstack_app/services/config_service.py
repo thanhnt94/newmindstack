@@ -220,6 +220,18 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "data_type": "int",
                 "description": "Điểm thưởng cho lần đăng nhập đầu tiên trong ngày.",
             },
+            {
+                "key": "MAINTENANCE_MODE",
+                "value": False,
+                "data_type": "bool",
+                "description": "Bật/Tắt chế độ bảo trì hệ thống.",
+            },
+            {
+                "key": "MAINTENANCE_END_TIME",
+                "value": "",
+                "data_type": "string",
+                "description": "Thời điểm kết thúc bảo trì (ISO 8601, ví dụ: 2026-12-31T23:59:59).",
+            },
         ]
 
     @app.before_request
