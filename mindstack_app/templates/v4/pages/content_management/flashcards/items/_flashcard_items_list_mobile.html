@@ -1,178 +1,155 @@
 {% set _v = template_version|default('v4') %}
 <!-- File: _flashcard_items_list_mobile.html -->
-<!-- Phiên bản: 1.0 -->
-<!-- Mobile version: shown on mobile, hidden on lg+ -->
+<!-- Phiên bản: 2.0 (App-like Layout) -->
+<!-- Mobile version: Fixed Header/Footer, Scrollable Content -->
 
 {% from _v ~ '/includes/search/_search_form.html' import render_search_form %}
 {% from _v ~ '/includes/pagination/_pagination.html' import render_pagination %}
 
-<div class="lg:hidden cm-container space-y-6">
-    <div class="cm-section-header">
-        <div class="cm-heading-group">
-            <a href="{{ url_for('content_management.content_dashboard', tab='flashcards') }}" class="cm-link text-sm">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span>Quay lại bảng điều khiển</span>
-            </a>
-            <span class="cm-eyebrow">Bộ thẻ ghi nhớ</span>
-            <h1 class="cm-heading">{{ flashcard_set.title }}</h1>
-            <p class="cm-subheading">{{ (flashcard_set.description or 'Quản lý cặp thẻ, sắp xếp thứ tự và cập nhật nội
-                dung nhanh chóng.') | truncate(110, True, '…') }}</p>
-            <div class="cm-chip-row">
-                <span class="cm-pill cm-pill--accent">
-                    <i class="fa-solid fa-clone"></i>
-                    {{ pagination.total }} thẻ
-                </span>
+<!-- MAIN CONTAINER: Full Screen Fixed Overlay -->
+<div class="lg:hidden fixed inset-0 z-40 bg-slate-50 flex flex-col">
+
+    <!-- === 1. FIXED HEADER === -->
+    <div class="flex-none bg-white shadow-sm z-20 flex flex-col">
+        <!-- Top Bar: Back, Title, Add Action -->
+        <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 overflow-hidden">
+                <a href="{{ url_for('content_management.content_dashboard', tab='flashcards') }}"
+                    class="flex-none w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 transition">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <div class="flex flex-col min-w-0">
+                    <h1 class="text-sm font-bold text-slate-800 truncate leading-tight">{{ flashcard_set.title }}</h1>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold">
+                            {{ pagination.total }} thẻ
+                        </span>
+                        <span class="text-[10px] text-slate-400 truncate">ID: {{ flashcard_set.container_id }}</span>
+                    </div>
+                </div>
             </div>
-        </div>
-        {% if can_edit %}
-        <div class="cm-actions">
+
+            {% if can_edit %}
             <a href="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
                 data-modal-url="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
-                class="open-modal-btn cm-action cm-action--primary">
-                <i class="fas fa-plus-circle"></i>
-                <span>Thêm thẻ mới</span>
+                class="open-modal-btn flex-none w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white shadow-md hover:bg-blue-700 transition active:scale-95">
+                <i class="fas fa-plus"></i>
             </a>
-            <a href="{{ url_for('content_management.content_management_flashcards.export_flashcard_set', set_id=flashcard_set.container_id) }}"
-                class="cm-action cm-action--ghost">
-                <i class="fas fa-file-export"></i>
-                <span>Xuất gói ZIP</span>
+            {% endif %}
+        </div>
+
+        <!-- Search Bar -->
+        <div class="p-3 bg-white">
+            {% set display_item_search_options = {
+            'front': 'Mặt trước',
+            'back': 'Mặt sau',
+            'front_audio_content': 'Audio trước',
+            'back_audio_content': 'Audio sau'
+            } %}
+            {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm thẻ...",
+            set_id=flashcard_set.container_id, search_field=search_field,
+            search_options=display_item_search_options) }}
+        </div>
+    </div>
+
+    <!-- === 2. SCROLLABLE CONTENT === -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 scroll-smooth">
+        {% if flashcard_items %}
+        <div class="grid grid-cols-1 gap-4">
+            {% for item in flashcard_items %}
+            <article class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3">
+                <!-- Header: Order & ID -->
+                <div
+                    class="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded">#{{ item.order_in_container
+                            }}</span>
+                        <span>ID {{ item.item_id }}</span>
+                    </div>
+                    {% if can_edit %}
+                    <div class="flex items-center gap-1">
+                        <a href="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
+                            data-modal-url="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
+                            class="open-modal-btn w-6 h-6 flex items-center justify-center rounded bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition">
+                            <i class="fa-solid fa-pen"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Content -->
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 mb-0.5">FRONT</p>
+                        <p class="text-sm font-bold text-slate-800 leading-snug">{{ item.content.front }}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 mb-0.5">BACK</p>
+                        <p class="text-xs text-slate-600 leading-relaxed line-clamp-3">{{ item.content.back }}</p>
+                    </div>
+                </div>
+
+                <!-- Badges -->
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                    {% if item.content.front_audio_content or item.content.front_audio_url or
+                    item.content.back_audio_content or item.content.back_audio_url %}
+                    <span
+                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-purple-50 text-purple-600 text-[10px] font-bold">
+                        <i class="fa-solid fa-volume-high"></i> Audio
+                    </span>
+                    {% endif %}
+                    {% if item.content.front_img or item.content.back_img %}
+                    <span
+                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-600 text-[10px] font-bold">
+                        <i class="fa-solid fa-image"></i> Hình
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- AI Explanation -->
+                {% if item.ai_explanation %}
+                <div class="mt-1 rounded-lg bg-slate-50 px-3 py-2 border border-slate-100">
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <i class="fas fa-robot text-orange-500 text-[10px]"></i>
+                        <span class="text-[10px] font-bold text-slate-600 uppercase">Giải thích AI</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-relaxed line-clamp-3 mb-0">{{ item.ai_explanation }}
+                    </p>
+                </div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+
+        <!-- Safe space for footer scrolling -->
+        <div class="h-2"></div>
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="flex flex-col items-center justify-center py-20 text-center px-4">
+            <div
+                class="w-16 h-16 bg-slate-100 text-slate-300 rounded-full flex items-center justify-center mb-4 text-2xl">
+                <i class="fa-solid fa-folder-open"></i>
+            </div>
+            <h3 class="text-sm font-bold text-slate-700">Chưa có thẻ nào</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-[200px]">Bộ thẻ này trống hoặc không tìm thấy kết quả phù hợp.
+            </p>
+            {% if can_edit %}
+            <a href="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
+                data-modal-url="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
+                class="open-modal-btn mt-6 px-5 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 active:scale-95 transition">
+                Thêm thẻ ngay
             </a>
-            <a href="{{ url_for('content_management.content_management_flashcards.manage_flashcard_excel', set_id=flashcard_set.container_id) }}"
-                class="cm-action cm-action--ghost">
-                <i class="fas fa-table"></i>
-                <span>Cập nhật Excel</span>
-            </a>
+            {% endif %}
         </div>
         {% endif %}
     </div>
 
-    <div class="cm-card cm-card--padded">
-        {% set display_item_search_options = {
-        'front': 'Mặt trước',
-        'back': 'Mặt sau',
-        'front_audio_content': 'Audio mặt trước (text)',
-        'back_audio_content': 'Audio mặt sau (text)',
-        'front_img': 'Ảnh mặt trước (URL)',
-        'back_img': 'Ảnh mặt sau (URL)'
-        } %}
-        <div class="cm-search-header">
-            <div class="cm-heading-group">
-                <h2 class="text-lg font-semibold text-slate-800">Tìm kiếm thẻ</h2>
-                <p class="cm-subheading text-sm">Kết hợp bộ lọc và tìm kiếm để chỉnh sửa nhanh các cặp thẻ quan trọng.
-                </p>
-            </div>
-            <div class="w-full md:w-auto md:min-w-[320px]">
-                {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm thẻ...",
-                set_id=flashcard_set.container_id, search_field=search_field,
-                search_options=display_item_search_options) }}
-            </div>
-        </div>
-    </div>
-
-    {% if flashcard_items %}
-    <div class="cm-grid cm-grid--three">
-        {% for item in flashcard_items %}
-        <article class="cm-collection-card">
-            <div class="flex items-start justify-between gap-4">
-                <div class="space-y-3">
-                    <div class="cm-chip-row text-xs font-semibold">
-                        <span class="cm-pill cm-pill--accent">
-                            <i class="fa-solid fa-clone"></i>
-                            Thẻ #<span data-order-label>{{ item.order_in_container }}</span>
-                        </span>
-                        <span class="cm-pill cm-pill--neutral">
-                            <i class="fa-solid fa-id-card-clip"></i>
-                            ID {{ item.item_id }}
-                        </span>
-                    </div>
-                    <div class="space-y-2">
-                        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Mặt trước</h3>
-                        <p class="text-base font-semibold text-slate-900">{{ item.content.front }}</p>
-                        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Mặt sau</h3>
-                        <p class="text-sm text-slate-600 line-clamp-3">{{ item.content.back }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4 space-y-2 text-xs text-slate-500">
-                <div class="cm-chip-row">
-                    {% if item.content.front_audio_content or item.content.front_audio_url %}
-                    <span class="cm-tag">
-                        <i class="fa-solid fa-volume-high text-slate-400"></i>
-                        Audio mặt trước
-                    </span>
-                    {% endif %}
-                    {% if item.content.back_audio_content or item.content.back_audio_url %}
-                    <span class="cm-tag">
-                        <i class="fa-solid fa-volume-high text-slate-400"></i>
-                        Audio mặt sau
-                    </span>
-                    {% endif %}
-                    {% if item.content.front_img or item.content.back_img %}
-                    <span class="cm-tag">
-                        <i class="fa-solid fa-image text-slate-400"></i>
-                        Hình ảnh
-                    </span>
-                    {% endif %}
-                </div>
-                {% if item.ai_explanation %}
-                <div class="rounded-2xl bg-slate-50 px-4 py-2 text-[0.75rem] text-slate-500">
-                    <p class="line-clamp-3 mb-0">
-                        <span class="font-semibold text-slate-600">Giải thích AI:</span>
-                        {{ item.ai_explanation }}
-                    </p>
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="cm-divider"></div>
-            <div class="flex items-center justify-between">
-                <a href="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
-                    data-modal-url="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
-                    class="open-modal-btn cm-link">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                    <span>Mở trình chỉnh sửa</span>
-                </a>
-                {% if can_edit %}
-                <div class="cm-inline-actions">
-                    <button type="button"
-                        data-modal-url="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
-                        class="open-modal-btn cm-icon-button" title="Chỉnh sửa">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <form
-                        action="{{ url_for('content_management.content_management_flashcards.delete_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
-                        method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa thẻ này?');">
-                        <button type="submit" class="cm-icon-button" title="Xoá thẻ">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </form>
-                </div>
-                {% endif %}
-            </div>
-        </article>
-        {% endfor %}
-    </div>
-
-    <div class="pt-6">
+    <!-- === 3. FIXED FOOTER === -->
+    <div
+        class="flex-none bg-white border-t border-slate-200 p-3 pb-safe z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         {{ render_pagination(pagination=pagination, search_query=search_query, set_id=flashcard_set.container_id,
         search_field=search_field) }}
     </div>
 
-    {% else %}
-    <div class="cm-empty">
-        <span class="cm-empty-icon">
-            <i class="fa-solid fa-clone"></i>
-        </span>
-        <p class="text-sm">Bộ thẻ này chưa có thẻ nào hoặc không tìm thấy kết quả phù hợp.</p>
-        {% if can_edit %}
-        <a href="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
-            data-modal-url="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
-            class="open-modal-btn cm-action cm-action--primary">
-            <i class="fas fa-plus-circle"></i>
-            <span>Thêm thẻ đầu tiên</span>
-        </a>
-        {% endif %}
-    </div>
-    {% endif %}
 </div>

@@ -248,7 +248,8 @@ THAY ĐỔI:
                     <div class="border-t border-slate-100 pt-6">
                         <h3
                             class="text-xs font-bold text-slate-800 mb-3 flex items-center gap-2 uppercase tracking-wide">
-                            <i class="fas fa-exchange-alt"></i> Di chuyển thẻ</h3>
+                            <i class="fas fa-exchange-alt"></i> Di chuyển thẻ
+                        </h3>
                         <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
                             <div class="flex flex-col sm:flex-row gap-2 items-center">
                                 <select name="target_set_id"
@@ -285,26 +286,29 @@ THAY ĐỔI:
                                 <div class="flex gap-2">
                                     {{ form.front_audio_content(class="flex-1 px-3 py-2 text-xs bg-white border
                                     border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500", placeholder="Nội dung
-                                    tạo audio (TTS)...", rows="1") }}
+                                    tạo audio (TTS)...", rows="3") }}
                                     <button type="button" data-role="regenerate-audio"
-                                        class="px-3 py-1 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg hover:bg-white hover:text-blue-600 transition"
+                                        class="px-3 py-1 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg hover:bg-white hover:text-blue-600 transition h-auto"
                                         title="Tạo mới">
                                         <i class="fas fa-magic"></i>
                                     </button>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    {{ form.front_audio_url(class="flex-1 px-3 py-2 text-xs text-slate-500
+                                <div class="grid grid-cols-2 gap-3">
+                                    {{ form.front_audio_url(class="w-full px-3 py-2 text-xs text-slate-500
                                     bg-slate-50/50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500
                                     placeholder:text-slate-300", placeholder="URL Audio (nếu có)") }}
-                                    <div class="flex items-center gap-2" data-audio-side="front"
-                                        data-audio-url-input-id="{{ form.front_audio_url.id }}"
+                                    <div class="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
+                                        data-audio-side="front" data-audio-url-input-id="{{ form.front_audio_url.id }}"
                                         data-audio-content-input-id="{{ form.front_audio_content.id }}"
                                         data-initial-audio-url="{{ front_audio_url_resolved or '' }}">
-                                        <button type="button" data-role="play-audio"
-                                            class="w-8 h-8 rounded-full bg-blue-500 text-white hover:bg-blue-600 flex items-center justify-center shadow-sm">
-                                            <i class="fas fa-play text-[10px]"></i>
-                                        </button>
-                                        <audio controls class="h-6 w-20 hidden" data-role="audio-player"></audio>
+                                        <span class="text-[10px] font-bold text-slate-400">PLAYER</span>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" data-role="play-audio"
+                                                class="w-7 h-7 rounded-full bg-blue-500 text-white hover:bg-blue-600 flex items-center justify-center shadow-sm">
+                                                <i class="fas fa-play text-[10px]"></i>
+                                            </button>
+                                            <audio controls class="h-6 w-20 hidden" data-role="audio-player"></audio>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -361,26 +365,29 @@ THAY ĐỔI:
                                 <div class="flex gap-2">
                                     {{ form.back_audio_content(class="flex-1 px-3 py-2 text-xs bg-white border
                                     border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500", placeholder="Nội
-                                    dung tạo audio (TTS)...", rows="1") }}
+                                    dung tạo audio (TTS)...", rows="3") }}
                                     <button type="button" data-role="regenerate-audio"
-                                        class="px-3 py-1 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg hover:bg-white hover:text-purple-600 transition"
+                                        class="px-3 py-1 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg hover:bg-white hover:text-purple-600 transition h-auto"
                                         title="Tạo mới">
                                         <i class="fas fa-magic"></i>
                                     </button>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    {{ form.back_audio_url(class="flex-1 px-3 py-2 text-xs text-slate-500 bg-slate-50/50
+                                <div class="grid grid-cols-2 gap-3">
+                                    {{ form.back_audio_url(class="w-full px-3 py-2 text-xs text-slate-500 bg-slate-50/50
                                     border border-slate-200 rounded-lg focus:ring-1 focus:ring-purple-500
                                     placeholder:text-slate-300", placeholder="URL Audio (nếu có)") }}
-                                    <div class="flex items-center gap-2" data-audio-side="back"
-                                        data-audio-url-input-id="{{ form.back_audio_url.id }}"
+                                    <div class="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
+                                        data-audio-side="back" data-audio-url-input-id="{{ form.back_audio_url.id }}"
                                         data-audio-content-input-id="{{ form.back_audio_content.id }}"
                                         data-initial-audio-url="{{ back_audio_url_resolved or '' }}">
-                                        <button type="button" data-role="play-audio"
-                                            class="w-8 h-8 rounded-full bg-purple-500 text-white hover:bg-purple-600 flex items-center justify-center shadow-sm">
-                                            <i class="fas fa-play text-[10px]"></i>
-                                        </button>
-                                        <audio controls class="h-6 w-20 hidden" data-role="audio-player"></audio>
+                                        <span class="text-[10px] font-bold text-slate-400">PLAYER</span>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" data-role="play-audio"
+                                                class="w-7 h-7 rounded-full bg-purple-500 text-white hover:bg-purple-600 flex items-center justify-center shadow-sm">
+                                                <i class="fas fa-play text-[10px]"></i>
+                                            </button>
+                                            <audio controls class="h-6 w-20 hidden" data-role="audio-player"></audio>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
