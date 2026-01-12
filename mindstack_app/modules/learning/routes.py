@@ -269,9 +269,26 @@ def session_summary(session_id):
     else:
         summary_data['accuracy'] = 0
 
+    # [NEW] Fetch paginated Review Logs
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    from mindstack_app.models import ReviewLog, LearningItem
+    
+    pagination = ReviewLog.query.filter_by(session_id=session.session_id)\
+        .order_by(ReviewLog.timestamp.desc())\
+        .paginate(page=page, per_page=per_page, error_out=False)
+        
+    # Enrich logs with item content (e.g. Term or Question)
+    # We can do a join or just fetch in loop if N is small (20). 
+    # Join is better but ReviewLog already links to item.
+    # We need to manually access item content in template via log.item.
+    
     return render_dynamic_template('pages/learning/session_summary.html',
         summary=summary_data,
-        set_id=session.set_id_data if isinstance(session.set_id_data, int) else None
+        set_id=session.set_id_data if isinstance(session.set_id_data, int) else None,
+        pagination=pagination,
+        logs=pagination.items
     )
 
 

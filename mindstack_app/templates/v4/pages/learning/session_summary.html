@@ -63,6 +63,129 @@
             </div>
         </div>
 
+        <!-- NEW: Review Logs Section -->
+        <div class="bg-white rounded-2xl shadow-xl shadow-indigo-900/5 border border-slate-100 overflow-hidden mb-8">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-list-ul text-indigo-500"></i>
+                    Chi tiết phiên học
+                </h2>
+                <span class="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                    {{ pagination.total }} lượt xem
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr
+                            class="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500 font-semibold tracking-wider">
+                            <th class="px-6 py-4">STT</th>
+                            <th class="px-6 py-4">Nội dung</th>
+                            <th class="px-6 py-4 text-center">Đánh giá</th>
+                            <th class="px-6 py-4 text-center">Điểm</th>
+                            <th class="px-6 py-4 text-right">Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for log in logs %}
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-6 py-4 text-slate-400 font-medium text-sm">
+                                {{ (pagination.page - 1) * pagination.per_page + loop.index }}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-slate-700">
+                                    {% if log.item %}
+                                    {% if log.item.item_type == 'FLASHCARD' %}
+                                    {{ log.item.content.front | safe | truncate(50) }}
+                                    {% elif log.item.item_type == 'QUIZ' %}
+                                    {{ log.item.content.question | safe | truncate(50) }}
+                                    {% else %}
+                                    Item #{{ log.item_id }}
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-red-400 italic">Deleted Item #{{ log.item_id }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-slate-400 mt-0.5">
+                                    {{ log.timestamp.strftime('%H:%M:%S') }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                {% if log.rating >= 4 %}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    <i class="fas fa-check"></i> Good
+                                </span>
+                                {% elif log.rating >= 2 %}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                    <i class="fas fa-exclamation"></i> Hard
+                                </span>
+                                {% else %}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                    <i class="fas fa-times"></i> Again
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-center font-bold text-slate-600">
+                                {% if log.score_change > 0 %}
+                                <span class="text-amber-500">+{{ log.score_change }}</span>
+                                {% else %}
+                                <span class="text-slate-300">0</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-right text-slate-500 text-sm font-mono">
+                                {{ (log.duration_ms / 1000) | round(1) }}s
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">
+                                Chưa có dữ liệu chi tiết cho phiên học này.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            {% if pagination.pages > 1 %}
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div class="text-sm text-slate-500">
+                    Trang <span class="font-bold text-slate-700">{{ pagination.page }}</span> / {{ pagination.pages }}
+                </div>
+                <div class="flex gap-2">
+                    {% if pagination.has_prev %}
+                    <a href="{{ url_for('learning.session_summary', session_id=summary.session_id, page=pagination.prev_num) }}"
+                        class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
+                        <i class="fas fa-chevron-left mr-1"></i> Trước
+                    </a>
+                    {% else %}
+                    <span
+                        class="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-slate-300 cursor-not-allowed">
+                        <i class="fas fa-chevron-left mr-1"></i> Trước
+                    </span>
+                    {% endif %}
+
+                    {% if pagination.has_next %}
+                    <a href="{{ url_for('learning.session_summary', session_id=summary.session_id, page=pagination.next_num) }}"
+                        class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
+                        Sau <i class="fas fa-chevron-right ml-1"></i>
+                    </a>
+                    {% else %}
+                    <span
+                        class="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-slate-300 cursor-not-allowed">
+                        Sau <i class="fas fa-chevron-right ml-1"></i>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Desktop Action Buttons (Hidden on Mobile) -->
         <div class="hidden md:grid grid-cols-2 gap-4">
             <a href="{{ url_for('dashboard.dashboard') }}"
