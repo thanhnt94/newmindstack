@@ -60,6 +60,40 @@ def login():
         
     return render_dynamic_template('pages/auth/login/login.html', form=form)
 
+@auth_bp.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """Separate login route for Administrators."""
+    if current_user.is_authenticated:
+        if current_user.user_role == 'admin':
+            return redirect(url_for('admin.admin_dashboard'))
+        flash('Bạn đang đăng nhập với tài khoản thường. Vui lòng đăng xuất để truy cập Admin.', 'warning')
+        return redirect(url_for('dashboard.dashboard'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is None or not user.check_password(form.password.data):
+            flash('Admin ID hoặc Security Key không đúng.', 'danger')
+            return redirect(url_for('auth.admin_login'))
+        
+        # Enforce Admin Role
+        if user.user_role != 'admin':
+            flash('Truy cập bị từ chối: Tài khoản này không có quyền Quản trị.', 'danger')
+            return redirect(url_for('auth.admin_login'))
+        
+        login_user(user, remember=form.remember_me.data)
+        
+        try:
+            from ...modules.gamification.services.scoring_service import ScoreService
+            ScoreService.record_daily_login(user.user_id)
+        except Exception:
+            pass
+
+        flash('Chào mừng Quản trị viên! Đã truy cập hệ thống an toàn.', 'success')
+        return redirect(url_for('admin.admin_dashboard'))
+        
+    return render_dynamic_template('pages/auth/login/admin_login.html', form=form)
+
 @auth_bp.route('/logout', methods=['GET', 'POST'])
 def logout():
     logout_user()
