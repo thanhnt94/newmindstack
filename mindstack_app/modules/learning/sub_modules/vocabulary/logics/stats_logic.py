@@ -4,6 +4,7 @@
 from datetime import datetime
 from sqlalchemy import func, case
 from mindstack_app.models import LearningItem, LearningProgress, db
+from mindstack_app.utils.content_renderer import render_text_field
 
 def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12) -> dict:
     """
@@ -62,8 +63,12 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
         
         # Parse content safely - Flashcards use 'front'/'back', vocabulary might use 'term'/'definition'
         content = item.content or {}
-        term = content.get('front', '') or content.get('term', '') or content.get('recto', '') or ''
-        definition = content.get('back', '') or content.get('definition', '') or content.get('verso', '') or ''
+        raw_term = content.get('front', '') or content.get('term', '') or content.get('recto', '') or ''
+        raw_definition = content.get('back', '') or content.get('definition', '') or content.get('verso', '') or ''
+        
+        # [NEW] Apply BBCode rendering using centralized utility
+        term = render_text_field(raw_term)
+        definition = render_text_field(raw_definition)
         
         if progress:
             mastery = int((progress.mastery or 0.0) * 100)

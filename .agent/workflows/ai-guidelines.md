@@ -505,6 +505,18 @@ def test_function_name_describes_behavior():
 
 ---
 
+## 🎓 USER TAUGHT LESSONS (BÀI HỌC TỪ USER)
+
+Ghi lại các bài học, quy tắc ưu tiên mà User đã trực tiếp hướng dẫn.
+
+### 1. Backend Rendering First (BBCode/Markdown)
+- **Context**: Khi hiển thị nội dung có định dạng (BBCode `[b]`, `[i]`, v.v.).
+- **Lesson**: KHÔNG tự viết lại logic parse ở Frontend (JS). Phải kiểm tra và sử dụng các utility có sẵn ở Backend (như `mindstack_app.utils.content_renderer` hoặc `bbcode_parser.py`).
+- **Why**: Tránh duplicated logic, đảm bảo nhất quán giữa các platform (Web/Mobile/API), và tận dụng code base có sẵn.
+- **Action**: `import render_text_field` từ utils và xử lý data ngay trong API response.
+
+---
+
 ## 📚 THAM KHẢO
 
 - [coding_standards.md](../standards/coding_standards.md) - Chi tiết coding conventions
