@@ -89,7 +89,7 @@
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Mặt trước</h3>
                         <p class="text-base font-semibold text-slate-900">{{ item.content.front }}</p>
                         <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Mặt sau</h3>
-                        <p class="text-sm text-slate-600">{{ item.content.back }}</p>
+                        <p class="text-sm text-slate-600 line-clamp-3">{{ item.content.back }}</p>
                     </div>
                 </div>
             </div>
@@ -116,10 +116,12 @@
                     {% endif %}
                 </div>
                 {% if item.ai_explanation %}
-                <p class="rounded-2xl bg-slate-50 px-4 py-2 text-[0.75rem] text-slate-500">
-                    <span class="font-semibold text-slate-600">Giải thích AI:</span>
-                    {{ item.ai_explanation }}
-                </p>
+                <div class="rounded-2xl bg-slate-50 px-4 py-2 text-[0.75rem] text-slate-500">
+                    <p class="line-clamp-3 mb-0">
+                        <span class="font-semibold text-slate-600">Giải thích AI:</span>
+                        {{ item.ai_explanation }}
+                    </p>
+                </div>
                 {% endif %}
             </div>
 

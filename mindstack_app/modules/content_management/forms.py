@@ -143,7 +143,7 @@ class FlashcardItemForm(FlaskForm):
     back_audio_url = StringField('URL file âm thanh mặt sau', validators=[Optional()])
     front_img = StringField('URL hình ảnh mặt trước', validators=[Optional()])
     back_img = StringField('URL hình ảnh mặt sau', validators=[Optional()])
-    ai_explanation = TextAreaField('Giải thích AI', render_kw={'readonly': True}, validators=[Optional()])
+    ai_explanation = TextAreaField('Giải thích AI', validators=[Optional()])
     ai_prompt = TextAreaField('AI Prompt tùy chỉnh (cho thẻ này)',
                               description='Nhập prompt tùy chỉnh để ghi đè prompt của bộ thẻ hoặc mặc định hệ thống. Nếu để trống, hệ thống sẽ tự động sử dụng prompt cấp trên.',
                               validators=[Optional()])

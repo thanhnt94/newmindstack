@@ -1,5 +1,6 @@
-{% from 'v3/includes/pagination/_pagination_mobile.html' import render_pagination_mobile %}
-{% from 'v3/includes/pagination/_pagination_desktop.html' import render_pagination_desktop %}
+{% set _v = template_version|default('v4') %}
+{% from _v ~ '/includes/pagination/_pagination_mobile.html' import render_pagination_mobile %}
+{% from _v ~ '/includes/pagination/_pagination_desktop.html' import render_pagination_desktop %}
 
 {% macro render_pagination(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
 {# Mobile Version #}

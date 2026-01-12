@@ -1558,13 +1558,10 @@ def add_flashcard_item(set_id):
     image_folder = media_folders.get('image')
     audio_folder = media_folders.get('audio')
     container_capabilities = _get_container_capabilities(flashcard_set)
-    if request.method == 'GET':
-        form.supports_pronunciation.data = 'supports_pronunciation' in container_capabilities
-        form.supports_writing.data = 'supports_writing' in container_capabilities
-        form.supports_quiz.data = 'supports_quiz' in container_capabilities
-        form.supports_essay.data = 'supports_essay' in container_capabilities
-        form.supports_listening.data = 'supports_listening' in container_capabilities
-        form.supports_speaking.data = 'supports_speaking' in container_capabilities
+    container_capabilities = _get_container_capabilities(flashcard_set)
+    # Capabilities are for the container, not the item form.
+    # Logic to populate item form fields based on capabilities should be done if fields exist, but they don't here.
+    # Removing correct assignments.
     if form.validate_on_submit():
         # THÊM MỚI: Xử lý logic chèn thẻ
         new_order = form.order_in_container.data
@@ -1607,7 +1604,8 @@ def add_flashcard_item(set_id):
             container_id=set_id,
             item_type='FLASHCARD',
             content=content_dict,
-            order_in_container=new_order
+            order_in_container=new_order,
+            ai_explanation=form.ai_explanation.data
         )
         db.session.add(new_item)
         db.session.commit() # Lưu thay đổi
@@ -1732,6 +1730,21 @@ def edit_flashcard_item(set_id, item_id):
         flashcard_item.content['back_audio_url'] = _process_relative_url(form.back_audio_url.data, audio_folder)
         flashcard_item.content['front_img'] = _process_relative_url(form.front_img.data, image_folder)
         flashcard_item.content['back_img'] = _process_relative_url(form.back_img.data, image_folder)
+        flashcard_item.ai_explanation = form.ai_explanation.data
+        
+        # Handle Dynamic Custom Data (Key-Value Pairs)
+        custom_keys = request.form.getlist('custom_keys[]')
+        custom_values = request.form.getlist('custom_values[]')
+        
+        # Filter out empty keys and pairs where both key and value are empty
+        new_custom_data = {}
+        if custom_keys and custom_values:
+            for k, v in zip(custom_keys, custom_values):
+                clean_k = k.strip()
+                if clean_k: # Key must not be empty
+                    new_custom_data[clean_k] = v.strip()
+        
+        flashcard_item.custom_data = new_custom_data if new_custom_data else None
 
         
         if form.ai_prompt.data:
@@ -1781,6 +1794,10 @@ def edit_flashcard_item(set_id, item_id):
         # Gán giá trị `order_in_container` vào form
         form.order_in_container.data = flashcard_item.order_in_container
         form.ai_explanation.data = flashcard_item.ai_explanation
+        
+        # Prepare custom data for Key-Value UI
+        # We don't use form field anymore
+
         # Memrise fields
         form.memrise_prompt.data = flashcard_item.content.get('memrise_prompt', '')
         form.memrise_answers.data = flashcard_item.content.get('memrise_answers', '')

@@ -116,10 +116,12 @@
                     {% endif %}
                 </div>
                 {% if item.ai_explanation %}
-                <p class="rounded-2xl bg-slate-50 px-4 py-2 text-[0.75rem] text-slate-500">
-                    <span class="font-semibold text-slate-600">Giải thích AI:</span>
-                    {{ item.ai_explanation }}
-                </p>
+                <div class="rounded-2xl bg-slate-50 px-4 py-2 text-[0.75rem] text-slate-500 group relative">
+                    <span class="font-semibold text-slate-600 block mb-1">Giải thích AI:</span>
+                    <div class="line-clamp-3">
+                        {{ item.ai_explanation }}
+                    </div>
+                </div>
                 {% endif %}
             </div>
 
