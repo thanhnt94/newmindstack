@@ -144,6 +144,13 @@ def register_context_processors(app: Flask) -> None:
     """Register global template context processors."""
 
     @app.context_processor
+    def inject_template_version() -> dict[str, str]:
+        """Inject _v (template version) into all templates from database."""
+        from mindstack_app.services.template_service import TemplateService
+        version = TemplateService.get_active_version()
+        return {"_v": version, "template_version": version}
+
+    @app.context_processor
     def inject_utility_functions() -> dict[str, Callable[..., str]]:
         return {"bbcode_to_html": bbcode_to_html}
 
