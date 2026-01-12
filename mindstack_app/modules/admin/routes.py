@@ -908,7 +908,8 @@ def login():
             next_page = url_for('admin.admin_dashboard')
         return redirect(next_page)
         
-    return render_dynamic_template('pages/auth/login/admin_login.html', form=form)
+    # Use standard render_template for Admin Login (independent of v3/v4 user themes)
+    return render_template('admin/login.html', form=form)
 
 @admin_bp.route('/')
 @admin_bp.route('/dashboard')
