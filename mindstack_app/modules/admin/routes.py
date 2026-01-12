@@ -17,7 +17,7 @@ from flask import (
     after_this_request,
 )
 from ...core.error_handlers import error_response, success_response
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, login_user, logout_user
 from sqlalchemy import or_, nullslast
 from ...models import (
     db,
@@ -48,6 +48,7 @@ import io
 import json
 import csv
 import tempfile
+from ...utils.template_helpers import render_dynamic_template
 from uuid import uuid4
 from werkzeug.utils import secure_filename, safe_join
 from collections import OrderedDict
@@ -845,15 +846,69 @@ def _collect_directory_listing(base_dir, upload_root):
 
 # Middleware để kiểm tra quyền admin cho toàn bộ Blueprint admin
 @admin_bp.before_request 
-@login_required 
 def admin_required():
     """
     Mô tả: Middleware (bộ lọc) chạy trước mọi request vào admin_bp.
     Đảm bảo chỉ người dùng có vai trò 'admin' mới được truy cập.
     """
-    if not current_user.is_authenticated or current_user.user_role != User.ROLE_ADMIN:
-        flash('Bạn không có quyền truy cập khu vực quản trị.', 'danger')
-        abort(403) # Cấm truy cập
+    # Whitelist login route & static files if needed
+    if request.endpoint == 'admin.login':
+        return
+
+    # If not logged in, redirect to ADMIN login, not standard login
+    if not current_user.is_authenticated:
+        return redirect(url_for('admin.login', next=request.url))
+
+    # If logged in but not admin, also redirect to Admin Login (effectively logout from admin perspective)
+    if current_user.is_authenticated and current_user.user_role != User.ROLE_ADMIN:
+        # Optional: Flash message explaining why
+        flash('Vui lòng đăng nhập với tài khoản Admin.', 'warning')
+        return redirect(url_for('admin.login', next=request.url))
+
+@admin_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """Separate login route for Administrators."""
+    if current_user.is_authenticated:
+        if current_user.user_role == 'admin':
+            return redirect(url_for('admin.admin_dashboard'))
+        
+        # If logged in as User but requesting Admin Login, auto-logout the User session
+        # so they can see the Admin Login form.
+        from flask_login import logout_user
+        logout_user()
+        flash('Đã đăng xuất tài khoản thường. Vui lòng đăng nhập Admin.', 'info')
+    
+    # Use dedicated AdminLoginForm from local forms module
+    from .forms import AdminLoginForm
+    
+    form = AdminLoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is None or not user.check_password(form.password.data):
+            flash('Admin ID hoặc Security Key không đúng.', 'danger')
+            return redirect(url_for('admin.login'))
+        
+        # Enforce Admin Role
+        if user.user_role != 'admin':
+            flash('Truy cập bị từ chối: Tài khoản này không có quyền Quản trị.', 'danger')
+            return redirect(url_for('admin.login'))
+        
+        login_user(user, remember=form.remember_me.data)
+        
+        try:
+            from mindstack_app.modules.gamification.services.scoring_service import ScoreService
+            ScoreService.record_daily_login(user.user_id)
+        except Exception:
+            pass
+
+        flash('Chào mừng Quản trị viên! Đã truy cập hệ thống an toàn.', 'success')
+        # Check 'next' parameter safely
+        next_page = request.args.get('next')
+        if not next_page or url_for(next_page.lstrip('/')) == url_for('landing.index'):
+            next_page = url_for('admin.admin_dashboard')
+        return redirect(next_page)
+        
+    return render_dynamic_template('pages/auth/login/admin_login.html', form=form)
 
 @admin_bp.route('/')
 @admin_bp.route('/dashboard')

@@ -47,7 +47,7 @@
             {% endif %}
             {% endwith %}
 
-            <form action="{{ url_for('auth.admin_login') }}" method="post" class="space-y-6">
+            <form action="{{ url_for('admin.login') }}" method="post" class="space-y-6">
                 {{ form.csrf_token }}
 
                 <div class="space-y-2">

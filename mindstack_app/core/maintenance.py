@@ -23,8 +23,8 @@ def init_maintenance_mode(app):
         if request.blueprint == 'auth' or request.path.startswith('/auth/'):
             return
 
-        # 5. Allow access to admin dashboard so they can turn off maintenance
-        if request.path.startswith('/admin/'):
+        # 5. Allow access to admin dashboard (and login) so they can turn off maintenance
+        if request.path.startswith('/admin') or request.endpoint == 'admin.login':
             return
 
         # 6. Prevent recursion: don't check if we are already on the maintenance-related paths if any
