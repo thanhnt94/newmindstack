@@ -1,5 +1,4 @@
 {% set active_page = active_page|default('dashboard') %}
-{% set _v = template_version|default('v4') %}
 <!doctype html>
 <html lang="vi" class="h-full">
 
@@ -365,7 +364,7 @@
         });
     </script>
 
-    {% include _v ~ '/includes/assets/_modal.html' %}
+    {% include 'admin/includes/_modal.html' %}
 
     {% block extra_scripts %}{% endblock %}
 </body>
