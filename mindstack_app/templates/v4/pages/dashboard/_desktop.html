@@ -133,6 +133,31 @@
         {# LEFT COLUMN (8/12) #}
         <div class="col-span-12 lg:col-span-8 space-y-6">
 
+            <!-- Active Sessions Section -->
+            <section id="active-sessions-desktop"
+                class="hidden bg-white rounded-3xl p-6 border-2 border-red-50/50 shadow-sm hover:border-red-100 transition-colors">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500">
+                            <i class="fa-solid fa-fire"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold text-slate-800">Phiên học đang diễn ra <span
+                                    id="active-sessions-count-desktop"
+                                    class="ml-1 text-slate-400 font-medium text-sm"></span></h2>
+                            <p class="text-xs text-slate-400">Tiếp tục hành trình học tập của bạn</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('learning.manage_sessions') }}"
+                        class="text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-xl border border-red-100 hover:bg-red-100 transition-all">
+                        Quản lý <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </a>
+                </div>
+                <div id="active-sessions-list-desktop" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Content injected by JS -->
+                </div>
+            </section>
+
             <!-- Quick Actions -->
             <section
                 class="bg-white rounded-3xl p-6 border-2 border-indigo-50/50 shadow-sm hover:border-indigo-100 transition-colors">

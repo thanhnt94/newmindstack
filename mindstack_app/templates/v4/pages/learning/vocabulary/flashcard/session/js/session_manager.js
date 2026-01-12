@@ -10,6 +10,8 @@ let sessionScore = 0;
 let currentUserTotalScore = 0;
 let sessionAnswerHistory = [];
 let currentStreak = 0;
+let currentCardStartTime = 0;
+
 
 // Local stats
 let sessionStatsLocal = {
@@ -196,14 +198,6 @@ async function getNextFlashcardBatch() {
     }
 }
 
-// Module scope variables
-let currentFlashcardBatch = [];
-let currentFlashcardIndex = 0;
-let sessionStatsLocal = { processed: 0, total: 0, correct: 0, incorrect: 0, vague: 0 };
-let sessionScore = 0;
-let currentCardStartTime = 0; // [NEW]
-let sessionAnswerHistory = [];
-let currentCardStartTime = 0; // [NEW] Track start time
 
 // ... (inside renderNewBatchItems or wherever card is shown)
 // Finding render rendering point is key. It's window.renderCard(currentCardData) at line 152.

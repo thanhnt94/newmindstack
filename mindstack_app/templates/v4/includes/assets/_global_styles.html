@@ -11,52 +11,54 @@
 
 
 
-    /* ===== Bổ sung CSS cho layout Flexbox và ẩn trên di động ===== */
-    body.flashcard-session-active {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-    }
-
-    body.flashcard-session-active>header,
-    body.flashcard-session-active>footer {
-        display: none;
-    }
-
-    body.flashcard-session-active>main {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: auto;
-        /* Cho phép cuộn trên màn hình di động */
-    }
-
-    /* THÊM MỚI: CSS để loại bỏ padding trên mobile */
-    @media (max-width: 1024px) {
-
-        body.flashcard-session-active>main,
-        body.flashcard-session-active>main.container {
-            padding: 0 !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-            margin: 0 !important;
+    /* ===== Bổ sung CSS cho layout Flexbox và hỗ trợ học Flashcard ===== */
+    /* Mobile View: Hide header/footer for focus */
+    @media (max-width: 1023px) {
+        body.flashcard-session-active {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
         }
-
-        body.flashcard-session-active>header {
-            display: none !important;
-            height: 0 !important;
-            overflow: hidden !important;
-        }
-    }
-
-    @media (min-width: 1024px) {
 
         body.flashcard-session-active>header,
         body.flashcard-session-active>footer {
-            display: block;
-            /* Hiển thị lại trên desktop */
+            display: none !important;
+        }
+
+        body.flashcard-session-active>main {
+            flex-grow: 1;
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+    }
+
+    /* Desktop View: MUST show header/footer as requested */
+    @media (min-width: 1024px) {
+        body.flashcard-session-active {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            /* Allow scroll if needed on desktop */
+            overflow: auto;
+        }
+
+        body.flashcard-session-active>main {
+            flex-grow: 1;
+            /* Slightly adjust padding for desktop session */
+            padding: 1rem 0.5rem !important;
+            max-width: 1680px;
+            margin: 0 auto !important;
+        }
+
+        body.flashcard-session-active>header,
+        body.flashcard-session-active>footer {
+            display: block !important;
+            visibility: visible !important;
         }
     }
 </style>

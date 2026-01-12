@@ -54,31 +54,33 @@ Extends v4/base.html directly. Uses static v4/ paths.
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            if (window.innerWidth < 1024) {
-                loadActiveSessionsMobile();
-            }
+            loadActiveSessions();
         });
 
-        async function loadActiveSessionsMobile() {
-            const container = document.getElementById('active-sessions-mobile');
-            const list = document.getElementById('active-sessions-list-mobile');
-            if (!container || !list) return;
+        async function loadActiveSessions() {
+            const containers = {
+                mobile: {
+                    wrap: document.getElementById('active-sessions-mobile'),
+                    list: document.getElementById('active-sessions-list-mobile'),
+                    count: document.getElementById('active-sessions-count-mobile')
+                },
+                desktop: {
+                    wrap: document.getElementById('active-sessions-desktop'),
+                    list: document.getElementById('active-sessions-list-desktop'),
+                    count: document.getElementById('active-sessions-count-desktop')
+                }
+            };
 
             try {
                 const res = await fetch('/learn/api/active');
                 const sessions = await res.json();
 
                 if (sessions && sessions.length > 0) {
-                    container.classList.remove('hidden');
-
-                    // [NEW] Update count in header
-                    const countEl = document.getElementById('active-sessions-count-mobile');
-                    if (countEl) countEl.textContent = `(${sessions.length})`;
-
-                    // [NEW] Limit to 5 items
+                    const totalCount = sessions.length;
                     const limitedSessions = sessions.slice(0, 5);
 
-                    list.innerHTML = limitedSessions.map(s => {
+                    // Logic to render items (shared)
+                    const renderSessions = (items) => items.map(s => {
                         const isQuiz = s.learning_mode === 'quiz';
                         const iconClass = isQuiz ? 'fa-bolt' : 'fa-layer-group';
                         const iconBg = isQuiz ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600';
@@ -86,22 +88,38 @@ Extends v4/base.html directly. Uses static v4/ paths.
                         const label = isQuiz ? 'câu' : 'thẻ';
 
                         return `
-                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center text-lg">
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-red-100/50 hover:shadow-md active:scale-[0.98] transition-all">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                <div class="w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center text-lg flex-shrink-0">
                                     <i class="fa-solid ${iconClass}"></i>
                                 </div>
-                                <div class="flex-1 min-w-0">
+                                <div class="min-w-0 flex-1">
                                     <h4 class="font-bold text-sm text-slate-800 truncate">${s.container_name}</h4>
                                     <p class="text-[10px] text-slate-400 font-medium">${s.mode_name} • ${s.progress.done}/${s.progress.total} ${label}</p>
                                 </div>
                             </div>
-                            <a href="${s.resume_url}" class="flex-shrink-0 ${btnBg} text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm shadow-indigo-100 ml-2">
+                            <a href="${s.resume_url}" class="flex-shrink-0 ${btnBg} text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm shadow-indigo-100 ml-3">
                                 Tiếp tục
                             </a>
                         </div>
                     `;
                     }).join('');
+
+                    const html = renderSessions(limitedSessions);
+
+                    // Update Mobile
+                    if (containers.mobile.wrap && containers.mobile.list) {
+                        containers.mobile.wrap.classList.remove('hidden');
+                        containers.mobile.list.innerHTML = html;
+                        if (containers.mobile.count) containers.mobile.count.textContent = `(${totalCount})`;
+                    }
+
+                    // Update Desktop
+                    if (containers.desktop.wrap && containers.desktop.list) {
+                        containers.desktop.wrap.classList.remove('hidden');
+                        containers.desktop.list.innerHTML = html;
+                        if (containers.desktop.count) containers.desktop.count.textContent = `(${totalCount})`;
+                    }
                 }
             } catch (e) {
                 console.error('Failed to load active sessions', e);

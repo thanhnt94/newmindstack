@@ -15,25 +15,8 @@
 
 {% block head %}
 {{ super() }}
-<script>
-  // Remove Tailwind padding from main on mobile viewport
-  (function () {
-    if (window.innerWidth <= 1023) {
-      document.addEventListener('DOMContentLoaded', function () {
-        var main = document.querySelector('body > main');
-        if (main) {
-          main.classList.remove('py-4', 'px-2', 'sm:py-2', 'sm:px-3', 'md:py-4');
-          main.style.padding = '0';
-          main.style.margin = '0';
-        }
-        var header = document.querySelector('body > header');
-        if (header) {
-          header.style.display = 'none';
-        }
-      });
-    }
-  })();
-</script>
+{# Header/Footer hiding and padding removal is now handled globally via CSS in _global_styles.html
+using the .flashcard-session-active class on the body #}
 
 {# Flashcard Session CSS - External Files stored in template directory #}
 <link rel="stylesheet" href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/core.css') }}">
