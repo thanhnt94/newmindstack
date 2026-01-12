@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import func
 from mindstack_app.models import LearningItem, ReviewLog, User, ContainerContributor, LearningContainer
 from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.utils.content_renderer import render_text_field
 from flask import url_for
 from mindstack_app.models import db
 
@@ -172,18 +173,19 @@ class VocabularyItemStats:
                 'id': item.item_id,
                 'container_title': item.container.title if item.container else 'Unknown Set',
                 'container_id': item.container_id,
-                'front': content.get('front', '?'),
-                'back': content.get('back', '?'),
+                # BBCode rendering for text content fields
+                'front': render_text_field(content.get('front', '?')),
+                'back': render_text_field(content.get('back', '?')),
                 'pronunciation': content.get('pronunciation'),
-                'meaning': content.get('meaning'),
+                'meaning': render_text_field(content.get('meaning')),
                 'image': content.get('image'),
                 'audio': content.get('audio'),
-                'example': content.get('example'),
-                'example_meaning': content.get('example_meaning'),
+                'example': render_text_field(content.get('example')),
+                'example_meaning': render_text_field(content.get('example_meaning')),
                 'phonetic': content.get('phonetic'),
                 'tags': content.get('tags', []),
                 'custom_data': content.get('custom_data') or content.get('custom_content', {}),  # [UPDATED] Check custom_content too
-                'ai_explanation': item.ai_explanation,        # [NEW] Column in DB
+                'ai_explanation': render_text_field(item.ai_explanation),        # [NEW] BBCode rendered
                 'note': (progress.mode_data or {}).get('note', '') if progress else '', # [NEW]
                 'full_content': content # Pass original content for flexibility
             },

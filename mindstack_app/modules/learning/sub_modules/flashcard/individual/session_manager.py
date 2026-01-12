@@ -39,6 +39,7 @@ import os
 import asyncio
 from ..services import AudioService
 from mindstack_app.utils.media_paths import build_relative_media_path
+from mindstack_app.utils.content_renderer import render_text_field
 
 audio_service = AudioService()
 
@@ -344,11 +345,12 @@ class FlashcardSessionManager:
             'item_id': next_item.item_id,
             'container_id': next_item.container_id,
             'content': {
-                'front': next_item.content.get('front', ''),
-                'back': next_item.content.get('back', ''),
-                'front_audio_content': next_item.content.get('front_audio_content', ''),
+                # BBCode rendering applied to text fields
+                'front': render_text_field(next_item.content.get('front', '')),
+                'back': render_text_field(next_item.content.get('back', '')),
+                'front_audio_content': render_text_field(next_item.content.get('front_audio_content', '')),
                 'front_audio_url': self._get_media_absolute_url(next_item.content.get('front_audio_url'), 'audio'),
-                'back_audio_content': next_item.content.get('back_audio_content', ''),
+                'back_audio_content': render_text_field(next_item.content.get('back_audio_content', '')),
                 'back_audio_url': self._get_media_absolute_url(next_item.content.get('back_audio_url'), 'audio'),
                 'front_img': self._get_media_absolute_url(next_item.content.get('front_img'), 'image'),
                 'back_img': self._get_media_absolute_url(next_item.content.get('back_img'), 'image'),
@@ -371,7 +373,7 @@ class FlashcardSessionManager:
                     'supports_speaking' in container_capabilities
                 ),
             },
-            'ai_explanation': next_item.ai_explanation,
+            'ai_explanation': render_text_field(next_item.ai_explanation),
             'initial_stats': initial_stats,  # Gửi kèm thống kê
             'can_edit': self._can_edit_container(next_item.container_id)
         }

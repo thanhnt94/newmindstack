@@ -14,6 +14,7 @@ MindStack hỗ trợ BBCode để format nội dung trong nhiều hệ thống h
 | **Vocab MCQ** | `question`, `choices`, `correct_answer` | Chế độ trắc nghiệm từ vựng |
 | **Vocab Typing** | `prompt` | Phần câu hỏi hiển thị (answer giữ nguyên để validation) |
 | **Vocab Listening** | `meaning` | Nghĩa của từ (answer giữ nguyên để validation) |
+| **Vocab Stats** | `front`, `back`, `meaning`, `example`, `example_meaning`, `ai_explanation` | Modal thống kê từ vựng |
 
 ---
 
