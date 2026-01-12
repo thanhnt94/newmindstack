@@ -1222,7 +1222,24 @@ def edit_flashcard_set(set_id):
             
             safe_commit(db.session)
             
-            flash_message = 'Đã cập nhật bộ thẻ thành công (bao gồm cả cấu hình mặc định)!'
+            # Xử lý file Excel nếu có (import/update/delete thẻ từ Data sheet)
+            excel_summary = ''
+            if form.excel_file.data and form.excel_file.data.filename != '':
+                try:
+                    excel_summary = FlashcardExcelService.process_import(
+                        container_id=set_id,
+                        excel_file=form.excel_file.data
+                    )
+                    db.session.commit()
+                except Exception as excel_error:
+                    db.session.rollback()
+                    current_app.logger.error(f"Error importing Excel: {excel_error}")
+                    excel_summary = f'Lỗi import Excel: {str(excel_error)}'
+            
+            if excel_summary:
+                flash_message = f'Đã cập nhật bộ thẻ. {excel_summary}'
+            else:
+                flash_message = 'Đã cập nhật bộ thẻ thành công!'
             flash_category = 'success'
         except Exception as e:
             db.session.rollback()

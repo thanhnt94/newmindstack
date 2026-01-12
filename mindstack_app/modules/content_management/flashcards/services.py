@@ -185,8 +185,8 @@ class FlashcardExcelService:
             # Define local aliases for usage in processing loops
             standard_columns = cls.STANDARD_COLUMNS
             url_fields = cls.URL_FIELDS
-            image_folder = media_overrides.get('image') or container_media_folders.get('image') or 'images'
-            audio_folder = media_overrides.get('audio') or container_media_folders.get('audio') or 'audio'
+            image_folder = media_overrides.get('image') or media_folders.get('image') or 'images'
+            audio_folder = media_overrides.get('audio') or media_folders.get('audio') or 'audio'
 
             # ============ COLUMN CLASSIFICATION ============
             log_debug("--- NEW IMPORT STARTED ---")
