@@ -1030,13 +1030,13 @@ function setNoteMode(mode) {
     const noteTextarea = document.getElementById('note-textarea');
 
     if (mode === 'view') {
-        noteViewSection.classList.remove('hidden');
-        noteEditSection.classList.add('hidden');
-        if (editNoteBtn) editNoteBtn.classList.remove('hidden');
+        noteViewSection.classList.remove('note-panel-hidden');
+        noteEditSection.classList.add('note-panel-hidden');
+        if (editNoteBtn) editNoteBtn.classList.remove('note-panel-hidden');
     } else {
-        noteViewSection.classList.add('hidden');
-        noteEditSection.classList.remove('hidden');
-        if (editNoteBtn) editNoteBtn.classList.add('hidden');
+        noteViewSection.classList.add('note-panel-hidden');
+        noteEditSection.classList.remove('note-panel-hidden');
+        if (editNoteBtn) editNoteBtn.classList.add('note-panel-hidden');
         noteTextarea.focus();
     }
 }
@@ -1064,7 +1064,8 @@ async function openNotePanel(itemId) {
 
     noteTextarea.value = 'Đang tải ghi chú...';
     noteTextarea.disabled = true;
-    if (editNoteBtn) editNoteBtn.classList.add('hidden');
+    if (editNoteBtn) editNoteBtn.classList.add('note-panel-hidden');
+
 
     try {
         const response = await fetch(getNoteUrl.replace('/0', `/${itemId}`));
@@ -1091,7 +1092,8 @@ function closeNotePanel() {
     currentNoteItemId = null;
     lastLoadedNoteContent = '';
     noteTextarea.value = '';
-    if (editNoteBtn) editNoteBtn.classList.add('hidden');
+    if (editNoteBtn) editNoteBtn.classList.add('note-panel-hidden');
+
 }
 
 async function saveNote() {
