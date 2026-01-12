@@ -274,21 +274,42 @@ def session_summary(session_id):
     per_page = 20
     
     from mindstack_app.models import ReviewLog, LearningItem
+    from mindstack_app.utils.content_renderer import render_text_field
     
     pagination = ReviewLog.query.filter_by(session_id=session.session_id)\
         .order_by(ReviewLog.timestamp.desc())\
         .paginate(page=page, per_page=per_page, error_out=False)
         
-    # Enrich logs with item content (e.g. Term or Question)
-    # We can do a join or just fetch in loop if N is small (20). 
-    # Join is better but ReviewLog already links to item.
-    # We need to manually access item content in template via log.item.
+    # Enrich logs with rendered HTML content
+    processed_logs = []
+    for log in pagination.items:
+        log_data = {
+            'timestamp': log.timestamp,
+            'rating': log.rating,
+            'score_change': log.score_change,
+            'duration_ms': log.duration_ms,
+            'item_id': log.item_id,
+            'item_content': None,
+            'item_type': None
+        }
+        
+        if log.item:
+            log_data['item_type'] = log.item.item_type
+            if log.item.item_type == 'FLASHCARD':
+                # Render content.front with BBCode
+                log_data['item_content'] = render_text_field(log.item.content.get('front', ''), 'front')
+            elif log.item.item_type == 'QUIZ':
+                log_data['item_content'] = render_text_field(log.item.content.get('question', ''), 'question')
+            else:
+                log_data['item_content'] = f"Item #{log.item_id}"
+        
+        processed_logs.append(log_data)
     
     return render_dynamic_template('pages/learning/session_summary.html',
         summary=summary_data,
         set_id=session.set_id_data if isinstance(session.set_id_data, int) else None,
         pagination=pagination,
-        logs=pagination.items
+        logs=processed_logs
     )
 
 

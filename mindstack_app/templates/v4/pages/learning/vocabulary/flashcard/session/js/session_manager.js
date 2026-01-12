@@ -150,6 +150,7 @@ async function getNextFlashcardBatch() {
         }
 
         window.renderCard(currentCardData);
+        currentCardStartTime = Date.now(); // [NEW] Start timer
         window.updateSessionSummary();
 
         // Update local session stats from batch
@@ -195,16 +196,32 @@ async function getNextFlashcardBatch() {
     }
 }
 
+// Module scope variables
+let currentFlashcardBatch = [];
+let currentFlashcardIndex = 0;
+let sessionStatsLocal = { processed: 0, total: 0, correct: 0, incorrect: 0, vague: 0 };
+let sessionScore = 0;
+let currentCardStartTime = 0; // [NEW]
+let sessionAnswerHistory = [];
+let currentCardStartTime = 0; // [NEW] Track start time
+
+// ... (inside renderNewBatchItems or wherever card is shown)
+// Finding render rendering point is key. It's window.renderCard(currentCardData) at line 152.
+
 async function submitFlashcardAnswer(itemId, answer) {
     window.stopAllFlashcardAudio();
     const submitAnswerUrl = window.FlashcardConfig.submitAnswerUrl;
+
+    // [NEW] Calculate duration
+    const durationMs = currentCardStartTime > 0 ? (Date.now() - currentCardStartTime) : 0;
 
     try {
         const res = await fetch(submitAnswerUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...window.FlashcardConfig.csrfHeaders },
-            body: JSON.stringify({ item_id: itemId, user_answer: answer })
+            body: JSON.stringify({ item_id: itemId, user_answer: answer, duration_ms: durationMs })
         });
+        // ...
         if (!res.ok) {
             const errorText = await res.text();
             throw new Error(`HTTP error! status: ${res.status}, body: ${errorText}`);

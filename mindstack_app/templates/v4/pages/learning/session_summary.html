@@ -95,14 +95,8 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="font-bold text-slate-700">
-                                    {% if log.item %}
-                                    {% if log.item.item_type == 'FLASHCARD' %}
-                                    {{ log.item.content.front | safe | truncate(50) }}
-                                    {% elif log.item.item_type == 'QUIZ' %}
-                                    {{ log.item.content.question | safe | truncate(50) }}
-                                    {% else %}
-                                    Item #{{ log.item_id }}
-                                    {% endif %}
+                                    {% if log.item_content %}
+                                    {{ log.item_content | safe }}
                                     {% else %}
                                     <span class="text-red-400 italic">Deleted Item #{{ log.item_id }}</span>
                                     {% endif %}
