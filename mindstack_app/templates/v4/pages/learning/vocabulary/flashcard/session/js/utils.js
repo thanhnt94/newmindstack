@@ -4,9 +4,8 @@
 
 function formatTextForHtml(text) {
     if (text == null) return '';
-    const d = document.createElement('div');
-    d.textContent = text;
-    return d.innerHTML.replace(/\r?\n/g, '<br>');
+    // Don't escape HTML tags (like <br>), just convert newlines
+    return String(text).replace(/\r?\n/g, '<br>');
 }
 
 function extractPlainText(text) {

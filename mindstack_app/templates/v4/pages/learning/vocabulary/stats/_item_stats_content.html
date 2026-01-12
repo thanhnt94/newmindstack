@@ -17,7 +17,7 @@
 
         <div class="stats-header-info">
             <h1 style="font-size: 1.5rem; font-weight: 800; margin: 0; color: #0f172a; line-height: 1.1;">
-                {{ s.item.front }}
+                {{ s.item.front | safe }}
             </h1>
 
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; justify-content: center;">
@@ -108,7 +108,7 @@
                     <div
                         style="font-size: 1.2rem; font-weight: 600; color: #1e293b; line-height: 1.4; white-space: pre-wrap; text-align: left !important; display: block !important; width: 100% !important;">
                         {%- if s.item.back or s.item.meaning -%}{{- (s.item.back or s.item.meaning).splitlines() |
-                        map('trim') | join('\n') | trim -}}{%- endif -%}</div>
+                        map('trim') | join('\n') | trim | safe -}}{%- endif -%}</div>
                 </div>
 
                 {% if s.item.example %}
@@ -120,12 +120,12 @@
                         style="background: #f8fafc; padding: 1rem; border-radius: 0.75rem; border-left: 4px solid #6366f1; border: 1px solid #f1f5f9; text-align: left !important;">
                         <div
                             style="font-size: 1rem; color: #334155; font-style: italic; font-weight: 500; line-height: 1.5; white-space: pre-wrap; text-align: left !important;">
-                            "{{- s.item.example.splitlines() | map('trim') | join('\n') | trim -}}"
+                            "{{- s.item.example.splitlines() | map('trim') | join('\n') | trim | safe -}}"
                         </div>
                         {% if s.item.example_meaning %}
                         <div
                             style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem; white-space: pre-wrap; text-align: left !important;">
-                            {{- s.item.example_meaning.splitlines() | map('trim') | join('\n') | trim -}}</div>
+                            {{- s.item.example_meaning.splitlines() | map('trim') | join('\n') | trim | safe -}}</div>
                         {% endif %}
                     </div>
                 </div>

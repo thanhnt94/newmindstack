@@ -45,7 +45,7 @@ window.renderDesktopCardHtml = function (data, o) {
   // Desktop structure
   return `
   <div class="flashcard-card-container">
-    <div id="flashcard-card" class="flashcard-card ${o.cardCategory ? 'flashcard-card--' + o.cardCategory : ''}" data-card-category="${o.cardCategory || 'default'}">
+    <div id="flashcard-card" class="flashcard-card js-flashcard-card ${o.cardCategory ? 'flashcard-card--' + o.cardCategory : ''}" data-card-category="${o.cardCategory || 'default'}">
       <div class="face front">
         ${toolbarFront}
         <div class="_card-container">

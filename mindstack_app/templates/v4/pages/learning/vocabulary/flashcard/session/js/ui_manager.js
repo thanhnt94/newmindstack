@@ -371,6 +371,10 @@ function renderCard(data) {
 
     // --- Flip Interactions ---
     const flipToBack = () => {
+        if (!card) {
+            console.error('Flashcard element (.js-flashcard-card) not found!');
+            return;
+        }
         window.stopAllFlashcardAudio ? window.stopAllFlashcardAudio() : null;
         card.classList.add('flipped');
         actions?.classList.add('visible');
