@@ -63,7 +63,8 @@
         <div id="active-sessions-mobile" class="hidden">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <span class="text-red-500">🔥</span> Phiên học đang diễn ra
+                    <span class="text-red-500">🔥</span> Phiên học đang diễn ra <span id="active-sessions-count-mobile"
+                        class="ml-1 text-slate-400 font-medium"></span>
                 </h3>
                 <a href="{{ url_for('learning.manage_sessions') }}"
                     class="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg">
