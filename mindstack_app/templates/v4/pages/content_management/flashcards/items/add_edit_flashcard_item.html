@@ -361,8 +361,8 @@
 
 {% block scripts %}
 {{ super() }}
-{% include 'v3/pages/content_management/flashcards/shared/_flashcard_image_control_scripts.html' %}
-{% include 'v3/pages/content_management/flashcards/shared/_flashcard_audio_control_scripts.html' %}
+{% include _v ~ '/pages/content_management/flashcards/shared/_flashcard_image_control_scripts.html' %}
+{% include _v ~ '/pages/content_management/flashcards/shared/_flashcard_audio_control_scripts.html' %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         initializeFlashcardImageControls({ formSelector: '#flashcardItemForm' });

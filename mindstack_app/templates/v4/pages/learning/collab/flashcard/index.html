@@ -369,7 +369,7 @@
 
 {% block content %}
 {# Mobile Version - Navbar and Bottom Nav #}
-{% include 'v3/pages/learning/collab/flashcard/_mobile.html' %}
+{% include _v ~ '/pages/learning/collab/flashcard/_mobile.html' %}
 
 {# Desktop Title and Tabs (Desktop Only) #}
 <div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 hidden lg:block">
@@ -396,10 +396,10 @@
 {# Content - Both Mobile and Desktop #}
 <div class="container mx-auto px-1 sm:px-6 lg:px-8">
     {# --- Chế độ Individual --- #}
-    {% include 'v3/pages/learning/collab/flashcard/_desktop_individual.html' %}
+    {% include _v ~ '/pages/learning/collab/flashcard/_desktop_individual.html' %}
 
     {# --- Chế độ Collab --- #}
-    {% include 'v3/pages/learning/collab/flashcard/_desktop_collab.html' %}
+    {% include _v ~ '/pages/learning/collab/flashcard/_desktop_collab.html' %}
 
 </div>
 {% endblock %}

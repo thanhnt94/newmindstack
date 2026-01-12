@@ -239,16 +239,19 @@ def api_get_set_detail(set_id):
         
         if course_stats and 'pagination' in course_stats:
              p = course_stats['pagination']
-             p = course_stats['pagination']
              # Create dummy pagination object - Force page from request to be sure
              pag_obj = SimplePagination(int(page), 12, int(p['total']))
              
+             # Get active version
+             from mindstack_app.services.template_service import TemplateService
+             version = TemplateService.get_active_version()
+             
              # Render template
              tmpl = """
-             {% from 'v3/includes/pagination/_pagination_mobile.html' import render_pagination_mobile %}
+             {% from version ~ '/includes/pagination/_pagination_mobile.html' import render_pagination_mobile %}
              {{ render_pagination_mobile(pagination, set_id=set_id) }}
              """
-             pagination_html = render_template_string(tmpl, pagination=pag_obj, set_id=set_id)
+             pagination_html = render_template_string(tmpl, pagination=pag_obj, set_id=set_id, version=version)
 
     except Exception as e:
         import traceback

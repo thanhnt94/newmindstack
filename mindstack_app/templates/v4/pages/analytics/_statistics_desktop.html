@@ -964,7 +964,7 @@
 
         <div id="leaderboard-content">
             <ul class="leaderboard-list" id="leaderboard-list-container">
-                {% include 'v3/pages/analytics/_leaderboard_list.html' %}
+                {% include _v ~ '/pages/analytics/_leaderboard_list.html' %}
             </ul>
             <p class="empty-message" id="leaderboard-empty-message"
                 style="display: {% if not leaderboard_data %}block{% else %}none{% endif %};">Không có dữ liệu bảng xếp

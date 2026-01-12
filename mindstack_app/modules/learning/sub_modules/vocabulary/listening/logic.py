@@ -2,6 +2,7 @@
 # Listening Learning Mode Logic
 
 from mindstack_app.models import LearningItem, LearningProgress
+from mindstack_app.utils.content_renderer import render_text_field
 from datetime import datetime, timezone
 
 
@@ -41,8 +42,8 @@ def get_listening_eligible_items(container_id, mode='random', custom_pairs=None)
             eligible.append({
                 'item_id': item.item_id,
                 'prompt': '???',
-                'answer': content.get('front'),
-                'meaning': content.get('back'),
+                'answer': content.get('front'),  # Keep original for validation
+                'meaning': render_text_field(content.get('back')),  # BBCode rendering
                 'content': content
             })
     
@@ -51,7 +52,10 @@ def get_listening_eligible_items(container_id, mode='random', custom_pairs=None)
 
 def check_listening_answer(correct_answer, user_answer):
     """Check if user's typed answer is close enough to correct."""
-    correct = correct_answer.strip().lower()
+    from mindstack_app.utils.content_renderer import strip_bbcode
+    
+    # Strip BBCode from correct_answer before comparison
+    correct = strip_bbcode(correct_answer).strip().lower()
     user = user_answer.strip().lower()
     
     # Exact match

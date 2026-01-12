@@ -122,6 +122,8 @@ CAPABILITY_FLAGS = (
 
 MEDIA_URL_FIELDS = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
 
+# [REFACTORED] Minimal standard columns matching import logic + Action
+# Legacy 'supports_*' and 'ai_prompt' removed from defaults.
 FLASHCARD_DATA_COLUMNS = [
     'item_id',
     'order_in_container',
@@ -134,13 +136,6 @@ FLASHCARD_DATA_COLUMNS = [
     'front_img',
     'back_img',
     'ai_explanation',
-    'ai_prompt',
-    'supports_pronunciation',
-    'supports_writing',
-    'supports_quiz',
-    'supports_essay',
-    'supports_listening',
-    'supports_speaking',
     'action',
 ]
 
@@ -154,6 +149,12 @@ FLASHCARD_INFO_KEYS = [
     'image_base_folder',
     'audio_base_folder',
     'ai_prompt',
+    # [NEW] Dynamic keys for mode-specific column mappings (Multiple Pairs)
+    'mcq_pairs',
+    'typing_pairs',
+    'matching_pairs',
+    'listening_pairs',
+    'speaking_pairs',
 ]
 
 ACTION_OPTIONS = ['None', 'Update', 'Create', 'Delete', 'Skip']
@@ -180,16 +181,23 @@ def _apply_action_dropdown(worksheet, data_columns):
     validation.add(f"{action_letter}2:{action_letter}1048576")
 
 
-def _create_flashcard_excel(info_rows, data_rows, *, output_path: Optional[str] = None):
+def _create_flashcard_excel(info_rows, data_rows, columns=None, *, output_path: Optional[str] = None):
+    """
+    Tạo file Excel xuất khẩu.
+    :param columns: Danh sách tên cột (chuẩn + custom). Nếu None sẽ dùng FLASHCARD_DATA_COLUMNS mặc định.
+    """
     info_df = pd.DataFrame(info_rows, columns=['Key', 'Value'])
     if not info_df.empty:
         info_df['Value'] = info_df['Value'].apply(lambda value: '' if value is None else str(value))
     else:
         info_df = pd.DataFrame(columns=['Key', 'Value'])
 
-    data_df = pd.DataFrame(data_rows, columns=FLASHCARD_DATA_COLUMNS)
+    # Use provided columns or fallback to default
+    final_columns = columns if columns else FLASHCARD_DATA_COLUMNS
+    
+    data_df = pd.DataFrame(data_rows, columns=final_columns)
     if data_df.empty:
-        data_df = pd.DataFrame(columns=FLASHCARD_DATA_COLUMNS)
+        data_df = pd.DataFrame(columns=final_columns)
     else:
         data_df = data_df.fillna('')
 
@@ -204,7 +212,7 @@ def _create_flashcard_excel(info_rows, data_rows, *, output_path: Optional[str] 
         data_df.to_excel(writer, sheet_name='Data', index=False)
         data_sheet = writer.sheets.get('Data')
         if data_sheet is not None:
-            _apply_action_dropdown(data_sheet, FLASHCARD_DATA_COLUMNS)
+            _apply_action_dropdown(data_sheet, final_columns)
 
     if output_path:
         return output_path
@@ -501,6 +509,25 @@ def _build_flashcard_export_payload(
         'ai_prompt': ai_prompt_value or '',
     }
 
+    # [NEW] Export Column Mappings from Settings (Multiple Pairs)
+    settings = flashcard_set.settings or {}
+    check_modes = ['mcq', 'typing', 'matching', 'listening', 'speaking']
+    for mode in check_modes:
+        # DB key checks
+        mode_config = settings.get(mode)
+
+        if isinstance(mode_config, dict):
+            # Prefer 'pairs' list, create string representation
+            pairs = mode_config.get('pairs') or mode_config.get('custom_pairs') # Also check custom_pairs
+            if pairs and isinstance(pairs, list):
+                # Format: "q1:a1 | q2:a2"
+                pair_strings = [f"{p.get('q', '')}:{p.get('a', '')}" for p in pairs if p.get('q') and p.get('a')]
+                if pair_strings:
+                    info_mapping[f"{mode}_pairs"] = ' | '.join(pair_strings)
+            elif mode_config.get('question_column') and mode_config.get('answer_column'):
+                 # Fallback for old single pair format
+                 info_mapping[f"{mode}_pairs"] = f"{mode_config['question_column']}:{mode_config['answer_column']}"
+
     for capability_key in CAPABILITY_FLAGS:
         info_mapping[capability_key] = 'True' if capability_key in container_capabilities else 'False'
 
@@ -509,16 +536,33 @@ def _build_flashcard_export_payload(
         for key in FLASHCARD_INFO_KEYS
     ]
 
+    # [NEW] Detect all unique custom keys across all items
+    custom_keys = set()
+    for item in items:
+        if item.custom_data:
+            custom_keys.update(item.custom_data.keys())
+    sorted_custom_keys = sorted(list(custom_keys))
+
+    # Define final columns order: Base | Custom | Action
+    # Remove 'action' from base temporarily to place it at the end
+    base_cols_no_action = [col for col in FLASHCARD_DATA_COLUMNS if col != 'action']
+    final_columns = base_cols_no_action + sorted_custom_keys + ['action']
+
     data_rows = []
     for item in items:
         content = item.content or {}
-        row = {column: '' for column in FLASHCARD_DATA_COLUMNS}
+        # Initialize row with all final columns empty
+        row = {column: '' for column in final_columns}
+        
+        # --- Populate Standard Columns ---
         row['item_id'] = item.item_id
         row['order_in_container'] = item.order_in_container if item.order_in_container is not None else ''
         row['front'] = content.get('front') or ''
         row['back'] = content.get('back') or ''
         row['front_audio_content'] = content.get('front_audio_content') or ''
         row['back_audio_content'] = content.get('back_audio_content') or ''
+        
+        # --- Media Processing ---
         row['front_audio_url'] = _copy_media_into_package(
             content.get('front_audio_url'),
             media_dir,
@@ -551,25 +595,22 @@ def _build_flashcard_export_payload(
             media_folder=image_folder,
             export_mode=export_mode,
         ) or ''
+        
         row['ai_explanation'] = item.ai_explanation or content.get('ai_explanation') or ''
-        row['ai_prompt'] = content.get('ai_prompt') or ''
+        
+        # --- [MOVED] Legacy Columns Removed ---
+        # supports_* columns are no longer exported here.
+        # ai_prompt is also skipped for items.
 
-        for capability_key in CAPABILITY_FLAGS:
-            value = content.get(capability_key)
-            if value is None:
-                row[capability_key] = ''
-            else:
-                row[capability_key] = 'true' if bool(value) else 'false'
-
-        # [NEW] Export custom data columns
+        # --- [NEW] Populate Custom Data ---
         custom_data = item.custom_data or {}
-        for key, value in custom_data.items():
-            row[key] = value
+        for key in sorted_custom_keys:
+            row[key] = custom_data.get(key, '')
 
         row['action'] = 'None'
         data_rows.append(row)
 
-    return info_rows, data_rows
+    return info_rows, data_rows, final_columns
 
 
 def _has_editor_access(container_id):
@@ -642,12 +683,30 @@ def process_excel_info():
                 message = format_info_warnings(info_warnings)
                 return error_response(message, 'BAD_REQUEST', 400)
 
+            # Normalize info_data keys and clean values
+            normalized_data = {}
+            for k, v in info_data.items():
+                # Clean Key
+                clean_key = str(k).strip().lower().replace(' ', '_')
+                
+                # Map Legacy Keys
+                if clean_key == 'quiz_pairs':
+                    clean_key = 'mcq_pairs'
+                
+                # Clean Value
+                if isinstance(v, str):
+                    clean_val = v.replace('_x000D_', '\n')
+                else:
+                    clean_val = v
+                
+                normalized_data[clean_key] = clean_val
+
             message = 'Đã đọc thông tin từ file Excel.'
             if info_warnings:
                 message += ' ' + format_info_warnings(info_warnings)
                 
             return success_response(message=message, data={
-                'data': info_data, 
+                'data': normalized_data, 
                 'column_analysis': column_analysis
             })
         except Exception as e:
@@ -783,7 +842,7 @@ def export_flashcard_set(set_id):
         os.makedirs(media_dir, exist_ok=True)
         media_cache = {}
 
-        info_rows, data_rows = _build_flashcard_export_payload(
+        info_rows, data_rows, columns = _build_flashcard_export_payload(
             flashcard_set,
             items,
             export_mode='zip',
@@ -794,7 +853,7 @@ def export_flashcard_set(set_id):
         )
 
         excel_path = os.path.join(tmp_dir, 'flashcards.xlsx')
-        _create_flashcard_excel(info_rows, data_rows, output_path=excel_path)
+        _create_flashcard_excel(info_rows, data_rows, columns=columns, output_path=excel_path)
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -1163,7 +1222,24 @@ def edit_flashcard_set(set_id):
             
             safe_commit(db.session)
             
-            flash_message = 'Đã cập nhật bộ thẻ thành công (bao gồm cả cấu hình mặc định)!'
+            # Xử lý file Excel nếu có (import/update/delete thẻ từ Data sheet)
+            excel_summary = ''
+            if form.excel_file.data and form.excel_file.data.filename != '':
+                try:
+                    excel_summary = FlashcardExcelService.process_import(
+                        container_id=set_id,
+                        excel_file=form.excel_file.data
+                    )
+                    db.session.commit()
+                except Exception as excel_error:
+                    db.session.rollback()
+                    current_app.logger.error(f"Error importing Excel: {excel_error}")
+                    excel_summary = f'Lỗi import Excel: {str(excel_error)}'
+            
+            if excel_summary:
+                flash_message = f'Đã cập nhật bộ thẻ. {excel_summary}'
+            else:
+                flash_message = 'Đã cập nhật bộ thẻ thành công!'
             flash_category = 'success'
         except Exception as e:
             db.session.rollback()

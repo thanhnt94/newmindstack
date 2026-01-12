@@ -63,48 +63,52 @@
             </div>
         </div>
 
-        <!-- Detailed Breakdown Card (Placeholder call to action) -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-            <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <h3 class="font-bold text-slate-700 text-lg">Chi tiết phiên học</h3>
-                <span class="text-xs font-semibold px-2.5 py-1 bg-slate-200 text-slate-600 rounded-md">
-                    {{ summary.start_time.strftime('%H:%M %d/%m') }}
-                </span>
-            </div>
-
-            <div class="p-8 text-center">
-                <div
-                    class="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full mb-4">
-                    <i class="fas fa-clipboard-list text-2xl"></i>
-                </div>
-                <h4 class="text-lg font-bold text-slate-800 mb-2">Xem lại các câu hỏi</h4>
-                <p class="text-slate-500 max-w-md mx-auto mb-6">Bạn có thể xem lại chi tiết lịch sử học tập và các câu
-                    trả lời đúng/sai trong phần thống kê chi tiết của bộ học.</p>
-
-                {% if set_id %}
-                <a href="{{ url_for('learning.vocabulary.mcq.setup', set_id=set_id) }}"
-                    class="inline-flex items-center gap-2 font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-5 py-2.5 rounded-xl transition-colors">
-                    <i class="fas fa-arrow-left"></i> Quay lại Setup
-                </a>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Desktop Action Buttons (Hidden on Mobile) -->
+        <div class="hidden md:grid grid-cols-2 gap-4">
             <a href="{{ url_for('dashboard.dashboard') }}"
                 class="flex items-center justify-center gap-3 py-4 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-2xl hover:border-slate-300 hover:bg-slate-50 transition-all shadow-sm group">
                 <i class="fas fa-home group-hover:scale-110 transition-transform"></i>
                 Về Trang chủ
             </a>
 
-            <a href="javascript:history.back()"
+            <a href="{{ url_for('learning.quiz_learning.dashboard') }}"
                 class="flex items-center justify-center gap-3 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/25 transition-all group">
-                <i class="fas fa-redo group-hover:rotate-180 transition-transform duration-500"></i>
-                Học tiếp
+                <i class="fas fa-bolt group-hover:scale-110 transition-transform"></i>
+                Quiz Hub
             </a>
         </div>
     </div>
+
+    <!-- Mobile Fixed Bottom Navigation Bar - Simple Clean Style -->
+    <div class="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+        <div class="bg-white border-t border-slate-200 shadow-lg">
+            <div class="grid grid-cols-3 h-16">
+                <!-- Home -->
+                <a href="{{ url_for('dashboard.dashboard') }}"
+                    class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition-colors active:scale-95">
+                    <i class="fas fa-home text-xl"></i>
+                    <span class="text-[10px] font-semibold">Trang chủ</span>
+                </a>
+
+                <!-- Quiz Hub -->
+                <a href="{{ url_for('learning.quiz_learning.dashboard') }}"
+                    class="flex flex-col items-center justify-center gap-1 text-indigo-600 transition-colors active:scale-95">
+                    <i class="fas fa-bolt text-xl"></i>
+                    <span class="text-[10px] font-semibold">Quiz</span>
+                </a>
+
+                <!-- Vocab Hub -->
+                <a href="{{ url_for('learning.vocabulary.dashboard') }}"
+                    class="flex flex-col items-center justify-center gap-1 text-emerald-500 hover:text-emerald-600 transition-colors active:scale-95">
+                    <i class="fas fa-book text-xl"></i>
+                    <span class="text-[10px] font-semibold">Từ vựng</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Padding -->
+    <div class="h-16 md:hidden"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>

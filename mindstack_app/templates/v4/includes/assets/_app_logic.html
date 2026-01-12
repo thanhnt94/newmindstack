@@ -1,9 +1,9 @@
-{% include 'v3/pages/notification/center.html' %}
-{% include 'v3/includes/modals/_settings_modal.html' %}
+{% include _v ~ '/pages/notification/center.html' %}
+{% include _v ~ '/includes/modals/_settings_modal.html' %}
 
-{% include 'v3/includes/assets/_modal.html' %}
+{% include _v ~ '/includes/assets/_modal.html' %}
 
-{% include 'v3/includes/notification/_score_toast.html' %}
+{% include _v ~ '/includes/notification/_score_toast.html' %}
 <script>
 
 
@@ -50,4 +50,4 @@ transition-opacity duration-500 opacity-100 data-dismissible`;
 </script>
 <script src="{{ url_for('translator.static', filename='js/translator.js') }}"></script>
 {# Image Viewer Helper #}
-{% include 'v3/includes/assets/_image_viewer.html' %}
+{% include _v ~ '/includes/assets/_image_viewer.html' %}

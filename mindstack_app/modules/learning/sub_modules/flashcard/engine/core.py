@@ -28,7 +28,9 @@ class FlashcardEngine:
     def process_answer(cls, user_id: int, item_id: int, quality: int, 
                       current_user_total_score: int, mode: str = None, 
                       update_srs: bool = True,
-                      duration_ms: int = 0, user_answer_text: str = None):
+                      duration_ms: int = 0, user_answer_text: str = None,
+                      session_id: int = None, container_id: int = None,
+                      learning_mode: str = None):
         """
         Process a flashcard answer.
         
@@ -39,6 +41,9 @@ class FlashcardEngine:
             current_user_total_score: Current score for UI update.
             mode: Learning mode (e.g., 'all_review').
             update_srs: Whether to update SRS progress (False for Collab).
+            session_id: Learning session ID for context.
+            container_id: Container ID for faster queries.
+            learning_mode: Learning mode string for ReviewLog.
             
         Returns:
             tuple: (score_change, new_total_score, result_type, new_status, item_stats, memory_power_data)
@@ -82,7 +87,11 @@ class FlashcardEngine:
                 is_first_time=False,  # TODO: detect first time properly
                 response_time_seconds=duration_ms / 1000.0 if duration_ms else None,
                 duration_ms=duration_ms,  # Track response time in ReviewLog
-                is_cram=is_cram
+                is_cram=is_cram,
+                # Session context fields
+                session_id=session_id,
+                container_id=container_id or (item.container_id if item else None),
+                learning_mode=learning_mode or mode
             )
             
             # Use score from SrsResult (already calculated by UnifiedSrsSystem)

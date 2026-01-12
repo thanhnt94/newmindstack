@@ -28,6 +28,7 @@ from ..config import QuizLearningConfig
 from sqlalchemy.sql import func
 import random
 import datetime
+from mindstack_app.utils.content_renderer import render_content_dict, render_text_field
 import os
 
 from mindstack_app.utils.media_paths import build_relative_media_path
@@ -471,13 +472,14 @@ class QuizSessionManager:
                 if k in ('A', 'B', 'C', 'D') and v not in (None, '')
             }
 
+
             item_dict = {
                 'item_id': item.item_id,
                 # THAY ĐỔI: Thêm container_id để có thể tạo URL chỉnh sửa
                 'container_id': item.container_id,
-                'content': content_copy,
-                'ai_explanation': item.ai_explanation,
-                'note_content': note.content if note else '',
+                'content': render_content_dict(content_copy),  # BBCode rendering
+                'ai_explanation': render_text_field(item.ai_explanation),
+                'note_content': render_text_field(note.content if note else ''),
                 'group_id': item.group_id,
                 'group_details': group_details,
                 'display_number': display_number,
@@ -722,7 +724,12 @@ class QuizSessionManager:
                     user_answer=check_val, 
                     user_id=self.user_id,
                     duration_ms=duration_ms,
-                    user_answer_key=user_answer_text  # Pass original key (A/B/C/D) for ReviewLog
+                    user_answer_key=user_answer_text,  # Pass original key (A/B/C/D) for ReviewLog
+                    # Session context fields for ReviewLog
+                    session_id=getattr(self, 'db_session_id', None),
+                    container_id=item.container_id if item else None,
+                    mode=self.mode,
+                    streak_position=0  # Will be calculated inside check_answer
                 )
                 
             is_correct = result.get('correct', False)

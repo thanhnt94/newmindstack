@@ -12,17 +12,33 @@
 
 {% macro footer() %}
 {% set _v = template_version|default('v4') %}
-<footer class="bg-white border-t border-slate-100 py-6 hidden lg:block mt-auto">
-    <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <i class="fa-solid fa-brain text-indigo-500 text-sm"></i>
+<footer class="bg-slate-900 text-slate-300 border-t border-slate-800 hidden lg:block mt-auto">
+    <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+        {# Left Side: Brand & Version #}
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-brain text-indigo-500"></i>
+                <span class="font-bold text-white tracking-wide">Mindstack <span
+                        class="text-indigo-500">3.0</span></span>
             </div>
-            <span class="font-semibold text-slate-600">Mindstack</span>
-            <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{{ _v|upper }}</span>
+            <div class="h-4 w-px bg-slate-700"></div>
+            <span class="text-xs text-slate-500">Aurora</span>
+            <div class="h-4 w-px bg-slate-700"></div>
+            <span class="text-xs text-slate-500">© 2026</span>
         </div>
-        <p class="text-sm text-slate-400">© 2025 Mindstack. All rights reserved. | Current theme: MindStack {{ _v|upper
-            }}</p>
+
+        {# Right Side: Social & Status #}
+        <div class="flex items-center gap-6">
+            <a href="#" class="text-slate-400 hover:text-white transition-colors text-sm">Điều khoản</a>
+            <a href="#" class="text-slate-400 hover:text-white transition-colors text-sm">Bảo mật</a>
+            <div class="h-4 w-px bg-slate-700"></div>
+            <div class="flex gap-3">
+                <a href="#" class="text-slate-400 hover:text-indigo-400 transition-colors"><i
+                        class="fab fa-facebook-f text-sm"></i></a>
+                <a href="#" class="text-slate-400 hover:text-indigo-400 transition-colors"><i
+                        class="fab fa-github text-sm"></i></a>
+            </div>
+        </div>
     </div>
 </footer>
 {% endmacro %}

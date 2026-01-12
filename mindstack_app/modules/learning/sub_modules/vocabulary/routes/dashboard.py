@@ -25,9 +25,8 @@ def set_detail_page(set_id):
     can_edit_set = (current_user.user_role == User.ROLE_ADMIN or 
                     container.creator_user_id == current_user.user_id)
     
-    return render_dynamic_template('pages/learning/vocabulary/dashboard/index.html', 
+    return render_dynamic_template('pages/learning/vocabulary/dashboard/detail.html', 
                           active_set_id=set_id, 
-                          active_step='detail',
                           can_edit_set=can_edit_set,
                           set_id=set_id)
 

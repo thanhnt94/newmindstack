@@ -41,6 +41,7 @@ import asyncio
 from mindstack_app.modules.learning.sub_modules.flashcard.services.audio_service import AudioService
 from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
 from mindstack_app.utils.media_paths import build_relative_media_path
+from mindstack_app.utils.content_renderer import render_text_field
 
 audio_service = AudioService()
 
@@ -400,11 +401,12 @@ class FlashcardSessionManager:
             'item_id': next_item.item_id,
             'container_id': next_item.container_id,
             'content': {
-                'front': next_item.content.get('front', ''),
-                'back': next_item.content.get('back', ''),
-                'front_audio_content': next_item.content.get('front_audio_content', ''),
+                # BBCode rendering applied to text fields
+                'front': render_text_field(next_item.content.get('front', '')),
+                'back': render_text_field(next_item.content.get('back', '')),
+                'front_audio_content': render_text_field(next_item.content.get('front_audio_content', '')),
                 'front_audio_url': self._get_media_absolute_url(next_item.content.get('front_audio_url'), 'audio'),
-                'back_audio_content': next_item.content.get('back_audio_content', ''),
+                'back_audio_content': render_text_field(next_item.content.get('back_audio_content', '')),
                 'back_audio_url': self._get_media_absolute_url(next_item.content.get('back_audio_url'), 'audio'),
                 'front_img': self._get_media_absolute_url(next_item.content.get('front_img'), 'image'),
                 'back_img': self._get_media_absolute_url(next_item.content.get('back_img'), 'image'),
@@ -427,7 +429,7 @@ class FlashcardSessionManager:
                     'supports_speaking' in container_capabilities
                 ),
             },
-            'ai_explanation': next_item.ai_explanation,
+            'ai_explanation': render_text_field(next_item.ai_explanation),
             'initial_stats': initial_stats,  # Gửi kèm thống kê
             'can_edit': self._can_edit_container(next_item.container_id),
             'markers': marker_list # [NEW] List of markers e.g. ['difficult', 'favorite']
@@ -460,7 +462,11 @@ class FlashcardSessionManager:
                 current_user_total_score=current_user_total_score,
                 mode=self.mode,
                 duration_ms=duration_ms,
-                user_answer_text=user_answer_text
+                user_answer_text=user_answer_text,
+                # Session context fields
+                session_id=getattr(self, 'db_session_id', None),
+                container_id=self.set_id if isinstance(self.set_id, int) else None,
+                learning_mode=self.mode
             )
             
             # [UPDATED] Add to processed list ONLY after answer (prevent skip on reload)

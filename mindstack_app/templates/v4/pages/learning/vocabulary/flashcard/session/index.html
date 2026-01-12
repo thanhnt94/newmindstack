@@ -52,8 +52,8 @@
 {% block content %}
 {# Include Desktop và Mobile partials - visibility kiểm soát bởi CSS class #}
 
-{% include 'v3/pages/learning/vocabulary/flashcard/session/_desktop.html' %}
-{% include 'v3/pages/learning/vocabulary/flashcard/session/_mobile.html' %}
+{% include _v ~ '/pages/learning/vocabulary/flashcard/session/_desktop.html' %}
+{% include _v ~ '/pages/learning/vocabulary/flashcard/session/_mobile.html' %}
 
 {# === SHARED MODALS - Dùng chung cho cả Desktop và Mobile === #}
 
@@ -103,13 +103,13 @@
 {% include _v ~ '/includes/ai_services/_ai_modal.html' %}
 
 {# Nhúng modal Ghi chú #}
-{% include 'v3/pages/notes/_note_panel.html' %}
+{% include _v ~ '/pages/notes/_note_panel.html' %}
 
 {# Nhúng modal Memory Power #}
 {% include _v ~ '/includes/notification/_memory_power.html' %}
 
 {# Nhúng modal Feedback #}
-{% include 'v3/pages/feedback/_feedback_modal.html' %}
+{% include _v ~ '/pages/feedback/_feedback_modal.html' %}
 
 {# Nhúng modal Item Stats (Dùng chung với Dashboard) #}
 {% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}

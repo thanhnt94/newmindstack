@@ -8,10 +8,10 @@
 {% block content %}
 
 {# Include Mobile Version #}
-{% include 'v3/pages/auth/login/_login_mobile.html' %}
+{% include _v ~ '/pages/auth/login/_login_mobile.html' %}
 
 {# Include Desktop Version #}
-{% include 'v3/pages/auth/login/_login_desktop.html' %}
+{% include _v ~ '/pages/auth/login/_login_desktop.html' %}
 
 {% endblock %}
 

@@ -17,6 +17,27 @@ và tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.6.0] - 2026-01-12
+
+### 🚀 Added
+- **BBCode Support**: Hỗ trợ BBCode formatting cho tất cả content fields
+  - Flashcard: `front`, `back`, `ai_explanation`
+  - Quiz: `question`, `options`, `explanation`, `note_content`
+  - Vocabulary modes: MCQ, Typing, Listening
+  - Docs: [BBCODE.md](BBCODE.md)
+- **ReviewLog Session Context**: Thêm 4 columns mới cho analytics
+  - `session_id`, `container_id`, `mode`, `streak_position`
+- **Flask-Migrate Setup**: Khởi tạo hệ thống migrations đúng cách
+- **strip_bbcode()**: Hàm loại bỏ BBCode khi validate answer (Typing/Listening)
+
+### 🐛 Fixed
+- Sửa orphaned alembic revision từ migrations archive cũ
+- Answer validation giờ đây tự động strip BBCode tags
+
+### ♻️ Changed
+- Cấu trúc `content_renderer.py` với `render_text_field()` và `render_content_dict()`
+
+
 ## [1.5.0] - 2026-01-08
 
 ### 🚀 Added

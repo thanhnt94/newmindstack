@@ -103,15 +103,21 @@ def _user_can_edit_flashcard(container_id: int) -> bool:
 
 @flashcard_learning_bp.route('/assets/<path:filename>')
 def serve_session_asset(filename):
-    """Serve static assets from the templates directory."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    # Serve from individual/templates/individual/cardsession
-    assets_dir = os.path.join(base_dir, '..', '..', '..', '..', '..', 'templates', 'v3', 'pages', 'learning', 'vocabulary', 'flashcard', 'session')
+    """Serve static assets from the templates directory dynamically based on version."""
+    import os
+    from flask import send_from_directory
+    from mindstack_app.services.template_service import TemplateService
+    
+    # Get active version (e.g., 'v4')
+    version = TemplateService.get_active_version()
+    
+    # Construct path: templates/{version}/pages/learning/vocabulary/flashcard/session
+    assets_dir = os.path.join(current_app.root_path, 'templates', version, 'pages', 'learning', 'vocabulary', 'flashcard', 'session')
+    
     try:
-        from flask import send_from_directory
         return send_from_directory(assets_dir, filename)
     except Exception as e:
-        current_app.logger.error(f"Error serving asset {filename}: {e}")
+        current_app.logger.error(f"Error serving asset {filename} from {assets_dir}: {e}")
         abort(404)
 
 
@@ -347,20 +353,6 @@ def flashcard_session():
     # Get container name from session
     container_name = session_data.get('container_name', 'Bộ thẻ')
     
-    # Get active template version and base path
-    from mindstack_app.services.template_service import TemplateService
-    
-    # Validation: Check if requested version exists
-    # available_versions = TemplateService.list_available_templates('flashcard.cardsession') # Kept for reference or future use if needed, but logic removed
-    
-    # Fallback to system default (Admin settings)
-    template_context = TemplateService.get_template_context('flashcard.cardsession')
-    # Use V3 template path directly for migration
-    template_base_path = 'v3/pages/learning/vocabulary/flashcard/session'
-    template_path = f'{template_base_path}/index.html'
-    
-    current_app.logger.debug(f"Rendering flashcard session with template: {template_path}")
-    
     # [NEW] Load auto_save flag for this container
     saved_auto_save = True
     try:
@@ -371,20 +363,16 @@ def flashcard_session():
                  saved_auto_save = uc_state.settings.get('auto_save', True)
     except Exception:
         pass
-
-    # Override template_base_path in context to avoid conflict and ensure correct path
-    template_context['template_base_path'] = template_base_path
-
-    return render_template(
-        template_path,
+    
+    return render_dynamic_template(
+        'pages/learning/vocabulary/flashcard/session/index.html',
         user_button_count=user_button_count,
         is_autoplay_session=is_autoplay_session,
         autoplay_mode=autoplay_mode,
         container_name=container_name,
         mode_display_text=mode_display_text,
         saved_visual_settings=session.get('flashcard_visual_settings', {}),
-        saved_auto_save=saved_auto_save,
-        **template_context  # Contains template_version and updated template_base_path
+        saved_auto_save=saved_auto_save
     )
 
 

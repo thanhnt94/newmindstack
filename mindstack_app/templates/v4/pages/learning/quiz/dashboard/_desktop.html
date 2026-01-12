@@ -1,0 +1,222 @@
+{#
+Quiz Dashboard - Desktop View
+Version: 1.0
+
+Sidebar layout matching Vocabulary Dashboard:
+- Left sidebar with stats, actions, and modes
+- Right main content with sets grid
+#}
+{% set _v = template_version|default('v4') %}
+
+<div class="quiz-desktop-view hidden lg:block">
+    <div class="quiz-desktop-container">
+        <!-- Left Sidebar -->
+        <aside class="quiz-sidebar">
+            <!-- Quick Stats -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">
+                    <i class="fas fa-chart-pie text-blue-500"></i>
+                    <h3>Tổng quan</h3>
+                </div>
+                <div class="sidebar-stats-grid">
+                    <div class="sidebar-stat">
+                        <span class="sidebar-stat-value" id="desktop-total-sets">-</span>
+                        <span class="sidebar-stat-label">Bộ quiz</span>
+                    </div>
+                    <div class="sidebar-stat">
+                        <span class="sidebar-stat-value" id="desktop-total-questions">-</span>
+                        <span class="sidebar-stat-label">Câu hỏi</span>
+                    </div>
+                    <div class="sidebar-stat">
+                        <span class="sidebar-stat-value" id="desktop-mastered-count">-</span>
+                        <span class="sidebar-stat-label">Thành thạo</span>
+                    </div>
+                    <div class="sidebar-stat">
+                        <span class="sidebar-stat-value" id="desktop-due-count">-</span>
+                        <span class="sidebar-stat-label">Đến hạn</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">
+                    <i class="fas fa-bolt text-amber-500"></i>
+                    <h3>Thao tác nhanh</h3>
+                </div>
+                <div class="quick-actions">
+                    <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}"
+                        class="quick-action-btn">
+                        <i class="fas fa-plus"></i>
+                        <span>Tạo bộ quiz mới</span>
+                    </a>
+                    <a href="{{ url_for('content_management.content_management_quizzes.list_quiz_sets') }}"
+                        class="quick-action-btn">
+                        <i class="fas fa-cog"></i>
+                        <span>Quản lý bộ quiz</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Learning Modes -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">
+                    <i class="fas fa-graduation-cap text-purple-500"></i>
+                    <h3>Chế độ học</h3>
+                </div>
+                <div class="learning-modes-list">
+                    <button class="mode-item" data-mode="single" id="desktop-mode-single">
+                        <div class="mode-icon single-mode">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="mode-info">
+                            <span class="mode-name">Từng câu</span>
+                            <span class="mode-desc">Trả lời từng câu một</span>
+                        </div>
+                    </button>
+                    <button class="mode-item" data-mode="batch" id="desktop-mode-batch">
+                        <div class="mode-icon batch-mode">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="mode-info">
+                            <span class="mode-name">Theo lượt</span>
+                            <span class="mode-desc">Nhiều câu mỗi lượt</span>
+                        </div>
+                    </button>
+                    <button class="mode-item" data-mode="battle" id="desktop-mode-battle">
+                        <div class="mode-icon battle-mode">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="mode-info">
+                            <span class="mode-name">Đối kháng</span>
+                            <span class="mode-desc">Thi đấu với bạn bè</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="quiz-main-content">
+            <!-- Header -->
+            <header class="quiz-desktop-header">
+                <div class="header-left">
+                    <h1 class="page-title">
+                        <i class="fas fa-question-circle text-blue-500"></i>
+                        Học Quiz
+                    </h1>
+                    <p class="page-subtitle">Khám phá và luyện tập các bộ câu hỏi</p>
+                </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Tìm kiếm bộ quiz..." id="desktop-search-input">
+                        <kbd>Ctrl+K</kbd>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Tabs -->
+            <div class="content-tabs">
+                <button class="content-tab active" data-tab="my" id="desktop-tab-my">
+                    <i class="fas fa-user"></i>
+                    Của tôi
+                </button>
+                <button class="content-tab" data-tab="learning" id="desktop-tab-learning">
+                    <i class="fas fa-book-reader"></i>
+                    Đang học
+                </button>
+                <button class="content-tab" data-tab="explore" id="desktop-tab-explore">
+                    <i class="fas fa-compass"></i>
+                    Khám phá
+                </button>
+            </div>
+
+            <!-- Sets Grid -->
+            <div class="sets-grid-container">
+                <div class="desktop-sets-grid" id="desktop-sets-grid">
+                    <!-- Sets will be loaded dynamically -->
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Đang tải bộ quiz...</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="desktop-pagination" id="desktop-pagination">
+                    <!-- Pagination will be rendered here -->
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Set Detail Slide Panel -->
+<div class="panel-overlay" id="panel-overlay"></div>
+<div class="set-detail-panel" id="set-detail-panel">
+    <div class="quiz-detail-hero js-desktop-detail-cover">
+        <i class="fas fa-question-circle"></i>
+    </div>
+    <div class="quiz-detail-content">
+        <button class="step-back-btn js-close-panel" style="position: absolute; top: 1rem; left: 1rem;">
+            <i class="fas fa-times"></i>
+        </button>
+        <h1 class="quiz-detail-title js-desktop-detail-title">Tên bộ quiz</h1>
+        <div class="quiz-creator-inline">
+            <div class="quiz-creator-avatar-small js-desktop-creator-avatar">A</div>
+            <span class="quiz-creator-name-small js-desktop-creator-name">Admin</span>
+        </div>
+        <p class="quiz-detail-desc js-desktop-detail-desc">Mô tả bộ quiz...</p>
+
+        <div class="quiz-detail-stats">
+            <div class="quiz-stat">
+                <div class="quiz-stat-value js-desktop-question-count">0</div>
+                <div class="quiz-stat-label">Câu hỏi</div>
+            </div>
+            <div class="quiz-stat">
+                <div class="quiz-stat-value quiz-stat-count js-desktop-progress-count">0/0</div>
+                <div class="quiz-stat-label">Đã học</div>
+            </div>
+        </div>
+
+        <!-- Mode Selection in Panel -->
+        <h3 class="font-bold text-slate-700 mb-3">Chọn chế độ học</h3>
+        <div class="js-desktop-modes-container">
+            <!-- Modes will be loaded here -->
+        </div>
+
+        <!-- Session Config -->
+        <div class="config-card mt-4">
+            <div class="flex justify-between items-center">
+                <div class="config-header">
+                    <i class="fas fa-sort-numeric-up"></i> Số lượng: <span id="desktop-limit-status-text"
+                        class="text-blue-500 font-semibold">Tất cả</span>
+                </div>
+                <label class="flex items-center cursor-pointer">
+                    <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                    <div class="relative">
+                        <input type="checkbox" id="desktop-limit-toggle" class="sr-only">
+                        <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                        <div
+                            class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                        </div>
+                    </div>
+                </label>
+            </div>
+            <div id="desktop-limit-options" class="hidden mt-3">
+                <select id="desktop-session-size-select" class="session-size-select w-full">
+                    <option value="5">5 câu</option>
+                    <option value="10" selected>10 câu</option>
+                    <option value="20">20 câu</option>
+                    <option value="30">30 câu</option>
+                    <option value="50">50 câu</option>
+                    <option value="100">100 câu</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="quiz-start-btn js-desktop-start-session mt-4" disabled>
+            <i class="fas fa-play-circle"></i> Bắt đầu học
+        </button>
+    </div>
+</div>
