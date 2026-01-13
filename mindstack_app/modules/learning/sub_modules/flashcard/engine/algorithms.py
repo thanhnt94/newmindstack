@@ -19,6 +19,7 @@ from flask import current_app
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.utils.search import apply_search_filter
 from .config import FlashcardLearningConfig
+from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
 import random
 
 
@@ -392,6 +393,11 @@ def get_hard_items(user_id, container_id, session_size):
         UserItemMarker.marker_type == 'difficult'
     )
 
+    # [NEW] Customizable "Hard" Logic
+    min_streak = MemoryPowerConfigService.get('HARD_ITEM_MIN_INCORRECT_STREAK', 3)
+    max_reps = MemoryPowerConfigService.get('HARD_ITEM_MAX_REPETITIONS', 10)
+    low_mastery = MemoryPowerConfigService.get('HARD_ITEM_LOW_MASTERY_THRESHOLD', 0.3)
+
     hard_items_query = base_items_query.outerjoin(
         LearningProgress,
         and_(
@@ -402,9 +408,15 @@ def get_hard_items(user_id, container_id, session_size):
     ).filter(
         or_(
             LearningProgress.status == 'hard',
-            LearningProgress.mastery < 0.5,
-            LearningProgress.incorrect_streak >= 2,
-            LearningItem.item_id.in_(user_difficult_subquery)  # [NEW] Include user marked
+            # Case 1: Wrong multiple times in a row
+            LearningProgress.incorrect_streak >= min_streak,
+            # Case 2: Learned many times but still low mastery (stuck)
+            and_(
+                LearningProgress.repetitions > max_reps,
+                LearningProgress.mastery < low_mastery
+            ),
+            # Case 3: Manually marked
+            LearningItem.item_id.in_(user_difficult_subquery)
         )
     )
     

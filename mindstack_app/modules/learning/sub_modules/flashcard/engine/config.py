@@ -12,6 +12,7 @@ class FlashcardLearningConfig:
 
     # Định nghĩa các chế độ học Flashcard
     # THAY ĐỔI: Thêm chế độ học "Học và ôn tập" lên đầu danh sách
+    
     FLASHCARD_MODES = [
         {'id': 'mixed_srs', 'name': 'Học tập tuần tự', 'algorithm_func_name': 'get_mixed_items'},
         {'id': 'new_only', 'name': 'Chỉ học thẻ mới', 'algorithm_func_name': 'get_new_only_items'},

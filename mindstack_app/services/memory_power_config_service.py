@@ -73,6 +73,11 @@ class MemoryPowerConfigService:
         'SRS_INCORRECT_PENALTY_HIGH_MASTERY': 0.15,  # Penalty when mastery > 0.7
         'SRS_INCORRECT_PENALTY_LOW_MASTERY': 0.20,   # Penalty when mastery <= 0.7
         'SRS_INCORRECT_MIN_MASTERY': 0.10,
+
+        # === Hard Item Logic ===
+        'HARD_ITEM_MIN_INCORRECT_STREAK': 3,
+        'HARD_ITEM_MAX_REPETITIONS': 10,
+        'HARD_ITEM_LOW_MASTERY_THRESHOLD': 0.3,
     }
 
     # Setting descriptions for UI - DETAILED Vietnamese explanations
@@ -176,6 +181,16 @@ Mặc định: 0.20 = -20% mỗi lần sai. Thẻ chưa thuộc → phạt nặn
 
         'SRS_INCORRECT_MIN_MASTERY': '''Mastery TỐI THIỂU sau khi bị phạt.
 Mặc định: 0.10 = 10%. Mastery không bao giờ xuống dưới mức này.''',
+
+        # Hard Logic
+        'HARD_ITEM_MIN_INCORRECT_STREAK': '''Số lần trả lời SAI liên tiếp để coi là "Từ khó".
+Mặc định: 3. Nếu sai 3 lần liền -> vào danh sách Hard.''',
+
+        'HARD_ITEM_MAX_REPETITIONS': '''Số lần học tối thiểu để kiểm tra xem có bị "kẹt" không.
+Mặc định: 10. Nếu đã học > 10 lần mà Mastery vẫn thấp -> coi là khó.''',
+
+        'HARD_ITEM_LOW_MASTERY_THRESHOLD': '''Ngưỡng Mastery thấp để xác định thẻ "học mãi không vào".
+Mặc định: 0.3 (30%). Nếu Reps > 10 và Mastery < 30% -> vào danh sách Hard.''',
     }
 
     # Data types for form rendering
@@ -205,6 +220,9 @@ Mặc định: 0.10 = 10%. Mastery không bao giờ xuống dưới mức này.'
         'SRS_INCORRECT_PENALTY_HIGH_MASTERY': 'float',
         'SRS_INCORRECT_PENALTY_LOW_MASTERY': 'float',
         'SRS_INCORRECT_MIN_MASTERY': 'float',
+        'HARD_ITEM_MIN_INCORRECT_STREAK': 'int',
+        'HARD_ITEM_MAX_REPETITIONS': 'int',
+        'HARD_ITEM_LOW_MASTERY_THRESHOLD': 'float',
     }
 
     # Group settings for UI display
@@ -262,6 +280,15 @@ Mặc định: 0.10 = 10%. Mastery không bao giờ xuống dưới mức này.'
                 'SRS_INCORRECT_PENALTY_HIGH_MASTERY',
                 'SRS_INCORRECT_PENALTY_LOW_MASTERY',
                 'SRS_INCORRECT_MIN_MASTERY',
+            ],
+        },
+        'hard_items': {
+            'label': 'Cấu hình Thẻ Khó',
+            'icon': 'fas fa-exclamation-triangle',
+            'keys': [
+                'HARD_ITEM_MIN_INCORRECT_STREAK',
+                'HARD_ITEM_MAX_REPETITIONS',
+                'HARD_ITEM_LOW_MASTERY_THRESHOLD',
             ],
         },
     }
