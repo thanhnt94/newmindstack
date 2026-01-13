@@ -23,8 +23,7 @@
     (function () {
         window.addEventListener('content-management:refresh', function (event) {
             const detail = event?.detail || {};
-            if (detail.scope === 'quiz-item' && Number(detail.setId || detail.containerId) === {{ quiz_set.container_id }
-        }) {
+            if (detail.scope === 'quiz-item' && Number(detail.setId || detail.containerId) === {{ quiz_set.container_id }}) {
             window.location.reload();
         }
     });
