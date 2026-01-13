@@ -1,97 +1,468 @@
-{# Desktop Interface #}
+{# Desktop Interface (Standard Layout) #}
 <div class="flashcard-desktop-view">
     <div class="page-shell">
-        <div class="session-layout">
-            <div class="flashcard-wrapper">
-                <div class="card-surface">
-                    <div class="flashcard-panel">
-                        <div class="js-flashcard-content">
-                            <div
-                                class="flex flex-col items-center justify-center h-full text-emerald-500 min-h-[300px]">
-                                <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                                <p>Đang tải thẻ...</p>
+        <!-- Header - Context Bar -->
+        <div class="fc-header">
+            <div class="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
+                {# Left: Title & Badge #}
+                <div class="flex items-center gap-3">
+                    <span
+                        class="px-2.5 py-1 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg text-xs font-bold uppercase tracking-wide shadow-sm">
+                        Flashcard
+                    </span>
+                    <h1 class="text-lg font-bold text-slate-800 truncate max-w-md" title="{{ container_name }}">
+                        {{ container_name }}
+                    </h1>
+                </div>
+
+                {# Right: Actions & Navigation #}
+                <div class="flex items-center gap-2">
+                    <button
+                        class="w-9 h-9 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors js-fc-audio-btn"
+                        title="Phát âm thanh">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+
+                    <div class="relative inline-block">
+                        <button
+                            class="w-9 h-9 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors js-fc-settings-toggle"
+                            title="Cài đặt">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <!-- Settings Menu -->
+                        <div class="fc-settings-menu js-fc-settings-menu z-50">
+                            <button class="fc-settings-item js-fc-image-toggle">
+                                <i class="fas fa-image js-fc-image-icon"></i>
+                                <span class="js-fc-image-text">Hiện ảnh</span>
+                            </button>
+                            <button class="fc-settings-item js-fc-autoplay-toggle">
+                                <i class="fas fa-play js-fc-autoplay-icon"></i>
+                                <span class="js-fc-autoplay-text">Tự động phát</span>
+                            </button>
+                            <button class="fc-settings-item open-feedback-modal-btn js-fc-feedback-btn">
+                                <i class="fas fa-flag"></i>
+                                <span>Báo lỗi thẻ</span>
+                            </button>
+                            <button class="fc-settings-item edit-card-btn js-fc-edit-btn">
+                                <i class="fas fa-pencil-alt"></i>
+                                <span>Sửa thẻ</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="h-6 w-px bg-slate-200 mx-1"></div>
+
+                    <a href="/"
+                        class="w-9 h-9 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors"
+                        title="Về trang chủ">
+                        <i class="fas fa-home"></i>
+                    </a>
+
+                    <button onclick="showExitModal()"
+                        class="w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-colors"
+                        title="Thoát phiên học">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+            {# Progress Line #}
+            <div class="h-1 bg-slate-100 w-full relative">
+                <div class="absolute top-0 left-0 h-full bg-emerald-500 js-fc-progress-fill transition-all duration-300"
+                    style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="session-layout flex-row items-stretch h-full overflow-hidden">
+            <!-- LEFT: Main Flashcard Area -->
+            <div class="flex-1 flex flex-col relative bg-slate-50/50">
+                <div class="flashcard-wrapper flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
+                    <div class="card-surface w-full max-w-3xl aspect-[4/3] max-h-[70vh] flex flex-col">
+                        <div class="flashcard-panel flex-1 relative">
+                            <div class="js-flashcard-content h-full">
+                                <div class="flex flex-col items-center justify-center h-full text-emerald-500">
+                                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                                    <p>Đang tải thẻ...</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="js-flashcard-buttons mt-3"></div>
+                    </div>
+                </div>
+
+                <!-- Control Bar (Inline) -->
+                <div class="fc-desktop-controls w-full max-w-3xl mx-auto px-8 pb-8 flex flex-col items-center gap-4">
+                    <!-- Flip Button -->
+                    <button class="fc-flip-btn js-fc-flip-btn w-full max-w-sm">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Lật thẻ (Space)</span>
+                    </button>
+
+                    <!-- Rating Buttons (Hidden by default) -->
+                    <div class="fc-rating-btns js-fc-rating-btns w-full max-w-2xl" id="desktop-rating-btns">
+                        <!-- Buttons generated via JS -->
                     </div>
                 </div>
             </div>
-            <div class="desktop-stats-container">
-                {# =============================== #}
-                {# File: mindstack_app/modules/learning/flashcard_learning/templates/_flashcard_session_stats.html #}
-                {# Phiên bản: 3.0 #}
-                {# MỤC ĐÍCH: Thiết kế lại bảng thống kê phiên Flashcard với giao diện hiện đại, giàu thông tin và hạn
-                chế phải
-                cuộn. #}
-                {# =============================== #}
 
+            <!-- RIGHT: Sidebar Stats -->
+            <div
+                class="desktop-sidebar w-[380px] bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden shadow-xl shadow-slate-200/50 z-10">
 
-
-                <div class="statistics-card" id="stats-content-desktop">
-                    <div class="statistics-card__header">
-                        <div>
-                            <span class="statistics-card__subtitle">Phiên học Flashcard</span>
-                            <div class="flex items-center gap-2">
-                                <h3 class="statistics-card__title">Thống kê thời gian thực</h3>
-                                <button class="text-slate-400 hover:text-blue-500 transition-colors js-open-info-modal"
-                                    title="Thông tin phiên">
-                                    <i class="fas fa-info-circle"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <span class="statistics-card__badge"><i class="fas fa-bolt"></i> Đang cập nhật</span>
-                    </div>
-
-                    <div class="session-overview">
-                        <div class="summary-card summary-card--total">
-                            <span class="summary-card__label">Tổng điểm</span>
-                            <div id="total-score-display" class="summary-card__value">
-                                <i class="fas fa-gem text-emerald-500"></i>
-                                <span>-</span>
-                            </div>
-                            <p class="summary-card__hint">Cộng dồn toàn bộ điểm Flashcard</p>
-                        </div>
-                        <div class="summary-card summary-card--session">
-                            <span class="summary-card__label">Điểm phiên này</span>
-                            <div id="session-score-display" class="summary-card__value summary-card__value--accent">+0
-                            </div>
-                            <p class="summary-card__hint">Cập nhật sau mỗi câu trả lời</p>
-                        </div>
-                    </div>
-
-                    <div class="stats-tab-nav">
-                        <button class="stats-tab-button active" data-target="current-card-stats-pane"><i
-                                class="fas fa-dot-circle"></i>
-                            Thẻ hiện tại</button>
-                        <button class="stats-tab-button" data-target="previous-card-stats-pane"><i
-                                class="fas fa-history"></i> Thẻ
-                            trước
-                            đó</button>
-                    </div>
-
-                    <div class="stats-tab-content">
-                        <div id="current-card-stats-pane" class="stats-tab-pane active">
-                            <div id="current-card-stats" class="stats-stack">
-                                <div class="empty-state"><i class="fas fa-circle-notch fa-spin"></i> Đang tải thông tin
-                                    thẻ...</div>
-                            </div>
-                        </div>
-                        <div id="previous-card-stats-pane" class="stats-tab-pane">
-                            <div id="previous-card-stats" class="stats-stack">
-                                <div class="empty-state"><i class="fas fa-info-circle"></i> Trả lời thẻ để xem thống kê
-                                    gần nhất.</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="statistics-card__footer">
-                        <button id="end-session-btn" class="session-end-btn" onclick="showExitModal()"><i
-                                class="fas fa-flag-checkered"></i>
-                            <span>Kết thúc
-                                phiên</span></button>
-                    </div>
+                <!-- Sidebar Header -->
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-emerald-500"></i>
+                        Thống kê phiên
+                    </h3>
                 </div>
+
+                <!-- Stats Scroll Area -->
+                <div class="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+
+                    <!-- Score Cards -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div
+                            class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center group hover:border-blue-200 transition-colors">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tổng
+                                điểm</span>
+                            <div
+                                class="text-2xl font-black text-blue-600 flex items-center gap-2 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-gem text-blue-400 text-lg"></i>
+                                <span class="js-fc-score">-</span>
+                            </div>
+                        </div>
+                        <div
+                            class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center group hover:border-emerald-200 transition-colors">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Phiên
+                                này</span>
+                            <div
+                                class="text-2xl font-black text-emerald-600 flex items-center gap-1 group-hover:scale-110 transition-transform">
+                                <span class="js-fc-session-score">+0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Session Progress -->
+                    <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Tiến độ</span>
+                            <span class="text-sm font-bold text-emerald-600 js-fc-progress-text">0/0</span>
+                        </div>
+                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-emerald-500 js-fc-progress-fill transition-all duration-500 rounded-full"
+                                style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between mt-3 text-xs text-slate-400">
+                            <div class="flex items-center gap-1">
+                                <i class="fas fa-check text-emerald-500"></i>
+                                <span class="js-fc-session-correct font-bold text-slate-600">0</span> đúng
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <i class="fas fa-times text-rose-500"></i>
+                                <span class="js-fc-session-incorrect font-bold text-slate-600">0</span> sai
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- History -->
+                    <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fas fa-history text-slate-400 text-sm"></i>
+                            <span class="text-xs font-bold text-slate-500 uppercase">Lịch sử gần đây</span>
+                        </div>
+                        <div id="session-history-icons-desktop" class="flex flex-wrap gap-2">
+                            <span class="text-xs text-slate-300 italic">Chưa có dữ liệu</span>
+                        </div>
+                    </div>
+
+                    <!-- Item Stats (Tabbed) -->
+                    <div class="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                        <!-- Tabs -->
+                        <div class="flex p-1 bg-slate-50/80 border-b border-slate-100">
+                            <button
+                                class="stats-mobile-tab active flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-white transition-all"
+                                data-target="current-card-stats-pane-desktop">
+                                Thẻ hiện tại
+                            </button>
+                            <button
+                                class="stats-mobile-tab flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-white transition-all"
+                                data-target="previous-card-stats-pane-desktop">
+                                Thẻ trước
+                            </button>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="p-4 bg-white min-h-[200px]">
+                            <div id="current-card-stats-pane-desktop" class="stats-mobile-pane active space-y-4">
+                                <div id="current-card-stats-desktop">
+                                    <div class="flex flex-col items-center justify-center h-full py-8 text-slate-300">
+                                        <i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i>
+                                        <p class="text-xs">Đang tải thống kê...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="previous-card-stats-pane-desktop" class="stats-mobile-pane hidden space-y-4">
+                                <div id="previous-card-stats-desktop">
+                                    <div class="flex flex-col items-center justify-center h-full py-8 text-slate-300">
+                                        <i class="far fa-clock text-2xl mb-2"></i>
+                                        <p class="text-xs">Chưa có thẻ trước đó</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- End Session Button -->
+                <div class="p-4 border-t border-slate-100 bg-white">
+                    <button id="end-session-desktop-btn" onclick="showExitModal()"
+                        class="w-full bg-slate-50 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 group">
+                        <i class="fas fa-flag-checkered group-hover:rotate-12 transition-transform"></i>
+                        Kết thúc phiên học
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        // --- 1. Rating Button Logic ---
+        function generateDesktopRatingButtons() {
+            const container = document.getElementById('desktop-rating-btns');
+            if (!container) return;
+
+            const buttonCount = window.userButtonCount || 3;
+            // Define button sets (reuse logic, simplified styles for desktop)
+            const buttonSets = {
+                3: [
+                    { cssClass: 'again', value: '1', label: 'Quên (1)', icon: 'fas fa-times', color: 'bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-200' },
+                    { cssClass: 'hard', value: '2', label: 'Mơ hồ (2)', icon: 'fas fa-question', color: 'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200' },
+                    { cssClass: 'good', value: '3', label: 'Nhớ (3)', icon: 'fas fa-check', color: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200' }
+                ],
+                4: [
+                    { cssClass: 'again', value: '1', label: 'Học lại', icon: 'fas fa-undo', color: 'bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-200' },
+                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire', color: 'bg-orange-50 text-orange-600 hover:bg-orange-100 border-orange-200' },
+                    { cssClass: 'good', value: '3', label: 'Ổn', icon: 'fas fa-thumbs-up', color: 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200' },
+                    { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-smile', color: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-200' }
+                ],
+                // Add 6 buttons if needed
+                6: [
+                    { cssClass: 'again', value: '1', label: 'Rất khó', icon: 'fas fa-exclamation-circle', color: 'bg-rose-50 text-rose-600' },
+                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire', color: 'bg-orange-50 text-orange-600' },
+                    { cssClass: 'medium', value: '3', label: 'TB', icon: 'fas fa-adjust', color: 'bg-amber-50 text-amber-600' },
+                    { cssClass: 'good', value: '4', label: 'Dễ', icon: 'fas fa-leaf', color: 'bg-green-50 text-green-600' },
+                    { cssClass: 'easy', value: '5', label: 'Rất dễ', icon: 'fas fa-thumbs-up', color: 'bg-emerald-50 text-emerald-600' },
+                    { cssClass: 'veryeasy', value: '6', label: 'Dễ dàng', icon: 'fas fa-star', color: 'bg-indigo-50 text-indigo-600' }
+                ]
+            };
+
+            const buttons = buttonSets[buttonCount] || buttonSets[3];
+
+            // Generate buttons with new desktop styling
+            container.innerHTML = buttons.map(btn =>
+                `<button class="desktop-rating-btn js-rating-btn ${btn.cssClass} flex-1 py-3 px-4 rounded-xl border font-bold transition-all shadow-sm hover:shadow-md active:scale-95 flex flex-col items-center gap-1 ${btn.color || 'bg-white border-slate-200'}" data-rating="${btn.value}">
+                    <i class="${btn.icon} text-lg mb-0.5"></i>
+                    <span class="text-sm uppercase tracking-wide">${btn.label}</span>
+                </button>`
+            ).join('');
+        }
+
+        // --- 2. Stats & History Rendering (Copied/Adapted from mobile logic) ---
+        function renderSessionHistoryListDesktop() {
+            const container = document.getElementById('session-history-icons-desktop');
+            if (!container) return;
+
+            const history = window.sessionAnswerHistory || [];
+            if (history.length === 0) {
+                container.innerHTML = `<span class="text-xs text-slate-300 italic">Chưa có dữ liệu</span>`;
+                return;
+            }
+
+            const iconsHtml = history.map((item, index) => {
+                const isCorrect = item.scoreChange > 0;
+                const isWrong = item.scoreChange < 0;
+                const colorClass = isCorrect ? 'bg-emerald-500' : (isWrong ? 'bg-rose-500' : 'bg-slate-400');
+                const icon = isCorrect ? 'fa-check' : (isWrong ? 'fa-times' : 'fa-minus');
+                const num = index + 1;
+                const scoreText = item.scoreChange > 0 ? `+${item.scoreChange}` : item.scoreChange;
+
+                // Tooltip data attributes
+                return `<span class="history-icon w-8 h-8 rounded-lg ${colorClass} flex items-center justify-center cursor-help transition-transform hover:scale-110 shadow-sm"
+                    data-num="${num}"
+                    data-front="${item.front.replace(/"/g, '&quot;')}"
+                    data-answer="${item.answer}"
+                    data-score="${scoreText}"
+                    data-time="${item.timestamp}"
+                    onclick="showDesktopTooltip(this)">
+                    <i class="fas ${icon} text-white text-xs"></i>
+                </span>`;
+            }).join('');
+            container.innerHTML = iconsHtml;
+        }
+
+        // Global function for tooltip (exposed to window for onclick)
+        window.showDesktopTooltip = function (iconEl) {
+            // Remove existing
+            const existing = document.querySelector('.desktop-history-tooltip');
+            if (existing) existing.remove();
+
+            const front = iconEl.dataset.front;
+            const score = iconEl.dataset.score;
+            const scoreClass = score.startsWith('+') ? 'text-emerald-600' : (score.startsWith('-') ? 'text-rose-600' : 'text-slate-500');
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'desktop-history-tooltip fixed z-[100] bg-white rounded-xl shadow-xl border border-slate-200 p-4 w-64 text-sm pointer-events-none animation-fade-in-up';
+            tooltip.style.opacity = '0';
+            tooltip.innerHTML = `
+                <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-100">
+                    <span class="font-bold text-slate-400">#${iconEl.dataset.num}</span>
+                    <span class="font-black ${scoreClass}">${score} điểm</span>
+                </div>
+                <div class="font-medium text-slate-800 mb-1 line-clamp-2">${front}</div>
+                <div class="text-slate-500 text-xs">Đáp án: <span class="font-semibold">${iconEl.dataset.answer}</span></div>
+            `;
+
+            document.body.appendChild(tooltip);
+
+            // Positioning using Popper-like logic
+            const rect = iconEl.getBoundingClientRect();
+            tooltip.style.left = (rect.left - 110) + 'px'; // Center-ish
+            tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+            tooltip.style.opacity = '1';
+
+            // Auto remove after 3s or next click
+            setTimeout(() => tooltip.remove(), 3000);
+        };
+
+        function updateDesktopUI(stats) {
+            if (!stats) return;
+
+            // 1. Progress Bar
+            if (stats.total > 0) {
+                const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
+                document.querySelectorAll('.js-fc-progress-fill').forEach(el => el.style.width = percent + '%');
+                document.querySelectorAll('.js-fc-progress-text').forEach(el => el.textContent = `${stats.processed}/${stats.total}`);
+            }
+
+            // 2. Score & Session Stats
+            document.querySelectorAll('.js-fc-session-score').forEach(el => el.textContent = (stats.session_score > 0 ? '+' : '') + (stats.session_score || 0));
+            document.querySelectorAll('.js-fc-session-correct').forEach(el => el.textContent = stats.correct || 0);
+            document.querySelectorAll('.js-fc-session-incorrect').forEach(el => el.textContent = (stats.incorrect || 0) + (stats.vague || 0));
+
+            if (typeof window.currentUserTotalScore !== 'undefined') {
+                document.querySelectorAll('.js-fc-score').forEach(el => el.textContent = parseInt(window.currentUserTotalScore).toLocaleString());
+            }
+
+            // 3. Update History List
+            renderSessionHistoryListDesktop();
+        }
+
+
+        // --- Initialization ---
+        function initDesktop() {
+            // 1. Generate Rating Buttons
+            if (typeof window.userButtonCount !== 'undefined') {
+                generateDesktopRatingButtons();
+                setupRatingHandlers();
+            } else {
+                setTimeout(initDesktop, 100);
+                return;
+            }
+
+            // 2. Setup Settings Toggles (Dropdown)
+            const settingsToggle = document.querySelector('.js-fc-settings-toggle');
+            const settingsMenu = document.querySelector('.js-fc-settings-menu');
+            if (settingsToggle && settingsMenu) {
+                settingsToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    settingsMenu.classList.toggle('show');
+                });
+                document.addEventListener('click', () => settingsMenu.classList.remove('show'));
+            }
+
+            // 3. Tab Switching for Sidebar
+            const tabs = document.querySelectorAll('.stats-mobile-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Deactivate all
+                    tabs.forEach(t => t.classList.remove('active', 'bg-white', 'text-indigo-600', 'shadow-sm'));
+                    document.querySelectorAll('.stats-mobile-pane').forEach(p => p.classList.add('hidden'));
+
+                    // Activate clicked
+                    tab.classList.add('active', 'bg-white', 'text-indigo-600', 'shadow-sm');
+                    const targetId = tab.dataset.target;
+                    const targetPane = document.getElementById(targetId);
+                    if (targetPane) targetPane.classList.remove('hidden');
+                });
+            });
+        }
+
+        function setupRatingHandlers() {
+            const flipBtn = document.querySelector('.js-fc-flip-btn');
+            const ratingContainer = document.querySelector('.js-fc-rating-btns');
+
+            document.querySelectorAll('.js-rating-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const rating = btn.dataset.rating;
+                    // Map rating to value (Simplified map for demo, reuse logic from mobile if strict match needed)
+                    // assuming standard map 1-3 or 1-4
+                    const buttonCount = window.userButtonCount || 3;
+                    let answerValue = 'good';
+                    if (buttonCount === 3) {
+                        const map = { '1': 'quên', '2': 'mơ_hồ', '3': 'nhớ' };
+                        answerValue = map[rating];
+                    } else if (buttonCount === 4) {
+                        const map = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
+                        answerValue = map[rating];
+                    }
+
+                    if (window.submitFlashcardAnswer && window.currentFlashcardBatch) {
+                        const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
+                        if (card) window.submitFlashcardAnswer(card.item_id, answerValue);
+                    }
+
+                    // Visual Reset handled by event loop
+                });
+            });
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('flashcardStatsUpdated', (e) => {
+            updateDesktopUI(e.detail);
+            // Reset card UI state
+            const flipBtn = document.querySelector('.js-fc-flip-btn');
+            const ratingContainer = document.querySelector('.js-fc-rating-btns');
+            if (flipBtn) flipBtn.style.display = 'flex';
+            if (ratingContainer) ratingContainer.classList.remove('show');
+        });
+
+        // Keyboard Shortcut for Flip
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                // Only if flip button is visible
+                const flipBtn = document.querySelector('.js-fc-flip-btn');
+
+                // If we are in preview mode (Tiếp tục button logic removed), 
+                // we might need Space to advance if there is NO button?
+                // But user asked to remove "Tiếp tục".
+                // If Flip button is present, click it.
+                if (flipBtn && flipBtn.offsetParent !== null) {
+                    e.preventDefault();
+                    flipBtn.click();
+                }
+            }
+        });
+
+        // Initialize
+        initDesktop();
+        // Initial Stats Load
+        setTimeout(() => {
+            if (window.flashcardSessionStats) updateDesktopUI(window.flashcardSessionStats);
+        }, 500);
+
+    })();
+</script>
