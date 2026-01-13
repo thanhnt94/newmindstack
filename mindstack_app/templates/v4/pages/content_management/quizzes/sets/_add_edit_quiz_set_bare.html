@@ -166,6 +166,19 @@
                             <p class="text-xs text-gray-500 mt-0.5" data-role="excel-file-meta"></p>
                         </div>
                     </div>
+
+                    <!-- Column Analysis Report -->
+                    <div class="bg-white border border-gray-200 shadow-sm rounded-xl p-3 hidden space-y-2"
+                        data-role="excel-analysis-report">
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Kết quả phân tích</h4>
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium"
+                                data-role="column-count"></span>
+                        </div>
+                        <div data-role="analysis-grid" class="space-y-2 text-sm">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
                     <p class="text-sm hidden text-center font-medium" data-role="excel-status"></p>
                 </div>
 
@@ -346,6 +359,8 @@
         const fileMetaLabel = form.querySelector('[data-role="excel-file-meta"]');
         const clearButton = form.querySelector('[data-role="excel-clear"]');
         const statusLabel = form.querySelector('[data-role="excel-status"]');
+        const analysisReport = form.querySelector('[data-role="excel-analysis-report"]');
+        const analysisGrid = form.querySelector('[data-role="analysis-grid"]');
         const csrfInput = form.querySelector('input[name="csrf_token"]');
         const csrfToken = csrfInput ? csrfInput.value : '';
 
@@ -381,7 +396,10 @@
             if (placeholder) placeholder.classList.remove('hidden');
             if (summaryBox) summaryBox.classList.add('hidden');
             if (clearButton) clearButton.classList.add('hidden');
-            if (dropZone) dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50');
+            if (dropZone) {
+                dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50', 'hidden');
+            }
+            if (analysisReport) analysisReport.classList.add('hidden');
 
             if (!keepStatus && statusLabel) {
                 statusLabel.textContent = '';
@@ -400,6 +418,58 @@
                 if (file.lastModified) metaParts.push(`Chỉnh sửa lần cuối ${formatDate(file.lastModified)}`);
                 fileMetaLabel.textContent = metaParts.join(' · ');
             }
+        };
+
+        const renderAnalysis = (analysis) => {
+            if (!analysisReport || !analysisGrid) return;
+
+            if (!analysis) {
+                analysisReport.classList.add('hidden');
+                return;
+            }
+            analysisReport.classList.remove('hidden');
+            let html = '';
+
+            if (!analysis.success) {
+                const errorMsg = analysis.error || 'Lỗi không xác định khi đọc cột.';
+                html = `<div class="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-2"><i class="fas fa-times-circle"></i><span><strong>Lỗi phân tích:</strong> ${errorMsg}</span></div>`;
+                analysisGrid.innerHTML = html;
+                return;
+            }
+
+            if (analysis.missing_required && analysis.missing_required.length > 0) {
+                html += `<div class="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-start gap-2"><i class="fas fa-exclamation-triangle mt-0.5"></i><div><strong>Thiếu cột bắt buộc:</strong> ${analysis.missing_required.join(', ')}<p class="text-[10px] mt-0.5 opacity-80">File sẽ không thể trích xuất nếu thiếu các cột này.</p></div></div>`;
+            } else {
+                html += `<div class="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center gap-2"><i class="fas fa-check-circle"></i><span>Đủ cột bắt buộc (Option A/B, Correct Answer).</span></div>`;
+            }
+
+            if (analysis.standard_columns && analysis.standard_columns.length > 0) {
+                html += `<div class="flex flex-col gap-1 mt-2"><span class="text-xs text-gray-500 font-medium">Cột tiêu chuẩn (đã khớp):</span><div class="flex flex-wrap gap-1">`;
+                analysis.standard_columns.forEach(col => {
+                    html += `<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs border border-green-200">${col}</span>`;
+                });
+                html += `</div></div>`;
+            }
+
+            if (analysis.ai_columns && analysis.ai_columns.length > 0) {
+                html += `<div class="flex flex-col gap-1 mt-2"><span class="text-xs text-gray-500 font-medium">Cột AI:</span><div class="flex flex-wrap gap-1">`;
+                analysis.ai_columns.forEach(col => {
+                    html += `<span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs border border-purple-200">${col}</span>`;
+                });
+                html += `</div></div>`;
+            }
+
+            if (analysis.custom_columns && analysis.custom_columns.length > 0) {
+                html += `<div class="flex flex-col gap-1 pt-2 mt-2 border-t border-dashed border-gray-200"><div class="flex justify-between items-center"><span class="text-xs text-blue-600 font-bold">Custom Data (Sẽ được lưu):</span><span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded-full">${analysis.custom_columns.length}</span></div><div class="flex flex-wrap gap-1">`;
+                analysis.custom_columns.forEach(col => {
+                    html += `<span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs border border-blue-100">${col}</span>`;
+                });
+                html += `</div></div>`;
+            } else {
+                html += `<div class="flex flex-col gap-1 pt-2 mt-2 border-t border-dashed border-gray-200"><span class="text-xs text-gray-400">Không tìm thấy cột Custom nào.</span></div>`;
+            }
+
+            analysisGrid.innerHTML = html;
         };
 
         const populateFormFields = (data = {}) => {
@@ -447,7 +517,9 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    populateFormFields(result.data || {});
+                    const data = result.data || {};
+                    populateFormFields(data.data || {});
+                    renderAnalysis(data.analysis);
                     showStatus(result.message || 'Đã điền thông tin từ file Excel.', 'success');
                 } else {
                     showStatus(result.message || 'Không thể đọc sheet Info từ file.', 'error');
@@ -477,7 +549,9 @@
             if (placeholder) placeholder.classList.add('hidden');
             if (summaryBox) summaryBox.classList.remove('hidden');
             if (clearButton) clearButton.classList.remove('hidden');
-            if (dropZone) dropZone.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50');
+
+            // Hide the drop zone completely when file is selected
+            if (dropZone) dropZone.classList.add('hidden');
 
             updateSummary(file);
             processExcelFile(file);

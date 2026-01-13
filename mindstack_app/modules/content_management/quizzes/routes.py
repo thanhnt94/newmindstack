@@ -1370,6 +1370,9 @@ def process_excel_info():
             except Exception:
                 return error_response("File Excel thiếu sheet 'Data'.", 'BAD_REQUEST', 400)
 
+            # Analyze Columns
+            column_analysis = QuizExcelService.analyze_column_structure(temp_filepath)
+
             if not info_data and info_warnings:
                 message = format_info_warnings(info_warnings)
                 return error_response(message, 'BAD_REQUEST', 400)
@@ -1390,7 +1393,8 @@ def process_excel_info():
                 message += ' ' + format_info_warnings(info_warnings)
                 
             return success_response(message=message, data={
-                'data': normalized_data
+                'data': normalized_data,
+                'analysis': column_analysis
             })
         except Exception as e:
             current_app.logger.error(f"Lỗi khi xử lý sheet Info (Quiz): {e}")

@@ -79,6 +79,50 @@ def parse_shared_components(raw_value) -> set[str]:
 
 class QuizExcelService:
     """Service handling Excel operations for Quiz Content Management."""
+    
+    # Class Constants for Component Analysis
+    SYSTEM_COLUMNS = {'item_id', 'order_in_container', 'action'}
+    STANDARD_COLUMNS = {
+        'question', 'pre_question_text', 
+        'option_a', 'option_b', 'option_c', 'option_d', 
+        'correct_answer_text', 'guidance', 
+        'question_image_file', 'question_audio_file',
+        'group_id', 'group_shared_components', 'group_item_order'
+    }
+    AI_COLUMNS = {'ai_explanation', 'ai_prompt'}
+
+    @classmethod
+    def analyze_column_structure(cls, filepath: str) -> dict:
+        """
+        Phân tích cấu trúc cột của sheet 'Data' trong file Excel.
+        Trả về dictionary phân loại cột.
+        """
+        try:
+            df = pd.read_excel(filepath, sheet_name='Data')
+            columns = set(df.columns)
+            
+            found_standard = [col for col in columns if col in cls.STANDARD_COLUMNS]
+            found_system = [col for col in columns if col in cls.SYSTEM_COLUMNS]
+            found_ai = [col for col in columns if col in cls.AI_COLUMNS]
+            
+            all_known = cls.SYSTEM_COLUMNS | cls.STANDARD_COLUMNS | cls.AI_COLUMNS
+            found_custom = [col for col in columns if col not in all_known]
+            
+            required_cols = {'option_a', 'option_b', 'correct_answer_text'}
+            missing_required = [col for col in required_cols if col not in columns]
+            
+            return {
+                'success': True,
+                'total_columns': len(columns),
+                'standard_columns': sorted(found_standard),
+                'custom_columns': sorted(found_custom),
+                'system_columns': sorted(found_system),
+                'ai_columns': sorted(found_ai),
+                'missing_required': missing_required,
+                'all_columns': sorted(list(columns))
+            }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
 
     @staticmethod
     def resolve_correct_answer_letter(content: dict) -> str:
