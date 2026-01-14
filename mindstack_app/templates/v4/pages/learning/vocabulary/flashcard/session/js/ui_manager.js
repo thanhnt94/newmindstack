@@ -357,6 +357,37 @@ function renderCard(data) {
     if (internalFlipBtn) flipBtns.push(internalFlipBtn);
     if (mobileFlipBtn) flipBtns.push(mobileFlipBtn);
 
+    // [UX] Hide flip buttons initially until content loads
+    flipBtns.forEach(btn => btn.style.display = 'none');
+
+    const showFlipButtons = () => {
+        console.log('[FlipButton] Content loaded, showing buttons');
+        flipBtns.forEach(btn => {
+            btn.style.display = '';
+            // Ensure mobile button has correct display type if originally flex
+            if (btn === mobileFlipBtn) {
+                // Check computed style or just clear inline to let CSS take over? 
+                // Clearing inline is safest if CSS sets it to flex/block.
+                btn.style.removeProperty('display');
+            }
+        });
+    };
+
+    // Check if we need to wait for front image
+    const frontImg = visibleContainer ? visibleContainer.querySelector('.front .media-container img') : null;
+    const shouldWaitForImage = frontImg && !isMediaHidden && !frontImg.complete;
+
+    if (shouldWaitForImage) {
+        console.log('[FlipButton] Waiting for front image to load...');
+        frontImg.onload = () => showFlipButtons();
+        frontImg.onerror = () => showFlipButtons();
+        // Fallback timeout
+        setTimeout(showFlipButtons, 3000);
+    } else {
+        // No image or already loaded -> show after short paint delay
+        setTimeout(showFlipButtons, 50);
+    }
+
     if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
         window.flashcardViewport.refresh();
     }
