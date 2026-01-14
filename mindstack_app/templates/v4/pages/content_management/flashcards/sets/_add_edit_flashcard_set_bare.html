@@ -121,7 +121,7 @@
                     <div data-role="excel-drop-zone" role="button" tabindex="0"
                         class="relative group border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl bg-gray-50 hover:bg-blue-50/30 px-6 py-6 text-center transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
                         <input id="excel_file_input" type="file" name="{{ form.excel_file.name }}" class="hidden"
-                            accept=".xlsx">
+                            accept="{{ flashcard_config.FLASHCARD_ALLOWED_EXTENSIONS if flashcard_config else '.xlsx' }}">
                         <div class="flex items-center justify-center gap-4 pointer-events-none transition-transform group-hover:scale-105"
                             data-role="excel-placeholder">
                             <div class="relative flex-none">
@@ -464,6 +464,8 @@
         const csrfToken = csrfInput ? csrfInput.value : '';
         const availableKeys = {{ available_keys | default (['front', 'back']) | tojson | safe
     }};
+    const flashcardConfig = {{ flashcard_config | default ({}) | tojson | safe }};
+
 
     let currentSettings = {};
 
@@ -984,18 +986,24 @@
         }
 
         const name = file.name ? file.name.toLowerCase() : '';
-        if (!name.endsWith('.xlsx')) {
+        const allowedExtensions = (flashcardConfig['FLASHCARD_ALLOWED_EXTENSIONS'] || '.xlsx').toLowerCase().split(',').map(ext => ext.trim());
+        const isExtensionValid = allowedExtensions.some(ext => name.endsWith(ext));
+
+        if (!isExtensionValid) {
             resetUploadState({ keepStatus: true });
-            showStatus('Định dạng tệp không hợp lệ. Vui lòng chọn file .xlsx.', 'error');
+            showStatus(`Định dạng tệp không hợp lệ. Vui lòng chọn file trong các định dạng: ${allowedExtensions.join(', ')}.`, 'error');
             return;
         }
 
-        const maxSize = 10 * 1024 * 1024; // 10MB
+        const maxFileSizeMB = parseFloat(flashcardConfig['FLASHCARD_UPLOAD_MAX_SIZE_MB'] || 10);
+        const maxSize = maxFileSizeMB * 1024 * 1024;
+
         if (file.size && file.size > maxSize) {
             resetUploadState({ keepStatus: true });
-            showStatus('Dung lượng tệp vượt quá 10MB. Vui lòng tối ưu hoặc tách nhỏ dữ liệu.', 'error');
+            showStatus(`Dung lượng tệp vượt quá ${maxFileSizeMB}MB. Vui lòng tối ưu hoặc tách nhỏ dữ liệu.`, 'error');
             return;
         }
+
 
         if (placeholder) { placeholder.classList.add('hidden'); }
         if (helper) { helper.classList.add('hidden'); }

@@ -72,6 +72,17 @@ audio_service = AudioService()
 image_service = ImageService()
 quiz_audio_service = QuizAudioService()
 
+# [NEW] Quiz Config Service
+from ...services.quiz_config_service import QuizConfigService
+# [NEW] Flashcard Config Service
+from ...services.flashcard_config_service import FlashcardConfigService
+
+
+
+# [NEW] Quiz Config Service
+from ...services.quiz_config_service import QuizConfigService
+
+
 # Danh mục các gói dữ liệu có thể sao lưu/khôi phục
 DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
     {
@@ -2126,7 +2137,7 @@ def fetch_gemini_models_api():
     API nội bộ để lấy danh sách model mới nhất từ Google.
     """
     result = GeminiClient.get_available_models()
-    return success_response(data=result)
+    return jsonify(result)
 
 @admin_bp.route('/settings/fetch-hf-models', methods=['GET'])
 def fetch_hf_models_api():
@@ -2134,7 +2145,7 @@ def fetch_hf_models_api():
     API nội bộ để lấy danh sách model mới nhất từ Hugging Face.
     """
     result = HuggingFaceClient.get_available_models()
-    return success_response(data=result)
+    return jsonify(result)
 
 
 @admin_bp.route('/settings/browse-directories', methods=['GET'])
@@ -2388,3 +2399,102 @@ def reset_srs_config():
     except Exception as e:
         current_app.logger.error(f"Error resetting SRS config: {e}")
         return error_response(f'Lỗi: {str(e)}', 'SERVER_ERROR', 500)
+
+
+# === Quiz Config Routes ===
+
+@admin_bp.route('/content-config', methods=['GET'])
+@login_required
+def content_config_page():
+    """Admin page for managing both Quiz and Flashcard configurations."""
+    if current_user.user_role != 'admin':
+        abort(403)
+        
+    quiz_settings = QuizConfigService.get_grouped()
+    flashcard_settings = FlashcardConfigService.get_grouped()
+    
+    return render_template('admin/content_config.html', 
+                          quiz_settings=quiz_settings,
+                          flashcard_settings=flashcard_settings)
+
+@admin_bp.route('/quiz-config', methods=['GET'])
+@login_required
+def quiz_config_page():
+    """[DEPRECATED] Redirects to combined content config."""
+    return redirect(url_for('admin.content_config_page'))
+
+
+
+@admin_bp.route('/quiz-config/save', methods=['POST'])
+@login_required
+def save_quiz_config():
+    """API to save updated quiz configuration."""
+    if current_user.user_role != 'admin':
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập.'}), 403
+
+    try:
+        data = request.json or {}
+        settings = data.get('settings', {})
+        
+        QuizConfigService.save_all(settings, user_id=current_user.user_id)
+        
+        current_app.logger.info(
+            f"Quiz config updated by {current_user.username}"
+        )
+        
+        return jsonify({'success': True, 'message': 'Cấu hình Quiz đã được lưu thành công!'})
+    except Exception as e:
+        current_app.logger.error(f"Failed to save quiz config: {e}")
+        return jsonify({'success': False, 'message': f'Lỗi khi lưu: {str(e)}'}), 500
+
+
+@admin_bp.route('/quiz-config/reset', methods=['POST'])
+@login_required
+def reset_quiz_config():
+    """API to reset quiz configuration to defaults."""
+    if current_user.user_role != 'admin':
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập.'}), 403
+        
+    try:
+        QuizConfigService.reset_to_defaults(user_id=current_user.user_id)
+        return jsonify({'success': True, 'message': 'Đã khôi phục cài đặt gốc!'})
+    except Exception as e:
+        current_app.logger.error(f"Failed to reset quiz config: {e}")
+        return jsonify({'success': False, 'message': f'Lỗi khi reset: {str(e)}'}), 500
+# ==========================================
+# [NEW] Flashcard Configuration Routes
+# ==========================================
+
+@admin_bp.route('/flashcard-config', methods=['GET'])
+@login_required
+def flashcard_config():
+    """[DEPRECATED] Redirects to combined content config."""
+    return redirect(url_for('admin.content_config_page'))
+
+
+
+@admin_bp.route('/flashcard-config/save', methods=['POST'])
+@login_required
+def save_flashcard_config():
+    """API lưu cấu hình Flashcard."""
+    data = request.get_json()
+    settings = data.get('settings', {})
+    
+    try:
+        FlashcardConfigService.save_all(settings, user_id=current_user.id)
+        return jsonify({'success': True, 'message': 'Đã lưu cấu hình Flashcard thành công.'})
+    except Exception as e:
+        current_app.logger.error(f"Error saving flashcard config: {e}")
+        return jsonify({'success': False, 'message': f'Lỗi khi lưu cấu hình: {str(e)}'}), 500
+
+
+@admin_bp.route('/flashcard-config/reset', methods=['POST'])
+@login_required
+def reset_flashcard_config():
+    """API reset cấu hình Flashcard về mặc định."""
+    try:
+        FlashcardConfigService.reset_to_defaults(user_id=current_user.id)
+        return jsonify({'success': True, 'message': 'Đã khôi phục cấu hình Flashcard về mặc định.'})
+    except Exception as e:
+        current_app.logger.error(f"Error resetting flashcard config: {e}")
+        return jsonify({'success': False, 'message': f'Lỗi khi reset cấu hình: {str(e)}'}), 500

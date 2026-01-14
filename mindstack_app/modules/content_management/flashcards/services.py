@@ -12,19 +12,29 @@ from mindstack_app.utils.media_paths import (
     normalize_media_folder,
     normalize_media_value_for_storage,
 )
+from mindstack_app.services.flashcard_config_service import FlashcardConfigService
+
 
 class FlashcardExcelService:
     """Service xử lý các nghiệp vụ liên quan đến Excel cho Flashcard."""
 
-    # Class Constants
-    SYSTEM_COLUMNS = {'item_id', 'order_in_container', 'action'}
-    STANDARD_COLUMNS = {
-        'front', 'back',  # Required
-        'front_audio_content', 'back_audio_content',  # TTS text
-        'front_img', 'back_img', 'front_audio_url', 'back_audio_url',  # Media paths
-    }
-    AI_COLUMNS = {'ai_explanation'}
+    """Service xử lý các nghiệp vụ liên quan đến Excel cho Flashcard."""
+
+    # Helpers for Config Service
+    @classmethod
+    def get_system_columns(cls):
+        return set(FlashcardConfigService.get('FLASHCARD_SYSTEM_COLUMNS'))
+
+    @classmethod
+    def get_standard_columns(cls):
+        return set(FlashcardConfigService.get('FLASHCARD_STANDARD_COLUMNS'))
+
+    @classmethod
+    def get_ai_columns(cls):
+        return set(FlashcardConfigService.get('FLASHCARD_AI_COLUMNS'))
+
     URL_FIELDS = {'front_img', 'back_img', 'front_audio_url', 'back_audio_url'}
+
 
     @classmethod
     def analyze_column_structure(cls, filepath: str) -> dict:
@@ -36,11 +46,18 @@ class FlashcardExcelService:
             df = pd.read_excel(filepath, sheet_name='Data')
             columns = set(df.columns)
             
-            found_standard = [col for col in columns if col in cls.STANDARD_COLUMNS]
-            found_system = [col for col in columns if col in cls.SYSTEM_COLUMNS]
-            found_ai = [col for col in columns if col in cls.AI_COLUMNS]
+            columns = set(df.columns)
             
-            all_known = cls.SYSTEM_COLUMNS | cls.STANDARD_COLUMNS | cls.AI_COLUMNS
+            standard_cols = cls.get_standard_columns()
+            system_cols = cls.get_system_columns()
+            ai_cols = cls.get_ai_columns()
+
+            found_standard = [col for col in columns if col in standard_cols]
+            found_system = [col for col in columns if col in system_cols]
+            found_ai = [col for col in columns if col in ai_cols]
+            
+            all_known = system_cols | standard_cols | ai_cols
+
             found_custom = [col for col in columns if col not in all_known]
             
             missing_required = [col for col in ['front', 'back'] if col not in columns]
@@ -92,11 +109,13 @@ class FlashcardExcelService:
                 temp_filepath = tmp_file.name
 
             df = pd.read_excel(temp_filepath, sheet_name='Data')
-            required_cols = ['front', 'back']
+            df = pd.read_excel(temp_filepath, sheet_name='Data')
+            required_cols = FlashcardConfigService.get('FLASHCARD_REQUIRED_COLUMNS') or ['front', 'back']
             if not all(col in df.columns for col in required_cols):
                 raise ValueError(
                     f"File Excel (sheet 'Data') phải có các cột bắt buộc: {', '.join(required_cols)}."
                 )
+
 
             flashcard_set = LearningContainer.query.get(container_id)
             if not flashcard_set:
@@ -183,7 +202,8 @@ class FlashcardExcelService:
                      current_app.logger.error(f"Failed to write log: {e}")
 
             # Define local aliases for usage in processing loops
-            standard_columns = cls.STANDARD_COLUMNS
+            standard_columns = cls.get_standard_columns()
+
             url_fields = cls.URL_FIELDS
             image_folder = media_overrides.get('image') or media_folders.get('image') or 'images'
             audio_folder = media_overrides.get('audio') or media_folders.get('audio') or 'audio'
@@ -193,8 +213,9 @@ class FlashcardExcelService:
             log_debug(f"DataFrame Columns: {list(df.columns)}")
             
             # Detect custom columns using Class Constants
-            all_known_columns = cls.SYSTEM_COLUMNS | cls.STANDARD_COLUMNS | cls.AI_COLUMNS
+            all_known_columns = cls.get_system_columns() | cls.get_standard_columns() | cls.get_ai_columns()
             custom_columns = [col for col in df.columns if col not in all_known_columns]
+
             
             if custom_columns:
                 current_app.logger.info(f"Phát hiện {len(custom_columns)} cột custom: {custom_columns}")

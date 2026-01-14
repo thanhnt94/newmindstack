@@ -50,7 +50,9 @@ from openpyxl.worksheet.datavalidation import DataValidation
 # THÊM MỚI: Import AudioService
 from ...learning.sub_modules.flashcard.services import AudioService, ImageService
 from .services import FlashcardExcelService
+from ....services.flashcard_config_service import FlashcardConfigService
 from ....core.error_handlers import error_response, success_response
+
 
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
                             template_folder='templates') # Đã cập nhật đường dẫn template
@@ -1110,9 +1112,21 @@ def add_flashcard_set():
         return error_response('Dữ liệu không hợp lệ', 'VALIDATION_ERROR', 400, details=form.errors)
     
     # Render template cho modal hoặc trang đầy đủ
+    # Render template cho modal hoặc trang đầy đủ
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_dynamic_template('pages/content_management/flashcards/sets/_add_edit_flashcard_set_bare.html', form=form, title='Thêm Bộ thẻ ghi nhớ', template_url=template_url)
-    return render_dynamic_template('pages/content_management/flashcards/sets/add_edit_flashcard_set.html', form=form, title='Thêm Bộ thẻ ghi nhớ', template_url=template_url)
+        return render_dynamic_template('pages/content_management/flashcards/sets/_add_edit_flashcard_set_bare.html', 
+            form=form, 
+            title='Thêm Bộ thẻ ghi nhớ', 
+            template_url=template_url,
+            flashcard_config=FlashcardConfigService.get_all(),
+        )
+    return render_dynamic_template('pages/content_management/flashcards/sets/add_edit_flashcard_set.html', 
+        form=form, 
+        title='Thêm Bộ thẻ ghi nhớ', 
+        template_url=template_url,
+        flashcard_config=FlashcardConfigService.get_all(),
+    )
+
 
 @flashcards_bp.route('/flashcards/edit/<int:set_id>', methods=['GET', 'POST'])
 @login_required
@@ -1264,8 +1278,10 @@ def edit_flashcard_set(set_id):
         available_keys=available_keys,
         set_id=set_id,
         previous_set_id=previous_set_id,
-        next_set_id=next_set_id
+        next_set_id=next_set_id,
+        flashcard_config=FlashcardConfigService.get_all(),
     )
+
 
 @flashcards_bp.route('/flashcards/set/<int:set_id>/settings/update', methods=['POST'])
 @login_required

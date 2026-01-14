@@ -22,40 +22,12 @@ from mindstack_app.utils.media_paths import (
 )
 from mindstack_app.config import Config
 from mindstack_app.services.config_service import get_runtime_config
+from mindstack_app.services.quiz_config_service import QuizConfigService
+
 
 # Constants exported from here
-QUIZ_DATA_COLUMNS = [
-    'item_id',
-    'order_in_container',
-    'question',
-    'pre_question_text',
-    'option_a',
-    'option_b',
-    'option_c',
-    'option_d',
-    'correct_answer_text',
-    'guidance',
-    'ai_explanation',
-    'question_image_file',
-    'question_audio_file',
-    'ai_prompt',
-    'group_id',
-    'group_shared_components',
-    'group_item_order',
-    'action',
-]
 
-QUIZ_INFO_KEYS = [
-    'title',
-    'description',
-    'cover_image',
-    'tags',
-    'is_public',
-    'image_base_folder',
-    'audio_base_folder',
-    'ai_prompt',
-]
-
+# Valid actions for import
 ACTION_OPTIONS = ['None', 'Update', 'Create', 'Delete', 'Skip']
 
 GROUP_SHARED_COMPONENT_MAP = {
@@ -67,6 +39,7 @@ GROUP_SHARED_COMPONENT_MAP = {
     'audio': 'question_audio_file',
     'prompt': 'ai_prompt',
 }
+
 
 def parse_shared_components(raw_value) -> set[str]:
     """Parse a comma-separated string of shared component tokens."""
@@ -80,16 +53,46 @@ def parse_shared_components(raw_value) -> set[str]:
 class QuizExcelService:
     """Service handling Excel operations for Quiz Content Management."""
     
-    # Class Constants for Component Analysis
-    SYSTEM_COLUMNS = {'item_id', 'order_in_container', 'action'}
-    STANDARD_COLUMNS = {
-        'question', 'pre_question_text', 
-        'option_a', 'option_b', 'option_c', 'option_d', 
-        'correct_answer_text', 'guidance', 
-        'question_image_file', 'question_audio_file',
-        'group_id', 'group_shared_components', 'group_item_order'
-    }
-    AI_COLUMNS = {'ai_explanation', 'ai_prompt'}
+    @classmethod
+    def get_data_columns(cls) -> list[str]:
+        """Construct the full list of columns for the Data sheet."""
+        # Fixed order to match typical user expectation, derived from config
+        # We can implement a smarter ordering or just concatenate
+        # Ideally: System -> Standard -> AI
+        
+        # However, for UX, standard columns (question, options) should be first.
+        # System columns like item_id, action should be at start or very end?
+        # Let's simple hardcode an order strategy based on available config keys.
+        
+        standard = QuizConfigService.get('QUIZ_STANDARD_COLUMNS')
+        ai = QuizConfigService.get('QUIZ_AI_COLUMNS')
+        system = QuizConfigService.get('QUIZ_SYSTEM_COLUMNS')
+        
+        # Preferred order: item_id, order_in_container ... standard ... ai ... action
+        
+        columns = []
+        
+        # Add specific system columns first strictly
+        first_cols = ['item_id', 'order_in_container']
+        for col in first_cols:
+            columns.append(col)
+            
+        # Add standard
+        for col in standard:
+            if col not in columns:
+                columns.append(col)
+                
+        # Add AI
+        for col in ai:
+            if col not in columns:
+                columns.append(col)
+                
+        # Add remaining system columns (like action)
+        for col in system:
+            if col not in columns:
+                columns.append(col)
+                
+        return columns
 
     @classmethod
     def analyze_column_structure(cls, filepath: str) -> dict:
@@ -101,14 +104,22 @@ class QuizExcelService:
             df = pd.read_excel(filepath, sheet_name='Data')
             columns = set(df.columns)
             
-            found_standard = [col for col in columns if col in cls.STANDARD_COLUMNS]
-            found_system = [col for col in columns if col in cls.SYSTEM_COLUMNS]
-            found_ai = [col for col in columns if col in cls.AI_COLUMNS]
+            standard_def = set(QuizConfigService.get('QUIZ_STANDARD_COLUMNS'))
+            system_def = set(QuizConfigService.get('QUIZ_SYSTEM_COLUMNS'))
+            ai_def = set(QuizConfigService.get('QUIZ_AI_COLUMNS'))
             
-            all_known = cls.SYSTEM_COLUMNS | cls.STANDARD_COLUMNS | cls.AI_COLUMNS
+            # Additional implicit system columns that might not be in config explicitly 
+            # but are handled by logic (e.g., order_in_container is often handled together)
+            system_def.add('order_in_container') 
+            
+            found_standard = [col for col in columns if col in standard_def]
+            found_system = [col for col in columns if col in system_def]
+            found_ai = [col for col in columns if col in ai_def]
+            
+            all_known = system_def | standard_def | ai_def
             found_custom = [col for col in columns if col not in all_known]
             
-            required_cols = {'option_a', 'option_b', 'correct_answer_text'}
+            required_cols = set(QuizConfigService.get('QUIZ_REQUIRED_COLUMNS'))
             missing_required = [col for col in required_cols if col not in columns]
             
             return {
@@ -124,8 +135,21 @@ class QuizExcelService:
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
+
+    @classmethod
+    def get_info_keys(cls) -> list[str]:
+        return [
+            'title', 'description', 'cover_image', 'tags',
+            'is_public', 'image_base_folder', 'audio_base_folder', 'ai_prompt',
+        ]
+
+    # [REMOVED] resolve_correct_answer_letter
+    # Actually, resolve_correct_answer_letter is static logic, keep it.
+    # But I need to anchor properly.
+
     @staticmethod
     def resolve_correct_answer_letter(content: dict) -> str:
+
         """Return the answer letter (A-D) even if the stored value is option text."""
         if not isinstance(content, dict):
             return ''
@@ -177,9 +201,11 @@ class QuizExcelService:
         else:
             info_df = pd.DataFrame(columns=['Key', 'Value'])
 
-        data_df = pd.DataFrame(data_rows, columns=QUIZ_DATA_COLUMNS)
+        data_cols = cls.get_data_columns()
+        data_df = pd.DataFrame(data_rows, columns=data_cols)
         if data_df.empty:
-            data_df = pd.DataFrame(columns=QUIZ_DATA_COLUMNS)
+            data_df = pd.DataFrame(columns=data_cols)
+
         else:
             data_df = data_df.fillna('')
 
@@ -194,7 +220,8 @@ class QuizExcelService:
             data_df.to_excel(writer, sheet_name='Data', index=False)
             data_sheet = writer.sheets.get('Data')
             if data_sheet is not None:
-                cls._apply_action_dropdown(data_sheet, QUIZ_DATA_COLUMNS)
+                cls._apply_action_dropdown(data_sheet, cls.get_data_columns())
+
             if readme_rows:
                 readme_df = pd.DataFrame(readme_rows, columns=['Hướng dẫn', 'Chi tiết'])
                 readme_df.to_excel(writer, sheet_name='ReadMe', index=False)
@@ -220,7 +247,7 @@ class QuizExcelService:
         ]
 
         def _row(**kwargs):
-            base = {column: '' for column in QUIZ_DATA_COLUMNS}
+            base = {column: '' for column in cls.get_data_columns()}
             base.update(kwargs)
             return base
 
@@ -479,7 +506,7 @@ class QuizExcelService:
 
         info_rows = [
             {'Key': key, 'Value': info_mapping.get(key, '')}
-            for key in QUIZ_INFO_KEYS
+            for key in cls.get_info_keys()
         ]
 
         group_shared_tracker: dict[int, set[str]] = {}
@@ -492,7 +519,8 @@ class QuizExcelService:
             if isinstance(group_content, dict):
                 shared_components = set(group_content.get('shared_components') or [])
 
-            row = {column: '' for column in QUIZ_DATA_COLUMNS}
+            row = {column: '' for column in cls.get_data_columns()}
+
             row['item_id'] = item.item_id
             row['order_in_container'] = item.order_in_container if item.order_in_container is not None else ''
             row['question'] = content.get('question') or ''
@@ -574,16 +602,17 @@ class QuizExcelService:
 
             df = pd.read_excel(temp_filepath, sheet_name='Data')
 
-            required_cols = ['option_a', 'option_b', 'correct_answer_text']
+            required_cols = QuizConfigService.get('QUIZ_REQUIRED_COLUMNS', ['option_a', 'option_b', 'correct_answer_text'])
             if not all(col in df.columns for col in required_cols):
                 raise ValueError(
-                    "File Excel (sheet 'Data') phải có các cột bắt buộc: option_a, option_b, correct_answer_text."
+                    f"File Excel (sheet 'Data') phải có các cột bắt buộc: {', '.join(required_cols)}."
                 )
 
             info_notices: list[str] = []
             media_overrides: dict[str, str] = {}
             cover_value = None
             info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
+
             if info_mapping:
                 image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
                 audio_folder_override = normalize_media_folder(info_mapping.get('audio_base_folder'))

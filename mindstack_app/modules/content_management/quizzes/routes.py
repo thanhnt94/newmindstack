@@ -25,7 +25,10 @@ from ..forms import QuizSetForm, QuizItemForm
 from ....models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User, UserNote
 from ....core.error_handlers import error_response, success_response
 from ....config import Config
+from ....config import Config
 from ....services.config_service import get_runtime_config
+from mindstack_app.services.quiz_config_service import QuizConfigService
+
 import pandas as pd
 import tempfile
 import os
@@ -46,7 +49,7 @@ import re
 import io
 import math
 
-from .services import QuizExcelService, QUIZ_DATA_COLUMNS, GROUP_SHARED_COMPONENT_MAP, parse_shared_components
+from .services import QuizExcelService, GROUP_SHARED_COMPONENT_MAP, parse_shared_components
 
 def _parse_shared_components(raw_value):
     return parse_shared_components(raw_value)
@@ -699,13 +702,16 @@ def add_quiz_set():
             title='Thêm Bộ câu hỏi mới',
             template_excel_url=template_excel_url,
             form_action=request.path,
+            quiz_config=QuizConfigService.get_all(),
         )
     return render_dynamic_template('pages/content_management/quizzes/sets/add_edit_quiz_set.html',
         form=form,
         title='Thêm Bộ câu hỏi mới',
         template_excel_url=template_excel_url,
         form_action=request.path,
+        quiz_config=QuizConfigService.get_all(),
     )
+
 
 @quizzes_bp.route('/quizzes/edit/<int:set_id>', methods=['GET', 'POST'])
 @login_required
@@ -783,6 +789,7 @@ def edit_quiz_set(set_id):
             previous_set_id=previous_set_id,
             next_set_id=next_set_id,
             form_action=request.path,
+            quiz_config=QuizConfigService.get_all(),
         )
     return render_dynamic_template('pages/content_management/quizzes/sets/add_edit_quiz_set.html',
         form=form,
@@ -791,7 +798,9 @@ def edit_quiz_set(set_id):
         previous_set_id=previous_set_id,
         next_set_id=next_set_id,
         form_action=request.path,
+        quiz_config=QuizConfigService.get_all(),
     )
+
 
 @quizzes_bp.route('/quizzes/delete/<int:set_id>', methods=['POST'])
 @login_required
