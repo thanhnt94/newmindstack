@@ -37,6 +37,24 @@ from ...models import (
     LearningGoal,
     UserNote,
     UserFeedback,
+    # [NEW] Missing models for backup
+    LearningSession,
+    Badge,
+    UserBadge,
+    GoalDailyHistory,
+    ReviewLog,
+    UserItemMarker,
+    QuizBattleRoom,
+    QuizBattleParticipant,
+    QuizBattleRound,
+    QuizBattleAnswer,
+    QuizBattleMessage,
+    FlashcardCollabRoom,
+    FlashcardCollabParticipant,
+    FlashcardCollabRound,
+    FlashcardCollabAnswer,
+    FlashcardCollabMessage,
+    FlashcardRoomProgress,
 )
 from datetime import datetime, timedelta
 import asyncio
@@ -106,6 +124,13 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
                 LearningGoal,
                 UserNote,
                 UserFeedback,
+                # [NEW]
+                LearningSession,
+                ReviewLog,
+                UserItemMarker,
+                GoalDailyHistory,
+                UserBadge,
+                Badge,
             ],
         },
         'goals_notes': {
@@ -116,12 +141,20 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
         'system_configs': {
             'label': 'Cấu hình hệ thống & API',
             'description': 'Các thiết lập hệ thống, tác vụ nền và khóa API tích hợp.',
-            'models': [AppSettings, BackgroundTask, ApiKey],
+            'models': [AppSettings, BackgroundTask, BackgroundTaskLog, ApiKey],
         },
         'feedback_reports': {
             'label': 'Phản hồi & báo cáo từ người dùng',
             'description': 'Tập trung vào phản hồi, điểm số và lịch sử tương tác phục vụ phân tích.',
             'models': [UserFeedback, ScoreLog],
+        },
+        'multiplayer': {
+            'label': 'Multiplayer (Quiz & Flashcard)',
+            'description': 'Dữ liệu các phòng chơi, người tham gia và tin nhắn chat.',
+            'models': [
+                QuizBattleRoom, QuizBattleParticipant, QuizBattleRound, QuizBattleAnswer, QuizBattleMessage,
+                FlashcardCollabRoom, FlashcardCollabParticipant, FlashcardCollabRound, FlashcardCollabAnswer, FlashcardCollabMessage, FlashcardRoomProgress
+            ],
         },
     }
 )
