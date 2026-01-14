@@ -112,6 +112,37 @@ document.addEventListener('DOMContentLoaded', function () {
                         btn.style.display = 'none';
                     }
                 });
+
+                // [FIX] Render Cover Image with robust path handling
+                document.querySelectorAll('.js-detail-cover').forEach(coverEl => {
+                    var coverPath = s.cover_image || '';
+                    if (coverPath) {
+                        coverPath = coverPath.replace(/\\/g, '/'); // Normalize windows paths
+                        if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
+                            // Absolute paths valid as is
+                        } else if (coverPath.startsWith('uploads/')) {
+                            coverPath = '/' + coverPath;
+                        } else {
+                            coverPath = '/static/' + coverPath;
+                        }
+
+                        coverEl.style.backgroundImage = 'url(' + coverPath + ')';
+                        // [FORCE FIX] Use inline styles to guarantee containment
+                        coverEl.style.backgroundSize = 'contain';
+                        coverEl.style.backgroundRepeat = 'no-repeat';
+                        coverEl.style.backgroundPosition = 'center';
+                        coverEl.style.backgroundColor = '#f1f5f9';
+                        coverEl.style.animation = 'none';
+                        coverEl.classList.add('has-image');
+                        coverEl.innerHTML = '';
+                    } else {
+                        coverEl.style.backgroundImage = '';
+                        coverEl.classList.remove('has-image');
+                        // Only add icon if it's the mobile container (has fa-book-open usually)
+                        // Or just standard icon.
+                        coverEl.innerHTML = '<i class="fas fa-book-open"></i>';
+                    }
+                });
             }
 
 

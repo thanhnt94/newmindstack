@@ -16,7 +16,7 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     (function () {
-
+        console.log("DASHBOARD JS LOADED V3 (FIXED SYNTAX)");
         // State
 
         let currentCategory = 'my';
@@ -627,71 +627,70 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             function renderSets(sets) {
-
                 if (setsGrids.length === 0) return;
 
                 var html = '';
 
                 sets.forEach(function (s) {
+                    // Path Logic
+                    var coverPath = s.cover_image ? s.cover_image.trim() : '';
+                    if (coverPath) {
+                        coverPath = coverPath.replace(/\\/g, '/'); // Normalize windows paths
 
-                    var coverStyle = s.cover_image ? 'background-image: url(/static/' + s.cover_image + ')' : '';
+                        if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
+                            // Absolute path or root-relative path (http... or /static...) -> Valid as is
+                        } else if (coverPath.startsWith('uploads/')) {
+                            coverPath = '/' + coverPath;
+                        } else {
+                            // Assume relative -> prepend static
+                            coverPath = '/static/' + coverPath;
+                        }
+                    }
+
+                    // Style Logic
+                    // Force contain to fix "zoomed" issue
+                    var coverStyle = '';
+                    var hasImageClass = '';
+
+                    if (coverPath) {
+                        coverStyle = 'background-image: url(' + coverPath + '); background-size: contain !important; background-repeat: no-repeat !important; background-position: center !important; background-color: #f1f5f9 !important; animation: none !important;';
+                        hasImageClass = 'has-image';
+                    }
 
                     var authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
-
                     var authorName = s.creator_name || 'Unknown';
 
-
-
                     html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
+                    html += '<div class="vocab-set-cover ' + hasImageClass + '" style="' + coverStyle + '">';
 
-                    html += '<div class="vocab-set-cover" style="' + coverStyle + '">';
-
-                    if (!s.cover_image) html += '<i class="fas fa-book-open"></i>';
+                    if (!coverPath) {
+                        html += '<i class="fas fa-book-open"></i>';
+                    }
 
                     html += '</div>';
-
                     html += '<div class="vocab-set-info">';
-
                     html += '<div class="vocab-set-title">' + s.title + '</div>';
-
                     html += '<div class="vocab-set-meta">';
-
                     html += '<div class="vocab-set-author">';
-
                     html += '<span class="vocab-set-avatar">' + authorInitial + '</span>';
-
                     html += '<span>' + authorName + '</span>';
-
                     html += '</div>';
-
                     html += '<div class="vocab-set-count"><i class="fas fa-clone"></i>' + s.card_count + '</div>';
-
                     html += '</div>';
-
                     html += '</div></div>';
-
                 });
 
-                setsGrids.forEach(grid => {
+                setsGrids.forEach(function (grid) {
                     grid.innerHTML = html;
                 });
 
-
-
                 // Bind click
-
                 document.querySelectorAll('.vocab-set-card').forEach(function (card) {
-
                     card.addEventListener('click', function () {
-
                         selectedSetId = card.dataset.setId;
-
                         loadSetDetail(selectedSetId, true); // true = push state
-
                     });
-
                 });
-
             }
 
 
@@ -948,19 +947,24 @@ document.addEventListener('DOMContentLoaded', function () {
                     var coverEl = document.querySelector('.js-detail-cover');
 
                     if (coverEl) {
+                        var coverPath = s.cover_image || '';
+                        if (coverPath) {
+                            coverPath = coverPath.replace(/\\/g, '/'); // Normalize windows paths
+                            if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
+                                // Absolute paths valid as is
+                            } else if (coverPath.startsWith('uploads/')) {
+                                coverPath = '/' + coverPath;
+                            } else {
+                                coverPath = '/static/' + coverPath;
+                            }
 
-                        if (s.cover_image) {
-
-                            coverEl.style.backgroundImage = 'url(/static/' + s.cover_image + ')';
-
+                            coverEl.style.backgroundImage = 'url(' + coverPath + ')';
+                            coverEl.classList.add('has-image');
                             coverEl.innerHTML = '';
-
                         } else {
-
                             coverEl.style.backgroundImage = '';
-
+                            coverEl.classList.remove('has-image');
                             coverEl.innerHTML = '<i class="fas fa-book-open"></i>';
-
                         }
 
                     }

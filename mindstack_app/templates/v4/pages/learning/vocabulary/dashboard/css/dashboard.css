@@ -556,29 +556,41 @@ body {
 
 
 
+.vocab-set-cover.has-image {
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-color: #f1f5f9;
+    /* Neutral background for letterboxing */
+}
+
 /* Detail View - Modern Hero */
+.vocab-detail-hero.has-image {
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    animation: none !important;
+    background-color: #f1f5f9;
+    /* Neutral background for letterboxing */
+}
 
-.vocab-detail-hero {
+height: 240px;
 
-    height: 240px;
+background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
 
-    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+display: flex;
 
-    display: flex;
+align-items: center;
 
-    align-items: center;
+justify-content: center;
 
-    justify-content: center;
+background-size: 200% 200%;
 
-    background-size: 200% 200%;
+background-position: center;
 
-    background-position: center;
+position: relative;
 
-    position: relative;
+overflow: hidden;
 
-    overflow: hidden;
-
-    animation: gradientShift 8s ease infinite;
+animation: gradientShift 8s ease infinite;
 
 }
 

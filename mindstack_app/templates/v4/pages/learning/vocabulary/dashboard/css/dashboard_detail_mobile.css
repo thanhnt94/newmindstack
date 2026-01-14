@@ -20,6 +20,13 @@
     animation: gradientShift 8s ease infinite;
 }
 
+.vocab-detail-hero.has-image {
+    background-size: contain;
+    background-repeat: no-repeat;
+    animation: none;
+    background-color: #f1f5f9;
+}
+
 @keyframes gradientShift {
 
     0%,

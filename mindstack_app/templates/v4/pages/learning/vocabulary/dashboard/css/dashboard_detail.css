@@ -103,6 +103,13 @@
     }
 }
 
+.vocab-detail-hero.has-image {
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    animation: none !important;
+    background-color: #f1f5f9;
+}
+
 /* Word Cards & Animations */
 .js-word-list {
     display: grid;
@@ -143,5 +150,29 @@
     .vocab-step {
         z-index: 100;
         background: #f8fafc;
+    }
+}
+
+/* [NEW] Desktop Specific Hero Style */
+.vocab-detail-hero.desktop {
+    width: 200px;
+    height: 200px;
+    border-radius: 1.5rem;
+    background-color: #f1f5f9;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vocab-detail-hero.desktop i {
+    font-size: 3rem;
+    color: #cbd5e1;
+}
+
+@media (max-width: 1024px) {
+    .vocab-detail-hero.desktop {
+        display: none;
     }
 }

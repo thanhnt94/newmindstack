@@ -3961,19 +3961,38 @@
 
         sets.forEach(function (s) {
 
-            var coverStyle = s.cover_image ? 'background-image: url(/static/' + s.cover_image + ')' : '';
+            // [FIX] Path Logic
+            var coverPath = s.cover_image ? s.cover_image.trim() : '';
+            if (coverPath) {
+                coverPath = coverPath.replace(/\\/g, '/'); // Normalize windows paths
+                if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
+                    // Absolute path or root-relative path (http... or /static...) -> Valid as is
+                } else if (coverPath.startsWith('uploads/')) {
+                    coverPath = '/' + coverPath;
+                } else {
+                    // Assume relative -> prepend static
+                    coverPath = '/static/' + coverPath;
+                }
+            }
+
+            // [FIX] Style Logic - Force contain
+            var coverStyle = '';
+            var hasImageClass = '';
+
+            if (coverPath) {
+                coverStyle = 'background-image: url(' + coverPath + '); background-size: contain !important; background-repeat: no-repeat !important; background-position: center !important; background-color: #f1f5f9 !important; animation: none !important;';
+                hasImageClass = 'has-image';
+            }
 
             var authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
 
             var authorName = s.creator_name || 'Unknown';
 
-
-
             html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
 
-            html += '<div class="vocab-set-cover" style="' + coverStyle + '">';
+            html += '<div class="vocab-set-cover ' + hasImageClass + '" style="' + coverStyle + '">';
 
-            if (!s.cover_image) html += '<i class="fas fa-book-open"></i>';
+            if (!coverPath) html += '<i class="fas fa-book-open"></i>';
 
             html += '</div>';
 
@@ -4276,14 +4295,35 @@
             if (coverEl) {
 
                 if (s.cover_image) {
+                    // [FIX] Path Logic
+                    var coverPath = s.cover_image.trim();
+                    coverPath = coverPath.replace(/\\/g, '/');
+                    if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
+                    } else if (coverPath.startsWith('uploads/')) {
+                        coverPath = '/' + coverPath;
+                    } else {
+                        coverPath = '/static/' + coverPath;
+                    }
 
-                    coverEl.style.backgroundImage = 'url(/static/' + s.cover_image + ')';
+                    coverEl.style.backgroundImage = 'url(' + coverPath + ')';
+                    // [FIX] Inline styles for contain
+                    coverEl.style.backgroundSize = 'contain';
+                    coverEl.style.backgroundRepeat = 'no-repeat';
+                    coverEl.style.backgroundPosition = 'center';
+                    coverEl.style.backgroundColor = '#f1f5f9';
+                    coverEl.style.animation = 'none';
 
                     coverEl.innerHTML = '';
 
                 } else {
 
                     coverEl.style.backgroundImage = '';
+                    // Reset styles
+                    coverEl.style.backgroundSize = '';
+                    coverEl.style.backgroundRepeat = '';
+                    coverEl.style.backgroundPosition = '';
+                    coverEl.style.backgroundColor = '';
+                    coverEl.style.animation = '';
 
                     coverEl.innerHTML = '<i class="fas fa-book-open"></i>';
 
