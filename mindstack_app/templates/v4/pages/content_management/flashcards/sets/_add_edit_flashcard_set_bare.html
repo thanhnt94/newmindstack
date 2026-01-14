@@ -986,7 +986,14 @@
         }
 
         const name = file.name ? file.name.toLowerCase() : '';
-        const allowedExtensions = (flashcardConfig['FLASHCARD_ALLOWED_EXTENSIONS'] || '.xlsx').toLowerCase().split(',').map(ext => ext.trim());
+        let rawExtensions = flashcardConfig['FLASHCARD_ALLOWED_EXTENSIONS'] || '.xlsx';
+        let allowedExtensions = [];
+
+        if (Array.isArray(rawExtensions)) {
+            allowedExtensions = rawExtensions.map(ext => ext.toLowerCase().trim());
+        } else {
+            allowedExtensions = String(rawExtensions).toLowerCase().split(',').map(ext => ext.trim());
+        }
         const isExtensionValid = allowedExtensions.some(ext => name.endsWith(ext));
 
         if (!isExtensionValid) {
