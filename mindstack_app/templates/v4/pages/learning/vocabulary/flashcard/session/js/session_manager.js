@@ -11,7 +11,6 @@ let currentUserTotalScore = 0;
 let sessionAnswerHistory = [];
 let currentStreak = 0;
 let currentCardStartTime = 0;
-let isSubmitting = false; // Submission lock
 
 
 // Local stats
@@ -75,8 +74,6 @@ window.updateVisualSettings = function (newSettings) {
             if (previousCardStatsContainer) previousCardStatsContainer.style.display = 'none';
             const mobileStats = document.getElementById('current-card-stats-mobile');
             if (mobileStats) mobileStats.style.display = 'none';
-            const desktopStats = document.getElementById('current-card-stats-desktop');
-            if (desktopStats) desktopStats.style.display = 'none';
         } else {
             const currentCardStatsContainer = document.getElementById('current-card-stats');
             const previousCardStatsContainer = document.getElementById('previous-card-stats');
@@ -84,8 +81,6 @@ window.updateVisualSettings = function (newSettings) {
             if (previousCardStatsContainer) previousCardStatsContainer.style.display = '';
             const mobileStats = document.getElementById('current-card-stats-mobile');
             if (mobileStats) mobileStats.style.display = '';
-            const desktopStats = document.getElementById('current-card-stats-desktop');
-            if (desktopStats) desktopStats.style.display = '';
         }
     }
 };
@@ -156,16 +151,6 @@ async function getNextFlashcardBatch() {
             mobileCurrent.innerHTML = html;
         }
 
-        const desktopCurrent = document.getElementById('current-card-stats-desktop');
-        if (desktopCurrent && window.renderCardStatsHtml) {
-            // Use renderMobileCardStatsHtml for desktop too as we ported the mobile view
-            // Or verify which renderer we want. Since _desktop.html is a clone of mobile, we likely want renderMobileCardStatsHtml
-            if (window.renderMobileCardStatsHtml) {
-                const html = window.renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
-                desktopCurrent.innerHTML = html;
-            }
-        }
-
         window.renderCard(currentCardData);
         currentCardStartTime = Date.now(); // [NEW] Start timer
         window.updateSessionSummary();
@@ -218,9 +203,6 @@ async function getNextFlashcardBatch() {
 // Finding render rendering point is key. It's window.renderCard(currentCardData) at line 152.
 
 async function submitFlashcardAnswer(itemId, answer) {
-    if (isSubmitting) return;
-    isSubmitting = true;
-
     window.stopAllFlashcardAudio();
     const submitAnswerUrl = window.FlashcardConfig.submitAnswerUrl;
 
@@ -284,12 +266,6 @@ async function submitFlashcardAnswer(itemId, answer) {
             mobilePrev.innerHTML = mobileHtml;
         }
 
-        const desktopPrev = document.getElementById('previous-card-stats-desktop');
-        if (desktopPrev && window.renderMobileCardStatsHtml) {
-            const desktopHtml = window.renderMobileCardStatsHtml(data.statistics, data.score_change, previousCardContent, false);
-            desktopPrev.innerHTML = desktopHtml;
-        }
-
         const prevTabButton = document.querySelector('.stats-tab-button[data-target="previous-card-stats-pane"]');
         if (prevTabButton) {
             prevTabButton.click();
@@ -348,8 +324,6 @@ async function submitFlashcardAnswer(itemId, answer) {
     } catch (e) {
         console.error('Lỗi khi gửi đáp án:', e);
         if (window.showCustomAlert) window.showCustomAlert('Có lỗi khi gửi đáp án. Vui lòng thử lại.');
-    } finally {
-        isSubmitting = false;
     }
 }
 

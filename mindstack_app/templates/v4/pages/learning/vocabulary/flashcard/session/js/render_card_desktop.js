@@ -1,7 +1,6 @@
 window.renderDesktopCardHtml = function (data, o) {
   // o = options
-  // Toolbar construction (Mirrors mobile structure for consistency)
-  const menuButtonHtml = `<button class="icon-btn open-stats-modal-btn"><i class="fas fa-bars"></i></button>`;
+  // Xây dựng toolbar cho desktop
   const aiButtonHtml = `<button class="icon-btn open-ai-modal-btn" data-item-id="${o.itemId}"><i class="fas fa-robot"></i></button>`;
   const noteButtonHtml = `<button class="icon-btn open-note-panel-btn" data-item-id="${o.itemId}"><i class="fas fa-sticky-note"></i></button>`;
   const feedbackButtonHtml = `<button class="icon-btn open-feedback-modal-btn" data-item-id="${o.itemId}"><i class="fas fa-flag"></i></button>`;
@@ -13,51 +12,60 @@ window.renderDesktopCardHtml = function (data, o) {
   const imageToggleButtonHtml = `<button class="icon-btn image-toggle-btn ${o.isMediaHidden ? 'is-active' : ''}" aria-pressed="${o.isMediaHidden}" title="${o.isMediaHidden ? 'Bật ảnh' : 'Tắt ảnh'}"><i class="fas ${o.isMediaHidden ? 'fa-image-slash' : 'fa-image'}"></i></button>`;
   const audioAutoplayToggleButtonHtml = `<button class="icon-btn audio-autoplay-toggle-btn ${o.isAudioAutoplayEnabled ? 'is-active' : ''}" aria-pressed="${o.isAudioAutoplayEnabled}" title="${o.isAudioAutoplayEnabled ? 'Tắt tự động phát audio' : 'Bật tự động phát audio'}"><i class="fas ${o.isAudioAutoplayEnabled ? 'fa-volume-up' : 'fa-volume-mute'}"></i></button>`;
 
-  // Updated IDs to -desktop suffix to match _desktop.html logic and avoid conflict
-  const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${o.hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio-desktop" data-side="front" data-item-id="${o.itemId}" data-content-to-read="${o.frontAudioContent || ''}" ${o.hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
-  const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${o.hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio-desktop" data-side="back" data-item-id="${o.itemId}" data-content-to-read="${o.backAudioContent || ''}" ${o.hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
+  const audioButtonHtmlFront = `<button class="icon-btn play-audio-btn ${o.hasFrontAudio ? '' : 'is-disabled'}" data-audio-target="#front-audio" data-side="front" data-item-id="${o.itemId}" data-content-to-read="${o.frontAudioContent || ''}" ${o.hasFrontAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
+  const audioButtonHtmlBack = `<button class="icon-btn play-audio-btn ${o.hasBackAudio ? '' : 'is-disabled'}" data-audio-target="#back-audio" data-side="back" data-item-id="${o.itemId}" data-content-to-read="${o.backAudioContent || ''}" ${o.hasBackAudio ? '' : 'disabled'}><i class="fas fa-volume-up"></i></button>`;
 
-  const flipButtonHtml = `<button class="js-flip-card-btn flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
+  const flipButtonHtml = `<button id="flip-card-btn" class="flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>`;
 
-  // Consistent toolbar items
-  const leftToolbarContent = `${menuButtonHtml}${aiButtonHtml}${noteButtonHtml}`;
+  const markerButtonHtml = `
+            <div class="inline-block relative marker-dropdown-container">
+                <button class="icon-btn js-fc-marker-toggle" title="Đánh dấu thẻ"><i class="far fa-bookmark"></i></button>
+                <div class="marker-dropdown hidden absolute top-full left-0 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-2 min-w-[160px] flex flex-col gap-1">
+                     <button class="flex items-center w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg text-sm transition-colors text-slate-700 js-fc-mark-difficult" data-type="difficult"><i class="fas fa-fire text-orange-500 mr-2 w-4"></i>Khó (Difficult)</button>
+                     <button class="flex items-center w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg text-sm transition-colors text-slate-700 js-fc-mark-ignored" data-type="ignored"><i class="fas fa-eye-slash text-slate-400 mr-2 w-4"></i>Bỏ qua (Ignore)</button>
+                     <button class="flex items-center w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg text-sm transition-colors text-slate-700 js-fc-mark-favorite" data-type="favorite"><i class="fas fa-heart text-rose-500 mr-2 w-4"></i>Yêu thích</button>
+                </div>
+            </div>
+        `;
+
+  const leftToolbarContent = `${aiButtonHtml}${noteButtonHtml}${markerButtonHtml}`;
 
   const settingsMenuHtml = `
-        <div class="toolbar-settings">
-          <div class="settings-panel">
-            ${feedbackButtonHtml}${editButtonHtml}${imageToggleButtonHtml}${audioAutoplayToggleButtonHtml}
-          </div>
-          <button type="button" class="icon-btn settings-toggle-btn" aria-expanded="false" title="Mở cài đặt"><i class="fas fa-ellipsis-v"></i></button>
+      <div class="toolbar-settings">
+        <div class="settings-panel">
+          ${feedbackButtonHtml}${editButtonHtml}${imageToggleButtonHtml}${audioAutoplayToggleButtonHtml}
         </div>
-      `;
+        <button type="button" class="icon-btn settings-toggle-btn" aria-expanded="false" title="Mở cài đặt"><i class="fas fa-ellipsis-v"></i></button>
+      </div>
+    `;
 
   const toolbarFront = `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT TRƯỚC</span><div class="toolbar-right">${audioButtonHtmlFront}${settingsMenuHtml}</div></div>`;
   const toolbarBack = `<div class="card-toolbar"><div class="toolbar-left">${leftToolbarContent}</div><span class="label">MẶT SAU</span><div class="toolbar-right">${audioButtonHtmlBack}${settingsMenuHtml}</div></div>`;
 
-  // Structure identical to mobile but with desktop audio IDs
+  // Desktop structure
   return `
-    <div class="flashcard-card-container">
-      <div class="js-flashcard-card flashcard-card ${o.cardCategory ? 'flashcard-card--' + o.cardCategory : ''}" data-card-category="${o.cardCategory || 'default'}">
-        <div class="face front">
-          ${toolbarFront}
-          <div class="_card-container">
-            <div class="text-area"><div class="flashcard-content-text">${o.fTxt}</div></div>
-            ${o.frontImg ? `<div class="media-container"><img src="${o.frontImg}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
-            <audio id="front-audio-desktop" class="hidden" src="${o.frontAudioUrl || ''}"></audio>
-          </div>
-          <div class="flip-btn-container">
-            ${flipButtonHtml}
-          </div>
+  <div class="flashcard-card-container">
+    <div id="flashcard-card" class="flashcard-card js-flashcard-card ${o.cardCategory ? 'flashcard-card--' + o.cardCategory : ''}" data-card-category="${o.cardCategory || 'default'}">
+      <div class="face front">
+        ${toolbarFront}
+        <div class="_card-container">
+          <div class="text-area"><div class="flashcard-content-text">${o.fTxt}</div></div>
+          ${o.frontImg ? `<div class="media-container"><img src="${o.frontImg}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
+          <audio id="front-audio" class="hidden" src="${o.frontAudioUrl || ''}"></audio>
         </div>
-        <div class="face back">
-          ${toolbarBack}
-          <div class="_card-container">
-            <div class="text-area"><div class="flashcard-content-text">${o.bTxt}</div></div>
-            ${o.backImg ? `<div class="media-container"><img src="${o.backImg}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
-          </div>
-          <div class="actions js-internal-actions" data-button-count="${o.buttonCount}">${o.buttonsHtml}</div>
-          <audio id="back-audio-desktop" class="hidden" src="${o.backAudioUrl || ''}"></audio>
+        <div class="flip-btn-container">
+          ${flipButtonHtml}
         </div>
       </div>
-    </div>`;
+      <div class="face back">
+        ${toolbarBack}
+        <div class="_card-container">
+          <div class="text-area"><div class="flashcard-content-text">${o.bTxt}</div></div>
+          ${o.backImg ? `<div class="media-container"><img src="${o.backImg}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Loi+anh';"></div>` : ''}
+        </div>
+        <div class="actions" id="internal-actions" data-button-count="${o.buttonCount}">${o.buttonsHtml}</div>
+        <audio id="back-audio" class="hidden" src="${o.backAudioUrl || ''}"></audio>
+      </div>
+    </div>
+  </div>`;
 };

@@ -39,8 +39,6 @@ function initUiSettings() {
 
         const mobileStats = document.getElementById('current-card-stats-mobile');
         if (mobileStats) mobileStats.style.display = 'none';
-        const desktopStats = document.getElementById('current-card-stats-desktop');
-        if (desktopStats) desktopStats.style.display = 'none';
     }
 }
 
@@ -208,13 +206,7 @@ function determineCardCategory(cardData) {
     return '';
 }
 
-
 function getPreviewButtonHtml() {
-    // Check if we are in desktop view (simple check via class presence or window width)
-    const isDesktop = window.innerWidth >= 1024 || document.querySelector('.flashcard-desktop-view');
-    if (isDesktop) {
-        return ''; // Don't show inline "Tiếp tục" button on desktop, use the main controls
-    }
     return '<button class="btn btn-continue" data-answer="continue"><i class="fas fa-arrow-right"></i>Tiếp tục</button>';
 }
 
@@ -1388,24 +1380,4 @@ document.addEventListener('flashcardStatsUpdated', function (e) {
         }
     }
 });
-
-// Ensure global availability
-window.renderCardStatsHtml = renderCardStatsHtml;
-window.renderMobileCardStatsHtml = renderMobileCardStatsHtml;
-window.initUiSettings = initUiSettings;
-window.adjustCardLayout = adjustCardLayout;
-window.toggleSettingsMenu = toggleSettingsMenu;
-window.closeAllSettingsMenus = closeAllSettingsMenus;
-window.setMediaHiddenState = setMediaHiddenState;
-window.setFlashcardContent = setFlashcardContent;
-window.formatTextForHtml = window.formatTextForHtml || (t => t); // Safety
-window.formatDateTime = window.formatDateTime || (d => d);
-window.updateCardHudStats = function (stats) {
-    if (stats && window.flashcardSessionStats) {
-        window.flashcardSessionStats.current_card_mem_percent = stats.memory_power || 0;
-        window.flashcardSessionStats.current_card_history_right = stats.correct_count || 0;
-        window.flashcardSessionStats.current_card_history_wrong = (stats.incorrect_count || 0) + (stats.vague_count || 0);
-        document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
-    }
-};
 
