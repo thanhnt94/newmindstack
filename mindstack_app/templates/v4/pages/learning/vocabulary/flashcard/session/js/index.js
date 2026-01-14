@@ -116,28 +116,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.getNextFlashcardBatch) window.getNextFlashcardBatch();
 
     // 6. Mode display toggle logic (New)
-    const modeBtn = document.getElementById('js-fc-mode-btn');
+    const modeBtns = document.querySelectorAll('#js-fc-mode-btn, #js-fc-mode-btn-desktop');
     const titleEls = document.querySelectorAll('.js-fc-title');
-    if (modeBtn && titleEls.length > 0) {
-        modeBtn.addEventListener('click', () => {
-            if (modeBtn.dataset.busy === "true") return;
-            modeBtn.dataset.busy = "true";
 
-            const originalTitles = Array.from(titleEls).map(el => el.textContent);
-            const modeName = window.FlashcardConfig.modeDisplayName || 'Chế độ học';
+    if (modeBtns.length > 0 && titleEls.length > 0) {
+        modeBtns.forEach(modeBtn => {
+            modeBtn.addEventListener('click', () => {
+                if (modeBtn.dataset.busy === "true") return;
+                modeBtn.dataset.busy = "true";
 
-            // Visual feedback
-            modeBtn.style.opacity = "0.7";
+                const originalTitles = Array.from(titleEls).map(el => el.textContent);
+                const modeName = window.FlashcardConfig.modeDisplayName || 'Chế độ học';
 
-            // Set mode name
-            titleEls.forEach(el => el.textContent = modeName);
+                // Visual feedback
+                modeBtn.style.opacity = "0.7";
 
-            // Revert after 2 seconds
-            setTimeout(() => {
-                titleEls.forEach((el, idx) => el.textContent = originalTitles[idx]);
-                modeBtn.style.opacity = "";
-                modeBtn.dataset.busy = "false";
-            }, 2000);
+                // Set mode name
+                titleEls.forEach(el => el.textContent = modeName);
+
+                // Revert after 2 seconds
+                setTimeout(() => {
+                    titleEls.forEach((el, idx) => el.textContent = originalTitles[idx]);
+                    modeBtn.style.opacity = "";
+                    modeBtn.dataset.busy = "false";
+                }, 2000);
+            });
         });
     }
 });

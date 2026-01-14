@@ -1,97 +1,137 @@
 {# Desktop Interface #}
-<div class="flashcard-desktop-view">
-    <div class="page-shell">
-        <div class="session-layout">
-            <div class="flashcard-wrapper">
-                <div class="card-surface">
-                    <div class="flashcard-panel">
-                        <div class="js-flashcard-content">
-                            <div
-                                class="flex flex-col items-center justify-center h-full text-emerald-500 min-h-[300px]">
-                                <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                                <p>Đang tải thẻ...</p>
-                            </div>
-                        </div>
-                        <div class="js-flashcard-buttons mt-3"></div>
-                    </div>
+<div class="flashcard-desktop-view w-full h-full flex flex-col bg-slate-50 relative overflow-hidden">
+
+    {# Desktop Header #}
+    <div
+        class="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-20 flex-shrink-0 border-b border-slate-200">
+        <div class="flex items-center gap-4">
+            <a href="{{ url_for('learning.vocabulary.dashboard') }}"
+                class="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-semibold group">
+                <div
+                    class="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
+                    <i class="fas fa-arrow-left text-sm"></i>
+                </div>
+                <span>Thoát</span>
+            </a>
+            <div class="h-6 w-px bg-slate-200 mx-2"></div>
+            <div class="flex items-center gap-2">
+                <span
+                    class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded uppercase tracking-wider">Flashcard</span>
+                <h1 class="text-lg font-bold text-slate-800 js-fc-title">{{ container_name }}</h1>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-6">
+            {# Progress Stats #}
+            <div class="flex items-center gap-4 text-sm">
+                <div class="flex flex-col items-end">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Tiến độ</span>
+                    <span class="font-bold text-slate-700 js-fc-progress-text">0/0</span>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Đúng</span>
+                    <span class="font-bold text-emerald-600 js-fc-session-correct">0</span>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Điểm phiên</span>
+                    <span class="font-bold text-amber-500 js-fc-session-score">+0</span>
                 </div>
             </div>
-            <div class="desktop-stats-container">
-                {# =============================== #}
-                {# File: mindstack_app/modules/learning/flashcard_learning/templates/_flashcard_session_stats.html #}
-                {# Phiên bản: 3.0 #}
-                {# MỤC ĐÍCH: Thiết kế lại bảng thống kê phiên Flashcard với giao diện hiện đại, giàu thông tin và hạn
-                chế phải
-                cuộn. #}
-                {# =============================== #}
 
+            <div class="h-8 w-px bg-slate-200"></div>
 
+            {# Total Score #}
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
+                <i class="fas fa-gem text-blue-500"></i>
+                <span class="font-bold text-slate-700 js-fc-score">{{ "{:,}".format(current_user.total_score if
+                    current_user.total_score is not none else 0) }}</span>
+            </div>
+        </div>
+    </div>
 
-                <div class="statistics-card" id="stats-content-desktop">
-                    <div class="statistics-card__header">
-                        <div>
-                            <span class="statistics-card__subtitle">Phiên học Flashcard</span>
-                            <div class="flex items-center gap-2">
-                                <h3 class="statistics-card__title">Thống kê thời gian thực</h3>
-                                <button class="text-slate-400 hover:text-blue-500 transition-colors js-open-info-modal"
-                                    title="Thông tin phiên">
-                                    <i class="fas fa-info-circle"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <span class="statistics-card__badge"><i class="fas fa-bolt"></i> Đang cập nhật</span>
-                    </div>
-
-                    <div class="session-overview">
-                        <div class="summary-card summary-card--total">
-                            <span class="summary-card__label">Tổng điểm</span>
-                            <div id="total-score-display" class="summary-card__value">
-                                <i class="fas fa-gem text-emerald-500"></i>
-                                <span>-</span>
-                            </div>
-                            <p class="summary-card__hint">Cộng dồn toàn bộ điểm Flashcard</p>
-                        </div>
-                        <div class="summary-card summary-card--session">
-                            <span class="summary-card__label">Điểm phiên này</span>
-                            <div id="session-score-display" class="summary-card__value summary-card__value--accent">+0
-                            </div>
-                            <p class="summary-card__hint">Cập nhật sau mỗi câu trả lời</p>
-                        </div>
-                    </div>
-
-                    <div class="stats-tab-nav">
-                        <button class="stats-tab-button active" data-target="current-card-stats-pane"><i
-                                class="fas fa-dot-circle"></i>
-                            Thẻ hiện tại</button>
-                        <button class="stats-tab-button" data-target="previous-card-stats-pane"><i
-                                class="fas fa-history"></i> Thẻ
-                            trước
-                            đó</button>
-                    </div>
-
-                    <div class="stats-tab-content">
-                        <div id="current-card-stats-pane" class="stats-tab-pane active">
-                            <div id="current-card-stats" class="stats-stack">
-                                <div class="empty-state"><i class="fas fa-circle-notch fa-spin"></i> Đang tải thông tin
-                                    thẻ...</div>
-                            </div>
-                        </div>
-                        <div id="previous-card-stats-pane" class="stats-tab-pane">
-                            <div id="previous-card-stats" class="stats-stack">
-                                <div class="empty-state"><i class="fas fa-info-circle"></i> Trả lời thẻ để xem thống kê
-                                    gần nhất.</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="statistics-card__footer">
-                        <button id="end-session-btn" class="session-end-btn" onclick="showExitModal()"><i
-                                class="fas fa-flag-checkered"></i>
-                            <span>Kết thúc
-                                phiên</span></button>
+    {# Main Content Area - Full Width Split Layout #}
+    <div class="flex-1 w-full flex items-stretch justify-center p-0 bg-slate-50/50 overflow-hidden">
+        <div class="w-full h-full flex flex-col relative mx-auto">
+            <div class="flashcard-wrapper w-full h-full relative">
+                <div class="js-flashcard-content w-full h-full">
+                    <div class="flex flex-col items-center justify-center h-full text-slate-400">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-4 text-emerald-500"></i>
+                        <p class="font-medium animate-pulse">Đang tải thẻ...</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
+
+<script>
+    (function () {
+        function updateDesktopStats(stats) {
+            if (!stats) return;
+
+            document.querySelectorAll('.flashcard-desktop-view .js-fc-progress-text').forEach(el => {
+                if (stats.total > 0) el.textContent = `${stats.processed}/${stats.total}`;
+                else el.textContent = '0/0';
+            });
+
+            document.querySelectorAll('.flashcard-desktop-view .js-fc-session-score').forEach(el => {
+                el.textContent = stats.session_score > 0 ? `+${stats.session_score}` : stats.session_score || 0;
+            });
+            document.querySelectorAll('.flashcard-desktop-view .js-fc-session-correct').forEach(el => {
+                el.textContent = stats.correct || 0;
+            });
+
+            if (typeof window.currentUserTotalScore !== 'undefined') {
+                document.querySelectorAll('.flashcard-desktop-view .js-fc-score').forEach(el => {
+                    el.textContent = parseInt(window.currentUserTotalScore).toLocaleString();
+                });
+            }
+        }
+
+        document.addEventListener('flashcardStatsUpdated', function (e) {
+            updateDesktopStats(e.detail);
+        });
+
+        setTimeout(() => {
+            if (window.flashcardSessionStats) {
+                updateDesktopStats(window.flashcardSessionStats);
+            }
+        }, 500);
+
+        // --- Observer for Card Flip to toggle Action Bar ---
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const target = mutation.target;
+                    // Check if target is the card (js-flashcard-card)
+                    if (target.classList.contains('js-flashcard-card')) {
+                        const isFlipped = target.classList.contains('flipped');
+
+                        // Target the main bar wrapper to toggle states
+                        const actionBar = document.querySelector('.desktop-action-bar');
+
+                        if (actionBar) {
+                            if (isFlipped) {
+                                actionBar.classList.add('is-flipped');
+                            } else {
+                                actionBar.classList.remove('is-flipped');
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+        // Observe the main content area where cards are injected
+        const contentContainer = document.querySelector('.js-flashcard-content');
+        if (contentContainer) {
+            observer.observe(contentContainer, {
+                attributes: true,
+                subtree: true,
+                attributeFilter: ['class']
+            });
+        }
+
+    })();
+</script>
