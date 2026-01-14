@@ -152,6 +152,13 @@ async function getNextFlashcardBatch() {
         }
 
         window.renderCard(currentCardData);
+
+        // [UX] Show mobile bottom bar again after card is loaded
+        const mobileBottomBar = document.querySelector('.fc-bottom-bar');
+        if (mobileBottomBar) {
+            mobileBottomBar.style.display = ''; // Clear inline display:none to let CSS handle it
+        }
+
         currentCardStartTime = Date.now(); // [NEW] Start timer
         window.updateSessionSummary();
 
@@ -227,6 +234,12 @@ async function submitFlashcardAnswer(itemId, answer) {
 
         // Gamified Notification
         let notificationPromise = Promise.resolve();
+
+        // [UX] Hide mobile bottom bar during notification to prevent clutter
+        const mobileBottomBar = document.querySelector('.fc-bottom-bar');
+        if (mobileBottomBar) {
+            mobileBottomBar.style.display = 'none';
+        }
 
         if (data.score_change > 0 && typeof window.showScoreToast === 'function') {
             window.showScoreToast(data.score_change);
