@@ -107,14 +107,12 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
             'per_page': per_page,
             'pages': pagination.pages
         },
-        'learned_count': LearningProgress.query.filter(
-            LearningProgress.user_id == user_id,
-            LearningProgress.item_id.in_(item_ids), # Note: this count is just for this page? No.
-            # The dashboard probably needs total learned count for the header.
-            # But the header data comes from api_get_set_detail -> get_set_detail which counts separately?
-            # api_get_set_detail DOES NOT use this return value for header counts.
-            # It uses `card_count` and `memrise_count`.
-            # Wait, `api.py` line 258: `'learned_count': learned_count`. No, that's inside `get_full_stats`.
-            # api_get_set_detail uses `course_stats` just for the list.
-        ).count() # This is wrong. Header stats come from `container_stats`.
+        'learned_count': db.session.query(func.count(LearningProgress.progress_id))
+            .join(LearningItem, LearningProgress.item_id == LearningItem.item_id)
+            .filter(
+                LearningItem.container_id == container_id,
+                LearningProgress.user_id == user_id,
+                LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
+                LearningProgress.status != 'new'
+            ).scalar()
     }
