@@ -52,9 +52,9 @@ class AudioService:
     async def _generate_concatenated_audio(self, audio_content_string, output_format="mp3", pause_ms=400):
         """
         Mô tả: Ghép nhiều đoạn audio TTS thành một file duy nhất.
-               Hỗ trợ định dạng 'lang: text' cho từng dòng.
+               Hỗ trợ định dạng 'lang: text' cho từng dòng hoặc inline.
         Args:
-            audio_content_string (str): Chuỗi chứa nội dung audio, mỗi dòng có thể có định dạng 'lang: text'.
+            audio_content_string (str): Chuỗi chứa nội dung audio.
             output_format (str): Định dạng đầu ra của file audio (mặc định là 'mp3').
             pause_ms (int): Thời gian tạm dừng giữa các đoạn audio khi ghép (miligiây).
         Returns:
@@ -66,10 +66,52 @@ class AudioService:
             logger.warning(f"{log_prefix} Chuỗi nội dung audio rỗng. Không cần ghép.")
             return None, True, "Nội dung audio rỗng, không cần ghép."
 
-        lines = [line.strip() for line in audio_content_string.strip().splitlines() if line.strip()]
-        if not lines:
-            logger.warning(f"{log_prefix} Không có dòng hợp lệ nào để tạo TTS.")
-            return None, True, "Không có dòng hợp lệ để tạo TTS."
+        import re
+        
+        # Normalize content: replace full-width colon, remove BOM
+        normalized_content = audio_content_string.replace('\ufeff', '').replace('：', ':').strip()
+        
+        # Regex to find language markers. 
+        # Pattern: Start of string or whitespace/newline, followed by 2-3 letters, then colon
+        # Captures: (lang_code)
+        lang_pattern = re.compile(r'(?:^|\s+)([a-z]{2,3}):', re.IGNORECASE | re.MULTILINE)
+        
+        segments = []
+        last_pos = 0
+        current_lang = 'en' # Default language if no marker found at start (although regex search might find one immediately)
+
+        # Find all language markers
+        matches = list(lang_pattern.finditer(normalized_content))
+        
+        if not matches:
+             # Case: No language markers found at all. Treat whole text as default 'en' (or whatever logic)
+             # But wait, maybe the line doesn't start with lang marker?
+             # User logic: "en: text".
+             # If input is just "birthday", we treat as 'en'.
+             segments.append(('en', normalized_content))
+        else:
+            # Check if there is text BEFORE the first marker
+            if matches[0].start() > 0:
+                pre_text = normalized_content[0:matches[0].start()].strip()
+                if pre_text:
+                    segments.append(('en', pre_text)) # Default to en for text before first marker
+
+            for i, match in enumerate(matches):
+                lang_code = match.group(1).lower()
+                start_text_pos = match.end()
+                
+                # End of this segment is start of next match or end of string
+                end_text_pos = matches[i+1].start() if (i + 1 < len(matches)) else len(normalized_content)
+                
+                text_content = normalized_content[start_text_pos:end_text_pos].strip()
+                
+                if text_content:
+                    segments.append((lang_code, text_content))
+                    logger.debug(f"{log_prefix} Parsed Segment: [{lang_code}] '{text_content[:20]}...'")
+
+        if not segments:
+            logger.warning(f"{log_prefix} Không tìm thấy segments hợp lệ nào.")
+            return None, True, "Không có nội dung hợp lệ để tạo TTS."
 
         temp_files = []
         final_temp_path = None
@@ -79,33 +121,24 @@ class AudioService:
 
         try:
             tasks = []
-            for line in lines:
+            for lang_code, text_to_read in segments:
                 try:
-                    lang_code, text_to_read = 'en', line
-                    if ":" in line:
-                        parts = line.split(":", 1)
-                        if len(parts) == 2 and parts[0].strip():
-                            lang_code, text_to_read = parts[0].strip().lower(), parts[1].strip()
-
-                    if not text_to_read:
-                        logger.warning(f"{log_prefix} Bỏ qua dòng không có nội dung text: '{line}'")
-                        continue
-
-                    delay = random.uniform(0.5, 2.0)
-                    await asyncio.sleep(delay)
-                    logger.debug(f"{log_prefix} Chờ {delay:.2f} giây trước khi gọi TTS.")
-                    
+                    # Sanity check on lang_code if needed, but gTTS handles validation
+                    # Add random jitter to emulate human-like request spacing?
+                    delay = random.uniform(0.1, 0.5) 
                     tasks.append(loop.run_in_executor(None, self._generate_tts_sync, text_to_read, lang_code))
                 except Exception as e_prep:
-                    logger.error(f"{log_prefix} Lỗi chuẩn bị TTS cho dòng '{line}': {e_prep}", exc_info=True)
+                    logger.error(f"{log_prefix} Lỗi chuẩn bị TTS cho segment '{text_to_read[:20]}...': {e_prep}", exc_info=True)
                     overall_success = False
                     overall_message = f"Lỗi chuẩn bị audio cho một phần: {e_prep}"
 
             if not tasks:
-                logger.warning(f"{log_prefix} Không có tác vụ TTS nào được tạo.")
                 return None, False, "Không có tác vụ TTS nào được tạo."
 
             logger.info(f"{log_prefix} Đang đợi {len(tasks)} tác vụ TTS.")
+            # Execute sequentially or parallel? Parallel is faster but might hit rate limits faster.
+            # VoiceEngine uses gTTS which calls Google API. 
+            # We should probably run them.
             generated_files_results = await asyncio.gather(*tasks)
             
             for path, success, msg in generated_files_results:
@@ -116,18 +149,14 @@ class AudioService:
                     temp_files.append(path)
 
             if not overall_success:
-                logger.error(f"{log_prefix} Một hoặc nhiều tác vụ TTS đã thất bại. Hủy bỏ việc ghép audio.")
+                logger.error(f"{log_prefix} {overall_message}")
                 return None, False, overall_message
             
-            logger.info(f"{log_prefix} Tạo thành công {len(temp_files)} file audio riêng lẻ.")
-
             if len(temp_files) == 0:
-                logger.warning(f"{log_prefix} Không có file audio nào được tạo để ghép.")
-                return None, False, "Không có file audio nào được tạo để ghép."
+                 return None, False, "Không có file audio nào được tạo."
             elif len(temp_files) == 1:
                 final_temp_path = temp_files[0]
-                logger.info(f"{log_prefix} Chỉ có 1 file, không cần ghép. Trả về: {final_temp_path}")
-                return final_temp_path, True, "Tạo audio thành công (chỉ 1 file)."
+                return final_temp_path, True, "Tạo audio thành công."
             
             def concatenate_sync_internal():
                 try:
@@ -139,8 +168,8 @@ class AudioService:
             final_temp_path, success, msg = await loop.run_in_executor(None, concatenate_sync_internal)
             return final_temp_path, success, msg
         except Exception as e:
-            logger.critical(f"{log_prefix} Lỗi nghiêm trọng trong quá trình ghép audio: {e}", exc_info=True)
-            return None, False, f"Lỗi nghiêm trọng trong quá trình tạo/ghép audio: {e}"
+            logger.critical(f"{log_prefix} Lỗi nghiêm trọng: {e}", exc_info=True)
+            return None, False, f"Lỗi nghiêm trọng: {e}"
         finally:
             if temp_files:
                 logger.debug(f"{log_prefix} Dọn dẹp {len(temp_files)} file TTS tạm...")
