@@ -1,4 +1,7 @@
+import logging
 from deep_translator import GoogleTranslator
+
+logger = logging.getLogger(__name__)
 
 class TranslatorService:
     @staticmethod
@@ -11,6 +14,6 @@ class TranslatorService:
             translator = GoogleTranslator(source=source, target=target)
             return translator.translate(text)
         except Exception as e:
-            # Log error but don't crash
-            print(f"Translation Error: {e}")
+            # Log error properly
+            logger.error(f"Translation Error: {e}", exc_info=True)
             return None

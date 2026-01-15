@@ -13,6 +13,7 @@ import shutil
 import asyncio
 import random
 import time
+from flask import current_app
 
 from mindstack_app.logics.voice_engine import VoiceEngine
 
@@ -68,49 +69,84 @@ class AudioService:
 
         import re
         
-        # Normalize content: replace full-width colon, remove BOM
+        # [FIX] Normalize content: replace full-width colon, remove BOM, and normalize newlines
         normalized_content = audio_content_string.replace('\ufeff', '').replace('：', ':').strip()
+        normalized_content = normalized_content.replace('\r\n', '\n').replace('\r', '\n')
         
-        # Regex to find language markers. 
-        # Pattern: Start of string or whitespace/newline, followed by 2-3 letters, then colon
-        # Captures: (lang_code)
-        lang_pattern = re.compile(r'(?:^|\s+)([a-z]{2,3}):', re.IGNORECASE | re.MULTILINE)
-        
+        # [NEW] Language code normalization map
+        lang_map = {
+            'vn': 'vi',
+            'jp': 'ja',
+            'kr': 'ko',
+            'cn': 'zh-cn',
+            'tw': 'zh-tw'
+        }
+
         segments = []
-        last_pos = 0
-        current_lang = 'en' # Default language if no marker found at start (although regex search might find one immediately)
 
-        # Find all language markers
-        matches = list(lang_pattern.finditer(normalized_content))
+        # --- PHASE 1: BRACKET FORMAT [lang:text] ---
+        # Matches patterns like [ja: content] [vi: content]
+        # We handle optional spaces around colon and ignore nested brackets
+        bracket_pattern = re.compile(r'\[([a-z]{2,3}(?:-[a-z]{2,4})?)\s*:\s*([^\]]+)\]', re.IGNORECASE)
+        bracket_matches = list(bracket_pattern.finditer(normalized_content))
         
-        if not matches:
-             # Case: No language markers found at all. Treat whole text as default 'en' (or whatever logic)
-             # But wait, maybe the line doesn't start with lang marker?
-             # User logic: "en: text".
-             # If input is just "birthday", we treat as 'en'.
-             segments.append(('en', normalized_content))
+        if bracket_matches:
+            logger.debug(f"{log_prefix} Found {len(bracket_matches)} bracketed segments. Using Priority Parsing.")
+            for m in bracket_matches:
+                raw_lang = m.group(1).lower()
+                lang_code = lang_map.get(raw_lang, raw_lang)
+                text = m.group(2).strip()
+                if text:
+                    segments.append((lang_code, text))
         else:
-            # Check if there is text BEFORE the first marker
-            if matches[0].start() > 0:
-                pre_text = normalized_content[0:matches[0].start()].strip()
-                if pre_text:
-                    segments.append(('en', pre_text)) # Default to en for text before first marker
+            # --- PHASE 2: FALLBACK TO MARKER FORMAT lang: text ---
+            # [FIX] Robust regex to find language markers. 
+            # Using negative lookbehind to ensure we don't match markers inside another ASCII word/id.
+            lang_pattern = re.compile(r'(?<![a-z0-9])([a-z]{2,3}(?:-[a-z]{2,4})?)\s*:', re.IGNORECASE)
+            
+            # Find all language markers
+            matches = list(lang_pattern.finditer(normalized_content))
+            
+            logger.debug(f"{log_prefix} No brackets found. Fallback to MARKER logic (Found {len(matches)}).")
 
-            for i, match in enumerate(matches):
-                lang_code = match.group(1).lower()
-                start_text_pos = match.end()
-                
-                # End of this segment is start of next match or end of string
-                end_text_pos = matches[i+1].start() if (i + 1 < len(matches)) else len(normalized_content)
-                
-                text_content = normalized_content[start_text_pos:end_text_pos].strip()
-                
-                if text_content:
-                    segments.append((lang_code, text_content))
-                    logger.debug(f"{log_prefix} Parsed Segment: [{lang_code}] '{text_content[:20]}...'")
+            if not matches:
+                # Case: No language markers found at all. Treat whole text as default 'en'
+                segments.append(('en', normalized_content))
+            else:
+                # Check if there is text BEFORE the first marker
+                if matches[0].start() > 0:
+                    pre_text = normalized_content[0:matches[0].start()].strip()
+                    # If there's a delimiter at the start, remove it
+                    pre_text = re.sub(r'^[|\s]+', '', pre_text).strip()
+                    if pre_text:
+                        segments.append(('en', pre_text)) 
 
+                for i, match in enumerate(matches):
+                    raw_lang = match.group(1).lower()
+                    # Normalize language code
+                    lang_code = lang_map.get(raw_lang, raw_lang)
+                    
+                    start_text_pos = match.end()
+                    
+                    # End of this segment is start of next match or end of string
+                    end_text_pos = matches[i+1].start() if (i + 1 < len(matches)) else len(normalized_content)
+                    
+                    text_content = normalized_content[start_text_pos:end_text_pos].strip()
+                    
+                    # [FIX] Aggressive cleanup to remove leaked markers:
+                    # 1. Remove trailing delimiters
+                    text_content = re.sub(r'[|\s]+$', '', text_content).strip()
+                    
+                    # 2. [FIX] Remove any 2-3 letter combo that looks like a marker at the end
+                    # but ONLY if it follows a non-ASCII character or a boundary.
+                    text_content = re.sub(r'(?<![a-z])[a-z]{2,3}\s*:?$', '', text_content, flags=re.IGNORECASE).strip()
+
+                    if text_content:
+                        segments.append((lang_code, text_content))
+                        logger.debug(f"{log_prefix} Segment {i+1}: [{lang_code}] (was {raw_lang}) -> '{text_content}'")
+        
         if not segments:
-            logger.warning(f"{log_prefix} Không tìm thấy segments hợp lệ nào.")
+            logger.warning(f"{log_prefix} Không tìm thấy segments hợp lệ nào sau khi parse.")
             return None, True, "Không có nội dung hợp lệ để tạo TTS."
 
         temp_files = []
@@ -180,9 +216,13 @@ class AudioService:
                         except Exception as e_remove:
                             logger.error(f"{log_prefix} Lỗi xóa file tạm {f}: {e_remove}")
 
-    async def get_cached_or_generate_audio(self, audio_content_string, output_format="mp3"):
+    async def get_cached_or_generate_audio(self, audio_content_string, output_format="mp3", force_refresh=False):
         """
         Mô tả: Lấy đường dẫn đến file audio đã cache hoặc tạo mới nếu chưa có.
+        Args:
+            audio_content_string (str): Nội dung cần tạo audio.
+            output_format (str): Định dạng file.
+            force_refresh (bool): Nếu True, bỏ qua cache và tạo mới, đồng thời ghi đè cache cũ.
         """
         log_prefix = "[GET_OR_GEN_AUDIO]"
         if not audio_content_string or not audio_content_string.strip():
@@ -195,11 +235,14 @@ class AudioService:
             cache_dir = self._ensure_cache_dir()
             cached_file_path = os.path.join(cache_dir, cache_filename)
             
-            if os.path.exists(cached_file_path):
+            if not force_refresh and os.path.exists(cached_file_path):
                 logger.info(f"{log_prefix} Cache HIT: {cached_file_path}")
                 return cached_file_path, True, "Đã tìm thấy trong cache."
             
-            logger.info(f"{log_prefix} Cache MISS cho hash {content_hash}. Đang tạo audio...")
+            if force_refresh:
+                logger.info(f"{log_prefix} Force refresh requested cho hash {content_hash}. Đang tạo mới...")
+            else:
+                logger.info(f"{log_prefix} Cache MISS cho hash {content_hash}. Đang tạo audio...")
             temp_generated_path, success, message = await self._generate_concatenated_audio(audio_content_string, output_format)
             
             if success and temp_generated_path and os.path.exists(temp_generated_path):
@@ -224,6 +267,69 @@ class AudioService:
             error_message = f"Lỗi nghiêm trọng trong quá trình lấy/tạo/cache audio: {e}"
             logger.critical(f"{log_prefix} {error_message}", exc_info=True)
             return None, False, error_message
+
+    async def get_or_generate_audio_for_item(self, item, side, force_refresh=False):
+        """
+        Mô tả: Lấy hoặc tạo audio cho một LearningItem cụ thể.
+        Naming convention: {side}_{item_id}.mp3
+        Storage: container's media_audio_folder if set, else cache.
+        """
+        log_prefix = f"[ITEM_AUDIO|{item.item_id}|{side}]"
+        
+        # 1. Determine content to read
+        content_to_read = ""
+        if side == 'front':
+            content_to_read = item.content.get('front_audio_content') or item.content.get('front')
+        elif side == 'back':
+            content_to_read = item.content.get('back_audio_content') or item.content.get('back')
+            
+        if not content_to_read or not str(content_to_read).strip():
+            logger.warning(f"{log_prefix} Không có nội dung để tạo audio.")
+            return None, False, "Không có nội dung để tạo audio."
+
+        # 2. Determine target folder and paths
+        container = item.container
+        audio_folder = getattr(container, 'media_audio_folder', None)
+        
+        filename = f"{side}_{item.item_id}.mp3"
+        
+        if audio_folder:
+            # Absolute path for FS operations
+            target_dir = os.path.join(current_app.static_folder, audio_folder)
+            os.makedirs(target_dir, exist_ok=True)
+            target_path = os.path.join(target_dir, filename)
+            # [STAKE] Store ONLY filename in DB if folder is set
+            stored_value = filename
+            full_relative_path = f"{audio_folder}/{filename}"
+        else:
+            # Fallback to general cache
+            target_dir = self._ensure_cache_dir()
+            target_path = os.path.join(target_dir, filename)
+            # Store full relative path for generic cache
+            stored_value = f"flashcard/audio/cache/{filename}"
+            full_relative_path = stored_value
+
+        # 3. Lookup: check physically if exists
+        if not force_refresh and os.path.exists(target_path):
+            logger.info(f"{log_prefix} Found existing file: {target_path}")
+            return stored_value, full_relative_path, True, "Đã tìm thấy file."
+
+        # 4. Generate fresh audio
+        logger.info(f"{log_prefix} Generating fresh audio to: {target_path}")
+        temp_path, success, msg = await self._generate_concatenated_audio(str(content_to_read))
+        
+        if success and temp_path:
+            try:
+                if os.path.exists(target_path):
+                    os.remove(target_path)
+                shutil.move(temp_path, target_path)
+                logger.info(f"{log_prefix} Successfully created: {target_path}")
+                return stored_value, full_relative_path, True, "Tạo thành công."
+            except Exception as move_exc:
+                logger.error(f"{log_prefix} Lỗi di chuyển file: {move_exc}", exc_info=True)
+                return None, None, False, f"Lỗi lưu file: {move_exc}"
+        
+        return None, None, False, msg
 
     async def generate_cache_for_all_cards(self, task, container_ids=None):
         """

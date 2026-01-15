@@ -27,16 +27,46 @@ class VoiceEngine:
         if not text or not text.strip():
             raise ValueError("Text content is empty")
 
+        # [FIX] Enhanced sanitization:
+        # 1. Remove non-printable characters
+        clean_text = "".join(ch for ch in text if ch.isprintable() or ch in '\n\r\t').strip()
+        
+        # 2. [NEW] Strip symbols that gTTS might literalize (Quotes, Brackets, Special chars)
+        # We keep . , ! ? for prosody (pauses/intonation)
+        import re
+        # Remove quotes, brackets, math symbols, etc.
+        # We specifically target characters that don't contribute to prosody but might be read aloud
+        clean_text = re.sub(r'["\'()\[\]{}«»“”‘’@#$%^&*_+=\\~<>]', ' ', clean_text)
+        # Collapse multiple spaces
+        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+
+        if not clean_text:
+             raise ValueError("Text content contains only non-printable or stripped characters after sanitization")
+
         try:
             # gTTS default is 'en', slow=False
-            tts = gTTS(text=text, lang=lang, slow=False)
+            # [FIX] Handle potential regional lang codes or fall back to base
+            logger.debug(f"[VOICE_ENGINE] Requesting TTS: lang='{lang}', text='{clean_text[:50]}'")
+            try:
+                tts = gTTS(text=clean_text, lang=lang, slow=False)
+            except ValueError as ve:
+                logger.warning(f"[VOICE_ENGINE] Language code '{lang}' might not be supported directly. Attempting base code. Error: {ve}")
+                lang_base = lang.split('-')[0]
+                tts = gTTS(text=clean_text, lang=lang_base, slow=False)
+
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmpfile:
                 temp_path = tmpfile.name
             tts.save(temp_path)
-            logger.debug(f"Generated TTS file: {temp_path} (lang={lang})")
+            
+            # Check if file was actually saved and has content
+            if os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
+                logger.debug(f"[VOICE_ENGINE] Generated TTS file: {temp_path} (size={os.path.getsize(temp_path)}, lang={lang})")
+            else:
+                raise IOError(f"TTS file was not saved correctly or is empty: {temp_path}")
+                
             return temp_path
         except Exception as e:
-            logger.error(f"Error in text_to_speech: {e}")
+            logger.error(f"[VOICE_ENGINE] Error in text_to_speech for lang='{lang}', text='{clean_text[:50]}...': {e}", exc_info=True)
             if 'temp_path' in locals() and os.path.exists(temp_path):
                 try:
                     os.remove(temp_path)

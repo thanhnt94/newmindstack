@@ -1058,85 +1058,29 @@ def regenerate_audio_from_content():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        path_or_url, success, msg = loop.run_until_complete(audio_service.get_cached_or_generate_audio(content_to_read))
-        if success and path_or_url:
-            # Audio has been generated and saved to cache
-            # Now check if container has a specific audio folder configured
-            
-            container = item.container if item else None
-            audio_folder = None
-            
-            # Check if container has custom audio folder
-            if container:
-                audio_folder = getattr(container, 'media_audio_folder', None)
-                if not audio_folder:
-                    # Try to create one if not exists
-                    audio_folder = _ensure_container_media_folder(container, 'audio')
-            
-            filename = os.path.basename(path_or_url)
-            
-            # CASE 1: Container has specific audio folder → Copy from cache to container folder
-            if audio_folder:
-                try:
-                    # Ensure folder exists
-                    container_audio_dir = os.path.join(current_app.static_folder, audio_folder)
-                    os.makedirs(container_audio_dir, exist_ok=True)
-                    current_app.logger.info(f"[AUDIO COPY] Container folder: {container_audio_dir}")
-                    
-                    # Destination in container folder
-                    destination = os.path.join(container_audio_dir, filename)
-                    current_app.logger.info(f"[AUDIO COPY] Source: {path_or_url}")
-                    current_app.logger.info(f"[AUDIO COPY] Destination: {destination}")
-                    
-                    # Copy from cache to container folder (keep cache for reuse)
-                    if not os.path.exists(destination):
-                        shutil.copy2(path_or_url, destination)
-                        current_app.logger.info(f"[AUDIO COPY] ✅ Copy successful")
-                    else:
-                        current_app.logger.info(f"[AUDIO COPY] File already exists at destination")
-                    
-                    # Verify file exists
-                    if not os.path.exists(destination):
-                        raise Exception(f"File not found after copy: {destination}")
-                    
-                    # Build relative path - simple and direct
-                    relative_path = f"{audio_folder}/{filename}"
-                    current_app.logger.info(f"[AUDIO COPY] Relative path: {relative_path}")
-                    
-                except Exception as copy_exc:
-                    current_app.logger.error(f"[AUDIO COPY] Failed to copy: {copy_exc}", exc_info=True)
-                    # Fallback to cache path
-                    relative_path = f"flashcard/audio/cache/{filename}"
-                    current_app.logger.warning(f"[AUDIO COPY] Using cache fallback: {relative_path}")
-            else:
-                # CASE 2: No container folder → Use global cache directly
-                relative_path = f"flashcard/audio/cache/{filename}"
-                current_app.logger.info(f"[AUDIO COPY] No container folder, using cache: {relative_path}")
-            
-            # ✅ Save audio URL to database
+        # Use the NEW optimized method that handles folders and ID-based naming
+        # Now returns both the DB-ready value and the full relative path for URL generation
+        stored_value, full_relative_path, success, msg = loop.run_until_complete(
+            audio_service.get_or_generate_audio_for_item(item, side, force_refresh=True)
+        )
+        
+        if success and stored_value:
+            # ✅ Save audio URL/filename to database
             try:
-                current_app.logger.info(f"[AUDIO DEBUG] Item {item_id} - Saving {side} audio URL: {relative_path}")
-                current_app.logger.info(f"[AUDIO DEBUG] Content hash: {filename}")
+                current_app.logger.info(f"[AUDIO REGEN] Item {item_id} - Saving {side} audio value: {stored_value}")
                 
                 if side == 'front':
-                    item.content['front_audio_url'] = relative_path
+                    item.content['front_audio_url'] = stored_value
                 elif side == 'back':
-                    item.content['back_audio_url'] = relative_path
-                else:
-                    current_app.logger.error(f"[AUDIO DEBUG] Invalid side value: {side}")
-                    return jsonify({'success': False, 'message': f'Side không hợp lệ: {side}'}), 400
+                    item.content['back_audio_url'] = stored_value
                 
                 flag_modified(item, 'content')
                 safe_commit(db.session)
-                current_app.logger.info(f"[AUDIO DEBUG] Successfully saved {side}_audio_url to database")
             except Exception as db_exc:
-                current_app.logger.warning(f"Failed to save audio URL to database: {db_exc}")
+                current_app.logger.warning(f"Failed to save audio to database: {db_exc}")
             
-            # Generate final URL
-            final_audio_url = url_for('static', filename=relative_path)
-            current_app.logger.info(f"[AUDIO RESPONSE] Side: {side}")
-            current_app.logger.info(f"[AUDIO RESPONSE] Relative path: {relative_path}")
-            current_app.logger.info(f"[AUDIO RESPONSE] Final URL: {final_audio_url}")
+            # Generate final URL for frontend playback using the full relative path
+            final_audio_url = url_for('static', filename=full_relative_path)
             
             return jsonify({
                 'success': True,
@@ -1144,7 +1088,7 @@ def regenerate_audio_from_content():
                 'audio_url': final_audio_url,
             })
         else:
-            return jsonify({'success': False, 'message': msg}), 500
+            return jsonify({'success': False, 'message': msg or 'Không thể tạo audio.'}), 500
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Lỗi khi tạo audio từ nội dung: {e}", exc_info=True)

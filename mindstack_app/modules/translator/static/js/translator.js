@@ -134,9 +134,10 @@ const MsTranslator = {
             });
             const data = await res.json();
 
-            if (data.translated) {
-                this.showResult(data.translated, data.source);
+            if (data.success && data.data && data.data.translated) {
+                this.showResult(data.data.translated, data.data.source);
             } else {
+                console.error('Translation response error:', data);
                 this.showError();
             }
         } catch (e) {
