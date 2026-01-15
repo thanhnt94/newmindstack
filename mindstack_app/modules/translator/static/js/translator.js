@@ -149,12 +149,17 @@ const MsTranslator = {
     showResult(translatedText, sourceLang) {
         const popup = document.getElementById('ms-translator-popup');
         popup.innerHTML = `
-            <div class="p-3 bg-white text-sm w-full">
-                <div class="flex justify-between items-center mb-1 text-[10px] text-slate-400 uppercase font-bold">
+            <div class="bg-white text-sm w-full">
+                <div class="flex justify-between items-center p-2 border-b border-slate-100 text-[10px] text-slate-400 uppercase font-bold">
                     <span>${sourceLang || 'Auto'} <i class="fa-solid fa-arrow-right mx-1"></i> VI</span>
-                    <button onclick="MsTranslator.hide()" class="hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
+                    <div class="flex gap-2">
+                        <a href="/translator/history" target="_blank" title="Xem lịch sử đầy đủ" class="hover:text-indigo-600 px-1"><i class="fa-solid fa-history"></i></a>
+                        <button onclick="MsTranslator.hide()" class="hover:text-red-500 px-1"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
                 </div>
-                <p class="font-medium text-slate-800 leading-relaxed">${translatedText}</p>
+                <div class="p-3">
+                    <p class="font-medium text-slate-800 leading-relaxed">${translatedText}</p>
+                </div>
             </div>
         `;
     },
@@ -163,7 +168,7 @@ const MsTranslator = {
         const popup = document.getElementById('ms-translator-popup');
         popup.innerHTML = `
              <div class="p-2 bg-red-50 text-red-600 text-xs font-bold flex items-center gap-2">
-                <i class="fa-solid fa-circle-exclamation"></i> Lỗi dịch thuật.
+                <i class="fa-solid fa-circle-exclamation"></i> Lỗi hệ thống.
             </div>
         `;
         setTimeout(() => this.hide(), 2000);

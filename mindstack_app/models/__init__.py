@@ -36,6 +36,7 @@ from .app_settings import AppSettings  # unified settings (replaces SiteSettings
 from .learning_progress import LearningProgress  # NEW: Unified progress model
 from .learning_session import LearningSession  # NEW: Database-backed sessions
 from .gamification import Badge, UserBadge
+from .translator import TranslationHistory
 
 __all__ = [
     'db',
@@ -73,5 +74,5 @@ __all__ = [
     'Badge',
     'UserBadge',
     'AppSettings',
+    'TranslationHistory',
 ]
-
