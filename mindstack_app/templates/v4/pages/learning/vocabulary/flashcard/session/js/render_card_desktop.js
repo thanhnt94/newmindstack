@@ -129,7 +129,7 @@ window.renderDesktopCardHtml = function (data, o) {
                     <div class="face front">
                       ${toolbarFront}
                       <div class="_card-container">
-                        <div class="text-area"><div class="flashcard-content-text text-3xl font-bold">${o.fTxt}</div></div>
+                        <div class="text-area"><div class="flashcard-content-text text-3xl">${o.fTxt}</div></div>
                         ${o.frontImg ? `<div class="media-container"><img src="${o.frontImg}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
                         <audio id="front-audio-desktop" class="hidden" src="${o.frontAudioUrl || ''}"></audio>
                       </div>

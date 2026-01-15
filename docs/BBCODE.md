@@ -4,23 +4,9 @@ MindStack hỗ trợ BBCode để format nội dung trong nhiều hệ thống h
 
 ---
 
-## Hệ thống được hỗ trợ
-
-| Module | Fields được render | Ghi chú |
-|--------|-------------------|---------|
-| **Course Lessons** | `bbcode_content` | Nội dung bài học khóa học |
-| **Flashcard** | `front`, `back`, `front_audio_content`, `back_audio_content`, `ai_explanation` | Mặt trước/sau thẻ |
-| **Quiz** | `question`, `options` (A/B/C/D), `explanation`, `pre_question_text`, `ai_explanation`, `note_content` | Câu hỏi và đáp án |
-| **Vocab MCQ** | `question`, `choices`, `correct_answer` | Chế độ trắc nghiệm từ vựng |
-| **Vocab Typing** | `prompt` | Phần câu hỏi hiển thị (answer giữ nguyên để validation) |
-| **Vocab Listening** | `meaning` | Nghĩa của từ (answer giữ nguyên để validation) |
-| **Vocab Stats** | `front`, `back`, `meaning`, `example`, `example_meaning`, `ai_explanation` | Modal thống kê từ vựng |
-
----
-
 ## Tags được hỗ trợ
 
-### Tags chuẩn (Built-in)
+### Tags chuẩn (Built-in từ thư viện bbcode)
 
 | Tag | Cú pháp | Kết quả | Ví dụ |
 |-----|---------|---------|-------|
@@ -40,7 +26,57 @@ MindStack hỗ trợ BBCode để format nội dung trong nhiều hệ thống h
 | Tag | Cú pháp | Mô tả |
 |-----|---------|-------|
 | **YouTube** | `[youtube]URL hoặc ID[/youtube]` | Nhúng video YouTube responsive |
-| **Image** | `[img]URL[/img]` | Hiển thị hình ảnh |
+| **Image** | `[img]URL[/img]` | Hiển thị hình ảnh với class `parsed-content-img` |
+
+---
+
+## Nơi BBCode được xử lý (Backend)
+
+### Core Files
+
+| File | Chức năng |
+|------|-----------|
+| [bbcode_parser.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/utils/bbcode_parser.py) | Parser chính, định nghĩa tags `[youtube]` và `[img]` |
+| [content_renderer.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/utils/content_renderer.py) | Utility functions: `render_text_field()`, `render_content_dict()`, `strip_bbcode()` |
+
+### Modules sử dụng BBCode rendering
+
+| Module | File | Fields được render |
+|--------|------|-------------------|
+| **Flashcard Session** | [session_manager.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/modules/learning/sub_modules/flashcard/individual/session_manager.py) | `front`, `back`, `front_audio_content`, `back_audio_content`, `ai_explanation` |
+| **Flashcard Engine** | [session_manager.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/modules/learning/sub_modules/flashcard/engine/session_manager.py) | `front`, `back`, `front_audio_content`, `back_audio_content`, `ai_explanation` |
+| **Quiz Session** | [session_logic.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/modules/learning/sub_modules/quiz/individual/logics/session_logic.py) | `content` (toàn bộ dict), `ai_explanation`, `note_content` |
+| **Vocab MCQ** | [logic.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/modules/learning/sub_modules/vocabulary/mcq/logic.py) | `question`, `choices`, `correct_answer` |
+| **Vocab Typing** | [logic.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/modules/learning/sub_modules/vocabulary/typing/logic.py) | `prompt` |
+| **Vocab Listening** | [logic.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/modules/learning/sub_modules/vocabulary/listening/logic.py) | `meaning` |
+| **Vocab Stats** | [item_stats.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/modules/learning/sub_modules/vocabulary/stats/item_stats.py) | `front`, `back`, `meaning`, `example`, `example_meaning`, `ai_explanation` |
+| **Learning Routes** | [routes.py](file:///c:/Code/MindStack/newmindstack/mindstack_app/modules/learning/routes.py) | `item_content` (trong log) |
+
+---
+
+## Templates hiển thị BBCode
+
+Các template sau trực tiếp gọi `bbcode_to_html()` trong Jinja2:
+
+| Template | Mô tả |
+|----------|-------|
+| [course_session.html](file:///c:/Code/MindStack/newmindstack/mindstack_app/templates/v4/pages/learning/course/course_session.html) | Nội dung bài học khóa học |
+| [course_session.html (default)](file:///c:/Code/MindStack/newmindstack/mindstack_app/templates/v4/pages/learning/course/default/course_session.html) | Bản mặc định của bài học |
+| [lessons.html](file:///c:/Code/MindStack/newmindstack/mindstack_app/templates/v4/pages/content_management/courses/lessons/lessons.html) | Quản lý bài học (preview) |
+
+> [!NOTE]
+> Các module khác (Flashcard, Quiz, MCQ, Typing, Listening, Stats) **không** gọi `bbcode_to_html()` trực tiếp trong template. Thay vào đó, BBCode được render **ở tầng backend (Python)** trước khi trả về JSON/HTML cho frontend.
+
+---
+
+## Fields KHÔNG được render BBCode
+
+Các field sau sẽ giữ nguyên, không xử lý BBCode (được định nghĩa trong `content_renderer.py`):
+
+- **IDs**: `item_id`, `container_id`, `group_id`, `user_id`
+- **URLs**: `front_audio_url`, `back_audio_url`, `front_img`, `back_img`, `audio_url`
+- **Metadata**: `correct_answer` (cho Quiz), `order_in_container`, `item_type`
+- **Flags**: `supports_pronunciation`, `supports_writing`, `can_edit`
 
 ---
 
@@ -78,17 +114,6 @@ MindStack hỗ trợ BBCode để format nội dung trong nhiều hệ thống h
 
 ---
 
-## Fields KHÔNG được render BBCode
-
-Các field sau sẽ giữ nguyên, không xử lý BBCode:
-
-- IDs: `item_id`, `container_id`, `group_id`, `user_id`
-- URLs: `front_audio_url`, `back_audio_url`, `front_img`, `back_img`, `audio_url`
-- Metadata: `correct_answer`, `order_in_container`, `item_type`
-- Flags: `supports_pronunciation`, `supports_writing`, `can_edit`
-
----
-
 ## Lưu ý kỹ thuật
 
 1. **An toàn HTML**: BBCode được chuyển sang HTML an toàn, không cho phép inject script
@@ -99,7 +124,11 @@ Các field sau sẽ giữ nguyên, không xử lý BBCode:
    - `https://youtube.com/shorts/VIDEO_ID`
    - Hoặc chỉ `VIDEO_ID` (11 ký tự)
 3. **Nested tags**: Có thể lồng tags: `[b][i]bold italic[/i][/b]`
-4. **Answer Validation**: Khi so sánh đáp án (Typing, Listening), BBCode sẽ được tự động loại bỏ:
+4. **Answer Validation**: Khi so sánh đáp án (Typing, Listening), BBCode được tự động loại bỏ bằng `strip_bbcode()`:
    - Đáp án lưu: `[b]hehe[/b]`
    - User nhập: `hehe`
-   - Kết quả: ✅ Đúng (BBCode được strip trước khi so sánh)
+   - Kết quả: ✅ Đúng
+5. **Jinja2 Usage**: Khi dùng trong template, nhớ thêm `|safe`:
+   ```jinja2
+   {{ bbcode_to_html(content) | safe }}
+   ```

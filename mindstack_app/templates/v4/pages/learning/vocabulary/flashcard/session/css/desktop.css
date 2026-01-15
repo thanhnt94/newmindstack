@@ -99,7 +99,7 @@
     .flashcard-desktop-view .flashcard-content-text {
         font-size: 4rem;
         /* HUGE Text */
-        font-weight: 800;
+        /* font-weight removed to let BBCode [b] work */
         line-height: 1.1;
         letter-spacing: -0.02em;
     }

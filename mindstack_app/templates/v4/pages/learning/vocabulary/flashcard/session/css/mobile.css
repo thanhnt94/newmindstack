@@ -385,7 +385,7 @@
 
         .flashcard-mobile-view .flashcard-content-text {
             font-size: 1.5rem;
-            font-weight: 700;
+            /* font-weight removed to let BBCode [b] work */
             color: #1e293b;
             line-height: 1.4;
         }

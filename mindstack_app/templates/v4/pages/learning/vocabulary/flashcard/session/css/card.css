@@ -321,7 +321,7 @@
 
 .front .text-area .flashcard-content-text {
     font-size: 2.2rem;
-    font-weight: 700;
+    /* font-weight removed to allow BBCode [b] to have visible effect */
     color: #1f2937;
 }
 
