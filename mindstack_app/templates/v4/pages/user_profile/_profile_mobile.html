@@ -168,6 +168,17 @@
             {% endif %}
         </div>
 
+        {# Admin Panel - Only for admins #}
+        {% if user.user_role == 'admin' %}
+        <a href="{{ url_for('admin.admin_dashboard') }}"
+            class="flex items-center justify-center gap-3 bg-gradient-to-r from-slate-800 to-slate-900 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all font-bold text-base animate-fade-in-up"
+            style="animation-delay: 0.68s">
+            <i class="fa-solid fa-shield-halved text-xl text-amber-400"></i>
+            <span>Admin Panel</span>
+            <i class="fa-solid fa-arrow-right text-sm opacity-60"></i>
+        </a>
+        {% endif %}
+
         {# Edit Button #}
         <a href="{{ url_for('user_profile.edit_profile') }}"
             class="flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all font-bold text-base animate-fade-in-up"
