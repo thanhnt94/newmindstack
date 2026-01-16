@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from flask import url_for
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON
@@ -35,9 +36,20 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(timezone=True))
     timezone = db.Column(db.String(50), default='UTC')
     telegram_chat_id = db.Column(db.String(100), nullable=True, unique=True)
+    avatar_url = db.Column(db.String(255), nullable=True) # URL hoặc đường dẫn file avatar
     
     # JSON column to store user's last preferences/configurations
     last_preferences = db.Column(JSON, default=dict)
+
+    def get_avatar_url(self):
+        """Trả về URL avatar của người dùng hoặc ảnh mặc định."""
+        if self.avatar_url:
+            # Nếu là đường dẫn nội bộ, đảm bảo có tiền tố /static/ hoặc /uploads/
+            if self.avatar_url.startswith(('http://', 'https://')):
+                return self.avatar_url
+            return url_for('static', filename=self.avatar_url)
+        # Trả về mã màu hoặc avatar theo tên nếu không có ảnh
+        return None
 
     # DEPRECATED COLUMNS REMOVED: 
     # - current_flashcard_container_id, current_quiz_container_id, current_course_container_id

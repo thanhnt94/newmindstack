@@ -11,7 +11,7 @@ from . import user_profile_bp
 
 from ...models import User # Import model User từ cấp trên (đi lên 2 cấp)
 from ...db_instance import db
-from ...modules.auth.forms import UserForm # Sử dụng lại UserForm cho việc sửa profile
+from ...modules.auth.forms import ProfileEditForm, ChangePasswordForm # Import specific forms
 
 # Middleware để đảm bảo người dùng đã đăng nhập cho toàn bộ Blueprint user_profile
 @user_profile_bp.before_request
@@ -39,41 +39,59 @@ def view_profile():
 
     return render_dynamic_template('pages/user_profile/profile.html', user=current_user, badges=badges, telegram_link=telegram_link)
 
+import os
+from werkzeug.utils import secure_filename
+from flask import current_app
+
 # Route để chỉnh sửa profile cá nhân
 @user_profile_bp.route('/edit', methods=['GET', 'POST'])
 def edit_profile():
-    user = current_user # Người dùng chỉ có thể sửa profile của chính mình
-    form = UserForm(obj=user)
-    # Gán user object vào form để validate_username có thể sử dụng user_id để loại trừ
-    form.user = user 
+    user = current_user
+    form = ProfileEditForm(obj=user)
     
     if form.validate_on_submit():
         user.username = form.username.data
         user.email = form.email.data
         user.timezone = form.timezone.data
-        # Không cho phép người dùng tự đổi user_role của mình
-        # user.user_role = form.user_role.data
         
-        # Chỉ cập nhật mật khẩu nếu người dùng nhập mật khẩu mới
-        if form.password.data:
-            # Kiểm tra mật khẩu khớp nếu có nhập mật khẩu mới
-            if form.password.data != form.password2.data:
-                form.password2.errors.append('Mật khẩu không khớp.')
-                return render_dynamic_template('pages/user_profile/edit_profile.html', form=form, title='Sửa Profile', user=user)
-            user.set_password(form.password.data)
+        # Xử lý upload avatar
+        if form.avatar.data:
+            file = form.avatar.data
+            filename = secure_filename(f"avatar_{user.user_id}_{file.filename}")
+            
+            # Tạo thư mục avatars nếu chưa có
+            avatar_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'avatars')
+            if not os.path.exists(avatar_dir):
+                os.makedirs(avatar_dir)
+                
+            file_path = os.path.join(avatar_dir, filename)
+            file.save(file_path)
+            
+            # Lưu đường dẫn tương đối để url_for cấp được
+            user.avatar_url = f"avatars/{filename}"
         
         db.session.commit()
         flash('Thông tin profile đã được cập nhật thành công!', 'success')
         return redirect(url_for('user_profile.view_profile'))
-    
+
     # Nếu là GET request, điền dữ liệu người dùng vào form
     elif request.method == 'GET':
-        # Ẩn trường user_role khi người dùng tự sửa profile
-        # form.user_role.data = user.user_role
         form.email.data = user.email
-        form.timezone.data = user.timezone or 'UTC' # Default to UTC if not set
+        form.timezone.data = user.timezone or 'UTC'
 
     return render_dynamic_template('pages/user_profile/edit_profile.html', form=form, title='Sửa Profile', user=user)
+
+# Route để đổi mật khẩu
+@user_profile_bp.route('/change-password', methods=['GET', 'POST'])
+def change_password():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        current_user.set_password(form.password.data)
+        db.session.commit()
+        flash('Mật khẩu đã được đổi thành công!', 'success')
+        return redirect(url_for('user_profile.view_profile'))
+
+    return render_dynamic_template('pages/user_profile/change_password.html', form=form, title='Đổi mật khẩu')
 
 # Route API để lấy và lưu preferences
 @user_profile_bp.route('/api/preferences', methods=['GET', 'POST'])

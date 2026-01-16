@@ -23,135 +23,109 @@
 
     {# === MAIN CONTENT === #}
     <div class="flex-grow overflow-y-auto overflow-x-hidden p-5 space-y-5 pb-24 relative"
-        x-data="{ showPassword: false }">
+        x-data="{ avatarPreview: '{{ user.get_avatar_url() or '' }}' }">
 
-        <form method="post" class="space-y-6">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
             {{ form.csrf_token }}
 
-            {# Avatar Mockup (Can be expanded later) #}
-            <div class="flex flex-col items-center animate-fade-in-up" style="animation-delay: 0.1s">
-                <div class="relative">
+            {# Avatar Upload Section #}
+            <div class="flex flex-col items-center gap-4 mb-8">
+                <div class="relative group">
                     <div
-                        class="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg border-4 border-white">
-                        <i class="fa-solid fa-user text-3xl"></i>
+                        class="w-32 h-32 rounded-[2rem] bg-slate-100 border-4 border-white shadow-xl overflow-hidden flex items-center justify-center">
+                        <template x-if="avatarPreview">
+                            <img :src="avatarPreview" class="w-full h-full object-cover">
+                        </template>
+                        <template x-if="!avatarPreview">
+                            <i class="fa-solid fa-user text-5xl text-slate-300"></i>
+                        </template>
                     </div>
-                    <button type="button"
-                        class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center border-2 border-white shadow-sm">
-                        <i class="fa-solid fa-camera text-xs"></i>
-                    </button>
+                    <label for="avatar-input"
+                        class="absolute -bottom-2 -right-2 w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:bg-indigo-700 transition-colors">
+                        <i class="fa-solid fa-camera text-sm"></i>
+                    </label>
+                    <input id="avatar-input" type="file" name="avatar" class="hidden" accept="image/*"
+                        @change="let file = $event.target.files[0]; if(file){ let reader = new FileReader(); reader.onload = (e) => { avatarPreview = e.target.result }; reader.readAsDataURL(file); }">
                 </div>
-                <h2 class="mt-3 text-lg font-bold text-slate-800">{{ user.username }}</h2>
-                <p class="text-xs text-slate-500">{{ user.email }}</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Ảnh đại diện</p>
             </div>
 
-            {# Form Fields #}
-            <div class="space-y-4 animate-fade-in-up" style="animation-delay: 0.2s">
+            <h2 class="mt-3 text-lg font-bold text-slate-800">{{ user.username }}</h2>
+            <p class="text-xs text-slate-500">{{ user.email }}</p>
+    </div>
 
-                {# Username #}
-                <div
-                    class="bg-white border border-slate-200 rounded-3xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
-                    <div class="px-4 pt-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide">Tên hiển
-                            thị</label>
-                        {{ form.username(class="block w-full py-2 text-base font-bold text-slate-900 bg-transparent
-                        border-none focus:ring-0 placeholder-slate-300", placeholder="Nhập tên hiển thị") }}
-                    </div>
-                </div>
-                {% if form.username.errors %}
-                <div class="pl-4 text-rose-500 text-xs font-medium">
-                    {% for error in form.username.errors %}{{ error }}{% endfor %}
-                </div>
-                {% endif %}
+    {# Form Fields #}
+    <div class="space-y-4 animate-fade-in-up" style="animation-delay: 0.2s">
 
-                {# Email #}
-                <div
-                    class="bg-white border border-slate-200 rounded-3xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
-                    <div class="px-4 pt-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide">Email</label>
-                        {{ form.email(class="block w-full py-2 text-base font-bold text-slate-900 bg-transparent
-                        border-none focus:ring-0 placeholder-slate-300", placeholder="Nhập email") }}
-                    </div>
-                </div>
-                {% if form.email.errors %}
-                <div class="pl-4 text-rose-500 text-xs font-medium">
-                    {% for error in form.email.errors %}{{ error }}{% endfor %}
-                </div>
-                {% endif %}
-
-                {# Timezone #}
-                <div
-                    class="bg-white border border-slate-200 rounded-3xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
-                    <div class="px-4 pt-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide">Múi giờ</label>
-                        {{ form.timezone(class="block w-full py-2 text-base font-bold text-slate-900 bg-transparent
-                        border-none focus:ring-0 placeholder-slate-300") }}
-                    </div>
-                </div>
-
-                {# Password Toggle Button #}
-                <div class="pt-2">
-                    <button type="button" @click="showPassword = !showPassword"
-                        class="flex items-center justify-between w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition-colors">
-                        <span class="flex items-center gap-2">
-                            <i class="fa-solid fa-lock text-indigo-500"></i>
-                            Đổi mật khẩu
-                        </span>
-                        <i class="fa-solid fa-chevron-down transition-transform duration-300"
-                            :class="showPassword ? 'rotate-180' : ''"></i>
-                    </button>
-                </div>
-
-                {# Hidden Password Fields #}
-                <div x-show="showPassword" x-collapse style="display: none;" class="space-y-4 pt-2">
-                    {# Password #}
-                    <div
-                        class="bg-white border border-slate-200 rounded-3xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
-                        <div class="px-4 pt-2">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide">Mật khẩu
-                                mới</label>
-                            {{ form.password(class="block w-full py-2 text-base font-bold text-slate-900 bg-transparent
-                            border-none focus:ring-0 placeholder-slate-300", placeholder="Để trống nếu không đổi") }}
-                        </div>
-                    </div>
-                    {% if form.password.errors %}
-                    <div class="pl-4 text-rose-500 text-xs font-medium">
-                        {% for error in form.password.errors %}{{ error }}{% endfor %}
-                    </div>
-                    {% endif %}
-
-                    {# Confirm Password #}
-                    <div
-                        class="bg-white border border-slate-200 rounded-3xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
-                        <div class="px-4 pt-2">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide">Xác nhận mật
-                                khẩu</label>
-                            {{ form.password2(class="block w-full py-2 text-base font-bold text-slate-900 bg-transparent
-                            border-none focus:ring-0 placeholder-slate-300", placeholder="Nhập lại mật khẩu mới") }}
-                        </div>
-                    </div>
-                    {% if form.password2.errors %}
-                    <div class="pl-4 text-rose-500 text-xs font-medium">
-                        {% for error in form.password2.errors %}{{ error }}{% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-
+        {# Username #}
+        <div
+            class="bg-white border border-slate-200 rounded-3xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
+            <div class="px-4 pt-2">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide">Tên hiển
+                    thị</label>
+                {{ form.username(class="block w-full py-2 text-base font-bold text-slate-900 bg-transparent
+                border-none focus:ring-0 placeholder-slate-300", placeholder="Nhập tên hiển thị") }}
             </div>
+        </div>
+        {% if form.username.errors %}
+        <div class="pl-4 text-rose-500 text-xs font-medium">
+            {% for error in form.username.errors %}{{ error }}{% endfor %}
+        </div>
+        {% endif %}
 
-            {# Submit Button #}
-            <button type="submit"
-                class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-lg animate-fade-in-up"
-                style="animation-delay: 0.3s">
-                <i class="fa-solid fa-save text-xl"></i>
-                <span>Lưu thay đổi</span>
-            </button>
-        </form>
+        {# Email #}
+        <div
+            class="bg-white border border-slate-200 rounded-3xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
+            <div class="px-4 pt-2">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide">Email</label>
+                {{ form.email(class="block w-full py-2 text-base font-bold text-slate-900 bg-transparent
+                border-none focus:ring-0 placeholder-slate-300", placeholder="Nhập email") }}
+            </div>
+        </div>
+        {% if form.email.errors %}
+        <div class="pl-4 text-rose-500 text-xs font-medium">
+            {% for error in form.email.errors %}{{ error }}{% endfor %}
+        </div>
+        {% endif %}
+
+        {# Timezone #}
+        <div
+            class="bg-white border border-slate-200 rounded-3xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
+            <div class="px-4 pt-2">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide">Múi giờ</label>
+                {{ form.timezone(class="block w-full py-2 text-base font-bold text-slate-900 bg-transparent
+                border-none focus:ring-0 placeholder-slate-300") }}
+            </div>
+        </div>
+
+        {# Password Change Link #}
+        <div class="pt-4">
+            <a href="{{ url_for('user_profile.change_password') }}"
+                class="flex items-center justify-between w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition-colors">
+                <span class="flex items-center gap-2">
+                    <i class="fa-solid fa-lock text-indigo-500"></i>
+                    Bảo mật & Mật khẩu
+                </span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
+            </a>
+        </div>
 
     </div>
 
-    {# === BOTTOM NAV === #}
-    {% set active_page = 'profile' %}
-    {% include _v ~ '/includes/navbar/_bottom_nav_mobile.html' %}
+    {# Submit Button #}
+    <button type="submit"
+        class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-lg animate-fade-in-up"
+        style="animation-delay: 0.3s">
+        <i class="fa-solid fa-save text-xl"></i>
+        <span>Lưu thay đổi</span>
+    </button>
+    </form>
+
+</div>
+
+{# === BOTTOM NAV === #}
+{% set active_page = 'profile' %}
+{% include _v ~ '/includes/navbar/_bottom_nav_mobile.html' %}
 </div>
 
 <style>

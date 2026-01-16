@@ -1,10 +1,36 @@
-<div class="hidden lg:block container mx-auto px-4 py-8" x-data="{ showPassword: false }">
+<div class="hidden lg:block container mx-auto px-4 py-8">
     <div class="flex justify-center">
         <div class="w-full md:w-2/3 lg:w-1/2">
             <div class="bg-white shadow-lg p-8 border border-gray-200 rounded-xl">
                 <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">{{ title }}</h2>
-                <form action="" method="post" class="space-y-6">
+                <form action="" method="post" enctype="multipart/form-data" class="space-y-6" id="desktop-edit-form"
+                    x-data="{ avatarPreview: '{{ user.get_avatar_url() or '' }}' }">
                     {{ form.csrf_token }}
+
+                    {# Avatar Upload #}
+                    <div class="flex items-center gap-6 mb-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="relative">
+                            <div
+                                class="w-24 h-24 rounded-3xl bg-white border-2 border-indigo-100 shadow-md overflow-hidden flex items-center justify-center">
+                                <template x-if="avatarPreview">
+                                    <img :src="avatarPreview" class="w-full h-full object-cover">
+                                </template>
+                                <template x-if="!avatarPreview">
+                                    <i class="fa-solid fa-user text-3xl text-slate-300"></i>
+                                </template>
+                            </div>
+                            <label for="avatar-input-desktop"
+                                class="absolute -bottom-2 -right-2 w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:bg-indigo-700 transition-colors">
+                                <i class="fa-solid fa-camera text-xs"></i>
+                            </label>
+                            <input id="avatar-input-desktop" type="file" name="avatar" class="hidden" accept="image/*"
+                                @change="let file = $event.target.files[0]; if(file){ let reader = new FileReader(); reader.onload = (e) => { avatarPreview = e.target.result }; reader.readAsDataURL(file); }">
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Ảnh đại diện</h3>
+                            <p class="text-xs text-slate-500 mt-1">Dung lượng tối đa 2MB. Hỗ trợ JPG, PNG.</p>
+                        </div>
+                    </div>
 
                     <div>
                         {{ form.username.label(class="block text-sm font-medium text-gray-700") }}
@@ -45,44 +71,18 @@
 
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium text-gray-900">Bảo mật</h3>
-                        <button type="button" @click="showPassword = !showPassword"
+                        <a href="{{ url_for('user_profile.change_password') }}"
                             class="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors focus:outline-none flex items-center gap-1">
-                            <i class="fa-solid" :class="showPassword ? 'fa-chevron-up' : 'fa-key'"></i>
-                            <span x-text="showPassword ? 'Ẩn đổi mật khẩu' : 'Đổi mật khẩu'"></span>
-                        </button>
-                    </div>
-
-                    <div x-show="showPassword" x-collapse style="display: none;"
-                        class="bg-gray-50 rounded-lg p-5 border border-gray-200 space-y-4">
-                        <div>
-                            {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.password(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md
-                            shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                            transition-colors", placeholder="Mật khẩu mới (để trống nếu không đổi)") }}
-                            {% if form.password.errors %}
-                            <div class="text-red-500 text-xs mt-1 font-medium">
-                                {% for error in form.password.errors %}<p>{{ error }}</p>{% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div>
-                            {{ form.password2.label(class="block text-sm font-medium text-gray-700") }}
-                            {{ form.password2(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md
-                            shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                            transition-colors", placeholder="Xác nhận mật khẩu mới") }}
-                            {% if form.password2.errors %}
-                            <div class="text-red-500 text-xs mt-1 font-medium">
-                                {% for error in form.password2.errors %}<p>{{ error }}</p>{% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
+                            <i class="fa-solid fa-key"></i>
+                            <span>Đổi mật khẩu</span>
+                        </a>
                     </div>
 
                     <div class="pt-4">
-                        {{ form.submit(class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg
                         shadow-md text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none
-                        focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all hover:scale-[1.02]") }}
+                        focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all hover:scale-[1.02]">Lưu
+                            thay đổi</button>
                     </div>
                 </form>
                 <div class="text-center mt-6">
@@ -95,3 +95,20 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Remove desktop form on mobile to prevent duplicate IDs
+    (function () {
+        if (window.innerWidth < 1024) {
+            const desktopForm = document.getElementById('desktop-edit-form');
+            if (desktopForm) {
+                // Disable all form elements to prevent submission
+                desktopForm.querySelectorAll('input, select, textarea, button').forEach(el => {
+                    el.disabled = true;
+                    el.removeAttribute('id');
+                    el.removeAttribute('name');
+                });
+            }
+        }
+    })();
+</script>

@@ -7,8 +7,15 @@
     <div class="px-6 pt-5 pb-3 flex items-center justify-between sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md">
         <div class="flex items-center gap-3">
             <div
-                class="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold border-2 border-white shadow-sm text-lg">
-                {{ current_user.username[0] | upper }}
+                class="w-11 h-11 rounded-full flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
+                {% if current_user.avatar_url %}
+                <img src="{{ current_user.get_avatar_url() }}" class="w-full h-full object-cover">
+                {% else %}
+                <div
+                    class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                    {{ current_user.username[0] | upper }}
+                </div>
+                {% endif %}
             </div>
             <div>
                 <h1 class="text-lg font-bold text-slate-800 leading-none">Hi, {{ current_user.username }}!</h1>
