@@ -381,6 +381,23 @@
             width: 100%;
             text-align: center;
             padding: 0;
+            /* Ensure vertical centering for both front and back */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+
+        /* Override base card.css rules - vertical center only, horizontal left for back */
+        .flashcard-mobile-view .back .text-area,
+        .flashcard-mobile-view .back ._card-container.media-hidden .text-area {
+            align-items: center !important;
+            justify-content: flex-start !important;
+        }
+
+        .flashcard-mobile-view .back .text-area .flashcard-content-text {
+            text-align: left;
+            width: 100%;
         }
 
         .flashcard-mobile-view .flashcard-content-text {

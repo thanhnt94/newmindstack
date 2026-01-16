@@ -279,22 +279,28 @@
                         const isMarked = data.is_marked;
                         // Update UI based on type
                         if (isMarked) {
-                            icon.classList.remove('far');
-                            icon.classList.add('fas');
+                            // Only toggle fas/far for icons that have outline versions
+                            if (markerType !== 'difficult') {
+                                icon.classList.remove('far');
+                                icon.classList.add('fas');
+                            }
                             btn.classList.add('active');
                             if (markerType === 'difficult') {
                                 btn.style.background = '#ffedd5';
                                 btn.style.color = '#ea580c';
                             } else if (markerType === 'ignored') {
-                                btn.style.background = '#f1f5f9';
-                                btn.style.color = '#64748b';
+                                btn.style.background = '#cbd5e1';
+                                btn.style.color = '#475569';
                             } else if (markerType === 'favorite') {
                                 btn.style.background = '#ffe4e6';
                                 btn.style.color = '#e11d48';
                             }
                         } else {
-                            icon.classList.remove('fas');
-                            icon.classList.add('far');
+                            // Only toggle fas/far for icons that have outline versions
+                            if (markerType !== 'difficult') {
+                                icon.classList.remove('fas');
+                                icon.classList.add('far');
+                            }
                             btn.classList.remove('active');
                             btn.style.background = 'white';
                             btn.style.color = '#94a3b8';
