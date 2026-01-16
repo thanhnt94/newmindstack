@@ -235,11 +235,8 @@ async function submitFlashcardAnswer(itemId, answer) {
         // Gamified Notification
         let notificationPromise = Promise.resolve();
 
-        // [UX] Hide mobile bottom bar during notification to prevent clutter
-        const mobileBottomBar = document.querySelector('.fc-bottom-bar');
-        if (mobileBottomBar) {
-            mobileBottomBar.style.display = 'none';
-        }
+        // [UX-FIX] Dispatch event to hide card content and bottom bar during notification
+        document.dispatchEvent(new CustomEvent('notificationStart'));
 
         if (data.score_change > 0 && typeof window.showScoreToast === 'function') {
             window.showScoreToast(data.score_change);
@@ -333,6 +330,10 @@ async function submitFlashcardAnswer(itemId, answer) {
 
         // Wait for notification animation to complete before loading next card
         await notificationPromise;
+
+        // [UX-FIX] Dispatch event to signal notification is complete, UI can now reveal content
+        document.dispatchEvent(new CustomEvent('notificationComplete'));
+
         getNextFlashcardBatch();
     } catch (e) {
         console.error('Lỗi khi gửi đáp án:', e);

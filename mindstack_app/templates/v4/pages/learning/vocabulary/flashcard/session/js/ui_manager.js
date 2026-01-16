@@ -515,10 +515,14 @@ function renderCard(data) {
 
     setTimeout(adjustCardLayout, 0);
 
-    if (isAutoplaySession) {
-        if (window.startAutoplaySequence) window.startAutoplaySequence();
-    } else {
-        if (window.autoPlayFrontSide) window.autoPlayFrontSide();
+    // [UX-FIX] Only play audio immediately if NOT waiting for notification to complete
+    // When notification is active, the notificationComplete handler will trigger audio
+    if (!window.pendingAudioAutoplay) {
+        if (isAutoplaySession) {
+            if (window.startAutoplaySequence) window.startAutoplaySequence();
+        } else {
+            if (window.autoPlayFrontSide) window.autoPlayFrontSide();
+        }
     }
 }
 
@@ -1410,5 +1414,72 @@ document.addEventListener('flashcardStatsUpdated', function (e) {
             applyMarkers([]);
         }
     }
+});
+
+// =========================================
+// [UX-FIX] Notification Lifecycle Handlers
+// =========================================
+
+// Track if we should defer audio playback
+let pendingAudioAutoplay = false;
+
+// When notification starts: hide card content and bottom bar
+document.addEventListener('notificationStart', function () {
+    console.log('[Notification] Start - hiding card content');
+    const mobileView = document.querySelector('.flashcard-mobile-view');
+    if (mobileView) {
+        mobileView.classList.add('notification-active');
+    }
+    // Also hide bottom bar explicitly for safety
+    const bottomBar = document.querySelector('.fc-bottom-bar');
+    if (bottomBar) {
+        bottomBar.style.display = 'none';
+    }
+    // Set flag so renderCard knows to defer audio
+    pendingAudioAutoplay = true;
+});
+
+// When notification completes: show card content and play audio
+document.addEventListener('notificationComplete', function () {
+    console.log('[Notification] Complete - showing card content');
+    const mobileView = document.querySelector('.flashcard-mobile-view');
+    if (mobileView) {
+        mobileView.classList.remove('notification-active');
+    }
+    // Show bottom bar again
+    const bottomBar = document.querySelector('.fc-bottom-bar');
+    if (bottomBar) {
+        bottomBar.style.display = '';
+    }
+    // Reset flip button visibility
+    const flipBtn = document.querySelector('.js-fc-flip-btn');
+    if (flipBtn) {
+        flipBtn.style.display = '';
+    }
+    // Hide rating buttons
+    const ratingBtns = document.querySelector('.js-fc-rating-btns');
+    if (ratingBtns) {
+        ratingBtns.classList.remove('show');
+    }
+
+    // Now trigger audio autoplay if enabled
+    setTimeout(() => {
+        if (pendingAudioAutoplay) {
+            pendingAudioAutoplay = false;
+            const isAutoplaySession = window.FlashcardConfig && window.FlashcardConfig.isAutoplaySession;
+            if (isAutoplaySession) {
+                if (window.startAutoplaySequence) window.startAutoplaySequence();
+            } else {
+                if (window.autoPlayFrontSide) window.autoPlayFrontSide();
+            }
+        }
+    }, 100); // Small delay to let card fully render
+});
+
+// Export for external access using getter/setter for live value
+Object.defineProperty(window, 'pendingAudioAutoplay', {
+    get: () => pendingAudioAutoplay,
+    set: (val) => { pendingAudioAutoplay = val; },
+    configurable: true
 });
 

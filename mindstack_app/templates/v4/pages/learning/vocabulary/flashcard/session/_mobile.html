@@ -55,14 +55,14 @@
                     {# Action Buttons #}
                     <div class="flex items-center gap-1.5 flex-shrink-0" id="fc-mobile-actions">
 
-                        {# Card Stats Button (NEW) #}
+                        {# Card Stats Button - Icon Only #}
                         <button
-                            class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center hover:bg-indigo-100 js-fc-card-details-btn"
-                            title="Stats của thẻ (Item Detail)">
-                            <i class="fas fa-chart-bar text-[10px]"></i>
+                            class="w-7 h-7 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white flex items-center justify-center hover:from-indigo-600 hover:to-purple-600 shadow-sm js-fc-card-details-btn"
+                            title="Stats của thẻ">
+                            <i class="fas fa-chart-pie text-[10px]"></i>
                         </button>
 
-                        {# Settings Checkbox equivalent #}
+                        {# Settings Button #}
                         <div class="relative inline-block">
                             <button
                                 class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 js-fc-settings-toggle">
@@ -88,28 +88,11 @@
                             </div>
                         </div>
 
-                        {# Marker Button (NEW) #}
-                        <div class="relative inline-block">
-                            <button
-                                class="w-7 h-7 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center hover:bg-amber-100 js-fc-marker-toggle">
-                                <i class="far fa-bookmark text-[10px]"></i>
-                            </button>
-                            <div class="fc-settings-menu js-fc-marker-menu z-50"
-                                style="right: 0; top: 100%; min-width: 140px;">
-                                <button class="fc-settings-item js-fc-mark-difficult" data-type="difficult">
-                                    <i class="far fa-tired text-orange-500"></i>
-                                    <span>Khó (Difficult)</span>
-                                </button>
-                                <button class="fc-settings-item js-fc-mark-ignored" data-type="ignored">
-                                    <i class="far fa-eye-slash text-slate-400"></i>
-                                    <span>Bỏ qua (Ignore)</span>
-                                </button>
-                                <button class="fc-settings-item js-fc-mark-favorite" data-type="favorite">
-                                    <i class="far fa-heart text-rose-500"></i>
-                                    <span>Yêu thích</span>
-                                </button>
-                            </div>
-                        </div>
+                        {# Audio Button - Moved before Home/Exit #}
+                        <button
+                            class="w-7 h-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 js-fc-audio-btn">
+                            <i class="fas fa-volume-up text-[10px]"></i>
+                        </button>
 
                         {# Home Button #}
                         <a href="/"
@@ -122,12 +105,6 @@
                             class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
                             id="mobile-exit-btn">
                             <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
-                        </button>
-
-                        {# Audio Button #}
-                        <button
-                            class="w-7 h-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 js-fc-audio-btn">
-                            <i class="fas fa-volume-up text-[10px]"></i>
                         </button>
                     </div>
                 </div>
@@ -260,11 +237,8 @@
                         }
                     }
 
-                    // Reset for next card (will also be done by flashcardStatsUpdated event)
-                    setTimeout(() => {
-                        flipBtn.style.display = 'flex';
-                        ratingBtnsContainer.classList.remove('show');
-                    }, 100);
+                    // [UX-FIX] Don't reset here - notificationComplete event will handle reset
+                    // after notification animation completes
                 });
             });
         }

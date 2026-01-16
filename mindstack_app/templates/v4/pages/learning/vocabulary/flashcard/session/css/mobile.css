@@ -731,3 +731,23 @@
         margin-left: auto;
         white-space: nowrap;
     }
+
+    /* ===== NOTIFICATION ACTIVE STATE ===== */
+    /* [UX-FIX] Hide card content and bottom bar during notification animation */
+    .flashcard-mobile-view.notification-active .flashcard-wrapper {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease-out;
+    }
+
+    .flashcard-mobile-view.notification-active .fc-bottom-bar {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease-out;
+    }
+
+    /* Fade in when notification completes */
+    .flashcard-mobile-view .flashcard-wrapper,
+    .flashcard-mobile-view .fc-bottom-bar {
+        transition: opacity 0.2s ease-in;
+    }
