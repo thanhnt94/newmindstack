@@ -381,23 +381,26 @@
             width: 100%;
             text-align: center;
             padding: 0;
-            /* Ensure vertical centering for both front and back */
+            /* Use flex with safe centering - content scrollable from top */
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
             flex: 1;
+            min-height: 0;
+            overflow-y: auto;
         }
 
-        /* Override base card.css rules - vertical center only, horizontal left for back */
-        .flashcard-mobile-view .back .text-area,
-        .flashcard-mobile-view .back ._card-container.media-hidden .text-area {
-            align-items: center !important;
+        /* For back side: DON'T use flex centering if content could overflow */
+        /* Use margin: auto for safe vertical centering that allows scrolling from top */
+        .flashcard-mobile-view .back .text-area {
             justify-content: flex-start !important;
         }
 
         .flashcard-mobile-view .back .text-area .flashcard-content-text {
             text-align: left;
             width: 100%;
+            margin: auto 0;
+            /* This centers vertically but allows scroll from top if content is long */
         }
 
         .flashcard-mobile-view .flashcard-content-text {

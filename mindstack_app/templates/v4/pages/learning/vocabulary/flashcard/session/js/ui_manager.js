@@ -517,7 +517,9 @@ function renderCard(data) {
 
     // [UX-FIX] Only play audio immediately if NOT waiting for notification to complete
     // When notification is active, the notificationComplete handler will trigger audio
-    if (!window.pendingAudioAutoplay) {
+    // Use safe check: if pendingAudioAutoplay is undefined or false, allow audio to play
+    const shouldDeferAudio = (typeof window.pendingAudioAutoplay !== 'undefined') && window.pendingAudioAutoplay === true;
+    if (!shouldDeferAudio) {
         if (isAutoplaySession) {
             if (window.startAutoplaySequence) window.startAutoplaySequence();
         } else {

@@ -111,8 +111,10 @@
             const endColor = isPositive ? '#4ade80' : '#fb923c';   // Green / Orange
 
             // Create the container
+            // Add padding-top to center in card area (accounting for header ~100px)
             const container = document.createElement('div');
             container.className = 'fixed inset-0 z-[1000] pointer-events-none flex items-center justify-center font-game';
+            container.style.paddingTop = '140px'; // Push down to center in card area
 
             // Layout dimensions
             const size = 220;
