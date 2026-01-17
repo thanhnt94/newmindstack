@@ -416,6 +416,10 @@ function renderCard(data) {
         const mobileRatingBtns = document.querySelector('.js-fc-rating-btns');
         if (mobileRatingBtns) mobileRatingBtns.classList.add('show');
 
+        // [NEW] Mobile Support: Show stats button when flipped to back
+        const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
+        if (mobileStatsBtn) mobileStatsBtn.classList.remove('hidden');
+
         setTimeout(adjustCardLayout, 0);
         if (!isAutoplaySession && window.autoPlayBackSide) {
             window.autoPlayBackSide();
@@ -432,6 +436,10 @@ function renderCard(data) {
         // Mobile Support: Hide footer rating buttons
         const mobileRatingBtns = document.querySelector('.js-fc-rating-btns');
         if (mobileRatingBtns) mobileRatingBtns.classList.remove('show');
+
+        // [NEW] Mobile Support: Hide stats button when on front
+        const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
+        if (mobileStatsBtn) mobileStatsBtn.classList.add('hidden');
 
         setTimeout(adjustCardLayout, 0);
     };

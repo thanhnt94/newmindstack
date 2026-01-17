@@ -36,23 +36,44 @@ def _get_item_context_data(item):
     Mô tả: Thu thập tất cả dữ liệu ngữ cảnh từ một LearningItem và LearningContainer liên quan
     để sử dụng trong việc format prompt.
     
+    NEW: 
+    - Strip BBCode từ tất cả text values để AI nhận text thuần
+    - Hỗ trợ custom_data columns với placeholder {custom_xyz} và shorthand {xyz}
+    
     Args:
         item (LearningItem): Đối tượng học liệu.
 
     Returns:
         dict: Một dictionary chứa tất cả dữ liệu có thể sử dụng làm placeholder.
     """
+    from mindstack_app.utils.content_renderer import strip_bbcode
+    
     data = {}
     
-    # Lấy dữ liệu từ chính content của item
+    # Lấy dữ liệu từ chính content của item (strip BBCode từ text)
     if isinstance(item.content, dict):
         for key, value in item.content.items():
             # Xử lý các options của quiz
             if key == 'options' and isinstance(value, dict):
                 for opt_key, opt_val in value.items():
-                    data[f"option_{opt_key.lower()}"] = opt_val or ""
+                    # Strip BBCode từ option values
+                    data[f"option_{opt_key.lower()}"] = strip_bbcode(opt_val) if isinstance(opt_val, str) else (opt_val or "")
+            elif isinstance(value, str):
+                # Strip BBCode từ text fields (front, back, question, etc.)
+                data[key] = strip_bbcode(value)
             else:
                 data[key] = value or ""
+
+    # [NEW] Lấy dữ liệu từ custom_data columns (nếu có)
+    if item.custom_data and isinstance(item.custom_data, dict):
+        for key, value in item.custom_data.items():
+            # Strip BBCode nếu là string
+            clean_value = strip_bbcode(value) if isinstance(value, str) else (value or "")
+            # Cho phép dùng cả {custom_xyz} và {xyz} trong prompt
+            data[f"custom_{key.lower()}"] = clean_value
+            # Chỉ set shorthand nếu chưa có key trùng (không override built-in fields)
+            if key.lower() not in data:
+                data[key.lower()] = clean_value
 
     # Lấy dữ liệu từ các trường khác của item
     data['item_id'] = item.item_id

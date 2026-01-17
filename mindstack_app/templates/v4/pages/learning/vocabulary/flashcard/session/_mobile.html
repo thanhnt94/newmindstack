@@ -55,9 +55,9 @@
                     {# Action Buttons #}
                     <div class="flex items-center gap-1.5 flex-shrink-0" id="fc-mobile-actions">
 
-                        {# Card Stats Button - Icon Only #}
+                        {# Card Stats Button - Icon Only - HIDDEN by default, shown on back #}
                         <button
-                            class="w-7 h-7 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white flex items-center justify-center hover:from-indigo-600 hover:to-purple-600 shadow-sm js-fc-card-details-btn"
+                            class="w-7 h-7 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white flex items-center justify-center hover:from-indigo-600 hover:to-purple-600 shadow-sm js-fc-card-details-btn hidden"
                             title="Stats của thẻ">
                             <i class="fas fa-chart-pie text-[10px]"></i>
                         </button>
@@ -322,6 +322,12 @@
             }
             if (ratingBtnsContainer) {
                 ratingBtnsContainer.classList.remove('show');
+            }
+
+            // [NEW] Hide stats button when new card loads (front side)
+            const statsBtn = mobileView.querySelector('.js-fc-card-details-btn');
+            if (statsBtn) {
+                statsBtn.classList.add('hidden');
             }
         }
 

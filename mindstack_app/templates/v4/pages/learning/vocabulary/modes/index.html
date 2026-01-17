@@ -327,6 +327,39 @@
     .mode-speed:hover .mode-arrow {
         background: #f97316;
     }
+
+    /* --- DISABLED MODE STYLES --- */
+    .mode-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+        filter: grayscale(40%);
+    }
+
+    .mode-disabled:hover {
+        transform: none;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .mode-disabled .mode-icon-box {
+        background: linear-gradient(135deg, #94a3b8, #cbd5e1) !important;
+        box-shadow: none !important;
+    }
+
+    .mode-lock-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(100, 116, 139, 0.9);
+        color: white;
+        font-size: 0.65rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 {% endblock %}
 
@@ -354,48 +387,64 @@
         </div>
 
         <div class="modes-grid">
-            <!-- Flashcard -->
-            <div onclick="checkSession('flashcard', '{{ url_for('learning.flashcard_learning.setup', set_id=container.container_id) }}')"
-                class="mode-card mode-flashcard">
+            {# Get enabled capabilities - default to all if not set #}
+            {% set caps = container.ai_capabilities or [] %}
+            {% set show_all = (caps | length == 0) %}
+
+            {# Flashcard #}
+            {% set flashcard_enabled = show_all or 'supports_flashcard' in caps %}
+            <div {% if flashcard_enabled
+                %}onclick="checkSession('flashcard', '{{ url_for('learning.flashcard_learning.setup', set_id=container.container_id) }}')"
+                {% endif %} class="mode-card mode-flashcard {% if not flashcard_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-clone"></i></div>
                 <div class="mode-info">
                     <span class="mode-name">Flashcard</span>
                     <span class="mode-desc">Lật thẻ truyền thống, phù hợp để ghi nhớ mặt chữ.</span>
                 </div>
                 <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+                {% if not flashcard_enabled %}<div class="mode-lock-badge"><i class="fas fa-lock"></i></div>{% endif %}
             </div>
 
-            <!-- MCQ -->
-            <div onclick="checkSession('mcq', '{{ url_for('learning.vocabulary.set_mcq_page', set_id=container.container_id) }}')"
-                class="mode-card mode-mcq">
+            {# MCQ #}
+            {% set mcq_enabled = show_all or 'supports_quiz' in caps %}
+            <div {% if mcq_enabled
+                %}onclick="checkSession('mcq', '{{ url_for('learning.vocabulary.set_mcq_page', set_id=container.container_id) }}')"
+                {% endif %} class="mode-card mode-mcq {% if not mcq_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-list-ul"></i></div>
                 <div class="mode-info">
                     <span class="mode-name">Trắc nghiệm</span>
                     <span class="mode-desc">Chọn đáp án đúng, kiểm tra phản xạ nhanh.</span>
                 </div>
                 <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+                {% if not mcq_enabled %}<div class="mode-lock-badge"><i class="fas fa-lock"></i></div>{% endif %}
             </div>
 
-            <!-- Typing (New URL pattern) -->
-            <div onclick="checkSession('typing', '{{ url_for('learning.vocabulary.typing.setup', set_id=container.container_id) }}')"
-                class="mode-card mode-typing">
+            {# Typing #}
+            {% set typing_enabled = show_all or 'supports_writing' in caps %}
+            <div {% if typing_enabled
+                %}onclick="checkSession('typing', '{{ url_for('learning.vocabulary.typing.setup', set_id=container.container_id) }}')"
+                {% endif %} class="mode-card mode-typing {% if not typing_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-keyboard"></i></div>
                 <div class="mode-info">
                     <span class="mode-name">Luyện viết</span>
                     <span class="mode-desc">Luyện viết chính tả chính xác từng ký tự.</span>
                 </div>
                 <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+                {% if not typing_enabled %}<div class="mode-lock-badge"><i class="fas fa-lock"></i></div>{% endif %}
             </div>
 
-            <!-- Listening -->
-            <div onclick="checkSession('listening', '{{ url_for('learning.vocabulary.listening.setup', set_id=container.container_id) }}')"
-                class="mode-card mode-listening">
+            {# Listening #}
+            {% set listening_enabled = show_all or 'supports_listening' in caps %}
+            <div {% if listening_enabled
+                %}onclick="checkSession('listening', '{{ url_for('learning.vocabulary.listening.setup', set_id=container.container_id) }}')"
+                {% endif %} class="mode-card mode-listening {% if not listening_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-headphones"></i></div>
                 <div class="mode-info">
                     <span class="mode-name">Luyện nghe</span>
                     <span class="mode-desc">Nghe và chép lại (Dictation).</span>
                 </div>
                 <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+                {% if not listening_enabled %}<div class="mode-lock-badge"><i class="fas fa-lock"></i></div>{% endif %}
             </div>
 
         </div>
