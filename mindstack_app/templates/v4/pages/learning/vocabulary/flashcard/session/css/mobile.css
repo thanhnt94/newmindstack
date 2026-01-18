@@ -390,6 +390,12 @@
             overflow-y: auto;
         }
 
+        /* [NEW] Front alignment: Vertical center only, Horizontal Left */
+        .flashcard-mobile-view .front .text-area {
+            text-align: left;
+            align-items: flex-start;
+        }
+
         /* For back side: DON'T use flex centering if content could overflow */
         /* Use margin: auto for safe vertical centering that allows scrolling from top */
         .flashcard-mobile-view .back .text-area {

@@ -132,3 +132,23 @@ Các field sau sẽ giữ nguyên, không xử lý BBCode (được định ngh�
    ```jinja2
    {{ bbcode_to_html(content) | safe }}
    ```
+
+### Lồng tags (Nesting)
+
+Bạn có thể lồng các tags vào nhau. Tag bên trong sẽ ghi đè thuộc tính của tag bên ngoài nếu cùng loại.
+
+**Ví dụ:**
+```
+[color=red]Sống một [color=blue][b]cuộc đời[/b][/color] hạnh phúc.[/color]
+```
+
+**Kết quả hiển thị:**
+- "Sống một ": <span style="color:red">Màu đỏ</span>
+- "cuộc đời": <span style="color:blue"><strong>Màu xanh dương + In đậm</strong></span> (Tag `color=blue` ghi đè `color=red` trong phạm vi của nó)
+- " hạnh phúc.": <span style="color:red">Màu đỏ</span> (Trở lại màu của tag bao ngoài)
+
+> [!WARNING]
+> **Cú pháp tham số**:
+> Vui lòng **KHÔNG** sử dụng dấu ngoặc kép `"` hoặc `'` bao quanh giá trị tham số.
+> - ✅ Đúng: `[color=red]`, `[size=20]`
+> - ❌ Sai: `[color="red"]`, `[size='20']` (Có thể gây lỗi CSS)
