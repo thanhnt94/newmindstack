@@ -3374,7 +3374,7 @@
 
             // State
 
-            let currentCategory = 'my';
+            let currentCategory = 'learning';
 
             let currentSearch = '';
 
@@ -3476,7 +3476,7 @@
 
 
 
-            // Category tabs
+            // Category tabs (Mobile)
 
             document.querySelectorAll('.vocab-tab').forEach(function (tab) {
 
@@ -3488,11 +3488,62 @@
 
                     currentCategory = tab.dataset.category;
 
+                    // Sync desktop tabs
+                    syncDesktopTabs(currentCategory);
+
                     loadSets();
 
                 });
 
             });
+
+            // Category tabs (Desktop)
+            document.querySelectorAll('.content-tab').forEach(function (tab) {
+
+                tab.addEventListener('click', function () {
+
+                    document.querySelectorAll('.content-tab').forEach(function (t) { t.classList.remove('active'); });
+
+                    tab.classList.add('active');
+
+                    // Map data-tab to category
+                    var tabValue = tab.dataset.tab;
+                    if (tabValue === 'learning') {
+                        currentCategory = 'learning';
+                    } else if (tabValue === 'explore') {
+                        currentCategory = 'explore';
+                    }
+
+                    // Sync mobile tabs
+                    syncMobileTabs(currentCategory);
+
+                    loadSets();
+
+                });
+
+            });
+
+            // Helper function to sync mobile tabs with desktop
+            function syncMobileTabs(category) {
+                document.querySelectorAll('.vocab-tab').forEach(function (t) {
+                    t.classList.remove('active');
+                    if (t.dataset.category === category) {
+                        t.classList.add('active');
+                    }
+                });
+            }
+
+            // Helper function to sync desktop tabs with mobile
+            function syncDesktopTabs(category) {
+                var tabMapping = { 'learning': 'learning', 'explore': 'explore' };
+                var tabValue = tabMapping[category];
+                document.querySelectorAll('.content-tab').forEach(function (t) {
+                    t.classList.remove('active');
+                    if (t.dataset.tab === tabValue) {
+                        t.classList.add('active');
+                    }
+                });
+            }
 
 
 
