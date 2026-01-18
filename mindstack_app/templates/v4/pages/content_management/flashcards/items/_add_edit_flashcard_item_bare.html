@@ -470,9 +470,17 @@ THAY ĐỔI:
                             {% if flashcard_item and flashcard_item.custom_data %}
                             {% for key, value in flashcard_item.custom_data.items() %}
                             <div class="custom-data-row flex gap-2">
-                                <input type="text" name="custom_keys[]" value="{{ key }}"
-                                    class="flex-1 w-1/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold"
-                                    placeholder="Tên">
+                                <select name="custom_keys[]"
+                                    class="flex-1 w-1/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-teal-500">
+                                    <option value="">-- Chọn --</option>
+                                    {% for opt in custom_keys_options %}
+                                    <option value="{{ opt }}" {% if opt==key %}selected{% endif %}>{{ opt }}</option>
+                                    {% endfor %}
+                                    {# If existing key is not in allowed list, keep it valid to prevent data loss #}
+                                    {% if key and key not in custom_keys_options %}
+                                    <option value="{{ key }}" selected>{{ key }} (Chưa cấu hình)</option>
+                                    {% endif %}
+                                </select>
                                 <input type="text" name="custom_values[]" value="{{ value }}"
                                     class="flex-[2] w-2/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
                                     placeholder="Giá trị">
@@ -496,9 +504,13 @@ THAY ĐỔI:
     <!-- Templates -->
     <template id="custom-data-row-template">
         <div class="custom-data-row flex gap-2 animate-fade-in-down mt-2">
-            <input type="text" name="custom_keys[]" value=""
-                class="flex-1 w-1/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold"
-                placeholder="Tên">
+            <select name="custom_keys[]"
+                class="flex-1 w-1/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-teal-500">
+                <option value="">-- Chọn --</option>
+                {% for opt in custom_keys_options %}
+                <option value="{{ opt }}">{{ opt }}</option>
+                {% endfor %}
+            </select>
             <input type="text" name="custom_values[]" value=""
                 class="flex-[2] w-2/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
                 placeholder="Giá trị">

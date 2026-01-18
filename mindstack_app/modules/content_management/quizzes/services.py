@@ -14,7 +14,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from mindstack_app.models import db, LearningContainer, LearningItem, LearningGroup, User, UserNote, ContainerContributor
 from mindstack_app.utils.db_session import safe_commit
-from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings
+from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings, read_excel_with_formulas
 from mindstack_app.utils.media_paths import (
     normalize_media_folder,
     normalize_media_value_for_storage,
@@ -101,7 +101,7 @@ class QuizExcelService:
         Trả về dictionary phân loại cột.
         """
         try:
-            df = pd.read_excel(filepath, sheet_name='Data')
+            df = read_excel_with_formulas(filepath, sheet_name='Data')
             columns = set(df.columns)
             
             standard_def = set(QuizConfigService.get('QUIZ_STANDARD_COLUMNS'))
@@ -600,7 +600,7 @@ class QuizExcelService:
                 excel_file.save(tmp_file.name)
                 temp_filepath = tmp_file.name
 
-            df = pd.read_excel(temp_filepath, sheet_name='Data')
+            df = read_excel_with_formulas(temp_filepath, sheet_name='Data')
 
             required_cols = QuizConfigService.get('QUIZ_REQUIRED_COLUMNS', ['option_a', 'option_b', 'correct_answer_text'])
             if not all(col in df.columns for col in required_cols):

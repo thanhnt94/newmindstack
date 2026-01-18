@@ -24,17 +24,13 @@
     /* Scoped styles for the modal content */
     .edit-modal-content-wrapper {
         font-family: 'Inter', sans-serif;
-        background-color: transparent;
+        background-color: #fff;
         width: 100%;
-        /* Use min-height to allow centering, but let height grow with content */
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        /* Vertically center */
-        align-items: center;
-        /* Horizontally center */
-        padding: 1rem;
+        height: 100vh;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        /* Let internal containers handle scrolling */
     }
 
     /* Ensure tailwind doesn't conflict too much */
@@ -64,11 +60,55 @@
     }
 </style>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Attempt to find and hide close button in parent modal
+        if (window.parent && window.parent.document) {
+            // Common selectors for close buttons
+            const selectors = [
+                '.modal-close',
+                '.close-modal',
+                '.close',
+                'button.close',
+                '[aria-label="Close"]',
+                '.fa-times', // Icon class often used
+                '.fa-xmark'
+            ];
+
+            selectors.forEach(sel => {
+                const els = window.parent.document.querySelectorAll(sel);
+                els.forEach(el => {
+                    // Start from the element and check if it looks like a top-right close button
+                    // Or just hide it if it matches generic close classes inside a modal context
+                    // To be safe, let's just hide specific ones if we can identify them easier.
+                    // Given the user request "góc trên bên phải", it's likely absolute positioned.
+
+                    // Simple hide for now, assuming the overlay click or Cancel button is enough.
+                    // Only hide if it's NOT the Cancel button we just rendered (which is in iframe)
+                    // But we are searching in PARENT document.
+                    el.style.display = 'none';
+                });
+            });
+
+            // Also search for specific element by style (heuristic)
+            const allParentBtns = window.parent.document.querySelectorAll('button');
+            allParentBtns.forEach(btn => {
+                const style = window.parent.getComputedStyle(btn);
+                if (style.position === 'absolute' && (style.top !== 'auto' || style.right !== 'auto')) {
+                    // Check if it contains an X icon or similar
+                    if (btn.querySelector('.fa-times') || btn.querySelector('.fa-xmark') || btn.innerText === '×') {
+                        btn.style.display = 'none';
+                    }
+                }
+            });
+        }
+    });
+</script>
+
 <div class="edit-modal-content-wrapper">
 
-    <!-- Modal Card Container - No fixed height, use max-height -->
-    <div
-        class="w-full max-w-2xl bg-white rounded-xl shadow-xl flex flex-col max-h-[90vh] relative overflow-hidden ring-1 ring-gray-200">
+    <!-- Modal Card Container - Full width/height, simpler layout -->
+    <div class="w-full h-full bg-white flex flex-col relative overflow-hidden">
 
         <form id="flashcardSetForm" action="" method="post" enctype="multipart/form-data"
             class="flex flex-col h-auto bg-white overflow-hidden min-h-0">
@@ -101,7 +141,7 @@
             </div>
 
             <!-- Scrollable Content Area -->
-            <div class="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-6 py-4">
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
 
                 <!-- Global Excel Upload Section -->
                 <div class="flex-none mb-6 space-y-3">
@@ -355,6 +395,24 @@
                     <p class="text-sm text-gray-500 mb-4">Thiết lập các cặp câu hỏi/đáp án mặc định cho các chế
                         độ học. Học viên sẽ sử dụng cấu hình này nếu chưa có cài đặt cá nhân.</p>
 
+                    <!-- Selectable Columns Config -->
+                    <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-sm font-bold text-gray-700">
+                                <i class="fas fa-columns mr-2 text-amber-600"></i>Cột cho phép lựa chọn
+                            </h4>
+                            <button type="button" id="toggle-all-columns-btn"
+                                class="text-xs text-amber-700 hover:text-amber-900 transition">
+                                <i class="fas fa-check-double mr-1"></i>Chọn/Bỏ tất cả
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mb-3">Tick các cột mà người dùng sẽ thấy trong dropdown "Câu hỏi
+                            / Đáp án"</p>
+                        <div class="flex flex-wrap gap-2" id="selectable-columns-list">
+                            <!-- Checkboxes will be rendered here by JS -->
+                        </div>
+                    </div>
+
                     <div class="bg-white border boundary-gray-200 rounded-lg overflow-hidden">
                         <!-- Tabs -->
                         <div class="flex border-b border-gray-200 bg-gray-50 overflow-x-auto" id="config-tabs">
@@ -487,6 +545,71 @@
         }
     });
 
+    // --- Selectable Columns Logic ---
+    // Initialize selectable_columns: if not set, default to ALL availableKeys
+    if (!currentSettings.selectable_columns || !Array.isArray(currentSettings.selectable_columns)) {
+        currentSettings.selectable_columns = [...availableKeys];
+    }
+
+    // Get the container for selectable columns checkboxes
+    const selectableColumnsContainer = wrapper.querySelector('#selectable-columns-list');
+    const toggleAllBtn = wrapper.querySelector('#toggle-all-columns-btn');
+
+    // Render selectable columns checkboxes
+    const renderSelectableColumns = () => {
+        if (!selectableColumnsContainer) return;
+
+        selectableColumnsContainer.innerHTML = availableKeys.map(col => {
+            const isChecked = currentSettings.selectable_columns.includes(col);
+            return `
+                <label class="flex items-center gap-1.5 px-3 py-1.5 bg-white border ${isChecked ? 'border-amber-400 ring-1 ring-amber-200' : 'border-gray-200'} rounded-full cursor-pointer hover:bg-amber-50 transition text-xs font-medium ${isChecked ? 'text-amber-800' : 'text-gray-500'}">
+                    <input type="checkbox" class="selectable-col-checkbox w-3.5 h-3.5 text-amber-600 rounded focus:ring-amber-500" 
+                        value="${col}" ${isChecked ? 'checked' : ''}>
+                    <span>${col}</span>
+                </label>
+            `;
+        }).join('');
+
+        // Attach events to each checkbox
+        selectableColumnsContainer.querySelectorAll('.selectable-col-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const col = e.target.value;
+                if (e.target.checked) {
+                    if (!currentSettings.selectable_columns.includes(col)) {
+                        currentSettings.selectable_columns.push(col);
+                    }
+                } else {
+                    currentSettings.selectable_columns = currentSettings.selectable_columns.filter(c => c !== col);
+                }
+                saveToInput();
+                // Re-render checkboxes to update styling
+                renderSelectableColumns();
+                // Re-render all pairs to update dropdowns
+                renderPairs('mcq');
+                renderPairs('typing');
+                renderPairs('listening');
+            });
+        });
+    };
+
+    // Toggle all button
+    if (toggleAllBtn) {
+        toggleAllBtn.addEventListener('click', () => {
+            const allSelected = currentSettings.selectable_columns.length === availableKeys.length;
+            if (allSelected) {
+                // Deselect all except 'front' and 'back' (minimum required)
+                currentSettings.selectable_columns = ['front', 'back'];
+            } else {
+                currentSettings.selectable_columns = [...availableKeys];
+            }
+            saveToInput();
+            renderSelectableColumns();
+            renderPairs('mcq');
+            renderPairs('typing');
+            renderPairs('listening');
+        });
+    }
+
     // --- Main Tabs Logic ---
     const mainTabButtons = wrapper.querySelectorAll('button[data-main-tab]');
     const mainTabContents = wrapper.querySelectorAll('.main-tab-content');
@@ -529,9 +652,20 @@
         });
     });
 
-    // Helper: Generate Options HTML for Select
+    // Helper: Generate Options HTML for Select (only selectable columns)
     const generateOptions = (selected) => {
-        return availableKeys.map(k =>
+        // Use selectable_columns if set, otherwise fallback to all availableKeys
+        const allowedCols = currentSettings.selectable_columns && currentSettings.selectable_columns.length > 0
+            ? currentSettings.selectable_columns
+            : availableKeys;
+
+        // Always include currently selected value even if not in allowedCols (backward compat)
+        const optionsSet = new Set(allowedCols);
+        if (selected && !optionsSet.has(selected)) {
+            optionsSet.add(selected);
+        }
+
+        return Array.from(optionsSet).map(k =>
             `<option value="${k}" ${k === selected ? 'selected' : ''}>${k}</option>`
         ).join('');
     };
@@ -653,6 +787,7 @@
     });
 
     // Initial Render of default settings
+    renderSelectableColumns();
     renderPairs('mcq');
     renderPairs('typing');
     renderPairs('listening');
@@ -661,6 +796,20 @@
     const updateSettingsFromExcel = (data) => {
         if (!data) return;
         let updated = false;
+
+        // [NEW] Parse selectable_columns from Excel Info sheet
+        // Format: "front,back,kanji,meaning" (comma-separated)
+        const selectableColsStr = data['selectable_columns'];
+        if (selectableColsStr) {
+            const parsedCols = selectableColsStr.split(',')
+                .map(c => c.trim())
+                .filter(c => c && availableKeys.includes(c));
+            if (parsedCols.length > 0) {
+                currentSettings.selectable_columns = parsedCols;
+                renderSelectableColumns();
+                updated = true;
+            }
+        }
 
         ['mcq', 'typing', 'listening'].forEach(mode => {
             // Key format: "mcq_pairs", "typing_pairs"...

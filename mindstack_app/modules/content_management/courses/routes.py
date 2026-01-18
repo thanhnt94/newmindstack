@@ -22,7 +22,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.utils.search import apply_search_filter
-from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings
+from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings, read_excel_with_formulas
 from mindstack_app.utils.html_sanitizer import sanitize_rich_text
 from mindstack_app.utils.bbcode_parser import bbcode_to_html
 
@@ -175,7 +175,7 @@ def _update_lessons_from_excel_file(container_id: int, excel_file) -> str:
             excel_file.save(tmp_file.name)
             temp_filepath = tmp_file.name
 
-        df = pd.read_excel(temp_filepath, sheet_name='Data')
+        df = read_excel_with_formulas(temp_filepath, sheet_name='Data')
         required_cols = {'title', 'content_html'}
         if not required_cols.issubset(set(df.columns)):
             raise ValueError('Sheet "Data" phải có các cột title và content_html.')

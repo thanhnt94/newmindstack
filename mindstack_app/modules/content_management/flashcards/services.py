@@ -7,7 +7,7 @@ from flask import current_app
 from sqlalchemy.orm.attributes import flag_modified
 from mindstack_app.models import db, LearningContainer, LearningItem
 from mindstack_app.utils.db_session import safe_commit
-from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings
+from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings, read_excel_with_formulas
 from mindstack_app.utils.media_paths import (
     normalize_media_folder,
     normalize_media_value_for_storage,
@@ -43,7 +43,7 @@ class FlashcardExcelService:
         Trả về dictionary phân loại cột.
         """
         try:
-            df = pd.read_excel(filepath, sheet_name='Data')
+            df = read_excel_with_formulas(filepath, sheet_name='Data')
             columns = set(df.columns)
             
             columns = set(df.columns)
@@ -108,8 +108,7 @@ class FlashcardExcelService:
                 excel_file.save(tmp_file.name)
                 temp_filepath = tmp_file.name
 
-            df = pd.read_excel(temp_filepath, sheet_name='Data')
-            df = pd.read_excel(temp_filepath, sheet_name='Data')
+            df = read_excel_with_formulas(temp_filepath, sheet_name='Data')
             required_cols = FlashcardConfigService.get('FLASHCARD_REQUIRED_COLUMNS') or ['front', 'back']
             if not all(col in df.columns for col in required_cols):
                 raise ValueError(

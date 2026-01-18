@@ -1818,6 +1818,25 @@ def edit_flashcard_item(set_id, item_id):
         form.memrise_prompt.data = flashcard_item.content.get('memrise_prompt', '')
         form.memrise_answers.data = flashcard_item.content.get('memrise_answers', '')
     
+    # [NEW] Prepare selectable custom keys
+    settings = flashcard_set.settings or {}
+    selectable_cols = settings.get('selectable_columns', [])
+    
+    # Filter out standard fields that have their own inputs
+    standard_fields = {
+        'front', 'back', 
+        'front_audio_content', 'front_audio_url', 
+        'back_audio_content', 'back_audio_url',
+        'front_img', 'back_img',
+        'ai_prompt', 'ai_explanation',
+        'memrise_prompt', 'memrise_answers'
+    }
+    
+    # If no configuration, maybe show empty or all? User requested restriction "available in customcontent".
+    # Assuming if list is empty, we might default to common ones or just empty.
+    # But usually selectable_columns is populated if configured.
+    custom_keys_options = [k for k in selectable_cols if k not in standard_fields]
+    
     context = {
         'form': form,
         'flashcard_set': flashcard_set,
@@ -1835,6 +1854,7 @@ def edit_flashcard_item(set_id, item_id):
         'previous_item_id': previous_item.item_id if previous_item else None,
         'next_item_id': next_item.item_id if next_item else None,
         'is_modal_view': request.args.get('is_modal') == 'true',
+        'custom_keys_options': sorted(custom_keys_options), # Pass to template
     }
 
     # Render template cho modal hoặc trang đầy đủ
