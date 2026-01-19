@@ -12,25 +12,24 @@ const MsTranslator = {
     },
 
     init() {
-        init() {
-            const handler = (e) => this.handleSelection(e);
-            document.addEventListener('mouseup', handler);
-            document.addEventListener('touchend', handler);
+        const handler = (e) => this.handleSelection(e);
+        document.addEventListener('mouseup', handler);
+        document.addEventListener('touchend', handler);
 
-            document.addEventListener('mousedown', (e) => {
-                // Close popup if clicking outside
-                if (this.state.isVisible && !e.target.closest('#ms-translator-popup')) {
-                    this.hide();
-                }
-            });
-            // Mobile: Close on touch start outside
-            document.addEventListener('touchstart', (e) => {
-                if (this.state.isVisible && !e.target.closest('#ms-translator-popup')) {
-                    this.hide();
-                }
-            });
-        },
+        document.addEventListener('mousedown', (e) => {
+            // Close popup if clicking outside
+            if (this.state.isVisible && !e.target.closest('#ms-translator-popup')) {
+                this.hide();
+            }
+        });
+        // Mobile: Close on touch start outside
+        document.addEventListener('touchstart', (e) => {
+            if (this.state.isVisible && !e.target.closest('#ms-translator-popup')) {
+                this.hide();
+            }
+        });
     },
+},
 
     isTranslationAllowed() {
         // 1. Check path constraints
@@ -61,105 +60,105 @@ const MsTranslator = {
         return true;
     },
 
-    handleSelection(e) {
-        if (!this.isTranslationAllowed()) {
+        handleSelection(e) {
+    if (!this.isTranslationAllowed()) {
+        this.hide();
+        return;
+    }
+
+    // Timeout to ensure selection is complete
+    setTimeout(() => {
+        const selection = window.getSelection();
+        const text = selection.toString().trim();
+
+        if (text.length > 0 && text.length < 500) {
+            // Ignore selection inside the translator itself
+            if (e.target.closest('#ms-translator-popup')) return;
+
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+
+            this.showButton(rect, text);
+        } else {
             this.hide();
-            return;
         }
+    }, 10);
+},
 
-        // Timeout to ensure selection is complete
-        setTimeout(() => {
-            const selection = window.getSelection();
-            const text = selection.toString().trim();
+createPopupElement() {
+    let el = document.getElementById('ms-translator-popup');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'ms-translator-popup';
+        el.className = 'fixed z-[9999] bg-white shadow-xl rounded-xl border border-slate-200 transition-all duration-200 flex flex-col overflow-hidden';
+        el.style.maxWidth = '300px';
+        document.body.appendChild(el);
+    }
+    return el;
+},
 
-            if (text.length > 0 && text.length < 500) {
-                // Ignore selection inside the translator itself
-                if (e.target.closest('#ms-translator-popup')) return;
+showButton(rect, text) {
+    const popup = this.createPopupElement();
+    this.state.text = text;
+    this.state.isVisible = true;
 
-                const range = selection.getRangeAt(0);
-                const rect = range.getBoundingClientRect();
-
-                this.showButton(rect, text);
-            } else {
-                this.hide();
-            }
-        }, 10);
-    },
-
-    createPopupElement() {
-        let el = document.getElementById('ms-translator-popup');
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'ms-translator-popup';
-            el.className = 'fixed z-[9999] bg-white shadow-xl rounded-xl border border-slate-200 transition-all duration-200 flex flex-col overflow-hidden';
-            el.style.maxWidth = '300px';
-            document.body.appendChild(el);
-        }
-        return el;
-    },
-
-    showButton(rect, text) {
-        const popup = this.createPopupElement();
-        this.state.text = text;
-        this.state.isVisible = true;
-
-        // Render "Translate" button
-        popup.innerHTML = `
+    // Render "Translate" button
+    popup.innerHTML = `
             <button onclick="MsTranslator.translate()" class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold transition-colors">
                 <i class="fa-solid fa-language"></i> Dịch
             </button>
         `;
 
-        // Position: Above the selection
-        this.positionPopup(popup, rect);
-    },
+    // Position: Above the selection
+    this.positionPopup(popup, rect);
+},
 
-    positionPopup(popup, rect) {
-        const popupHeight = 40; // Approx default
-        const top = rect.top - popupHeight - 8;
-        const left = rect.left + (rect.width / 2); // Center horizontally
+positionPopup(popup, rect) {
+    const popupHeight = 40; // Approx default
+    const top = rect.top - popupHeight - 8;
+    const left = rect.left + (rect.width / 2); // Center horizontally
 
-        popup.style.top = `${top > 0 ? top : rect.bottom + 8}px`; // Flip if too close to top
-        popup.style.left = `${left}px`;
-        popup.style.transform = 'translateX(-50%)';
-    },
+    popup.style.top = `${top > 0 ? top : rect.bottom + 8}px`; // Flip if too close to top
+    popup.style.left = `${left}px`;
+    popup.style.transform = 'translateX(-50%)';
+},
 
     async translate() {
-        const popup = document.getElementById('ms-translator-popup');
+    const popup = document.getElementById('ms-translator-popup');
 
-        // Show Loading
-        popup.innerHTML = `
+    // Show Loading
+    popup.innerHTML = `
             <div class="px-3 py-2 bg-white flex items-center gap-2 text-xs text-slate-500">
                 <i class="fa-solid fa-spinner fa-spin"></i> Đang dịch...
             </div>
         `;
 
-        try {
-            const res = await fetch('/translator/api/translate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content
-                },
-                body: JSON.stringify({ text: this.state.text })
-            });
-            const data = await res.json();
+    try {
+        const res = await fetch('/translator/api/translate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content
+            },
+            body: JSON.stringify({ text: this.state.text })
+        });
+        const data = await res.json();
 
-            if (data.success && data.data && data.data.translated) {
-                this.showResult(data.data.translated, data.data.source);
-            } else {
-                console.error('Translation response error:', data);
-                this.showError();
-            }
-        } catch (e) {
-            console.error(e);
+        if (data.success && data.data && data.data.translated) {
+            this.showResult(data.data.translated, data.data.source);
+        } else {
+            console.error('Translation response error:', data);
             this.showError();
         }
-    },
+    } catch (e) {
+        console.error(e);
+        this.showError();
+    }
+},
 
-    showResult(translatedText, sourceLang) {
-        const popup = document.getElementById('ms-translator-popup');
-        popup.innerHTML = `
+showResult(translatedText, sourceLang) {
+    const popup = document.getElementById('ms-translator-popup');
+    popup.innerHTML = `
             <div class="bg-white text-sm w-full">
                 <div class="flex justify-between items-center p-2 border-b border-slate-100 text-[10px] text-slate-400 uppercase font-bold">
                     <span>${sourceLang || 'Auto'} <i class="fa-solid fa-arrow-right mx-1"></i> VI</span>
@@ -173,25 +172,25 @@ const MsTranslator = {
                 </div>
             </div>
         `;
-    },
+},
 
-    showError() {
-        const popup = document.getElementById('ms-translator-popup');
-        popup.innerHTML = `
+showError() {
+    const popup = document.getElementById('ms-translator-popup');
+    popup.innerHTML = `
              <div class="p-2 bg-red-50 text-red-600 text-xs font-bold flex items-center gap-2">
                 <i class="fa-solid fa-circle-exclamation"></i> Lỗi hệ thống.
             </div>
         `;
-        setTimeout(() => this.hide(), 2000);
-    },
+    setTimeout(() => this.hide(), 2000);
+},
 
-    hide() {
-        const popup = document.getElementById('ms-translator-popup');
-        if (popup) {
-            popup.remove();
-        }
-        this.state.isVisible = false;
+hide() {
+    const popup = document.getElementById('ms-translator-popup');
+    if (popup) {
+        popup.remove();
     }
+    this.state.isVisible = false;
+}
 };
 
 // Auto-init

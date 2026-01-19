@@ -362,6 +362,14 @@ function renderCard(data) {
 
     const showFlipButtons = () => {
         console.log('[FlipButton] Content loaded, showing buttons');
+
+        // [FIX] Race condition: If card was flipped (by user or autoplay) while waiting for image,
+        // do NOT re-show the flip buttons.
+        if (card && card.classList.contains('flipped')) {
+            console.log('[FlipButton] Card is already flipped. Skipping showFlipButtons.');
+            return;
+        }
+
         flipBtns.forEach(btn => {
             btn.style.display = '';
             // Ensure mobile button has correct display type if originally flex

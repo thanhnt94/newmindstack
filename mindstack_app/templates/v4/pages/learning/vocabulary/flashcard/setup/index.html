@@ -748,6 +748,7 @@
     function startSession() {
         // Prepare settings payload to save
         const settingsPayload = {
+            set_id: setId, // Explicit ID for backend persistence
             button_count: selectedButtonCount,
             visual_settings: {
                 autoplay: isAutoplay,

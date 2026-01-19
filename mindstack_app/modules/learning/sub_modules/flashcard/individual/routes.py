@@ -774,6 +774,7 @@ def save_flashcard_settings():
     
     # 1. Button Count
     button_count = data.get('button_count')
+    set_id_from_payload = data.get('set_id') # New: Explicit set_id from setup page
     
     # 2. Visual Settings
     visual_settings = data.get('visual_settings') # { 'autoplay': bool, 'show_image': bool, 'show_stats': bool }
@@ -783,12 +784,23 @@ def save_flashcard_settings():
         return jsonify({'success': False, 'message': 'Số nút đánh giá không hợp lệ.'}), 400
 
 
-
     from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
     
-    session_data = session.get('flashcard_session', {})
-    set_ids = session_data.get('set_id')
-    target_set_ids = [set_ids] if isinstance(set_ids, int) else (set_ids if isinstance(set_ids, list) else [])
+    # Determine target sets: Payload (Explicit) > Session (Implicit)
+    target_set_ids = []
+    
+    # Priority 1: Explicit ID from payload
+    if set_id_from_payload:
+        if isinstance(set_id_from_payload, int):
+            target_set_ids = [set_id_from_payload]
+        elif isinstance(set_id_from_payload, list):
+             target_set_ids = [int(x) for x in set_id_from_payload if str(x).isdigit()]
+    
+    # Priority 2: Fallback to active Session
+    if not target_set_ids:
+        session_data = session.get('flashcard_session', {})
+        set_ids = session_data.get('set_id')
+        target_set_ids = [set_ids] if isinstance(set_ids, int) else (set_ids if isinstance(set_ids, list) else [])
     
     update_payload = {'flashcard': {}}
     if button_count: update_payload['flashcard']['button_count'] = button_count
