@@ -161,29 +161,29 @@
 
             const buttonSets = {
                 3: [
-                    { cssClass: 'again', value: '1', label: 'Quên', icon: 'fas fa-times' },
-                    { cssClass: 'hard', value: '2', label: 'Mơ hồ', icon: 'fas fa-question' },
-                    { cssClass: 'good', value: '3', label: 'Nhớ', icon: 'fas fa-check' }
+                    { cssClass: 'again', value: '1', label: 'Quên', icon: 'fas fa-times', quality: 0 },
+                    { cssClass: 'hard', value: '2', label: 'Mơ hồ', icon: 'fas fa-question', quality: 3 },
+                    { cssClass: 'good', value: '3', label: 'Nhớ', icon: 'fas fa-check', quality: 5 }
                 ],
                 4: [
-                    { cssClass: 'again', value: '1', label: 'Học lại', icon: 'fas fa-undo' },
-                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire' },
-                    { cssClass: 'good', value: '3', label: 'Ổn', icon: 'fas fa-thumbs-up' },
-                    { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-smile' }
+                    { cssClass: 'again', value: '1', label: 'Học lại', icon: 'fas fa-undo', quality: 0 },
+                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire', quality: 1 },
+                    { cssClass: 'good', value: '3', label: 'Ổn', icon: 'fas fa-thumbs-up', quality: 3 },
+                    { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-smile', quality: 5 }
                 ],
                 6: [
-                    { cssClass: 'again', value: '1', label: 'Rất khó', icon: 'fas fa-exclamation-circle' },
-                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire' },
-                    { cssClass: 'medium', value: '3', label: 'TB', icon: 'fas fa-adjust' },
-                    { cssClass: 'good', value: '4', label: 'Dễ', icon: 'fas fa-leaf' },
-                    { cssClass: 'easy', value: '5', label: 'Rất dễ', icon: 'fas fa-thumbs-up' },
-                    { cssClass: 'veryeasy', value: '6', label: 'Dễ dàng', icon: 'fas fa-star' }
+                    { cssClass: 'again', value: '1', label: 'Rất khó', icon: 'fas fa-exclamation-circle', quality: 0 },
+                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire', quality: 1 },
+                    { cssClass: 'medium', value: '3', label: 'TB', icon: 'fas fa-adjust', quality: 2 },
+                    { cssClass: 'good', value: '4', label: 'Dễ', icon: 'fas fa-leaf', quality: 3 },
+                    { cssClass: 'easy', value: '5', label: 'Rất dễ', icon: 'fas fa-thumbs-up', quality: 4 },
+                    { cssClass: 'veryeasy', value: '6', label: 'Dễ dàng', icon: 'fas fa-star', quality: 5 }
                 ]
             };
 
             const buttons = buttonSets[buttonCount] || buttonSets[3];
             container.innerHTML = buttons.map(btn =>
-                `<button class="fc-rating-btn ${btn.cssClass} js-rating-btn" data-rating="${btn.value}">
+                `<button class="fc-rating-btn ${btn.cssClass} js-rating-btn" data-rating="${btn.value}" data-quality="${btn.quality}">
                     <i class="${btn.icon}"></i>
                     <span>${btn.label}</span>
                 </button>`
@@ -240,8 +240,43 @@
                     // [UX-FIX] Don't reset here - notificationComplete event will handle reset
                     // after notification animation completes
                 });
+
+                // Hover / Tooltip Logic for Mobile/Desktop Fixed Buttons
+                btn.addEventListener('mouseenter', () => {
+                    const quality = btn.dataset.quality;
+                    console.log('[MobileTooltip] Hover on quality:', quality);
+
+                    if (window.currentFlashcardBatch &&
+                        typeof window.currentFlashcardIndex !== 'undefined') {
+                        const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
+                        console.log('[MobileTooltip] Current Card:', card);
+
+                        if (card && card.preview) {
+                            console.log('[MobileTooltip] Preview Map:', card.preview);
+                            if (typeof window.showPreviewTooltip === 'function') {
+                                const previewData = card.preview[quality];
+                                if (previewData) {
+                                    window.showPreviewTooltip(btn, previewData);
+                                } else {
+                                    console.warn('[MobileTooltip] No preview data for quality:', quality);
+                                }
+                            } else {
+                                console.error('[MobileTooltip] window.showPreviewTooltip is missing');
+                            }
+                        } else {
+                            console.warn('[MobileTooltip] Card or preview data missing');
+                        }
+                    }
+                });
+
+                btn.addEventListener('mouseleave', () => {
+                    if (typeof window.hidePreviewTooltip === 'function') {
+                        window.hidePreviewTooltip();
+                    }
+                });
             });
         }
+
 
         // Initialize rating buttons
         initMobileRatingButtons();

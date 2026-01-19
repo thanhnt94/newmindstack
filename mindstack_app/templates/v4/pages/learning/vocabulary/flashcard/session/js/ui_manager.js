@@ -576,7 +576,13 @@ function createPreviewTooltipElement() {
 
 function showPreviewTooltip(targetBtn, data) {
     const tooltip = document.getElementById('rating-preview-tooltip');
-    if (!tooltip) return;
+    if (!tooltip) {
+        console.warn('Tooltip element not found!');
+        createPreviewTooltipElement(); // Try creating it
+        return document.getElementById('rating-preview-tooltip') ? showPreviewTooltip(targetBtn, data) : null;
+    }
+
+    console.log('[PreviewTooltip] Showing data:', data);
 
     const { formatMinutesAsDuration } = window;
     const intervalDisplay = formatMinutesAsDuration ? formatMinutesAsDuration(data.interval) : (data.interval + 'm');
@@ -646,6 +652,11 @@ function hidePreviewTooltip() {
         }
     }, 150);
 }
+
+// Explicitly export for use in other templates (like _mobile.html)
+window.createPreviewTooltipElement = createPreviewTooltipElement;
+window.showPreviewTooltip = showPreviewTooltip;
+window.hidePreviewTooltip = hidePreviewTooltip;
 
 // --- Stats Renderers ---
 
