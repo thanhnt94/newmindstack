@@ -42,8 +42,9 @@ def setup(set_id):
     # Learned (Review All)
     count_learned = base_query.join(LearningProgress).count()
     
-    # Hard (Simplified: easiness_factor < 2.5)
-    count_hard = base_query.join(LearningProgress).filter(LearningProgress.easiness_factor < 2.5).count()
+    # Hard - Use centralized HardItemService
+    from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+    count_hard = HardItemService.get_hard_count(current_user.user_id, set_id)
     
     # Random
     count_random = len(items)

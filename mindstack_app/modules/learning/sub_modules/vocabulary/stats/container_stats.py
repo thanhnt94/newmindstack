@@ -125,9 +125,7 @@ class VocabularyContainerStats:
                 if progress.due_time and progress.due_time <= now:
                     due_count += 1
                 
-                # Check if hard
-                if mastery < 0.5 or (progress.incorrect_streak or 0) >= 2:
-                    hard_count += 1
+                # Note: hard_count is calculated separately using HardItemService
                 
                 # Accumulate totals
                 total_correct += progress.times_correct or 0
@@ -144,6 +142,10 @@ class VocabularyContainerStats:
         completion_pct = (learned_count / total * 100) if total > 0 else 0
         mastery_avg = (total_mastery / learned_count) if learned_count > 0 else 0
         accuracy_pct = (total_correct / (total_correct + total_incorrect) * 100) if (total_correct + total_incorrect) > 0 else 0
+        
+        # Calculate hard count using centralized HardItemService
+        from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+        hard_count = HardItemService.get_hard_count(user_id, container_id)
         
         return {
             # Counts

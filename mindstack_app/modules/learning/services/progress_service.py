@@ -335,7 +335,8 @@ class ProgressService:
         if total > 10 and ratio > 0.8:
             progress.status = 'mastered'
         elif total > 5 and ratio < 0.5:
-            progress.status = 'hard'
+            # [UPDATED] Do NOT set status='hard' rigidly.
+            progress.status = 'learning'
         elif is_new:
             progress.status = 'learning'
         

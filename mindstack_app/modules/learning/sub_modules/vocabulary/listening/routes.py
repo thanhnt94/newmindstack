@@ -39,7 +39,11 @@ def setup(set_id):
     now = datetime.now(timezone.utc)
     count_review = base_query.join(LearningProgress).filter(LearningProgress.due_time <= now).count()
     count_learned = base_query.join(LearningProgress).count()
-    count_hard = base_query.join(LearningProgress).filter(LearningProgress.easiness_factor < 2.5).count()
+    
+    # Hard - Use centralized HardItemService
+    from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+    count_hard = HardItemService.get_hard_count(current_user.user_id, set_id)
+    
     count_random = len(items)
 
     # Load saved settings & defaults

@@ -380,46 +380,22 @@ def get_all_items_for_autoplay(user_id, container_id, session_size):
 
 def get_hard_items(user_id, container_id, session_size):
     """
-    Lấy danh sách các thẻ khó (incorrect_streak > 0 hoặc memory_score thấp) cho một phiên học.
-    Hàm này sẽ loại trừ các bộ thẻ đã được archive.
+    Lấy danh sách các thẻ khó cho một phiên học.
+    Sử dụng HardItemService để đảm bảo logic nhất quán với toàn hệ thống.
     TRẢ VỀ: Một đối tượng truy vấn nếu session_size là None, hoặc một danh sách các item nếu session_size được chỉ định.
     """
     print(f">>> ALGORITHMS: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size} <<<")
-    base_items_query = _get_base_items_query(user_id, container_id)
-
-    # [NEW] Include items marked as 'difficult' by user
-    user_difficult_subquery = db.session.query(UserItemMarker.item_id).filter(
-        UserItemMarker.user_id == user_id,
-        UserItemMarker.marker_type == 'difficult'
-    )
-
-    # [NEW] Customizable "Hard" Logic
-    min_streak = MemoryPowerConfigService.get('HARD_ITEM_MIN_INCORRECT_STREAK', 3)
-    max_reps = MemoryPowerConfigService.get('HARD_ITEM_MAX_REPETITIONS', 10)
-    low_mastery = MemoryPowerConfigService.get('HARD_ITEM_LOW_MASTERY_THRESHOLD', 0.3)
-
-    hard_items_query = base_items_query.outerjoin(
-        LearningProgress,
-        and_(
-            LearningProgress.item_id == LearningItem.item_id,
-            LearningProgress.user_id == user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
-        )
-    ).filter(
-        or_(
-            LearningProgress.status == 'hard',
-            # Case 1: Wrong multiple times in a row
-            LearningProgress.incorrect_streak >= min_streak,
-            # Case 2: Learned many times but still low mastery (stuck)
-            and_(
-                LearningProgress.repetitions > max_reps,
-                LearningProgress.mastery < low_mastery
-            ),
-            # Case 3: Manually marked
-            LearningItem.item_id.in_(user_difficult_subquery)
-        )
+    
+    # Use centralized HardItemService for core "hard" logic
+    from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+    
+    hard_items_query = HardItemService.get_hard_items_query(
+        user_id=user_id,
+        container_id=container_id,
+        learning_mode=LearningProgress.MODE_FLASHCARD
     )
     
+    # Add archive filter (Session-specific)
     hard_items_query = hard_items_query.outerjoin(UserContainerState,
         and_(UserContainerState.container_id == LearningItem.container_id, UserContainerState.user_id == user_id)
     ).filter(

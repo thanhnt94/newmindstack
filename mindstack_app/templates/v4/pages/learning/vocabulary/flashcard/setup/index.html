@@ -386,26 +386,26 @@
             </div>
 
             <div class="mode-grid">
-                <!-- New -->
-                <div class="mode-card {% if mode_counts.new == 0 %}disabled{% endif %}" data-value="new">
+                <!-- Mixed SRS (NEW + DUE, SRS Order) - Primary mode -->
+                <div class="mode-card selected" data-value="mixed_srs">
                     <div class="mode-icon"><i class="fas fa-seedling"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Học từ mới</span>
-                        <span class="mode-desc">{{ mode_counts.new }} từ chưa học</span>
+                        <span class="mode-title">Học tập tuần tự</span>
+                        <span class="mode-desc">{{ mode_counts.new }} mới + {{ mode_counts.due }} tới hạn</span>
                     </div>
                 </div>
 
-                <!-- Review -->
-                <div class="mode-card {% if mode_counts.due == 0 %}disabled{% endif %}" data-value="review">
+                <!-- All Review (All learned items, not just due) -->
+                <div class="mode-card {% if mode_counts.learned == 0 %}disabled{% endif %}" data-value="all_review">
                     <div class="mode-icon"><i class="fas fa-history"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Ôn tập tới hạn</span>
-                        <span class="mode-desc">{{ mode_counts.due }} từ cần ôn lại</span>
+                        <span class="mode-title">Ôn tập đã học</span>
+                        <span class="mode-desc">{{ mode_counts.learned }} từ đã học</span>
                     </div>
                 </div>
 
                 <!-- Hard -->
-                <div class="mode-card {% if mode_counts.hard == 0 %}disabled{% endif %}" data-value="hard">
+                <div class="mode-card {% if mode_counts.hard == 0 %}disabled{% endif %}" data-value="hard_only">
                     <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
                     <div class="mode-info">
                         <span class="mode-title">Từ khó</span>
@@ -497,7 +497,7 @@
 
     // --- State ---
     let currentStep = 1;
-    let selectedMode = 'random'; // Default fallback
+    let selectedMode = 'mixed_srs'; // Default to SRS learning
     let selectedButtonCount = 4;
     let isAutoplay = false;
     let isShowImage = true;
@@ -771,11 +771,10 @@
             .then(data => {
                 if (data.success) {
                     // Determine start URL based on mode
-                    // Mapping: new -> 'new_only', review -> 'due_only', hard -> 'hard_only', random -> 'mixed_srs'
-                    let backendMode = 'mixed_srs';
-                    if (selectedMode === 'new') backendMode = 'new_only';
-                    else if (selectedMode === 'review') backendMode = 'due_only';
-                    else if (selectedMode === 'hard') backendMode = 'hard_only';
+                    // Mode values now match backend directly: mixed_srs, all_review, hard_only, random
+                    let backendMode = selectedMode;
+                    // 'random' maps to 'mixed_srs' for "tất cả" behavior
+                    if (selectedMode === 'random') backendMode = 'mixed_srs';
 
                     // Construct URL manually or use a helper if available. 
                     // The pattern is /start_flashcard_session/<set_id>/<mode>

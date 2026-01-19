@@ -114,7 +114,10 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     if total_attempts > 10 and correct_ratio > 0.8:
         progress.status = 'mastered'
     elif total_attempts > 5 and correct_ratio < 0.5:
-        progress.status = 'hard'
+        # [UPDATED] Do NOT set status='hard' rigidly. 
+        # Use 'learning' so Memory Engine can handle spaced repetition normally.
+        # "Hard" logic is now derived dynamically from streaks/mastery.
+        progress.status = 'learning'
     elif is_first_time: # Nếu là lần đầu tiên, đặt là learning
         progress.status = 'learning'
 

@@ -188,26 +188,21 @@ def get_reviewed_items(user_id, container_id, session_size):
 def get_hard_items(user_id, container_id, session_size):
     """
     Lấy danh sách các câu hỏi khó cho một phiên học.
-    Hàm này sẽ loại trừ các bộ quiz đã được archive.
+    Sử dụng HardItemService để đảm bảo logic nhất quán với toàn hệ thống.
     TRẢ VỀ: Một đối tượng truy vấn nếu session_size là None, hoặc một danh sách các item nếu session_size được chỉ định.
     """
     current_app.logger.debug(f"Algorithms: Bắt đầu get_hard_items cho user_id={user_id}, container_id={container_id}, session_size={session_size}")
-    base_items_query = _get_base_items_query(user_id, container_id)
-
-    # Query hard items using LearningProgress
-    hard_items_query = base_items_query.join(
-        LearningProgress,
-        and_(
-            LearningProgress.item_id == LearningItem.item_id,
-            LearningProgress.user_id == user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
-        )
-    ).filter(
-        (LearningProgress.times_correct + LearningProgress.times_incorrect) >= 10,
-        (LearningProgress.times_correct / (LearningProgress.times_correct + LearningProgress.times_incorrect)) < 0.5
+    
+    # Use centralized HardItemService for core "hard" logic
+    from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+    
+    hard_items_query = HardItemService.get_hard_items_query(
+        user_id=user_id,
+        container_id=container_id,
+        learning_mode=LearningProgress.MODE_QUIZ
     )
     
-    # THÊM MỚI: Loại trừ các bộ quiz đã được archive
+    # Add archive filter (Session-specific)
     hard_items_query = hard_items_query.outerjoin(UserContainerState,
         and_(UserContainerState.container_id == LearningItem.container_id, UserContainerState.user_id == user_id)
     ).filter(

@@ -123,15 +123,19 @@ class VocabularyItemStats:
             time_span_days = (logs[0].timestamp - first_reviewed).days or 1
             review_frequency = round(len(logs) / (time_span_days / 7), 1)  # Reviews per week
         
-        # Determine Status
+        # Determine Status using HardItemService
         status = 'new'
         if progress:
             now = datetime.utcnow()
+            
+            # Use centralized HardItemService
+            from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+            
             if progress.mastery >= 0.8:
                 status = 'mastered'
             elif progress.due_time and progress.due_time <= now:
                 status = 'due'
-            elif progress.incorrect_streak and progress.incorrect_streak >= 2:
+            elif HardItemService.is_hard_item(user_id, item_id):
                 status = 'hard'
             else:
                 status = 'learning'
