@@ -71,6 +71,15 @@ parser.add_simple_formatter(
     replace_links=False
 )
 
+# [center]...[/center]
+parser.add_simple_formatter('center', '<div style="text-align: center;">%(value)s</div>')
+# [left]...[/left]
+parser.add_simple_formatter('left', '<div style="text-align: left;">%(value)s</div>')
+# [right]...[/right]
+parser.add_simple_formatter('right', '<div style="text-align: right;">%(value)s</div>')
+# [justify]...[/justify]
+parser.add_simple_formatter('justify', '<div style="text-align: justify;">%(value)s</div>')
+
 # [youtube]URL-hoặc-ID[/youtube]
 # strip=True (mặc định) để bỏ \n thừa; replace_links=False để không tự động biến URL trong value thành <a>
 parser.add_formatter('youtube', render_youtube, replace_links=False, strip=True)
