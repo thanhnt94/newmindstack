@@ -40,6 +40,11 @@ import os
 import asyncio
 from mindstack_app.modules.learning.sub_modules.flashcard.services.audio_service import AudioService
 from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
+
+# [NEW] Imports for Preview Simulation
+from mindstack_app.modules.learning.logics.memory_engine import MemoryEngine, ProgressState
+from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
+
 from mindstack_app.utils.media_paths import build_relative_media_path
 from mindstack_app.utils.content_renderer import render_text_field
 
@@ -397,7 +402,56 @@ class FlashcardSessionManager:
         except Exception:
             marker_list = []
 
+        except Exception:
+            marker_list = []
+
+        # [NEW] Calculate Preview Data (Simulation)
+        preview_data = {}
+        try:
+            # 1. Fetch current progress state
+            progress = LearningProgress.query.filter_by(
+                user_id=self.user_id, item_id=next_item.item_id, learning_mode='flashcard'
+            ).first()
+            
+            if progress:
+                current_state = ProgressState(
+                    status=progress.status,
+                    mastery=getattr(progress, 'mastery', 0.0) or 0.0,
+                    repetitions=progress.repetitions,
+                    interval=progress.interval,
+                    correct_streak=progress.correct_streak,
+                    incorrect_streak=progress.incorrect_streak,
+                    easiness_factor=progress.easiness_factor
+                )
+            else:
+                # Default new state
+                current_state = ProgressState(
+                    status='new', mastery=0.0, repetitions=0, interval=0,
+                    correct_streak=0, incorrect_streak=0, easiness_factor=2.5
+                )
+
+            # 2. Simulate outcomes for all qualities (0-5)
+            now_utc = datetime.datetime.now(datetime.timezone.utc)
+            for q in range(6): # 0 to 5
+                # Simulate Memory Engine
+                res = MemoryEngine.process_answer(current_state, q, now=now_utc)
+                
+                # Simulate Points
+                points = ScoringEngine.quality_to_score(q)
+                
+                preview_data[str(q)] = {
+                    'interval': res.new_state.interval,
+                    'mastery': round(res.new_state.mastery * 100, 1), # %
+                    'memory_power': round(res.memory_power * 100, 1), # %
+                    'points': points,
+                    'status': res.new_state.status
+                }
+        except Exception as e:
+            current_app.logger.warning(f"Preview simulation failed for item {next_item.item_id}: {e}")
+            pass
+
         item_dict = {
+
             'item_id': next_item.item_id,
             'container_id': next_item.container_id,
             'content': {
@@ -432,7 +486,8 @@ class FlashcardSessionManager:
             'ai_explanation': render_text_field(next_item.ai_explanation),
             'initial_stats': initial_stats,  # Gửi kèm thống kê
             'can_edit': self._can_edit_container(next_item.container_id),
-            'markers': marker_list # [NEW] List of markers e.g. ['difficult', 'favorite']
+            'markers': marker_list, # [NEW] List of markers e.g. ['difficult', 'favorite']
+            'preview': preview_data # [NEW] Simulation data
         }
         
         # REMOVED: self.processed_item_ids.append(next_item.item_id) - Move to process_flashcard_answer

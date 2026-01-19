@@ -213,29 +213,29 @@ function getPreviewButtonHtml() {
 function generateDynamicButtons(buttonCount) {
     const buttonSets = {
         3: [
-            { variant: 'again', value: 'quên', title: 'Quên', icon: 'fas fa-redo-alt' },
-            { variant: 'hard', value: 'mơ_hồ', title: 'Mơ hồ', icon: 'fas fa-question-circle' },
-            { variant: 'easy', value: 'nhớ', title: 'Nhớ', icon: 'fas fa-check-circle' }
+            { variant: 'again', value: 'quên', title: 'Quên', icon: 'fas fa-redo-alt', quality: 0 },
+            { variant: 'hard', value: 'mơ_hồ', title: 'Mơ hồ', icon: 'fas fa-question-circle', quality: 3 },
+            { variant: 'easy', value: 'nhớ', title: 'Nhớ', icon: 'fas fa-check-circle', quality: 5 }
         ],
         4: [
-            { variant: 'again', value: 'again', title: 'Học lại', icon: 'fas fa-undo' },
-            { variant: 'very-hard', value: 'hard', title: 'Khó', icon: 'fas fa-fire' },
-            { variant: 'good', value: 'good', title: 'Bình thường', icon: 'fas fa-thumbs-up' },
-            { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-smile' }
+            { variant: 'again', value: 'again', title: 'Học lại', icon: 'fas fa-undo', quality: 0 },
+            { variant: 'very-hard', value: 'hard', title: 'Khó', icon: 'fas fa-fire', quality: 1 },
+            { variant: 'good', value: 'good', title: 'Bình thường', icon: 'fas fa-thumbs-up', quality: 3 },
+            { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-smile', quality: 5 }
         ],
         6: [
-            { variant: 'fail', value: 'fail', title: 'Rất khó', icon: 'fas fa-exclamation-circle' },
-            { variant: 'very-hard', value: 'very_hard', title: 'Khó', icon: 'fas fa-fire' },
-            { variant: 'hard', value: 'hard', title: 'Trung bình', icon: 'fas fa-adjust' },
-            { variant: 'medium', value: 'medium', title: 'Dễ', icon: 'fas fa-leaf' },
-            { variant: 'good', value: 'good', title: 'Rất dễ', icon: 'fas fa-thumbs-up' },
-            { variant: 'very-easy', value: 'very_easy', title: 'Dễ dàng', icon: 'fas fa-star' }
+            { variant: 'fail', value: 'fail', title: 'Rất khó', icon: 'fas fa-exclamation-circle', quality: 0 },
+            { variant: 'very-hard', value: 'very_hard', title: 'Khó', icon: 'fas fa-fire', quality: 1 },
+            { variant: 'hard', value: 'hard', title: 'Trung bình', icon: 'fas fa-adjust', quality: 2 },
+            { variant: 'medium', value: 'medium', title: 'Dễ', icon: 'fas fa-leaf', quality: 3 },
+            { variant: 'good', value: 'good', title: 'Rất dễ', icon: 'fas fa-thumbs-up', quality: 4 },
+            { variant: 'very-easy', value: 'very_easy', title: 'Dễ dàng', icon: 'fas fa-star', quality: 5 }
         ]
     };
     const buttons = buttonSets[buttonCount] || buttonSets[3];
     return buttons.map(btn => {
         const iconHtml = btn.icon ? `<span class="rating-btn__icon"><i class="${btn.icon}"></i></span>` : '';
-        return `<button class="btn rating-btn rating-btn--${btn.variant}" data-answer="${btn.value}">${iconHtml}<span class="rating-btn__title">${btn.title}</span></button>`;
+        return `<button class="btn rating-btn rating-btn--${btn.variant}" data-answer="${btn.value}" data-quality="${btn.quality}">${iconHtml}<span class="rating-btn__title">${btn.title}</span></button>`;
     }).join('');
 }
 
@@ -542,6 +542,109 @@ function renderCard(data) {
             if (window.autoPlayFrontSide) window.autoPlayFrontSide();
         }
     }
+}
+
+// --- Preview Tooltip Helper Functions ---
+
+function createPreviewTooltipElement() {
+    const tooltip = document.createElement('div');
+    tooltip.id = 'rating-preview-tooltip';
+    tooltip.className = 'rating-preview-tooltip';
+    document.body.appendChild(tooltip);
+
+    // Initial Styles (if not in CSS)
+    Object.assign(tooltip.style, {
+        position: 'fixed', // Use fixed for easier positioning relative to viewport
+        zIndex: '9999',
+        display: 'none',
+        pointerEvents: 'none',
+        background: 'rgba(15, 23, 42, 0.95)',
+        color: '#f8fafc',
+        padding: '12px',
+        borderRadius: '12px',
+        fontSize: '13px',
+        lineHeight: '1.4',
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
+        width: '220px',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        opacity: '0',
+        transition: 'opacity 0.15s ease, transform 0.15s ease',
+        transform: 'translateY(10px)'
+    });
+}
+
+function showPreviewTooltip(targetBtn, data) {
+    const tooltip = document.getElementById('rating-preview-tooltip');
+    if (!tooltip) return;
+
+    const { formatMinutesAsDuration } = window;
+    const intervalDisplay = formatMinutesAsDuration ? formatMinutesAsDuration(data.interval) : (data.interval + 'm');
+
+    // Determine Color based on Points
+    const pointsColor = data.points > 0 ? '#4ade80' : (data.points < 0 ? '#f87171' : '#94a3b8');
+    const memoryColor = data.memory_power >= 80 ? '#4ade80' : (data.memory_power >= 50 ? '#fbbf24' : '#f87171');
+
+    tooltip.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px">
+            <span style="font-weight:600; color:#e2e8f0">Kết quả dự kiến</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+            <span style="color:#94a3b8">Lịch ôn:</span>
+            <span style="font-weight:600; color:#fff">${intervalDisplay}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+            <span style="color:#94a3b8">Điểm:</span>
+            <span style="font-weight:600; color:${pointsColor}">${data.points > 0 ? '+' : ''}${data.points}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+            <span style="color:#94a3b8">Ghi nhớ:</span>
+            <span style="font-weight:600; color:${memoryColor}">${data.memory_power}%</span>
+        </div>
+    `;
+
+    // Position logic
+    const rect = targetBtn.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect(); // Need approx size, but it's hidden. Assume 220x100.
+
+    // Default: Center above button
+    let top = rect.top - tooltip.offsetHeight - 14;
+    let left = rect.left + (rect.width / 2) - (220 / 2); // 220 is width set in style
+
+    // Boundary checks (rudimentary)
+    if (left < 10) left = 10;
+    if (left + 220 > window.innerWidth - 10) left = window.innerWidth - 230;
+
+    // Use pure CSS/JS positioning
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${rect.top - 120}px`; // Initial guess above
+
+    // Show
+    tooltip.style.display = 'block';
+
+    // Recalculate after display for accurate height
+    const freshRect = tooltip.getBoundingClientRect();
+    tooltip.style.top = `${rect.top - freshRect.height - 10}px`;
+
+    // Animate
+    requestAnimationFrame(() => {
+        tooltip.style.opacity = '1';
+        tooltip.style.transform = 'translateY(0)';
+    });
+}
+
+function hidePreviewTooltip() {
+    const tooltip = document.getElementById('rating-preview-tooltip');
+    if (!tooltip) return;
+
+    tooltip.style.opacity = '0';
+    tooltip.style.transform = 'translateY(10px)';
+
+    setTimeout(() => {
+        if (tooltip.style.opacity === '0') {
+            tooltip.style.display = 'none';
+        }
+    }, 150);
 }
 
 // --- Stats Renderers ---
