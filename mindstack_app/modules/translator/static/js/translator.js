@@ -12,13 +12,24 @@ const MsTranslator = {
     },
 
     init() {
-        document.addEventListener('mouseup', (e) => this.handleSelection(e));
-        document.addEventListener('mousedown', (e) => {
-            // Close popup if clicking outside
-            if (this.state.isVisible && !e.target.closest('#ms-translator-popup')) {
-                this.hide();
-            }
-        });
+        init() {
+            const handler = (e) => this.handleSelection(e);
+            document.addEventListener('mouseup', handler);
+            document.addEventListener('touchend', handler);
+
+            document.addEventListener('mousedown', (e) => {
+                // Close popup if clicking outside
+                if (this.state.isVisible && !e.target.closest('#ms-translator-popup')) {
+                    this.hide();
+                }
+            });
+            // Mobile: Close on touch start outside
+            document.addEventListener('touchstart', (e) => {
+                if (this.state.isVisible && !e.target.closest('#ms-translator-popup')) {
+                    this.hide();
+                }
+            });
+        },
     },
 
     isTranslationAllowed() {
