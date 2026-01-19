@@ -176,10 +176,33 @@ def dashboard():
         'last_reviewed',
         item_type='LESSON',
     )
+    
+    # [NEW] Get Daily Statistics Summary
+    from mindstack_app.modules.learning.services.daily_stats_service import DailyStatsService
+    try:
+        daily_summary = DailyStatsService.get_summary(current_user.user_id)
+        # Enrich dashboard_data with more accurate streak info
+        if daily_summary and 'streak' in daily_summary:
+            dashboard_data['current_learning_streak'] = daily_summary['streak']['current_streak']
+            dashboard_data['longest_learning_streak'] = daily_summary['streak']['longest_streak']
+    except Exception as e:
+        import traceback
+        print(f"Error fetching daily stats: {e}")
+        traceback.print_exc()
+        # Fallback to zero data so UI still renders
+        daily_summary = {
+            'today': {
+                'sessions': 0, 'items_studied': 0, 'new_items': 0, 
+                'reviewed_items': 0, 'accuracy': 0, 'correct': 0, 
+                'incorrect': 0, 'points': 0
+            },
+            'streak': {'current_streak': 0, 'longest_streak': 0}
+        }
 
     return render_dynamic_template('pages/analytics/dashboard.html',
         leaderboard_data=leaderboard_data,
         dashboard_data=dashboard_data,
+        daily_summary=daily_summary, # Pass to template
         current_sort_by=initial_sort_by,
         current_timeframe=initial_timeframe,
         flashcard_sets=flashcard_sets,

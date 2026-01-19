@@ -353,3 +353,56 @@ def api_active_sessions():
             'resume_url': resume_url
         })
     return jsonify(result)
+
+
+# === Daily Stats API ===
+
+@learning_bp.route('/api/stats/daily')
+@login_required
+def api_daily_stats():
+    """Get daily learning statistics for the current user."""
+    from .services.daily_stats_service import DailyStatsService
+    from datetime import date
+    
+    # Optional date param (YYYY-MM-DD)
+    date_str = request.args.get('date')
+    target_date = None
+    if date_str:
+        try:
+            target_date = date.fromisoformat(date_str)
+        except ValueError:
+            pass
+    
+    stats = DailyStatsService.get_daily_stats(current_user.user_id, target_date)
+    return jsonify(stats)
+
+
+@learning_bp.route('/api/stats/weekly')
+@login_required
+def api_weekly_stats():
+    """Get weekly learning statistics for the current user."""
+    from .services.daily_stats_service import DailyStatsService
+    
+    stats = DailyStatsService.get_weekly_stats(current_user.user_id)
+    return jsonify(stats)
+
+
+@learning_bp.route('/api/stats/streak')
+@login_required
+def api_streak_stats():
+    """Get learning streak information for the current user."""
+    from .services.daily_stats_service import DailyStatsService
+    
+    streak = DailyStatsService.get_streak(current_user.user_id)
+    return jsonify(streak)
+
+
+@learning_bp.route('/api/stats/summary')
+@login_required
+def api_stats_summary():
+    """Get comprehensive stats summary (today, week, streak) for the current user."""
+    from .services.daily_stats_service import DailyStatsService
+    
+    summary = DailyStatsService.get_summary(current_user.user_id)
+    return jsonify(summary)
+
