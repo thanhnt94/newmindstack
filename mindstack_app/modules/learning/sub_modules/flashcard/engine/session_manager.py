@@ -421,18 +421,26 @@ class FlashcardSessionManager:
                     interval=progress.interval,
                     correct_streak=progress.correct_streak,
                     incorrect_streak=progress.incorrect_streak,
-                    easiness_factor=progress.easiness_factor
+                    easiness_factor=progress.easiness_factor,
+                    # Spec v8 fields from mode_data
+                    custom_state=progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
+                    hard_streak=progress.mode_data.get('hard_streak', 0) if progress.mode_data else 0,
+                    learning_reps=progress.mode_data.get('learning_reps', 0) if progress.mode_data else 0,
+                    precise_interval=progress.mode_data.get('precise_interval', 20.0) if progress.mode_data else 20.0
                 )
+                # Inject last_reviewed for Review Ahead
+                current_state.last_reviewed = progress.last_reviewed
             else:
                 # Default new state
                 current_state = ProgressState(
                     status='new', mastery=0.0, repetitions=0, interval=0,
-                    correct_streak=0, incorrect_streak=0, easiness_factor=2.5
+                    correct_streak=0, incorrect_streak=0, easiness_factor=2.5,
+                    custom_state='new', hard_streak=0, learning_reps=0, precise_interval=20.0
                 )
 
-            # 2. Simulate outcomes for all qualities (0-5)
+            # 2. Simulate outcomes for all qualities (0-7 for Spec v8)
             now_utc = datetime.datetime.now(datetime.timezone.utc)
-            for q in range(6): # 0 to 5
+            for q in range(8): # 0 to 7
                 # Simulate Memory Engine
                 res = MemoryEngine.process_answer(current_state, q, now=now_utc)
                 

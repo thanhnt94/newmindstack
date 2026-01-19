@@ -107,7 +107,12 @@ class SrsService:
             quality=quality,
             mode=mode,
             is_first_time=is_first_time,
-            response_time_seconds=response_time_seconds
+            response_time_seconds=response_time_seconds,
+            # Spec v8 fields from mode_data
+            custom_state=progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
+            hard_streak=progress.mode_data.get('hard_streak', 0) if progress.mode_data else 0,
+            learning_reps=progress.mode_data.get('learning_reps', 0) if progress.mode_data else 0,
+            precise_interval=progress.mode_data.get('precise_interval', 20.0) if progress.mode_data else 20.0
         )
         
         # 3. Apply results to progress
@@ -123,6 +128,16 @@ class SrsService:
             progress.easiness_factor = result.easiness_factor
             progress.repetitions = result.repetitions
             progress.due_time = result.next_review
+            
+            # Persist Spec v8 fields to mode_data
+            if progress.mode_data is None:
+                progress.mode_data = {}
+            progress.mode_data['custom_state'] = result.custom_state
+            progress.mode_data['hard_streak'] = result.hard_streak
+            progress.mode_data['learning_reps'] = result.learning_reps
+            progress.mode_data['precise_interval'] = result.precise_interval
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(progress, 'mode_data')
 
         progress.correct_streak = result.correct_streak
         progress.incorrect_streak = result.incorrect_streak

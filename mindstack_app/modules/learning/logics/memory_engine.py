@@ -1,100 +1,106 @@
 """
-Memory Power Engine - Core Calculations
+Memory Power Engine - Custom SRS System (Spec v8)
 
-This module implements the Memory Power system, replacing traditional SM-2 algorithm
-with a simpler, intuitive formula:
+5-State Machine: NEW → LEARNING → REVIEW ↔ HARD → MASTER
+Scoring: 0-7 (Flashcard 0-5, MCQ 6, Typing 7)
 
-    Memory Power (%) = Mastery × Retention
-
-Where:
-- Mastery: How well the knowledge is encoded (based on correct streaks)
-- Retention: Probability of recall right now (decays over time)
+Key Features:
+- LEARNING: Minutes, Floor 20m, Graduation > 2880m (2 days)
+- REVIEW: Days, Ceiling 365 days, Streak >= 10 → MASTER
+- HARD: Penalty phase, Hard_Streak >= 3 → REVIEW
+- MASTER: 1.2x Bonus, Soft Demotion (não HARD, về REVIEW với 50%)
+- Safety Valve: LEARNING reps >= 10 → HARD
 """
-
 from __future__ import annotations
 
 import math
 from datetime import datetime, timezone, timedelta
-from typing import Tuple, Optional, NamedTuple, TYPE_CHECKING
+from typing import Optional, Dict, Any
 from dataclasses import dataclass
+from enum import Enum
 
 
-# === CONFIG SERVICE (Lazy Import) ===
-# Use lazy import to avoid circular dependencies during app initialization
-_config_service = None
+# ============================================================================
+# CONSTANTS
+# ============================================================================
 
-def _get_config():
-    """Lazy load MemoryPowerConfigService to avoid circular imports."""
-    global _config_service
-    if _config_service is None:
-        try:
-            from ..services.memory_power_config_service import MemoryPowerConfigService
-            _config_service = MemoryPowerConfigService
-        except ImportError:
-            # Fallback for standalone usage or testing
-            _config_service = None
-    return _config_service
+class CustomState(str, Enum):
+    """Card states in the SRS system."""
+    NEW = 'new'
+    LEARNING = 'learning'
+    REVIEW = 'review'
+    HARD = 'hard'
+    MASTER = 'master'
 
 
-# === DEFAULT CONSTANTS (Fallback when config not available) ===
-_DEFAULT_LEARNING_INTERVALS = [1, 10, 60, 240, 480, 1440]
-_DEFAULT_GRADUATING_INTERVAL = 5760  # 4 days
-_DEFAULT_RELEARNING_INTERVAL = 10
-_DEFAULT_MIN_INTERVAL = 1
-_DEFAULT_RETENTION_THRESHOLD = 0.90
-_DEFAULT_LEARNING_TO_REVIEWING_STREAK = 7
+# Learning phase constants
+LEARNING_FLOOR_MINUTES = 20.0
+LEARNING_GRADUATION_THRESHOLD = 2880.0  # 2 days in minutes
+LEARNING_SAFETY_VALVE_REPS = 10
+
+# Review phase constants
+REVIEW_CEILING_DAYS = 365.0
+STREAK_TO_MASTER = 10
+HARD_STREAK_TO_EXIT = 3
+
+# Formulas for LEARNING state (Minutes)
+LEARNING_FORMULAS = {
+    0: lambda x: LEARNING_FLOOR_MINUTES,                    # Quên: Về sàn
+    1: lambda x: max(LEARNING_FLOOR_MINUTES, x * 0.5),      # Sai: -50%
+    2: lambda x: max(LEARNING_FLOOR_MINUTES, x * 0.8),      # Khó: -20% (PHẠT)
+    3: lambda x: max(LEARNING_FLOOR_MINUTES, x * 1.5),      # Tạm
+    4: lambda x: max(LEARNING_FLOOR_MINUTES, x * 2.5),      # Tốt
+    5: lambda x: max(LEARNING_FLOOR_MINUTES, x * 4.0),      # Dễ
+    6: lambda x: max(LEARNING_FLOOR_MINUTES, x * 5.0),      # MCQ
+    7: lambda x: max(LEARNING_FLOOR_MINUTES, x * 7.0),      # Typing
+}
+
+# Formulas for REVIEW state (Days - Multipliers)
+REVIEW_MULTIPLIERS = {
+    # 0, 1: Fail → HARD
+    2: 0.8,   # Khó: PHẠT -20%
+    3: 1.8,   # Pass
+    4: 2.5,   # Good
+    5: 3.5,   # Easy
+    6: 4.5,   # MCQ
+    7: 6.0,   # Typing
+}
+
+# Formulas for HARD state (Days)
+HARD_FORMULAS = {
+    0: lambda x: 1.0,                   # Sai: Reset 1 day, Reset streak
+    1: lambda x: 1.0,                   # Sai: Reset 1 day, Reset streak
+    2: lambda x: max(1.0, x * 0.8),     # Khó: -20%, Reset streak
+    3: lambda x: x * 1.2,               # Tạm: Keep streak
+    4: lambda x: x * 1.3,               # Tốt: +1 streak
+    5: lambda x: x * 1.3,               # Dễ: +1 streak
+    6: lambda x: x * 1.4,               # MCQ: +1 streak
+    7: lambda x: x * 1.5,               # Typing: +1 streak
+}
+
+# MASTER uses REVIEW multipliers * 1.2 bonus
 
 
-def _get_learning_intervals():
-    """Get learning intervals from config or use defaults."""
-    config = _get_config()
-    if config:
-        return config.get_learning_intervals()
-    return _DEFAULT_LEARNING_INTERVALS
-
-
-def _get_graduating_interval():
-    """Get graduating interval from config or use defaults."""
-    config = _get_config()
-    if config:
-        return config.get_graduating_interval()
-    return _DEFAULT_GRADUATING_INTERVAL
-
-
-def _get_relearning_interval():
-    """Get relearning interval from config or use defaults."""
-    config = _get_config()
-    if config:
-        return config.get_relearning_interval()
-    return _DEFAULT_RELEARNING_INTERVAL
-
-
-def _get_min_interval():
-    """Get minimum interval from config or use defaults."""
-    config = _get_config()
-    if config:
-        return config.get_min_interval()
-    return _DEFAULT_MIN_INTERVAL
-
-
-def _get_learning_to_reviewing_streak():
-    """Get streak threshold from config or use defaults."""
-    config = _get_config()
-    if config:
-        return config.get('SRS_LEARNING_TO_REVIEWING_STREAK')
-    return _DEFAULT_LEARNING_TO_REVIEWING_STREAK
-
+# ============================================================================
+# DATA CLASSES
+# ============================================================================
 
 @dataclass
 class ProgressState:
     """Represents the state of a learning item."""
-    status: str  # 'new', 'learning', 'reviewing'
+    status: str  # Legacy: 'new', 'learning', 'reviewing'
     mastery: float  # 0.0 - 1.0
     repetitions: int
     interval: int  # minutes
     correct_streak: int
     incorrect_streak: int
-    easiness_factor: float  # Still used for interval calculation
+    easiness_factor: float
+    
+    # Spec v8 fields
+    custom_state: str = CustomState.NEW.value
+    hard_streak: int = 0
+    learning_reps: int = 0  # Safety valve counter
+    precise_interval: float = 20.0  # Float for precision
 
 
 @dataclass
@@ -102,379 +108,301 @@ class AnswerResult:
     """Result of processing an answer."""
     new_state: ProgressState
     memory_power: float
-    # Note: Scoring should be handled by ScoringEngine, not here
+    retention_percent: float
 
+
+# ============================================================================
+# MEMORY ENGINE (Spec v8)
+# ============================================================================
 
 class MemoryEngine:
     """
-    Pure calculation engine for Memory Power system.
-    No database access - all methods are static and use only provided inputs.
+    Custom SRS Engine (Spec v8) with 5-State Machine.
+    
+    States: NEW → LEARNING → REVIEW ↔ HARD → MASTER
+    Scoring: 0-7
     """
 
-    # === MASTERY CALCULATION ===
+    # === RETENTION CURVE ===
     
-    @staticmethod
-    def calculate_mastery(
-        status: str,
-        repetitions: int,
-        correct_streak: int,
-        incorrect_streak: int = 0
-    ) -> float:
-        """
-        Calculate Mastery (0.0 - 1.0) based on learning status and streaks.
-
-        Mastery ranges:
-        - New: 0%
-        - Learning (reps 1-7): 10% → 52% (linear growth)
-        - Reviewing: 60% → 100% (slower growth, caps at 100%)
-
-        Args:
-            status: 'new', 'learning', or 'reviewing'
-            repetitions: Total successful repetitions
-            correct_streak: Current consecutive correct answers
-            incorrect_streak: Current consecutive incorrect answers (reduces mastery)
-
-        Returns:
-            Mastery value between 0.0 and 1.0
-        """
-        if status == 'new':
-            return 0.0
-        
-        elif status == 'learning':
-            # Base: 10%, each rep adds 6%, max 52% (at 7 reps)
-            # Streak bonus: extra 1% per streak after 3
-            if repetitions == 0:
-                base = 0.0
-            else:
-                base = 0.10 + min(repetitions, 7) * 0.06
-            
-            streak_bonus = max(0, (correct_streak - 3)) * 0.01
-            mastery = min(0.52, base + streak_bonus)
-            
-        elif status == 'reviewing':
-            # Base: 60%, each rep adds ~5.7%, max 100%
-            # Long correct streaks accelerate growth
-            base = 0.60 + min(repetitions, 7) * 0.057
-            streak_bonus = max(0, (correct_streak - 5)) * 0.02
-            mastery = min(1.0, base + streak_bonus)
-            
-        else:
-            mastery = 0.0
-
-        # Apply incorrect streak penalty (safety buffer for high mastery)
-        if incorrect_streak > 0:
-            # Each incorrect reduces mastery, but high mastery has buffer
-            penalty_per_error = 0.15 if mastery > 0.7 else 0.20
-            penalty = min(incorrect_streak * penalty_per_error, mastery)
-            mastery = max(0.0, mastery - penalty)
-
-        return round(mastery, 4)
-
-    # === RETENTION CALCULATION (Forgetting Curve) ===
-
     @staticmethod
     def calculate_retention(
         last_reviewed: Optional[datetime],
         interval: int,
         now: Optional[datetime] = None
     ) -> float:
-        """
-        Calculate Retention (0.0 - 1.0) using the forgetting curve.
-
-        Uses exponential decay: R = e^(-t/S)
-        Where:
-        - t = time elapsed since last review
-        - S = stability (derived from interval)
-
-        Args:
-            last_reviewed: Timestamp of last review (timezone-aware)
-            interval: Current interval in minutes
-            now: Current time (defaults to now)
-
-        Returns:
-            Retention probability between 0.0 and 1.0
-        """
+        """Calculate retention using forgetting curve."""
         if last_reviewed is None:
-            return 1.0  # Never reviewed = assume fresh if just learned
-
+            return 1.0
+        
         if now is None:
             now = datetime.now(timezone.utc)
-
-        # Ensure timezone awareness
+        
         if last_reviewed.tzinfo is None:
             last_reviewed = last_reviewed.replace(tzinfo=timezone.utc)
         if now.tzinfo is None:
             now = now.replace(tzinfo=timezone.utc)
-
-        # Time elapsed in minutes
-        elapsed_minutes = (now - last_reviewed).total_seconds() / 60.0
-
-        if elapsed_minutes <= 0:
-            return 1.0
-
-        # Stability = interval (the scheduled gap represents memory strength)
-        # Using interval as a proxy for how "stable" the memory is
-        stability = max(interval, 1)  # Avoid division by zero
-
-        # Exponential decay: R = e^(-t/S)
-        # We adjust the decay rate so that at t=interval, R ≈ 0.9 (90%)
-        # ln(0.9) ≈ -0.105, so decay_rate ≈ 0.105 / interval
+        
+        elapsed = (now - last_reviewed).total_seconds() / 60.0
+        stability = max(interval, 1)
+        
         decay_rate = 0.105 / stability
-        retention = math.exp(-decay_rate * elapsed_minutes)
-
+        retention = math.exp(-decay_rate * elapsed)
+        
         return round(max(0.0, min(1.0, retention)), 4)
 
-    # === MEMORY POWER ===
+    # === MASTERY CALCULATION ===
+    
+    @staticmethod
+    def calculate_mastery(
+        custom_state: str,
+        repetitions: int,
+        correct_streak: int
+    ) -> float:
+        """Calculate mastery (0.0-1.0) based on state and streaks."""
+        if custom_state == CustomState.NEW.value:
+            return 0.0
+        
+        if custom_state == CustomState.LEARNING.value:
+            base = 0.10 + min(repetitions, 7) * 0.06
+            streak_bonus = max(0, (correct_streak - 3)) * 0.01
+            return min(0.52, base + streak_bonus)
+        
+        if custom_state == CustomState.HARD.value:
+            return 0.30 + min(repetitions, 5) * 0.04
+        
+        if custom_state in (CustomState.REVIEW.value, CustomState.MASTER.value):
+            base = 0.60 + min(repetitions, 7) * 0.057
+            streak_bonus = max(0, (correct_streak - 5)) * 0.02
+            if custom_state == CustomState.MASTER.value:
+                base = min(1.0, base * 1.1)  # Master bonus
+            return min(1.0, base + streak_bonus)
+        
+        return 0.0
 
+    # === MEMORY POWER ===
+    
     @staticmethod
     def calculate_memory_power(mastery: float, retention: float) -> float:
-        """
-        Calculate Memory Power = Mastery × Retention.
-
-        Args:
-            mastery: Mastery value (0.0 - 1.0)
-            retention: Retention value (0.0 - 1.0)
-
-        Returns:
-            Memory Power percentage (0.0 - 1.0)
-        """
+        """Memory Power = Mastery × Retention."""
         return round(mastery * retention, 4)
 
-    # === ANSWER PROCESSING ===
-
+    # === MAIN ALGORITHM (Spec v8) ===
+    
     @staticmethod
     def process_answer(
         current_state: ProgressState,
         quality: int,
-        now: Optional[datetime] = None
+        now: Optional[datetime] = None,
+        force_hard: bool = False  # Mark as Hard action
     ) -> AnswerResult:
         """
-        Process an answer and calculate new state.
-
-        Quality Scale (0-5):
-        - 5: Perfect, easy recall (Flashcard "Dễ", Typing 100%)
-        - 4: Good recall with effort (Flashcard "Nhớ", Quiz correct)
-        - 3: Correct but difficult (Flashcard "Khó")
-        - 2: Incorrect but close / hint used
-        - 1: Incorrect
-        - 0: Complete blackout / forgot
-
+        Process user answer using Spec v8 5-state machine.
+        
         Args:
             current_state: Current ProgressState
-            quality: Answer quality (0-5)
-            now: Current timestamp
-
-        Returns:
-            AnswerResult with new state and memory power
+            quality: Score 0-7
+            now: Current timestamp (UTC)
+            force_hard: True if user manually marks as Hard
         """
         if now is None:
             now = datetime.now(timezone.utc)
-
-        status = current_state.status
-        mastery = current_state.mastery
-        reps = current_state.repetitions
-        interval = current_state.interval
-        ef = current_state.easiness_factor
+        
+        # Unpack state
+        c_state = getattr(current_state, 'custom_state', CustomState.NEW.value)
+        interval = getattr(current_state, 'precise_interval', float(current_state.interval))
         correct_streak = current_state.correct_streak
         incorrect_streak = current_state.incorrect_streak
-
-        is_correct = quality >= 3
-
-        if is_correct:
-            # === CORRECT ANSWER ===
-            incorrect_streak = 0
-            correct_streak += 1
-            reps += 1
-            # Note: Score calculation removed - use ScoringEngine instead
-
-            # Status transitions
-            if status == 'new':
-                status = 'learning'
-                learning_intervals = _get_learning_intervals()
-                interval = learning_intervals[0]
-
-            elif status == 'learning':
-                # Get next learning interval
-                learning_intervals = _get_learning_intervals()
-                step_idx = min(reps - 1, len(learning_intervals) - 1)
-                interval = learning_intervals[step_idx]
-
-                # Check graduation to reviewing
-                grad_streak = _get_learning_to_reviewing_streak()
-                if reps >= grad_streak and quality >= 4:
-                    status = 'reviewing'
-                    interval = _get_graduating_interval()
-                    reps = 1  # Reset for reviewing phase
-
-            elif status == 'reviewing':
-                # Update easiness factor (SM-2 style for interval calculation)
-                ef = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
-                ef = max(1.3, ef)
-
-                # Calculate new interval
-                interval = int(math.ceil(interval * ef))
-
-                # Streak bonus: longer streaks = even longer intervals
-                if correct_streak > 5:
-                    streak_multiplier = 1.0 + (correct_streak - 5) * 0.05
-                    interval = int(interval * min(streak_multiplier, 1.5))
-
-        else:
-            # === INCORRECT ANSWER ===
+        hard_streak = getattr(current_state, 'hard_streak', 0)
+        learning_reps = getattr(current_state, 'learning_reps', 0)
+        reps = current_state.repetitions
+        
+        # Handle timezone for elapsed calculation
+        last_reviewed = getattr(current_state, 'last_reviewed', None)
+        if last_reviewed and last_reviewed.tzinfo is None:
+            last_reviewed = last_reviewed.replace(tzinfo=timezone.utc)
+        
+        # === MARK AS HARD (Manual Action) ===
+        if force_hard:
+            c_state = CustomState.HARD.value
+            interval = 1.0  # 1 day
+            hard_streak = 0
             correct_streak = 0
-            incorrect_streak += 1
-
-            # Compounding penalty based on consecutive errors
-            if status == 'reviewing':
-                if incorrect_streak >= 3:
-                    # Hard reset: back to learning
-                    status = 'learning'
-                    reps = 0
-                    mastery = 0.10
-                elif incorrect_streak == 2:
-                    # Heavy penalty
-                    mastery = max(0.20, mastery * 0.5)
-                    reps = max(0, reps - 3)
-                else:
-                    # Light penalty (first mistake has buffer)
-                    mastery = max(0.40, mastery * 0.8)
-                    reps = max(0, reps - 1)
-
-                interval = _get_relearning_interval()
-                ef = max(1.3, ef - 0.2)
-
-            elif status == 'learning':
-                if incorrect_streak >= 2:
-                    reps = 0  # Reset learning progress
-                    mastery = 0.10
-                interval = _get_relearning_interval()
-
-            elif status == 'new':
-                status = 'learning'
-                interval = _get_relearning_interval()
-
-        # Recalculate mastery based on new state
-        new_mastery = MemoryEngine.calculate_mastery(
-            status, reps, correct_streak, incorrect_streak
-        )
-
-        # Ensure interval minimum
-        interval = max(_get_min_interval(), interval)
-
-        new_state = ProgressState(
-            status=status,
+        
+        # === STATE MACHINE ===
+        
+        # 1. STATE: NEW (Initialize) - Apply formula for first answer
+        elif c_state == CustomState.NEW.value:
+            c_state = CustomState.LEARNING.value
+            
+            # Apply formula based on quality (starting from floor 20 min)
+            formula = LEARNING_FORMULAS.get(quality, LEARNING_FORMULAS[0])
+            interval = formula(LEARNING_FLOOR_MINUTES)
+            
+            reps = 1
+            learning_reps = 1
+            if quality >= 3:
+                correct_streak = 1
+                incorrect_streak = 0
+            else:
+                incorrect_streak = 1
+                correct_streak = 0
+        
+        # 2. STATE: LEARNING (Minutes)
+        elif c_state == CustomState.LEARNING.value:
+            current_min = max(LEARNING_FLOOR_MINUTES, interval)
+            
+            formula = LEARNING_FORMULAS.get(quality, LEARNING_FORMULAS[0])
+            next_interval = formula(current_min)
+            
+            learning_reps += 1
+            reps += 1
+            
+            # Safety Valve: 10 reps without graduation → HARD
+            if learning_reps >= LEARNING_SAFETY_VALVE_REPS and next_interval <= LEARNING_GRADUATION_THRESHOLD:
+                c_state = CustomState.HARD.value
+                interval = 1.0  # 1 day
+                correct_streak = 0
+                hard_streak = 0
+                learning_reps = 0
+            elif next_interval > LEARNING_GRADUATION_THRESHOLD:
+                # Graduate to REVIEW
+                c_state = CustomState.REVIEW.value
+                interval = next_interval / 1440.0  # Convert to days
+                learning_reps = 0
+            else:
+                interval = next_interval
+            
+            # Update streaks
+            if quality >= 3:
+                correct_streak += 1
+                incorrect_streak = 0
+            else:
+                incorrect_streak += 1
+                correct_streak = 0
+        
+        # 3. STATE: REVIEW (Days)
+        elif c_state == CustomState.REVIEW.value:
+            current_days = max(1.0, interval)
+            reps += 1
+            
+            if quality <= 1:
+                # Fail → HARD
+                c_state = CustomState.HARD.value
+                interval = 1.0
+                hard_streak = 0
+                correct_streak = 0
+                incorrect_streak += 1
+            else:
+                # Success
+                multiplier = REVIEW_MULTIPLIERS.get(quality, 1.8)
+                next_days = min(REVIEW_CEILING_DAYS, current_days * multiplier)
+                interval = max(1.0, next_days)
+                
+                if quality >= 4:
+                    correct_streak += 1
+                    incorrect_streak = 0
+                elif quality == 2:
+                    # Score 2 (Khó) is penalty, reset streak
+                    correct_streak = 0
+                
+                # Promotion to MASTER
+                if correct_streak >= STREAK_TO_MASTER:
+                    c_state = CustomState.MASTER.value
+        
+        # 4. STATE: HARD (Days)
+        elif c_state == CustomState.HARD.value:
+            current_days = max(1.0, interval)
+            reps += 1
+            
+            formula = HARD_FORMULAS.get(quality, HARD_FORMULAS[0])
+            next_days = formula(current_days)
+            interval = max(1.0, next_days)
+            
+            if quality <= 2:
+                # Score 0, 1, 2: Reset hard_streak
+                hard_streak = 0
+                incorrect_streak += 1
+                correct_streak = 0
+            elif quality >= 4:
+                # Score 4-7: Increase hard_streak
+                hard_streak += 1
+                correct_streak += 1
+                incorrect_streak = 0
+            else:
+                # Score 3: Keep hard_streak
+                correct_streak += 1
+                incorrect_streak = 0
+            
+            # Exit to REVIEW
+            if hard_streak >= HARD_STREAK_TO_EXIT:
+                c_state = CustomState.REVIEW.value
+                hard_streak = 0
+        
+        # 5. STATE: MASTER (Days with 1.2x Bonus)
+        elif c_state == CustomState.MASTER.value:
+            current_days = max(1.0, interval)
+            reps += 1
+            
+            if quality <= 2:
+                # Soft Demotion: NOT to HARD, to REVIEW with 50%
+                c_state = CustomState.REVIEW.value
+                interval = max(3.0, current_days * 0.5)  # Min 3 days
+                correct_streak = 0
+                incorrect_streak += 1
+            else:
+                # Success with 1.2x bonus
+                base_multiplier = REVIEW_MULTIPLIERS.get(quality, 1.8)
+                bonus_multiplier = base_multiplier * 1.2
+                next_days = min(REVIEW_CEILING_DAYS, current_days * bonus_multiplier)
+                interval = max(1.0, next_days)
+                
+                if quality >= 4:
+                    correct_streak += 1
+                incorrect_streak = 0
+        
+        # === FINALIZE ===
+        
+        # Convert to integer minutes for storage
+        if c_state == CustomState.LEARNING.value:
+            interval_minutes = int(max(LEARNING_FLOOR_MINUTES, interval))
+            precise = interval
+        else:
+            interval_minutes = int(max(1440, interval * 1440))  # Min 1 day
+            precise = interval
+        
+        # Legacy status mapping
+        status_map = {
+            CustomState.NEW.value: 'new',
+            CustomState.LEARNING.value: 'learning',
+            CustomState.REVIEW.value: 'reviewing',
+            CustomState.HARD.value: 'reviewing',
+            CustomState.MASTER.value: 'mastered'
+        }
+        legacy_status = status_map.get(c_state, 'reviewing')
+        
+        new_mastery = MemoryEngine.calculate_mastery(c_state, reps, correct_streak)
+        
+        new_progress_state = ProgressState(
+            status=legacy_status,
             mastery=new_mastery,
             repetitions=reps,
-            interval=interval,
+            interval=interval_minutes,
             correct_streak=correct_streak,
             incorrect_streak=incorrect_streak,
-            easiness_factor=round(ef, 4)
+            easiness_factor=2.5,
+            custom_state=c_state,
+            hard_streak=hard_streak,
+            learning_reps=learning_reps,
+            precise_interval=precise
         )
-
-        # Calculate current memory power (assuming 100% retention right after answer)
-        memory_power = MemoryEngine.calculate_memory_power(new_mastery, 1.0)
-
+        
+        # Retention at t=0 (just answered)
+        retention = 1.0
+        memory_power = MemoryEngine.calculate_memory_power(new_mastery, retention)
+        
         return AnswerResult(
-            new_state=new_state,
-            memory_power=memory_power
+            new_state=new_progress_state,
+            memory_power=memory_power,
+            retention_percent=100.0
         )
-
-    # === UTILITY: Quality Mapping by Mode ===
-
-    @staticmethod
-    def flashcard_rating_to_quality(rating: int, button_count: int = 3) -> int:
-        """
-        Map flashcard button rating to quality score.
-        Uses configurable mappings from MemoryPowerConfigService.
-
-        3-button mode (default):
-        - Button 1 (Forgot): quality 1
-        - Button 2 (Hard): quality 3
-        - Button 3 (Easy): quality 5
-
-        4-button mode (default):
-        - Button 1 (Forgot): quality 0
-        - Button 2 (Hard): quality 2
-        - Button 3 (Good): quality 4
-        - Button 4 (Easy): quality 5
-        """
-        config = _get_config()
-        if config:
-            mapping = config.get_flashcard_quality_mapping(button_count)
-            if mapping:
-                return mapping.get(rating, 3)
-
-        # Fallback to defaults
-        if button_count == 3:
-            mapping = {1: 1, 2: 3, 3: 5}
-        elif button_count == 4:
-            mapping = {1: 0, 2: 2, 3: 4, 4: 5}
-        else:
-            return max(0, min(5, rating))
-
-        return mapping.get(rating, 3)
-
-    @staticmethod
-    def quiz_answer_to_quality(is_correct: bool) -> int:
-        """Map quiz answer to quality score. Uses configurable values."""
-        config = _get_config()
-        if config:
-            return config.get_quiz_quality(is_correct)
-        return 4 if is_correct else 1
-
-    @staticmethod
-    def typing_accuracy_to_quality(accuracy: float, used_hint: bool = False) -> int:
-        """
-        Map typing accuracy to quality score. Uses configurable thresholds.
-
-        Args:
-            accuracy: 0.0 - 1.0 (percentage of correct characters)
-            used_hint: Whether user requested a hint
-        """
-        config = _get_config()
-        if config:
-            return config.get_typing_quality(accuracy, used_hint)
-
-        # Fallback to defaults
-        if used_hint:
-            return 2
-
-        if accuracy >= 1.0:
-            return 5
-        elif accuracy >= 0.9:
-            return 4
-        elif accuracy >= 0.7:
-            return 3
-        elif accuracy >= 0.5:
-            return 2
-        else:
-            return 1
-
-    # === DUE TIME CALCULATION ===
-
-    @staticmethod
-    def calculate_due_time(
-        last_reviewed: datetime,
-        interval: int
-    ) -> datetime:
-        """Calculate when item is due for review."""
-        return last_reviewed + timedelta(minutes=interval)
-
-    @staticmethod
-    def is_due(
-        due_time: Optional[datetime],
-        now: Optional[datetime] = None
-    ) -> bool:
-        """Check if item is due for review."""
-        if due_time is None:
-            return True  # Never reviewed = due
-
-        if now is None:
-            now = datetime.now(timezone.utc)
-
-        if due_time.tzinfo is None:
-            due_time = due_time.replace(tzinfo=timezone.utc)
-        if now.tzinfo is None:
-            now = now.replace(tzinfo=timezone.utc)
-
-        return now >= due_time

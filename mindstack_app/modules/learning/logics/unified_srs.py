@@ -23,7 +23,7 @@ from .scoring_engine import ScoringEngine
 @dataclass
 class SrsResult:
     """Result of processing a learning interaction."""
-    # SM-2 scheduling results
+    # Scheduling results
     next_review: datetime
     interval_minutes: int
     status: str  # 'new', 'learning', 'reviewing'
@@ -44,6 +44,12 @@ class SrsResult:
     # Internal State (for persistence)
     repetitions: int
     easiness_factor: float
+    
+    # Spec v8 fields
+    custom_state: str = 'new'
+    hard_streak: int = 0
+    learning_reps: int = 0
+    precise_interval: float = 20.0
 
 
 class UnifiedSrsSystem:
@@ -78,103 +84,96 @@ class UnifiedSrsSystem:
         last_reviewed: Optional[datetime],
         
         # Answer quality
-        quality: int,  # 0-5
+        quality: int,  # 0-7
         mode: str,  # Learning mode
         
         # Additional context
         is_first_time: bool = False,
-        response_time_seconds: Optional[float] = None
+        response_time_seconds: Optional[float] = None,
+        
+        # Spec v8 fields
+        custom_state: str = 'new',
+        hard_streak: int = 0,
+        learning_reps: int = 0,
+        precise_interval: float = 20.0
     ) -> SrsResult:
         """
-        Process a learning answer using hybrid SM-2 + Memory Power.
-        
-        Args:
-            current_status: Current learning status ('new', 'learning', 'reviewing')
-            current_interval: Current interval in minutes
-            current_ef: Current easiness factor
-            current_reps: Current repetition count
-            current_correct_streak: Current consecutive correct answers
-            current_incorrect_streak: Current consecutive incorrect answers
-            last_reviewed: When last reviewed (None if never)
-            quality: Answer quality (0-5)
-            mode: Learning mode ('flashcard', 'quiz_mcq', 'typing', etc.)
-            is_first_time: Whether this is first time seeing this item
-            response_time_seconds: Time taken to answer (for speed bonus)
-        
-        Returns:
-            SrsResult with scheduling and analytics data
+        Process a learning answer using Spec v8 Custom SRS + Memory Power.
         """
+        from .memory_engine import ProgressState
+        
+        now = datetime.now(timezone.utc)
         is_correct = quality >= 3
         
-        # === 1. SM-2 CALCULATION (Backend - Scheduling) ===
-        new_status, new_interval, new_ef, new_reps = SrsEngine.calculate_next_state(
-            current_status=current_status,
-            current_interval=current_interval,
-            current_ef=current_ef,
-            current_reps=current_reps,
-            quality=quality
+        # === 1. BUILD INPUT STATE ===
+        state_input = ProgressState(
+            status=current_status,
+            mastery=0.0,
+            repetitions=current_reps,
+            interval=current_interval,
+            correct_streak=current_correct_streak,
+            incorrect_streak=current_incorrect_streak,
+            easiness_factor=current_ef,
+            custom_state=custom_state,
+            hard_streak=hard_streak,
+            learning_reps=learning_reps,
+            precise_interval=precise_interval
         )
+        
+        # Inject last_reviewed for Review Ahead logic
+        state_input.last_reviewed = last_reviewed
+        
+        # === 2. PROCESS WITH SPEC v7 ENGINE ===
+        engine_result = MemoryEngine.process_answer(
+            current_state=state_input,
+            quality=quality,
+            now=now
+        )
+        
+        new_state = engine_result.new_state
         
         # Calculate due time
-        now = datetime.now(timezone.utc)
-        next_review = now + timedelta(minutes=new_interval)
+        next_review = now + timedelta(minutes=new_state.interval)
         
-        # === 2. UPDATE STREAKS ===
-        if is_correct:
-            new_correct_streak = current_correct_streak + 1
-            new_incorrect_streak = 0
-        else:
-            new_correct_streak = 0
-            new_incorrect_streak = current_incorrect_streak + 1
-        
-        # === 3. MEMORY POWER CALCULATION (Frontend - Analytics) ===
-        # Calculate mastery based on new state
-        mastery = MemoryEngine.calculate_mastery(
-            status=new_status,
-            repetitions=new_reps,
-            correct_streak=new_correct_streak,
-            incorrect_streak=new_incorrect_streak
-        )
-        
-        # Retention is 100% immediately after answering
-        retention = 1.0
-        
-        # Memory power
-        memory_power = MemoryEngine.calculate_memory_power(mastery, retention)
-        
-        # === 4. SCORING ===
+        # === 3. SCORING ===
         score_result = ScoringEngine.calculate_answer_points(
             mode=mode,
             quality=quality,
             is_correct=is_correct,
             is_first_time=is_first_time,
-            correct_streak=new_correct_streak,
+            correct_streak=new_state.correct_streak,
             response_time_seconds=response_time_seconds
         )
         
-        # === 5. RETURN RESULTS ===
+        # === 4. RETURN RESULTS ===
         return SrsResult(
-            # SM-2 scheduling
+            # Scheduling
             next_review=next_review,
-            interval_minutes=new_interval,
-            status=new_status,
+            interval_minutes=new_state.interval,
+            status=new_state.status,
             
-            # Memory Power metrics
-            mastery=mastery,
-            retention=retention,
-            memory_power=memory_power,
+            # Memory Power (retention = R0 from score at t=0)
+            mastery=new_state.mastery,
+            retention=engine_result.retention_percent / 100.0,
+            memory_power=engine_result.memory_power,
             
             # Streaks
-            correct_streak=new_correct_streak,
-            incorrect_streak=new_incorrect_streak,
+            correct_streak=new_state.correct_streak,
+            incorrect_streak=new_state.incorrect_streak,
             
             # Scoring
             score_points=score_result.total_points,
             score_breakdown=score_result.breakdown,
             
-            # Internal State
-            repetitions=new_reps,
-            easiness_factor=new_ef
+            # Internal
+            repetitions=new_state.repetitions,
+            easiness_factor=new_state.easiness_factor,
+            
+            # Spec v8
+            custom_state=new_state.custom_state,
+            hard_streak=new_state.hard_streak,
+            learning_reps=new_state.learning_reps,
+            precise_interval=new_state.precise_interval
         )
     
     # === ANALYTICS HELPER ===

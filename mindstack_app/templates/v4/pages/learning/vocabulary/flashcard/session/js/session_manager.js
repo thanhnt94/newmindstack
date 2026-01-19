@@ -85,6 +85,38 @@ window.updateVisualSettings = function (newSettings) {
     }
 };
 
+// Update card state badge (NEW/LEARNED/HARD/MASTER)
+window.updateStateBadge = function (customState) {
+    const badge = document.querySelector('.js-fc-state-badge');
+    const textEl = document.querySelector('.js-fc-state-text');
+    if (!badge || !textEl) return;
+
+    // Remove all state classes
+    badge.classList.remove('state-new', 'state-learned', 'state-hard', 'state-master', 'hidden');
+
+    // Map state to Vietnamese labels and CSS class (Spec v8: 5 states)
+    const stateConfig = {
+        'new': { label: 'MỚI', cssClass: 'state-new', icon: 'fa-seedling' },
+        'learning': { label: 'ĐANG HỌC', cssClass: 'state-new', icon: 'fa-book-open' },
+        'review': { label: 'ÔN TẬP', cssClass: 'state-learned', icon: 'fa-check-circle' },
+        'learned': { label: 'ĐÃ HỌC', cssClass: 'state-learned', icon: 'fa-check-circle' },
+        'hard': { label: 'KHÓ', cssClass: 'state-hard', icon: 'fa-fire' },
+        'master': { label: 'THÀNH THẠO', cssClass: 'state-master', icon: 'fa-crown' }
+    };
+
+    const config = stateConfig[customState] || stateConfig['new'];
+    badge.classList.add(config.cssClass);
+    textEl.textContent = config.label;
+
+    // Update icon
+    const iconEl = badge.querySelector('i');
+    if (iconEl) {
+        iconEl.className = 'fa-solid ' + config.icon;
+    }
+
+    console.log('[StateBadge] Updated to:', customState, '->', config.label);
+};
+
 // --- Batch Management ---
 
 async function getNextFlashcardBatch() {
@@ -152,6 +184,10 @@ async function getNextFlashcardBatch() {
         }
 
         window.renderCard(currentCardData);
+
+        // [NEW] Update card state badge (NEW/LEARNED/HARD/MASTER)
+        const customState = currentCardData.initial_stats?.custom_state || 'new';
+        window.updateStateBadge(customState);
 
         // [UX] Show mobile bottom bar again after card is loaded
         const mobileBottomBar = document.querySelector('.fc-bottom-bar');

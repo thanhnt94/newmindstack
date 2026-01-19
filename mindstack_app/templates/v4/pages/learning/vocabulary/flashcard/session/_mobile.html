@@ -32,7 +32,7 @@
                 <div class="flex items-center justify-between px-3 py-2">
                     {# Stats Pills #}
                     <div id="fc-mobile-stats-pills"
-                        class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[50%] transition-all duration-300">
+                        class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[70%] transition-all duration-300">
                         {# Progress #}
                         <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
                             <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
@@ -49,6 +49,12 @@
                         <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg">
                             <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
                             <span class="text-amber-600 font-bold font-mono js-fc-session-score">+0</span>
+                        </div>
+
+                        {# Card State Badge - Shows state (NEW/LEARNED/HARD/MASTER) #}
+                        <div class="stat-pill flex-shrink-0 js-fc-state-badge fc-state-badge state-new hidden">
+                            <i class="fa-solid fa-layer-group"></i>
+                            <span class="js-fc-state-text">NEW</span>
                         </div>
                     </div>
 

@@ -193,6 +193,8 @@ class FlashcardEngine:
             'status': progress.status,
             'mastery': round(progress.mastery or 0.0, 4),
             'memory_power': round(SrsService.get_memory_power(progress) * 100, 1),
+            # Spec v7: Custom state from mode_data
+            'custom_state': progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
         })
 
         # Query ReviewLog table instead of legacy JSON review_history

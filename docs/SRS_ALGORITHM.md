@@ -1,109 +1,84 @@
-# MindStack SRS Algorithm
+# MindStack SRS Algorithm (Spec v8)
 
 ## Overview
 
-MindStack sử dụng **Hybrid SRS** kết hợp 2 hệ thống:
-- **SM-2**: Scheduling truyền thống (khi nào ôn)
-- **Memory Power**: Analytics trực quan (nhớ tốt thế nào)
+MindStack sử dụng **Custom SRS Spec v8** với 5 trạng thái và thang điểm 0-7.
 
 ---
 
-## SM-2 Algorithm
+## Part 1: Thang Điểm (0-7)
 
-### Core Formula
-
-```
-EF' = EF + (0.1 - (5-q) * (0.08 + (5-q) * 0.02))
-```
-
-| Variable | Meaning |
-|----------|---------|
-| `EF` | Easiness Factor (1.3 - 2.5+) |
-| `q` | Quality (0-5) |
-| `EF'` | New easiness factor |
-
-### Quality Scale
-
-| Quality | Description | Effect |
-|---------|-------------|--------|
-| 5 | Perfect/Easy | EF ↑, Interval ↑↑ |
-| 4 | Good | EF ↑, Interval ↑ |
-| 3 | Hard | EF →, Interval → |
-| 2 | Vague | Reset to learning |
-| 1 | Again | Reset to learning |
-| 0 | Complete fail | Reset to learning |
-
-### Status Transitions
-
-```mermaid
-graph LR
-    A[New] -->|q >= 3| B[Learning]
-    B -->|7 reps + q >= 4| C[Reviewing]
-    C -->|q < 3| B
-    B -->|q < 3| B
-```
+| Nguồn | Điểm |
+|-------|------|
+| Flashcard (nút) | 0, 1, 2, 3, 4, 5 |
+| Trắc nghiệm Sai | 1 |
+| Trắc nghiệm Đúng | 6 |
+| Typing Sai | 1 |
+| Typing Đúng | 7 |
 
 ---
 
-## Memory Power System
-
-### Formula
+## Part 2: State Machine (5 Trạng Thái)
 
 ```
-Memory Power = Mastery × Retention
+NEW → LEARNING → REVIEW ↔ HARD → MASTER
 ```
 
-### Mastery Calculation
+### A. NEW (Khởi tạo)
+- **Khi**: `reps = 0`
+- **Hành động**: Chuyển sang LEARNING, `interval = 20 phút`
 
-| Status | Mastery Range |
-|--------|---------------|
-| New | 0% |
-| Learning (rep 1-7) | 10% → 52% |
-| Reviewing | 60% → 100% |
+### B. LEARNING (Phút)
+- **Sàn**: 20 phút
+- **Tốt nghiệp**: > 2880 phút (2 ngày) → REVIEW
+- **Safety Valve**: `reps >= 10` mà chưa tốt nghiệp → HARD
 
-### Retention (Forgetting Curve)
+| Score | Công thức |
+|-------|-----------|
+| 0 | 20.0 (về sàn) |
+| 1 | max(20, x * 0.5) |
+| 2 | max(20, x * 0.8) (PHẠT) |
+| 3 | max(20, x * 1.5) |
+| 4 | max(20, x * 2.5) |
+| 5 | max(20, x * 4.0) |
+| 6 | max(20, x * 5.0) |
+| 7 | max(20, x * 7.0) |
 
-```
-R = e^(-t/S)
-```
+### C. REVIEW (Ngày)
+- **Trần**: 365 ngày
+- **Thất bại** (0, 1): → HARD
+- **Thăng hạng**: Streak ≥ 10 → MASTER
 
-| Variable | Meaning |
-|----------|---------|
-| `R` | Retention probability |
-| `t` | Time since last review |
-| `S` | Stability (from interval) |
+| Score | Hệ số |
+|-------|-------|
+| 2 | x 0.8 (PHẠT) |
+| 3 | x 1.8 |
+| 4 | x 2.5 |
+| 5 | x 3.5 |
+| 6 | x 4.5 |
+| 7 | x 6.0 |
 
-Assumes **90% retention** at scheduled due time.
+### D. HARD (Ngày)
+- **Vào**: Từ REVIEW khi Score 0/1 hoặc "Mark as Hard"
+- **Thoát**: `Hard_Streak >= 3` → REVIEW
 
----
+| Score | Công thức | Hard_Streak |
+|-------|-----------|-------------|
+| 0-1 | 1.0 ngày | Reset = 0 |
+| 2 | x 0.8 | Reset = 0 |
+| 3 | x 1.2 | Giữ nguyên |
+| 4-5 | x 1.3 | +1 |
+| 6 | x 1.4 | +1 |
+| 7 | x 1.5 | +1 |
 
-## Learning Intervals
-
-| Step | Interval |
-|------|----------|
-| 1 | 10 minutes |
-| 2 | 1 hour |
-| 3 | 4 hours |
-| 4 | 8 hours |
-| 5 | 1 day |
-| 6 | 2 days |
-| Graduate | 4 days |
-
----
-
-## Quality Normalization by Mode
-
-| Mode | Input | Quality Mapping |
-|------|-------|-----------------|
-| Flashcard | User rating | Direct (1-5) |
-| MCQ/Quiz | Correct/Wrong | 4 / 1 |
-| Typing | Accuracy % | ≥100%→5, ≥85%→4, else→1 |
-| Listening | Accuracy % | Same as Typing |
+### E. MASTER (Ngày)
+- **Bonus**: Hệ số REVIEW x 1.2
+- **Soft Demotion** (Score 0, 1, 2): về REVIEW với `max(3, x * 0.5)`
 
 ---
 
 ## Code References
 
-- [srs_engine.py](../mindstack_app/modules/learning/logics/srs_engine.py) - SM-2 calculations
-- [memory_engine.py](../mindstack_app/modules/learning/logics/memory_engine.py) - Memory Power
-- [unified_srs.py](../mindstack_app/modules/learning/logics/unified_srs.py) - Hybrid system
+- [`memory_engine.py`](../mindstack_app/modules/learning/logics/memory_engine.py) - Core engine
+- [`unified_srs.py`](../mindstack_app/modules/learning/logics/unified_srs.py) - Unified interface
+- [`srs_service.py`](../mindstack_app/modules/learning/services/srs_service.py) - Service layer
