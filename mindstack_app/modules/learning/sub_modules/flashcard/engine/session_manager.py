@@ -429,7 +429,9 @@ class FlashcardSessionManager:
                 card_state = CardState()  # New card
             
             # 2. Use HybridFSRSEngine to preview intervals for rating 1-4
-            engine = HybridFSRSEngine(desired_retention=0.9)
+            from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
+            desired_retention = MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9)
+            engine = HybridFSRSEngine(desired_retention=desired_retention)
             now_utc = datetime.datetime.now(datetime.timezone.utc)
             intervals = engine.preview_intervals(card_state, now_utc)
             

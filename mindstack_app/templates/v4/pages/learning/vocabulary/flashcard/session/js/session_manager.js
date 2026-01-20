@@ -352,7 +352,14 @@ async function submitFlashcardAnswer(itemId, answer) {
             // Include card-specific stats (Box B)
             current_card_mem_percent: data.statistics ? data.statistics.memory_power : 0,
             current_card_history_right: data.statistics ? data.statistics.correct_count : 0,
-            current_card_history_wrong: data.statistics ? (data.statistics.incorrect_count + data.statistics.vague_count) : 0
+            current_card_history_wrong: data.statistics ? (data.statistics.incorrect_count + data.statistics.vague_count) : 0,
+            // [NEW] FSRS metrics for dynamic card info bar
+            status: data.new_progress_status || data.statistics?.status || 'new',
+            times_reviewed: data.statistics ? data.statistics.times_reviewed : 0,
+            current_streak: window.currentStreak,
+            stability: data.memory_power?.stability || data.statistics?.stability || 0,
+            retrievability: data.memory_power?.retrievability || (data.statistics?.memory_power || 0),
+            rating_counts: data.statistics?.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 }
         };
 
         // Update HUD immediately for the card we just answered

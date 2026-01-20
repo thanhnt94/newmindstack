@@ -62,6 +62,19 @@ class LearningProgress(db.Model):
     # Quiz/Flashcard: typically empty or {"last_answer": "A"}
     mode_data = db.Column(JSON, nullable=True)
     
+    # === Native FSRS-5 Columns ===
+    # These are the proper FSRS state variables, replacing legacy EF/interval hybrid
+    fsrs_stability = db.Column(db.Float, default=0.0, nullable=True)  # S - memory stability in days
+    fsrs_difficulty = db.Column(db.Float, default=5.0, nullable=True)  # D - item difficulty (1-10)
+    fsrs_state = db.Column(db.Integer, default=0, nullable=True)  # 0=New, 1=Learning, 2=Review, 3=Relearning
+    fsrs_last_review = db.Column(db.DateTime(timezone=True), nullable=True)  # Last FSRS review timestamp (UTC)
+    
+    # FSRS State Constants
+    FSRS_STATE_NEW = 0
+    FSRS_STATE_LEARNING = 1
+    FSRS_STATE_REVIEW = 2
+    FSRS_STATE_RELEARNING = 3
+    
     # Relationships
     user = db.relationship(
         'User',

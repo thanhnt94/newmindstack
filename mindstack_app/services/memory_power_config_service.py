@@ -78,6 +78,10 @@ class MemoryPowerConfigService:
         'HARD_ITEM_MIN_INCORRECT_STREAK': 3,
         'HARD_ITEM_MAX_REPETITIONS': 10,
         'HARD_ITEM_LOW_MASTERY_THRESHOLD': 0.3,
+
+        # === FSRS-5 Parameters ===
+        'FSRS_DESIRED_RETENTION': 0.9,  # Target retention rate (0.7 - 0.97)
+        'FSRS_W_PARAMS': [0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18, 0.05, 0.34, 1.26, 0.29, 2.61],  # Default FSRS-5 weights
     }
 
     # Setting descriptions for UI - DETAILED Vietnamese explanations
@@ -191,6 +195,18 @@ Mặc định: 10. Nếu đã học > 10 lần mà Mastery vẫn thấp -> coi l
 
         'HARD_ITEM_LOW_MASTERY_THRESHOLD': '''Ngưỡng Mastery thấp để xác định thẻ "học mãi không vào".
 Mặc định: 0.3 (30%). Nếu Reps > 10 và Mastery < 30% -> vào danh sách Hard.''',
+
+        # FSRS-5 Parameters
+        'FSRS_DESIRED_RETENTION': '''Mục tiêu tỷ lệ ghi nhớ (Desired Retention) cho thuật toán FSRS-5.
+Giá trị từ 0.7 đến 0.97. Mặc định: 0.9 (90%).
+• Cao hơn (0.95): Ôn thường xuyên hơn, interval ngắn hơn
+• Thấp hơn (0.85): Ôn ít hơn, interval dài hơn
+Đây là thông số quan trọng nhất ảnh hưởng đến lịch ôn tập.''',
+
+        'FSRS_W_PARAMS': '''17 tham số trọng số (w) của thuật toán FSRS-5.
+Đây là các hệ số được tối ưu hóa từ lịch sử học của bạn.
+⚠️ CHỈ thay đổi nếu bạn hiểu rõ thuật toán FSRS!
+Format JSON: Mảng 17 số thực. Để khôi phục mặc định, nhấn "Reset".''',
     }
 
     # Data types for form rendering
@@ -223,6 +239,9 @@ Mặc định: 0.3 (30%). Nếu Reps > 10 và Mastery < 30% -> vào danh sách H
         'HARD_ITEM_MIN_INCORRECT_STREAK': 'int',
         'HARD_ITEM_MAX_REPETITIONS': 'int',
         'HARD_ITEM_LOW_MASTERY_THRESHOLD': 'float',
+        # FSRS-5
+        'FSRS_DESIRED_RETENTION': 'float',
+        'FSRS_W_PARAMS': 'json',
     }
 
     # Group settings for UI display
@@ -289,6 +308,14 @@ Mặc định: 0.3 (30%). Nếu Reps > 10 và Mastery < 30% -> vào danh sách H
                 'HARD_ITEM_MIN_INCORRECT_STREAK',
                 'HARD_ITEM_MAX_REPETITIONS',
                 'HARD_ITEM_LOW_MASTERY_THRESHOLD',
+            ],
+        },
+        'fsrs': {
+            'label': 'FSRS-5 (Thuật toán lập lịch)',
+            'icon': 'fas fa-cogs',
+            'keys': [
+                'FSRS_DESIRED_RETENTION',
+                'FSRS_W_PARAMS',
             ],
         },
     }

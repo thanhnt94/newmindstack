@@ -130,30 +130,58 @@ class FsrsService:
         # Good(3) and Easy(4) are considered correct
         is_correct = quality >= Rating.Good
         
-        current_ef = progress.easiness_factor or FsrsConstants.DEFAULT_EASINESS_FACTOR
-        precise_interval = progress.mode_data.get('precise_interval', 20.0) if progress.mode_data else 20.0
-        custom_state = progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new'
+        # === READ FROM NATIVE FSRS COLUMNS ===
+        # Use native columns as primary source, fallback to mode_data for unmigrated records
+        if progress.fsrs_stability is not None and progress.fsrs_stability > 0:
+            # Native FSRS data available
+            fsrs_stability = progress.fsrs_stability
+            fsrs_difficulty = progress.fsrs_difficulty or 5.0
+            
+            # Map state int to string
+            state_map = {
+                LearningProgress.FSRS_STATE_NEW: 'new',
+                LearningProgress.FSRS_STATE_LEARNING: 'learning',
+                LearningProgress.FSRS_STATE_REVIEW: 'review',
+                LearningProgress.FSRS_STATE_RELEARNING: 're-learning',
+            }
+            custom_state = state_map.get(progress.fsrs_state, 'new')
+            last_reviewed = progress.fsrs_last_review or progress.last_reviewed
+        else:
+            # Fallback: Check mode_data for legacy FSRS data
+            mode_data = progress.mode_data or {}
+            if 'fsrs_stability' in mode_data:
+                fsrs_stability = mode_data.get('fsrs_stability', 0.0)
+                fsrs_difficulty = mode_data.get('fsrs_difficulty', 5.0)
+                custom_state = mode_data.get('custom_state', 'new')
+            else:
+                # New card - fresh start
+                fsrs_stability = 0.0
+                fsrs_difficulty = 5.0
+                custom_state = 'new'
+            last_reviewed = progress.last_reviewed
         
-        last_reviewed = progress.last_reviewed
         if last_reviewed and last_reviewed.tzinfo is None:
             last_reviewed = last_reviewed.replace(tzinfo=datetime.timezone.utc)
             
-        # Map legacy fields to FSRS CardState
+        # Build FSRS CardState
         card = CardState(
-            stability=float(current_ef) if current_ef > 0 else 0.0,
-            difficulty=float(precise_interval) if precise_interval > 0 else 0.0,
+            stability=fsrs_stability,
+            difficulty=fsrs_difficulty,
             reps=progress.repetitions or 0,
             last_review=last_reviewed,
             state=custom_state if custom_state in ('new', 'learning', 'review', 're-learning') else 'new'
         )
 
         # 3. Process with FSRS Engine
-        user = User.query.get(user_id)
-        desired_retention = user.get_preference('desired_retention', 0.9) if user else 0.9
+        # Read FSRS params from admin config (global settings)
+        from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
+        desired_retention = MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9)
+        custom_weights = MemoryPowerConfigService.get('FSRS_W_PARAMS', None)
         
-        # Use user parameters if available
-        # fsrs_params = user.fsrs_parameters (future)
-        engine = HybridFSRSEngine(desired_retention=desired_retention)
+        engine = HybridFSRSEngine(
+            desired_retention=desired_retention,
+            custom_weights=custom_weights
+        )
         
         new_card, next_due, log_info = engine.review_card(
             card_state=card,
@@ -214,16 +242,30 @@ class FsrsService:
         if should_update_schedule:
             progress.status = srs_result.status
             progress.interval = srs_result.interval_minutes
-            progress.easiness_factor = srs_result.easiness_factor
+            progress.easiness_factor = srs_result.easiness_factor  # Legacy compatibility
             progress.repetitions = srs_result.repetitions
             progress.due_time = srs_result.next_review
             
+            # === WRITE TO NATIVE FSRS COLUMNS (Primary) ===
+            progress.fsrs_stability = new_card.stability
+            progress.fsrs_difficulty = new_card.difficulty
+            progress.fsrs_last_review = now
+            
+            # Map state string to int
+            state_string_to_int = {
+                'new': LearningProgress.FSRS_STATE_NEW,
+                'learning': LearningProgress.FSRS_STATE_LEARNING,
+                'review': LearningProgress.FSRS_STATE_REVIEW,
+                're-learning': LearningProgress.FSRS_STATE_RELEARNING,
+            }
+            progress.fsrs_state = state_string_to_int.get(new_card.state, LearningProgress.FSRS_STATE_NEW)
+            
+            # === ALSO write to mode_data for backward compatibility (temporary) ===
             if progress.mode_data is None:
                 progress.mode_data = {}
             progress.mode_data['custom_state'] = srs_result.custom_state
-            progress.mode_data['hard_streak'] = srs_result.hard_streak
-            progress.mode_data['learning_reps'] = srs_result.learning_reps
-            progress.mode_data['precise_interval'] = srs_result.precise_interval
+            progress.mode_data['fsrs_stability'] = new_card.stability
+            progress.mode_data['fsrs_difficulty'] = new_card.difficulty
             from sqlalchemy.orm.attributes import flag_modified
             flag_modified(progress, 'mode_data')
 

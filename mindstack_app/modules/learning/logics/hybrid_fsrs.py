@@ -164,10 +164,13 @@ class HybridFSRSEngine:
             days_elapsed = 0.0
         
         # FSRS-5 calculation
+        # NOTE: fsrs-rs requires int for days_elapsed. Use round() for better accuracy
+        # (23 hours → 1 day, not 0 day)
+        days_elapsed_rounded = max(0, round(days_elapsed))
         next_states = self.fsrs.next_states(
             memory_state,
             self.desired_retention,
-            int(days_elapsed)
+            days_elapsed_rounded  # [FIX] round() instead of int() truncation
         )
         
         # Select state based on rating
@@ -232,10 +235,12 @@ class HybridFSRSEngine:
         else:
             days_elapsed = 0.0
         
+        # NOTE: fsrs-rs requires int for days_elapsed. Use round() for accuracy
+        days_elapsed_rounded = max(0, round(days_elapsed))
         next_states = self.fsrs.next_states(
             memory_state,
             self.desired_retention,
-            int(days_elapsed)
+            days_elapsed_rounded  # [FIX] round() instead of int() truncation
         )
         
         return {
