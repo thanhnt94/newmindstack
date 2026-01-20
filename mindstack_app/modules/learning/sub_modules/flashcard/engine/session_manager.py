@@ -434,22 +434,25 @@ class FlashcardSessionManager:
             intervals = engine.preview_intervals(card_state, now_utc)
             
             # 3. Build preview data for each rating (1-4)
+            # [FIX] Check if this is first time for this card (for bonus calculation)
+            is_first_time_card = (progress is None or progress.status == 'new')
+            
             for rating in [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy]:
                 interval_days = intervals.get(rating, 0.0)
                 interval_minutes = int(interval_days * 1440)  # Convert to minutes
                 
-                # Calculate points preview
+                # Calculate points preview (include first-time bonus if applicable)
                 if rating >= Rating.Good:
                     is_correct = True
                     points = ScoringEngine.calculate_answer_points(
                         mode='flashcard', quality=rating, is_correct=True,
-                        is_first_time=False, correct_streak=0
+                        is_first_time=is_first_time_card, correct_streak=0
                     ).total_points
                 else:
                     is_correct = False
                     points = ScoringEngine.calculate_answer_points(
                         mode='flashcard', quality=rating, is_correct=False,
-                        is_first_time=False, correct_streak=0
+                        is_first_time=is_first_time_card, correct_streak=0
                     ).total_points
                 
                 # FSRS metrics: After answering, retrievability resets to 100%

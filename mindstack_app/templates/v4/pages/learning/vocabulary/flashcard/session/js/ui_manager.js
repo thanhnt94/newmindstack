@@ -241,6 +241,11 @@ function revealBackSideForAutoplay(token) {
         if (flipBtn) {
             flipBtn.style.display = 'none';
         }
+
+        // [Mobile] Unhide stats button on back side
+        const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
+        if (mobileStatsBtn) mobileStatsBtn.classList.remove('hidden');
+
         setTimeout(adjustCardLayout, 0);
     } else if (actions) {
         actions.classList.add('visible');

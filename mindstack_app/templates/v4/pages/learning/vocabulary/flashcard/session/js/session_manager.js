@@ -278,9 +278,9 @@ async function submitFlashcardAnswer(itemId, answer) {
             window.showScoreToast(data.score_change);
         }
 
-        // Memory Power Notification - await its animation
+        // Memory Power Notification - await its animation (using FSRS Retrievability)
         if (data.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
-            notificationPromise = window.showMemoryPowerFeedback(data.memory_power.old_memory_power, data.memory_power.memory_power);
+            notificationPromise = window.showMemoryPowerFeedback(data.memory_power.old_retrievability, data.memory_power.retrievability);
         }
 
         const previousCardContent = currentFlashcardBatch[currentFlashcardIndex].content;

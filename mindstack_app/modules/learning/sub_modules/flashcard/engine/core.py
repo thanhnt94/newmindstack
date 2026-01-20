@@ -168,7 +168,10 @@ class FlashcardEngine:
             'status': 'new', 'mastery': 0.0, 'memory_power': 0.0,
             'preview_count': 0, 'has_real_reviews': False,
             'has_preview_history': False, 'has_preview_only': False,
+            'preview_count': 0, 'has_real_reviews': False,
+            'has_preview_history': False, 'has_preview_only': False,
             'recent_reviews': [],
+            'rating_counts': {1: 0, 2: 0, 3: 0, 4: 0},
         }
 
         if not progress:
@@ -260,7 +263,13 @@ class FlashcardEngine:
             'longest_streak': long_s,
             'has_real_reviews': True,
             'has_preview_only': False,
-            'recent_reviews': normalized_entries[-10:]
+            'recent_reviews': normalized_entries[-20:], # Return last 20 for detailed history
+            'rating_counts': {
+                1: review_qualities.count(1),
+                2: review_qualities.count(2),
+                3: review_qualities.count(3),
+                4: review_qualities.count(4)
+            }
         })
 
         return stats

@@ -34,9 +34,14 @@
                     <div id="fc-mobile-stats-pills"
                         class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[70%] transition-all duration-300">
                         {# Progress #}
-                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
-                            <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
-                            <span class="text-slate-700 font-semibold js-fc-progress-text">0/0</span>
+                        <div
+                            class="stat-pill relative flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                            <div class="absolute inset-y-0 left-0 bg-emerald-200/50 transition-all duration-300 js-fc-progress-pill-fill"
+                                style="width: 0%"></div>
+                            <div class="relative z-10 flex items-center gap-1">
+                                <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
+                                <span class="text-slate-700 font-semibold js-fc-progress-text">0/0</span>
+                            </div>
                         </div>
 
                         {# Session Correct #}
@@ -119,6 +124,52 @@
             {# Progress Line (Thin, optional, maybe keep it?) #}
             <div class="h-0.5 bg-slate-100 w-full">
                 <div class="h-full bg-emerald-500 js-fc-progress-fill transition-all duration-300" style="width: 0%">
+                </div>
+            </div>
+        </div>
+
+        {# === NEW: Dynamic Card Info Bar === #}
+        <div id="fc-card-info-bar"
+            class="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-3 py-2 overflow-x-auto no-scrollbar">
+            <div class="flex items-center gap-2 text-[10px] whitespace-nowrap min-w-max">
+                {# Card Status #}
+                <div
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-bold js-card-status-pill">
+                    <i class="fas fa-layer-group"></i>
+                    <span class="js-card-status-text">MỚI</span>
+                </div>
+
+                {# Times Reviewed #}
+                <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-200 text-slate-600">
+                    <i class="fas fa-redo"></i>
+                    <span><span class="font-bold js-card-times-reviewed">0</span> lần</span>
+                </div>
+
+                {# Streak #}
+                <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+                    <i class="fas fa-fire"></i>
+                    <span>Chuỗi: <span class="font-bold js-card-streak">0</span></span>
+                </div>
+
+                {# Stability #}
+                <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Ổn định: <span class="font-bold js-card-stability">0</span> ngày</span>
+                </div>
+
+                {# Retrievability #}
+                <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-100 text-purple-700">
+                    <i class="fas fa-brain"></i>
+                    <span>Nhớ: <span class="font-bold js-card-retrievability">0</span>%</span>
+                </div>
+
+                {# Rating Distribution Mini (optional visual) #}
+                <div
+                    class="inline-flex items-center gap-0.5 px-2 py-1 rounded-full bg-white border border-slate-200 shadow-inner">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 js-rating-dot-1"></span>
+                    <span class="w-2 h-2 rounded-full bg-amber-500 js-rating-dot-2"></span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 js-rating-dot-3"></span>
+                    <span class="w-2 h-2 rounded-full bg-blue-500 js-rating-dot-4"></span>
                 </div>
             </div>
         </div>
@@ -277,14 +328,18 @@
         function updateMobileStats(stats) {
             if (!stats) return;
 
-            // Update Progress Bar
-            // Update Progress Bar & Text
+            // Update Progress Bar & Text (Header)
             if (stats.total > 0) {
                 const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
                 document.querySelectorAll('.js-fc-progress-fill').forEach(el => {
                     el.style.width = percent + '%';
                 });
-                // Update text
+
+                // [NEW] Update Pill Fill
+                document.querySelectorAll('.js-fc-progress-pill-fill').forEach(el => {
+                    el.style.width = percent + '%';
+                });
+
                 document.querySelectorAll('.js-fc-progress-text').forEach(el => {
                     el.textContent = `${stats.processed}/${stats.total}`;
                 });
@@ -294,35 +349,170 @@
                 });
             }
 
-            // Update Session Box (Box A)
+            // Update Header Badges
             document.querySelectorAll('.js-fc-session-score').forEach(el => {
-                el.textContent = stats.session_score || 0;
+                el.textContent = stats.session_score > 0 ? `+${stats.session_score}` : (stats.session_score || 0);
             });
             document.querySelectorAll('.js-fc-session-correct').forEach(el => {
                 el.textContent = stats.correct || 0;
             });
-            document.querySelectorAll('.js-fc-session-incorrect').forEach(el => {
-                el.textContent = (stats.incorrect || 0) + (stats.vague || 0);
-            });
 
-            // Update total score badge in header
+            // Update total score badge
             if (typeof window.currentUserTotalScore !== 'undefined') {
                 document.querySelectorAll('.js-fc-score').forEach(el => {
                     el.textContent = parseInt(window.currentUserTotalScore).toLocaleString();
                 });
             }
 
-            // Update Card Box (Box B) - Memory Power & Card History
-            if (stats.current_card_mem_percent !== undefined) {
-                document.querySelectorAll('.js-fc-memory-score').forEach(el => {
-                    el.textContent = stats.current_card_mem_percent + '%';
-                });
-                document.querySelectorAll('.js-fc-card-right').forEach(el => {
-                    el.textContent = stats.current_card_history_right;
-                });
-                document.querySelectorAll('.js-fc-card-wrong').forEach(el => {
-                    el.textContent = stats.current_card_history_wrong;
-                });
+            // === UPDATE CARD INFO BAR ===
+            // Status Badge
+            const statusPill = document.querySelector('.js-card-status-pill');
+            const statusText = document.querySelector('.js-card-status-text');
+            if (statusPill && statusText) {
+                const status = stats.status || 'new';
+                const statusMap = {
+                    'new': { text: 'MỚI', bg: 'bg-blue-100', color: 'text-blue-700' },
+                    'learning': { text: 'ĐANG HỌC', bg: 'bg-amber-100', color: 'text-amber-700' },
+                    'review': { text: 'ÔN TẬP', bg: 'bg-emerald-100', color: 'text-emerald-700' },
+                    'hard': { text: 'KHÓ', bg: 'bg-rose-100', color: 'text-rose-700' },
+                    'mastered': { text: 'THÀNH THẠO', bg: 'bg-purple-100', color: 'text-purple-700' }
+                };
+                const s = statusMap[status] || statusMap['new'];
+                statusText.textContent = s.text;
+                statusPill.className = `inline-flex items-center gap-1 px-2 py-1 rounded-full font-bold js-card-status-pill ${s.bg} ${s.color}`;
+            }
+
+            // Times Reviewed
+            document.querySelectorAll('.js-card-times-reviewed').forEach(el => {
+                el.textContent = stats.times_reviewed || 0;
+            });
+
+            // Streak
+            document.querySelectorAll('.js-card-streak').forEach(el => {
+                el.textContent = stats.current_streak || 0;
+            });
+
+            // Stability
+            document.querySelectorAll('.js-card-stability').forEach(el => {
+                el.textContent = (stats.stability || 0).toFixed(1);
+            });
+
+            // Retrievability
+            document.querySelectorAll('.js-card-retrievability').forEach(el => {
+                el.textContent = Math.round(stats.retrievability || stats.memory_power || 0);
+            });
+
+            // Rating Dots (size based on count ratio)
+            const ratingCounts = stats.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 };
+            const totalRatings = (ratingCounts[1] || 0) + (ratingCounts[2] || 0) + (ratingCounts[3] || 0) + (ratingCounts[4] || 0);
+            [1, 2, 3, 4].forEach(r => {
+                const dot = document.querySelector(`.js-rating-dot-${r}`);
+                if (dot && totalRatings > 0) {
+                    const ratio = (ratingCounts[r] || 0) / totalRatings;
+                    const size = Math.max(6, Math.min(16, 6 + ratio * 14)); // 6px to 20px
+                    dot.style.width = size + 'px';
+                    dot.style.height = size + 'px';
+                }
+            });
+
+            // --- RENDER BEAUTIFUL STATS INSIDE MODAL (Current Tab) ---
+            const container = document.getElementById('current-card-stats-mobile');
+            if (container) {
+                // Calculate percentages for Bar Chart
+                const totalRatings = stats.times_reviewed || 0;
+                const counts = stats.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 };
+                const p = totalRatings > 0 ? {
+                    1: (counts[1] / totalRatings) * 100,
+                    2: (counts[2] / totalRatings) * 100,
+                    3: (counts[3] / totalRatings) * 100,
+                    4: (counts[4] / totalRatings) * 100
+                } : { 1: 0, 2: 0, 3: 0, 4: 0 };
+
+                const reviewHistory = stats.recent_reviews || [];
+
+                const html = `
+                    <div class="space-y-4">
+                        <!-- 1. Metrics Grid (Reviews & Streak) -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Đã học</span>
+                                <span class="text-2xl font-black text-slate-700">${totalRatings}</span>
+                                <span class="text-[10px] text-slate-400">lần</span>
+                            </div>
+                            <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Chuỗi</span>
+                                <span class="text-2xl font-black text-amber-500">${stats.current_streak || 0}</span>
+                                <span class="text-[10px] text-slate-400">liên tiếp</span>
+                            </div>
+                        </div>
+
+                         <!-- 2. Rating Distribution -->
+                        <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phân bố đánh giá</span>
+                                <span class="text-[10px] font-bold text-slate-500">${totalRatings} lượt</span>
+                            </div>
+                            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                                ${totalRatings > 0 ? `
+                                    <div class="h-full bg-rose-500" style="width: ${p[1]}%"></div>
+                                    <div class="h-full bg-amber-500" style="width: ${p[2]}%"></div>
+                                    <div class="h-full bg-emerald-500" style="width: ${p[3]}%"></div>
+                                    <div class="h-full bg-blue-500" style="width: ${p[4]}%"></div>
+                                ` : '<div class="w-full h-full flex items-center justify-center text-[8px] text-slate-400 italic">Chưa có dữ liệu</div>'}
+                            </div>
+                             <div class="flex justify-between mt-2 px-1">
+                                <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div><span class="text-[9px] text-slate-500">Q</span></div>
+                                <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span class="text-[9px] text-slate-500">K</span></div>
+                                <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div><span class="text-[9px] text-slate-500">Đ</span></div>
+                                <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div><span class="text-[9px] text-slate-500">D</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Next Review & Stability -->
+                        <div class="bg-blue-50 rounded-xl p-3 border border-blue-100 shadow-sm">
+                            <div class="flex items-center gap-3 mb-2">
+                                 <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                    <i class="fas fa-calendar-alt text-sm"></i>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] font-bold text-blue-400 uppercase block">Lần tới</span>
+                                    <span class="text-sm font-bold text-slate-700">
+                                         ${stats.interval_minutes ? (window.formatMinutesAsDuration ? window.formatMinutesAsDuration(stats.interval_minutes) : stats.interval_minutes + 'm') : (stats.next_review ? (window.formatDateTime ? window.formatDateTime(stats.next_review) : stats.next_review) : 'Ngay bây giờ')}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="w-full bg-white rounded-lg h-1.5 overflow-hidden flex mb-1">
+                                <div class="bg-blue-500 h-full rounded-full" style="width: ${Math.min(100, (stats.stability || 0) * 2)}%"></div>
+                            </div>
+                             <div class="flex justify-between">
+                                <span class="text-[9px] text-slate-400">Độ ổn định</span>
+                                <span class="text-[9px] font-bold text-blue-600">${(stats.stability || 0).toFixed(1)} ngày</span>
+                            </div>
+                        </div>
+
+                        <!-- 4. History Timeline -->
+                         <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-3">Lịch sử gần đây</span>
+                             <div class="relative pl-3 border-l-2 border-slate-100 space-y-3">
+                                ${reviewHistory.length > 0 ? reviewHistory.slice().reverse().slice(0, 5).map(h => `
+                                    <div class="relative">
+                                        <div class="absolute -left-[17px] top-0.5 w-2 h-2 rounded-full border border-white shadow-sm ${h.user_answer_quality >= 3 ? 'bg-emerald-500' : (h.user_answer_quality === 2 ? 'bg-amber-500' : 'bg-rose-500')}"></div>
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex flex-col">
+                                                <span class="text-[11px] font-bold text-slate-700">
+                                                    ${h.user_answer_quality === 1 ? 'Quên' : (h.user_answer_quality === 2 ? 'Khó' : (h.user_answer_quality === 3 ? 'Được' : 'Dễ'))}
+                                                </span>
+                                                <span class="text-[9px] text-slate-400">${window.formatDateTime ? window.formatDateTime(h.timestamp) : h.timestamp}</span>
+                                            </div>
+                                            ${h.result === 'correct' ? '<i class="fas fa-check text-[10px] text-emerald-500"></i>' : ''}
+                                        </div>
+                                    </div>
+                                `).join('') : '<p class="text-[10px] text-slate-400 italic">Chưa có lịch sử</p>'}
+                             </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = html;
             }
         }
 
@@ -682,32 +872,105 @@
             };
         }
 
+        // Initialize Rating Buttons
+        initMobileRatingButtons();
+
+        // --- NEW: Mobile Stats Modal Logic ---
+        function openMobileStatsModal() {
+            // Check if modal already exists in DOM
+            let modal = document.getElementById('mobile-stats-modal-instance');
+
+            if (!modal) {
+                const template = document.getElementById('mobile-stats-template');
+                if (!template) {
+                    console.error("Mobile stats template not found!");
+                    return;
+                }
+
+                // Clone template
+                const clone = template.content.cloneNode(true);
+
+                // create wrapper
+                modal = document.createElement('div');
+                modal.id = 'mobile-stats-modal-instance';
+                modal.className = 'fixed inset-0 z-[100] flex flex-col justify-end bg-black/50 backdrop-blur-sm transition-opacity opacity-0';
+                modal.style.transition = 'opacity 0.2s ease-out';
+
+                // Append content
+                // Note: The template content (child div) should have click-stop-propagation
+                modal.appendChild(clone);
+
+                document.body.appendChild(modal);
+
+                // Setup Close Button
+                const closeBtn = modal.querySelector('#close-stats-mobile-btn');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', closeMobileStatsModal);
+                }
+
+                // Close on backdrop click (optional, if clicking outside the panel)
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) closeMobileStatsModal();
+                });
+
+                // Setup Tabs
+                const tabs = modal.querySelectorAll('.stats-mobile-tab');
+                const callback = function () {
+                    const targetId = this.getAttribute('data-target');
+                    // Toggle tabs
+                    tabs.forEach(t => t.classList.remove('active', 'bg-white', 'shadow-sm', 'text-slate-800'));
+                    this.classList.add('active', 'bg-white', 'shadow-sm', 'text-slate-800'); // Add active styles
+                    this.classList.remove('text-slate-500');
+
+                    // Toggle Panes
+                    const panes = modal.querySelectorAll('.stats-mobile-pane');
+                    panes.forEach(p => p.classList.add('hidden'));
+                    const targetPane = modal.querySelector('#' + targetId);
+                    if (targetPane) targetPane.classList.remove('hidden');
+                };
+                tabs.forEach(t => t.addEventListener('click', callback));
+                // Init first tab
+                if (tabs.length > 0) callback.call(tabs[0]);
+
+                // Trigger an update if data is available
+                if (window.flashcardSessionStats) {
+                    updateMobileStats(window.flashcardSessionStats);
+                }
+            }
+
+            // Show Modal
+            modal.classList.remove('hidden'); // Ensure it's displayable
+            // Trigger animation
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+            });
+        }
+
+        function closeMobileStatsModal() {
+            const modal = document.getElementById('mobile-stats-modal-instance');
+            if (modal) {
+                modal.classList.add('opacity-0');
+                setTimeout(() => {
+                    modal.classList.add('hidden'); // Or remove? better to keep for state
+                    // Use 'hidden' class to actually hide it from pointer events if opacity is 0
+                    // Or just remove from DOM if we want to refresh every time?
+                    // Let's remove to ensure clean state or keep hidden. 
+                    // Since I use 'hidden' in tailwind, adding 'hidden' class works.
+                    modal.classList.add('hidden');
+                }, 200);
+            }
+        }
+
+        // Export needed functions? No, just bind events.
+
         // Card Details / Stats Button (New)
         const cardDetailsBtn = document.querySelector('.js-fc-card-details-btn');
         if (cardDetailsBtn) {
             cardDetailsBtn.addEventListener('click', function () {
-                if (window.currentFlashcardBatch &&
-                    typeof window.currentFlashcardIndex !== 'undefined') {
-                    const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
-                    if (card && card.item_id) {
-                        if (typeof window.openVocabularyItemStats === 'function') {
-                            window.openVocabularyItemStats(card.item_id);
-                        } else {
-                            // Fallback using iframe if AJAX function fails
-                            const urlTemplate = window.FlashcardConfig.itemStatsUrlTemplate;
-                            if (urlTemplate) {
-                                const statsUrl = urlTemplate.replace('/0', '/' + card.item_id);
-                                if (typeof window.openModal === 'function') {
-                                    window.openModal(statsUrl);
-                                } else {
-                                    window.location.href = statsUrl;
-                                }
-                            }
-                        }
-                    }
-                }
+                openMobileStatsModal();
             });
         }
+
     })();
 </script>
 {#

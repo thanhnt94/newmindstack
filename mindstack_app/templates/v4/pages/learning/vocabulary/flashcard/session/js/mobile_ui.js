@@ -533,6 +533,141 @@
         });
     }
 
+    // Update stats from custom event dispatched by main script
+    function updateMobileStats(stats) {
+        if (!stats) return;
+
+        // Update Progress Bar & Text (Header)
+        if (stats.total > 0) {
+            const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
+            document.querySelectorAll('.js-fc-progress-fill').forEach(el => {
+                el.style.width = percent + '%';
+            });
+            document.querySelectorAll('.js-fc-progress-text').forEach(el => {
+                el.textContent = `${stats.processed}/${stats.total}`;
+            });
+        } else {
+            document.querySelectorAll('.js-fc-progress-text').forEach(el => {
+                el.textContent = `0/0`;
+            });
+        }
+
+        // Update Header Badges
+        document.querySelectorAll('.js-fc-session-score').forEach(el => {
+            el.textContent = stats.session_score > 0 ? `+${stats.session_score}` : (stats.session_score || 0);
+        });
+        document.querySelectorAll('.js-fc-session-correct').forEach(el => {
+            el.textContent = stats.correct || 0;
+        });
+
+        // Update total score badge
+        if (typeof window.currentUserTotalScore !== 'undefined') {
+            document.querySelectorAll('.js-fc-score').forEach(el => {
+                el.textContent = parseInt(window.currentUserTotalScore).toLocaleString();
+            });
+        }
+
+        // --- RENDER BEAUTIFUL STATS INSIDE MODAL (Current Tab) ---
+        const container = document.getElementById('current-card-stats-mobile');
+        if (container) {
+            // Calculate percentages for Bar Chart
+            const totalRatings = stats.times_reviewed || 0;
+            const counts = stats.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 };
+            const p = totalRatings > 0 ? {
+                1: (counts[1] / totalRatings) * 100,
+                2: (counts[2] / totalRatings) * 100,
+                3: (counts[3] / totalRatings) * 100,
+                4: (counts[4] / totalRatings) * 100
+            } : { 1: 0, 2: 0, 3: 0, 4: 0 };
+
+            const reviewHistory = stats.recent_reviews || [];
+
+            const html = `
+                <div class="space-y-4">
+                    <!-- 1. Metrics Grid (Reviews & Streak) -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Đã học</span>
+                            <span class="text-2xl font-black text-slate-700">${totalRatings}</span>
+                            <span class="text-[10px] text-slate-400">lần</span>
+                        </div>
+                        <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Chuỗi</span>
+                            <span class="text-2xl font-black text-amber-500">${stats.current_streak || 0}</span>
+                            <span class="text-[10px] text-slate-400">liên tiếp</span>
+                        </div>
+                    </div>
+
+                     <!-- 2. Rating Distribution -->
+                    <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phân bố đánh giá</span>
+                            <span class="text-[10px] font-bold text-slate-500">${totalRatings} lượt</span>
+                        </div>
+                        <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                            ${totalRatings > 0 ? `
+                                <div class="h-full bg-rose-500" style="width: ${p[1]}%"></div>
+                                <div class="h-full bg-amber-500" style="width: ${p[2]}%"></div>
+                                <div class="h-full bg-emerald-500" style="width: ${p[3]}%"></div>
+                                <div class="h-full bg-blue-500" style="width: ${p[4]}%"></div>
+                            ` : '<div class="w-full h-full flex items-center justify-center text-[8px] text-slate-400 italic">Chưa có dữ liệu</div>'}
+                        </div>
+                         <div class="flex justify-between mt-2 px-1">
+                            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div><span class="text-[9px] text-slate-500">Q</span></div>
+                            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span class="text-[9px] text-slate-500">K</span></div>
+                            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div><span class="text-[9px] text-slate-500">Đ</span></div>
+                            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div><span class="text-[9px] text-slate-500">D</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Next Review & Stability -->
+                    <div class="bg-blue-50 rounded-xl p-3 border border-blue-100 shadow-sm">
+                        <div class="flex items-center gap-3 mb-2">
+                             <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                <i class="fas fa-calendar-alt text-sm"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-blue-400 uppercase block">Lần tới</span>
+                                <span class="text-sm font-bold text-slate-700">
+                                     ${stats.interval_minutes ? (window.formatMinutesAsDuration ? window.formatMinutesAsDuration(stats.interval_minutes) : stats.interval_minutes + 'm') : (stats.next_review ? (window.formatDateTime ? window.formatDateTime(stats.next_review) : stats.next_review) : 'Ngay bây giờ')}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-white rounded-lg h-1.5 overflow-hidden flex mb-1">
+                            <div class="bg-blue-500 h-full rounded-full" style="width: ${Math.min(100, (stats.stability || 0) * 2)}%"></div>
+                        </div>
+                         <div class="flex justify-between">
+                            <span class="text-[9px] text-slate-400">Độ ổn định</span>
+                            <span class="text-[9px] font-bold text-blue-600">${(stats.stability || 0).toFixed(1)} ngày</span>
+                        </div>
+                    </div>
+
+                    <!-- 4. History Timeline -->
+                     <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-3">Lịch sử gần đây</span>
+                         <div class="relative pl-3 border-l-2 border-slate-100 space-y-3">
+                            ${reviewHistory.length > 0 ? reviewHistory.slice().reverse().slice(0, 5).map(h => `
+                                <div class="relative">
+                                    <div class="absolute -left-[17px] top-0.5 w-2 h-2 rounded-full border border-white shadow-sm ${h.user_answer_quality >= 3 ? 'bg-emerald-500' : (h.user_answer_quality === 2 ? 'bg-amber-500' : 'bg-rose-500')}"></div>
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex flex-col">
+                                            <span class="text-[11px] font-bold text-slate-700">
+                                                ${h.user_answer_quality === 1 ? 'Quên' : (h.user_answer_quality === 2 ? 'Khó' : (h.user_answer_quality === 3 ? 'Được' : 'Dễ'))}
+                                            </span>
+                                            <span class="text-[9px] text-slate-400">${window.formatDateTime ? window.formatDateTime(h.timestamp) : h.timestamp}</span>
+                                        </div>
+                                        ${h.result === 'correct' ? '<i class="fas fa-check text-[10px] text-emerald-500"></i>' : ''}
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-[10px] text-slate-400 italic">Chưa có lịch sử</p>'}
+                         </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+    }
+
     // Wait for window.userButtonCount to be set (or FlashcardConfig)
     function initMobileRatingButtons() {
         if (typeof window.userButtonCount !== 'undefined' || (window.FlashcardConfig && window.FlashcardConfig.userButtonCount)) {
