@@ -18,7 +18,20 @@ from mindstack_app.models import db
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 
 from ..logics.scoring_engine import ScoringEngine, ScoreResult, LearningMode
-from ..logics.memory_engine import MemoryEngine, ProgressState
+
+
+def typing_accuracy_to_quality(accuracy: float, used_hint: bool = False) -> int:
+    """Convert typing accuracy to FSRS quality rating 1-4."""
+    if used_hint:
+        return 2 if accuracy >= 0.7 else 1  # Hard or Again
+    if accuracy >= 0.95:
+        return 4  # Easy
+    elif accuracy >= 0.7:
+        return 3  # Good
+    elif accuracy >= 0.4:
+        return 2  # Hard
+    else:
+        return 1  # Again
 
 
 class LearningScoreService:
@@ -46,7 +59,7 @@ class LearningScoreService:
         Args:
             user_id: User ID
             item_id: Flashcard item ID
-            quality: Answer quality (0-5)
+            quality: Answer quality (1-4 FSRS rating)
             is_correct: Whether answer was correct
             correct_streak: Current correct answer streak
             is_first_time: Whether this is first time seeing item
@@ -169,7 +182,7 @@ class LearningScoreService:
         Returns:
             Dict with points awarded and breakdown
         """
-        quality = MemoryEngine.typing_accuracy_to_quality(accuracy, used_hint)
+        quality = typing_accuracy_to_quality(accuracy, used_hint)
         is_correct = accuracy >= 0.7  # 70% threshold for "correct"
         
         score_result = ScoringEngine.calculate_answer_points(

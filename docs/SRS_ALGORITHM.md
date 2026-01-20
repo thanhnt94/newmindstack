@@ -1,84 +1,66 @@
-# MindStack SRS Algorithm (Spec v8)
+# MindStack SRS Algorithm (FSRS-5 / Spec v9.0)
 
 ## Overview
-
-MindStack sử dụng **Custom SRS Spec v8** với 5 trạng thái và thang điểm 0-7.
-
----
-
-## Part 1: Thang Điểm (0-7)
-
-| Nguồn | Điểm |
-|-------|------|
-| Flashcard (nút) | 0, 1, 2, 3, 4, 5 |
-| Trắc nghiệm Sai | 1 |
-| Trắc nghiệm Đúng | 6 |
-| Typing Sai | 1 |
-| Typing Đúng | 7 |
+MindStack chuyển sang sử dụng bộ thư viện chính thức **`fsrs` (Python version of FSRS-RS)** để tối ưu hóa khả năng dự đoán ghi nhớ. Thuật toán tuân thủ chuẩn FSRS-5 (19 tham số) với nhân xử lý bằng Rust để đảm bảo hiệu suất và độ chính xác cao nhất.
 
 ---
 
-## Part 2: State Machine (5 Trạng Thái)
+## Part 1: Thang Điểm (0-7) & Mapping
+Hệ thống sử dụng thang điểm linh hoạt, ánh xạ về 4 mức đánh giá của FSRS:
 
-```
-NEW → LEARNING → REVIEW ↔ HARD → MASTER
-```
+| Nguồn | Điểm (Score) | FSRS Rating | Ý nghĩa |
+|-------|--------------|-------------|---------|
+| Flashcard | 0-1 | Again (1) | Quên hoàn toàn |
+| Flashcard | 2 | Hard (2) | Nhớ vất vả |
+| Flashcard | 3-4 | Good (3) | Nhớ bình thường |
+| Flashcard | 5-7 | Easy (4) | Nhớ rất dễ |
 
-### A. NEW (Khởi tạo)
-- **Khi**: `reps = 0`
-- **Hành động**: Chuyển sang LEARNING, `interval = 20 phút`
+| Flashcard | 5-7 | Easy (4) | Nhớ rất dễ |
 
-### B. LEARNING (Phút)
-- **Sàn**: 20 phút
-- **Tốt nghiệp**: > 2880 phút (2 ngày) → REVIEW
-- **Safety Valve**: `reps >= 10` mà chưa tốt nghiệp → HARD
+> [!NOTE]
+> **Hybrid Logic (Wrapper):**
+> Hệ thống sử dụng logic "lai" để tối ưu hóa trải nghiệm:
+> 1. **Core**: FSRS-RS tính toán Stability/Difficulty chuẩn.
+> 2. **Wrapper**: Áp dụng hệ số nhân (Multiplier) cho kết quả Interval:
+>    - **MCQ (Score 6)**: Interval x 1.5 (Thưởng).
+>    - **Typing (Score 7)**: Interval x 2.5 (Thưởng lớn).
+>    - **Hard (Score 2)**: Interval x 0.8 (Giảm nhẹ).
+> 3. **Safety Caps**: Min 20 phút - Max 365 ngày.
 
-| Score | Công thức |
-|-------|-----------|
-| 0 | 20.0 (về sàn) |
-| 1 | max(20, x * 0.5) |
-| 2 | max(20, x * 0.8) (PHẠT) |
-| 3 | max(20, x * 1.5) |
-| 4 | max(20, x * 2.5) |
-| 5 | max(20, x * 4.0) |
-| 6 | max(20, x * 5.0) |
-| 7 | max(20, x * 7.0) |
+---
 
-### C. REVIEW (Ngày)
-- **Trần**: 365 ngày
-- **Thất bại** (0, 1): → HARD
-- **Thăng hạng**: Streak ≥ 10 → MASTER
+## Part 2: FSRS-5 Scheduler
+Thuật toán sử dụng lớp `fsrs.Scheduler` để tính toán trạng thái thẻ (`fsrs.Card`). 
+- **Stability (S)**: Khả năng ổn định của trí nhớ (tính bằng ngày).
+- **Difficulty (D)**: Độ khó của mục từ (từ 1.0 đến 10.0).
 
-| Score | Hệ số |
-|-------|-------|
-| 2 | x 0.8 (PHẠT) |
-| 3 | x 1.8 |
-| 4 | x 2.5 |
-| 5 | x 3.5 |
-| 6 | x 4.5 |
-| 7 | x 6.0 |
+---
 
-### D. HARD (Ngày)
-- **Vào**: Từ REVIEW khi Score 0/1 hoặc "Mark as Hard"
-- **Thoát**: `Hard_Streak >= 3` → REVIEW
+## Part 3: Interval Calculation (Minute-Level Precision)
+Khoảng cách ôn tập ($I$) được tính dựa trên **Desired Retention ($d$)** do người dùng cấu hình trong cài đặt:
+$$I = S \cdot \frac{\ln(d)}{\ln(0.9)}$$
 
-| Score | Công thức | Hard_Streak |
-|-------|-----------|-------------|
-| 0-1 | 1.0 ngày | Reset = 0 |
-| 2 | x 0.8 | Reset = 0 |
-| 3 | x 1.2 | Giữ nguyên |
-| 4-5 | x 1.3 | +1 |
-| 6 | x 1.4 | +1 |
-| 7 | x 1.5 | +1 |
+*Ví dụ: Với $d = 0.90$, $I = S$. Với $d = 0.95$, $I \approx 0.46 \cdot S$.*
 
-### E. MASTER (Ngày)
-- **Bonus**: Hệ số REVIEW x 1.2
-- **Soft Demotion** (Score 0, 1, 2): về REVIEW với `max(3, x * 0.5)`
+---
+
+## Part 4: Native Metrics & UI Mapping
+1. **Retention (Khả năng ghi nhớ)**: $R = 0.9^{elapsed / stability}$ (Hiển thị chính: **% Ghi nhớ**)
+2. **Mastery (Thông thạo)**: 
+   $$Mastery = 0.1 + 0.9 \cdot (1 - \exp(-0.03 \cdot Stability))$$
+   *(Dùng cho visualization độ bền vững của trí nhớ)*
+
+> [!IMPORTANT]
+> Toàn bộ các chỉ số nội bộ được chuẩn hóa về thang **0.0 - 1.0** (decimal). Việc nhân lên 100% chỉ thực hiện ở lớp hiển thị (UI layer).
+
+---
+
+## Part 5: Safety Valve & Caps
+- **Khoảng cách tối thiểu**: 20 phút.
+- **Khoảng cách tối đa**: 365 ngày.
 
 ---
 
 ## Code References
-
-- [`memory_engine.py`](../mindstack_app/modules/learning/logics/memory_engine.py) - Core engine
-- [`unified_srs.py`](../mindstack_app/modules/learning/logics/unified_srs.py) - Unified interface
-- [`srs_service.py`](../mindstack_app/modules/learning/services/srs_service.py) - Service layer
+- [`hybrid_fsrs.py`](../mindstack_app/modules/learning/logics/hybrid_fsrs.py) - Wrapper cho thư viện `fsrs`
+- [`unified_srs.py`](../mindstack_app/modules/learning/logics/unified_srs.py) - Tích hợp SRS vào hệ thống chung

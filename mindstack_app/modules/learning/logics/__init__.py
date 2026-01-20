@@ -1,14 +1,10 @@
-# Learning Core - Logics Package
+# Learning Core - Logics Package (FSRS-5)
 # Pure business logic, no database access
 
-from .memory_engine import MemoryEngine, ProgressState, AnswerResult
 from .scoring_engine import ScoringEngine, ScoreResult, LearningMode
-from .srs_engine import SrsEngine, SrsConstants
-from .unified_srs import UnifiedSrsSystem, SrsResult
+from .hybrid_fsrs import HybridFSRSEngine, CardState, Rating
 
 __all__ = [
-    'MemoryEngine', 'ProgressState', 'AnswerResult',
     'ScoringEngine', 'ScoreResult', 'LearningMode',
-    'SrsEngine', 'SrsConstants',
-    'UnifiedSrsSystem', 'SrsResult'
+    'HybridFSRSEngine', 'CardState', 'Rating'
 ]

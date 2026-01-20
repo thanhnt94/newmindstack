@@ -6,7 +6,7 @@ from mindstack_app.models import db, User, LearningItem
 from mindstack_app.models.learning_progress import LearningProgress
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 from mindstack_app.utils.db_session import safe_commit
-from mindstack_app.modules.learning.services.srs_service import SrsService
+from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 
 
 class FlashcardEngine:
@@ -72,14 +72,14 @@ class FlashcardEngine:
             user_id=user_id, item_id=item_id, learning_mode='flashcard'
         ).first()
         if old_progress:
-            old_memory_power = round(SrsService.get_memory_power(old_progress) * 100, 1)
+            old_memory_power = round(FsrsService.get_memory_power(old_progress) * 100, 1)
 
         if update_srs:
-            # Update SRS via Service using UnifiedSrsSystem
+            # Update SRS via Service (Direct FSRS)
             # For 'all_review', we treat it as Cram Mode (stats update only, no scheduling change unless new)
             is_cram = is_all_review
             
-            progress, srs_result = SrsService.update_unified(
+            progress, srs_result = FsrsService.process_answer(
                 user_id=user_id,
                 item_id=item_id,
                 quality=quality,
@@ -97,12 +97,11 @@ class FlashcardEngine:
             # Use score from SrsResult (already calculated by UnifiedSrsSystem)
             score_change = srs_result.score_points
             
-            # Extract Memory Power metrics for frontend
+            # Extract FSRS metrics for frontend
             memory_power_data = {
-                'mastery': round(srs_result.mastery * 100, 1),  # Convert to percentage
-                'retention': round(srs_result.retention * 100, 1),
-                'memory_power': round(srs_result.memory_power * 100, 1),
-                'old_memory_power': old_memory_power,
+                'stability': round(srs_result.stability, 2),  # Days
+                'retrievability': round(srs_result.retrievability * 100, 1),  # %
+                'old_retrievability': old_memory_power,  # % (for delta animation)
                 'correct_streak': srs_result.correct_streak,
                 'incorrect_streak': srs_result.incorrect_streak,
                 'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None,
@@ -192,7 +191,7 @@ class FlashcardEngine:
             'interval': progress.interval,
             'status': progress.status,
             'mastery': round(progress.mastery or 0.0, 4),
-            'memory_power': round(SrsService.get_memory_power(progress) * 100, 1),
+            'memory_power': round(FsrsService.get_memory_power(progress) * 100, 1),
             # Spec v7: Custom state from mode_data
             'custom_state': progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
         })

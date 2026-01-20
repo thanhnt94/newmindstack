@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from flask_login import login_required, current_user
-from mindstack_app.modules.learning.services.srs_service import SrsService
+from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 from mindstack_app.modules.learning.services.progress_service import ProgressService
 from mindstack_app.models.learning_progress import LearningProgress
 from .. import stats_bp
@@ -33,7 +33,7 @@ def get_memory_item_stats(item_id):
         }), 404
     
     # Get real-time stats using SrsService
-    stats = SrsService.get_item_stats(progress)
+    stats = FsrsService.get_item_stats(progress)
     
     # Add extra fields
     stats['correct_streak'] = progress.correct_streak or 0
@@ -46,7 +46,7 @@ def get_memory_item_stats(item_id):
     stats['memory_power'] = round(stats['memory_power'] * 100, 1)
     
     # Add chart data for history
-    review_history = SrsService.get_item_review_history(
+    review_history = FsrsService.get_item_review_history(
         item_id=item_id,
         user_id=current_user.user_id,
         limit=50
@@ -70,7 +70,7 @@ def get_memory_container_stats(container_id):
     mode = request.args.get('mode', 'flashcard')
     
     # Use SrsService to get aggregate stats
-    stats = SrsService.get_container_stats(
+    stats = FsrsService.get_container_stats(
         user_id=current_user.user_id,
         container_id=container_id,
         mode=mode
@@ -80,7 +80,7 @@ def get_memory_container_stats(container_id):
     stats['average_memory_power'] = round(stats['average_memory_power'] * 100, 1)
     
     # Add chart data for timeline
-    history = SrsService.get_container_history(
+    history = FsrsService.get_container_history(
         user_id=current_user.user_id,
         container_id=container_id,
         days=30,
@@ -123,7 +123,7 @@ def get_memory_batch_stats():
     # Calculate stats for each
     results = []
     for progress in progress_records:
-        stats = SrsService.get_item_stats(progress)
+        stats = FsrsService.get_item_stats(progress)
         stats['item_id'] = progress.item_id
         stats['correct_streak'] = progress.correct_streak or 0
         stats['incorrect_streak'] = progress.incorrect_streak or 0

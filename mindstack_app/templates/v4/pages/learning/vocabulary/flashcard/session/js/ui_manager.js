@@ -211,28 +211,13 @@ function getPreviewButtonHtml() {
 }
 
 function generateDynamicButtons(buttonCount) {
-    const buttonSets = {
-        3: [
-            { variant: 'again', value: 'quên', title: 'Quên', icon: 'fas fa-redo-alt', quality: 0 },
-            { variant: 'hard', value: 'mơ_hồ', title: 'Mơ hồ', icon: 'fas fa-question-circle', quality: 3 },
-            { variant: 'easy', value: 'nhớ', title: 'Nhớ', icon: 'fas fa-check-circle', quality: 5 }
-        ],
-        4: [
-            { variant: 'again', value: 'again', title: 'Học lại', icon: 'fas fa-undo', quality: 0 },
-            { variant: 'very-hard', value: 'hard', title: 'Khó', icon: 'fas fa-fire', quality: 1 },
-            { variant: 'good', value: 'good', title: 'Bình thường', icon: 'fas fa-thumbs-up', quality: 3 },
-            { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-smile', quality: 5 }
-        ],
-        6: [
-            { variant: 'fail', value: 'fail', title: 'Rất khó', icon: 'fas fa-exclamation-circle', quality: 0 },
-            { variant: 'very-hard', value: 'very_hard', title: 'Khó', icon: 'fas fa-fire', quality: 1 },
-            { variant: 'hard', value: 'hard', title: 'Trung bình', icon: 'fas fa-adjust', quality: 2 },
-            { variant: 'medium', value: 'medium', title: 'Dễ', icon: 'fas fa-leaf', quality: 3 },
-            { variant: 'good', value: 'good', title: 'Rất dễ', icon: 'fas fa-thumbs-up', quality: 4 },
-            { variant: 'very-easy', value: 'very_easy', title: 'Dễ dàng', icon: 'fas fa-star', quality: 5 }
-        ]
-    };
-    const buttons = buttonSets[buttonCount] || buttonSets[3];
+    // Standard FSRS 4-button system (rating 1-4)
+    const buttons = [
+        { variant: 'again', value: 'again', title: 'Quên', icon: 'fas fa-undo', quality: 1 },
+        { variant: 'hard', value: 'hard', title: 'Khó', icon: 'fas fa-fire', quality: 2 },
+        { variant: 'good', value: 'good', title: 'Được', icon: 'fas fa-thumbs-up', quality: 3 },
+        { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-star', quality: 4 }
+    ];
     return buttons.map(btn => {
         const iconHtml = btn.icon ? `<span class="rating-btn__icon"><i class="${btn.icon}"></i></span>` : '';
         return `<button class="btn rating-btn rating-btn--${btn.variant}" data-answer="${btn.value}" data-quality="${btn.quality}">${iconHtml}<span class="rating-btn__title">${btn.title}</span></button>`;
@@ -589,7 +574,9 @@ function showPreviewTooltip(targetBtn, data) {
 
     // Determine Color based on Points
     const pointsColor = data.points > 0 ? '#4ade80' : (data.points < 0 ? '#f87171' : '#94a3b8');
-    const memoryColor = data.memory_power >= 80 ? '#4ade80' : (data.memory_power >= 50 ? '#fbbf24' : '#f87171');
+    // Stability color (higher = better)
+    const stabilityDays = data.stability || 0;
+    const stabilityColor = stabilityDays >= 30 ? '#4ade80' : (stabilityDays >= 7 ? '#fbbf24' : '#94a3b8');
 
     tooltip.innerHTML = `
         <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px">
@@ -604,8 +591,8 @@ function showPreviewTooltip(targetBtn, data) {
             <span style="font-weight:600; color:${pointsColor}">${data.points > 0 ? '+' : ''}${data.points}</span>
         </div>
         <div style="display:flex; justify-content:space-between;">
-            <span style="color:#94a3b8">Ghi nhớ:</span>
-            <span style="font-weight:600; color:${memoryColor}">${data.memory_power}%</span>
+            <span style="color:#94a3b8">Ổn định:</span>
+            <span style="font-weight:600; color:${stabilityColor}">${stabilityDays.toFixed(1)} ngày</span>
         </div>
     `;
 

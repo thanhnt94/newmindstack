@@ -2,6 +2,6 @@
 # Services that integrate with external systems (DB, APIs)
 
 from .score_service import LearningScoreService, award_learning_points
-from .srs_service import SrsService
+from .fsrs_service import FsrsService
 
-__all__ = ['LearningScoreService', 'award_learning_points', 'SrsService']
+__all__ = ['LearningScoreService', 'award_learning_points', 'FsrsService']

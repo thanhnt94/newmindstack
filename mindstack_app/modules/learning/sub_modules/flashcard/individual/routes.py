@@ -24,7 +24,7 @@ from ..engine import (
 
 # Import từ services module
 from ..services import AudioService, ImageService, LearningSessionService
-from mindstack_app.modules.learning.services.srs_service import SrsService
+from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 
 from ..engine import FlashcardEngine
 from mindstack_app.models import (
@@ -615,11 +615,12 @@ def submit_flashcard_answer():
 
         # SỬA ĐỔI: Ánh xạ các nút về thang điểm 0-5
         if user_button_count == 3:
-            quality_map = {'quên': 0, 'mơ_hồ': 3, 'nhớ': 5}
+            quality_map = {'quên': 1, 'mơ_hồ': 2, 'nhớ': 3}
         elif user_button_count == 4:
-            quality_map = {'again': 0, 'hard': 1, 'good': 3, 'easy': 5}
+            quality_map = {'again': 1, 'hard': 2, 'good': 3, 'easy': 5}
         elif user_button_count == 6:
-            quality_map = {'fail': 0, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 4, 'very_easy': 5}
+            # Legacy mapping for 6 buttons, but adjusted to fit 0-7 scale if needed
+            quality_map = {'fail': 1, 'very_hard': 2, 'hard': 2, 'medium': 3, 'good': 3, 'very_easy': 5}
 
         user_answer_quality = quality_map.get(normalized_answer, 0)
 
@@ -859,7 +860,7 @@ def get_flashcard_sets_partial():
         for f_set in flashcard_sets:
             try:
                 # Assuming flashcard mode for now
-                stats = SrsService.get_container_stats(current_user.user_id, f_set.container_id, 'flashcard')
+                stats = FsrsService.get_container_stats(current_user.user_id, f_set.container_id, 'flashcard')
                 # Format memory power as percentage
                 stats['memory_power'] = round((stats.get('average_memory_power') or 0) * 100, 1)
                 stats_map[f_set.container_id] = stats

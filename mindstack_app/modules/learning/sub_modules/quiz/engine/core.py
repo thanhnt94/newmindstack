@@ -4,7 +4,7 @@
 
 import random
 from mindstack_app.models import LearningItem, db
-from mindstack_app.modules.learning.services.srs_service import SrsService
+from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 from mindstack_app.utils.db_session import safe_commit
 
@@ -253,8 +253,8 @@ class QuizEngine:
             ).first()
             old_mastery = old_progress.mastery if old_progress else 0.0
             
-            # Update SRS using UnifiedSrsSystem
-            progress, srs_result = SrsService.update_unified(
+            # Update SRS using FSRS Process Answer
+            progress, srs_result = FsrsService.process_answer(
                 user_id=user_id,
                 item_id=item_id,
                 quality=quality,

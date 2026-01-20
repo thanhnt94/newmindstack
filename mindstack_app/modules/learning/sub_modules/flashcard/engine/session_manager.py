@@ -42,7 +42,6 @@ from mindstack_app.modules.learning.sub_modules.flashcard.services.audio_service
 from mindstack_app.modules.learning.sub_modules.flashcard.services.session_service import LearningSessionService
 
 # [NEW] Imports for Preview Simulation
-from mindstack_app.modules.learning.logics.memory_engine import MemoryEngine, ProgressState
 from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
 
 from mindstack_app.utils.media_paths import build_relative_media_path
@@ -405,54 +404,64 @@ class FlashcardSessionManager:
         except Exception:
             marker_list = []
 
-        # [NEW] Calculate Preview Data (Simulation)
+        # [NEW] Calculate Preview Data (Simulation) using FSRS-5
         preview_data = {}
         try:
+            # Import FSRS engine
+            from mindstack_app.modules.learning.logics.hybrid_fsrs import HybridFSRSEngine, CardState, Rating
+            from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
+            
             # 1. Fetch current progress state
             progress = LearningProgress.query.filter_by(
                 user_id=self.user_id, item_id=next_item.item_id, learning_mode='flashcard'
             ).first()
             
+            # Build CardState from progress
             if progress:
-                current_state = ProgressState(
-                    status=progress.status,
-                    mastery=getattr(progress, 'mastery', 0.0) or 0.0,
-                    repetitions=progress.repetitions,
-                    interval=progress.interval,
-                    correct_streak=progress.correct_streak,
-                    incorrect_streak=progress.incorrect_streak,
-                    easiness_factor=progress.easiness_factor,
-                    # Spec v8 fields from mode_data
-                    custom_state=progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
-                    hard_streak=progress.mode_data.get('hard_streak', 0) if progress.mode_data else 0,
-                    learning_reps=progress.mode_data.get('learning_reps', 0) if progress.mode_data else 0,
-                    precise_interval=progress.mode_data.get('precise_interval', 20.0) if progress.mode_data else 20.0
+                card_state = CardState(
+                    stability=float(progress.easiness_factor) if progress.easiness_factor and progress.easiness_factor > 0 else 0.0,
+                    difficulty=float(progress.mode_data.get('precise_interval', 0.0)) if progress.mode_data else 0.0,
+                    reps=progress.repetitions or 0,
+                    state=progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
+                    last_review=progress.last_reviewed
                 )
-                # Inject last_reviewed for Review Ahead
-                current_state.last_reviewed = progress.last_reviewed
             else:
-                # Default new state
-                current_state = ProgressState(
-                    status='new', mastery=0.0, repetitions=0, interval=0,
-                    correct_streak=0, incorrect_streak=0, easiness_factor=2.5,
-                    custom_state='new', hard_streak=0, learning_reps=0, precise_interval=20.0
-                )
-
-            # 2. Simulate outcomes for all qualities (0-7 for Spec v8)
+                card_state = CardState()  # New card
+            
+            # 2. Use HybridFSRSEngine to preview intervals for rating 1-4
+            engine = HybridFSRSEngine(desired_retention=0.9)
             now_utc = datetime.datetime.now(datetime.timezone.utc)
-            for q in range(8): # 0 to 7
-                # Simulate Memory Engine
-                res = MemoryEngine.process_answer(current_state, q, now=now_utc)
+            intervals = engine.preview_intervals(card_state, now_utc)
+            
+            # 3. Build preview data for each rating (1-4)
+            for rating in [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy]:
+                interval_days = intervals.get(rating, 0.0)
+                interval_minutes = int(interval_days * 1440)  # Convert to minutes
                 
-                # Simulate Points
-                points = ScoringEngine.quality_to_score(q)
+                # Calculate points preview
+                if rating >= Rating.Good:
+                    is_correct = True
+                    points = ScoringEngine.calculate_answer_points(
+                        mode='flashcard', quality=rating, is_correct=True,
+                        is_first_time=False, correct_streak=0
+                    ).total_points
+                else:
+                    is_correct = False
+                    points = ScoringEngine.calculate_answer_points(
+                        mode='flashcard', quality=rating, is_correct=False,
+                        is_first_time=False, correct_streak=0
+                    ).total_points
                 
-                preview_data[str(q)] = {
-                    'interval': res.new_state.interval,
-                    'mastery': round(res.new_state.mastery * 100, 1), # %
-                    'memory_power': round(res.memory_power * 100, 1), # %
+                # FSRS metrics: After answering, retrievability resets to 100%
+                new_stability = interval_days
+                new_retrievability = 100.0 if is_correct else 90.0  # % right after answer
+                
+                preview_data[str(rating)] = {
+                    'interval': interval_minutes,
+                    'stability': round(new_stability, 2),  # Days
+                    'retrievability': round(new_retrievability, 1),  # %
                     'points': points,
-                    'status': res.new_state.status
+                    'status': 'review' if rating >= Rating.Good else 'learning'
                 }
         except Exception as e:
             current_app.logger.warning(f"Preview simulation failed for item {next_item.item_id}: {e}")

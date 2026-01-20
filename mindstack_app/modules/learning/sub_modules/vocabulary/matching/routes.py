@@ -116,7 +116,7 @@ def api_check_match():
     is_correct = left_item_id == right_item_id
     
     # SRS Update
-    from mindstack_app.modules.learning.services.srs_service import SrsService
+    from mindstack_app.modules.learning.services.fsrs_service import FsrsService
     from mindstack_app.utils.db_session import safe_commit
     from mindstack_app.models import db
     
@@ -124,7 +124,7 @@ def api_check_match():
     
     if is_correct:
          # Correct: Update the item (left_item_id is same as right)
-         srs = SrsService.process_interaction(
+         srs = FsrsService.process_interaction(
              user_id=current_user.user_id,
              item_id=left_item_id,
              mode='matching',
@@ -135,14 +135,14 @@ def api_check_match():
         # Incorrect: Penalty for BOTH items involved in confusion
         # We process them individually
         if left_item_id:
-             SrsService.process_interaction(
+             FsrsService.process_interaction(
                  user_id=current_user.user_id,
                  item_id=left_item_id,
                  mode='matching',
                  result_data={'is_correct': False, 'duration_ms': duration_ms, 'user_answer': user_answer}
              )
         if right_item_id:
-             SrsService.process_interaction(
+             FsrsService.process_interaction(
                  user_id=current_user.user_id,
                  item_id=right_item_id,
                  mode='matching',

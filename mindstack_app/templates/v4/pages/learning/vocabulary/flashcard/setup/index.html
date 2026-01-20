@@ -436,22 +436,7 @@
                 </div>
             </div>
 
-            <!-- Button Count -->
-            <div class="config-card">
-                <div class="config-header"><i class="fas fa-gamepad"></i> Chế độ đánh giá</div>
-                <div class="options-row" id="button-options">
-                    <div class="option-chip" data-value="3">3 nút</div>
-                    <div class="option-chip selected" data-value="4">4 nút</div>
-                    <div class="option-chip" data-value="6">6 nút</div>
-                </div>
-                <!-- Descriptive Note -->
-                <div id="rating-mode-desc"
-                    class="mt-3 p-3 bg-slate-50 rounded-xl text-[13px] text-slate-600 border border-slate-100 flex items-start gap-2">
-                    <i class="fas fa-info-circle mt-0.5 text-emerald-500"></i>
-                    <span id="rating-desc-text"><b>Hệ thống Anki:</b> 4 nút (Lại, Khó, Tốt, Dễ). Phù hợp nhất cho đa số
-                        người học.</span>
-                </div>
-            </div>
+
 
             <!-- Visual Settings -->
             <div class="config-card">
@@ -498,7 +483,7 @@
     // --- State ---
     let currentStep = 1;
     let selectedMode = 'mixed_srs'; // Default to SRS learning
-    let selectedButtonCount = 4;
+
     let isAutoplay = false;
     let isShowImage = true;
 
@@ -512,7 +497,7 @@
     const selectedModeDisplay = document.getElementById('selected-mode-display');
 
     // Config Options
-    const buttonChips = document.querySelectorAll('#button-options .option-chip');
+
     const autoplayOption = document.getElementById('autoplay-option');
     const autoplayCheck = document.getElementById('autoplay-check');
     const showImageOption = document.getElementById('show-image-option');
@@ -536,12 +521,7 @@
         }
     });
 
-    // 2. Load Saved Settings
-    if (savedSettings.button_count) {
-        selectedButtonCount = Number(savedSettings.button_count);
-        updateChipSelection(buttonChips, selectedButtonCount);
-        updateRatingDescription(selectedButtonCount);
-    }
+
 
     if (savedSettings.autoplay !== undefined) {
         isAutoplay = Boolean(savedSettings.autoplay);
@@ -595,37 +575,7 @@
         selectedMode = cardElement.dataset.value;
     }
 
-    // Button Count Selection
-    buttonChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-            const val = Number(chip.dataset.value);
-            updateChipSelection(buttonChips, val);
-            selectedButtonCount = val;
-            updateRatingDescription(val);
-        });
-    });
 
-    function updateRatingDescription(value) {
-        const descText = document.getElementById('rating-desc-text');
-        if (!descText) return;
-
-        const descriptions = {
-            3: "<b>Hệ thống MindStack (3 nút):</b> Quên, Mơ hồ, Nhớ. Đơn giản và nhanh chóng cho việc học từ vựng cơ bản.",
-            4: "<b>Hệ thống Anki (4 nút):</b> Lại, Khó, Tốt, Dễ. Cân bằng tốt nhất giữa tốc độ và độ chính xác của SRS.",
-            6: "<b>Hệ thống SM-2 (6 nút):</b> Đánh giá từ 0-5. Dành cho người muốn kiểm soát tỉ mỉ quá trình học."
-        };
-
-        descText.innerHTML = descriptions[value] || "";
-    }
-
-    function updateChipSelection(chipList, value) {
-        chipList.forEach(c => {
-            c.classList.remove('selected');
-            if (Number(c.dataset.value) === value) {
-                c.classList.add('selected');
-            }
-        });
-    }
 
     // Autoplay Toggle
     autoplayOption.addEventListener('click', (e) => {
@@ -749,7 +699,7 @@
         // Prepare settings payload to save
         const settingsPayload = {
             set_id: setId, // Explicit ID for backend persistence
-            button_count: selectedButtonCount,
+
             visual_settings: {
                 autoplay: isAutoplay,
                 show_image: isShowImage

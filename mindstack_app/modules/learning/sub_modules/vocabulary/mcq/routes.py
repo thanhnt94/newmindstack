@@ -360,11 +360,11 @@ def api_check_answer():
     if item_id:
         try:
             import logging
-            from mindstack_app.modules.learning.services.srs_service import SrsService
+            from mindstack_app.modules.learning.services.fsrs_service import FsrsService
             from mindstack_app.utils.db_session import safe_commit
             from mindstack_app.models import db
 
-            srs_result = SrsService.process_interaction(
+            srs_result = FsrsService.process_interaction(
                 user_id=current_user.user_id,
                 item_id=item_id,
                 mode='mcq',

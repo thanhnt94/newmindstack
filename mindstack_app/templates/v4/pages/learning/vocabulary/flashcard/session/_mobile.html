@@ -163,31 +163,16 @@
             const container = document.getElementById('mobile-rating-btns');
             if (!container) return;
 
-            const buttonCount = window.userButtonCount || 3;
+            const buttonCount = window.userButtonCount || 4;
 
-            const buttonSets = {
-                3: [
-                    { cssClass: 'again', value: '1', label: 'Quên', icon: 'fas fa-times', quality: 0 },
-                    { cssClass: 'hard', value: '2', label: 'Mơ hồ', icon: 'fas fa-question', quality: 3 },
-                    { cssClass: 'good', value: '3', label: 'Nhớ', icon: 'fas fa-check', quality: 5 }
-                ],
-                4: [
-                    { cssClass: 'again', value: '1', label: 'Học lại', icon: 'fas fa-undo', quality: 0 },
-                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire', quality: 1 },
-                    { cssClass: 'good', value: '3', label: 'Ổn', icon: 'fas fa-thumbs-up', quality: 3 },
-                    { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-smile', quality: 5 }
-                ],
-                6: [
-                    { cssClass: 'again', value: '1', label: 'Rất khó', icon: 'fas fa-exclamation-circle', quality: 0 },
-                    { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire', quality: 1 },
-                    { cssClass: 'medium', value: '3', label: 'TB', icon: 'fas fa-adjust', quality: 2 },
-                    { cssClass: 'good', value: '4', label: 'Dễ', icon: 'fas fa-leaf', quality: 3 },
-                    { cssClass: 'easy', value: '5', label: 'Rất dễ', icon: 'fas fa-thumbs-up', quality: 4 },
-                    { cssClass: 'veryeasy', value: '6', label: 'Dễ dàng', icon: 'fas fa-star', quality: 5 }
-                ]
-            };
+            // Standard FSRS 4-button system (rating 1-4)
+            const buttons = [
+                { cssClass: 'again', value: '1', label: 'Quên', icon: 'fas fa-undo', quality: 1 },
+                { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire', quality: 2 },
+                { cssClass: 'good', value: '3', label: 'Được', icon: 'fas fa-thumbs-up', quality: 3 },
+                { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-star', quality: 4 }
+            ];
 
-            const buttons = buttonSets[buttonCount] || buttonSets[3];
             container.innerHTML = buttons.map(btn =>
                 `<button class="fc-rating-btn ${btn.cssClass} js-rating-btn" data-rating="${btn.value}" data-quality="${btn.quality}">
                     <i class="${btn.icon}"></i>
@@ -221,16 +206,17 @@
                 btn.addEventListener('click', function () {
                     const rating = btn.dataset.rating;
                     // Map our rating (1-6) to the answer values used by the card
-                    const buttonCount = window.userButtonCount || 3;
+                    // [UPDATED] Direct mapping for forced 4-button/6-button layout
+                    const buttonCount = window.userButtonCount || 4;
                     let answerMap;
-                    if (buttonCount === 3) {
-                        answerMap = { '1': 'quên', '2': 'mơ_hồ', '3': 'nhớ' };
-                    } else if (buttonCount === 4) {
-                        answerMap = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
-                    } else {
-                        // 6 buttons
+
+                    if (buttonCount === 6) {
                         answerMap = { '1': 'fail', '2': 'very_hard', '3': 'hard', '4': 'medium', '5': 'good', '6': 'very_easy' };
+                    } else {
+                        // All other cases (3 or 4) default to 4-button FSRS
+                        answerMap = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
                     }
+
                     const answerValue = answerMap[rating] || 'good';
 
                     // Call submitFlashcardAnswer directly instead of simulating button click
