@@ -41,6 +41,26 @@ class FsrsService:
     """
 
     @staticmethod
+    def _normalize_rating(quality: int) -> int:
+        """
+        Normalize legacy SM-2 ratings (0-5) to FSRS (1-4).
+        
+        Mapping:
+        0, 1 -> 1 (Again)
+        2    -> 2 (Hard)
+        3    -> 3 (Good)
+        4, 5 -> 4 (Easy)
+        """
+        if quality <= 1:
+            return 1
+        elif quality == 2:
+            return 2
+        elif quality == 3:
+            return 3
+        else:
+            return 4
+
+    @staticmethod
     def process_answer(
         user_id: int,
         item_id: int,
@@ -62,6 +82,9 @@ class FsrsService:
         Args:
             quality: FSRS Rating 1=Again, 2=Hard, 3=Good, 4=Easy
         """
+        # Normalize rating (0-5 -> 1-4)
+        fsrs_rating = FsrsService._normalize_rating(quality)
+        
         now = datetime.datetime.now(datetime.timezone.utc)
         
         # 1. Fetch or create progress
@@ -101,29 +124,46 @@ class FsrsService:
             reps=progress.repetitions or 0,
             lapses=progress.lapses or 0,
             state=current_state_int,
-            last_review=last_review
+            last_review=last_review,
+            # [FIX] Load scheduled_days from float column (source of truth)
+            scheduled_days=progress.current_interval or 0.0
         )
 
         # 3. Process with FSRS Engine
         from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
         desired_retention = MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9)
         
-        engine = HybridFSRSEngine(desired_retention=desired_retention)
+        # [FIX] Inject User-Optimized Parameters
+        user_params = None
+        try:
+            from .fsrs_optimizer import FsrsOptimizerService
+            user_params = FsrsOptimizerService.get_user_parameters(user_id)
+        except (ImportError, AttributeError, Exception) as e:
+            current_app.logger.debug(f"Could not load custom FSRS params: {e}")
+            user_params = None
+
+        engine = HybridFSRSEngine(
+            desired_retention=desired_retention, 
+            custom_weights=user_params
+        )
+        
         new_card, next_due, log_info = engine.review_card(
             card_state=card,
-            rating=quality,
+            rating=fsrs_rating,
             now=now
         )
         
         # 4. Calculate correctness and scoring
-        is_correct = quality >= Rating.Good
+        # Use normalized quality for FSRS logic, but original quality might be relevant for scoring?
+        # Scoring usually expects 0-5. 'quality' argument is preserved.
+        is_correct = fsrs_rating >= Rating.Good
         current_streak = progress.correct_streak or 0
         new_correct_streak = current_streak + 1 if is_correct else 0
         new_incorrect_streak = (progress.incorrect_streak or 0) + 1 if not is_correct else 0
         
         score_result = ScoringEngine.calculate_answer_points(
             mode=mode,
-            quality=quality,
+            quality=quality, # Use original quality for score granularity
             is_correct=is_correct,
             is_first_time=is_first_time,
             correct_streak=new_correct_streak,
@@ -158,11 +198,12 @@ class FsrsService:
             progress.fsrs_state = new_state_int
             progress.fsrs_stability = new_card.stability
             progress.fsrs_difficulty = new_card.difficulty
-            progress.current_interval = new_card.scheduled_days # Store in days (Float) or continue utilizing interval column? Model says current_interval=Float days.
-            # Sync legacy interval column (minutes) if needed, or just set current_interval
-            # progress.interval = interval_minutes # Legacy column might be gone or repurposed.
-            # Let's rely on current_interval (Float days) as per my model refactor.
+            
+            # [FIX] Enforce Floating-Point Precision
             progress.current_interval = float(new_card.scheduled_days)
+            
+            # LEGACY SUPPORT ONLY: FSRS uses 'current_interval' (float days) as the source of truth
+            progress.interval = interval_minutes 
             
             progress.repetitions = new_card.reps
             progress.lapses = new_card.lapses
@@ -184,7 +225,7 @@ class FsrsService:
             user_id=user_id,
             item_id=item_id,
             timestamp=now,
-            rating=quality,
+            rating=quality, # Log original rating
             
             # FSRS Optimizer Fields
             scheduled_days=new_card.scheduled_days,
