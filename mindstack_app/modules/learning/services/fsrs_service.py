@@ -16,6 +16,7 @@ from mindstack_app.models.learning_progress import LearningProgress
 
 from ..logics.scoring_engine import ScoringEngine
 from ..logics.hybrid_fsrs import HybridFSRSEngine, CardState, Rating
+from fsrs_rs_python import DEFAULT_PARAMETERS
 
 
 @dataclass
@@ -59,6 +60,46 @@ class FsrsService:
             return 3
         else:
             return 4
+
+    @staticmethod
+    def _get_effective_parameters(user_id: int) -> list[float]:
+        """
+        Determine the effective FSRS parameters (weights) for a user.
+        
+        Priority:
+        1. User-Specific Parameters (from Optimizer)
+        2. Global Admin Configuration (from AppSettings)
+        3. Library Defaults (from fsrs-rs-python)
+        """
+        # Tier 1: User Specific
+        user_params = None
+        try:
+            from .fsrs_optimizer import FsrsOptimizerService
+            user_params = FsrsOptimizerService.get_user_parameters(user_id)
+            
+            if user_params and isinstance(user_params, list) and len(user_params) == 19:
+                current_app.logger.debug(f"Using Tier 1 (User-Specific) FSRS parameters for user {user_id}")
+                return user_params
+        except Exception:
+            pass # Fallthrough if optimizer service fails or data invalid
+
+        # Tier 2: Global Admin Config
+        from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
+        global_params = MemoryPowerConfigService.get('FSRS_GLOBAL_WEIGHTS')
+        
+        # Validate global params
+        if global_params and isinstance(global_params, list) and len(global_params) == 19:
+            # Ensure all are numbers
+            try:
+                global_params = [float(x) for x in global_params]
+                current_app.logger.debug(f"Using Tier 2 (Global Config) FSRS parameters for user {user_id}")
+                return global_params
+            except (ValueError, TypeError):
+                current_app.logger.warning("Tier 2 FSRS parameters invalid (not numbers), falling back to default.")
+
+        # Tier 3: Library Defaults
+        current_app.logger.debug(f"Using Tier 3 (Library Defaults) FSRS parameters for user {user_id}")
+        return list(DEFAULT_PARAMETERS)
 
     @staticmethod
     def process_answer(
@@ -129,22 +170,17 @@ class FsrsService:
             scheduled_days=progress.current_interval or 0.0
         )
 
-        # 3. Process with FSRS Engine
-        from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
-        desired_retention = MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9)
+        # Fetch Configuration with Caps
+        desired_retention = float(MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9))
+        desired_retention = max(0.70, min(0.99, desired_retention))
         
-        # [FIX] Inject User-Optimized Parameters
-        user_params = None
-        try:
-            from .fsrs_optimizer import FsrsOptimizerService
-            user_params = FsrsOptimizerService.get_user_parameters(user_id)
-        except (ImportError, AttributeError, Exception) as e:
-            current_app.logger.debug(f"Could not load custom FSRS params: {e}")
-            user_params = None
+        max_interval_days = int(MemoryPowerConfigService.get('FSRS_MAX_INTERVAL', 36500))
+        
+        effective_weights = FsrsService._get_effective_parameters(user_id)
 
         engine = HybridFSRSEngine(
             desired_retention=desired_retention, 
-            custom_weights=user_params
+            custom_weights=effective_weights
         )
         
         new_card, next_due, log_info = engine.review_card(
@@ -152,6 +188,15 @@ class FsrsService:
             rating=fsrs_rating,
             now=now
         )
+        
+        # [FIX] Enforce Admin Max Interval Cap (Post-Engine)
+        if new_card.scheduled_days > max_interval_days:
+            current_app.logger.debug(f"Capping interval {new_card.scheduled_days:.2f} to max {max_interval_days}")
+            new_card.scheduled_days = float(max_interval_days)
+            # Recalculate due date based on capped interval
+            next_due = now + datetime.timedelta(days=max_interval_days)
+            new_card.due = next_due
+
         
         # 4. Calculate correctness and scoring
         # Use normalized quality for FSRS logic, but original quality might be relevant for scoring?

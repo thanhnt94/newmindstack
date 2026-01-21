@@ -2333,35 +2333,47 @@ def update_template_settings():
 # SRS / Memory Power Configuration Routes
 # =====================================================================
 
-@admin_bp.route('/srs-config', methods=['GET'])
+@admin_bp.route('/fsrs-config', methods=['GET'])
 @login_required
-def srs_config():
+def fsrs_config():
     """
-    Trang cấu hình hệ thống SRS / Memory Power.
-    Cho phép admin điều chỉnh các tham số như:
-    - Khoảng thời gian ôn tập
-    - Ánh xạ quality score cho Flashcard/Quiz/Typing
-    - Công thức tính Mastery
+    Trang cấu hình FSRS v5 (Free Spaced Repetition Scheduler).
+    Thay thế hoàn toàn cấu hình SM-2 cũ.
     """
     if current_user.user_role != User.ROLE_ADMIN:
         abort(403)
 
     from ...services.memory_power_config_service import MemoryPowerConfigService
-
-    grouped_settings = MemoryPowerConfigService.get_grouped()
+    
+    # Get current values for FSRS keys
+    keys = [
+        'FSRS_DESIRED_RETENTION', 
+        'FSRS_MAX_INTERVAL', 
+        'FSRS_ENABLE_FUZZ', 
+        'FSRS_GLOBAL_WEIGHTS'
+    ]
+    
+    settings = {}
+    for key in keys:
+        # Get raw value
+        val = MemoryPowerConfigService.get(key)
+        # Type safety
+        if key == 'FSRS_GLOBAL_WEIGHTS' and not isinstance(val, list):
+             val = [] 
+        settings[key] = val
 
     return render_template(
-        'admin/srs_config.html',
-        grouped_settings=grouped_settings,
-        groups=MemoryPowerConfigService.GROUPS,
+        'admin/fsrs_config.html',
+        settings=settings
     )
 
 
-@admin_bp.route('/srs-config', methods=['POST'])
+@admin_bp.route('/fsrs-config', methods=['POST'])
 @login_required
-def save_srs_config():
+def save_fsrs_config():
     """
-    API endpoint để lưu cấu hình SRS / Memory Power.
+    API lưu cấu hình FSRS v5.
+    Chỉ chấp nhận các tham số chuẩn của FSRS.
     """
     if current_user.user_role != User.ROLE_ADMIN:
         return error_response('Không có quyền.', 'FORBIDDEN', 403)
@@ -2370,68 +2382,55 @@ def save_srs_config():
 
     try:
         data = request.get_json() or {}
-        settings = data.get('settings', {})
-
-        if not settings:
-            return error_response('Không có thay đổi.', 'BAD_REQUEST', 400)
-
-        # Parse and validate each setting
+        
+        # Valid keys for FSRS v5
+        allowed_keys = {
+            'FSRS_DESIRED_RETENTION': float,
+            'FSRS_MAX_INTERVAL': int,
+            'FSRS_ENABLE_FUZZ': bool,
+            'FSRS_GLOBAL_WEIGHTS': list
+        }
+        
         parsed_settings = {}
-        for key, value in settings.items():
-            data_type = MemoryPowerConfigService.DATA_TYPES.get(key, 'string')
+        
+        for key, expected_type in allowed_keys.items():
+            if key in data:
+                val = data[key]
+                # Type enforcement
+                if expected_type == float:
+                    val = float(val)
+                elif expected_type == int:
+                    val = int(val)
+                elif expected_type == bool:
+                    val = bool(val)
+                elif expected_type == list:
+                    if not isinstance(val, list):
+                        raise ValueError(f"{key} phải là danh sách.")
+                    if key == 'FSRS_GLOBAL_WEIGHTS' and len(val) != 19:
+                         current_app.logger.warning(f"FSRS_GLOBAL_WEIGHTS length is {len(val)}, expected 19.")
+                
+                parsed_settings[key] = val
 
-            if data_type == 'int':
-                parsed_settings[key] = int(value) if value else 0
-            elif data_type == 'float':
-                parsed_settings[key] = float(value) if value else 0.0
-            elif data_type == 'json':
-                if isinstance(value, str):
-                    parsed_settings[key] = json.loads(value)
-                else:
-                    parsed_settings[key] = value
-            else:
-                parsed_settings[key] = value
+        if not parsed_settings:
+            return error_response('Không có dữ liệu hợp lệ để lưu.', 'BAD_REQUEST', 400)
 
+        # Update via Service
         MemoryPowerConfigService.save_all(parsed_settings, user_id=current_user.user_id)
 
         current_app.logger.info(
-            f"SRS config updated by {current_user.username}: {list(parsed_settings.keys())}"
+            f"FSRS config updated by {current_user.username}: {list(parsed_settings.keys())}"
         )
-
-        return success_response(message='Đã lưu cấu hình Memory Power.')
-
-    except json.JSONDecodeError as e:
-        return error_response(f'Lỗi JSON không hợp lệ: {str(e)}', 'BAD_REQUEST', 400)
+        
+        return success_response(message='Cấu hình FSRS đã được lưu thành công.')
+        
     except ValueError as e:
-        return error_response(f'Giá trị không hợp lệ: {str(e)}', 'BAD_REQUEST', 400)
+        return error_response(f'Lỗi dữ liệu: {str(e)}', 'BAD_REQUEST', 400)
     except Exception as e:
-        current_app.logger.error(f"Error saving SRS config: {e}")
-        return error_response(f'Lỗi: {str(e)}', 'SERVER_ERROR', 500)
+        current_app.logger.error(f"Error saving FSRS config: {e}")
+        return error_response(f'Lỗi hệ thống: {str(e)}', 'SERVER_ERROR', 500)
 
 
-@admin_bp.route('/srs-config/reset', methods=['POST'])
-@login_required
-def reset_srs_config():
-    """
-    Reset tất cả cấu hình SRS về giá trị mặc định.
-    """
-    if current_user.user_role != User.ROLE_ADMIN:
-        return error_response('Không có quyền.', 'FORBIDDEN', 403)
 
-    from ...services.memory_power_config_service import MemoryPowerConfigService
-
-    try:
-        MemoryPowerConfigService.reset_to_defaults(user_id=current_user.user_id)
-
-        current_app.logger.info(
-            f"SRS config reset to defaults by {current_user.username}"
-        )
-
-        return success_response(message='Đã khôi phục cấu hình về mặc định.')
-
-    except Exception as e:
-        current_app.logger.error(f"Error resetting SRS config: {e}")
-        return error_response(f'Lỗi: {str(e)}', 'SERVER_ERROR', 500)
 
 
 # === Quiz Config Routes ===
