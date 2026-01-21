@@ -94,8 +94,8 @@ class VocabularyItemStats:
         # NEW: Mastery trend (compare recent vs older)
         mastery_trend = 0
         if len(logs) >= 6:
-            recent_mastery = [log.mastery_snapshot for log in logs[:3] if log.mastery_snapshot is not None]
-            older_mastery = [log.mastery_snapshot for log in logs[3:6] if log.mastery_snapshot is not None]
+            recent_mastery = [min((log.fsrs_stability or 0)/21.0, 1.0) for log in logs[:3] if log.fsrs_stability is not None]
+            older_mastery = [min((log.fsrs_stability or 0)/21.0, 1.0) for log in logs[3:6] if log.fsrs_stability is not None]
             if recent_mastery and older_mastery:
                 recent_avg = sum(recent_mastery) / len(recent_mastery)
                 older_avg = sum(older_mastery) / len(older_mastery)
@@ -237,7 +237,7 @@ class VocabularyItemStats:
                     'user_answer': log.user_answer,
                     'score_change': log.score_change,
                     'rating': log.rating,
-                    'mastery_snapshot': log.mastery_snapshot
+                    'mastery_snapshot': min((log.fsrs_stability or 0)/21.0, 1.0)
                 }
                 for log in logs[:50] # Limit history list
             ],

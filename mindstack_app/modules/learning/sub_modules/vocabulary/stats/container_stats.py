@@ -263,14 +263,14 @@ class VocabularyContainerStats:
             ReviewLog.user_id == user_id,
             ReviewLog.item_id.in_(item_ids),
             ReviewLog.timestamp >= start_date,
-            ReviewLog.mastery_snapshot.isnot(None)
+            ReviewLog.fsrs_stability.isnot(None)
         ).order_by(ReviewLog.timestamp).all()
         
         # Group by date and calculate average mastery per day
         for log in logs:
             date_key = log.timestamp.strftime('%d/%m')
-            if log.mastery_snapshot is not None:
-                timeline_data[date_key].append(log.mastery_snapshot * 100)
+            if log.fsrs_stability is not None:
+                timeline_data[date_key].append(min((log.fsrs_stability or 0)/21.0, 1.0) * 100)
         
         # Generate date labels and values for past 30 days
         dates = []

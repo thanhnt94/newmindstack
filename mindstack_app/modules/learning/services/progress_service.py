@@ -56,7 +56,7 @@ class ProgressService:
             user_id=user_id,
             item_id=item_id,
             learning_mode=mode,
-            status='new',
+            fsrs_state=LearningProgress.STATE_NEW,
             first_seen=func.now()
         )
         db.session.add(progress)
@@ -225,14 +225,14 @@ class ProgressService:
         progress_records = query.all()
         
         studied = len(progress_records)
-        mastered = sum(1 for p in progress_records if p.status == 'mastered')
-        learning = sum(1 for p in progress_records if p.status in ('learning', 'reviewing'))
+        mastered = sum(1 for p in progress_records if (p.fsrs_stability or 0) >= 21.0)
+        learning = sum(1 for p in progress_records if p.fsrs_state in (LearningProgress.STATE_LEARNING, LearningProgress.STATE_RELEARNING))
         
         total_correct = sum(p.times_correct or 0 for p in progress_records)
         total_incorrect = sum(p.times_incorrect or 0 for p in progress_records)
         
         avg_mastery = (
-            sum(p.mastery or 0 for p in progress_records) / studied
+            sum(min((p.fsrs_stability or 0)/21.0, 1.0) for p in progress_records) / studied
             if studied > 0 else 0
         )
         
@@ -333,15 +333,15 @@ class ProgressService:
         ratio = (progress.times_correct or 0) / total if total > 0 else 0
         
         if total > 10 and ratio > 0.8:
-            progress.status = 'mastered'
+            progress.fsrs_state = LearningProgress.STATE_REVIEW # 'Mastered' maps to Review in FSRS
         elif total > 5 and ratio < 0.5:
             # [UPDATED] Do NOT set status='hard' rigidly.
-            progress.status = 'learning'
+            progress.fsrs_state = LearningProgress.STATE_LEARNING
         elif is_new:
-            progress.status = 'learning'
+            progress.fsrs_state = LearningProgress.STATE_LEARNING
         
         # Update mastery
-        progress.mastery = min(1.0, ratio)
+        # progress.mastery = min(1.0, ratio)  # Legacy field removed
         
         return progress
     
@@ -381,16 +381,16 @@ class ProgressService:
             
             # Calculate next due time
             interval_minutes = memory_intervals.get(new_level, 10)
-            progress.interval = interval_minutes
+            progress.current_interval = interval_minutes / 1440.0
             progress.fsrs_due = datetime.now(timezone.utc) + timedelta(minutes=interval_minutes)
             
             # Update status
             if new_level >= 7:
-                progress.status = 'mastered'
+                progress.fsrs_state = LearningProgress.STATE_REVIEW
             elif new_level >= 4:
-                progress.status = 'reviewing'
+                progress.fsrs_state = LearningProgress.STATE_REVIEW
             else:
-                progress.status = 'learning'
+                progress.fsrs_state = LearningProgress.STATE_LEARNING
         else:
             progress.times_incorrect = (progress.times_incorrect or 0) + 1
             progress.current_streak = 0
@@ -402,11 +402,11 @@ class ProgressService:
             
             # Short relearning interval
             relearning_interval = memory_intervals.get(0, 10)
-            progress.interval = relearning_interval
+            progress.current_interval = relearning_interval / 1440.0
             progress.fsrs_due = datetime.now(timezone.utc) + timedelta(minutes=relearning_interval)
-            progress.status = 'learning'
+            progress.fsrs_state = LearningProgress.STATE_RELEARNING
         
         # Update mastery
-        progress.mastery = progress.memory_level / 7.0
+        # progress.mastery = progress.memory_level / 7.0 # Legacy field removed
         
         return progress

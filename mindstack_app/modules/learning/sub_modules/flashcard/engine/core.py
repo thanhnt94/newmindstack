@@ -148,7 +148,7 @@ class FlashcardEngine:
         # distinct statistics retrieval
         item_stats = cls.get_item_statistics(user_id, item_id)
 
-        return score_change, new_total_score, result_type, progress.status, item_stats, memory_power_data
+        return score_change, new_total_score, result_type, {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'), item_stats, memory_power_data
 
     @staticmethod
     def get_item_statistics(user_id: int, item_id: int) -> dict:
@@ -191,9 +191,9 @@ class FlashcardEngine:
             'next_review': _fmt_date(progress.fsrs_due),
             'easiness_factor': round(progress.fsrs_difficulty, 2),
             'repetitions': progress.repetitions,
-            'interval': progress.interval,
-            'status': progress.status,
-            'mastery': round(progress.mastery or 0.0, 4),
+            'interval': progress.current_interval or 0,
+            'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'),
+            'mastery': round(min((progress.fsrs_stability or 0)/21.0, 1.0), 4),
             'memory_power': round(FsrsService.get_memory_power(progress) * 100, 1),
             # Spec v7: Custom state from mode_data
             'custom_state': progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',

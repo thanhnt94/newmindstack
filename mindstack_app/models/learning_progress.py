@@ -17,9 +17,11 @@ class LearningProgress(db.Model):
     """Unified FSRS-5 progress tracking for all learning modes.
     
     This model uses native FSRS-5 state variables:
-    - stability: Memory stability in days (S)
-    - difficulty: Item difficulty 1-10 (D)
-    - state: Card state (New/Learning/Review/Relearning)
+    - fsrs_stability: Memory stability in days (S)
+    - fsrs_difficulty: Item difficulty 1-10 (D)
+    - fsrs_state: Card state (0:New, 1:Learning, 2:Review, 3:Relearning)
+    
+    Legacy SM-2 columns should NOT be used for scheduling logic.
     """
     
     __tablename__ = 'learning_progress'
@@ -32,21 +34,27 @@ class LearningProgress(db.Model):
     # === Learning Mode Discriminator ===
     learning_mode = db.Column(db.String(20), nullable=False, index=True)
     
-    # === FSRS-5 Core State ===
+    # === FSRS-5 Core State (Algorithm Variables) ===
+    # Prefix: fsrs_
     fsrs_stability = db.Column(db.Float, default=0.0)  # S - memory stability in days
-    fsrs_difficulty = db.Column(db.Float, default=5.0)  # D - item difficulty (1-10)
-    fsrs_state = db.Column(db.Integer, default=0)  # 0=New, 1=Learning, 2=Review, 3=Relearning
+    fsrs_difficulty = db.Column(db.Float, default=0.0)  # D - item difficulty (1-10, default 0 for new)
+    fsrs_state = db.Column(db.Integer, default=0, index=True)  # 0=New, 1=Learning, 2=Review, 3=Relearning
     
     # === Scheduling ===
     fsrs_due = db.Column(db.DateTime(timezone=True), index=True)  # Next review due time (UTC)
     fsrs_last_review = db.Column(db.DateTime(timezone=True))  # Last review timestamp (UTC)
     
-    # === Legacy Columns (Deprecated - preserved for data integrity but not used) ===
-    # do NOT use these in backend logic. Use fsrs_* instead.
-    interval = db.Column(db.Integer, default=0)  # Current interval in minutes (Optional, can keep for history)
-    repetitions = db.Column(db.Integer, default=0)  # Total review count
+    # === User History & Statistics (No Prefix) ===
+    # Generic stats independent of algorithm
+    lapses = db.Column(db.Integer, default=0)      # Times user forgot a mature card (Review->Relearning)
+    repetitions = db.Column(db.Integer, default=0) # Total review count
+    last_review_duration = db.Column(db.Integer, default=0) # Time taken for last review (ms)
     
-    # === Statistics ===
+    # === Display Only / Legacy Preserved ===
+    # Renamed from 'interval' to avoid confusion with FSRS calculations
+    current_interval = db.Column(db.Float, default=0.0)  # Display: "Review in X days"
+    
+    # === Statistics (Counters) ===
     times_correct = db.Column(db.Integer, default=0)
     times_incorrect = db.Column(db.Integer, default=0)
     correct_streak = db.Column(db.Integer, default=0)
@@ -61,12 +69,6 @@ class LearningProgress(db.Model):
     STATE_LEARNING = 1
     STATE_REVIEW = 2
     STATE_RELEARNING = 3
-    
-    # === Legacy Aliases (for backward compatibility) ===
-    FSRS_STATE_NEW = STATE_NEW
-    FSRS_STATE_LEARNING = STATE_LEARNING
-    FSRS_STATE_REVIEW = STATE_REVIEW
-    FSRS_STATE_RELEARNING = STATE_RELEARNING
     
     # === Mode Constants ===
     MODE_FLASHCARD = 'flashcard'
@@ -108,6 +110,9 @@ class LearningProgress(db.Model):
             'difficulty': self.fsrs_difficulty,
             'due': self.fsrs_due.isoformat() if self.fsrs_due else None,
             'last_review': self.fsrs_last_review.isoformat() if self.fsrs_last_review else None,
+            'lapses': self.lapses,
+            'repetitions': self.repetitions,
+            'interval': self.current_interval,
             'times_correct': self.times_correct,
             'times_incorrect': self.times_incorrect,
             'correct_streak': self.correct_streak,
@@ -124,99 +129,6 @@ class LearningProgress(db.Model):
         }
         return names.get(self.fsrs_state, 'Unknown')
     
-    # === Backward Compatibility Properties (Mapped to FSRS) ===
-    
-    @property
-    def stability(self):
-        """Deprecated alias for fsrs_stability."""
-        return self.fsrs_stability
-    
-    @stability.setter
-    def stability(self, value):
-        self.fsrs_stability = value
-        
-    @property
-    def difficulty(self):
-        """Deprecated alias for fsrs_difficulty."""
-        return self.fsrs_difficulty
-    
-    @difficulty.setter
-    def difficulty(self, value):
-        self.fsrs_difficulty = value
-        
-    @property
-    def state(self):
-        """Deprecated alias for fsrs_state."""
-        return self.fsrs_state
-    
-    @state.setter
-    def state(self, value):
-        self.fsrs_state = value
-        
-    @property
-    def due(self):
-        """Deprecated alias for fsrs_due."""
-        return self.fsrs_due
-    
-    @due.setter
-    def due(self, value):
-        self.fsrs_due = value
-    
-    @property
-    def last_review(self):
-        """Deprecated alias for fsrs_last_review."""
-        return self.fsrs_last_review
-    
-    @last_review.setter
-    def last_review(self, value):
-        self.fsrs_last_review = value
-
-    @property
-    def easiness_factor(self):
-        """Legacy alias - returns fsrs_stability for compatibility."""
-        return self.fsrs_stability
-    
-    @easiness_factor.setter
-    def easiness_factor(self, value):
-        """Legacy setter - stores to fsrs_stability."""
-        self.fsrs_stability = value
-    
-    # === Legacy/Supplementary Data ===
-    legacy_mastery = db.Column(db.Float, nullable=True)  # Reserved for Course completion (0.0-1.0)
-    
-    @property
-    def status(self) -> str:
-        """Legacy status string mapping for backward compat (Getter)."""
-        status_map = {
-            self.STATE_NEW: 'new',
-            self.STATE_LEARNING: 'learning',
-            self.STATE_REVIEW: 'reviewing',
-            self.STATE_RELEARNING: 'learning',
-        }
-        return status_map.get(self.fsrs_state, 'new')
-
-    @status.setter
-    def status(self, value: str) -> None:
-        """Legacy setter - maps status string to fsrs_state."""
-        status_map = {
-            'new': self.STATE_NEW,
-            'learning': self.STATE_LEARNING,
-            'reviewing': self.STATE_REVIEW,
-            'relearning': self.STATE_RELEARNING,
-            'mastered': self.STATE_REVIEW, 
-            'hard': self.STATE_REVIEW
-        }
-        self.fsrs_state = status_map.get(value, self.STATE_NEW)
-
-    @property
-    def mastery(self):
-        """Legacy alias for legacy_mastery."""
-        return self.legacy_mastery
-    
-    @mastery.setter
-    def mastery(self, value):
-        self.legacy_mastery = value
-
     # === Memrise Compatibility Properties ===
     @property
     def memory_level(self) -> int:

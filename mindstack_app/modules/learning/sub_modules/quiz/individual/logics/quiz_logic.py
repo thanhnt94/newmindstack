@@ -87,7 +87,7 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
         )
         db.session.add(progress)
         progress.first_seen = func.now()
-        progress.status = 'learning' # Mặc định là learning khi mới bắt đầu
+        progress.fsrs_state = LearningProgress.STATE_LEARNING # Mặc định là learning khi mới bắt đầu
 
     # 2. Cập nhật các chỉ số thống kê cơ bản
     progress.last_reviewed = func.now()
@@ -112,14 +112,14 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     correct_ratio = (progress.times_correct or 0) / total_attempts if total_attempts > 0 else 0
 
     if total_attempts > 10 and correct_ratio > 0.8:
-        progress.status = 'mastered'
+        progress.fsrs_state = LearningProgress.STATE_REVIEW
     elif total_attempts > 5 and correct_ratio < 0.5:
         # [UPDATED] Do NOT set status='hard' rigidly. 
         # Use 'learning' so Memory Engine can handle spaced repetition normally.
         # "Hard" logic is now derived dynamically from streaks/mastery.
-        progress.status = 'learning'
+        progress.fsrs_state = LearningProgress.STATE_LEARNING
     elif is_first_time: # Nếu là lần đầu tiên, đặt là learning
-        progress.status = 'learning'
+        progress.fsrs_state = LearningProgress.STATE_LEARNING
 
     # 5. Log to ReviewLog table (replaces legacy JSON review_history)
     from mindstack_app.models import ReviewLog

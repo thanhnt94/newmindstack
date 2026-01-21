@@ -320,29 +320,30 @@ class ReviewLog(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
     
     timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    rating = db.Column(db.Integer, nullable=False)  # 0-5 for Flashcards, 1/0 for Quiz
-    duration_ms = db.Column(db.Integer, default=0)  # Time spent thinking
+    rating = db.Column(db.Integer, nullable=False)  # 1-4 for FSRS, 0/1 for Quiz
     
-    # Snapshot of SRS state AFTER the review
-    interval = db.Column(db.Integer)
-    fsrs_stability = db.Column(db.Float) # Was easiness_factor
+    # === FSRS Optimizer Data ===
+    scheduled_days = db.Column(db.Float, default=0.0)  # Interval assigned (S)
+    elapsed_days = db.Column(db.Float, default=0.0)    # Days since last review
+    review_duration = db.Column(db.Integer, default=0) # Time taken (ms)
+    state = db.Column(db.Integer, default=0)           # State BEFORE review (0-3)
     
-    review_type = db.Column(db.String(20), default='flashcard')  # 'flashcard', 'quiz', 'typing', etc.
+    # === Snapshots (Optional but useful) ===
+    fsrs_stability = db.Column(db.Float, default=0.0)
+    fsrs_difficulty = db.Column(db.Float, default=0.0)
     
-    # NEW: Quiz-specific fields
-    user_answer = db.Column(db.String(10))   # Quiz answer selection (A, B, C, D, or text)
+    review_type = db.Column(db.String(20), default='flashcard')  # 'flashcard', 'quiz'
+    
+    # Legacy / Quiz specific
+    user_answer = db.Column(db.String(10))   # Quiz answer selection (A, B, C, D)
     is_correct = db.Column(db.Boolean)       # Was answer correct?
     score_change = db.Column(db.Integer)     # Points earned/lost
     
-    # NEW: State snapshots
-    mastery_snapshot = db.Column(db.Float)   # Mastery level at time of review
-    memory_power_snapshot = db.Column(db.Float)  # Memory power at time of review
-    
-    # NEW: Session Context Fields (2026-01)
+    # Context
     session_id = db.Column(db.Integer, db.ForeignKey('learning_sessions.session_id'), nullable=True)
     container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
-    mode = db.Column(db.String(50), nullable=True)  # "new", "review", "difficult", "speed"
-    streak_position = db.Column(db.Integer, default=0)  # Position in correct streak
+    mode = db.Column(db.String(50), nullable=True)  # "new", "review", "difficult"
+    streak_position = db.Column(db.Integer, default=0)
 
     __table_args__ = (
         db.Index('ix_review_logs_user_item', 'user_id', 'item_id'),

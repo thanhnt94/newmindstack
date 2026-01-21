@@ -18,35 +18,35 @@ class Rating:
     Good = 3
     Easy = 4
 
+# FSRS Math State Constants
+STATE_NEW = 0
+STATE_LEARNING = 1
+STATE_REVIEW = 2
+STATE_RELEARNING = 3
+
 @dataclass
 class CardState:
     """
     DTO bridging Database (LearningProgress) and FSRS Library.
     
     Maps directly to LearningProgress native columns:
-    - stability -> stability column
-    - difficulty -> difficulty column  
-    - state -> state column (as string: new/learning/review/re-learning)
+    - stability -> fsrs_stability
+    - difficulty -> fsrs_difficulty
+    - state -> fsrs_state (Integer: 0-3)
     """
     stability: float = 0.0      # FSRS S (days)
-    difficulty: float = 5.0     # FSRS D (1-10)
+    difficulty: float = 0.0     # FSRS D (1-10) - Default 0.0 for new
     elapsed_days: float = 0.0
     scheduled_days: float = 0   # Interval in days
     reps: int = 0
-    lapses: int = 0
-    state: str = 'new'          # new, learning, review, re-learning
+    lapses: int = 0             # Count of forgetful events from mature state
+    state: int = STATE_NEW      # 0=New, 1=Learning, 2=Review, 3=Relearning
     last_review: Optional[datetime] = None
     due: Optional[datetime] = None
 
 class HybridFSRSEngine:
     """
     Standard FSRS-5 Engine using fsrs-rs-python.
-    
-    Features:
-    - Pure FSRS-5 algorithm (no custom multipliers)
-    - 4-button rating: Again(1), Hard(2), Good(3), Easy(4)
-    - Safety caps: Floor 20 min, Ceiling 365 days
-    - User-specific parameters support
     """
     
     def __init__(self, custom_weights: Optional[List[float]] = None, desired_retention: float = 0.9):
@@ -63,7 +63,8 @@ class HybridFSRSEngine:
 
     def _to_memory_state(self, state: CardState):
         """Convert local CardState to fsrs-rs MemoryState (or None for new card)."""
-        if state.state == 'new' or (state.stability <= 0 and state.reps == 0):
+        # If state is New (0) or stability is 0/None, treat as new
+        if state.state == STATE_NEW or (state.stability <= 0 and state.reps == 0):
             return None
         
         try:
@@ -80,19 +81,46 @@ class HybridFSRSEngine:
         memory = item_state.memory
         interval = item_state.interval
         
-        # Determine state based on rating and reps
+        # 1. Determine new state based on rating and previous state
+        # In FSRS-rs logic:
+        # - New card -> Learning (or Review if Easy) - usually simplified to Learning/Review
+        # - Learning -> Learning/Review
+        # - Review -> Review/Relearning
+        
+        # Simplified logic matching FSRS v5 recommendations:
         if rating == Rating.Again:
-            if card_state.reps == 0:
-                new_state = 'learning'
+            # Forgot
+            if card_state.state == STATE_NEW:
+                new_state = STATE_LEARNING
+            elif card_state.state == STATE_LEARNING:
+                new_state = STATE_LEARNING
+            elif card_state.state == STATE_REVIEW:
+                new_state = STATE_RELEARNING # Review -> Relearning (Lapse)
+            elif card_state.state == STATE_RELEARNING:
+                new_state = STATE_RELEARNING
             else:
-                new_state = 're-learning'
-            new_lapses = card_state.lapses + 1
+                new_state = STATE_LEARNING # Fallback
         else:
-            if card_state.reps == 0:
-                new_state = 'learning'
+            # Remembered (Hard/Good/Easy)
+            if card_state.state == STATE_NEW:
+                new_state = STATE_LEARNING if rating != Rating.Easy else STATE_REVIEW
+            elif card_state.state == STATE_LEARNING or card_state.state == STATE_RELEARNING:
+                # If interval is >= 1 day, move to Review, else stay in Learning
+                # Standard FSRS might promote based on stability.
+                # For simplicity here, we assume any non-Again moves towards Review.
+                new_state = STATE_REVIEW
             else:
-                new_state = 'review'
-            new_lapses = card_state.lapses
+                new_state = STATE_REVIEW
+
+        # 2. Update Lapses
+        # Logic: Increment lapses ONLY if user forgot a mature/reviewing card.
+        # IF rating == 1 (Again) AND old_state was Review (2) or Relearning (3)
+        # (Though Relearning count as lapse? Usually only Review -> Relearning is a lapse start.
+        # But user requested: "old_state was Review (2) or Relearning (3)")
+        new_lapses = card_state.lapses
+        if rating == Rating.Again:
+            if card_state.state == STATE_REVIEW or card_state.state == STATE_RELEARNING:
+                new_lapses += 1
         
         return CardState(
             stability=memory.stability,
@@ -109,12 +137,9 @@ class HybridFSRSEngine:
     def get_realtime_retention(self, card_state: CardState, now: datetime) -> float:
         """
         Calculate real-time retrievability.
-        
-        Formula: R = 0.9^(t/S) where t = elapsed days, S = stability
-        
-        Returns: Float 0.0 - 1.0
+        Formula: R = 0.9^(t/S)
         """
-        if card_state.state == 'new' or card_state.stability <= 0:
+        if card_state.state == STATE_NEW or card_state.stability <= 0:
             return 1.0
             
         if not card_state.last_review:
@@ -138,28 +163,20 @@ class HybridFSRSEngine:
     def review_card(self, card_state: CardState, rating: int, now: Optional[datetime] = None) -> Tuple[CardState, datetime, Dict[str, Any]]:
         """
         Process review with standard FSRS-5 algorithm.
-        
-        Args:
-            card_state: Current card state
-            rating: FSRS rating 1-4 (Again/Hard/Good/Easy)
-            now: Review timestamp
-            
-        Returns:
-            (new_card_state, due_datetime, log_dict)
+        Returns: (new_card_state, due_datetime, log_dict)
         """
         if now is None:
             now = datetime.now(timezone.utc)
         if now.tzinfo is None:
             now = now.replace(tzinfo=timezone.utc)
 
-        # Clamp rating to valid range
+        # Clamp rating 1-4
         fsrs_rating = max(1, min(4, rating))
         
-        # Get current memory state
         memory_state = self._to_memory_state(card_state)
         r_before = self.get_realtime_retention(card_state, now)
         
-        # Calculate days elapsed since last review
+        # Elapsed days
         if card_state.last_review:
             last_review = card_state.last_review
             if last_review.tzinfo is None:
@@ -168,17 +185,13 @@ class HybridFSRSEngine:
         else:
             days_elapsed = 0.0
         
-        # FSRS-5 calculation
-        # NOTE: fsrs-rs requires int for days_elapsed. Use round() for better accuracy
-        # (23 hours → 1 day, not 0 day)
         days_elapsed_rounded = max(0, round(days_elapsed))
         next_states = self.fsrs.next_states(
             memory_state,
             self.desired_retention,
-            days_elapsed_rounded  # [FIX] round() instead of int() truncation
+            days_elapsed_rounded
         )
         
-        # Select state based on rating
         rating_map = {
             Rating.Again: next_states.again,
             Rating.Hard: next_states.hard,
@@ -187,10 +200,9 @@ class HybridFSRSEngine:
         }
         selected_state = rating_map[fsrs_rating]
         
-        # Get raw interval
         raw_interval = float(selected_state.interval)
         
-        # Apply safety caps (no custom multipliers)
+        # Apply Caps
         FLOOR_DAYS = 20.0 / 1440.0  # 20 minutes
         CEILING_DAYS = 365.0
         
@@ -200,21 +212,19 @@ class HybridFSRSEngine:
         elif final_interval > CEILING_DAYS:
             final_interval = CEILING_DAYS
             
-        # Build result CardState
+        # Build Result
         new_card_state = self._from_next_state(selected_state, card_state, fsrs_rating)
         new_card_state.scheduled_days = final_interval
         new_card_state.last_review = now
         new_card_state.due = now + timedelta(days=final_interval)
         
-        # Log for debugging
         log = {
             "rating": fsrs_rating,
-            "raw_fsrs_days": raw_interval,
-            "final_days": final_interval,
-            "stability": new_card_state.stability,
-            "difficulty": new_card_state.difficulty,
-            "retention_at_review": r_before,
-            "state": new_card_state.state
+            "days_elapsed": days_elapsed,
+            "scheduled_days": final_interval,
+            "review_duration": 0, # Placeholder, caller should fill
+            "start_state": card_state.state,
+            "end_state": new_card_state.state
         }
         
         return new_card_state, new_card_state.due, log
@@ -222,8 +232,6 @@ class HybridFSRSEngine:
     def preview_intervals(self, card_state: CardState, now: Optional[datetime] = None) -> Dict[int, float]:
         """
         Preview intervals for all 4 ratings without modifying state.
-        
-        Returns: {1: again_days, 2: hard_days, 3: good_days, 4: easy_days}
         """
         if now is None:
             now = datetime.now(timezone.utc)
@@ -240,12 +248,11 @@ class HybridFSRSEngine:
         else:
             days_elapsed = 0.0
         
-        # NOTE: fsrs-rs requires int for days_elapsed. Use round() for accuracy
         days_elapsed_rounded = max(0, round(days_elapsed))
         next_states = self.fsrs.next_states(
             memory_state,
             self.desired_retention,
-            days_elapsed_rounded  # [FIX] round() instead of int() truncation
+            days_elapsed_rounded
         )
         
         return {
@@ -255,5 +262,5 @@ class HybridFSRSEngine:
             Rating.Easy: float(next_states.easy.interval)
         }
 
-# Alias for compatibility
+# Alias
 FSRSEngineV5 = HybridFSRSEngine

@@ -467,7 +467,7 @@ class FlashcardSessionManager:
             
             # 3. Build preview data for each rating (1-4)
             # [FIX] Check if this is first time for this card (for bonus calculation)
-            is_first_time_card = (progress is None or progress.status == 'new')
+            is_first_time_card = (progress is None or progress.fsrs_state == LearningProgress.STATE_NEW)
             
             for rating in [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy]:
                 interval_days = intervals.get(rating, 0.0)

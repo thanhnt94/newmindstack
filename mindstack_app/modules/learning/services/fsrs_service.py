@@ -80,7 +80,7 @@ class FsrsService:
                 fsrs_stability=0.0,
                 fsrs_difficulty=5.0,
                 repetitions=0,
-                interval=0,
+                current_interval=0.0,
                 correct_streak=0,
                 incorrect_streak=0
             )
@@ -88,22 +88,19 @@ class FsrsService:
             db.session.flush()
 
         # 2. Build CardState from native columns
-        state_to_str = {
-            LearningProgress.STATE_NEW: 'new',
-            LearningProgress.STATE_LEARNING: 'learning',
-            LearningProgress.STATE_REVIEW: 'review',
-            LearningProgress.STATE_RELEARNING: 're-learning',
-        }
-        
         last_review = progress.fsrs_last_review
         if last_review and last_review.tzinfo is None:
             last_review = last_review.replace(tzinfo=datetime.timezone.utc)
         
+        # Use native integer state directly
+        current_state_int = progress.fsrs_state if progress.fsrs_state is not None else LearningProgress.STATE_NEW
+        
         card = CardState(
             stability=progress.fsrs_stability or 0.0,
-            difficulty=progress.fsrs_difficulty or 5.0,
+            difficulty=progress.fsrs_difficulty or 0.0,
             reps=progress.repetitions or 0,
-            state=state_to_str.get(progress.fsrs_state, 'new'),
+            lapses=progress.lapses or 0,
+            state=current_state_int,
             last_review=last_review
         )
 
@@ -136,14 +133,8 @@ class FsrsService:
         # 5. Calculate retrievability (resets to ~1.0 after correct answer)
         new_retrievability = 1.0 if is_correct else 0.9
         
-        # 6. Map state string to int
-        str_to_state = {
-            'new': LearningProgress.STATE_NEW,
-            'learning': LearningProgress.STATE_LEARNING,
-            'review': LearningProgress.STATE_REVIEW,
-            're-learning': LearningProgress.STATE_RELEARNING,
-        }
-        new_state_int = str_to_state.get(new_card.state, LearningProgress.STATE_NEW)
+        # 6. Extract results (No string conversion needed)
+        new_state_int = new_card.state
         interval_minutes = int(new_card.scheduled_days * 1440)
         
         srs_result = SrsResult(
@@ -167,10 +158,17 @@ class FsrsService:
             progress.fsrs_state = new_state_int
             progress.fsrs_stability = new_card.stability
             progress.fsrs_difficulty = new_card.difficulty
-            progress.interval = interval_minutes
+            progress.current_interval = new_card.scheduled_days # Store in days (Float) or continue utilizing interval column? Model says current_interval=Float days.
+            # Sync legacy interval column (minutes) if needed, or just set current_interval
+            # progress.interval = interval_minutes # Legacy column might be gone or repurposed.
+            # Let's rely on current_interval (Float days) as per my model refactor.
+            progress.current_interval = float(new_card.scheduled_days)
+            
             progress.repetitions = new_card.reps
+            progress.lapses = new_card.lapses
             progress.fsrs_due = next_due
             progress.fsrs_last_review = now
+            progress.last_review_duration = duration_ms
             
         progress.correct_streak = new_correct_streak
         progress.incorrect_streak = new_incorrect_streak
@@ -187,12 +185,18 @@ class FsrsService:
             item_id=item_id,
             timestamp=now,
             rating=quality,
-            duration_ms=duration_ms,
-            interval=progress.interval,
-            fsrs_stability=new_card.stability,  # Renamed from easiness_factor
+            
+            # FSRS Optimizer Fields
+            scheduled_days=new_card.scheduled_days,
+            elapsed_days=log_info.get('days_elapsed', 0.0),
+            review_duration=duration_ms,
+            state=current_state_int, # State BEFORE review
+            
+            # Snapshots
+            fsrs_stability=new_card.stability,
+            fsrs_difficulty=new_card.difficulty,
+            
             review_type=mode,
-            mastery_snapshot=min(new_card.stability / 21.0, 1.0), # Normalize stability (days) to mastery (0-1)
-            memory_power_snapshot=new_retrievability,
             score_change=score_result.total_points,
             is_correct=is_correct,
             session_id=session_id,

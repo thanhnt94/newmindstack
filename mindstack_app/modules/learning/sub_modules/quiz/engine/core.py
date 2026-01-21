@@ -251,7 +251,7 @@ class QuizEngine:
             old_progress = LearningProgress.query.filter_by(
                 user_id=user_id, item_id=item_id, learning_mode='quiz'
             ).first()
-            old_mastery = old_progress.mastery if old_progress else 0.0
+            old_mastery = min((old_progress.fsrs_stability or 0)/21.0, 1.0) if old_progress else 0.0
             
             # Update SRS using FSRS Process Answer
             progress, srs_result = FsrsService.process_answer(

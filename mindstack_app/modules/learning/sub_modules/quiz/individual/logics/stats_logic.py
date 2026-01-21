@@ -55,7 +55,7 @@ def get_quiz_item_statistics(user_id, item_id):
         'correct_percentage': round(correct_percentage, 2),
         'correct_streak': progress.correct_streak or 0,
         'incorrect_streak': progress.incorrect_streak or 0,
-        'status': progress.status,
+        'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'),
         'first_seen': progress.first_seen.isoformat() if progress.first_seen else None,
         'last_reviewed': progress.last_reviewed.isoformat() if progress.last_reviewed else None,
         'review_history': formatted_review_history

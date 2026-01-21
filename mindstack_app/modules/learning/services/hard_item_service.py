@@ -94,7 +94,7 @@ class HardItemService:
             return True
         
         # Criterion 3: Stuck (high reps, low mastery)
-        if (progress.repetitions or 0) > max_reps and (progress.mastery or 0) < low_mastery:
+        if (progress.repetitions or 0) > max_reps and min((progress.fsrs_stability or 0)/21.0, 1.0) < low_mastery:
             return True
         
         return False
@@ -172,7 +172,7 @@ class HardItemService:
                 # Criterion 3: Stuck (high reps, low mastery)
                 and_(
                     LearningProgress.repetitions > max_reps,
-                    LearningProgress.legacy_mastery < low_mastery
+                    LearningProgress.fsrs_stability < (low_mastery * 21.0)
                 )
             )
         )
