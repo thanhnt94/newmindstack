@@ -564,12 +564,25 @@ function createPreviewTooltipElement() {
     });
 }
 
+// Ensure tooltip is created on load
+document.addEventListener('DOMContentLoaded', () => {
+    if (!document.getElementById('rating-preview-tooltip')) {
+        createPreviewTooltipElement();
+    }
+});
+
 function showPreviewTooltip(targetBtn, data) {
-    const tooltip = document.getElementById('rating-preview-tooltip');
+    let tooltip = document.getElementById('rating-preview-tooltip');
+
     if (!tooltip) {
-        console.warn('Tooltip element not found!');
-        createPreviewTooltipElement(); // Try creating it
-        return document.getElementById('rating-preview-tooltip') ? showPreviewTooltip(targetBtn, data) : null;
+        // Attempt to create it if missing
+        createPreviewTooltipElement();
+        tooltip = document.getElementById('rating-preview-tooltip');
+
+        if (!tooltip) {
+            console.error('Critical: Failed to create tooltip element.');
+            return;
+        }
     }
 
     console.log('[PreviewTooltip] Showing data:', data);

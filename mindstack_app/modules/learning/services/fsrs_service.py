@@ -171,6 +171,7 @@ class FsrsService:
         )
 
         # Fetch Configuration with Caps
+        from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
         desired_retention = float(MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9))
         desired_retention = max(0.70, min(0.99, desired_retention))
         

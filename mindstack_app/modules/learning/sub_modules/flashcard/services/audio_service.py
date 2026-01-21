@@ -38,6 +38,22 @@ class AudioService:
         os.makedirs(cache_dir, exist_ok=True)
         return cache_dir
 
+    def _safe_remove(self, path: str, retries: int = 3, delay: float = 0.2):
+        """Helper to remove file with retries (handling Windows file locking)"""
+        if not os.path.exists(path):
+            return
+            
+        for i in range(retries):
+            try:
+                os.remove(path)
+                return
+            except OSError as e:
+                if i == retries - 1:
+                    logger.warning(f"Could not remove file {path} after {retries} attempts: {e}")
+                    raise
+                import time
+                time.sleep(delay)
+
     def _generate_tts_sync(self, text, lang='en'):
         """
         Mô tả: Tạo file audio Text-to-Speech (TTS) sử dụng VoiceEngine.
@@ -572,10 +588,11 @@ class AudioService:
             cache_dir = self._ensure_cache_dir()
             cached_file_path = os.path.join(cache_dir, cache_filename)
             if os.path.exists(cached_file_path):
-                os.remove(cached_file_path)
-                logger.info(f"{log_prefix} Đã xóa file cache cũ: {cache_filename}")
+                # [FIX] Use safe remove to handle Windows file locking
+                self._safe_remove(cached_file_path)
+                logger.info(f"{log_prefix} Đã xóa file cache cũ (safe): {cache_filename}")
 
-            new_path, success, message = await self.get_cached_or_generate_audio(audio_content)
+            new_path, success, message = await self.get_cached_or_generate_audio(audio_content, force_refresh=True)
             if success:
                 logger.info(f"{log_prefix} Tái tạo audio thành công.")
                 return True, "Tái tạo audio thành công."
