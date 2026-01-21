@@ -37,7 +37,7 @@ def setup(set_id):
     count_new = base_query.filter(~LearningItem.progress_records.any()).count()
     
     now = datetime.now(timezone.utc)
-    count_review = base_query.join(LearningProgress).filter(LearningProgress.due_time <= now).count()
+    count_review = base_query.join(LearningProgress).filter(LearningProgress.fsrs_due <= now).count()
     count_learned = base_query.join(LearningProgress).count()
     
     # Hard - Use centralized HardItemService
@@ -388,15 +388,21 @@ def api_check_answer():
         from mindstack_app.utils.db_session import safe_commit
         from mindstack_app.models import db
 
-        srs_result = FsrsService.process_interaction(
+        quality = 3 if result.get('correct') else 1
+        progress, srs_result = FsrsService.process_answer(
             user_id=current_user.user_id,
             item_id=item_id,
+            quality=quality,
             mode='listening',
-            result_data=result
+            # result_data=result 
         )
         safe_commit(db.session)
-        # Flatten srs_result into main response
-        result.update(srs_result)
+        # Flatten srs_result object into result dict
+        from dataclasses import asdict
+        srs_result_dict = asdict(srs_result)
+        srs_result_dict['next_due'] = srs_result.next_review.isoformat() if srs_result.next_review else None
+        
+        result.update(srs_result_dict)
         
         # Update DB Session
         session_data = session.get('listening_session', {})

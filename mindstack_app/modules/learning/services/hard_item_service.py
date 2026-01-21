@@ -170,9 +170,8 @@ class HardItemService:
                 # Criterion 2: Incorrect streak
                 LearningProgress.incorrect_streak >= min_streak,
                 # Criterion 3: Stuck (high reps, low mastery)
-                and_(
                     LearningProgress.repetitions > max_reps,
-                    LearningProgress.mastery < low_mastery
+                    LearningProgress.legacy_mastery < low_mastery
                 )
             )
         )

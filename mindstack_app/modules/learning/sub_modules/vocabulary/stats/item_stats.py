@@ -9,6 +9,7 @@ from mindstack_app.models.learning_progress import LearningProgress
 from mindstack_app.utils.content_renderer import render_text_field
 from flask import url_for
 from mindstack_app.models import db
+from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 
 class VocabularyItemStats:
     """
@@ -75,10 +76,11 @@ class VocabularyItemStats:
             mode_data['avg_duration'] = round(mode_data['duration'] / mode_data['count'], 0) if mode_data['count'] > 0 else 0
 
         # Current State
-        mastery = progress.mastery if progress else 0.0
+        stability = progress.fsrs_stability or 0.0
+        mastery = min(stability / 21.0, 1.0) if progress else 0.0
         streak = progress.correct_streak if progress else 0
-        last_reviewed = progress.last_reviewed if progress else None
-        next_due = progress.due_time if progress else None
+        last_reviewed = progress.fsrs_last_review if progress else None
+        next_due = progress.fsrs_due if progress else None
         
         # Calculate derived metrics
         accuracy = (total_correct / total_attempts * 100) if total_attempts > 0 else 0
@@ -131,9 +133,9 @@ class VocabularyItemStats:
             # Use centralized HardItemService
             from mindstack_app.modules.learning.services.hard_item_service import HardItemService
             
-            if progress.mastery >= 0.8:
+            if stability >= 21.0:
                 status = 'mastered'
-            elif progress.due_time and progress.due_time <= now:
+            elif progress.fsrs_due and progress.fsrs_due <= now:
                 status = 'due'
             elif HardItemService.is_hard_item(user_id, item_id):
                 status = 'hard'
@@ -200,7 +202,8 @@ class VocabularyItemStats:
                 'last_reviewed': last_reviewed,
                 'next_due': next_due,
                 'due_relative': _get_relative_time_string(next_due) if next_due else 'Chưa lên lịch',
-                'ease_factor': round(progress.easiness_factor, 2) if progress else 2.5,
+                'ease_factor': round(progress.fsrs_difficulty, 2) if progress else 0, # FSRS Difficulty (1-10)
+                'retrievability': round(FsrsService.get_retrievability(progress) * 100, 1) if progress else 0, # [NEW]
                 'mastery_trend': mastery_trend,
                 'first_reviewed': first_reviewed,
                 'last_reviewed_log': last_reviewed_log,

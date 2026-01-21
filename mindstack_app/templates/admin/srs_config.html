@@ -104,32 +104,40 @@ Mục đích: Giao diện cấu hình SRS / Memory Power cho Admin
         </div>
     </form>
 
-    <!-- Help Section -->
+    <!-- FSRS Help Section -->
     <div class="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 p-6">
         <h3 class="font-semibold text-gray-800 mb-3 flex items-center">
             <i class="fas fa-info-circle mr-2 text-blue-500"></i>
-            Hướng dẫn cấu hình
+            Hướng dẫn FSRS-5
         </h3>
         <div class="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
             <div>
-                <h4 class="font-medium text-gray-700 mb-2">Quality Score (0-5)</h4>
+                <h4 class="font-medium text-gray-700 mb-2">FSRS Rating (1-4)</h4>
                 <ul class="space-y-1 ml-4 list-disc">
-                    <li><strong>5:</strong> Hoàn hảo, nhớ dễ dàng</li>
-                    <li><strong>4:</strong> Nhớ tốt với chút cố gắng</li>
-                    <li><strong>3:</strong> Đúng nhưng khó khăn</li>
-                    <li><strong>2:</strong> Sai nhưng gần đúng / dùng gợi ý</li>
-                    <li><strong>1:</strong> Sai</li>
-                    <li><strong>0:</strong> Hoàn toàn quên</li>
+                    <li><strong class="text-red-600">1 - Again:</strong> Quên hoàn toàn, cần học lại ngay</li>
+                    <li><strong class="text-orange-600">2 - Hard:</strong> Nhớ được nhưng rất khó khăn</li>
+                    <li><strong class="text-green-600">3 - Good:</strong> Nhớ tốt với chút cố gắng</li>
+                    <li><strong class="text-blue-600">4 - Easy:</strong> Hoàn hảo, nhớ dễ dàng</li>
                 </ul>
             </div>
             <div>
-                <h4 class="font-medium text-gray-700 mb-2">Mastery & Memory Power</h4>
+                <h4 class="font-medium text-gray-700 mb-2">FSRS Parameters</h4>
                 <ul class="space-y-1 ml-4 list-disc">
-                    <li><strong>Mastery:</strong> Mức độ thành thạo (0-100%)</li>
-                    <li><strong>Retention:</strong> Xác suất nhớ hiện tại</li>
-                    <li><strong>Memory Power = Mastery × Retention</strong></li>
+                    <li><strong>Stability (S):</strong> Thời gian để retention giảm xuống 90%</li>
+                    <li><strong>Difficulty (D):</strong> Độ khó nội tại của thẻ (1-10)</li>
+                    <li><strong>Retrievability:</strong> R = 0.9^(elapsed_days / S)</li>
+                    <li><strong>Desired Retention:</strong> Mục tiêu % nhớ (0.7 - 0.97)</li>
                 </ul>
             </div>
+        </div>
+        <div class="mt-4 p-3 bg-white/50 rounded-lg">
+            <p class="text-xs text-gray-500">
+                <i class="fas fa-lightbulb mr-1 text-yellow-500"></i>
+                <strong>FSRS_W_PARAMS:</strong> Các tham số trọng số của thuật toán FSRS.
+                Có thể train từ lịch sử học bằng FSRS Optimizer.
+                <a href="https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm" target="_blank"
+                    class="text-blue-600 hover:underline ml-1">Tìm hiểu thêm →</a>
+            </p>
         </div>
     </div>
 </div>

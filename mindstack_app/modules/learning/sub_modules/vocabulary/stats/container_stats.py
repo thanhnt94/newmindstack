@@ -40,18 +40,17 @@ class VocabularyContainerStats:
         # 3. Mastered & Due (from LearningProgress)
         now = datetime.utcnow()
         
-        # Mastered: mastery >= 0.8
+        # Mastered: fsrs_stability >= 21.0
         mastered = LearningProgress.query.filter(
             LearningProgress.user_id == user_id,
             LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-            LearningProgress.mastery >= 0.8
+            LearningProgress.fsrs_stability >= 21.0
         ).count()
         
-        # Due: due_time <= now
         due = LearningProgress.query.filter(
             LearningProgress.user_id == user_id,
             LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-            LearningProgress.due_time <= now
+            LearningProgress.fsrs_due <= now
         ).count()
         
         return {
@@ -112,17 +111,18 @@ class VocabularyContainerStats:
             if not progress:
                 new_count += 1
             else:
-                mastery = progress.mastery or 0.0
+                stability = progress.fsrs_stability or 0.0
+                mastery = min(stability / 21.0, 1.0)
                 total_mastery += mastery
                 
-                # Categorize by mastery level
-                if mastery >= 0.8:
+                # Categorize by mastery level (using stability proxy)
+                if stability >= 21.0:
                     mastered_count += 1
                 else:
                     learning_count += 1
                 
                 # Check if due
-                if progress.due_time and progress.due_time <= now:
+                if progress.fsrs_due and progress.fsrs_due <= now:
                     due_count += 1
                 
                 # Note: hard_count is calculated separately using HardItemService
@@ -130,12 +130,12 @@ class VocabularyContainerStats:
                 # Accumulate totals
                 total_correct += progress.times_correct or 0
                 total_incorrect += progress.times_incorrect or 0
-                total_reviews += (progress.times_correct or 0) + (progress.times_incorrect or 0) + (progress.times_vague or 0)
+                total_reviews += (progress.times_correct or 0) + (progress.times_incorrect or 0)
                 
                 # Track last reviewed
-                if progress.last_reviewed:
-                    if not last_reviewed or progress.last_reviewed > last_reviewed:
-                        last_reviewed = progress.last_reviewed
+                if progress.fsrs_last_review:
+                    if not last_reviewed or progress.fsrs_last_review > last_reviewed:
+                        last_reviewed = progress.fsrs_last_review
         
         # Calculate percentages
         learned_count = len(progress_records)
@@ -240,10 +240,15 @@ class VocabularyContainerStats:
         strong_count = 0    # 80-100%
         
         for progress in progress_records:
-            mastery = progress.mastery or 0.0
-            if mastery < 0.5:
+            stability = progress.fsrs_stability or 0.0
+            
+            # Categories based on stability (days)
+            # Weak: < 5 days
+            # Medium: 5-15 days
+            # Strong: > 15 days
+            if stability < 5.0:
                 weak_count += 1
-            elif mastery < 0.8:
+            elif stability < 15.0:
                 medium_count += 1
             else:
                 strong_count += 1

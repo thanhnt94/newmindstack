@@ -186,10 +186,10 @@ class FlashcardEngine:
             return dt.isoformat()
 
         stats.update({
-            'first_seen': _fmt_date(progress.first_seen_timestamp),
-            'last_reviewed': _fmt_date(progress.last_reviewed),
-            'next_review': _fmt_date(progress.due_time),
-            'easiness_factor': round(progress.easiness_factor, 2),
+            'first_seen': _fmt_date(progress.first_seen_timestamp) if hasattr(progress, 'first_seen_timestamp') else None,
+            'last_reviewed': _fmt_date(progress.fsrs_last_review),
+            'next_review': _fmt_date(progress.fsrs_due),
+            'easiness_factor': round(progress.fsrs_difficulty, 2),
             'repetitions': progress.repetitions,
             'interval': progress.interval,
             'status': progress.status,

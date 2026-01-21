@@ -26,7 +26,7 @@ ITEM_TYPE_LABELS = {
 
 
 
-def get_user_container_options(user_id, container_type, learning_mode, timestamp_attr='last_reviewed', item_type=None):
+def get_user_container_options(user_id, container_type, learning_mode, timestamp_attr='fsrs_last_review', item_type=None):
     """Return the list of learning containers (id/title) a user interacted with.
     """
 
@@ -330,10 +330,12 @@ def _build_flashcard_items_query(user_id):
             LearningContainer.title.label('container_title'),
             LearningItem.item_id.label('item_id'),
             LearningItem.content.label('content'),
-            LearningProgress.status.label('status'),
-            LearningProgress.last_reviewed.label('last_reviewed'),
+            LearningProgress.fsrs_state.label('fsrs_state'),
+            LearningProgress.fsrs_stability.label('fsrs_stability'),
+            LearningProgress.fsrs_difficulty.label('fsrs_difficulty'),
+            LearningProgress.fsrs_last_review.label('last_reviewed'),
             LearningProgress.first_seen.label('first_seen'),
-            LearningProgress.due_time.label('due_time'),
+            LearningProgress.fsrs_due.label('due_time'),
         )
         .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .join(LearningContainer, LearningContainer.container_id == LearningItem.container_id)
@@ -347,26 +349,34 @@ def _build_flashcard_items_query(user_id):
 
 
 def _apply_flashcard_category_filter(query, status):
-    # MIGRATED: Use LearningProgress instead of FlashcardProgress
+    # MIGRATED: Use FSRS Native columns map logic
     if not status or status == 'all':
         return query
 
     status = status.lower()
-    if status in {'new', 'learning', 'mastered', 'hard'}:
-        return query.filter(LearningProgress.status == status)
-
+    
+    if status == 'new':
+        return query.filter(LearningProgress.fsrs_state == LearningProgress.STATE_NEW)
+    if status == 'learning':
+        return query.filter(LearningProgress.fsrs_state.in_([LearningProgress.STATE_LEARNING, LearningProgress.STATE_RELEARNING]))
+    if status == 'mastered':
+        return query.filter(LearningProgress.fsrs_stability >= 21.0)
+    if status == 'hard':
+        return query.filter(LearningProgress.fsrs_difficulty >= 8.0)
+    
+    # Needs Review: Due time passed OR Learning state
     if status == 'needs_review':
         now = datetime.utcnow()
         return query.filter(
-            LearningProgress.due_time.isnot(None),
-            LearningProgress.due_time <= now,
+            LearningProgress.fsrs_due.isnot(None),
+            LearningProgress.fsrs_due <= now,
         )
 
     if status == 'due_soon':
         now = datetime.utcnow()
         return query.filter(
-            LearningProgress.due_time.isnot(None),
-            LearningProgress.due_time <= now + timedelta(days=1),
+            LearningProgress.fsrs_due.isnot(None),
+            LearningProgress.fsrs_due <= now + timedelta(days=1),
         )
 
     return query
@@ -395,13 +405,30 @@ def paginate_flashcard_items(user_id, container_id=None, status=None, page=1, pe
     records = []
     for row in rows:
         content = row.content or {}
+        
+        # Calculate status string for UI display
+        state = row.fsrs_state
+        stability = row.fsrs_stability or 0
+        difficulty = row.fsrs_difficulty or 0
+        
+        if state == 0:
+            status_str = 'new'
+        elif state == 1 or state == 3:
+            status_str = 'learning'
+        elif difficulty >= 8.0:
+            status_str = 'hard'
+        elif stability >= 21.0:
+            status_str = 'mastered'
+        else:
+            status_str = 'reviewing'
+
         records.append({
             'container_id': row.container_id,
             'container_title': row.container_title,
             'item_id': row.item_id,
             'front': content.get('front'),
             'back': content.get('back'),
-            'status': row.status,
+            'status': status_str,
             'last_reviewed': row.last_reviewed.isoformat() if row.last_reviewed else None,
             'first_seen': row.first_seen.isoformat() if row.first_seen else None,
             'due_time': row.due_time.isoformat() if row.due_time else None,
@@ -424,8 +451,10 @@ def _build_quiz_items_query(user_id):
             LearningContainer.title.label('container_title'),
             LearningItem.item_id.label('item_id'),
             LearningItem.content.label('content'),
-            LearningProgress.status.label('status'),
-            LearningProgress.last_reviewed.label('last_reviewed'),
+            LearningProgress.fsrs_state.label('fsrs_state'),
+            LearningProgress.fsrs_stability.label('fsrs_stability'),
+            LearningProgress.fsrs_difficulty.label('fsrs_difficulty'),
+            LearningProgress.fsrs_last_review.label('last_reviewed'),
             LearningProgress.first_seen.label('first_seen'),
             LearningProgress.times_correct.label('times_correct'),
             LearningProgress.times_incorrect.label('times_incorrect'),
@@ -442,18 +471,27 @@ def _build_quiz_items_query(user_id):
 
 
 def _apply_quiz_category_filter(query, status):
-    # MIGRATED: Use LearningProgress instead of QuizProgress
+    # MIGRATED: Use FSRS Logic
     if not status or status == 'all':
         return query
 
     status = status.lower()
-    if status in {'new', 'learning', 'mastered', 'hard'}:
-        return query.filter(LearningProgress.status == status)
+    
+    if status == 'new':
+        return query.filter(LearningProgress.fsrs_state == LearningProgress.STATE_NEW)
+    if status == 'learning':
+        return query.filter(LearningProgress.fsrs_state.in_([LearningProgress.STATE_LEARNING, LearningProgress.STATE_RELEARNING]))
+    if status == 'mastered':
+        return query.filter(LearningProgress.fsrs_stability >= 5.0) # Lower threshold for Quiz?
+    if status == 'hard':
+        return query.filter(LearningProgress.fsrs_difficulty >= 8.0)
 
     if status == 'needs_review':
+        # Custom logic for Quiz needs review?
+        # Maybe incorrect ratio?
         return query.filter(
             or_(
-                LearningProgress.status.in_({'learning', 'hard'}),
+                LearningProgress.fsrs_state.in_([LearningProgress.STATE_LEARNING, LearningProgress.STATE_RELEARNING]),
                 LearningProgress.times_incorrect > LearningProgress.times_correct,
             )
         )
@@ -489,7 +527,7 @@ def paginate_quiz_items(user_id, container_id=None, status=None, page=1, per_pag
             'container_title': row.container_title,
             'item_id': row.item_id,
             'question': content.get('question'),
-            'status': row.status,
+            'status': 'new' if row.fsrs_state == 0 else ('learning' if row.fsrs_state in [1,3] else 'reviewing'),
             'times_correct': int(row.times_correct or 0),
             'times_incorrect': int(row.times_incorrect or 0),
             'last_reviewed': row.last_reviewed.isoformat() if row.last_reviewed else None,
@@ -514,8 +552,8 @@ def _build_course_items_query(user_id):
             LearningContainer.title.label('container_title'),
             LearningItem.item_id.label('item_id'),
             LearningItem.content.label('content'),
-            LearningProgress.mastery.label('mastery'),  # mastery * 100 = completion_percentage
-            LearningProgress.last_reviewed.label('last_updated'),
+            LearningProgress.legacy_mastery.label('mastery'),  # Mapped to legacy_mastery
+            LearningProgress.fsrs_last_review.label('last_updated'),
             LearningProgress.mode_data.label('mode_data'),
         )
         .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
@@ -536,14 +574,14 @@ def _apply_course_category_filter(query, status):
 
     status = status.lower()
     if status == 'completed':
-        return query.filter(LearningProgress.mastery >= 1.0)
+        return query.filter(LearningProgress.legacy_mastery >= 1.0)
     if status == 'in_progress':
         return query.filter(
-            LearningProgress.mastery > 0,
-            LearningProgress.mastery < 1.0,
+            LearningProgress.legacy_mastery > 0,
+            LearningProgress.legacy_mastery < 1.0,
         )
     if status == 'not_started':
-        return query.filter(LearningProgress.mastery == 0)
+        return query.filter(LearningProgress.legacy_mastery == 0)
 
     return query
 

@@ -147,7 +147,10 @@ def get_new_only_items(user_id, container_id, session_size):
             LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
         )
     ).filter(
-        LearningProgress.item_id == None
+        or_(
+            LearningProgress.item_id == None,
+            LearningProgress.fsrs_state == LearningProgress.STATE_NEW
+        )
     )
 
     new_items_query = new_items_query.outerjoin(UserContainerState,
@@ -184,7 +187,7 @@ def get_due_items(user_id, container_id, session_size):
             LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
         )
     ).filter(
-        LearningProgress.due_time <= func.now()
+        LearningProgress.fsrs_due <= func.now()
     )
     
     due_items_query = due_items_query.outerjoin(UserContainerState,
@@ -198,7 +201,7 @@ def get_due_items(user_id, container_id, session_size):
     if session_size is None or session_size == 999999:
         return due_items_query
     else:
-        items = due_items_query.order_by(LearningProgress.due_time.asc()).limit(session_size).all()
+        items = due_items_query.order_by(LearningProgress.fsrs_due.asc()).limit(session_size).all()
     
     print(f">>> ALGORITHMS: get_due_items tìm thấy {len(items)} thẻ. <<<")
     return items
@@ -219,6 +222,8 @@ def get_all_review_items(user_id, container_id, session_size):
             LearningProgress.user_id == user_id,
             LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
         )
+    ).filter(
+        LearningProgress.fsrs_state != LearningProgress.STATE_NEW
     )
 
     review_items_query = review_items_query.outerjoin(UserContainerState,
@@ -233,7 +238,7 @@ def get_all_review_items(user_id, container_id, session_size):
         return review_items_query
     else:
         items = review_items_query.order_by(
-            LearningProgress.due_time.asc(),
+            LearningProgress.fsrs_due.asc(),
             LearningItem.item_id.asc()
         ).limit(session_size).all()
 

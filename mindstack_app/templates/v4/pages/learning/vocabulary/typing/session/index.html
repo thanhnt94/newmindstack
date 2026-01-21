@@ -973,14 +973,8 @@
                         }
                         if (srs.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
                             await window.showMemoryPowerFeedback(
-                                srs.memory_power.old_memory_power,
-                                srs.memory_power.memory_power
-                            );
-                        }
-                        if (srs.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
-                            await window.showMemoryPowerFeedback(
-                                srs.memory_power.old_memory_power,
-                                srs.memory_power.memory_power
+                                (srs.memory_power.old_retrievability || 0) * 100,
+                                (srs.memory_power.retrievability || 0) * 100
                             );
                         }
                     }

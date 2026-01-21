@@ -37,7 +37,7 @@ def setup(set_id):
     
     # Review
     now = datetime.now(timezone.utc)
-    count_review = base_query.join(LearningProgress).filter(LearningProgress.due_time <= now).count()
+    count_review = base_query.join(LearningProgress).filter(LearningProgress.fsrs_due <= now).count()
     
     # Learned (Review All)
     count_learned = base_query.join(LearningProgress).count()
@@ -295,14 +295,25 @@ def api_check_answer():
         from mindstack_app.utils.db_session import safe_commit
         from mindstack_app.models import db
 
-        srs_result = FsrsService.process_interaction(
+        quality = 3 if result.get('correct') else 1  # 3=Good, 1=Again
+        progress, srs_result = FsrsService.process_answer(
             user_id=current_user.user_id,
             item_id=item_id,
+            quality=quality,
             mode='typing',
-            result_data=result
+            # result_data=result # process_answer doesn't take result_data, handled by caller logic
         )
+        
+        # Manually construct srs_result dict if needed for response or use srs_result object
+        # The original code returned srs_result object or dict? process_interaction likely returned dict.
+        # FsrsService.process_answer returns (progress, srs_result_obj).
+        # We should serialize srs_result object to dict for JSON.
+        from dataclasses import asdict
+        srs_result_dict = asdict(srs_result)
+        srs_result_dict['next_due'] = srs_result.next_review.isoformat() if srs_result.next_review else None
+        
         safe_commit(db.session)
-        result['srs'] = srs_result
+        result['srs'] = srs_result_dict
         
         # Update DB Session
         session_data = session.get('typing_session', {})

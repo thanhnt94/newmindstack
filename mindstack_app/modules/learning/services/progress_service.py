@@ -141,7 +141,7 @@ class ProgressService:
         query = LearningProgress.query.filter(
             LearningProgress.user_id == user_id,
             LearningProgress.learning_mode == mode,
-            LearningProgress.due_time <= now
+            LearningProgress.fsrs_due <= now
         )
         
         if container_id:
@@ -150,7 +150,7 @@ class ProgressService:
                 LearningItem.container_id == container_id
             )
         
-        return query.order_by(LearningProgress.due_time).limit(limit).all()
+        return query.order_by(LearningProgress.fsrs_due).limit(limit).all()
     
     @classmethod
     def get_new_items(
@@ -272,7 +272,7 @@ class ProgressService:
         """
         progress, is_new = cls.get_or_create(user_id, item_id, 'flashcard')
         
-        progress.last_reviewed = datetime.now(timezone.utc)
+        progress.fsrs_last_review = datetime.now(timezone.utc)
         
         # Update statistics based on quality
         if quality >= 4:  # Correct
@@ -317,7 +317,7 @@ class ProgressService:
         """
         progress, is_new = cls.get_or_create(user_id, item_id, 'quiz')
         
-        progress.last_reviewed = datetime.now(timezone.utc)
+        progress.fsrs_last_review = datetime.now(timezone.utc)
         
         if is_correct:
             progress.times_correct = (progress.times_correct or 0) + 1
@@ -366,7 +366,7 @@ class ProgressService:
         """
         progress, is_new = cls.get_or_create(user_id, item_id, 'memrise')
         
-        progress.last_reviewed = datetime.now(timezone.utc)
+        progress.fsrs_last_review = datetime.now(timezone.utc)
         
         current_level = progress.memory_level
         
@@ -382,7 +382,7 @@ class ProgressService:
             # Calculate next due time
             interval_minutes = memory_intervals.get(new_level, 10)
             progress.interval = interval_minutes
-            progress.due_time = datetime.now(timezone.utc) + timedelta(minutes=interval_minutes)
+            progress.fsrs_due = datetime.now(timezone.utc) + timedelta(minutes=interval_minutes)
             
             # Update status
             if new_level >= 7:
@@ -403,7 +403,7 @@ class ProgressService:
             # Short relearning interval
             relearning_interval = memory_intervals.get(0, 10)
             progress.interval = relearning_interval
-            progress.due_time = datetime.now(timezone.utc) + timedelta(minutes=relearning_interval)
+            progress.fsrs_due = datetime.now(timezone.utc) + timedelta(minutes=relearning_interval)
             progress.status = 'learning'
         
         # Update mastery

@@ -92,7 +92,7 @@
                 chartContainer = document.createElement('div');
                 chartContainer.className = 'item-chart-container';
                 chartContainer.innerHTML = `
-                <div class="item-chart-title">📈 Lịch sử Memory Power</div>
+                <div class="item-chart-title">📈 Lịch sử Retention (FSRS)</div>
                 <div class="item-chart-wrapper">
                     <canvas id="itemMemoryPowerChart"></canvas>
                 </div>
@@ -114,14 +114,14 @@
             }
 
             const dates = timeline.map(r => r.date);
-            const values = timeline.map(r => r.memory_power);
+            const values = timeline.map(r => Math.round((r.retrievability || 0) * 100));
 
             window.itemMemoryPowerChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: dates,
                     datasets: [{
-                        label: 'Memory Power (%)',
+                        label: 'Retention (%)',
                         data: values,
                         borderColor: '#8b5cf6',
                         backgroundColor: 'rgba(139, 92, 246, 0.1)',
@@ -222,8 +222,8 @@
                 window.itemRatingChartInstance.destroy();
             }
 
-            // Count rating distribution
-            const ratingCounts = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            // Count rating distribution (FSRS 1-4)
+            const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
             timeline.forEach(r => {
                 if (r.rating !== undefined && r.rating !== null) {
                     ratingCounts[r.rating] = (ratingCounts[r.rating] || 0) + 1;
@@ -233,24 +233,20 @@
             window.itemRatingChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['0 (Again)', '1', '2 (Hard)', '3', '4 (Good)', '5 (Easy)'],
+                    labels: ['1 (Again)', '2 (Hard)', '3 (Good)', '4 (Easy)'],
                     datasets: [{
                         label: 'Số lần',
                         data: [
-                            ratingCounts[0],
                             ratingCounts[1],
                             ratingCounts[2],
                             ratingCounts[3],
-                            ratingCounts[4],
-                            ratingCounts[5]
+                            ratingCounts[4]
                         ],
                         backgroundColor: [
-                            '#ef4444',  // Red - Again
-                            '#f97316',  // Orange
-                            '#f59e0b',  // Amber - Hard
-                            '#84cc16',  // Lime
-                            '#22c55e',  // Green - Good
-                            '#10b981'   // Emerald - Easy
+                            '#ef4444',  // Red - Again (1)
+                            '#f97316',  // Orange - Hard (2)
+                            '#22c55e',  // Green - Good (3)
+                            '#10b981'   // Emerald - Easy (4)
                         ],
                         borderRadius: 6,
                         borderWidth: 0

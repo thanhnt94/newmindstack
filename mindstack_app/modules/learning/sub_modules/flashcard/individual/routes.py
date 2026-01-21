@@ -613,16 +613,18 @@ def submit_flashcard_answer():
     else:
         quality_map = {}
 
-        # SỬA ĐỔI: Ánh xạ các nút về thang điểm 0-5
+        # [FSRS] Map button names to FSRS ratings 1-4
         if user_button_count == 3:
+            # 3-button legacy: map to FSRS 1, 2, 3
             quality_map = {'quên': 1, 'mơ_hồ': 2, 'nhớ': 3}
         elif user_button_count == 4:
-            quality_map = {'again': 1, 'hard': 2, 'good': 3, 'easy': 5}
+            # Standard FSRS 4-button: Again=1, Hard=2, Good=3, Easy=4
+            quality_map = {'again': 1, 'hard': 2, 'good': 3, 'easy': 4}
         elif user_button_count == 6:
-            # Legacy mapping for 6 buttons, but adjusted to fit 0-7 scale if needed
-            quality_map = {'fail': 1, 'very_hard': 2, 'hard': 2, 'medium': 3, 'good': 3, 'very_easy': 5}
+            # 6-button: map to FSRS range
+            quality_map = {'fail': 1, 'very_hard': 1, 'hard': 2, 'medium': 3, 'good': 3, 'very_easy': 4}
 
-        user_answer_quality = quality_map.get(normalized_answer, 0)
+        user_answer_quality = quality_map.get(normalized_answer, 3)  # Default to Good if unknown
 
     duration_ms = data.get('duration_ms', 0)
     result = session_manager.process_flashcard_answer(

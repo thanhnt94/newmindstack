@@ -325,7 +325,7 @@ class ReviewLog(db.Model):
     
     # Snapshot of SRS state AFTER the review
     interval = db.Column(db.Integer)
-    easiness_factor = db.Column(db.Float)
+    fsrs_stability = db.Column(db.Float) # Was easiness_factor
     
     review_type = db.Column(db.String(20), default='flashcard')  # 'flashcard', 'quiz', 'typing', etc.
     

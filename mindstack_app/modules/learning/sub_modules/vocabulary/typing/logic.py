@@ -27,7 +27,7 @@ def get_typing_eligible_items(container_id, custom_pairs=None, mode='random'):
         # Items due for review
         now = datetime.now(timezone.utc)
         items = base_query.join(LearningProgress).filter(
-            LearningProgress.due_time <= now
+            LearningProgress.fsrs_due <= now
         ).all()
         
     elif mode == 'learned':
@@ -36,8 +36,9 @@ def get_typing_eligible_items(container_id, custom_pairs=None, mode='random'):
 
     elif mode == 'hard':
         # Items with low stability or lapsing (simplified: easiness_factor < 2.5)
+        # Items with high difficulty (FSRS difficulty >= 7.5 replaces EF < 2.5)
         items = base_query.join(LearningProgress).filter(
-            LearningProgress.easiness_factor < 2.5
+            LearningProgress.fsrs_difficulty >= 7.5
         ).all()
         
     else: # 'random' or 'custom'

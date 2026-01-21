@@ -21,10 +21,15 @@ class Rating:
 @dataclass
 class CardState:
     """
-    Local DTO to bridge between Database (LearningProgress) and FSRS Library.
+    DTO bridging Database (LearningProgress) and FSRS Library.
+    
+    Maps directly to LearningProgress native columns:
+    - stability -> stability column
+    - difficulty -> difficulty column  
+    - state -> state column (as string: new/learning/review/re-learning)
     """
-    stability: float = 0.0      # FSRS S (stored in easiness_factor column)
-    difficulty: float = 0.0     # FSRS D (stored in precise_interval column)
+    stability: float = 0.0      # FSRS S (days)
+    difficulty: float = 5.0     # FSRS D (1-10)
     elapsed_days: float = 0.0
     scheduled_days: float = 0   # Interval in days
     reps: int = 0

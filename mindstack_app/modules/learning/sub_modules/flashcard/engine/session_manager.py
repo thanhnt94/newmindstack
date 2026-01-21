@@ -418,12 +418,42 @@ class FlashcardSessionManager:
             
             # Build CardState from progress
             if progress:
+                # === USE NATIVE FSRS COLUMNS (must match fsrs_service.py logic!) ===
+                if progress.fsrs_stability is not None and progress.fsrs_stability > 0:
+                    # Native FSRS data available
+                    fsrs_stability = progress.fsrs_stability
+                    fsrs_difficulty = progress.fsrs_difficulty or 5.0
+                    
+                    # Map state int to string
+                    from mindstack_app.models.learning_progress import LearningProgress
+                    state_map = {
+                        LearningProgress.FSRS_STATE_NEW: 'new',
+                        LearningProgress.FSRS_STATE_LEARNING: 'learning',
+                        LearningProgress.FSRS_STATE_REVIEW: 'review',
+                        LearningProgress.FSRS_STATE_RELEARNING: 're-learning',
+                    }
+                    custom_state = state_map.get(progress.fsrs_state, 'new')
+                    last_reviewed = progress.fsrs_last_review or progress.last_reviewed
+                else:
+                    # Fallback: Check mode_data for legacy FSRS data
+                    mode_data = progress.mode_data or {}
+                    if 'fsrs_stability' in mode_data:
+                        fsrs_stability = mode_data.get('fsrs_stability', 0.0)
+                        fsrs_difficulty = mode_data.get('fsrs_difficulty', 5.0)
+                        custom_state = mode_data.get('custom_state', 'new')
+                    else:
+                        # New card - fresh start
+                        fsrs_stability = 0.0
+                        fsrs_difficulty = 5.0
+                        custom_state = 'new'
+                    last_reviewed = progress.last_reviewed
+                
                 card_state = CardState(
-                    stability=float(progress.easiness_factor) if progress.easiness_factor and progress.easiness_factor > 0 else 0.0,
-                    difficulty=float(progress.mode_data.get('precise_interval', 0.0)) if progress.mode_data else 0.0,
+                    stability=fsrs_stability,
+                    difficulty=fsrs_difficulty,
                     reps=progress.repetitions or 0,
-                    state=progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
-                    last_review=progress.last_reviewed
+                    state=custom_state if custom_state in ('new', 'learning', 'review', 're-learning') else 'new',
+                    last_review=last_reviewed
                 )
             else:
                 card_state = CardState()  # New card

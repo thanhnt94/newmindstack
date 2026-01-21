@@ -74,15 +74,16 @@ class LearningMetricsService:
         summary = (
             db.session.query(
                 func.count(LearningProgress.progress_id).label('total'),
-                func.sum(case((LearningProgress.status == 'mastered', 1), else_=0)).label('mastered'),
-                func.sum(case((LearningProgress.status == 'learning', 1), else_=0)).label('learning'),
-                func.sum(case((LearningProgress.status == 'new', 1), else_=0)).label('new'),
-                func.sum(case((LearningProgress.status == 'hard', 1), else_=0)).label('hard'),
-                func.sum(case((LearningProgress.status == 'reviewing', 1), else_=0)).label('reviewing'),
-                func.sum(case((LearningProgress.due_time <= func.now(), 1), else_=0)).label('due'),
+                # FSRS State Mapping
+                func.sum(case((LearningProgress.fsrs_stability >= 21.0, 1), else_=0)).label('mastered'),
+                func.sum(case((LearningProgress.fsrs_state.in_([LearningProgress.STATE_LEARNING, LearningProgress.STATE_RELEARNING]), 1), else_=0)).label('learning'),
+                func.sum(case((LearningProgress.fsrs_state == LearningProgress.STATE_NEW, 1), else_=0)).label('new'),
+                func.sum(case((LearningProgress.fsrs_difficulty >= 8.0, 1), else_=0)).label('hard'),
+                func.sum(case((LearningProgress.fsrs_state == LearningProgress.STATE_REVIEW, 1), else_=0)).label('reviewing'),
+                func.sum(case((LearningProgress.fsrs_due <= func.now(), 1), else_=0)).label('due'),
                 func.sum(LearningProgress.times_correct).label('correct'),
                 func.sum(LearningProgress.times_incorrect).label('incorrect'),
-                func.sum(LearningProgress.times_vague).label('vague'),
+                # times_vague removed (legacy)
                 func.avg(LearningProgress.correct_streak).label('avg_streak'),
                 func.max(LearningProgress.correct_streak).label('best_streak'),
             )
@@ -99,8 +100,7 @@ class LearningMetricsService:
         # Calculate accuracy
         correct = int(summary.correct or 0)
         incorrect = int(summary.incorrect or 0)
-        vague = int(summary.vague or 0)
-        attempts = correct + incorrect + vague
+        attempts = correct + incorrect
         accuracy = round((correct / attempts) * 100, 1) if attempts > 0 else 0.0
 
         return {
@@ -123,11 +123,12 @@ class LearningMetricsService:
     @classmethod
     def _get_quiz_metrics(cls, user_id: int) -> Dict[str, Any]:
         """Internal helper for quiz specific metrics."""
+        # Quiz mode might use simple correct/incorrect mostly, but if we track progress:
         summary = (
             db.session.query(
                 func.count(LearningProgress.progress_id).label('total'),
-                func.sum(case((LearningProgress.status == 'mastered', 1), else_=0)).label('mastered'),
-                func.sum(case((LearningProgress.status == 'learning', 1), else_=0)).label('learning'),
+                func.sum(case((LearningProgress.fsrs_stability >= 5.0, 1), else_=0)).label('mastered'), # Lower threshold for quiz?
+                func.sum(case((LearningProgress.fsrs_state.in_([LearningProgress.STATE_LEARNING, LearningProgress.STATE_RELEARNING]), 1), else_=0)).label('learning'),
                 func.sum(LearningProgress.times_correct).label('correct'),
                 func.sum(LearningProgress.times_incorrect).label('incorrect'),
                 func.avg(LearningProgress.correct_streak).label('avg_streak'),
@@ -180,10 +181,10 @@ class LearningMetricsService:
         summary = (
             db.session.query(
                 func.count(LearningProgress.progress_id).label('total_lessons'),
-                func.sum(case((LearningProgress.mastery >= 1.0, 1), else_=0)).label('completed'),
-                func.sum(case(((LearningProgress.mastery > 0) & (LearningProgress.mastery < 1.0), 1), else_=0)).label('in_progress'),
-                func.avg(LearningProgress.mastery * 100).label('avg_completion'),
-                func.max(LearningProgress.last_reviewed).label('last_progress'),
+                func.sum(case((LearningProgress.legacy_mastery >= 1.0, 1), else_=0)).label('completed'),
+                func.sum(case(((LearningProgress.legacy_mastery > 0) & (LearningProgress.legacy_mastery < 1.0), 1), else_=0)).label('in_progress'),
+                func.avg(LearningProgress.legacy_mastery * 100).label('avg_completion'),
+                func.max(LearningProgress.fsrs_last_review).label('last_progress'),
             )
             .filter(
                 LearningProgress.user_id == user_id,
@@ -226,7 +227,7 @@ class LearningMetricsService:
             )
             .filter(
                 LearningProgress.user_id == user_id,
-                LearningProgress.last_reviewed >= today_start
+                LearningProgress.fsrs_last_review >= today_start
             )
             .group_by(LearningProgress.learning_mode)
             .all()
@@ -254,7 +255,7 @@ class LearningMetricsService:
             )
             .filter(
                 LearningProgress.user_id == user_id,
-                LearningProgress.last_reviewed >= week_start
+                LearningProgress.fsrs_last_review >= week_start
             )
             .group_by(LearningProgress.learning_mode)
             .all()

@@ -142,7 +142,7 @@ window.renderDesktopCardHtml = function (data, o) {
                     </div>
                 </div>
 
-                <!-- Next Review Info -->
+                <!-- Next Review Info & Retention -->
                 <div class="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
                     <div class="flex items-center gap-3 mb-2">
                          <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
@@ -155,12 +155,16 @@ window.renderDesktopCardHtml = function (data, o) {
                             </span>
                         </div>
                     </div>
-                    <div class="w-full bg-white rounded-lg h-1.5 overflow-hidden flex">
-                        <div class="bg-blue-500 h-full rounded-full" style="width: ${Math.min(100, (o.stats?.stability || 0) * 2)}%"></div>
+                    <!-- Retention Bar (Retrievability) -->
+                    <div class="w-full bg-white rounded-lg h-1.5 overflow-hidden flex mb-1">
+                        <div class="bg-blue-500 h-full rounded-full js-hud-retention-bar" style="width: ${Math.round((o.stats?.retrievability !== undefined ? o.stats.retrievability : 1) * 100)}%"></div>
                     </div>
-                     <div class="flex justify-between mt-1">
-                        <span class="text-[10px] text-slate-400">Độ ổn định</span>
-                        <span class="text-[10px] font-bold text-blue-600 js-hud-stability">${o.stats?.stability || 0} ngày</span>
+                     <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-slate-400">Khả năng nhớ</span> <!-- Was Độ ổn định -->
+                        <div class="text-right">
+                             <span class="text-[10px] font-bold text-blue-600 js-hud-retention-text">${Math.round((o.stats?.retrievability !== undefined ? o.stats.retrievability : 1) * 100)}%</span>
+                             <span class="text-[9px] text-slate-400 ml-1 js-hud-stability">(${o.stats?.stability || 0}d)</span>
+                        </div>
                     </div>
                 </div>
 
@@ -287,7 +291,7 @@ window.updateCardHudStats = function (stats) {
     }
   }
 
-  // Update Interval/Stability
+  // Update Retention/Stability
   const intEl = document.querySelector('.js-hud-interval');
   if (intEl) {
     if (stats.interval_minutes) {
@@ -297,8 +301,15 @@ window.updateCardHudStats = function (stats) {
     }
   }
 
+  // Update Retention Bar & Text
+  const retBar = document.querySelector('.js-hud-retention-bar');
+  if (retBar) retBar.style.width = (stats.retrievability || 100) + '%';
+
+  const retText = document.querySelector('.js-hud-retention-text');
+  if (retText) retText.textContent = (stats.retrievability || 100) + '%';
+
   const stabEl = document.querySelector('.js-hud-stability');
-  if (stabEl) stabEl.textContent = (stats.stability || 0).toFixed(1) + ' ngày';
+  if (stabEl) stabEl.textContent = '(' + (stats.stability || 0).toFixed(1) + 'd)';
 
   // Update History
   const histContainer = document.querySelector('.js-hud-history');

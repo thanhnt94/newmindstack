@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import func, case
 from mindstack_app.models import LearningItem, LearningProgress, db
 from mindstack_app.utils.content_renderer import render_text_field
+from ....services.fsrs_service import FsrsService
 
 def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12) -> dict:
     """
@@ -71,14 +72,29 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
         definition = render_text_field(raw_definition)
         
         if progress:
-            mastery = int((progress.mastery or 0.0) * 100)
-            status = progress.status or 'new'
-            is_due = progress.due_time and progress.due_time <= now
+            # Calculate mastery % from stability (proxy: 21 days = 100%)
+            stability = progress.fsrs_stability or 0.0
+            mastery = min(int((stability / 21.0) * 100), 100)
+            retrievability = FsrsService.get_retrievability(progress)
+            
+            # Map status
+            state = progress.fsrs_state
+            if state == 0:
+                status = 'new'
+            elif state in [1, 3]: # Learning/Relearning
+                status = 'learning'
+            elif stability >= 21.0:
+                status = 'mastered'
+            else:
+                status = 'reviewing' # Review state (2)
+
+            is_due = progress.fsrs_due and progress.fsrs_due <= now
             
             # Additional detail from mode_data if needed
             memory_level = progress.memory_level if hasattr(progress, 'memory_level') else 0
         else:
             mastery = 0
+            retrievability = 0 # New items have 0 retrievability for visualization (or 1?) - let's say 0 means 'unknown/new' in this context
             status = 'new'
             is_due = False
             memory_level = 0
@@ -88,6 +104,7 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
             'term': term,
             'definition': definition,
             'mastery': mastery,
+            'retrievability': retrievability,
             'status': status,
             'is_due': is_due,
             'memory_level': memory_level
@@ -113,6 +130,6 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
                 LearningItem.container_id == container_id,
                 LearningProgress.user_id == user_id,
                 LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-                LearningProgress.status != 'new'
+                LearningProgress.fsrs_state != LearningProgress.STATE_NEW
             ).scalar()
     }

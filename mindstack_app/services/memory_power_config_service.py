@@ -143,8 +143,8 @@ Mặc định: 2 (Đúng nhưng cần trợ giúp).
 Dùng hint = không được tính là nhớ tốt.''',
 
         # Learning Mastery
-        'SRS_LEARNING_BASE_MASTERY': '''Mastery cơ bản khi BẮT ĐẦU giai đoạn Learning.
-Mặc định: 0.10 = 10%. Đây là Mastery tối thiểu khi thẻ mới vào Learning.''',
+        'SRS_LEARNING_BASE_MASTERY': '''(Visual Only) Mastery cơ bản khi BẮT ĐẦU giai đoạn Learning.
+Mặc định: 0.10 = 10%. Đây là Mastery tối thiểu hiển thị trên thanh tiến độ.''',
 
         'SRS_LEARNING_MASTERY_PER_REP': '''Mastery TĂNG THÊM cho mỗi lần ôn đúng trong Learning.
 Mặc định: 0.06 = +6% mỗi lần.
@@ -203,10 +203,10 @@ Giá trị từ 0.7 đến 0.97. Mặc định: 0.9 (90%).
 • Thấp hơn (0.85): Ôn ít hơn, interval dài hơn
 Đây là thông số quan trọng nhất ảnh hưởng đến lịch ôn tập.''',
 
-        'FSRS_W_PARAMS': '''17 tham số trọng số (w) của thuật toán FSRS-5.
+        'FSRS_W_PARAMS': '''Các tham số trọng số (w) của thuật toán FSRS.
 Đây là các hệ số được tối ưu hóa từ lịch sử học của bạn.
 ⚠️ CHỈ thay đổi nếu bạn hiểu rõ thuật toán FSRS!
-Format JSON: Mảng 17 số thực. Để khôi phục mặc định, nhấn "Reset".''',
+Format JSON: Mảng số thực (thường là 17 hoặc 19 số tùy phiên bản). Để khôi phục mặc định, nhấn "Reset".''',
     }
 
     # Data types for form rendering
@@ -283,7 +283,7 @@ Format JSON: Mảng 17 số thực. Để khôi phục mặc định, nhấn "Re
             ],
         },
         'mastery': {
-            'label': 'Tính toán Mastery',
+            'label': 'Tính toán Mastery (Hiển thị)',
             'icon': 'fas fa-brain',
             'keys': [
                 'SRS_LEARNING_BASE_MASTERY',

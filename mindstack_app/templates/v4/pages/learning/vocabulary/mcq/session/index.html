@@ -1177,9 +1177,9 @@
                     }
                     if (data.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
                         window.showMemoryPowerFeedback(
-                            data.memory_power.old_memory_power,
-                            data.memory_power.memory_power,
-                            data.set_id // Pass set_id if needed, but function sig is (old, new)
+                            (data.memory_power.old_retrievability || 0) * 100,
+                            (data.memory_power.retrievability || 0) * 100,
+                            data.set_id
                         );
                     }
 

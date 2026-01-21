@@ -23,10 +23,11 @@ def get_listening_eligible_items(container_id, mode='random', custom_pairs=None)
     elif mode == 'review':
         # Items due for review
         now = datetime.now(timezone.utc)
-        base_query = base_query.join(LearningProgress).filter(LearningProgress.due_time <= now)
+        base_query = base_query.join(LearningProgress).filter(LearningProgress.fsrs_due <= now)
     elif mode == 'hard':
         # Items with low easiness factor
-        base_query = base_query.join(LearningProgress).filter(LearningProgress.easiness_factor < 2.5)
+        # Items with high difficulty (replacing low EF)
+        base_query = base_query.join(LearningProgress).filter(LearningProgress.fsrs_difficulty >= 7.5)
     elif mode == 'learned':
         # All items with progress
         base_query = base_query.join(LearningProgress)
