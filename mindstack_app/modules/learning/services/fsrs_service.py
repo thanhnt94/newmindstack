@@ -82,8 +82,7 @@ class FsrsService:
                 repetitions=0,
                 interval=0,
                 correct_streak=0,
-                incorrect_streak=0,
-                first_seen=now
+                incorrect_streak=0
             )
             db.session.add(progress)
             db.session.flush()

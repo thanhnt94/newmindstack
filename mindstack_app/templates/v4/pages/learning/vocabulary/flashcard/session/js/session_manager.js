@@ -228,10 +228,12 @@ async function getNextFlashcardBatch() {
             vague: sessionStatsLocal.vague,
             session_score: sessionScore,
             // Stats for Box B (Current Card)
-            retrievability: currentCardData.initial_stats ? Math.round((currentCardData.initial_stats.retrievability || 0) * 100) : 0,
+            retrievability: currentCardData.initial_stats ? (currentCardData.initial_stats.retrievability || currentCardData.initial_stats.memory_power || 0) : 0,
             current_card_mem_percent: currentCardData.initial_stats ? currentCardData.initial_stats.memory_power : 0,
             current_card_history_right: currentCardData.initial_stats ? currentCardData.initial_stats.correct_count : 0,
-            current_card_history_wrong: currentCardData.initial_stats ? (currentCardData.initial_stats.incorrect_count + (currentCardData.initial_stats.vague_count || 0)) : 0
+            current_card_history_wrong: currentCardData.initial_stats ? (currentCardData.initial_stats.incorrect_count + (currentCardData.initial_stats.vague_count || 0)) : 0,
+            // [NEW] Add Item Streak
+            current_streak: currentCardData.initial_stats ? (currentCardData.initial_stats.current_streak || 0) : 0
         };
         // Dispatch custom event for mobile stats update
         document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
@@ -357,9 +359,9 @@ async function submitFlashcardAnswer(itemId, answer) {
             // [NEW] FSRS metrics for dynamic card info bar
             status: data.new_progress_status || data.statistics?.status || 'new',
             times_reviewed: data.statistics ? data.statistics.times_reviewed : 0,
-            current_streak: window.currentStreak,
+            current_streak: data.statistics ? (data.statistics.current_streak || 0) : 0,
             stability: data.memory_power?.stability || data.statistics?.stability || 0,
-            retrievability: data.memory_power?.retrievability ? Math.round(data.memory_power.retrievability * 100) : (data.statistics?.memory_power || 0),
+            retrievability: data.memory_power?.retrievability ? Math.round(data.memory_power.retrievability) : (data.statistics?.memory_power || 0),
             rating_counts: data.statistics?.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 }
         };
 

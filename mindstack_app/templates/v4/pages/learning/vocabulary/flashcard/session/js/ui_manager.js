@@ -1352,7 +1352,7 @@ window.updateCardHudStats = function (stats) {
     // 1. Memory Power (Percentage)
     const memPowerEls = document.querySelectorAll('.js-fc-memory-score');
     memPowerEls.forEach(el => {
-        const val = (stats.retrievability !== undefined) ? Math.round(stats.retrievability * 100) : (stats.memory_power || 0);
+        const val = (stats.retrievability !== undefined) ? Math.round(stats.retrievability) : (stats.memory_power || 0);
         el.textContent = val + '%';
 
         // Optional: color based on value

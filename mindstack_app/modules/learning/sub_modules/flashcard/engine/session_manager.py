@@ -323,17 +323,17 @@ class FlashcardSessionManager:
         elif self.mode == 'due_only':
             query = apply_exclusion(
                 get_due_items(self.user_id, self.set_id, None)
-            ).order_by(LearningProgress.due_time.asc())
+            ).order_by(LearningProgress.fsrs_due.asc())
             next_item = query.first()
         elif self.mode == 'hard_only':
             query = apply_exclusion(
                 get_hard_items(self.user_id, self.set_id, None)
-            ).order_by(LearningProgress.due_time.asc(), LearningItem.item_id.asc())
+            ).order_by(LearningProgress.fsrs_due.asc(), LearningItem.item_id.asc())
             next_item = query.first()
         elif self.mode == 'all_review':
             query = apply_exclusion(
                 get_all_review_items(self.user_id, self.set_id, None)
-            ).order_by(LearningProgress.due_time.asc(), LearningItem.item_id.asc())
+            ).order_by(LearningProgress.fsrs_due.asc(), LearningItem.item_id.asc())
             next_item = query.first()
         elif self.mode == 'autoplay_learned':
             query = apply_exclusion(
@@ -363,7 +363,7 @@ class FlashcardSessionManager:
         else:
             due_query = apply_exclusion(
                 get_due_items(self.user_id, self.set_id, None)
-            ).order_by(LearningProgress.due_time.asc())
+            ).order_by(LearningProgress.fsrs_due.asc())
             next_item = due_query.first()
             if not next_item:
                 new_query = apply_exclusion(
@@ -425,7 +425,7 @@ class FlashcardSessionManager:
                     fsrs_difficulty = progress.fsrs_difficulty or 5.0
                     
                     # Map state int to string
-                    from mindstack_app.models.learning_progress import LearningProgress
+                    # from mindstack_app.models.learning_progress import LearningProgress # REMOVED shadowing import
                     state_map = {
                         LearningProgress.FSRS_STATE_NEW: 'new',
                         LearningProgress.FSRS_STATE_LEARNING: 'learning',
