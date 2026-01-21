@@ -83,9 +83,9 @@ class LearningMetricsService:
                 func.sum(case((LearningProgress.fsrs_due <= func.now(), 1), else_=0)).label('due'),
                 func.sum(LearningProgress.times_correct).label('correct'),
                 func.sum(LearningProgress.times_incorrect).label('incorrect'),
-                # times_vague removed (legacy)
                 func.avg(LearningProgress.correct_streak).label('avg_streak'),
                 func.max(LearningProgress.correct_streak).label('best_streak'),
+                func.avg(case((LearningProgress.fsrs_state != LearningProgress.STATE_NEW, LearningProgress.fsrs_stability), else_=None)).label('avg_stability'),
             )
             .filter(
                 LearningProgress.user_id == user_id,
@@ -93,6 +93,46 @@ class LearningMetricsService:
             )
             .one()
         )
+        
+        # Calculate Average Retention (Retrievability)
+        # Formula: R = 0.9 ** (elapsed_days / stability)
+        # We fetch records that are NOT new to calculate current retention
+        active_items = (
+            db.session.query(
+                LearningProgress.fsrs_stability,
+                LearningProgress.fsrs_last_review
+            )
+            .filter(
+                LearningProgress.user_id == user_id,
+                LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
+                LearningProgress.fsrs_state != LearningProgress.STATE_NEW,
+                LearningProgress.fsrs_stability > 0
+            )
+            .all()
+        )
+        
+        total_retention = 0.0
+        count_for_retention = 0
+        now = datetime.now(timezone.utc)
+        
+        for stability, last_review in active_items:
+            if not stability or not last_review:
+                continue
+            
+            # Ensure last_review is aware
+            if last_review.tzinfo is None:
+                last_review = last_review.replace(tzinfo=timezone.utc)
+                
+            elapsed_days = (now - last_review).total_seconds() / 86400.0
+            # Cap elapsed_days at 0
+            elapsed_days = max(0, elapsed_days)
+            
+            retention = 0.9 ** (elapsed_days / stability)
+            total_retention += retention
+            count_for_retention += 1
+            
+        avg_retention = (total_retention / count_for_retention) if count_for_retention > 0 else 0.0
+        avg_stability = float(summary.avg_stability or 0)
         
         total = int(summary.total or 0)
         mastered = int(summary.mastered or 0)
@@ -118,6 +158,8 @@ class LearningMetricsService:
             'accuracy_percent': accuracy,
             'avg_streak': float(summary.avg_streak or 0) if summary.avg_streak is not None else 0.0,
             'best_streak': int(summary.best_streak or 0) if summary.best_streak is not None else 0,
+            'avg_stability': round(avg_stability, 1),
+            'avg_retention': round(avg_retention * 100, 1), # Store as percentage 0-100
         }
 
     @classmethod
@@ -181,9 +223,9 @@ class LearningMetricsService:
         summary = (
             db.session.query(
                 func.count(LearningProgress.progress_id).label('total_lessons'),
-                func.sum(case((LearningProgress.legacy_mastery >= 1.0, 1), else_=0)).label('completed'),
-                func.sum(case(((LearningProgress.legacy_mastery > 0) & (LearningProgress.legacy_mastery < 1.0), 1), else_=0)).label('in_progress'),
-                func.avg(LearningProgress.legacy_mastery * 100).label('avg_completion'),
+                func.sum(case((db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) >= 100, 1), else_=0)).label('completed'),
+                func.sum(case(((db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) > 0) & (db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) < 100), 1), else_=0)).label('in_progress'),
+                func.avg(db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer)).label('avg_completion'),
                 func.max(LearningProgress.fsrs_last_review).label('last_progress'),
             )
             .filter(

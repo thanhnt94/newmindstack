@@ -63,7 +63,9 @@
                             <i class="fa-solid fa-{{ card.icon }} text-{{ card.color }}-500 text-base"></i>
                         </div>
                         <p class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{{ card.label }}</p>
-                        <p class="text-2xl font-black text-slate-800 mt-1">{{ "{:,}".format(card.value) }}</p>
+                        <p class="text-2xl font-black text-slate-800 mt-1">
+                            {{ "{:,}".format(card.value|int) }}{{ card.unit if card.unit else '' }}
+                        </p>
                     </div>
                     {% endfor %}
                 </div>
@@ -223,8 +225,10 @@
                             <i class="fa-solid fa-{{ achievement.icon }}"></i>
                         </div>
                         <div>
-                            <p class="text-2xl font-black text-slate-800 leading-none">{{
-                                "{:,}".format(achievement.value) }}</p>
+                            <p class="text-2xl font-black text-slate-800 leading-none">
+                                {{ "{:,}".format(achievement.value|int) }}{{ achievement.unit if achievement.unit else
+                                '' }}
+                            </p>
                             <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">{{
                                 achievement.label }}</p>
                         </div>

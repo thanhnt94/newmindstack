@@ -52,7 +52,7 @@ class VocabularyItemStats:
         # 4. Aggregations from Logs
         total_attempts = len(logs)
         total_correct = sum(1 for log in logs if _is_log_correct(log))
-        total_duration_ms = sum(log.duration_ms for log in logs if log.duration_ms)
+        total_duration_ms = sum(log.review_duration for log in logs if log.review_duration)
         total_score = sum(log.score_change for log in logs if log.score_change is not None)
         
         # Mode distribution with detailed stats
@@ -63,8 +63,8 @@ class VocabularyItemStats:
                 mode_counts[mode] = {'count': 0, 'correct': 0, 'duration': 0, 'score': 0}
             
             mode_counts[mode]['count'] += 1
-            if log.duration_ms:
-                mode_counts[mode]['duration'] += log.duration_ms
+            if log.review_duration:
+                mode_counts[mode]['duration'] += log.review_duration
             if _is_log_correct(log):
                 mode_counts[mode]['correct'] += 1
             if log.score_change:
@@ -76,7 +76,10 @@ class VocabularyItemStats:
             mode_data['avg_duration'] = round(mode_data['duration'] / mode_data['count'], 0) if mode_data['count'] > 0 else 0
 
         # Current State
-        stability = progress.fsrs_stability or 0.0
+        stability = progress.fsrs_stability if progress else 0.0
+        difficulty = progress.fsrs_difficulty if progress else 0.0
+        state = progress.fsrs_state if progress else 0
+        
         mastery = min(stability / 21.0, 1.0) if progress else 0.0
         streak = progress.correct_streak if progress else 0
         last_reviewed = progress.fsrs_last_review if progress else None
@@ -115,7 +118,7 @@ class VocabularyItemStats:
                     rating_dist['easy'] += 1
         
         # NEW: Time metrics (min, max)
-        durations = [log.duration_ms for log in logs if log.duration_ms and log.duration_ms > 0]
+        durations = [log.review_duration for log in logs if log.review_duration and log.review_duration > 0]
         min_duration = min(durations) if durations else 0
         max_duration = max(durations) if durations else 0
         
@@ -145,9 +148,9 @@ class VocabularyItemStats:
         # Determine permissions
         can_edit = False
         edit_url = ""
-        user = User.query.get(user_id)
-        if user:
-            if user.user_role == User.ROLE_ADMIN:
+        user_obj = User.query.get(user_id)
+        if user_obj:
+            if user_obj.user_role == User.ROLE_ADMIN:
                 can_edit = True
             elif item.container and item.container.creator_user_id == user_id:
                 can_edit = True
@@ -202,7 +205,11 @@ class VocabularyItemStats:
                 'last_reviewed': last_reviewed,
                 'next_due': next_due,
                 'due_relative': _get_relative_time_string(next_due) if next_due else 'Chưa lên lịch',
-                'ease_factor': round(progress.fsrs_difficulty, 2) if progress else 0, # FSRS Difficulty (1-10)
+                'ease_factor': round(difficulty, 2), # Backward compatibility
+                'fsrs_stability': round(stability, 2),
+                'fsrs_difficulty': round(difficulty, 2),
+                'fsrs_state': state,
+                'fsrs_state_name': _get_state_name(state),
                 'retrievability': round(FsrsService.get_retrievability(progress) * 100, 1) if progress else 0, # [NEW]
                 'mastery_trend': mastery_trend,
                 'first_reviewed': first_reviewed,
@@ -233,10 +240,12 @@ class VocabularyItemStats:
                     'timestamp': log.timestamp,
                     'mode': log.review_type,
                     'result': 'Correct' if _is_log_correct(log) else 'Incorrect',
-                    'duration_ms': log.duration_ms,
+                    'duration_ms': log.review_duration,
                     'user_answer': log.user_answer,
                     'score_change': log.score_change,
                     'rating': log.rating,
+                    'stability_snapshot': round(log.fsrs_stability or 0, 2),
+                    'difficulty_snapshot': round(log.fsrs_difficulty or 0, 2),
                     'mastery_snapshot': min((log.fsrs_stability or 0)/21.0, 1.0)
                 }
                 for log in logs[:50] # Limit history list
@@ -246,6 +255,17 @@ class VocabularyItemStats:
                 'edit_url': edit_url
             }
         }
+
+def _get_state_name(state: int) -> str:
+    """Map state integer to human readable name."""
+    names = {
+        0: 'New',
+        1: 'Learning',
+        2: 'Review',
+        3: 'Relearning'
+    }
+    return names.get(state, 'Unknown')
+
 
 def _is_log_correct(log) -> bool:
     """Determine if a review log represents a correct answer."""

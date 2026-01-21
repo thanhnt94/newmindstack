@@ -552,7 +552,6 @@ def _build_course_items_query(user_id):
             LearningContainer.title.label('container_title'),
             LearningItem.item_id.label('item_id'),
             LearningItem.content.label('content'),
-            LearningProgress.legacy_mastery.label('mastery'),  # Mapped to legacy_mastery
             LearningProgress.fsrs_last_review.label('last_updated'),
             LearningProgress.mode_data.label('mode_data'),
         )
@@ -574,14 +573,20 @@ def _apply_course_category_filter(query, status):
 
     status = status.lower()
     if status == 'completed':
-        return query.filter(LearningProgress.legacy_mastery >= 1.0)
+        # Course uses completion_percentage in mode_data
+        return query.filter(db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) >= 100)
     if status == 'in_progress':
         return query.filter(
-            LearningProgress.legacy_mastery > 0,
-            LearningProgress.legacy_mastery < 1.0,
+            db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) > 0,
+            db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) < 100,
         )
     if status == 'not_started':
-        return query.filter(LearningProgress.legacy_mastery == 0)
+        return query.filter(
+            or_(
+                LearningProgress.mode_data['completion_percentage'].is_(None),
+                db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) == 0
+            )
+        )
 
     return query
 
@@ -609,9 +614,9 @@ def paginate_course_items(user_id, container_id=None, status=None, page=1, per_p
     records = []
     for row in rows:
         content = row.content or {}
-        # Extract completion_percentage from mode_data or calculate from mastery
+        # Extract completion_percentage from mode_data
         mode_data = row.mode_data or {}
-        completion_pct = mode_data.get('completion_percentage', int((row.mastery or 0) * 100))
+        completion_pct = mode_data.get('completion_percentage', 0)
         records.append({
             'container_id': row.container_id,
             'container_title': row.container_title,
@@ -839,7 +844,7 @@ def get_course_activity_series(user_id, container_id, timeframe='30d'):
     timeframe_start, timeframe_end = _resolve_timeframe_dates(timeframe)
 
     query = (
-        db.session.query(LearningProgress.last_reviewed, LearningProgress.mastery, LearningProgress.mode_data)
+        db.session.query(LearningProgress.fsrs_last_review, LearningProgress.mode_data)
         .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .filter(
             LearningProgress.user_id == user_id,
@@ -852,7 +857,7 @@ def get_course_activity_series(user_id, container_id, timeframe='30d'):
     review_counts = defaultdict(int)
     min_date_seen = None
 
-    for last_updated, mastery, mode_data in query.all():
+    for last_updated, mode_data in query.all():
         dt_value = _parse_history_datetime(last_updated)
         if not dt_value:
             continue
@@ -865,9 +870,9 @@ def get_course_activity_series(user_id, container_id, timeframe='30d'):
         if entry_date > timeframe_end:
             continue
 
-        # Get completion_percentage from mode_data or mastery
+        # Get completion_percentage from mode_data
         mode_data_dict = mode_data or {}
-        completion_percentage = mode_data_dict.get('completion_percentage', int((mastery or 0) * 100))
+        completion_percentage = mode_data_dict.get('completion_percentage', 0)
         if completion_percentage and completion_percentage > 0:
             new_counts[entry_date] += 1
         if completion_percentage and completion_percentage >= 100:
@@ -948,10 +953,10 @@ def get_flashcard_set_metrics(user_id, container_id=None, status=None, page=1, p
         db.session.query(
             LearningItem.container_id.label('container_id'),
             func.count(LearningProgress.progress_id).label('studied_cards'),
-            func.sum(case((LearningProgress.status == 'mastered', 1), else_=0)).label('learned_cards'),
+            # FSRS Mastery: Stability >= 21 days
+            func.sum(case((LearningProgress.fsrs_stability >= 21.0, 1), else_=0)).label('learned_cards'),
             func.sum(LearningProgress.times_correct).label('total_correct'),
             func.sum(LearningProgress.times_incorrect).label('total_incorrect'),
-            func.sum(LearningProgress.times_vague).label('total_vague'),
             func.avg(LearningProgress.correct_streak).label('avg_correct_streak'),
             func.max(LearningProgress.correct_streak).label('best_correct_streak'),
         )
@@ -987,8 +992,7 @@ def get_flashcard_set_metrics(user_id, container_id=None, status=None, page=1, p
         learned_cards = int(progress.learned_cards or 0) if progress else 0
         total_correct = int(progress.total_correct or 0) if progress else 0
         total_incorrect = int(progress.total_incorrect or 0) if progress else 0
-        total_vague = int(progress.total_vague or 0) if progress else 0
-        total_attempts = total_correct + total_incorrect + total_vague
+        total_attempts = total_correct + total_incorrect
 
         accuracy_percent = None
         if total_attempts > 0:
@@ -1191,9 +1195,10 @@ def get_course_metrics(user_id, container_id=None, status=None, page=1, per_page
         db.session.query(
             LearningItem.container_id.label('container_id'),
             func.count(LearningProgress.progress_id).label('lessons_started'),
-            func.sum(case((LearningProgress.mastery >= 1.0, 1), else_=0)).label('lessons_completed'),
-            func.avg(LearningProgress.mastery * 100).label('avg_completion'),
-            func.max(LearningProgress.last_reviewed).label('last_activity'),
+            # Mastery > 0.99 or 100% completion in JSON
+            func.sum(case((db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) >= 100, 1), else_=0)).label('lessons_completed'),
+            func.avg(db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer)).label('avg_completion'),
+            func.max(LearningProgress.fsrs_last_review).label('last_activity'),
         )
         .join(LearningItem, LearningItem.item_id == LearningProgress.item_id)
         .filter(

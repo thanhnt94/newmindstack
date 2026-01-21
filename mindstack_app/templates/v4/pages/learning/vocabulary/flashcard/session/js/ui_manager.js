@@ -212,15 +212,18 @@ function getPreviewButtonHtml() {
 
 function generateDynamicButtons(buttonCount) {
     // Standard FSRS 4-button system (rating 1-4)
+    const scores = window.FlashcardConfig.scores || { again: 1, hard: 5, good: 10, easy: 15 };
+
     const buttons = [
-        { variant: 'again', value: 'again', title: 'Quên', icon: 'fas fa-undo', quality: 1 },
-        { variant: 'hard', value: 'hard', title: 'Khó', icon: 'fas fa-fire', quality: 2 },
-        { variant: 'good', value: 'good', title: 'Được', icon: 'fas fa-thumbs-up', quality: 3 },
-        { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-star', quality: 4 }
+        { variant: 'again', value: 'again', title: 'Quên', icon: 'fas fa-undo', quality: 1, points: scores.again },
+        { variant: 'hard', value: 'hard', title: 'Khó', icon: 'fas fa-fire', quality: 2, points: scores.hard },
+        { variant: 'good', value: 'good', title: 'Được', icon: 'fas fa-thumbs-up', quality: 3, points: scores.good },
+        { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-star', quality: 4, points: scores.easy }
     ];
     return buttons.map(btn => {
         const iconHtml = btn.icon ? `<span class="rating-btn__icon"><i class="${btn.icon}"></i></span>` : '';
-        return `<button class="btn rating-btn rating-btn--${btn.variant}" data-answer="${btn.value}" data-quality="${btn.quality}">${iconHtml}<span class="rating-btn__title">${btn.title}</span></button>`;
+        const pointsHtml = `<span class="rating-btn__points">+${btn.points}</span>`;
+        return `<button class="btn rating-btn rating-btn--${btn.variant}" data-answer="${btn.value}" data-quality="${btn.quality}">${iconHtml}<span class="rating-btn__title">${btn.title}</span>${pointsHtml}</button>`;
     }).join('');
 }
 

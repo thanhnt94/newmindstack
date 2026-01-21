@@ -93,93 +93,46 @@ class ScoringEngine:
         base_points_override: Optional[int] = None
     ) -> ScoreResult:
         """
-        Calculate points for answering a learning item.
-
+        Calculate points for answering a learning item using Fixed FSRS Scoring.
+        
         Args:
-            mode: Learning mode (flashcard, quiz_mcq, typing, etc.)
-            quality: Answer quality (0-5)
-            is_correct: Whether the answer was correct
+            mode: Learning mode
+            quality: FSRS Rating (1=Again, 2=Hard, 3=Good, 4=Easy)
+            is_correct: Whether the answer was correct (rating >= 2)
             is_first_time: Whether this is the first time seeing this item
             correct_streak: Current consecutive correct answers
-            response_time_seconds: Time taken to answer (for speed bonus)
-            base_points_override: Override preset base points with a custom value
+            response_time_seconds: (Ignored in fixed model)
+            base_points_override: (Ignored in fixed model)
 
         Returns:
             ScoreResult with breakdown of points earned
         """
-        # Normalize mode
-        if isinstance(mode, str):
-            try:
-                mode = LearningMode(mode.lower())
-            except ValueError:
-                mode = LearningMode.FLASHCARD
+        # 1. Map Reality to Config Keys
+        from flask import current_app
+        
+        score_map = {
+            1: current_app.config.get('SCORE_FSRS_AGAIN', 1),
+            2: current_app.config.get('SCORE_FSRS_HARD', 5),
+            3: current_app.config.get('SCORE_FSRS_GOOD', 10),
+            4: current_app.config.get('SCORE_FSRS_EASY', 15)
+        }
+        
+        base = score_map.get(quality, 0)
         
         breakdown: dict[str, int] = {}
-        total = 0
-        reasons: list[str] = []
-
-        # No points for incorrect answers
-        if not is_correct:
-            return ScoreResult(
-                base_points=0,
-                bonus_points=0,
-                total_points=0,
-                breakdown={},
-                reason="Incorrect answer"
-            )
-
-        # === BASE POINTS ===
-        if base_points_override is not None:
-            base = base_points_override
-        else:
-            base = ScoringEngine.MODE_BASE_POINTS.get(mode, 10)
-        
-        # Quality scaling (quality 3 = 50%, quality 4 = 75%, quality 5 = 100%)
-        quality_multiplier = max(0.5, min(1.0, (quality - 2) * 0.25))
-        base = int(base * quality_multiplier)
-        
         breakdown['base'] = base
-        total += base
-        reasons.append(f"Correct ({mode.value})")
-
-        # === FIRST TIME BONUS ===
-        if is_first_time:
-            breakdown['first_time'] = ScoringEngine.FIRST_TIME_BONUS
-            total += ScoringEngine.FIRST_TIME_BONUS
-            reasons.append("First time")
-
-        # === STREAK BONUS ===
-        streak_bonus = 0
-        for threshold, bonus in ScoringEngine.STREAK_BONUS_THRESHOLDS:
-            if correct_streak >= threshold:
-                streak_bonus = bonus
+        total = base
         
-        if streak_bonus > 0:
-            breakdown['streak'] = streak_bonus
-            total += streak_bonus
-            reasons.append(f"Streak x{correct_streak}")
-
-        # === PERFECT BONUS ===
-        if quality == 5:
-            breakdown['perfect'] = ScoringEngine.PERFECT_BONUS
-            total += ScoringEngine.PERFECT_BONUS
-            reasons.append("Perfect")
-
-        # === SPEED BONUS ===
-        if response_time_seconds is not None and mode == LearningMode.SPEED:
-            speed_multiplier = 1.0
-            for time_threshold, multiplier in ScoringEngine.SPEED_MULTIPLIERS:
-                if response_time_seconds <= time_threshold:
-                    speed_multiplier = multiplier
-                    break
+        reasons: list[str] = [f"Rating {quality}"]
+        
+        # 2. Simplified Streak Bonus (Every 10 streaks)
+        bonus = 0
+        if is_correct and correct_streak > 0 and correct_streak % 10 == 0:
+            bonus = 5
+            breakdown['streak_bonus'] = bonus
+            total += bonus
+            reasons.append(f"Streak {correct_streak}")
             
-            if speed_multiplier > 1.0:
-                speed_extra = int(base * (speed_multiplier - 1.0))
-                breakdown['speed'] = speed_extra
-                total += speed_extra
-                reasons.append(f"Fast ({response_time_seconds:.1f}s)")
-
-        bonus = total - base
         reason = " + ".join(reasons)
 
         return ScoreResult(

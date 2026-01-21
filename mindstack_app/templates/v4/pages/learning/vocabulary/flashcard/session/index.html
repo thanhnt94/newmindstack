@@ -110,6 +110,10 @@ using the .flashcard-session-active class on the body #}
   const _visualSettings = {{ (saved_visual_settings or { }) | tojson }};
   const _autoSaveOn = {{ saved_auto_save | default (true) | tojson }};
   const _currentUserTotalScore = {{ current_user.total_score | default (0) }};
+  const _scoreAgain = {{ config.SCORE_FSRS_AGAIN | default (1) }};
+  const _scoreHard = {{ config.SCORE_FSRS_HARD | default (5) }};
+  const _scoreGood = {{ config.SCORE_FSRS_GOOD | default (10) }};
+  const _scoreEasy = {{ config.SCORE_FSRS_EASY | default (15) }};
 
   window.FlashcardConfig = {
     getFlashcardBatchUrl: "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}",
@@ -128,8 +132,15 @@ using the .flashcard-session-active class on the body #}
     isAutoplaySession: _isAutoplaySession,
     autoplayMode: _autoplayMode,
     visualSettings: _visualSettings,
+    visualSettings: _visualSettings,
     autoSaveOn: _autoSaveOn,
-    modeDisplayName: "{{ mode_display_text }}"
+    modeDisplayName: "{{ mode_display_text }}",
+    scores: {
+      again: _scoreAgain,
+      hard: _scoreHard,
+      good: _scoreGood,
+      easy: _scoreEasy
+    }
   };
 
   const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');

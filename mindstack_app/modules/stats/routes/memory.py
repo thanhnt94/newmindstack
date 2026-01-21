@@ -32,25 +32,28 @@ def get_memory_item_stats(item_id):
             'status': 'new'
         }), 404
     
-    # Get real-time stats using SrsService
+    # Get real-time stats using FsrsService
     stats = FsrsService.get_item_stats(progress)
     
     # Add extra fields
     stats['correct_streak'] = progress.correct_streak or 0
     stats['incorrect_streak'] = progress.incorrect_streak or 0
-    stats['next_review'] = progress.due_time.isoformat() if progress.due_time else None
+    stats['next_review'] = progress.fsrs_due.isoformat() if progress.fsrs_due else None
     
     # Convert to percentages (0-100)
-    stats['mastery'] = round(stats['mastery'] * 100, 1)
-    stats['retention'] = round(stats['retention'] * 100, 1)
-    stats['memory_power'] = round(stats['memory_power'] * 100, 1)
+    # Note: get_item_stats returns stability, difficulty, retrievability, is_due, state
+    stats['retention'] = round(stats['retrievability'] * 100, 1)
+    # 'memory_power' is now mapped to retention for compatibility
+    stats['memory_power'] = stats['retention']
+    # 'mastery' logic (optional, keeping stability as proxy)
+    stats['mastery'] = round(min(100, (stats['stability'] / 21.0) * 100), 1)
     
     # Add chart data for history
     review_history = FsrsService.get_item_review_history(
         item_id=item_id,
         user_id=current_user.user_id,
         limit=50
-    )
+    ) if hasattr(FsrsService, 'get_item_review_history') else []
     
     stats['chart_data'] = {
         'memory_power_timeline': review_history,
@@ -69,15 +72,19 @@ def get_memory_container_stats(container_id):
     """
     mode = request.args.get('mode', 'flashcard')
     
-    # Use SrsService to get aggregate stats
-    stats = FsrsService.get_container_stats(
-        user_id=current_user.user_id,
-        container_id=container_id,
-        mode=mode
-    )
+    # Get all progress for this container
+    from mindstack_app.models import LearningItem
+    progress_records = LearningProgress.query.join(LearningItem).filter(
+        LearningProgress.user_id == current_user.user_id,
+        LearningItem.container_id == container_id,
+        LearningProgress.learning_mode == mode
+    ).all()
+
+    # Use FsrsService to get aggregate stats
+    stats = FsrsService.calculate_batch_stats(progress_records)
     
     # Convert average to percentage
-    stats['average_memory_power'] = round(stats['average_memory_power'] * 100, 1)
+    stats['average_memory_power'] = round(stats['average_retrievability'] * 100, 1)
     
     # Add chart data for timeline
     history = FsrsService.get_container_history(
@@ -85,7 +92,7 @@ def get_memory_container_stats(container_id):
         container_id=container_id,
         days=30,
         mode=mode
-    )
+    ) if hasattr(FsrsService, 'get_container_history') else []
     
     stats['chart_data'] = {
         'timeline': history,
@@ -129,9 +136,8 @@ def get_memory_batch_stats():
         stats['incorrect_streak'] = progress.incorrect_streak or 0
         
         # Convert to percentages
-        stats['mastery'] = round(stats['mastery'] * 100, 1)
-        stats['retention'] = round(stats['retention'] * 100, 1)
-        stats['memory_power'] = round(stats['memory_power'] * 100, 1)
+        stats['retention'] = round(stats['retrievability'] * 100, 1)
+        stats['memory_power'] = stats['retention']
         
         results.append(stats)
     
@@ -164,14 +170,15 @@ def get_memory_dashboard_stats():
         })
     
     # Overall stats
-    from mindstack_app.modules.learning.logics.unified_srs import UnifiedSrsSystem
-    overall_stats = UnifiedSrsSystem.calculate_batch_stats(all_progress)
+    overall_stats = FsrsService.calculate_batch_stats(all_progress)
     
     # Group by container
     from collections import defaultdict
     container_groups = defaultdict(list)
     for p in all_progress:
-        container_groups[p.item.container_id].append(p)
+        # Check if item points to a container
+        if p.item:
+            container_groups[p.item.container_id].append(p)
     
     # Calculate per-container stats
     containers = []
@@ -180,11 +187,11 @@ def get_memory_dashboard_stats():
         if not container:
             continue
         
-        container_stats = UnifiedSrsSystem.calculate_batch_stats(progress_list)
+        container_stats = FsrsService.calculate_batch_stats(progress_list)
         containers.append({
             'container_id': container_id,
             'name': container.title,
-            'average_memory_power': round(container_stats['average_memory_power'] * 100, 1),
+            'average_memory_power': round(container_stats['average_retrievability'] * 100, 1),
             'total_items': container_stats['total_items'],
             'due_items': container_stats['due_items'],
             'strong_items': container_stats['strong_items'],
@@ -194,7 +201,7 @@ def get_memory_dashboard_stats():
     
     return jsonify({
         'total_items_studied': overall_stats['total_items'],
-        'average_memory_power': round(overall_stats['average_memory_power'] * 100, 1),
+        'average_memory_power': round(overall_stats['average_retrievability'] * 100, 1),
         'due_today': overall_stats['due_items'],
         'strong_items': overall_stats['strong_items'],
         'medium_items': overall_stats['medium_items'],

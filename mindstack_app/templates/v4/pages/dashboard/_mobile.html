@@ -34,7 +34,7 @@
 
             <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
                 <i class="fa-solid fa-star text-amber-500 text-sm animation-bounce"></i>
-                <span class="text-xs font-bold text-slate-700">{{ "{:,}".format(score_overview.total) }}</span>
+                <span class="text-xs font-bold text-slate-700">{{ "{:,}".format(score_overview.total|int) }}</span>
             </div>
 
             <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
@@ -129,13 +129,26 @@
         <div class="grid grid-cols-2 gap-4">
             <div
                 class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <div class="text-indigo-600 text-3xl font-black mb-1">{{ "{:,}".format(score_overview.total) }}</div>
+                <div class="text-indigo-600 text-3xl font-black mb-1">{{ "{:,}".format(score_overview.total|int) }}
+                </div>
                 <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Điểm thưởng</div>
             </div>
             <div
                 class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
                 <div class="text-emerald-500 text-3xl font-black mb-1">{{ quiz_summary.mastered }}</div>
                 <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Quiz Mastered</div>
+            </div>
+
+            {# FSRS ADDITIONS #}
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-purple-600 text-3xl font-black mb-1">{{ flashcard_summary.avg_retention|int }}%</div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ghi nhớ (Retention)</div>
+            </div>
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-rose-500 text-3xl font-black mb-1">{{ flashcard_summary.avg_stability|int }}d</div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ổn định (Stability)</div>
             </div>
         </div>
 

@@ -73,30 +73,30 @@
                         <i class="fa-solid fa-book-open mr-2"></i> Học từ vựng (Vocabulary)
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Flashcard Fields -->
+                        <!-- Flashcard FSRS Rating Scores -->
                         <div>
-                            <label class="block text-sm font-medium mb-1">Flashcard (Xem trước)</label>
-                            <input type="number" name="FLASHCARD_PREVIEW_BONUS"
-                                value="{{ config.FLASHCARD_PREVIEW_BONUS }}" class="form-input w-full" />
-                            <div class="text-xs text-slate-500 mt-1">Khi user xem thẻ mới lần đầu.</div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Flashcard (Ôn sớm - Tốt)</label>
-                            <input type="number" name="FLASHCARD_EARLY_REVIEW_HIGH"
-                                value="{{ config.FLASHCARD_EARLY_REVIEW_HIGH }}" class="form-input w-full" />
-                            <div class="text-xs text-slate-500 mt-1">Ôn trước hạn, trả lời >= 4.</div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Flashcard (Đúng hạn - Tốt)</label>
-                            <input type="number" name="FLASHCARD_REVIEW_HIGH" value="{{ config.FLASHCARD_REVIEW_HIGH }}"
+                            <label class="block text-sm font-medium mb-1">Rating 1 (Again/Quên)</label>
+                            <input type="number" name="SCORE_FSRS_AGAIN" value="{{ config.SCORE_FSRS_AGAIN }}"
                                 class="form-input w-full" />
-                            <div class="text-xs text-slate-500 mt-1">Ôn đúng hạn, trả lời >= 4.</div>
+                            <div class="text-xs text-slate-500 mt-1">Điểm khi người dùng chọn "Quên".</div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium mb-1">Flashcard (Đúng hạn - Khá)</label>
-                            <input type="number" name="FLASHCARD_REVIEW_MEDIUM"
-                                value="{{ config.FLASHCARD_REVIEW_MEDIUM }}" class="form-input w-full" />
-                            <div class="text-xs text-slate-500 mt-1">Ôn đúng hạn, trả lời 2-3.</div>
+                            <label class="block text-sm font-medium mb-1">Rating 2 (Hard/Khó)</label>
+                            <input type="number" name="SCORE_FSRS_HARD" value="{{ config.SCORE_FSRS_HARD }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Khi trả lời được nhưng thấy "Khó".</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Rating 3 (Good/Được)</label>
+                            <input type="number" name="SCORE_FSRS_GOOD" value="{{ config.SCORE_FSRS_GOOD }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Khi trả lời trôi chảy "Bình thường".</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Rating 4 (Easy/Dễ)</label>
+                            <input type="number" name="SCORE_FSRS_EASY" value="{{ config.SCORE_FSRS_EASY }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Khi trả lời cực kỳ "Dễ".</div>
                         </div>
 
                         <!-- Typing Fields -->

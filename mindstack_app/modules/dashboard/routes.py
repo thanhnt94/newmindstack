@@ -152,58 +152,62 @@ def dashboard():
     score_cards = [
         {
             'label': 'Điểm hôm nay',
-            'value': score_overview['today'],
+            'value': int(score_overview['today']),
             'icon': 'sun',
-            'accent': 'from-indigo-500 to-indigo-600',
+            'color': 'indigo',
         },
         {
-            'label': 'Điểm 7 ngày',
-            'value': score_overview['week'],
-            'icon': 'calendar-week',
-            'accent': 'from-emerald-500 to-emerald-600',
+            'label': 'Ghi nhớ (Retention)',
+            'value': int(flashcard_summary.get('avg_retention', 0)),
+            'unit': '%',
+            'icon': 'brain',
+            'color': 'emerald',
         },
         {
-            'label': 'Điểm tích lũy',
-            'value': score_overview['total'],
-            'icon': 'trophy',
-            'accent': 'from-amber-500 to-amber-600',
+            'label': 'Độ ổn định TB',
+            'value': int(flashcard_summary.get('avg_stability', 0)),
+            'unit': 'd',
+            'icon': 'shield-heart',
+            'color': 'amber',
         },
         {
             'label': 'Ngày hoạt động',
-            'value': score_overview['active_days'],
+            'value': int(score_overview['active_days']),
             'icon': 'fire',
-            'accent': 'from-rose-500 to-rose-600',
+            'color': 'rose',
         },
     ]
 
     achievements = [
         {
             'label': 'Flashcard đã thành thạo',
-            'value': flashcard_summary['mastered'],
-            'detail': f"Trong tổng {flashcard_summary['total']} thẻ" if flashcard_summary['total'] else 'Bắt đầu tạo bộ thẻ đầu tiên',
+            'value': int(flashcard_summary['mastered']),
+            'detail': f"Trong tổng {int(flashcard_summary['total'])} thẻ" if flashcard_summary['total'] else 'Bắt đầu tạo bộ thẻ đầu tiên',
             'icon': 'clone',
             'tone': 'indigo',
         },
         {
-            'label': 'Quiz đã nắm vững',
-            'value': quiz_summary['mastered'],
-            'detail': f"{quiz_summary['completion_percent']}% câu hỏi đã thành thạo",
-            'icon': 'circle-question',
+            'label': 'Khả năng ghi nhớ',
+            'value': int(flashcard_summary.get('avg_retention', 0)),
+            'unit': '%',
+            'detail': 'Dự báo tỷ lệ thuộc bài hiện tại',
+            'icon': 'brain',
             'tone': 'emerald',
         },
         {
-            'label': 'Khóa học hoàn thành',
-            'value': course_summary['completed_lessons'], # Corrected key
-            'detail': f"Đang theo học {course_summary['in_progress_lessons']} bài", # Corrected key
-            'icon': 'graduation-cap',
-            'tone': 'amber',
+            'label': 'Độ ổn định trí nhớ',
+            'value': int(flashcard_summary.get('avg_stability', 0)),
+            'unit': 'd',
+            'detail': 'Khoảng cách ôn tập trung bình',
+            'icon': 'shield-heart',
+            'tone': 'rose',
         },
         {
-            'label': 'Điểm thưởng tích lũy',
-            'value': score_overview['total'],
-            'detail': 'Tích lũy từ mọi hoạt động học tập',
-            'icon': 'star',
-            'tone': 'violet',
+            'label': 'Khóa học hoàn thành',
+            'value': int(course_summary['completed_lessons']),
+            'detail': f"Đang theo học {int(course_summary['in_progress_lessons'])} bài",
+            'icon': 'graduation-cap',
+            'tone': 'amber',
         },
     ]
 
@@ -228,6 +232,20 @@ def dashboard():
             'unit': 'bài',
             'trend': f"{course_updates_week} trong 7 ngày qua",
             'icon': 'book-open',
+        },
+        {
+            'label': 'Khả năng ghi nhớ',
+            'value': flashcard_summary.get('avg_retention', 0),
+            'unit': '%',
+            'trend': 'Mức độ thuộc bài dự kiến',
+            'icon': 'brain',
+        },
+        {
+            'label': 'Độ ổn định trí nhớ',
+            'value': flashcard_summary.get('avg_stability', 0),
+            'unit': 'ngày',
+            'trend': 'Khoảng cách ôn tập TB',
+            'icon': 'shield-heart',
         },
     ]
 
@@ -255,7 +273,7 @@ def dashboard():
         **template_context,
         flashcard_summary=flashcard_summary,
         quiz_summary=quiz_summary,
-        course_summary=metrics_mimic['course_summary'], # Use mimic for consistency in keys if template expects it
+        course_summary=course_summary, 
         score_overview=score_overview,
         motivation_message=motivation_message,
         shortcut_actions=shortcut_actions,
