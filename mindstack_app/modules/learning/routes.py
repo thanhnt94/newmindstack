@@ -287,7 +287,7 @@ def session_summary(session_id):
             'timestamp': log.timestamp,
             'rating': log.rating,
             'score_change': log.score_change,
-            'duration_ms': log.duration_ms,
+            'duration_ms': log.review_duration,
             'item_id': log.item_id,
             'item_content': None,
             'item_type': None
