@@ -77,56 +77,67 @@ class HybridFSRSEngine:
             return (max(0.1, float(state.stability)), max(1.0, min(10.0, float(state.difficulty))))
 
     def _from_next_state(self, item_state, card_state: CardState, rating: int) -> CardState:
-        """Convert fsrs-rs ItemState to local CardState."""
+        """
+        Convert fsrs-rs ItemState to local CardState.
+        
+        [REFACTORED] State transition now based on interval (scheduled_days) per Native FSRS v5:
+        - interval >= 1.0 day: STATE_REVIEW (Graduated to Review)
+        - interval < 1.0 day: STATE_LEARNING or STATE_RELEARNING (Short-term memory)
+        
+        This eliminates "Learning Hell" where users get stuck in Learning state.
+        """
         memory = item_state.memory
-        interval = item_state.interval
+        interval = float(item_state.interval)
         
-        # 1. Determine new state based on rating and previous state
-        # In FSRS-rs logic:
-        # - New card -> Learning (or Review if Easy) - usually simplified to Learning/Review
-        # - Learning -> Learning/Review
-        # - Review -> Review/Relearning
+        # ============================================================
+        # 1. NATIVE FSRS STATE TRANSITION (Interval-Based)
+        # ============================================================
+        # Core principle: The INTERVAL determines cognitive state, not the button pressed.
+        # - Long interval (>= 1 day) = Memory is stable enough for spaced review
+        # - Short interval (< 1 day) = Still in active learning/relearning phase
         
-        # Simplified logic matching FSRS v5 recommendations:
-        if rating == Rating.Again:
-            # Forgot
-            if card_state.state == STATE_NEW:
-                new_state = STATE_LEARNING
-            elif card_state.state == STATE_LEARNING:
-                new_state = STATE_LEARNING
-            elif card_state.state == STATE_REVIEW:
-                new_state = STATE_RELEARNING # Review -> Relearning (Lapse)
-            elif card_state.state == STATE_RELEARNING:
-                new_state = STATE_RELEARNING
-            else:
-                new_state = STATE_LEARNING # Fallback
+        GRADUATION_THRESHOLD_DAYS = 1.0  # >= 1 day = Review state
+        
+        if interval >= GRADUATION_THRESHOLD_DAYS:
+            # Long-term memory: Card graduates to Review state
+            new_state = STATE_REVIEW
         else:
-            # Remembered (Hard/Good/Easy)
-            if card_state.state == STATE_NEW:
-                new_state = STATE_LEARNING if rating != Rating.Easy else STATE_REVIEW
-            elif card_state.state == STATE_LEARNING or card_state.state == STATE_RELEARNING:
-                # If interval is >= 1 day, move to Review, else stay in Learning
-                # Standard FSRS might promote based on stability.
-                # For simplicity here, we assume any non-Again moves towards Review.
-                new_state = STATE_REVIEW
+            # Short-term memory: Determine based on lapse history
+            if rating == Rating.Again:
+                # User forgot - check if this is a lapse from mature state
+                if card_state.state == STATE_REVIEW:
+                    new_state = STATE_RELEARNING  # Review -> Relearning (Lapse)
+                elif card_state.state == STATE_RELEARNING:
+                    new_state = STATE_RELEARNING  # Stay in Relearning
+                else:
+                    new_state = STATE_LEARNING    # New/Learning -> Stay in Learning
             else:
-                new_state = STATE_REVIEW
-
-        # 2. Update Lapses
-        # Logic: Increment lapses ONLY if user forgot a mature/reviewing card.
-        # IF rating == 1 (Again) AND old_state was Review (2) or Relearning (3)
-        # (Though Relearning count as lapse? Usually only Review -> Relearning is a lapse start.
-        # But user requested: "old_state was Review (2) or Relearning (3)")
+                # User remembered but interval is still short
+                # Preserve the "relearning" vs "learning" distinction
+                if card_state.state == STATE_RELEARNING:
+                    new_state = STATE_RELEARNING  # Stay in Relearning until graduation
+                elif card_state.state == STATE_REVIEW:
+                    # Edge case: Review with very short interval (shouldn't happen normally)
+                    new_state = STATE_REVIEW
+                else:
+                    new_state = STATE_LEARNING    # New/Learning -> Stay in Learning
+        
+        # ============================================================
+        # 2. LAPSE COUNTING
+        # ============================================================
+        # A lapse occurs when a MATURE card (Review state) is forgotten.
+        # Relearning cards that are forgotten again don't increment lapses
+        # (they're already counted as lapsed).
+        
         new_lapses = card_state.lapses
-        if rating == Rating.Again:
-            if card_state.state == STATE_REVIEW or card_state.state == STATE_RELEARNING:
-                new_lapses += 1
+        if rating == Rating.Again and card_state.state == STATE_REVIEW:
+            new_lapses += 1
         
         return CardState(
             stability=memory.stability,
             difficulty=memory.difficulty,
             elapsed_days=0.0,
-            scheduled_days=float(interval),
+            scheduled_days=interval,
             reps=card_state.reps + 1,
             lapses=new_lapses,
             state=new_state,
