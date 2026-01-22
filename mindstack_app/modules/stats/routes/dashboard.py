@@ -189,12 +189,20 @@ def dashboard():
         import traceback
         print(f"Error fetching daily stats: {e}")
         traceback.print_exc()
-        # Fallback to zero data so UI still renders
+        # Fallback to zero data so UI still renders even on service failure
         daily_summary = {
             'today': {
                 'sessions': 0, 'items_studied': 0, 'new_items': 0, 
                 'reviewed_items': 0, 'accuracy': 0, 'correct': 0, 
-                'incorrect': 0, 'points': 0
+                'incorrect': 0, 'points': 0,
+                'by_mode': {} # Fix for UndefinedError: by_mode
+            },
+            'week': {
+                'daily': [{'date': (date.today() - timedelta(days=i)).isoformat(), 'sessions': 0, 'items_studied': 0, 'points': 0, 'by_mode': {}} for i in range(7)],
+                'totals': {
+                    'sessions': 0, 'items_studied': 0, 'new_items': 0, 
+                    'correct': 0, 'incorrect': 0, 'accuracy': 0
+                }
             },
             'streak': {'current_streak': 0, 'longest_streak': 0}
         }

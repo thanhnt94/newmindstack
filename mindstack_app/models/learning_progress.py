@@ -44,6 +44,11 @@ class LearningProgress(db.Model):
     fsrs_due = db.Column(db.DateTime(timezone=True), index=True)  # Next review due time (UTC)
     fsrs_last_review = db.Column(db.DateTime(timezone=True))  # Last review timestamp (UTC)
     
+    # === Lifecycle & Auditing ===
+    first_seen = db.Column(db.DateTime(timezone=True), default=func.now())
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    
     # === User History & Statistics (No Prefix) ===
     # Generic stats independent of algorithm
     lapses = db.Column(db.Integer, default=0)      # Times user forgot a mature card (Review->Relearning)
@@ -95,6 +100,7 @@ class LearningProgress(db.Model):
         db.Index('ix_learning_progress_due', 'user_id', 'learning_mode', 'fsrs_due'),
         db.Index('ix_learning_progress_state', 'user_id', 'learning_mode', 'fsrs_state'),
         db.Index('ix_learning_progress_user_mode', 'user_id', 'learning_mode'),
+        db.Index('ix_learning_progress_first_seen', 'user_id', 'first_seen'),
     )
     
     # === Serialization ===
