@@ -5,7 +5,7 @@
 import random
 from mindstack_app.models import LearningItem, db
 from mindstack_app.modules.learning.services.fsrs_service import FsrsService
-from mindstack_app.modules.gamification.services.scoring_service import ScoreService
+from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
 
 
@@ -266,12 +266,17 @@ class QuizEngine:
             # Use score from SrsResult
             score_change = getattr(srs_result, 'score_points', 0)
             
-            ScoreService.award_points(
+            # Emit signal for decoupled scoring (Gamification module listens)
+            card_reviewed.send(
+                None,
                 user_id=user_id,
-                amount=score_change,
-                reason=f"Quiz Answer (Correct: {is_correct})",
                 item_id=item_id,
-                item_type='QUIZ_MCQ'
+                quality=quality,
+                is_correct=is_correct,
+                learning_mode='quiz',
+                score_points=score_change,
+                item_type='QUIZ_MCQ',
+                reason=f"Quiz Answer (Correct: {is_correct})"
             )
             
             # Log to ReviewLog table with user_answer and response_time

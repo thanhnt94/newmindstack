@@ -4,7 +4,7 @@
 from datetime import datetime, timezone
 from mindstack_app.models import db, User, LearningItem
 from mindstack_app.models.learning_progress import LearningProgress
-from mindstack_app.modules.gamification.services.scoring_service import ScoreService
+from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 
@@ -128,20 +128,26 @@ class FlashcardEngine:
             else:
                 score_change = 0
 
-        # Award Points
+        # Build reason for score log
         log_reason = f"Flashcard Answer (Quality: {quality})"
         if not update_srs:
             log_reason += " [Collab Mode]"
 
-        result = ScoreService.award_points(
+        # Emit signal for decoupled scoring (Gamification module listens)
+        card_reviewed.send(
+            None,  # sender (None for class-based calls)
             user_id=user_id,
-            amount=score_change,
-            reason=log_reason,
             item_id=item_id,
-            item_type='FLASHCARD'
+            quality=quality,
+            is_correct=(quality >= 3),
+            learning_mode='flashcard',
+            score_points=score_change,
+            item_type='FLASHCARD',
+            reason=log_reason
         )
 
-        new_total_score = result.get('new_total') if result.get('success') and result.get('new_total') is not None else (current_user_total_score + score_change)
+        # Optimistic score update (actual DB update happens in listener)
+        new_total_score = current_user_total_score + score_change
 
         safe_commit(db.session)
 
