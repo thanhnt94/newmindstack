@@ -2362,9 +2362,11 @@ def fsrs_config():
              val = [] 
         settings[key] = val
 
+    from mindstack_app.core.defaults import DEFAULT_APP_CONFIGS
     return render_template(
         'admin/fsrs_config.html',
-        settings=settings
+        settings=settings,
+        defaults=DEFAULT_APP_CONFIGS
     )
 
 

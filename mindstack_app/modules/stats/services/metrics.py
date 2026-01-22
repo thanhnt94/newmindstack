@@ -953,7 +953,7 @@ def get_flashcard_set_metrics(user_id, container_id=None, status=None, page=1, p
         db.session.query(
             LearningItem.container_id.label('container_id'),
             func.count(LearningProgress.progress_id).label('studied_cards'),
-            # FSRS Mastery: Stability >= 21 days
+            # FSRS Learned: Stability >= 21 days
             func.sum(case((LearningProgress.fsrs_stability >= 21.0, 1), else_=0)).label('learned_cards'),
             func.sum(LearningProgress.times_correct).label('total_correct'),
             func.sum(LearningProgress.times_incorrect).label('total_incorrect'),
@@ -1195,7 +1195,7 @@ def get_course_metrics(user_id, container_id=None, status=None, page=1, per_page
         db.session.query(
             LearningItem.container_id.label('container_id'),
             func.count(LearningProgress.progress_id).label('lessons_started'),
-            # Mastery > 0.99 or 100% completion in JSON
+            # Course completion logic
             func.sum(case((db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) >= 100, 1), else_=0)).label('lessons_completed'),
             func.avg(db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer)).label('avg_completion'),
             func.max(LearningProgress.fsrs_last_review).label('last_activity'),

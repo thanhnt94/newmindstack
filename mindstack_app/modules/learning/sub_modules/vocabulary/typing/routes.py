@@ -295,13 +295,19 @@ def api_check_answer():
         from mindstack_app.utils.db_session import safe_commit
         from mindstack_app.models import db
 
-        quality = 3 if result.get('correct') else 1  # 3=Good, 1=Again
+        # Map typing result to FSRS quality
+        if result.get('accuracy') >= 1.0:
+            quality = 4  # Perfect/Easy
+        elif result.get('correct'):
+            quality = 3  # Good/Minor typo
+        else:
+            quality = 1  # Again/Wrong
+
         progress, srs_result = FsrsService.process_answer(
             user_id=current_user.user_id,
             item_id=item_id,
             quality=quality,
-            mode='typing',
-            # result_data=result # process_answer doesn't take result_data, handled by caller logic
+            mode='typing'
         )
         
         # Manually construct srs_result dict if needed for response or use srs_result object

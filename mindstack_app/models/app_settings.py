@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 from sqlalchemy.sql import func
 
@@ -38,19 +38,28 @@ class AppSettings(db.Model):
     
     @classmethod
     def get(cls, key: str, default: Any = None) -> Any:
-        """Get a setting value by key.
+        """Get a setting value by key with code-level default fallback.
         
         Args:
             key: The setting key
-            default: Default value if key not found
+            default: Manual fallback if not found in DB AND not found in core/defaults.py
             
         Returns:
             The setting value or default
         """
         setting = cls.query.get(key)
-        if setting is None:
-            return default
-        return setting.value
+        
+        # 1. Check Database
+        if setting is not None and setting.value is not None:
+            return setting.value
+            
+        # 2. Check Code-Level Defaults
+        from mindstack_app.core.defaults import DEFAULT_APP_CONFIGS
+        if key in DEFAULT_APP_CONFIGS:
+            return DEFAULT_APP_CONFIGS[key]
+            
+        # 3. Fallback to manual default
+        return default
 
     @classmethod
     def set(cls, key: str, value: Any, category: str = None, 

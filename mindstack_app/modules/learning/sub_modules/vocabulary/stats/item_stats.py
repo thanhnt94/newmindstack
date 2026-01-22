@@ -79,8 +79,7 @@ class VocabularyItemStats:
         stability = progress.fsrs_stability if progress else 0.0
         difficulty = progress.fsrs_difficulty if progress else 0.0
         state = progress.fsrs_state if progress else 0
-        
-        mastery = min(stability / 21.0, 1.0) if progress else 0.0
+        retrievability = FsrsService.get_retrievability(progress) if progress else 0.0
         streak = progress.correct_streak if progress else 0
         last_reviewed = progress.fsrs_last_review if progress else None
         next_due = progress.fsrs_due if progress else None
@@ -94,15 +93,15 @@ class VocabularyItemStats:
         first_reviewed = logs[-1].timestamp if logs else None
         last_reviewed_log = logs[0].timestamp if logs else None
         
-        # NEW: Mastery trend (compare recent vs older)
-        mastery_trend = 0
+        # NEW: Stability trend (compare recent vs older)
+        stability_trend = 0
         if len(logs) >= 6:
-            recent_mastery = [min((log.fsrs_stability or 0)/21.0, 1.0) for log in logs[:3] if log.fsrs_stability is not None]
-            older_mastery = [min((log.fsrs_stability or 0)/21.0, 1.0) for log in logs[3:6] if log.fsrs_stability is not None]
-            if recent_mastery and older_mastery:
-                recent_avg = sum(recent_mastery) / len(recent_mastery)
-                older_avg = sum(older_mastery) / len(older_mastery)
-                mastery_trend = round((recent_avg - older_avg) * 100, 1)  # Percentage change
+            recent_stability = [log.fsrs_stability for log in logs[:3] if log.fsrs_stability is not None]
+            older_stability = [log.fsrs_stability for log in logs[3:6] if log.fsrs_stability is not None]
+            if recent_stability and older_stability:
+                recent_avg = sum(recent_stability) / len(recent_stability)
+                older_avg = sum(older_stability) / len(older_stability)
+                stability_trend = round(recent_avg - older_avg, 1)  # Absolute day change
         
         # NEW: Rating distribution (for flashcard mode)
         rating_dist = {'again': 0, 'hard': 0, 'good': 0, 'easy': 0}
@@ -200,18 +199,8 @@ class VocabularyItemStats:
             },
             'progress': {
                 'status': status,
-                'mastery': round(mastery * 100, 1),
-                'streak': streak,
-                'last_reviewed': last_reviewed,
-                'next_due': next_due,
-                'due_relative': _get_relative_time_string(next_due) if next_due else 'Chưa lên lịch',
-                'ease_factor': round(difficulty, 2), # Backward compatibility
-                'fsrs_stability': round(stability, 2),
-                'fsrs_difficulty': round(difficulty, 2),
-                'fsrs_state': state,
-                'fsrs_state_name': _get_state_name(state),
-                'retrievability': round(FsrsService.get_retrievability(progress) * 100, 1) if progress else 0, # [NEW]
-                'mastery_trend': mastery_trend,
+                'retrievability': round(retrievability * 100, 1),
+                'stability_trend': stability_trend,
                 'first_reviewed': first_reviewed,
                 'last_reviewed_log': last_reviewed_log,
                 'last_reviewed_relative': _get_relative_time_string(last_reviewed_log) if last_reviewed_log else 'Chưa học'
@@ -245,8 +234,7 @@ class VocabularyItemStats:
                     'score_change': log.score_change,
                     'rating': log.rating,
                     'stability_snapshot': round(log.fsrs_stability or 0, 2),
-                    'difficulty_snapshot': round(log.fsrs_difficulty or 0, 2),
-                    'mastery_snapshot': min((log.fsrs_stability or 0)/21.0, 1.0)
+                    'difficulty_snapshot': round(log.fsrs_difficulty or 0, 2)
                 }
                 for log in logs[:50] # Limit history list
             ],

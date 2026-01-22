@@ -8,7 +8,7 @@ Consolidates logic that was previously scattered across multiple modules.
 A "hard" item is one that the user is struggling with, determined by:
 1. Manual marker: User explicitly marked the item as 'difficult' (UserItemMarker)
 2. Incorrect streak: User got it wrong >= HARD_ITEM_MIN_INCORRECT_STREAK times in a row
-3. Stuck: User has reviewed many times (> HARD_ITEM_MAX_REPETITIONS) but mastery is still low (< HARD_ITEM_LOW_MASTERY_THRESHOLD)
+3. Stuck: User has reviewed many times (> HARD_ITEM_MAX_REPETITIONS) but stability is still low (< 7.0 days)
 """
 
 from __future__ import annotations
@@ -41,9 +41,11 @@ class HardItemService:
         return MemoryPowerConfigService.get('HARD_ITEM_MAX_REPETITIONS', 10)
     
     @staticmethod
-    def _get_low_mastery() -> float:
-        """Get low mastery threshold for 'stuck' detection."""
-        return MemoryPowerConfigService.get('HARD_ITEM_LOW_MASTERY_THRESHOLD', 0.3)
+    def _get_stuck_stability() -> float:
+        """Get stability threshold (days) for 'stuck' detection.
+        Fixed at 7 days for now.
+        """
+        return 7.0
 
     # === Core Methods ===
 
@@ -87,14 +89,14 @@ class HardItemService:
         
         min_streak = cls._get_min_streak()
         max_reps = cls._get_max_reps()
-        low_mastery = cls._get_low_mastery()
+        stuck_stability = cls._get_stuck_stability()
         
         # Criterion 2: Incorrect streak
         if (progress.incorrect_streak or 0) >= min_streak:
             return True
         
-        # Criterion 3: Stuck (high reps, low mastery)
-        if (progress.repetitions or 0) > max_reps and min((progress.fsrs_stability or 0)/21.0, 1.0) < low_mastery:
+        # Criterion 3: Stuck (high reps, low stability)
+        if (progress.repetitions or 0) > max_reps and (progress.fsrs_stability or 0) < stuck_stability:
             return True
         
         return False
@@ -141,7 +143,7 @@ class HardItemService:
         """
         min_streak = cls._get_min_streak()
         max_reps = cls._get_max_reps()
-        low_mastery = cls._get_low_mastery()
+        stuck_stability = cls._get_stuck_stability()
         
         # Base query for items
         base_query = LearningItem.query
@@ -169,10 +171,10 @@ class HardItemService:
                 LearningItem.item_id.in_(manual_marker_subquery),
                 # Criterion 2: Incorrect streak
                 LearningProgress.incorrect_streak >= min_streak,
-                # Criterion 3: Stuck (high reps, low mastery)
+                # Criterion 3: Stuck (high reps, low stability)
                 and_(
                     LearningProgress.repetitions > max_reps,
-                    LearningProgress.fsrs_stability < (low_mastery * 21.0)
+                    LearningProgress.fsrs_stability < stuck_stability
                 )
             )
         )

@@ -231,8 +231,9 @@ class ProgressService:
         total_correct = sum(p.times_correct or 0 for p in progress_records)
         total_incorrect = sum(p.times_incorrect or 0 for p in progress_records)
         
-        avg_mastery = (
-            sum(min((p.fsrs_stability or 0)/21.0, 1.0) for p in progress_records) / studied
+        from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+        avg_retrievability = (
+            sum(FsrsService.get_retrievability(p) for p in progress_records) / studied
             if studied > 0 else 0
         )
         
@@ -245,7 +246,8 @@ class ProgressService:
             'total_correct': total_correct,
             'total_incorrect': total_incorrect,
             'accuracy': total_correct / (total_correct + total_incorrect) if (total_correct + total_incorrect) > 0 else 0,
-            'avg_mastery': avg_mastery,
+            'avg_retrievability': avg_retrievability,
+            'avg_mastery': avg_retrievability,  # Compatibility
             'completion_percentage': (studied / total_items * 100) if total_items > 0 else 0,
         }
     

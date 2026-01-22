@@ -49,14 +49,16 @@ Mục đích: Giao diện cấu hình pure FSRS v5 (thay thế SRS cũ)
                         nhớ)</label>
                     <div class="relative">
                         <input type="number" step="0.01" min="0.70" max="0.99" name="FSRS_DESIRED_RETENTION"
-                            id="FSRS_DESIRED_RETENTION" value="{{ settings.FSRS_DESIRED_RETENTION }}"
+                            id="FSRS_DESIRED_RETENTION"
+                            value="{{ settings.FSRS_DESIRED_RETENTION or defaults.FSRS_DESIRED_RETENTION }}"
                             class="w-full pl-4 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                             <span class="text-gray-500 sm:text-sm">%</span>
                         </div>
                     </div>
                     <p class="mt-1.5 text-xs text-gray-500">
-                        Tỷ lệ nhớ mục tiêu (0.70 - 0.99). Giá trị cao sẽ tăng tần suất ôn tập.
+                        Tỷ lệ nhớ mục tiêu (0.70 - 0.99). Mặc định: {{ (defaults.FSRS_DESIRED_RETENTION * 100) |
+                        round(0) }}%. Giá trị cao sẽ tăng tần suất ôn tập.
                     </p>
                 </div>
 
@@ -66,14 +68,14 @@ Mục đích: Giao diện cấu hình pure FSRS v5 (thay thế SRS cũ)
                         đa)</label>
                     <div class="relative">
                         <input type="number" step="1" min="1" name="FSRS_MAX_INTERVAL" id="FSRS_MAX_INTERVAL"
-                            value="{{ settings.FSRS_MAX_INTERVAL }}"
+                            value="{{ settings.FSRS_MAX_INTERVAL or defaults.FSRS_MAX_INTERVAL }}"
                             class="w-full pl-4 pr-16 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                             <span class="text-gray-500 sm:text-sm">ngày</span>
                         </div>
                     </div>
                     <p class="mt-1.5 text-xs text-gray-500">
-                        Giới hạn khoảng cách tối đa giữa các lần ôn tập (ví dụ: 36500 ngày).
+                        Giới hạn khoảng cách tối đa (Mặc định: {{ defaults.FSRS_MAX_INTERVAL }} ngày).
                     </p>
                 </div>
 
@@ -109,7 +111,7 @@ Mục đích: Giao diện cấu hình pure FSRS v5 (thay thế SRS cũ)
                 <div class="relative">
                     <textarea name="FSRS_GLOBAL_WEIGHTS" id="FSRS_GLOBAL_WEIGHTS" rows="3"
                         class="w-full px-4 py-3 bg-slate-50 border border-gray-300 rounded-lg font-mono text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all leading-relaxed"
-                        placeholder="0.4, 0.6, 2.4, ...">{{ settings.FSRS_GLOBAL_WEIGHTS | join(', ') }}</textarea>
+                        placeholder="0.4, 0.6, 2.4, ...">{{ (settings.FSRS_GLOBAL_WEIGHTS or defaults.FSRS_GLOBAL_WEIGHTS) | join(', ') }}</textarea>
                 </div>
                 <p class="mt-2 text-xs text-gray-500 flex items-start gap-1">
                     <i class="fas fa-info-circle mt-0.5 text-indigo-500"></i>

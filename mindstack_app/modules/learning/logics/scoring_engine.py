@@ -45,43 +45,6 @@ class ScoringEngine:
     No database access - all methods are static and use only provided inputs.
     """
 
-    # === BASE POINTS BY MODE ===
-    
-    # Base points for correct answers by learning mode
-    MODE_BASE_POINTS = {
-        LearningMode.FLASHCARD: 10,
-        LearningMode.QUIZ_MCQ: 10,
-        LearningMode.TYPING: 15,      # Harder = more points
-        LearningMode.LISTENING: 12,
-        LearningMode.MATCHING: 8,
-        LearningMode.SPEED: 20,       # Time pressure = more points
-        LearningMode.MEMRISE: 12,
-    }
-    
-    # First-time bonus (learning a new item)
-    FIRST_TIME_BONUS = 5
-    
-    # Streak bonus thresholds
-    STREAK_BONUS_THRESHOLDS = [
-        (3, 2),    # 3+ streak: +2 points
-        (5, 5),    # 5+ streak: +5 points
-        (10, 10),  # 10+ streak: +10 points
-        (20, 20),  # 20+ streak: +20 points
-        (50, 50),  # 50+ streak: +50 points
-    ]
-    
-    # Perfect answer bonus (quality = 5)
-    PERFECT_BONUS = 5
-    
-    # Speed bonus multipliers (based on response time)
-    SPEED_MULTIPLIERS = [
-        (1.0, 1.5),   # Under 1 second: 1.5x
-        (2.0, 1.3),   # Under 2 seconds: 1.3x
-        (3.0, 1.1),   # Under 3 seconds: 1.1x
-    ]
-
-    # === MAIN SCORING METHODS ===
-
     @staticmethod
     def calculate_answer_points(
         mode: LearningMode | str,
@@ -107,14 +70,14 @@ class ScoringEngine:
         Returns:
             ScoreResult with breakdown of points earned
         """
-        # 1. Map Reality to Config Keys
-        from flask import current_app
+        from mindstack_app.models import AppSettings
         
+        # 1. Map Reality to Config Keys
         score_map = {
-            1: current_app.config.get('SCORE_FSRS_AGAIN', 1),
-            2: current_app.config.get('SCORE_FSRS_HARD', 5),
-            3: current_app.config.get('SCORE_FSRS_GOOD', 10),
-            4: current_app.config.get('SCORE_FSRS_EASY', 15)
+            1: AppSettings.get('SCORE_FSRS_AGAIN'),
+            2: AppSettings.get('SCORE_FSRS_HARD'),
+            3: AppSettings.get('SCORE_FSRS_GOOD'),
+            4: AppSettings.get('SCORE_FSRS_EASY')
         }
         
         base = score_map.get(quality, 0)
@@ -125,10 +88,11 @@ class ScoringEngine:
         
         reasons: list[str] = [f"Rating {quality}"]
         
-        # 2. Simplified Streak Bonus (Every 10 streaks)
+        # 2. Simplified Streak Bonus
         bonus = 0
-        if is_correct and correct_streak > 0 and correct_streak % 10 == 0:
-            bonus = 5
+        bonus_modulo = AppSettings.get('SCORING_STREAK_BONUS_MODULO')
+        if is_correct and correct_streak > 0 and correct_streak % bonus_modulo == 0:
+            bonus = AppSettings.get('SCORING_STREAK_BONUS_VALUE')
             breakdown['streak_bonus'] = bonus
             total += bonus
             reasons.append(f"Streak {correct_streak}")
@@ -152,32 +116,16 @@ class ScoringEngine:
     ) -> ScoreResult:
         """
         Calculate bonus points for completing a study session.
-
-        Args:
-            items_reviewed: Total items reviewed in session
-            items_correct: Number of correct answers
-            session_duration_minutes: Total session time
-            daily_goal_met: Whether daily goal was achieved
-
-        Returns:
-            ScoreResult with session completion bonuses
         """
+        from mindstack_app.models import AppSettings
         breakdown: dict[str, int] = {}
         total = 0
         reasons: list[str] = []
 
-        # Minimum session to qualify (at least 5 items)
         if items_reviewed < 5:
-            return ScoreResult(
-                base_points=0,
-                bonus_points=0,
-                total_points=0,
-                breakdown={},
-                reason="Session too short"
-            )
+            return ScoreResult(0, 0, 0, {}, "Session too short")
 
-        # === COMPLETION BONUS ===
-        # 1 point per item reviewed
+        # 1 point per item reviewed (hardcoded for now as it's a direct metric)
         completion = items_reviewed
         breakdown['completion'] = completion
         total += completion
@@ -185,14 +133,13 @@ class ScoringEngine:
 
         # === ACCURACY BONUS ===
         accuracy = items_correct / items_reviewed if items_reviewed > 0 else 0
+        accuracy_bonus = 0
         if accuracy >= 0.9:
             accuracy_bonus = 20
         elif accuracy >= 0.8:
             accuracy_bonus = 10
         elif accuracy >= 0.7:
             accuracy_bonus = 5
-        else:
-            accuracy_bonus = 0
         
         if accuracy_bonus > 0:
             breakdown['accuracy'] = accuracy_bonus
@@ -200,15 +147,13 @@ class ScoringEngine:
             reasons.append(f"{accuracy*100:.0f}% accuracy")
 
         # === FOCUS BONUS ===
-        # Bonus for sustained study (10+ minutes)
+        focus_bonus = 0
         if session_duration_minutes >= 30:
             focus_bonus = 30
         elif session_duration_minutes >= 20:
             focus_bonus = 20
         elif session_duration_minutes >= 10:
             focus_bonus = 10
-        else:
-            focus_bonus = 0
         
         if focus_bonus > 0:
             breakdown['focus'] = focus_bonus
@@ -217,7 +162,7 @@ class ScoringEngine:
 
         # === DAILY GOAL BONUS ===
         if daily_goal_met:
-            goal_bonus = 50
+            goal_bonus = AppSettings.get('DAILY_GOAL_SCORE', 50)
             breakdown['daily_goal'] = goal_bonus
             total += goal_bonus
             reasons.append("Daily goal met!")
@@ -236,37 +181,26 @@ class ScoringEngine:
     def calculate_daily_streak_bonus(daily_streak: int) -> ScoreResult:
         """
         Calculate bonus for maintaining a daily study streak.
-
-        Args:
-            daily_streak: Number of consecutive days studied
-
-        Returns:
-            ScoreResult with daily streak bonus
         """
+        from mindstack_app.models import AppSettings
         if daily_streak < 2:
-            return ScoreResult(
-                base_points=0,
-                bonus_points=0,
-                total_points=0,
-                breakdown={},
-                reason="No streak"
-            )
+            return ScoreResult(0, 0, 0, {}, "No streak")
 
         # Progressive bonus for longer streaks
         if daily_streak >= 365:
-            bonus = 500
+            bonus = AppSettings.get('SCORING_STREAK_LVL_1Y')
         elif daily_streak >= 100:
-            bonus = 200
+            bonus = AppSettings.get('SCORING_STREAK_LVL_100D')
         elif daily_streak >= 30:
-            bonus = 100
+            bonus = AppSettings.get('SCORING_STREAK_LVL_30D')
         elif daily_streak >= 14:
-            bonus = 50
+            bonus = AppSettings.get('SCORING_STREAK_LVL_14D')
         elif daily_streak >= 7:
-            bonus = 25
+            bonus = AppSettings.get('SCORING_STREAK_LVL_7D')
         elif daily_streak >= 3:
-            bonus = 10
+            bonus = AppSettings.get('SCORING_STREAK_LVL_3D')
         else:
-            bonus = 5
+            bonus = AppSettings.get('SCORING_STREAK_LVL_2D')
 
         return ScoreResult(
             base_points=0,
@@ -299,12 +233,10 @@ class ScoringEngine:
             Score points (0-20)
         """
         score_map = {
-            0: 0,    # Complete fail
-            1: 5,    # Failed/Again
-            2: 8,    # Hard (vague)
-            3: 10,   # Hard
-            4: 15,   # Good
-            5: 20    # Perfect/Easy
+            1: 5,    # Again (Failed) - 5 pts
+            2: 10,   # Hard - 10 pts
+            3: 15,   # Good - 15 pts
+            4: 20    # Easy - 20 pts
         }
         return score_map.get(quality, 10)  # Default to 10 if unknown
 

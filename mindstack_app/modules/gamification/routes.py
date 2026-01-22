@@ -18,7 +18,12 @@ def gamification_points():
         flash('Bạn không có quyền truy cập.', 'error')
         return redirect(url_for('dashboard.dashboard'))
     
-    return render_template('admin/admin_gamification/points_settings.html', active_tab='points', config=current_app.config, active_page='badges')
+    from mindstack_app.core.defaults import DEFAULT_APP_CONFIGS
+    return render_template('admin/admin_gamification/points_settings.html', 
+                          active_tab='points', 
+                          config=current_app.config, 
+                          defaults=DEFAULT_APP_CONFIGS,
+                          active_page='badges')
 
 
 @gamification_bp.route('/points/update', methods=['POST'])

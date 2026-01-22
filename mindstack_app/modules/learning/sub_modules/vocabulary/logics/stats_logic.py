@@ -72,10 +72,9 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
         definition = render_text_field(raw_definition)
         
         if progress:
-            # Calculate mastery % from stability (proxy: 21 days = 100%)
-            stability = progress.fsrs_stability or 0.0
-            mastery = min(int((stability / 21.0) * 100), 100)
             retrievability = FsrsService.get_retrievability(progress)
+            mastery = int(retrievability * 100)  # Proxy for UI
+            stability = progress.fsrs_stability or 0.0
             
             # Map status
             state = progress.fsrs_state

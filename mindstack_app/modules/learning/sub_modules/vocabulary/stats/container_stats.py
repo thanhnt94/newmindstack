@@ -100,22 +100,24 @@ class VocabularyContainerStats:
         due_count = 0
         hard_count = 0
         
-        total_mastery = 0.0
+        total_retrievability = 0.0
         total_correct = 0
         total_incorrect = 0
         total_reviews = 0
         last_reviewed = None
         
+        from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+
         for item_id in item_ids:
             progress = progress_map.get(item_id)
             if not progress:
                 new_count += 1
             else:
                 stability = progress.fsrs_stability or 0.0
-                mastery = min(stability / 21.0, 1.0)
-                total_mastery += mastery
+                retrievability = FsrsService.get_retrievability(progress)
+                total_retrievability += retrievability
                 
-                # Categorize by mastery level (using stability proxy)
+                # Categorize by stability (proxy for 'mastered')
                 if stability >= 21.0:
                     mastered_count += 1
                 else:
@@ -124,8 +126,6 @@ class VocabularyContainerStats:
                 # Check if due
                 if progress.fsrs_due and progress.fsrs_due <= now:
                     due_count += 1
-                
-                # Note: hard_count is calculated separately using HardItemService
                 
                 # Accumulate totals
                 total_correct += progress.times_correct or 0
@@ -140,7 +140,7 @@ class VocabularyContainerStats:
         # Calculate percentages
         learned_count = len(progress_records)
         completion_pct = (learned_count / total * 100) if total > 0 else 0
-        mastery_avg = (total_mastery / learned_count) if learned_count > 0 else 0
+        retrievability_avg = (total_retrievability / learned_count) if learned_count > 0 else 0
         accuracy_pct = (total_correct / (total_correct + total_incorrect) * 100) if (total_correct + total_incorrect) > 0 else 0
         
         # Calculate hard count using centralized HardItemService
@@ -159,7 +159,8 @@ class VocabularyContainerStats:
             
             # Progress metrics
             'completion_pct': round(completion_pct, 1),
-            'mastery_avg': round(mastery_avg, 2),
+            'retrievability_avg': round(retrievability_avg, 2),
+            'mastery_avg': round(retrievability_avg, 2), # Compatibility
             'accuracy_pct': round(accuracy_pct, 1),
             
             # Review metrics
@@ -177,7 +178,7 @@ class VocabularyContainerStats:
         return {
             'total': 0, 'new': 0, 'learning': 0, 'mastered': 0,
             'due': 0, 'hard': 0, 'learned': 0,
-            'completion_pct': 0, 'mastery_avg': 0, 'accuracy_pct': 0,
+            'completion_pct': 0, 'retrievability_avg': 0, 'mastery_avg': 0, 'accuracy_pct': 0,
             'total_reviews': 0, 'total_correct': 0, 'total_incorrect': 0,
             'last_reviewed': None
         }
@@ -240,15 +241,15 @@ class VocabularyContainerStats:
         strong_count = 0    # 80-100%
         
         for progress in progress_records:
-            stability = progress.fsrs_stability or 0.0
+            retrievability = FsrsService.get_retrievability(progress)
             
-            # Categories based on stability (days)
-            # Weak: < 5 days
-            # Medium: 5-15 days
-            # Strong: > 15 days
-            if stability < 5.0:
+            # Categories based on retrievability
+            # Weak: < 70%
+            # Medium: 70-90%
+            # Strong: > 90%
+            if retrievability < 0.7:
                 weak_count += 1
-            elif stability < 15.0:
+            elif retrievability < 0.9:
                 medium_count += 1
             else:
                 strong_count += 1
@@ -266,10 +267,14 @@ class VocabularyContainerStats:
             ReviewLog.fsrs_stability.isnot(None)
         ).order_by(ReviewLog.timestamp).all()
         
-        # Group by date and calculate average mastery per day
+        # Group by date and calculate average retrievability per day
         for log in logs:
             date_key = log.timestamp.strftime('%d/%m')
             if log.fsrs_stability is not None:
+                # Calculate retrievability for that log's stability if possible, 
+                # but ReviewLog doesn't store last_review or current_time easily here.
+                # Simplified: map stability to a percentage for the timeline chart.
+                # Use 21 days as 100% just for visualization consistency in the timeline chart.
                 timeline_data[date_key].append(min((log.fsrs_stability or 0)/21.0, 1.0) * 100)
         
         # Generate date labels and values for past 30 days

@@ -251,7 +251,7 @@ class QuizEngine:
             old_progress = LearningProgress.query.filter_by(
                 user_id=user_id, item_id=item_id, learning_mode='quiz'
             ).first()
-            old_mastery = min((old_progress.fsrs_stability or 0)/21.0, 1.0) if old_progress else 0.0
+            old_retrievability = FsrsService.get_retrievability(old_progress) if old_progress else 0.0
             
             # Update SRS using FSRS Process Answer
             progress, srs_result = FsrsService.process_answer(
@@ -290,7 +290,7 @@ class QuizEngine:
                 is_correct=is_correct,
                 score_change=score_change,
                 duration_ms=duration_ms,
-                mastery_snapshot=getattr(srs_result, 'mastery', None),
+                retrievability_snapshot=getattr(srs_result, 'retrievability', None),
                 # Session context fields
                 session_id=session_id,
                 container_id=container_id or item.container_id,
@@ -301,16 +301,16 @@ class QuizEngine:
             
             safe_commit(db.session)
 
-            new_mastery_pct = round((srs_result.mastery or 0.0) * 100, 1)
-            old_mastery_pct = round((old_mastery or 0.0) * 100, 1)
-            mastery_delta = round(new_mastery_pct - old_mastery_pct, 1)
+            new_retrievability_pct = round((srs_result.retrievability or 0.0) * 100, 1)
+            old_retrievability_pct = round((old_retrievability or 0.0) * 100, 1)
+            retrievability_delta = round(new_retrievability_pct - old_retrievability_pct, 1)
 
             return {
                 'correct': is_correct,
                 'correct_answer': correct_answers[0] if correct_answers else '',
                 'score_change': score_change,
-                'mastery_delta': mastery_delta,
-                'new_mastery_pct': new_mastery_pct,
+                'retrievability_delta': retrievability_delta,
+                'new_retrievability_pct': new_retrievability_pct,
                 'points_breakdown': getattr(srs_result, 'score_breakdown', {})
             }
 
