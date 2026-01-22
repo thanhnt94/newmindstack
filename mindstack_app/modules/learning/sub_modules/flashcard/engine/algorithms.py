@@ -448,13 +448,19 @@ def get_mixed_items(user_id, container_id, session_size):
 def get_filtered_flashcard_sets(user_id, search_query, search_field, current_filter, page, per_page=FlashcardLearningConfig.DEFAULT_ITEMS_PER_PAGE):
     """
     Lấy danh sách các bộ Flashcard đã được lọc và phân trang dựa trên các tiêu chí.
+    
+    [OPTIMIZED] Sử dụng batch queries thay vì N+1 queries trong vòng lặp.
     """
     print(f">>> ALGORITHMS: Bắt đầu get_filtered_flashcard_sets cho user_id={user_id}, filter={current_filter} <<<")
+    
+    # === PHASE 1: Build base query with eager loading ===
     base_query = LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
+    
     user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
         UserContainerState.user_id == user_id
     ).subquery()
 
+    # Access control based on user role
     if current_user.user_role == User.ROLE_ADMIN:
         pass
     elif current_user.user_role == User.ROLE_FREE:
@@ -481,80 +487,149 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
 
         base_query = base_query.filter(or_(*access_conditions))
 
+    # Apply search filter
     search_field_map = {
         'title': LearningContainer.title,
         'description': LearningContainer.description,
         'tags': LearningContainer.tags
     }
-    
     filtered_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
 
-    # THAY ĐỔI LỚN: Áp dụng bộ lọc archive và sắp xếp theo last_accessed
-    # Tạo một truy vấn con để lấy ID của các bộ mà người dùng đã tương tác (có bản ghi trong UserContainerState)
+    # === PHASE 2: Apply filter and JOIN UserContainerState in main query ===
+    # This eliminates the N+1 query for user_state
+    
     if current_filter == 'archive':
         final_query = filtered_query.join(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
+        ).add_columns(
+            UserContainerState.is_archived,
+            UserContainerState.is_favorite,
+            UserContainerState.last_accessed
         ).filter(
             UserContainerState.is_archived == True
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'doing':
-        # SỬA: Lấy các bộ mà người dùng ĐÃ TƯƠNG TÁC và KHÔNG bị lưu trữ
         final_query = filtered_query.join(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
+        ).add_columns(
+            UserContainerState.is_archived,
+            UserContainerState.is_favorite,
+            UserContainerState.last_accessed
         ).filter(
             UserContainerState.is_archived == False
         ).order_by(UserContainerState.last_accessed.desc())
     elif current_filter == 'explore':
-        # SỬA LỖI: Chỉ lấy các bộ thẻ CHƯA TỪNG được tương tác
+        # Explore: sets never interacted with - use literal values for columns
         final_query = filtered_query.filter(
             ~LearningContainer.container_id.in_(user_interacted_ids_subquery)
+        ).add_columns(
+            db.literal(False).label('is_archived'),
+            db.literal(False).label('is_favorite'),
+            db.literal(None).label('last_accessed')
         ).order_by(LearningContainer.created_at.desc())
     else:
-        # Trường hợp mặc định hoặc không hợp lệ, trả về tất cả (loại trừ archive)
+        # Default: all non-archived sets
         final_query = filtered_query.outerjoin(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
+        ).add_columns(
+            UserContainerState.is_archived,
+            UserContainerState.is_favorite,
+            UserContainerState.last_accessed
         ).filter(
             or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
         ).order_by(LearningContainer.created_at.desc())
 
+    # === PHASE 3: Paginate ===
     pagination = get_pagination_data(final_query, page, per_page=per_page)
     
-    for set_item in pagination.items:
-        if not hasattr(set_item, 'creator') or set_item.creator is None:
-            full_container = db.session.query(LearningContainer).filter_by(container_id=set_item.container_id).first()
-            if full_container and full_container.creator:
-                set_item.creator = full_container.creator
-            else:
-                set_item.creator = type('obj', (object,), {'username' : 'Người dùng không xác định'})()
-
-        total_items = db.session.query(LearningItem).filter_by(
-            container_id=set_item.container_id,
-            item_type='FLASHCARD'
-        ).count()
-        
-        # MIGRATED: Truy vấn số lượng thẻ đã học từ bảng LearningProgress
-        learned_items = db.session.query(LearningProgress).filter(
+    # Extract container IDs and map joined data
+    container_ids = []
+    user_state_map = {}  # container_id -> {is_archived, is_favorite, last_accessed}
+    
+    for row in pagination.items:
+        # Row is a tuple: (LearningContainer, is_archived, is_favorite, last_accessed)
+        if isinstance(row, tuple):
+            container = row[0]
+            user_state_map[container.container_id] = {
+                'is_archived': row[1] if row[1] is not None else False,
+                'is_favorite': row[2] if row[2] is not None else False,
+                'last_accessed': row[3]
+            }
+        else:
+            container = row
+            user_state_map[container.container_id] = {'is_archived': False, 'is_favorite': False, 'last_accessed': None}
+        container_ids.append(container.container_id)
+    
+    if not container_ids:
+        # Empty result, return early
+        # Convert pagination items to proper format
+        pagination.items = []
+        return pagination
+    
+    # === PHASE 4: Batch Query for Item Counts ===
+    # Single query to get total items per container
+    item_counts = db.session.query(
+        LearningItem.container_id,
+        func.count(LearningItem.item_id).label('total')
+    ).filter(
+        LearningItem.container_id.in_(container_ids),
+        LearningItem.item_type == 'FLASHCARD'
+    ).group_by(LearningItem.container_id).all()
+    
+    item_count_map = {row.container_id: row.total for row in item_counts}
+    
+    # === PHASE 5: Batch Query for Learned Items ===
+    # Single query to get learned items per container
+    # Join LearningProgress with LearningItem to filter by container
+    learned_counts = db.session.query(
+        LearningItem.container_id,
+        func.count(LearningProgress.item_id).label('learned')
+    ).join(
+        LearningProgress,
+        and_(
+            LearningProgress.item_id == LearningItem.item_id,
             LearningProgress.user_id == user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-            LearningProgress.item_id.in_(
-                db.session.query(LearningItem.item_id).filter(
-                    LearningItem.container_id == set_item.container_id,
-                    LearningItem.item_type == 'FLASHCARD'
-                )
-            )
-        ).count()
+            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
+        )
+    ).filter(
+        LearningItem.container_id.in_(container_ids),
+        LearningItem.item_type == 'FLASHCARD'
+    ).group_by(LearningItem.container_id).all()
+    
+    learned_count_map = {row.container_id: row.learned for row in learned_counts}
+    
+    # === PHASE 6: Map batch data to pagination items ===
+    processed_items = []
+    
+    for row in pagination.items:
+        if isinstance(row, tuple):
+            set_item = row[0]
+        else:
+            set_item = row
+        
+        container_id = set_item.container_id
+        
+        # Ensure creator is loaded (should be eager loaded, but fallback if not)
+        if not hasattr(set_item, 'creator') or set_item.creator is None:
+            set_item.creator = type('obj', (object,), {'username': 'Người dùng không xác định'})()
+        
+        # Get counts from batch query maps
+        total_items = item_count_map.get(container_id, 0)
+        learned_items = learned_count_map.get(container_id, 0)
         
         set_item.item_count_display = f"{learned_items} / {total_items}"
         set_item.total_items = total_items
         set_item.completion_percentage = (learned_items / total_items * 100) if total_items > 0 else 0
-
-        user_state = UserContainerState.query.filter_by(
-            user_id=user_id,
-            container_id=set_item.container_id
-        ).first()
-        set_item.user_state = user_state.to_dict() if user_state else {'is_archived': False, 'is_favorite': False}
-
-        set_item.last_accessed = user_state.last_accessed if user_state else None
+        
+        # Get user state from map (already fetched via JOIN)
+        state_data = user_state_map.get(container_id, {'is_archived': False, 'is_favorite': False, 'last_accessed': None})
+        set_item.user_state = state_data
+        set_item.last_accessed = state_data.get('last_accessed')
+        
+        processed_items.append(set_item)
+    
+    # Replace pagination items with processed containers
+    pagination.items = processed_items
 
     print(f">>> ALGORITHMS: Kết thúc get_filtered_flashcard_sets. Tổng số bộ: {pagination.total} <<<")
     return pagination
