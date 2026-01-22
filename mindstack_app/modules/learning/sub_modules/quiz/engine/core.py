@@ -260,7 +260,9 @@ class QuizEngine:
                 quality=quality,
                 mode='quiz',
                 is_first_time=False,  # TODO: track first-time properly
-                response_time_seconds=duration_ms / 1000.0 if duration_ms else None
+                duration_ms=duration_ms,
+                response_time_seconds=duration_ms / 1000.0 if duration_ms else None,
+                is_correct=is_correct
             )
             
             # Use score from SrsResult

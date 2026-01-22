@@ -225,17 +225,30 @@ class HybridFSRSEngine:
             
         # Build Result
         new_card_state = self._from_next_state(selected_state, card_state, fsrs_rating)
-        new_card_state.scheduled_days = final_interval
+        
+        # 3. Apply Fuzzing (Interval Randomization)
+        # Threshold and range from MemoryPowerConfigService (or defaults)
+        # We use a random.uniform(0.95, 1.05) to apply +/- 5% variance.
+        fuzzed_interval = final_interval
+        if final_interval > 3.0: # Default threshold
+             import random as py_random
+             fuzz_factor = py_random.uniform(0.95, 1.05)
+             fuzzed_interval = final_interval * fuzz_factor
+             # Ensure we don't fuzz below the threshold
+             fuzzed_interval = max(3.0, fuzzed_interval)
+        
+        new_card_state.scheduled_days = fuzzed_interval
         new_card_state.last_review = now
-        new_card_state.due = now + timedelta(days=final_interval)
+        new_card_state.due = now + timedelta(days=fuzzed_interval)
         
         log = {
             "rating": fsrs_rating,
             "days_elapsed": days_elapsed,
-            "scheduled_days": final_interval,
+            "scheduled_days": fuzzed_interval,
             "review_duration": 0, # Placeholder, caller should fill
             "start_state": card_state.state,
-            "end_state": new_card_state.state
+            "end_state": new_card_state.state,
+            "original_interval": final_interval
         }
         
         return new_card_state, new_card_state.due, log

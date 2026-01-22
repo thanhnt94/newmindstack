@@ -215,22 +215,17 @@ class ScoringEngine:
     @staticmethod
     def quality_to_score(quality: int) -> int:
         """
-        Pure function: Convert SRS quality (0-5) to score points.
-        
-        This is the single source of truth for quality-to-score mapping.
-        Used by SRS service when saving ReviewLog.score_change.
+        Pure function: Convert FSRS rating (1-4) to score points.
         
         Args:
-            quality: SRS quality rating (0-5)
-                0 = Complete fail
-                1 = Again/Failed
-                2 = Hard (vague)
-                3 = Hard
-                4 = Good
-                5 = Perfect/Easy
+            quality: FSRS rating (1-4)
+                1 = Again
+                2 = Hard
+                3 = Good
+                4 = Easy
         
         Returns:
-            Score points (0-20)
+            Score points
         """
         score_map = {
             1: 5,    # Again (Failed) - 5 pts

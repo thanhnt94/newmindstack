@@ -33,6 +33,15 @@ class MemoryPowerConfigService:
         # === FSRS-5 Parameters ===
         'FSRS_DESIRED_RETENTION': DEFAULT_APP_CONFIGS.get('FSRS_DESIRED_RETENTION'),
         'FSRS_W_PARAMS': DEFAULT_APP_CONFIGS.get('FSRS_GLOBAL_WEIGHTS'),
+
+        # === Implicit Rating Thresholds (Quiz/Typing) ===
+        'QUIZ_RATING_EASY_MS': 3000,
+        'QUIZ_RATING_GOOD_MS': 10000,
+
+        # === Advanced Optimizations ===
+        'FSRS_DAILY_LIMIT': 200,
+        'FSRS_FUZZ_THRESHOLD': 3.0,
+        'FSRS_OPTIMIZER_THRESHOLD': 500,
     }
 
     # Setting descriptions for UI - DETAILED Vietnamese explanations
@@ -55,6 +64,19 @@ Giá trị từ 0.7 đến 0.97. Mặc định: 0.9 (90%).
 Đây là các hệ số được tối ưu hóa từ lịch sử học của bạn.
 ⚠️ CHỈ thay đổi nếu bạn hiểu rõ thuật toán FSRS!
 Format JSON: Mảng số thực (thường là 17 hoặc 19 số tùy phiên bản). Để khôi phục mặc định, nhấn "Reset".''',
+
+        'QUIZ_RATING_EASY_MS': '''Thời gian trả lời tối đa (ms) để được coi là "Dễ" (Rating 4) trong chế độ Quiz.
+Mặc định: 3000 (3 giây).''',
+        'QUIZ_RATING_GOOD_MS': '''Thời gian trả lời tối đa (ms) để được coi là "Tốt" (Rating 3) trong chế độ Quiz.
+Mặc định: 10000 (10 giây). Nếu vượt quá sẽ coi là "Khó" (Rating 2).''',
+
+        'FSRS_DAILY_LIMIT': '''Giới hạn số thẻ ôn tập tối đa mỗi ngày để cân bằng tải.
+Nếu vượt quá giới hạn này, card có độ ưu tiên thấp sẽ được dời sang ngày khác (+/- 1 ngày).
+Mặc định: 200 thẻ.''',
+        'FSRS_FUZZ_THRESHOLD': '''Ngưỡng interval (ngày) để bắt đầu áp dụng Fuzzing (làm mờ lịch).
+Mặc định: 3.0 ngày. Các card có interval ngắn hơn sẽ không bị fuzz để đảm bảo độ chính xác.''',
+        'FSRS_OPTIMIZER_THRESHOLD': '''Số lượng review log tối thiểu để tự động kích hoạt tối ưu hóa tham số (Optimization).
+Mặc định: 500 review.''',
     }
 
     # Data types for form rendering
@@ -64,6 +86,11 @@ Format JSON: Mảng số thực (thường là 17 hoặc 19 số tùy phiên b�
         # FSRS-5
         'FSRS_DESIRED_RETENTION': 'float',
         'FSRS_W_PARAMS': 'json',
+        'QUIZ_RATING_EASY_MS': 'int',
+        'QUIZ_RATING_GOOD_MS': 'int',
+        'FSRS_DAILY_LIMIT': 'int',
+        'FSRS_FUZZ_THRESHOLD': 'float',
+        'FSRS_OPTIMIZER_THRESHOLD': 'int',
     }
 
     # Group settings for UI display
@@ -82,6 +109,11 @@ Format JSON: Mảng số thực (thường là 17 hoặc 19 số tùy phiên b�
             'keys': [
                 'FSRS_DESIRED_RETENTION',
                 'FSRS_W_PARAMS',
+                'QUIZ_RATING_EASY_MS',
+                'QUIZ_RATING_GOOD_MS',
+                'FSRS_DAILY_LIMIT',
+                'FSRS_FUZZ_THRESHOLD',
+                'FSRS_OPTIMIZER_THRESHOLD',
             ],
         },
     }

@@ -388,13 +388,15 @@ def api_check_answer():
         from mindstack_app.utils.db_session import safe_commit
         from mindstack_app.models import db
 
-        quality = 3 if result.get('correct') else 1
+        quality = 1  # Dummy quality, derived implicitly
         progress, srs_result = FsrsService.process_answer(
             user_id=current_user.user_id,
             item_id=item_id,
             quality=quality,
             mode='listening',
-            # result_data=result 
+            duration_ms=duration_ms,
+            target_text=correct_answer,
+            user_answer=user_answer
         )
         safe_commit(db.session)
         # Flatten srs_result object into result dict

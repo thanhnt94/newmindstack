@@ -11,6 +11,7 @@ from typing import Optional, Tuple, Dict, Any
 from dataclasses import dataclass
 
 from flask import current_app
+from sqlalchemy import func
 from mindstack_app.models import db, LearningItem, ReviewLog, User
 from mindstack_app.models.learning_progress import LearningProgress
 
@@ -42,24 +43,109 @@ class FsrsService:
     """
 
     @staticmethod
-    def _normalize_rating(quality: int) -> int:
+    def _normalize_rating(quality: Any) -> int:
         """
-        Normalize legacy SM-2 ratings (0-5) to FSRS (1-4).
+        Normalize legacy SM-2 ratings (0-5) or None to FSRS v5 strict ratings (1-4).
         
-        Mapping:
-        0, 1 -> 1 (Again)
-        2    -> 2 (Hard)
-        3    -> 3 (Good)
-        4, 5 -> 4 (Easy)
+        Mapping logic (FSRS v5 standard):
+        - None, 0, 1 -> 1 (Again)
+        - 2          -> 2 (Hard)
+        - 3          -> 3 (Good)
+        - 4, 5       -> 4 (Easy)
+        - > 5        -> 4 (Safety clamp)
         """
-        if quality <= 1:
+        if quality is None:
             return 1
-        elif quality == 2:
+        
+        try:
+            q = int(quality)
+        except (ValueError, TypeError):
+            return 1
+
+        if q <= 1:
+            return 1
+        elif q == 2:
             return 2
-        elif quality == 3:
+        elif q == 3:
             return 3
         else:
             return 4
+
+    @staticmethod
+    def _levenshtein_distance(s1: str, s2: str) -> int:
+        """Calculate Levenshtein distance between two strings."""
+        if len(s1) < len(s2):
+            return FsrsService._levenshtein_distance(s2, s1)
+        if len(s2) == 0:
+            return len(s1)
+        previous_row = range(len(s2) + 1)
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+        return previous_row[-1]
+
+    @staticmethod
+    def _calculate_quiz_rating(is_correct: bool, duration_ms: int) -> int:
+        """
+        Derive FSRS Rating (1-4) from Quiz (MCQ) performance.
+        - Incorrect -> Again (1)
+        - Correct & < 3s -> Easy (4)
+        - Correct & 3-10s -> Good (3)
+        - Correct & > 10s -> Hard (2)
+        """
+        if not is_correct:
+            return Rating.Again
+        
+        from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
+        easy_threshold = MemoryPowerConfigService.get('QUIZ_RATING_EASY_MS', 3000)
+        good_threshold = MemoryPowerConfigService.get('QUIZ_RATING_GOOD_MS', 10000)
+        
+        if duration_ms < easy_threshold:
+            return Rating.Easy
+        elif duration_ms <= good_threshold:
+            return Rating.Good
+        else:
+            return Rating.Hard
+
+    @staticmethod
+    def _calculate_typing_rating(target_text: str, user_answer: str, duration_ms: int) -> int:
+        """
+        Derive FSRS Rating (1-4) from Typing performance.
+        Logic:
+        - Perfect match + high speed -> Easy (4)
+        - Perfect match + normal speed -> Good (3)
+        - Minor typos (similarity >= 0.8) -> Hard (2)
+        - Major errors (similarity < 0.8) -> Again (1)
+        """
+        if not target_text or not user_answer:
+            return Rating.Again
+            
+        t = target_text.strip().lower()
+        u = user_answer.strip().lower()
+        
+        if t == u:
+            # Calculate WPM assuming 5 chars per word
+            # WPM = (chars / 5) / (ms / 60000)
+            if duration_ms > 0:
+                wpm = (len(t) / 5.0) / (duration_ms / 60000.0)
+                if wpm >= 40: # Rapid recall
+                    return Rating.Easy
+            return Rating.Good
+            
+        # Minor typos
+        distance = FsrsService._levenshtein_distance(t, u)
+        max_len = max(len(t), len(u), 1)
+        similarity = 1.0 - (distance / max_len)
+        
+        if similarity >= 0.8:
+            return Rating.Hard
+            
+        return Rating.Again
 
     @staticmethod
     def _get_effective_parameters(user_id: int) -> list[float]:
@@ -123,8 +209,17 @@ class FsrsService:
         Args:
             quality: FSRS Rating 1=Again, 2=Hard, 3=Good, 4=Easy
         """
-        # Normalize rating (0-5 -> 1-4)
-        fsrs_rating = FsrsService._normalize_rating(quality)
+        # 0. Mode-Based FSRS v5 Rating Calculation
+        if mode in ['quiz', 'quiz_mcq']:
+            is_correct_arg = kwargs.get('is_correct', quality >= 3 if quality is not None else False)
+            fsrs_rating = FsrsService._calculate_quiz_rating(is_correct_arg, duration_ms)
+        elif mode in ['typing', 'listening']:
+            target_text = kwargs.get('target_text', '')
+            user_answer = kwargs.get('user_answer', '')
+            fsrs_rating = FsrsService._calculate_typing_rating(target_text, user_answer, duration_ms)
+        else:
+            # Default or Flashcard: Maps legacy 0-5 or None to strict 1-4
+            fsrs_rating = FsrsService._normalize_rating(quality)
         
         now = datetime.datetime.now(datetime.timezone.utc)
         
@@ -209,7 +304,7 @@ class FsrsService:
         
         score_result = ScoringEngine.calculate_answer_points(
             mode=mode,
-            quality=quality, # Use original quality for score granularity
+            quality=fsrs_rating, # Use normalized FSRS rating (1-4)
             is_correct=is_correct,
             is_first_time=is_first_time,
             correct_streak=new_correct_streak,
@@ -237,7 +332,25 @@ class FsrsService:
             repetitions=new_card.reps
         )
 
-        # 7. Save to Progress (skip schedule update for cram mode)
+        # 7. Apply Load Balancing (Date Shifting)
+        # If the target date is overloaded (> FSRS_DAILY_LIMIT), shift due date +/- 1 day for non-critical reviews.
+        daily_limit = int(MemoryPowerConfigService.get('FSRS_DAILY_LIMIT', 200))
+        target_date = next_due.date()
+        
+        # Count existing reviews for this user on that date
+        # Better: check LearningProgress.fsrs_due for future dates
+        due_on_date_count = LearningProgress.query.filter(
+            LearningProgress.user_id == user_id,
+            func.date(LearningProgress.fsrs_due) == target_date
+        ).count()
+        
+        if due_on_date_count > daily_limit and fsrs_rating >= Rating.Good:
+            import random as py_random
+            shift = py_random.choice([-1, 1])
+            next_due = next_due + datetime.timedelta(days=shift)
+            current_app.logger.debug(f"Load Balancing: Shifted due date for item {item_id} by {shift} day(s)")
+
+        # 8. Save to Progress (skip schedule update for cram mode)
         should_update_schedule = not (is_cram and progress.fsrs_state != LearningProgress.STATE_NEW)
         
         if should_update_schedule:
@@ -266,12 +379,12 @@ class FsrsService:
         else:
             progress.times_incorrect = (progress.times_incorrect or 0) + 1
         
-        # 8. Log Review
+        # 9. Log Review
         log_entry = ReviewLog(
             user_id=user_id,
             item_id=item_id,
             timestamp=now,
-            rating=quality, # Log original rating
+            rating=fsrs_rating, # MUST log normalized FSRS rating 1-4
             
             # FSRS Optimizer Fields
             scheduled_days=new_card.scheduled_days,
@@ -292,6 +405,20 @@ class FsrsService:
             streak_position=streak_position or new_correct_streak
         )
         db.session.add(log_entry)
+        db.session.flush() # Ensure log is in DB for count check
+        
+        # 10. Automated Optimizer Trigger
+        optimizer_threshold = int(MemoryPowerConfigService.get('FSRS_OPTIMIZER_THRESHOLD', 500))
+        review_count = ReviewLog.query.filter_by(user_id=user_id).count()
+        
+        if review_count >= optimizer_threshold and review_count % optimizer_threshold == 0:
+            try:
+                from .fsrs_optimizer import FsrsOptimizerService
+                current_app.logger.info(f"Triggering FSRS Optimization for user {user_id} (Reviews: {review_count})")
+                # Run optimization (it updates user.fsrs_parameters internally)
+                FsrsOptimizerService.train_for_user(user_id)
+            except Exception as e:
+                current_app.logger.error(f"FSRS Optimization failed for user {user_id}: {e}")
         
         return progress, srs_result
 

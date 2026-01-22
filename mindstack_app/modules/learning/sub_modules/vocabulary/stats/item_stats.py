@@ -103,7 +103,7 @@ class VocabularyItemStats:
                 older_avg = sum(older_stability) / len(older_stability)
                 stability_trend = round(recent_avg - older_avg, 1)  # Absolute day change
         
-        # NEW: Rating distribution (for flashcard mode)
+        # NEW: Rating distribution (for strict FSRS 1-4 ratings)
         rating_dist = {'again': 0, 'hard': 0, 'good': 0, 'easy': 0}
         for log in logs:
             if log.review_type == 'flashcard' and log.rating is not None:
@@ -113,7 +113,7 @@ class VocabularyItemStats:
                     rating_dist['hard'] += 1
                 elif log.rating == 3:
                     rating_dist['good'] += 1
-                else:  # 4 or 5
+                else: # 4 (Easy)
                     rating_dist['easy'] += 1
         
         # NEW: Time metrics (min, max)
