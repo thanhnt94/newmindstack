@@ -32,7 +32,9 @@ class MemoryPowerConfigService:
 
         # === FSRS-5 Parameters ===
         'FSRS_DESIRED_RETENTION': DEFAULT_APP_CONFIGS.get('FSRS_DESIRED_RETENTION'),
-        'FSRS_W_PARAMS': DEFAULT_APP_CONFIGS.get('FSRS_GLOBAL_WEIGHTS'),
+        'FSRS_MAX_INTERVAL': DEFAULT_APP_CONFIGS.get('FSRS_MAX_INTERVAL', 365),
+        'FSRS_ENABLE_FUZZ': DEFAULT_APP_CONFIGS.get('FSRS_ENABLE_FUZZ', False),
+        'FSRS_GLOBAL_WEIGHTS': DEFAULT_APP_CONFIGS.get('FSRS_GLOBAL_WEIGHTS'),
 
         # === Implicit Rating Thresholds (Quiz/Typing) ===
         'QUIZ_RATING_EASY_MS': 3000,
@@ -60,7 +62,13 @@ Giá trị từ 0.7 đến 0.97. Mặc định: 0.9 (90%).
 • Thấp hơn (0.85): Ôn ít hơn, interval dài hơn
 Đây là thông số quan trọng nhất ảnh hưởng đến lịch ôn tập.''',
 
-        'FSRS_W_PARAMS': '''Các tham số trọng số (w) của thuật toán FSRS.
+        'FSRS_MAX_INTERVAL': '''Giới hạn khoảng cách ôn tập tối đa (ngày).
+Mặc định: 365 ngày.''',
+
+        'FSRS_ENABLE_FUZZ': '''Bật/Tắt tính năng làm mờ lịch (Fuzzing).
+Giúp phân tán tải ôn tập bằng cách thêm biến thiên ngẫu nhiên nhỏ.''',
+
+        'FSRS_GLOBAL_WEIGHTS': '''Các tham số trọng số (w) của thuật toán FSRS.
 Đây là các hệ số được tối ưu hóa từ lịch sử học của bạn.
 ⚠️ CHỈ thay đổi nếu bạn hiểu rõ thuật toán FSRS!
 Format JSON: Mảng số thực (thường là 17 hoặc 19 số tùy phiên bản). Để khôi phục mặc định, nhấn "Reset".''',
@@ -85,7 +93,9 @@ Mặc định: 500 review.''',
         'HARD_ITEM_MAX_REPETITIONS': 'int',
         # FSRS-5
         'FSRS_DESIRED_RETENTION': 'float',
-        'FSRS_W_PARAMS': 'json',
+        'FSRS_MAX_INTERVAL': 'int',
+        'FSRS_ENABLE_FUZZ': 'bool',
+        'FSRS_GLOBAL_WEIGHTS': 'json',
         'QUIZ_RATING_EASY_MS': 'int',
         'QUIZ_RATING_GOOD_MS': 'int',
         'FSRS_DAILY_LIMIT': 'int',
@@ -108,7 +118,9 @@ Mặc định: 500 review.''',
             'icon': 'fas fa-cogs',
             'keys': [
                 'FSRS_DESIRED_RETENTION',
-                'FSRS_W_PARAMS',
+                'FSRS_MAX_INTERVAL',
+                'FSRS_ENABLE_FUZZ',
+                'FSRS_GLOBAL_WEIGHTS',
                 'QUIZ_RATING_EASY_MS',
                 'QUIZ_RATING_GOOD_MS',
                 'FSRS_DAILY_LIMIT',
@@ -256,5 +268,7 @@ Mặc định: 500 review.''',
         """Utility to get all FSRS v5 core params in one dict."""
         return {
             'desired_retention': cls.get('FSRS_DESIRED_RETENTION'),
-            'w': cls.get('FSRS_W_PARAMS'),
+            'max_interval': cls.get('FSRS_MAX_INTERVAL'),
+            'enable_fuzz': cls.get('FSRS_ENABLE_FUZZ'),
+            'w': cls.get('FSRS_GLOBAL_WEIGHTS'),
         }

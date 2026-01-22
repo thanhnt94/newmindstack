@@ -200,7 +200,11 @@ class VocabularyItemStats:
             'progress': {
                 'status': status,
                 'retrievability': round(retrievability * 100, 1),
+                'streak': streak,
+                'ease_factor': round(difficulty, 2),
+                'due_relative': _get_relative_time_string(next_due) if next_due else 'Sẵn sàng',
                 'stability_trend': stability_trend,
+                'mastery_trend': stability_trend, # Template uses mastery_trend for stability change
                 'first_reviewed': first_reviewed,
                 'last_reviewed_log': last_reviewed_log,
                 'last_reviewed_relative': _get_relative_time_string(last_reviewed_log) if last_reviewed_log else 'Chưa học'

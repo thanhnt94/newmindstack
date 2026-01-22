@@ -171,7 +171,7 @@ class HybridFSRSEngine:
         except (ZeroDivisionError, OverflowError):
             return 0.0
 
-    def review_card(self, card_state: CardState, rating: int, now: Optional[datetime] = None) -> Tuple[CardState, datetime, Dict[str, Any]]:
+    def review_card(self, card_state: CardState, rating: int, now: Optional[datetime] = None, enable_fuzz: bool = False) -> Tuple[CardState, datetime, Dict[str, Any]]:
         """
         Process review with standard FSRS-5 algorithm.
         Returns: (new_card_state, due_datetime, log_dict)
@@ -230,7 +230,7 @@ class HybridFSRSEngine:
         # Threshold and range from MemoryPowerConfigService (or defaults)
         # We use a random.uniform(0.95, 1.05) to apply +/- 5% variance.
         fuzzed_interval = final_interval
-        if final_interval > 3.0: # Default threshold
+        if enable_fuzz and final_interval > 3.0: # Default threshold
              import random as py_random
              fuzz_factor = py_random.uniform(0.95, 1.05)
              fuzzed_interval = final_interval * fuzz_factor

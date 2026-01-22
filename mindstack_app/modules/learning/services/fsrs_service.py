@@ -267,10 +267,21 @@ class FsrsService:
 
         # Fetch Configuration with Caps
         from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
-        desired_retention = float(MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9))
+        from mindstack_app.services.container_config_service import ContainerConfigService
+        
+        # Priority: Container-specific retention -> Global retention
+        container_retention = ContainerConfigService.get_retention(container_id)
+        if container_retention is not None:
+             current_app.logger.debug(f"Using container-specific retention {container_retention} for container {container_id}")
+             desired_retention = container_retention
+        else:
+             desired_retention = float(MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9))
+        
+        # Safety clamp
         desired_retention = max(0.70, min(0.99, desired_retention))
         
-        max_interval_days = int(MemoryPowerConfigService.get('FSRS_MAX_INTERVAL', 36500))
+        enable_fuzz = bool(MemoryPowerConfigService.get('FSRS_ENABLE_FUZZ', False))
+        max_interval_days = int(MemoryPowerConfigService.get('FSRS_MAX_INTERVAL', 365))
         
         effective_weights = FsrsService._get_effective_parameters(user_id)
 
@@ -282,7 +293,8 @@ class FsrsService:
         new_card, next_due, log_info = engine.review_card(
             card_state=card,
             rating=fsrs_rating,
-            now=now
+            now=now,
+            enable_fuzz=enable_fuzz
         )
         
         # [FIX] Enforce Admin Max Interval Cap (Post-Engine)
